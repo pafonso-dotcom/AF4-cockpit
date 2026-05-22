@@ -676,21 +676,35 @@ export default function App() {
                 />
               </div>
             )}
-            {tab === "cartoes" && !cartaoAberto && (
-              <Cartoes cartoes={cartoes} setCartoes={setCartoes}
-                       parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
-                       contas={contas} setContas={setContas}
-                       transacoes={transacoes} setTransacoes={setTransacoes}
-                       categorias={categorias}
-                       hidden={hidden}
-                       onCartaoClick={setCartaoAberto} />
-            )}
-            {tab === "cartoes" && cartaoAberto && (
-              <CartaoExtrato cartao={cartaoAberto}
-                             transacoes={transacoes}
-                             parcelamentos={parcelamentos}
-                             onVoltar={() => setCartaoAberto(null)}
-                             hidden={hidden} />
+            {tab === "cartoes" && (
+              <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+                <div style={{ flex: "1 1 320px", minWidth: 280, maxWidth: 440 }}>
+                  <Cartoes cartoes={cartoes} setCartoes={setCartoes}
+                           parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
+                           contas={contas} setContas={setContas}
+                           transacoes={transacoes} setTransacoes={setTransacoes}
+                           categorias={categorias}
+                           hidden={hidden}
+                           cartaoAtivo={cartaoAberto}
+                           onCartaoClick={setCartaoAberto} />
+                </div>
+                <div style={{ flex: "2 1 480px", minWidth: 300 }}>
+                  {cartaoAberto ? (
+                    <CartaoExtrato cartao={cartaoAberto}
+                                   transacoes={transacoes}
+                                   parcelamentos={parcelamentos}
+                                   onVoltar={() => setCartaoAberto(null)}
+                                   hidden={hidden} />
+                  ) : (
+                    <div style={{
+                      padding: 48, textAlign: "center", color: T.muted, fontStyle: "italic",
+                      border: `1px dashed ${T.border}`, borderRadius: 12, background: T.card,
+                    }}>
+                      Selecione um cartão à esquerda pra ver o extrato.
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
             {tab === "relatorios-f" && (
               <RelatoriosFinancas transacoes={transacoes} contas={contas}
