@@ -5,7 +5,7 @@
 // Sempre que mudar a UI, bump a versão CACHE pra invalidar tudo do cliente.
 
 const CACHE = "af4-cockpit-v1781600000";
-const PRECACHE = ["/manifest.webmanifest", "/icon.svg"];
+const PRECACHE = ["./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)));
@@ -43,7 +43,7 @@ self.addEventListener("fetch", (e) => {
           return res;
         })
         .catch(() =>
-          caches.match(e.request).then((hit) => hit || caches.match("/index.html"))
+          caches.match(e.request).then((hit) => hit || caches.match("./index.html"))
         )
     );
     return;

@@ -60,8 +60,8 @@ export function notify(title, body, options = {}) {
   try {
     return new Notification(title, {
       body,
-      icon: "/icon.svg",
-      badge: "/icon.svg",
+      icon: `${import.meta.env.BASE_URL}icon.svg`,
+      badge: `${import.meta.env.BASE_URL}icon.svg`,
       ...options,
     });
   } catch {

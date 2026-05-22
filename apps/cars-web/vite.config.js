@@ -2,6 +2,9 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
+  // Caminho relativo: funciona tanto em GitHub Pages (sub-pasta
+  // /AF4-cockpit/) quanto em domínio próprio na raiz.
+  base: "./",
   plugins: [react()],
   build: {
     outDir: "dist",
