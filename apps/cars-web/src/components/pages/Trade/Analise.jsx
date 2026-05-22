@@ -79,7 +79,7 @@ function moedaDe(tipo) {
   return (tipo === "acao" || tipo === "fii") ? "R$" : "US$";
 }
 
-export default function Analise({ tradeWatchlist = [], ativos = [], alvoInicial = null }) {
+export default function Analise({ tradeWatchlist = [], ativos = [], alvoInicial = null, onVoltar = null }) {
   const watchlist = getWatchlist(tradeWatchlist);
   const itens = useMemo(() => buildItens(watchlist, ativos), [watchlist, ativos]);
 
@@ -227,6 +227,12 @@ Retorne EXATAMENTE este JSON (sem markdown):
 
   return (
     <div className="fade-up py-8 px-6">
+      {onVoltar && (
+        <button onClick={onVoltar} className="btn-ghost"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 12, fontSize: 12 }}>
+          ← Voltar para Análise da Carteira
+        </button>
+      )}
       <PageHeader
         eyebrow="AF4 Trade · Análise individual"
         title={<>Análise <em>técnica.</em></>}
