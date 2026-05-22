@@ -38,11 +38,32 @@ export async function signIn(email, password) {
   return data;
 }
 
+const redirectURL = () =>
+  typeof window !== "undefined" ? window.location.origin : undefined;
+
 export async function signUp(email, password) {
   if (!supabase) throw new Error("Supabase nao configurado");
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: redirectURL() },
+  });
   if (error) throw error;
   return data;
+}
+
+export async function resetPassword(email) {
+  if (!supabase) throw new Error("Supabase nao configurado");
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: redirectURL(),
+  });
+  if (error) throw error;
+}
+
+export async function updatePassword(password) {
+  if (!supabase) throw new Error("Supabase nao configurado");
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
 }
 
 export async function signOut() {
@@ -58,7 +79,7 @@ export async function getSession() {
 
 export function onAuthChange(cb) {
   if (!supabase) return () => {};
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => cb(session));
+  const { data } = supabase.auth.onAuthStateChange((event, session) => cb(session, event));
   return () => data.subscription.unsubscribe();
 }
 

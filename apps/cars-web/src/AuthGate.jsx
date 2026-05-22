@@ -4,17 +4,24 @@ import Login from "./components/Login.jsx";
 
 /**
  * AuthGate:
- *  - Se Supabase NÃO configurado → renderiza App direto (modo local).
- *  - Se Supabase configurado + sem sessão → mostra Login.
- *  - Se logado OU usuário escolher "pular" → renderiza App.
+ *  - Supabase configurado → login obrigatório (sem sessão = tela de Login).
+ *  - Link de redefinição de senha → tela para definir a nova senha.
+ *  - Supabase NÃO configurado (build sem env vars) → app em modo local.
  *
- * Expõe via window.__af4Logout uma função pra deslogar, pra o app
- * (ConfiguraçÕes) poder chamar sem precisar passar prop fundo.
+ * Expõe window.__af4Logout para o app deslogar de qualquer lugar.
  */
 export default function AuthGate({ children }) {
   const [ready, setReady] = useState(false);
   const [hasSession, setHasSession] = useState(false);
-  const [skipped, setSkipped] = useState(false);
+  const [recovering, setRecovering] = useState(false);
+
+  // Link de recuperação de senha traz "type=recovery" no hash da URL.
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    if (typeof window !== "undefined" && window.location.hash.includes("type=recovery")) {
+      setRecovering(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!supabaseConfigured) { setReady(true); return; }
@@ -23,7 +30,10 @@ export default function AuthGate({ children }) {
       const s = await getSession();
       setHasSession(!!s);
       setReady(true);
-      unsub = onAuthChange((sess) => setHasSession(!!sess));
+      unsub = onAuthChange((sess, event) => {
+        if (event === "PASSWORD_RECOVERY") setRecovering(true);
+        setHasSession(!!sess);
+      });
     })();
     return () => unsub();
   }, []);
@@ -31,10 +41,7 @@ export default function AuthGate({ children }) {
   // Atalho de logout pra ser usado em qualquer lugar do app
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.__af4Logout = async () => {
-      await signOut();
-      setSkipped(false);
-    };
+    window.__af4Logout = async () => { await signOut(); };
     return () => { delete window.__af4Logout; };
   }, []);
 
@@ -51,10 +58,15 @@ export default function AuthGate({ children }) {
     );
   }
 
-  // Sem Supabase OU já logado OU usuário pulou → app
-  if (!supabaseConfigured || hasSession || skipped) {
+  // Veio do link de redefinição → definir nova senha
+  if (recovering) {
+    return <Login mode="update" onPasswordUpdated={() => setRecovering(false)} />;
+  }
+
+  // Sem Supabase no build → modo local. Com Supabase → login obrigatório.
+  if (!supabaseConfigured || hasSession) {
     return <>{children}</>;
   }
 
-  return <Login onLoggedIn={() => setSkipped(true)} />;
+  return <Login />;
 }
