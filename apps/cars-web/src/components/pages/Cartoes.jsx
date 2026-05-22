@@ -15,6 +15,14 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
   const [parcForm, setParcForm] = useState(null);
   const [pagFatura, setPagFatura] = useState(null); // { cartaoId, valor, contaNome, data }
   const [pagErrors, setPagErrors] = useState({});
+  const [expandedCart, setExpandedCart] = useState(() => new Set());
+  const toggleExpandedCart = (id) => {
+    setExpandedCart(prev => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  };
 
   // Used limit per card from active installments
   const usedByCard = useMemo(() => {
@@ -283,115 +291,101 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           const usado = usedByCard[c.id] || 0;
           const disp = c.limite - usado;
           const pctUsado = c.limite > 0 ? (usado / c.limite) * 100 : 0;
+          const exp = expandedCart.has(c.id);
+          const ativaCard = cartaoAtivo?.id === c.id;
           return (
             <div key={c.id}
-                 onClick={() => onCartaoClick && onCartaoClick({ ...c, usado, faturaAtual: usado })}
                  style={{
-              background: brand.bg, padding: 0, position: "relative", overflow: "hidden",
-              minHeight: 170, borderRadius: 10, boxShadow: "0 6px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.1)",
-              cursor: onCartaoClick ? "pointer" : "default",
-              transition: "transform .2s, box-shadow .2s",
-            }}
-                 onMouseEnter={e => { if (onCartaoClick) { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)"; }}}
-                 onMouseLeave={e => { if (onCartaoClick) { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)"; }}}
-            >
-              {/* Highlight ring · borda dourada quando o cartão está aberto à direita */}
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, border: `2px solid ${cartaoAtivo?.id === c.id ? T.gold : "rgba(255,255,255,0.12)"}`, borderRadius: 10, pointerEvents: "none" }} />
-
-              {/* Top: brand + tipo */}
-              <div className="flex items-start justify-between" style={{ padding: "12px 14px 6px" }}>
-                <div>
-                  <div style={{ color: brand.fg, opacity: 0.6, fontSize: 8.5, letterSpacing: "0.25em", textTransform: "uppercase", fontWeight: 500 }}>
-                    {c.tipo === "principal" ? "Cartão Principal" : "Cartão Reserva"}
-                  </div>
-                  <div style={{ color: brand.fg, fontSize: 17, fontWeight: 600, marginTop: 3, letterSpacing: "-0.01em" }}>
-                    {c.nome}
+                   background: ativaCard ? `${T.gold}10` : T.card,
+                   border: `1px solid ${ativaCard ? T.gold : T.border}`,
+                   borderLeft: `4px solid ${brand.bg}`,
+                   borderRadius: 6, overflow: "hidden",
+                   transition: "all .15s",
+                 }}>
+              {/* Linha principal — pai */}
+              <div onClick={() => onCartaoClick && onCartaoClick({ ...c, usado, faturaAtual: usado })}
+                   style={{
+                     display: "flex", alignItems: "center", gap: 10,
+                     padding: "10px 12px",
+                     cursor: onCartaoClick ? "pointer" : "default",
+                   }}>
+                <CreditCard size={16} style={{ color: T.muted, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
+                  <div style={{ fontSize: 10, color: T.muted }}>
+                    Usado <span className="num">{hidden ? "•••" : fmt(usado)}</span> · Livre <span className="num" style={{ color: T.ink }}>{hidden ? "•••" : fmt(disp)}</span>
                   </div>
                 </div>
-                <CreditCard size={18} style={{ color: brand.fg, opacity: 0.85 }} />
+                <button onClick={(e) => { e.stopPropagation(); toggleExpandedCart(c.id); }}
+                        aria-label={exp ? "Recolher" : "Mais ações"}
+                        style={{ background: "transparent", border: "none", color: T.muted, cursor: "pointer", padding: 4, lineHeight: 0 }}>
+                  <ChevronDown size={16} style={{ transform: exp ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+                </button>
               </div>
-
-              {/* Middle: limit visual */}
-              <div style={{ padding: "0 14px 8px" }}>
-                <div className="flex justify-between items-baseline" style={{ color: brand.fg }}>
-                  <span style={{ fontSize: 9, opacity: 0.7, letterSpacing: "0.2em", textTransform: "uppercase" }}>Limite</span>
-                  <span className="num" style={{ fontSize: 14, fontWeight: 600 }}>{hidden ? "•••" : fmt(c.limite)}</span>
-                </div>
-                <div style={{ background: "rgba(255,255,255,0.15)", height: 4, marginTop: 5, borderRadius: 1 }}>
-                  <div style={{ width: `${Math.min(100, pctUsado)}%`, height: "100%", background: brand.fg, opacity: 0.9, transition: "width 0.6s" }} />
-                </div>
-                <div className="flex justify-between mt-1" style={{ color: brand.fg, opacity: 0.85, fontSize: 10 }}>
-                  <span className="num">Usado · {hidden ? "•••" : fmt(usado)}</span>
-                  <span className="num">Livre · {hidden ? "•••" : fmt(disp)}</span>
+              {/* Barra de limite (sempre visível) */}
+              <div style={{ padding: "0 12px 8px" }}>
+                <div style={{ background: T.border, height: 3, borderRadius: 1 }}>
+                  <div style={{ width: `${Math.min(100, pctUsado)}%`, height: "100%", background: brand.bg, opacity: 0.9, transition: "width 0.6s" }} />
                 </div>
               </div>
-
-              {/* Bottom: meta + ações compactas */}
-              <div style={{
-                padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
-                borderTop: "1px solid rgba(255,255,255,0.1)", color: brand.fg, gap: 6, flexWrap: "wrap",
-              }}>
-                <div className="flex items-center gap-2 flex-wrap" style={{ fontSize: 10 }}>
-                  <Calendar size={11} style={{ opacity: 0.7 }} />
-                  <span>Vence <strong>{c.vencimento}</strong></span>
-                  <span style={{ opacity: 0.4 }}>·</span>
-                  <span>Fecha <strong>{c.fechamento || "—"}</strong></span>
-                  {faturaPorCartao[c.id] && (
-                    <>
-                      <span style={{ opacity: 0.4 }}>·</span>
-                      <span style={{ fontWeight: 600 }}>
-                        Fatura <span className="num">{hidden ? "•••" : fmt(faturaPorCartao[c.id].valor)}</span>
-                      </span>
-                    </>
-                  )}
-                </div>
-                <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                  {faturaPorCartao[c.id] && faturaPorCartao[c.id].valor > 0 && (
-                    <button onClick={(e) => { e.stopPropagation(); openPagamento(c); }}
-                            aria-label={`Pagar fatura do ${c.nome}`}
-                            title="Pagar fatura corrente"
-                            style={{ background: "rgba(255,255,255,0.85)", color: "#1a1a1a", padding: "3px 8px", border: "none", cursor: "pointer", borderRadius: 3, fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                      Pagar
+              {/* Filhos — expandido */}
+              {exp && (
+                <div style={{ padding: "8px 12px 10px", borderTop: `1px dashed ${T.border}`, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: T.muted, flexWrap: "wrap", gap: 6 }}>
+                    <span><Calendar size={11} style={{ display: "inline", verticalAlign: "-1px", marginRight: 4 }} />Vence <strong style={{ color: T.ink }}>{c.vencimento}</strong></span>
+                    <span>Fecha <strong style={{ color: T.ink }}>{c.fechamento || "—"}</strong></span>
+                    {faturaPorCartao[c.id] && (
+                      <span>Fatura <strong style={{ color: T.ink }} className="num">{hidden ? "•••" : fmt(faturaPorCartao[c.id].valor)}</strong></span>
+                    )}
+                  </div>
+                  <ParcelasDoCartao
+                    cartao={c}
+                    parcelamentos={parcelamentos}
+                    brand={{ ...brand, fg: T.ink }}
+                    hidden={hidden}
+                  />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {faturaPorCartao[c.id] && faturaPorCartao[c.id].valor > 0 && (
+                      <button onClick={(e) => { e.stopPropagation(); openPagamento(c); }}
+                              style={{
+                                flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
+                                letterSpacing: ".05em", textTransform: "uppercase",
+                                borderRadius: 4, background: T.gold,
+                                border: "none", color: T.bg, cursor: "pointer",
+                              }}>
+                        Pagar fatura
+                      </button>
+                    )}
+                    <button onClick={(e) => { e.stopPropagation(); setForm(c); }}
+                            style={{
+                              flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
+                              letterSpacing: ".05em", textTransform: "uppercase",
+                              borderRadius: 4, background: "transparent",
+                              border: `1px solid ${T.border}`, color: T.muted, cursor: "pointer",
+                              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+                            }}>
+                      <Edit3 size={11} /> Editar
                     </button>
-                  )}
-                  <button onClick={() => setForm(c)} aria-label={`Editar ${c.nome}`}
-                    style={{ background: "rgba(255,255,255,0.15)", color: brand.fg, padding: 4, border: "none", cursor: "pointer", borderRadius: 3 }}>
-                    <Edit3 size={10} />
-                  </button>
-                  <button onClick={async () => {
-                            const ok = await confirm({
-                              title: `Excluir "${c.nome}"?`, danger: true, confirmLabel: "Excluir",
-                              body: "Parcelamentos vinculados perderão a referência.",
-                            });
-                            if (ok) {
-                              setCartoes(cartoes.filter(x => x.id !== c.id));
-                              toast.success(`${c.nome} excluído.`);
-                            }
-                          }}
-                          aria-label={`Excluir ${c.nome}`}
-                          style={{ background: "rgba(255,255,255,0.15)", color: brand.fg, padding: 4, border: "none", cursor: "pointer", borderRadius: 3 }}>
-                    <Trash2 size={10} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Parcelamentos ativos colapsável dentro do card */}
-              <ParcelasDoCartao
-                cartao={c}
-                parcelamentos={parcelamentos}
-                brand={brand}
-                hidden={hidden}
-              />
-
-              {/* Tags */}
-              {c.tags && c.tags.length > 0 && (
-                <div className="absolute" style={{ top: 60, right: 16, display: "flex", gap: 4, flexDirection: "column", alignItems: "flex-end" }}>
-                  {c.tags.map((t, i) => (
-                    <span key={i} style={{
-                      background: "rgba(0,0,0,0.25)", color: brand.fg, fontSize: 9, padding: "3px 8px", borderRadius: 10,
-                      letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500, backdropFilter: "blur(4px)",
-                    }}>{t}</span>
-                  ))}
+                    <button onClick={async (e) => {
+                                e.stopPropagation();
+                                const ok = await confirm({
+                                  title: `Excluir "${c.nome}"?`, danger: true, confirmLabel: "Excluir",
+                                  body: "Parcelamentos vinculados perderão a referência.",
+                                });
+                                if (!ok) return;
+                                setCartoes(cartoes.filter(x => x.id !== c.id));
+                                toast.success(`${c.nome} excluído.`);
+                              }}
+                            style={{
+                              flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
+                              letterSpacing: ".05em", textTransform: "uppercase",
+                              borderRadius: 4, background: "transparent",
+                              border: `1px solid ${T.red}33`, color: T.red, cursor: "pointer",
+                              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+                            }}>
+                      <Trash2 size={11} /> Excluir
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

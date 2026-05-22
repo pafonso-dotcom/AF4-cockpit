@@ -275,22 +275,24 @@ export default function ImportarExtrato({
           return (
             <div key={t._id}
                  style={{
-                   display: "flex", alignItems: "center", gap: 10,
+                   display: "grid",
+                   gridTemplateColumns: "26px 60px 1fr 100px",
+                   alignItems: "center", gap: 10,
                    padding: "8px 12px", borderBottom: `1px solid ${T.border}`,
-                   opacity: sel ? 1 : 0.4,
+                   opacity: sel ? 1 : 0.5,
                    background: sel ? "transparent" : T.bgSoft,
                  }}>
               <input type="checkbox" checked={sel} onChange={() => toggleSel(t._id)} />
-              <div style={{ width: 75, fontSize: 11, color: T.muted, flexShrink: 0 }}>
+              <div style={{ fontSize: 11, color: T.muted, whiteSpace: "nowrap" }}>
                 {t.data.slice(8, 10) + "/" + t.data.slice(5, 7)}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ minWidth: 0 }}>
                 <input type="text" value={edits.descricao ?? t.descricao}
                        onChange={e => updateLinha(t._id, "descricao", e.target.value)}
-                       style={{ width: "100%", background: "transparent", border: "none", color: T.ink, fontSize: 12.5, padding: 0, outline: "none" }} />
+                       style={{ width: "100%", background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 4, fontSize: 12.5, padding: "4px 6px", outline: "none", minHeight: 26, WebkitAppearance: "none" }} />
                 <select value={cat}
                         onChange={e => updateLinha(t._id, "categoria", e.target.value)}
-                        style={{ background: "transparent", border: "none", color: T.muted, fontSize: 10.5, padding: 0, marginTop: 2, cursor: "pointer", outline: "none" }}>
+                        style={{ width: "100%", marginTop: 3, background: T.bgSoft, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 4, fontSize: 11, padding: "3px 6px", cursor: "pointer", outline: "none" }}>
                   {categorias.filter(c => c.tipo === t.tipo).map(c => (
                     <option key={c.id} value={c.nome}>{c.nome}</option>
                   ))}
@@ -302,7 +304,7 @@ export default function ImportarExtrato({
               <div className="num" style={{
                 color: t.tipo === "receita" ? T.green : T.red,
                 fontWeight: 600, fontSize: 13, whiteSpace: "nowrap",
-                width: 110, textAlign: "right", flexShrink: 0,
+                textAlign: "right",
               }}>
                 {t.tipo === "receita" ? "+ " : "− "}{fmt(t.valor)}
               </div>

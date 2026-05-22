@@ -35,6 +35,14 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     try { localStorage.setItem("af4:ocultar-zeradas", novo ? "1" : "0"); } catch {}
     setOcultarZeradas(novo);
   };
+  const [expandedConta, setExpandedConta] = useState(() => new Set());
+  const toggleExpanded = (id) => {
+    setExpandedConta(prev => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  };
   const contasNoEscopo = filtrarPorEscopo(contas || [], escopoAtivo);
   const contasVisiveis = ocultarZeradas
     ? contasNoEscopo.filter(c => Math.abs(Number(c.saldo) || 0) > 0.01)
@@ -206,100 +214,96 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
 
       {/* Grid denso · auto-fill 200px+ */}
       <div style={{
-        display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-        gap: 6,
+        display: "flex", flexDirection: "column", gap: 4,
       }}>
         {contasVisiveis.map(c => {
           const ativa = contaAtiva?.id === c.id;
+          const exp = expandedConta.has(c.id);
           return (
-          <div key={c.id} className="card-hover"
-               onClick={() => onContaClick && onContaClick(c)}
-               role={onContaClick ? "button" : undefined}
-               tabIndex={onContaClick ? 0 : undefined}
-               onKeyDown={(e) => { if (onContaClick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onContaClick(c); } }}
+          <div key={c.id}
                style={{
                  background: ativa ? `${T.gold}10` : T.card,
-                 border: `${ativa ? 2 : 1}px solid ${ativa ? T.gold : T.border}`,
-                 borderTop: `3px solid ${c.cor || T.gold}`,
-                 borderRadius: 8, padding: 9,
-                 cursor: onContaClick ? "pointer" : "default",
+                 border: `1px solid ${ativa ? T.gold : T.border}`,
+                 borderLeft: `3px solid ${c.cor || T.gold}`,
+                 borderRadius: 6, overflow: "hidden",
                  transition: "all .15s",
-                 display: "flex", flexDirection: "column", gap: 2,
                }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{
-                fontSize: 9, letterSpacing: ".15em", color: T.muted,
-                textTransform: "uppercase", fontWeight: 600,
-              }}>
-                {tipos.find(t => t.v === c.tipo)?.l || c.tipo}
+            {/* Linha principal — pai */}
+            <div onClick={() => onContaClick && onContaClick(c)}
+                 role={onContaClick ? "button" : undefined}
+                 tabIndex={onContaClick ? 0 : undefined}
+                 onKeyDown={(e) => { if (onContaClick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onContaClick(c); } }}
+                 style={{
+                   display: "flex", alignItems: "center", gap: 10,
+                   padding: "10px 12px",
+                   cursor: onContaClick ? "pointer" : "default",
+                 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
+                {c.instituicao && (
+                  <div style={{ fontSize: 10, color: T.muted, fontStyle: "italic" }}>{c.instituicao}</div>
+                )}
               </div>
-              <Building2 size={13} style={{ color: T.faint }} />
+              <div className="num" style={{
+                fontFamily: T.serif, fontSize: 15, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap",
+              }}>
+                {hidden ? "•••" : fmt(c.saldo)}
+              </div>
+              <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
+                      aria-label={exp ? "Recolher" : "Mais ações"}
+                      style={{ background: "transparent", border: "none", color: T.muted, cursor: "pointer", padding: 4, lineHeight: 0 }}>
+                <ChevronRight size={16} style={{ transform: exp ? "rotate(90deg)" : "none", transition: "transform .15s" }} />
+              </button>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: "-.01em", color: T.ink, marginTop: 1 }}>{c.nome}</div>
-            {c.instituicao && (
-              <div style={{ fontSize: 10, color: T.muted, fontStyle: "italic" }}>{c.instituicao}</div>
+            {/* Filhos — ações */}
+            {exp && (
+              <div style={{ display: "flex", gap: 6, padding: "6px 12px 10px", borderTop: `1px dashed ${T.border}` }}>
+                {onCreateTransacao && (
+                  <button onClick={(e) => { e.stopPropagation(); onCreateTransacao(c.nome); }}
+                    style={{
+                      flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
+                      letterSpacing: ".05em", textTransform: "uppercase",
+                      borderRadius: 4, background: T.gold,
+                      border: "none", color: T.bg, cursor: "pointer",
+                    }}>
+                    + Tx
+                  </button>
+                )}
+                <button onClick={(e) => {
+                            e.stopPropagation();
+                            setForm({ ...c, saldo: c.saldoInicial != null ? c.saldoInicial : c.saldo });
+                          }}
+                        style={{
+                          flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
+                          letterSpacing: ".05em", textTransform: "uppercase",
+                          borderRadius: 4, background: "transparent",
+                          border: `1px solid ${T.border}`, color: T.muted, cursor: "pointer",
+                          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+                        }}>
+                  <Edit3 size={11} /> Editar
+                </button>
+                <button onClick={async (e) => {
+                            e.stopPropagation();
+                            const ok = await confirm({
+                              title: `Excluir "${c.nome}"?`,
+                              body: `A conta será removida. Transações ligadas a ela continuam mas ficam sem conta vinculada.`,
+                              danger: true, confirmLabel: "Excluir",
+                            });
+                            if (!ok) return;
+                            setContas(contas.filter(x => x.id !== c.id));
+                            toast.success(`${c.nome} excluída.`);
+                          }}
+                        style={{
+                          flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
+                          letterSpacing: ".05em", textTransform: "uppercase",
+                          borderRadius: 4, background: "transparent",
+                          border: `1px solid ${T.red}33`, color: T.red, cursor: "pointer",
+                          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+                        }}>
+                  <Trash2 size={11} /> Excluir
+                </button>
+              </div>
             )}
-            <div className="num" style={{
-              fontFamily: T.serif, fontSize: 17, fontWeight: 400,
-              marginTop: 2, color: c.saldo < 0 ? T.red : T.ink, lineHeight: 1.15,
-            }}>
-              {hidden ? "•••••" : fmt(c.saldo)}
-            </div>
-            <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-              {onContaClick && (
-                <button onClick={(e) => { e.stopPropagation(); onContaClick(c); }}
-                  style={{
-                    flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
-                    letterSpacing: ".05em", textTransform: "uppercase",
-                    borderRadius: 4, background: "transparent",
-                    border: `1px solid ${T.border}`, color: T.muted, cursor: "pointer",
-                  }}>
-                  Extrato
-                </button>
-              )}
-              {onCreateTransacao && (
-                <button onClick={(e) => { e.stopPropagation(); onCreateTransacao(c.nome); }}
-                  style={{
-                    flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
-                    letterSpacing: ".05em", textTransform: "uppercase",
-                    borderRadius: 4, background: T.gold,
-                    border: "none", color: T.bg, cursor: "pointer",
-                  }}>
-                  + Tx
-                </button>
-              )}
-            </div>
-            <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
-              <button onClick={(e) => {
-                          e.stopPropagation();
-                          setForm({ ...c, saldo: c.saldoInicial != null ? c.saldoInicial : c.saldo });
-                        }}
-                      style={{
-                        flex: 1, padding: "3px", fontSize: 9, background: "transparent",
-                        border: "none", color: T.muted, cursor: "pointer",
-                        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3,
-                      }}>
-                <Edit3 size={10} /> editar
-              </button>
-              <button onClick={async (e) => {
-                          e.stopPropagation();
-                          const ok = await confirm({
-                            title: `Excluir "${c.nome}"?`,
-                            body: `A conta será removida. Transações ligadas a ela continuam mas ficam sem conta vinculada.`,
-                            danger: true, confirmLabel: "Excluir",
-                          });
-                          if (!ok) return;
-                          setContas(contas.filter(x => x.id !== c.id));
-                          toast.success(`${c.nome} excluída.`);
-                        }}
-                      style={{
-                        flex: 1, padding: "3px", fontSize: 9, background: "transparent",
-                        border: "none", color: T.red, cursor: "pointer",
-                        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3,
-                      }}>
-                <Trash2 size={10} /> excluir
-              </button>
-            </div>
           </div>
           );
         })}
