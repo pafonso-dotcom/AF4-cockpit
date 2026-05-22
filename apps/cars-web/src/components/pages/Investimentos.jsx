@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, fmtP, uid, generateHistory, todayISO } from "../../lib/format.js";
@@ -11,7 +11,9 @@ import Field from "../ui/Field.jsx";
 import StatCard from "../ui/StatCard.jsx";
 import Modal from "../ui/Modal.jsx";
 
-export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, onRefresh, refreshing, hidden }) {
+const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
+
+export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, onRefresh, refreshing, onAnalisar, hidden }) {
   const [form, setForm] = useState(null);
   const [aporteForm, setAporteForm] = useState(null);
   const [vendaForm, setVendaForm] = useState(null);
@@ -368,6 +370,12 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                         style={{ flex: 1, background: `${T.red}22`, color: T.red, padding: "6px 8px", border: `1px solid ${T.red}`, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
                   Venda
                 </button>
+                {onAnalisar && TIPOS_ANALISAVEIS.includes(a.tipo) && (
+                  <button onClick={() => onAnalisar(a)} aria-label={`Analisar ${a.ticker}`} title="Análise técnica"
+                          style={{ color: T.gold, padding: 6, background: "transparent", border: `1px solid ${T.gold}`, cursor: "pointer" }}>
+                    <LineChart size={14} />
+                  </button>
+                )}
                 <button onClick={() => setForm(a)} aria-label={`Editar ${a.ticker}`} style={{ color: T.muted, padding: 6, background: "transparent", border: `1px solid ${T.border}`, cursor: "pointer" }}>
                   <Edit3 size={14} />
                 </button>
@@ -466,6 +474,10 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                             style={{ background: `${T.red}22`, color: T.red, padding: "4px 8px", border: `1px solid ${T.red}`, marginRight: 4, cursor: "pointer", fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
                       <ArrowUpRight size={10} className="inline" /> Venda
                     </button>
+                    {onAnalisar && TIPOS_ANALISAVEIS.includes(a.tipo) && (
+                      <button onClick={e => { e.stopPropagation(); onAnalisar(a); }} aria-label={`Analisar ${a.ticker}`} title="Análise técnica"
+                              style={{ color: T.gold, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><LineChart size={12} /></button>
+                    )}
                     <button onClick={e => { e.stopPropagation(); setForm(a); }} aria-label={`Editar ${a.ticker}`} style={{ color: T.muted, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Edit3 size={12} /></button>
                     <button onClick={async e => {
                               e.stopPropagation();
