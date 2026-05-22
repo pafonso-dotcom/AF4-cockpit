@@ -6,7 +6,9 @@ import Login from "./components/Login.jsx";
  * AuthGate:
  *  - Supabase configurado → login obrigatório (sem sessão = tela de Login).
  *  - Link de redefinição de senha → tela para definir a nova senha.
- *  - Supabase NÃO configurado (build sem env vars) → app em modo local.
+ *  - Supabase ausente em produção → bloqueia o acesso (fail-closed): build
+ *    sem credenciais não pode expor a plataforma sem autenticação.
+ *  - Supabase ausente em dev → app em modo local, para desenvolvimento.
  *
  * Expõe window.__af4Logout para o app deslogar de qualquer lugar.
  */
@@ -45,28 +47,57 @@ export default function AuthGate({ children }) {
     return () => { delete window.__af4Logout; };
   }, []);
 
-  if (!ready) {
-    return (
-      <div style={{
-        minHeight: "100vh", display: "grid", placeItems: "center",
-        background: "var(--bg)", color: "var(--tm)",
-      }}>
-        <div style={{ fontSize: 12, letterSpacing: ".3em", textTransform: "uppercase" }}>
-          carregando…
-        </div>
-      </div>
-    );
-  }
+  if (!ready) return <Splash>carregando…</Splash>;
 
   // Veio do link de redefinição → definir nova senha
   if (recovering) {
     return <Login mode="update" onPasswordUpdated={() => setRecovering(false)} />;
   }
 
-  // Sem Supabase no build → modo local. Com Supabase → login obrigatório.
-  if (!supabaseConfigured || hasSession) {
+  // Sem Supabase no build:
+  //  - produção → bloqueia (credenciais faltando, não expor a plataforma)
+  //  - dev → modo local liberado
+  if (!supabaseConfigured) {
+    if (import.meta.env.PROD) return <ConfigError />;
     return <>{children}</>;
   }
 
+  // Login obrigatório
+  if (hasSession) return <>{children}</>;
   return <Login />;
+}
+
+function Splash({ children }) {
+  return (
+    <div style={{
+      minHeight: "100vh", display: "grid", placeItems: "center",
+      background: "var(--bg)", color: "var(--tm)",
+    }}>
+      <div style={{ fontSize: 12, letterSpacing: ".3em", textTransform: "uppercase" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ConfigError() {
+  return (
+    <div style={{
+      minHeight: "100vh", display: "grid", placeItems: "center",
+      background: "var(--bg)", color: "var(--tm)", padding: 24,
+    }}>
+      <div style={{ maxWidth: 380, textAlign: "center" }}>
+        <div style={{
+          fontSize: 12, letterSpacing: ".3em", textTransform: "uppercase",
+          color: "var(--dn)", marginBottom: 12,
+        }}>
+          Acesso indisponível
+        </div>
+        <div style={{ fontSize: 14, lineHeight: 1.65, color: "var(--tm)" }}>
+          A autenticação não está configurada neste site. O administrador
+          precisa definir as credenciais do Supabase nas variáveis de build.
+        </div>
+      </div>
+    </div>
+  );
 }
