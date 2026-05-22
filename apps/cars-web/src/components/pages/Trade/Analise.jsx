@@ -23,9 +23,10 @@ const INTERVALOS_BINANCE = ["15m", "1h", "4h", "1d", "1w"];
 const INTERVALOS_BRAPI = ["1d", "1w"];
 
 // Mapeia o timeframe da UI para os parâmetros da BRAPI (range + interval)
+// Ranges limitados a "3mo" (compatível com plano gratuito/básico da Brapi).
 const BRAPI_TF = {
-  "1d": { range: "6mo", interval: "1d" },
-  "1w": { range: "2y", interval: "1wk" },
+  "1d": { range: "3mo", interval: "1d" },
+  "1w": { range: "3mo", interval: "1wk" },
 };
 
 // Tipos de ativo da carteira que dão pra analisar tecnicamente
