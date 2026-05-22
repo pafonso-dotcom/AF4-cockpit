@@ -1,10 +1,12 @@
 /**
  * Parsers de extratos bancários (OFX e CSV) com auto-categorização.
  *
- * Banco brasileiro exporta em 2 formatos:
+ * Formatos suportados:
  *  - OFX (XML-like): padronizado, fácil de extrair
- *  - CSV: cada banco usa um formato próprio, mas detectamos pelo header
+ *  - CSV genérico: detecta o banco pelo header (Itaú, Nubank, Bradesco, etc.)
+ *  - MoneyWiz CSV: preset para exports em português do app MoneyWiz
  */
+import Papa from "papaparse";
 
 /* ============================================================
    AUTO-CATEGORIZAÇÃO POR PALAVRA-CHAVE
@@ -221,12 +223,121 @@ export function parseCSV(text) {
   return { transacoes, banco };
 }
 
+/* ============================================================
+   PRESET MoneyWiz (CSV exportado em PT)
+   Cabeçalho: Conta · Transferências · Descrição · Beneficiário ·
+              Categoria · Data · Memorando · Valor · Câmbio · ...
+   Particularidades:
+   - Primeira linha "sep=,". Data DD/MM/YYYY. Valor BR (1.234,56).
+   - Memorando vira fallback quando Descrição é vazia ou "0".
+   - Categoria hierárquica "Pai > Filho" → categoria + subcategoria.
+   - Linhas com "Transferências" preenchido viram categoria
+     "Transferência" (não somam nos KPIs de despesa/receita normais).
+   ============================================================ */
+
+function isMoneyWizCSV(text) {
+  if (!text) return false;
+  const head = String(text).slice(0, 600).toLowerCase();
+  return /"conta"/.test(head)
+      && /"transfer[êe]ncias"/.test(head)
+      && /"memorando"/.test(head)
+      && /"valor"/.test(head);
+}
+
+function noAccents(s) {
+  return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
+function flattenCategoria(raw) {
+  const s = String(raw || "").trim();
+  if (!s || s === "0") return { categoria: "", subcategoria: null };
+  const parts = s.split(/\s*[>:]\s*/);
+  if (parts.length >= 2) {
+    return { categoria: parts[0].trim(), subcategoria: parts.slice(1).join(" / ").trim() };
+  }
+  return { categoria: s, subcategoria: null };
+}
+
+export function parseMoneyWiz(text) {
+  // Remove a linha "sep=,"
+  const limpo = String(text || "").replace(/^sep=[^\r\n]*\r?\n/i, "");
+  const res = Papa.parse(limpo, { header: true, skipEmptyLines: true });
+  const linhas = res?.data || [];
+  if (linhas.length === 0) return { transacoes: [], erro: "Nenhum dado encontrado no arquivo MoneyWiz." };
+
+  // Localiza chaves de coluna (case-insensitive, sem acentos)
+  const keys = Object.keys(linhas[0] || {});
+  const findKey = (re) => keys.find(k => re.test(noAccents(k).toLowerCase())) || "";
+  const kTransf = findKey(/^transferencias$/);
+  const kDesc   = findKey(/^descricao$/);
+  const kBenef  = findKey(/^beneficiario$/);
+  const kCat    = findKey(/^categoria$/);
+  const kData   = findKey(/^data$/);
+  const kMemo   = findKey(/^memorando$/);
+  const kValor  = findKey(/^valor$/);
+
+  const transacoes = [];
+  linhas.forEach((row, i) => {
+    const data = parseDataBR(row[kData]);
+    const valor = parseValorBR(row[kValor]);
+    if (!data || valor == null || valor === 0) return;
+
+    // Descrição com fallback para Memorando, e para "Lançamento" se nada
+    let desc = String(row[kDesc] || "").trim();
+    if (!desc || desc === "0") desc = String(row[kMemo] || "").trim();
+    if (!desc || desc === "0") desc = "Lançamento";
+
+    // Beneficiário (várias linhas trazem "0" como placeholder)
+    const benef = String(row[kBenef] || "").trim();
+    const benefOk = benef && benef !== "0";
+
+    // Transferência? (coluna "Transferências" preenchida)
+    const transfRaw = String(row[kTransf] || "").trim();
+    let categoria, subcategoria;
+    if (transfRaw && transfRaw !== "0") {
+      categoria = "Transferência";
+      subcategoria = transfRaw;
+    } else {
+      const flat = flattenCategoria(row[kCat]);
+      categoria = flat.categoria || "Outros";
+      subcategoria = flat.subcategoria || null;
+    }
+
+    // Observação: junta memorando (se diferente) + beneficiário
+    const obsParts = [];
+    const memo = String(row[kMemo] || "").trim();
+    if (memo && memo !== desc && memo !== "0") obsParts.push(memo);
+    if (benefOk && !desc.includes(benef)) obsParts.push(`Benef.: ${benef}`);
+    const obs = obsParts.join(" · ").replace(/\s+/g, " ").trim() || undefined;
+
+    transacoes.push({
+      _id: `mw-${data}-${i}-${Math.abs(valor)}`,
+      data,
+      descricao: desc.replace(/\s+/g, " ").trim().slice(0, 200),
+      valor: Math.abs(valor),
+      tipo: valor < 0 ? "despesa" : "receita",
+      categoria,
+      subcategoria,
+      obs,
+    });
+  });
+
+  if (transacoes.length === 0) {
+    return { transacoes: [], erro: "Nenhuma transação válida encontrada no arquivo MoneyWiz." };
+  }
+
+  return { transacoes, banco: "MoneyWiz" };
+}
+
 /** Dispatcher universal: detecta formato e parseia. */
 export function parseExtrato(text, filename = "") {
   const lower = (text || "").trim().toLowerCase();
   const fname = filename.toLowerCase();
   if (lower.startsWith("ofxheader") || lower.includes("<ofx>") || fname.endsWith(".ofx")) {
     return parseOFX(text);
+  }
+  if (isMoneyWizCSV(text)) {
+    return parseMoneyWiz(text);
   }
   return parseCSV(text);
 }
