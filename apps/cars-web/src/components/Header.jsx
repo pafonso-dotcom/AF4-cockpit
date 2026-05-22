@@ -389,6 +389,9 @@ function HeaderVertical({
   onRefresh, refreshing,
   onOpenSettings,
   pendingCounts = {},
+  contas = [], cartoes = [],
+  contaAberta, setContaAberta,
+  cartaoAberto, setCartaoAberto,
 }) {
   const perfilAtivo = getPerfilAtivo();
   const perms = perfilAtivo?.permissoes || { financas: true, invest: true, loja: true, trade: true, config: true };
@@ -520,28 +523,61 @@ function HeaderVertical({
               const Icon = s.icon;
               const ativo = s.id === tab;
               const pending = pendingCounts[s.id] || 0;
+              // Filhos da árvore: Contas → bancos, Cartões → cartões.
+              let filhos = null;
+              if (s.id === "contas" && contas.length > 0 && setContaAberta) {
+                filhos = contas.map(c => ({
+                  id: `conta:${c.id}`, label: c.nome, cor: c.cor,
+                  ativo: contaAberta?.id === c.id,
+                  onClick: () => { setTab("contas"); setContaAberta(c); },
+                }));
+              } else if (s.id === "cartoes" && cartoes.length > 0 && setCartaoAberto) {
+                filhos = cartoes.map(c => ({
+                  id: `cartao:${c.id}`, label: c.nome, cor: null,
+                  ativo: cartaoAberto?.id === c.id,
+                  onClick: () => { setTab("cartoes"); setCartaoAberto(c); },
+                }));
+              }
               return (
-                <button key={s.id} onClick={() => setTab(s.id)}
-                  style={{
-                    padding: "7px 10px 7px 12px", borderRadius: 5, fontSize: 13,
-                    background: ativo ? "rgba(255,255,255,0.08)" : "transparent",
-                    color: ativo ? NAV_INK : NAV_MUTED,
-                    fontWeight: ativo ? 600 : 400,
-                    borderLeft: `2px solid ${ativo ? T.gold : "transparent"}`,
-                    border: "none", borderLeftWidth: 2, cursor: "pointer", textAlign: "left",
-                    display: "flex", alignItems: "center", gap: 8,
-                  }}>
-                  {Icon && <Icon size={12} />}
-                  {s.label}
-                  {pending > 0 && (
-                    <span style={{
-                      marginLeft: "auto",
-                      background: T.red, color: "#fff",
-                      fontSize: 9, padding: "1px 6px", borderRadius: 100,
-                      fontWeight: 700,
-                    }}>{pending}</span>
-                  )}
-                </button>
+                <React.Fragment key={s.id}>
+                  <button onClick={() => setTab(s.id)}
+                    style={{
+                      padding: "7px 10px 7px 12px", borderRadius: 5, fontSize: 13,
+                      background: ativo ? "rgba(255,255,255,0.08)" : "transparent",
+                      color: ativo ? NAV_INK : NAV_MUTED,
+                      fontWeight: ativo ? 600 : 400,
+                      borderLeft: `2px solid ${ativo ? T.gold : "transparent"}`,
+                      border: "none", borderLeftWidth: 2, cursor: "pointer", textAlign: "left",
+                      display: "flex", alignItems: "center", gap: 8,
+                    }}>
+                    {Icon && <Icon size={12} />}
+                    {s.label}
+                    {pending > 0 && (
+                      <span style={{
+                        marginLeft: "auto",
+                        background: T.red, color: "#fff",
+                        fontSize: 9, padding: "1px 6px", borderRadius: 100,
+                        fontWeight: 700,
+                      }}>{pending}</span>
+                    )}
+                  </button>
+                  {filhos && filhos.map(f => (
+                    <button key={f.id} onClick={f.onClick}
+                      style={{
+                        padding: "5px 10px 5px 30px", borderRadius: 5, fontSize: 12,
+                        background: f.ativo ? "rgba(255,255,255,0.12)" : "transparent",
+                        color: f.ativo ? NAV_INK : NAV_MUTED,
+                        fontWeight: f.ativo ? 600 : 400,
+                        borderLeft: `2px solid ${f.ativo ? T.gold : "transparent"}`,
+                        border: "none", borderLeftWidth: 2, cursor: "pointer", textAlign: "left",
+                        display: "flex", alignItems: "center", gap: 7,
+                        whiteSpace: "nowrap", overflow: "hidden",
+                      }}>
+                      {f.cor && <span style={{ width: 8, height: 8, borderRadius: 2, background: f.cor, flexShrink: 0 }} />}
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{f.label}</span>
+                    </button>
+                  ))}
+                </React.Fragment>
               );
             })}
           </div>
