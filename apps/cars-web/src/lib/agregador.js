@@ -102,9 +102,10 @@ export function getDespesasDoMes(mesISO, state = {}, escopo) {
   (state.parcelamentos || []).forEach(p => {
     if (!p.dataPrimeira || !p.totalParcelas) return;
     const base = new Date(p.dataPrimeira);
+    const by = base.getFullYear(), bm = base.getMonth(), bd = base.getDate();
     for (let i = 1; i <= p.totalParcelas; i++) {
-      const d = new Date(base);
-      d.setMonth(d.getMonth() + (i - 1));
+      const d = new Date(by, bm + (i - 1), 1);
+      d.setDate(Math.min(bd, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
       const iso = d.toISOString().slice(0, 10);
       if (!iso.startsWith(mesISO)) continue;
       const paga = (p.parcelasPagas || []).includes(i);

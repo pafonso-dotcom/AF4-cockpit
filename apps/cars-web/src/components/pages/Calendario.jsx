@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { X, ArrowUpRight, ArrowDownRight, ChevronLeft, ChevronRight, Bell, AlarmClock, Repeat } from "lucide-react";
 import { T } from "../../lib/theme.js";
-import { fmt, todayISO, uid } from "../../lib/format.js";
+import { fmt, uid } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import StatCard from "../ui/StatCard.jsx";
@@ -33,27 +33,6 @@ export default function Calendario({
     while (cells.length % 7 !== 0) cells.push(null);
     return cells;
   }, [year, month]);
-
-  // Map day → events (transactions) for the visible month
-  const eventsByDay = useMemo(() => {
-    const map = {};
-    const monthStr = `${year}-${String(month + 1).padStart(2, "0")}`;
-
-    transacoes.forEach(t => {
-      // Fixed transactions render every month on their vencimento day
-      if (t.fixa && t.vencimento) {
-        const day = t.vencimento;
-        const dateForMonth = `${monthStr}-${String(day).padStart(2, "0")}`;
-        if (day >= 1 && day <= 31) {
-          (map[day] = map[day] || []).push({ ...t, _renderDate: dateForMonth, _isProjected: t.data?.slice(0, 7) !== monthStr });
-        }
-      } else if (t.data && t.data.startsWith(monthStr)) {
-        const day = parseInt(t.data.slice(8, 10));
-        (map[day] = map[day] || []).push({ ...t, _renderDate: t.data });
-      }
-    });
-    return map;
-  }, [transacoes, year, month]);
 
   // Itens completos por dia (agregador: despesas fixas + dívidas + parcelas + transações + ganhos)
   const itensByDay = useMemo(() => {
@@ -105,18 +84,15 @@ export default function Calendario({
 
   const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
 
-  // Stats for the month
+  // Stats for the month — derivadas do mesmo agregador usado na grade (itensByDay)
   const monthStats = useMemo(() => {
-    const all = Object.values(eventsByDay).flat();
-    const receitas = all.filter(t => t.tipo === "receita").reduce((s, t) => s + Number(t.valor || 0), 0);
-    const despesas = all.filter(t => t.tipo === "despesa").reduce((s, t) => s + Number(t.valor || 0), 0);
-    const pendentes = all.filter(t => !t.compensado).length;
-    const atrasadas = all.filter(t => {
-      if (t.compensado || !t._renderDate) return false;
-      return t._renderDate < todayISO();
-    }).length;
+    const all = Object.values(itensByDay).flat();
+    const receitas = all.filter(i => i._kind === "ganho").reduce((s, i) => s + Number(i.valor || 0), 0);
+    const despesas = all.filter(i => i._kind === "despesa").reduce((s, i) => s + Number(i.valor || 0), 0);
+    const pendentes = all.filter(i => i.status !== "paga").length;
+    const atrasadas = all.filter(i => i.status === "atrasada").length;
     return { receitas, despesas, pendentes, atrasadas, total: all.length };
-  }, [eventsByDay]);
+  }, [itensByDay]);
 
   const dayEvents = selectedDay ? (itensByDay[selectedDay] || []) : [];
 

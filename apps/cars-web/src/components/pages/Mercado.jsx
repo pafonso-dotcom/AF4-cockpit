@@ -53,7 +53,8 @@ export default function Mercado({ ativos, apiKeys }) {
   }, [apiKeys?.useRealMarket, apiKeys?.brapi]);
 
   const movers = [...ativos].map(a => {
-    const v = ((a.preco - a.base) / a.base) * 100 + (Math.random() - 0.5) * 0.4;
+    const denom = a.base || a.pm || a.preco;
+    const v = denom > 0 ? ((a.preco - denom) / denom) * 100 + (Math.random() - 0.5) * 0.4 : 0;
     return { ...a, varDia: v };
   }).sort((a, b) => b.varDia - a.varDia);
 

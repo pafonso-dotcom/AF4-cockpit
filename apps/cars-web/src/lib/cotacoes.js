@@ -20,6 +20,16 @@ export async function atualizarCarteira(ativos) {
   if (tickersBR.length) promises.push(getQuotes(tickersBR).catch(e => ({ erro: e.message, fonte: "brapi" })));
   if (tickersCripto.length) promises.push(getTickers24h(tickersCripto).catch(e => ({ erro: e.message, fonte: "binance" })));
 
+  // Cripto da Binance vem em USDT (≈ USD); convertemos pra BRL com o câmbio atual.
+  let usdBrl = 1;
+  if (tickersCripto.length) {
+    try {
+      const moedas = await getCurrencies(["USD-BRL"]);
+      const usd = moedas.find(c => c.from === "USD" && c.to === "BRL");
+      if (usd && usd.price > 0) usdBrl = usd.price;
+    } catch (e) { /* sem câmbio: mantém preço em USD como fallback */ }
+  }
+
   const resultados = await Promise.all(promises);
 
   const cotacoes = {};
@@ -35,7 +45,7 @@ export async function atualizarCarteira(ativos) {
         if (q.lastPrice !== undefined) {
           cotacoes[q.symbol] = {
             symbol: q.symbol,
-            price: parseFloat(q.lastPrice),
+            price: parseFloat(q.lastPrice) * usdBrl,
             changePercent: parseFloat(q.priceChangePercent),
             volume: parseFloat(q.volume),
             fonte: "binance",

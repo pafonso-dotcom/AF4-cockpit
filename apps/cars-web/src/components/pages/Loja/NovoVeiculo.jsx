@@ -208,10 +208,10 @@ export default function NovoVeiculo({
           numero: c.numero || "",
           banco: c.banco || "",
           valor: parseFloat(c.valor) || 0,
-          vencimento: c.vencimento || dataRef,
+          data: c.vencimento || dataRef,
           beneficiario: fornecedor || "Fornecedor",
           tipo: "emitido",
-          status: "pendente",
+          status: "aguardando",
           obs: `Compra ${marca} ${modelo}${placa ? ` (${placa})` : ""}`,
           origemLoja: { tipo: "compra-veiculo-cheque", veiculoId },
         }));

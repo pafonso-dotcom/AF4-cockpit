@@ -101,12 +101,9 @@ export default function Despesas(props) {
 
     const valor = Number(item.valor) || 0;
 
-    // Backup pra desfazer
-    const backupParc = parcelamentos;
-    const backupContas = contas;
-    const backupTxs = transacoes;
-    const backupOccs = fixaOcorrencias;
-    const backupDiv = dividas;
+    // undo() é montado por caso e reverte apenas as mudanças específicas, por id,
+    // usando updaters funcionais — assim não sobrescreve alterações feitas entre pagar e desfazer.
+    let undo = null;
 
     // ─────── Caso 1: PARCELA ───────
     if (item.tipo === "parcela") {
@@ -118,22 +115,36 @@ export default function Despesas(props) {
       }
       const parcOriginal = parcelamentos.find(p => p.id === id.parcId);
       const cartao = parcOriginal && cartoes.find(c => c.id === parcOriginal.cartaoId);
-
-      setParcelamentos?.(parcelamentos.map(p => {
-        if (p.id !== id.parcId) return p;
-        const pagas = new Set([...(p.parcelasPagas || []), id.numero]);
-        return { ...p, parcelasPagas: Array.from(pagas).sort((a, b) => a - b) };
-      }));
-      setContas?.(contas.map(c => c.id === conta.id
-        ? { ...c, saldo: (Number(c.saldo) || 0) - valor } : c));
-      setTransacoes?.([{
+      // A parcela já estava paga antes? Se sim, não reverter ao desfazer.
+      const jaPaga = (parcOriginal?.parcelasPagas || []).includes(id.numero);
+      const novaTx = {
         id: uid(), tipo: "despesa",
         descricao: `${item.descricao}${cartao ? ` · ${cartao.nome}` : ""}`,
         valor, categoria: item.categoria || "Compras",
         conta: conta.nome, data, compensado: true,
         obs: obs || `Baixa de parcela ${id.numero}/${parcOriginal?.totalParcelas || "?"}`,
         origemParcelamentoId: id.parcId, parcelaNum: id.numero,
-      }, ...transacoes]);
+      };
+
+      setParcelamentos?.(prev => prev.map(p => {
+        if (p.id !== id.parcId) return p;
+        const pagas = new Set([...(p.parcelasPagas || []), id.numero]);
+        return { ...p, parcelasPagas: Array.from(pagas).sort((a, b) => a - b) };
+      }));
+      setContas?.(prev => prev.map(c => c.id === conta.id
+        ? { ...c, saldo: (Number(c.saldo) || 0) - valor } : c));
+      setTransacoes?.(prev => [novaTx, ...prev]);
+
+      undo = () => {
+        setTransacoes?.(prev => prev.filter(t => t.id !== novaTx.id));
+        setContas?.(prev => prev.map(c => c.id === conta.id
+          ? { ...c, saldo: (Number(c.saldo) || 0) + valor } : c));
+        if (!jaPaga) {
+          setParcelamentos?.(prev => prev.map(p => p.id === id.parcId
+            ? { ...p, parcelasPagas: (p.parcelasPagas || []).filter(n => n !== id.numero) }
+            : p));
+        }
+      };
     }
 
     // ─────── Caso 2: FIXA ───────
@@ -144,6 +155,7 @@ export default function Despesas(props) {
         setBaixaItem(null);
         return;
       }
+      const occAntiga = occ; // snapshot da ocorrência para restaurar campos por id
       const novaTx = {
         id: uid(), tipo: "despesa",
         descricao: item.descricao, valor,
@@ -152,13 +164,20 @@ export default function Despesas(props) {
         obs: obs || `Pagamento de fixa: ${item.descricao}`,
         origemFixaOcorrenciaId: occ.id,
       };
-      setFixaOcorrencias?.(fixaOcorrencias.map(o =>
+      setFixaOcorrencias?.(prev => prev.map(o =>
         o.id === occ.id
           ? { ...o, status: "paga", dataPagamento: data, valorPago: valor, transacaoId: novaTx.id }
           : o));
-      setContas?.(contas.map(c => c.id === conta.id
+      setContas?.(prev => prev.map(c => c.id === conta.id
         ? { ...c, saldo: (Number(c.saldo) || 0) - valor } : c));
-      setTransacoes?.([novaTx, ...transacoes]);
+      setTransacoes?.(prev => [novaTx, ...prev]);
+
+      undo = () => {
+        setTransacoes?.(prev => prev.filter(t => t.id !== novaTx.id));
+        setContas?.(prev => prev.map(c => c.id === conta.id
+          ? { ...c, saldo: (Number(c.saldo) || 0) + valor } : c));
+        setFixaOcorrencias?.(prev => prev.map(o => o.id === occAntiga.id ? occAntiga : o));
+      };
     }
 
     // ─────── Caso 3: VARIÁVEL (dívida ou transação) ───────
@@ -170,18 +189,27 @@ export default function Despesas(props) {
           setBaixaItem(null);
           return;
         }
-        setDividas?.(dividas.map(d => d.id === item.id
-          ? { ...d, pago: true, dataPagamento: data, contaPagamento: conta.nome }
-          : d));
-        setContas?.(contas.map(c => c.id === conta.id
-          ? { ...c, saldo: (Number(c.saldo) || 0) - valor } : c));
-        setTransacoes?.([{
+        const divAntiga = div; // snapshot da dívida para restaurar campos por id
+        const novaTx = {
           id: uid(), tipo: "despesa",
           descricao: item.descricao, valor,
           categoria: item.categoria || "Dívida",
           conta: conta.nome, data, compensado: true,
           obs: obs || `Pagamento de dívida: ${item.descricao}`,
-        }, ...transacoes]);
+        };
+        setDividas?.(prev => prev.map(d => d.id === item.id
+          ? { ...d, pago: true, dataPagamento: data, contaPagamento: conta.nome }
+          : d));
+        setContas?.(prev => prev.map(c => c.id === conta.id
+          ? { ...c, saldo: (Number(c.saldo) || 0) - valor } : c));
+        setTransacoes?.(prev => [novaTx, ...prev]);
+
+        undo = () => {
+          setTransacoes?.(prev => prev.filter(t => t.id !== novaTx.id));
+          setContas?.(prev => prev.map(c => c.id === conta.id
+            ? { ...c, saldo: (Number(c.saldo) || 0) + valor } : c));
+          setDividas?.(prev => prev.map(d => d.id === divAntiga.id ? divAntiga : d));
+        };
       } else {
         const tx = transacoes.find(t => t.id === item.id);
         if (!tx) {
@@ -189,14 +217,15 @@ export default function Despesas(props) {
           setBaixaItem(null);
           return;
         }
-        setTransacoes?.(transacoes.map(t =>
+        const txAntiga = tx; // snapshot da transação para restaurar campos por id
+        setTransacoes?.(prev => prev.map(t =>
           t.id === item.id
             ? { ...t, compensado: true, conta: conta.nome, data, obs: obs || t.obs }
             : t));
         // Ajusta saldos: estorna conta antiga se já estava compensada e debita a nova
+        const contaAnterior = contas.find(c => c.nome === tx.conta);
         if (tx.conta !== conta.nome) {
-          const contaAnterior = contas.find(c => c.nome === tx.conta);
-          setContas?.(contas.map(c => {
+          setContas?.(prev => prev.map(c => {
             if (c.id === conta.id) return { ...c, saldo: (Number(c.saldo) || 0) - valor };
             if (contaAnterior && c.id === contaAnterior.id && tx.compensado) {
               return { ...c, saldo: (Number(c.saldo) || 0) + valor };
@@ -204,9 +233,25 @@ export default function Despesas(props) {
             return c;
           }));
         } else if (!tx.compensado) {
-          setContas?.(contas.map(c => c.id === conta.id
+          setContas?.(prev => prev.map(c => c.id === conta.id
             ? { ...c, saldo: (Number(c.saldo) || 0) - valor } : c));
         }
+
+        undo = () => {
+          setTransacoes?.(prev => prev.map(t => t.id === txAntiga.id ? txAntiga : t));
+          if (tx.conta !== conta.nome) {
+            setContas?.(prev => prev.map(c => {
+              if (c.id === conta.id) return { ...c, saldo: (Number(c.saldo) || 0) + valor };
+              if (contaAnterior && c.id === contaAnterior.id && tx.compensado) {
+                return { ...c, saldo: (Number(c.saldo) || 0) - valor };
+              }
+              return c;
+            }));
+          } else if (!tx.compensado) {
+            setContas?.(prev => prev.map(c => c.id === conta.id
+              ? { ...c, saldo: (Number(c.saldo) || 0) + valor } : c));
+          }
+        };
       }
     }
 
@@ -216,13 +261,7 @@ export default function Despesas(props) {
     toast.success(`${tipoLbl} "${item.descricao}" paga · ${conta.nome}`, {
       action: {
         label: "Desfazer",
-        onClick: () => {
-          setParcelamentos?.(backupParc);
-          setContas?.(backupContas);
-          setTransacoes?.(backupTxs);
-          setFixaOcorrencias?.(backupOccs);
-          setDividas?.(backupDiv);
-        },
+        onClick: () => { undo?.(); },
       },
     });
   };

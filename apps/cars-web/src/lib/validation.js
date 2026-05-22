@@ -116,7 +116,7 @@ export const schemas = {
   devedor: {
     nome: v.string({ min: 1, max: 60 }),
     valor: v.number({ min: 0.01 }),
-    quando: v.date(),
+    vencimento: v.date(),
     oque: v.string({ required: false, max: 200 }),
     combinado: v.string({ required: false, max: 200 }),
   },

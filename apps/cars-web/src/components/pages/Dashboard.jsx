@@ -332,7 +332,7 @@ export default function Dashboard({
                   <span style={{ color: T.ink }}>{c.nome}</span>
                 </div>
                 <span className="num" style={{ color: T.muted }}>
-                  {fmtN((c.valor / totais.patrimonio) * 100, 1)}%
+                  {fmtN((c.valor / (totais.patrimonio || 1)) * 100, 1)}%
                 </span>
               </div>
             ))}
@@ -354,7 +354,7 @@ export default function Dashboard({
           ) : (
             <div className="space-y-3">
               {despesasCat.slice(0, 6).map(d => {
-                const pct = (d.valor / totais.despesas) * 100;
+                const pct = (d.valor / (totais.despesas || 1)) * 100;
                 return (
                   <div key={d.nome}>
                     <div className="flex justify-between text-sm mb-1">

@@ -3,7 +3,7 @@
    ============================================================ */
 
 import Papa from "papaparse";
-import { fmt } from "./format.js";
+import { fmt, fmtN } from "./format.js";
 
 const parseOFX = (text) => {
   const out = [];

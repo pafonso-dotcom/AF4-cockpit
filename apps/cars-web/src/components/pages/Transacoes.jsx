@@ -163,13 +163,13 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
       danger: true, confirmLabel: "Excluir todas",
     });
     if (!ok) return;
-    const backup = transacoes.filter(t => selectedIds.has(t.id));
+    const backup = transacoes;
     setTransacoes(transacoes.filter(t => !selectedIds.has(t.id)));
     setSelectedIds(new Set());
     toast.success(`${count} transação${count !== 1 ? "ões excluídas" : " excluída"}.`, {
       action: {
         label: "Desfazer",
-        onClick: () => setTransacoes([...backup, ...transacoes.filter(t => !selectedIds.has(t.id))]),
+        onClick: () => setTransacoes(backup),
       },
     });
   };

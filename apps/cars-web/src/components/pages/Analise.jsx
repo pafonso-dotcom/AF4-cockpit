@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Activity, Briefcase, TrendingUp, TrendingDown } from "lucide-react";
+import { Activity, Briefcase, TrendingUp, TrendingDown, Coins } from "lucide-react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN } from "../../lib/format.js";
@@ -7,6 +7,18 @@ import PageHeader from "../ui/PageHeader.jsx";
 import StatCard from "../ui/StatCard.jsx";
 
 const CLASS_LABEL = { acao: "Ações", fii: "FIIs", stock: "Stocks (US)", reit: "REITs (US)", etf: "ETFs", cripto: "Cripto", tesouro: "Tesouro", cdb: "CDB" };
+
+// Parâmetros plausíveis por classe: retorno médio anual, volatilidade e cor.
+const CLASS_PARAMS = {
+  acao:    { mean: 0.13, vol: 0.24, cor: T.gold },
+  fii:     { mean: 0.10, vol: 0.14, cor: T.green },
+  stock:   { mean: 0.11, vol: 0.18, cor: T.blue },
+  reit:    { mean: 0.09, vol: 0.17, cor: "#0ea5e9" },
+  etf:     { mean: 0.10, vol: 0.16, cor: T.yellow },
+  cripto:  { mean: 0.30, vol: 0.70, cor: "#8b5cf6" },
+  tesouro: { mean: 0.11, vol: 0.05, cor: "#22c55e" },
+  cdb:     { mean: 0.105, vol: 0.03, cor: "#14b8a6" },
+};
 
 const seededRandom = (seed) => {
   let s = seed % 2147483647;

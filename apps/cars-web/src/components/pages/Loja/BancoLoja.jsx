@@ -47,7 +47,8 @@ export default function BancoLoja({ vendas = [], veiculos = [], cheques = [], hi
     });
     // Compras de veículos (custo de aquisição) → débito
     veiculos.forEach(vc => {
-      if (vc.precoCompra && parseFloat(vc.precoCompra) > 0 && vc.dataCompra) {
+      const custoCompra = parseFloat(vc.valorCompra ?? vc.precoCompra) || 0;
+      if (custoCompra > 0 && vc.dataCompra) {
         out.push({
           id: `compra-${vc.id}`,
           tipo: "debito",
@@ -55,7 +56,7 @@ export default function BancoLoja({ vendas = [], veiculos = [], cheques = [], hi
           descricao: `${vc.marca || ""} ${vc.modelo || ""}`.trim() || "Compra veículo",
           sub: vc.fornecedor ? `Fornecedor: ${vc.fornecedor}` : null,
           data: vc.dataCompra,
-          valor: parseFloat(vc.precoCompra) || 0,
+          valor: custoCompra,
           origem: "compra",
         });
       }

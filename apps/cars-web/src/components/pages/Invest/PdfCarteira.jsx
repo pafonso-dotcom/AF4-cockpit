@@ -25,7 +25,7 @@ export default function PdfCarteira({ ativos = [], proventos = [], operacoes = [
   // ===== Cálculos da capa =====
   const resumo = useMemo(() => {
     const totalInvestido = ativosFiltrados.reduce(
-      (s, a) => s + (Number(a.qtd) || 0) * (Number(a.precoMedio) || Number(a.preco) || 0), 0
+      (s, a) => s + (Number(a.qtd) || 0) * Number(a.pm ?? a.precoMedio ?? a.preco ?? 0), 0
     );
     const valorAtual = ativosFiltrados.reduce(
       (s, a) => s + (Number(a.qtd) || 0) * (Number(a.preco) || 0), 0
@@ -182,7 +182,7 @@ export default function PdfCarteira({ ativos = [], proventos = [], operacoes = [
         {/* UMA PÁGINA POR ATIVO */}
         {ativosFiltrados.map((a, idx) => {
           const qtd = Number(a.qtd) || 0;
-          const pm = Number(a.precoMedio) || 0;
+          const pm = Number(a.pm ?? a.precoMedio ?? a.preco ?? 0);
           const preco = Number(a.preco) || 0;
           const valorMercado = qtd * preco;
           const investido = qtd * pm;

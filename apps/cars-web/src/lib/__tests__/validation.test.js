@@ -94,7 +94,7 @@ describe("schemas via validate()", () => {
 
   it("makes optional fields really optional", () => {
     const r = validate(schemas.devedor, {
-      nome: "Ana", valor: 100, quando: "2024-01-15",
+      nome: "Ana", valor: 100, vencimento: "2024-01-15",
       // oque and combinado omitted
     });
     expect(r.ok).toBe(true);
