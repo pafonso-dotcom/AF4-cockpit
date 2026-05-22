@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Sparkles, Loader2, RefreshCw } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { getKlines, getTicker24h } from "../../../lib/binance.js";
+import { getHistorico, getQuotes } from "../../../lib/brapi.js";
 import { calcRSI, calcMACD, calcVolumeChange, calcTrend, calcEMA } from "../../../lib/indicadores.js";
 import { calcularScore, direcaoSinal, confiancaSinal } from "../../../lib/score.js";
 import { getWatchlist } from "../../../lib/watchlist.js";
@@ -17,23 +18,137 @@ const INTERVALOS = [
   { v: "1w",  l: "1w" },
 ];
 
-export default function Analise({ tradeWatchlist = [] }) {
+// Timeframes disponíveis por fonte
+const INTERVALOS_BINANCE = ["15m", "1h", "4h", "1d", "1w"];
+const INTERVALOS_BRAPI = ["1d", "1w"];
+
+// Mapeia o timeframe da UI para os parâmetros da BRAPI (range + interval)
+const BRAPI_TF = {
+  "1d": { range: "6mo", interval: "1d" },
+  "1w": { range: "2y", interval: "1wk" },
+};
+
+// Tipos de ativo da carteira que dão pra analisar tecnicamente
+const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
+
+// Constrói a lista unificada de itens analisáveis (watchlist cripto + carteira)
+function buildItens(watchlist, ativos) {
+  const itens = [];
+  const vistos = new Set();
+  const add = (it) => {
+    if (!it.symbol || vistos.has(it.symbol)) return;
+    vistos.add(it.symbol);
+    itens.push(it);
+  };
+  // (a) Watchlist de cripto
+  for (const w of watchlist) {
+    add({
+      key: `bin:${w.symbol}`,
+      label: `${w.icon || "•"} ${w.name} (${w.symbol})`,
+      symbol: w.symbol,
+      tipo: "cripto",
+      fonte: "binance",
+    });
+  }
+  // (b) Ativos da carteira
+  for (const a of (ativos || [])) {
+    if (!a?.ticker || !TIPOS_ANALISAVEIS.includes(a.tipo)) continue;
+    if (a.tipo === "cripto") {
+      add({
+        key: `bin:${a.ticker}USDT`,
+        label: `${a.nome || a.ticker} (${a.ticker})`,
+        symbol: `${a.ticker}USDT`,
+        tipo: "cripto",
+        fonte: "binance",
+      });
+    } else {
+      add({
+        key: `bra:${a.ticker}`,
+        label: `${a.nome || a.ticker} (${a.ticker})`,
+        symbol: a.ticker,
+        tipo: a.tipo,
+        fonte: "brapi",
+      });
+    }
+  }
+  return itens;
+}
+
+// Símbolo da moeda conforme o tipo de ativo
+function moedaDe(tipo) {
+  return (tipo === "acao" || tipo === "fii") ? "R$" : "US$";
+}
+
+export default function Analise({ tradeWatchlist = [], ativos = [], alvoInicial = null }) {
   const watchlist = getWatchlist(tradeWatchlist);
-  const [symbol, setSymbol] = useState(watchlist[0]?.symbol || "BTCUSDT");
+  const itens = useMemo(() => buildItens(watchlist, ativos), [watchlist, ativos]);
+
+  // Resolve o item inicial: alvo vindo da carteira, ou o primeiro da lista
+  const itemInicial = useMemo(() => {
+    if (alvoInicial?.ticker) {
+      const tickerUp = String(alvoInicial.ticker).toUpperCase();
+      const symbolAlvo = alvoInicial.tipo === "cripto" ? `${tickerUp}USDT` : tickerUp;
+      const match = itens.find(it =>
+        it.symbol.toUpperCase() === symbolAlvo &&
+        (it.tipo === alvoInicial.tipo || (it.tipo === "cripto" && alvoInicial.tipo === "cripto"))
+      );
+      if (match) return match;
+    }
+    return itens[0] || null;
+  }, [alvoInicial, itens]);
+
+  const [selectedKey, setSelectedKey] = useState(itemInicial?.key || "");
+  const item = itens.find(it => it.key === selectedKey) || itemInicial || itens[0] || null;
   const [intervalo, setIntervalo] = useState("4h");
   const [dados, setDados] = useState(null);
   const [loading, setLoading] = useState(false);
   const [explicacao, setExplicacao] = useState(null);
   const [explicando, setExplicando] = useState(false);
 
+  // Reage a um novo alvo vindo da carteira
+  useEffect(() => {
+    if (itemInicial?.key) setSelectedKey(itemInicial.key);
+    // eslint-disable-next-line
+  }, [itemInicial?.key]);
+
+  // Timeframes válidos pra fonte atual; volta pra 1d se o ativo brapi não suporta o intervalo
+  const intervalosDisponiveis = item?.fonte === "brapi" ? INTERVALOS_BRAPI : INTERVALOS_BINANCE;
+  useEffect(() => {
+    if (item?.fonte === "brapi" && !INTERVALOS_BRAPI.includes(intervalo)) {
+      setIntervalo("1d");
+    }
+    // eslint-disable-next-line
+  }, [item?.fonte]);
+
   const analisar = async () => {
+    if (!item) return;
     setLoading(true);
     setExplicacao(null);
     try {
-      const [candles, ticker] = await Promise.all([
-        getKlines(symbol, intervalo, 100),
-        getTicker24h(symbol).catch(() => null),
-      ]);
+      let candles, ticker;
+      if (item.fonte === "brapi") {
+        const tf = BRAPI_TF[INTERVALOS_BRAPI.includes(intervalo) ? intervalo : "1d"];
+        const [hist, quotes] = await Promise.all([
+          getHistorico(item.symbol, tf.range, tf.interval),
+          getQuotes([item.symbol]).catch(() => []),
+        ]);
+        candles = hist;
+        const q = quotes?.[0];
+        ticker = q ? {
+          lastPrice: q.price,
+          priceChangePercent: q.changePercent,
+          highPrice: q.dayHigh,
+          lowPrice: q.dayLow,
+        } : null;
+        if (!candles || candles.length === 0) {
+          throw new Error(`Sem histórico disponível para ${item.symbol} na BRAPI.`);
+        }
+      } else {
+        [candles, ticker] = await Promise.all([
+          getKlines(item.symbol, intervalo, 100),
+          getTicker24h(item.symbol).catch(() => null),
+        ]);
+      }
       const closes = candles.map(c => c.close);
       const volumes = candles.map(c => c.volume);
       const rsi = calcRSI(closes);
@@ -64,19 +179,20 @@ export default function Analise({ tradeWatchlist = [] }) {
   };
 
   // Análise inicial
-  useEffect(() => { analisar(); /* eslint-disable-next-line */ }, [symbol, intervalo]);
+  useEffect(() => { analisar(); /* eslint-disable-next-line */ }, [selectedKey, intervalo]);
 
   const explicar = async () => {
-    if (!dados) return;
+    if (!dados || !item) return;
     setExplicando(true);
-    const w = watchlist.find(x => x.symbol === symbol);
-    const prompt = `Analise técnica detalhada de ${w?.name || symbol} (${symbol}) no timeframe ${intervalo}.
+    const moeda = moedaDe(item.tipo);
+    const nomeAtivo = item.label;
+    const prompt = `Análise técnica detalhada do ativo ${nomeAtivo} no timeframe ${intervalo}.
 
 Dados:
-- Preço atual: US$ ${dados.preco}
+- Preço atual: ${moeda} ${dados.preco}
 - Variação 24h: ${dados.variacao24h}%
-- Máxima 24h: US$ ${dados.high24h}
-- Mínima 24h: US$ ${dados.low24h}
+- Máxima 24h: ${moeda} ${dados.high24h}
+- Mínima 24h: ${moeda} ${dados.low24h}
 - RSI: ${dados.rsi?.toFixed(1)}
 - MACD: ${dados.macd?.macd?.toFixed(3)} (histograma ${dados.macd?.histogram?.toFixed(3)})
 - Volume vs média 20: ${dados.volumeChange?.toFixed(1)}%
@@ -90,10 +206,10 @@ Retorne EXATAMENTE este JSON (sem markdown):
   "cenario": "2-3 frases sobre a situação atual",
   "argumento_long": "1-2 frases — quando comprar faria sentido",
   "argumento_short": "1-2 frases — quando vender faria sentido",
-  "suporte_chave": "valor numérico USD",
-  "resistencia_chave": "valor numérico USD",
-  "stop_sugerido": "valor numérico USD (proteção)",
-  "alvo_sugerido": "valor numérico USD (objetivo)",
+  "suporte_chave": "valor numérico em ${moeda}",
+  "resistencia_chave": "valor numérico em ${moeda}",
+  "stop_sugerido": "valor numérico em ${moeda} (proteção)",
+  "alvo_sugerido": "valor numérico em ${moeda} (objetivo)",
   "risco_principal": "1 frase sobre o maior risco",
   "horizonte": "curto | médio | longo"
 }`;
@@ -130,17 +246,35 @@ Retorne EXATAMENTE este JSON (sem markdown):
         background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
         padding: 14, marginBottom: 16, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center",
       }}>
-        <select value={symbol} onChange={e => setSymbol(e.target.value)}
-                style={{ flex: "0 0 220px", padding: "8px 11px", background: T.bgSoft,
+        <select value={selectedKey} onChange={e => setSelectedKey(e.target.value)}
+                style={{ flex: "0 0 260px", padding: "8px 11px", background: T.bgSoft,
                          border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 6 }}>
-          {watchlist.map(w => (
-            <option key={w.symbol} value={w.symbol}>
-              {w.icon} {w.name} ({w.symbol})
-            </option>
-          ))}
+          {itens.length === 0 && <option value="">Nenhum ativo disponível</option>}
+          {(() => {
+            const cripto = itens.filter(it => it.fonte === "binance");
+            const carteira = itens.filter(it => it.fonte === "brapi");
+            return (
+              <>
+                {cripto.length > 0 && (
+                  <optgroup label="Cripto">
+                    {cripto.map(it => (
+                      <option key={it.key} value={it.key}>{it.label}</option>
+                    ))}
+                  </optgroup>
+                )}
+                {carteira.length > 0 && (
+                  <optgroup label="Carteira (B3 / EUA)">
+                    {carteira.map(it => (
+                      <option key={it.key} value={it.key}>{it.label}</option>
+                    ))}
+                  </optgroup>
+                )}
+              </>
+            );
+          })()}
         </select>
         <div style={{ display: "inline-flex", gap: 4 }}>
-          {INTERVALOS.map(i => (
+          {INTERVALOS.filter(i => intervalosDisponiveis.includes(i.v)).map(i => (
             <button key={i.v} onClick={() => setIntervalo(i.v)}
               style={{
                 padding: "6px 11px", borderRadius: 5, fontSize: 11,
@@ -164,7 +298,7 @@ Retorne EXATAMENTE este JSON (sem markdown):
         <>
           {/* Resumo */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            <Kpi label="Preço" valor={`$${dados.preco.toLocaleString("en-US", { maximumFractionDigits: dados.preco < 1 ? 6 : 2 })}`} sub={`24h ${dados.variacao24h >= 0 ? "+" : ""}${dados.variacao24h.toFixed(2)}%`} cor={dados.variacao24h >= 0 ? T.green : T.red} />
+            <Kpi label="Preço" valor={`${moedaDe(item?.tipo)} ${dados.preco.toLocaleString("pt-BR", { maximumFractionDigits: dados.preco < 1 ? 6 : 2 })}`} sub={`24h ${dados.variacao24h >= 0 ? "+" : ""}${dados.variacao24h.toFixed(2)}%`} cor={dados.variacao24h >= 0 ? T.green : T.red} />
             <Kpi label="Score" valor={`${dados.score}/100`} sub={`${dados.direcao} · ${dados.confianca}`} cor={scoreCor} />
             <Kpi label="RSI (14)" valor={dados.rsi?.toFixed(0)} sub={dados.breakdown?.rsi} cor={T.blue || "#60a5fa"} />
             <Kpi label="Volume" valor={dados.volumeChange != null ? `${dados.volumeChange.toFixed(0)}%` : "—"} sub={dados.breakdown?.volume} cor={T.gold} />
@@ -239,10 +373,10 @@ Retorne EXATAMENTE este JSON (sem markdown):
                     </div>
                   )}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 11, color: T.muted, marginTop: 6 }}>
-                    {explicacao.suporte_chave && <div>📉 Suporte: <strong style={{ color: T.ink }}>${explicacao.suporte_chave}</strong></div>}
-                    {explicacao.resistencia_chave && <div>📈 Resistência: <strong style={{ color: T.ink }}>${explicacao.resistencia_chave}</strong></div>}
-                    {explicacao.stop_sugerido && <div>🛑 Stop: <strong style={{ color: T.red }}>${explicacao.stop_sugerido}</strong></div>}
-                    {explicacao.alvo_sugerido && <div>🎯 Alvo: <strong style={{ color: T.green }}>${explicacao.alvo_sugerido}</strong></div>}
+                    {explicacao.suporte_chave && <div>📉 Suporte: <strong style={{ color: T.ink }}>{moedaDe(item?.tipo)} {explicacao.suporte_chave}</strong></div>}
+                    {explicacao.resistencia_chave && <div>📈 Resistência: <strong style={{ color: T.ink }}>{moedaDe(item?.tipo)} {explicacao.resistencia_chave}</strong></div>}
+                    {explicacao.stop_sugerido && <div>🛑 Stop: <strong style={{ color: T.red }}>{moedaDe(item?.tipo)} {explicacao.stop_sugerido}</strong></div>}
+                    {explicacao.alvo_sugerido && <div>🎯 Alvo: <strong style={{ color: T.green }}>{moedaDe(item?.tipo)} {explicacao.alvo_sugerido}</strong></div>}
                   </div>
                   {explicacao.risco_principal && (
                     <div style={{ marginTop: 10, fontSize: 11, color: T.red, fontStyle: "italic" }}>

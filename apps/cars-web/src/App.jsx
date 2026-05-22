@@ -127,6 +127,7 @@ export default function App() {
   const [tradeHistorico, setTradeHistorico] = useState([]);
   const [tradeAnalisesIdV, setTradeAnalisesIdV] = useState([]);
   const [tradeOnboardingVisto, setTradeOnboardingVisto] = useState(false);
+  const [analiseAlvo, setAnaliseAlvo] = useState(null);
 
   // Loja AF4
   const [veiculos, setVeiculos] = useState([]);
@@ -753,6 +754,7 @@ export default function App() {
                                categorias={categorias}
                                transacoes={transacoes} setTransacoes={setTransacoes}
                                onRefresh={refreshMarket} refreshing={refreshing}
+                               onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
                                hidden={hidden} />
               </div>
             )}
@@ -852,7 +854,7 @@ export default function App() {
               />
             )}
             {tab === "trade-ativo" && (
-              <AnaliseTrade tradeWatchlist={tradeWatchlist} />
+              <AnaliseTrade tradeWatchlist={tradeWatchlist} ativos={ativos} alvoInicial={analiseAlvo} />
             )}
             {tab === "trade-watchlist" && (
               <WatchlistTrade

@@ -39,6 +39,21 @@ export async function getQuotes(tickers) {
   }));
 }
 
+export async function getHistorico(ticker, range = "6mo", interval = "1d") {
+  const data = await brapiFetch(`/quote/${encodeURIComponent(ticker)}?range=${range}&interval=${interval}`);
+  const hist = data.results?.[0]?.historicalDataPrice || [];
+  return hist
+    .filter(h => h && h.close != null)
+    .map(h => ({
+      time: (h.date || 0) * 1000,
+      open: Number(h.open ?? h.close),
+      high: Number(h.high ?? h.close),
+      low: Number(h.low ?? h.close),
+      close: Number(h.close),
+      volume: Number(h.volume || 0),
+    }));
+}
+
 export async function getIndices() {
   try {
     const data = await brapiFetch("/quote/list?type=index");
