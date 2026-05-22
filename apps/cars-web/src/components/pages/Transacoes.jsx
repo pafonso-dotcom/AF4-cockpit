@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Activity, Plus, Trash2, Edit3, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera } from "lucide-react";
+import { Activity, Plus, Trash2, Edit3, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
-import { parseValorBR } from "../../lib/importExport.js";
+import { parseValorBR, printHTML } from "../../lib/importExport.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import PageHeader from "../ui/PageHeader.jsx";
@@ -104,6 +104,37 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
       .filter(t => !search || (t.descricao + " " + (t.obs || "")).toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => (b.data || "").localeCompare(a.data || ""));
   }, [transacoes, filterTipo, filterCat, filterConta, filterComp, filterPeriodo, search, filtroRecorrencia, contas, escopoAtivo]);
+
+  // Exporta as transações filtradas como PDF (via janela de impressão do navegador)
+  const exportarPDF = () => {
+    if (filtered.length === 0) { toast.error("Nenhuma transação para exportar."); return; }
+    const esc = (s) => String(s ?? "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+    const totRec = filtered.filter(t => t.tipo === "receita").reduce((s, t) => s + Number(t.valor || 0), 0);
+    const totDes = filtered.filter(t => t.tipo === "despesa").reduce((s, t) => s + Number(t.valor || 0), 0);
+    const linhas = filtered.map(t => `<tr>
+      <td>${esc(t.data)}</td><td>${esc(t.descricao)}</td><td>${esc(t.categoria)}</td><td>${esc(t.conta)}</td>
+      <td class="r ${t.tipo}">${t.tipo === "receita" ? "+ " : "− "}${esc(fmt(t.valor))}</td></tr>`).join("");
+    printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Transações · AF4 Cockpit</title>
+<style>
+body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;margin:24px;color:#111}
+h1{font-size:18px;margin:0}.sub{color:#666;font-size:12px;margin:2px 0 16px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #ddd}
+th{text-transform:uppercase;font-size:10px;letter-spacing:.08em;color:#666}
+td.r{text-align:right;white-space:nowrap}td.receita{color:#15803d}td.despesa{color:#b91c1c}
+tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
+</style></head><body>
+<h1>AF4 Cockpit · Transações</h1>
+<div class="sub">${filtered.length} lançamento(s) · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</div>
+<table>
+<thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th style="text-align:right">Valor</th></tr></thead>
+<tbody>${linhas}</tbody>
+<tfoot>
+<tr><td colspan="4">Total receitas</td><td class="r receita">+ ${esc(fmt(totRec))}</td></tr>
+<tr><td colspan="4">Total despesas</td><td class="r despesa">− ${esc(fmt(totDes))}</td></tr>
+<tr><td colspan="4">Saldo</td><td class="r">${esc(fmt(totRec - totDes))}</td></tr>
+</tfoot></table></body></html>`);
+  };
 
   // Lista de meses com transações (para popular o filtro de período)
   const mesesDisponiveis = useMemo(() => {
@@ -369,6 +400,18 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
                     }}>
               <Download size={12} />
               <span>Backup JSON</span>
+            </button>
+            <button onClick={exportarPDF}
+                    style={{
+                      background: T.card, color: T.ink,
+                      border: `1px solid ${T.border}`,
+                      padding: "10px 16px", fontFamily: T.sans, fontSize: 12,
+                      letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500,
+                      cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                    }}
+                    title="Exportar transações filtradas para PDF">
+              <FileText size={12} />
+              <span>PDF</span>
             </button>
             <button className="btn-gold" onClick={() => setForm({ id: null, tipo: "despesa", valor: "", descricao: "", categoria: "", conta: contas[0]?.nome || "", data: todayISO(), obs: "", compensado: true, fixa: false, vencimento: null })}>
               <Plus size={14} className="inline mr-2" />Nova Transação
