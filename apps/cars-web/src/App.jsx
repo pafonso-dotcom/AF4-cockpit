@@ -35,10 +35,8 @@ import { useKeyboardShortcuts } from "./lib/keyboardShortcuts.js";
 import { useLayout } from "./lib/useLayout.js";
 import AtalhosOverlay from "./components/modals/AtalhosOverlay.jsx";
 import OnboardingTradeModal from "./components/modals/OnboardingTradeModal.jsx";
-import RadarTrade from "./components/pages/Trade/Radar.jsx";
-import WatchlistTrade from "./components/pages/Trade/Watchlist.jsx";
-import HistoricoTrade from "./components/pages/Trade/Historico.jsx";
 import AnaliseTrade from "./components/pages/Trade/Analise.jsx";
+import AnaliseCarteira from "./components/pages/Invest/AnaliseCarteira.jsx";
 
 import Dashboard from "./components/pages/Dashboard.jsx";
 import Contas from "./components/pages/Contas.jsx";
@@ -844,30 +842,16 @@ export default function App() {
           </>
         )}
 
-        {/* TELAS DE TRADE (agora dentro do módulo Investimentos) */}
+        {/* TELAS DE ANÁLISE TÉCNICA (dentro do módulo Investimentos) */}
         {modulo === "invest" && (
           <div className="px-6 md:px-10">
-            {tab === "trade-radar" && (
-              <RadarTrade
-                tradeWatchlist={tradeWatchlist}
-                tradeHistorico={tradeHistorico}
-                setTradeHistorico={setTradeHistorico}
-              />
+            {tab === "analise-carteira" && (
+              <AnaliseCarteira ativos={ativos} hidden={hidden}
+                onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }} />
             )}
             {tab === "trade-ativo" && (
-              <AnaliseTrade tradeWatchlist={tradeWatchlist} ativos={ativos} alvoInicial={analiseAlvo} />
-            )}
-            {tab === "trade-watchlist" && (
-              <WatchlistTrade
-                tradeWatchlist={tradeWatchlist}
-                setTradeWatchlist={setTradeWatchlist}
-              />
-            )}
-            {tab === "trade-historico" && (
-              <HistoricoTrade
-                tradeHistorico={tradeHistorico}
-                setTradeHistorico={setTradeHistorico}
-              />
+              <AnaliseTrade tradeWatchlist={tradeWatchlist} ativos={ativos} alvoInicial={analiseAlvo}
+                            onVoltar={() => setTab("analise-carteira")} />
             )}
           </div>
         )}
@@ -913,7 +897,7 @@ export default function App() {
       <InstallPWA />
       <ConfirmDialog />
       {atalhosVisivel && <AtalhosOverlay onClose={() => setAtalhosVisivel(false)} />}
-      {["trade-radar", "trade-ativo", "trade-watchlist", "trade-historico"].includes(tab) && !tradeOnboardingVisto && (
+      {["analise-carteira", "trade-ativo"].includes(tab) && !tradeOnboardingVisto && (
         <OnboardingTradeModal onClose={() => setTradeOnboardingVisto(true)} />
       )}
     </div>
