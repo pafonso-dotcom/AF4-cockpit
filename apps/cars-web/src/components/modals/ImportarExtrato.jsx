@@ -1,16 +1,66 @@
 import React, { useState, useRef } from "react";
-import { Upload, AlertCircle } from "lucide-react";
+import { Upload, AlertCircle, Loader2 } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid } from "../../lib/format.js";
 import { parseExtrato } from "../../lib/extratoParser.js";
+import { gerarJSONGeminiComPDF, fileToBase64 } from "../../lib/gemini.js";
 import { toast } from "../../lib/toast.js";
 import { audit } from "../../lib/auditLog.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
 
+// Extrai transações de um extrato em PDF usando o Gemini.
+// Devolve o mesmo formato de parseExtrato: { banco, transacoes, erro }.
+async function parseExtratoPDFFile(file) {
+  const key = (typeof localStorage !== "undefined" && localStorage.getItem("af4:gemini-key")) || "";
+  if (!key.trim()) {
+    return { erro: "Para importar PDF é preciso configurar a chave do Gemini em ⚙ Configurações → Inteligência Artificial. Como alternativa, envie o arquivo OFX ou CSV do banco." };
+  }
+  try {
+    const base64 = await fileToBase64(file);
+    if (!base64 || base64.length < 100) return { erro: "PDF aparentemente vazio. Tente outro arquivo." };
+    const prompt = `Você é um leitor de extratos bancários. Extraia TODAS as transações deste PDF de extrato.
+Para cada transação:
+- data: ISO YYYY-MM-DD
+- descricao: descrição como aparece no extrato (máx 80 chars)
+- valor: número positivo, em reais, sem sinal
+- tipo: "receita" para créditos/entradas/depósitos, "despesa" para débitos/saídas/pagamentos
+
+Retorne EXATAMENTE este JSON (sem markdown):
+{
+  "banco": "Nome do banco identificado (Itaú, Nubank, Bradesco, etc.) ou 'PDF' se não conseguir identificar.",
+  "transacoes": [
+    { "data": "2024-01-15", "descricao": "Mercado XYZ", "valor": 150.00, "tipo": "despesa" }
+  ]
+}
+
+Importante: não inclua linhas de saldo, total, juros aplicados, taxas que sejam só informativas, nem linhas vazias — somente transações reais com data e valor.`;
+    const data = await gerarJSONGeminiComPDF(prompt, base64);
+    const lista = Array.isArray(data?.transacoes) ? data.transacoes : [];
+    const transacoes = lista
+      .filter(t => t && t.data && t.valor != null)
+      .map(t => ({
+        _id: uid(),
+        data: String(t.data).slice(0, 10),
+        descricao: String(t.descricao || "Lançamento").slice(0, 200),
+        valor: Math.abs(Number(t.valor) || 0),
+        tipo: t.tipo === "receita" ? "receita" : "despesa",
+        categoria: "Outros",
+        subcategoria: null,
+      }))
+      .filter(t => t.valor > 0);
+    if (transacoes.length === 0) {
+      return { erro: "Nenhuma transação encontrada no PDF. Tente o arquivo OFX/CSV exportado direto do banco." };
+    }
+    return { banco: data?.banco || "PDF", transacoes };
+  } catch (e) {
+    return { erro: `Erro ao analisar PDF: ${e.message}` };
+  }
+}
+
 /**
- * Modal de importação de extratos OFX/CSV.
- * Fluxo: arquivo → preview → revisar categorias → confirmar.
+ * Modal de importação de extratos OFX/CSV/PDF.
+ * Fluxo: arquivo → (IA, se PDF) → preview → revisar categorias → confirmar.
  */
 export default function ImportarExtrato({
   contas, categorias,
@@ -23,17 +73,19 @@ export default function ImportarExtrato({
   const [selecionadas, setSelecionadas] = useState(new Set());
   const [edicoes, setEdicoes] = useState({}); // { _id: { categoria, ... } }
   const [erro, setErro] = useState("");
+  const [parsing, setParsing] = useState(false); // true enquanto a IA processa o PDF
   const fileRef = useRef();
 
   const handleFile = async (file) => {
     if (!file) return;
+    const isPdf = /\.pdf$/i.test(file.name) || file.type === "application/pdf";
+    setErro("");
+    setParsing(true);
     try {
-      const text = await file.text();
-      const result = parseExtrato(text, file.name);
-      if (result.erro) {
-        setErro(result.erro);
-        return;
-      }
+      const result = isPdf
+        ? await parseExtratoPDFFile(file)
+        : parseExtrato(await file.text(), file.name);
+      if (result.erro) { setErro(result.erro); return; }
       if (!result.transacoes || result.transacoes.length === 0) {
         setErro("Nenhuma transação encontrada no arquivo.");
         return;
@@ -41,9 +93,10 @@ export default function ImportarExtrato({
       setParsed(result);
       setSelecionadas(new Set(result.transacoes.map(t => t._id)));
       setStep("preview");
-      setErro("");
     } catch (err) {
       setErro(`Erro ao ler arquivo: ${err.message}`);
+    } finally {
+      setParsing(false);
     }
   };
 
@@ -111,10 +164,25 @@ export default function ImportarExtrato({
     return (
       <Modal title="Importar extrato bancário" onClose={onClose} wide>
         <p style={{ fontSize: 13, color: T.muted, marginBottom: 18, lineHeight: 1.6 }}>
-          Arraste o arquivo do banco aqui ou clique para selecionar. Aceito: <strong style={{ color: T.gold }}>.OFX</strong> e <strong style={{ color: T.gold }}>.CSV</strong>.
+          Arraste o arquivo do banco aqui ou clique para selecionar. Aceito: <strong style={{ color: T.gold }}>.OFX</strong>, <strong style={{ color: T.gold }}>.CSV</strong> e <strong style={{ color: T.gold }}>.PDF</strong> (PDF é lido por IA).
           As transações serão categorizadas automaticamente.
         </p>
 
+        {parsing ? (
+          <div style={{
+            border: `2px dashed ${T.gold}`, borderRadius: 12,
+            padding: "40px 20px", textAlign: "center",
+            background: T.bgSoft,
+          }}>
+            <Loader2 size={36} style={{ color: T.gold, marginBottom: 10, animation: "spin 1s linear infinite" }} />
+            <div style={{ fontSize: 15, color: T.ink, marginBottom: 6 }}>
+              Analisando arquivo com IA…
+            </div>
+            <div style={{ fontSize: 12, color: T.muted }}>
+              Isso pode levar alguns segundos.
+            </div>
+          </div>
+        ) : (
         <div onDrop={onDrop} onDragOver={onDragOver}
              onClick={() => fileRef.current?.click()}
              style={{
@@ -135,7 +203,8 @@ export default function ImportarExtrato({
             Itaú · Nubank · Bradesco · Santander · BB · Inter · C6 · Genérico
           </div>
         </div>
-        <input ref={fileRef} type="file" accept=".ofx,.csv,.txt"
+        )}
+        <input ref={fileRef} type="file" accept=".ofx,.csv,.txt,.pdf,application/pdf"
                style={{ display: "none" }}
                onChange={e => handleFile(e.target.files?.[0])} />
 

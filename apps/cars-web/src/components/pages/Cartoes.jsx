@@ -10,7 +10,7 @@ import Field from "../ui/Field.jsx";
 import StatCard from "../ui/StatCard.jsx";
 import Modal from "../ui/Modal.jsx";
 
-export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, categorias, hidden, onCartaoClick }) {
+export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, categorias, hidden, onCartaoClick, cartaoAtivo }) {
   const [form, setForm] = useState(null);
   const [parcForm, setParcForm] = useState(null);
   const [pagFatura, setPagFatura] = useState(null); // { cartaoId, valor, contaNome, data }
@@ -268,10 +268,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   accent={T.blue} icon={Repeat} />
       </div>
 
-      {/* Visual cards · densos · auto-fill */}
+      {/* Visual cards · empilhados verticalmente (lista) */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+        gridTemplateColumns: "1fr",
         gap: 12,
         marginBottom: 30,
       }}>
@@ -295,8 +295,8 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                  onMouseEnter={e => { if (onCartaoClick) { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)"; }}}
                  onMouseLeave={e => { if (onCartaoClick) { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)"; }}}
             >
-              {/* Highlight ring */}
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, pointerEvents: "none" }} />
+              {/* Highlight ring · borda dourada quando o cartão está aberto à direita */}
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, border: `2px solid ${cartaoAtivo?.id === c.id ? T.gold : "rgba(255,255,255,0.12)"}`, borderRadius: 10, pointerEvents: "none" }} />
 
               {/* Top: brand + tipo */}
               <div className="flex items-start justify-between" style={{ padding: "12px 14px 6px" }}>
