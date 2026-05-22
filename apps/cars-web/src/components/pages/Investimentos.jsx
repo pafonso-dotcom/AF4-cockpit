@@ -67,7 +67,6 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
   const save = () => {
     const errs = {};
     if (!form.ticker?.trim()) errs.ticker = "Ticker é obrigatório";
-    if (!form.nome?.trim()) errs.nome = "Nome é obrigatório";
     if (!form.qtd || parseFloat(form.qtd) <= 0) errs.qtd = "Quantidade deve ser positiva";
     if (!form.pm || parseFloat(form.pm) <= 0) errs.pm = "Preço médio deve ser positivo";
 
@@ -521,9 +520,6 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
               </select>
             </Field>
           </div>
-          <Field label="Nome">
-            <input value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder="Petrobras PN" />
-          </Field>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Quantidade">
               <input type="number" step="0.00000001" value={form.qtd} onChange={e => setForm({ ...form, qtd: e.target.value })} placeholder="8" />

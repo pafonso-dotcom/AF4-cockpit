@@ -13,7 +13,7 @@ const INTERVALOS_BINANCE = [
   { v: "15m", l: "15m" }, { v: "1h", l: "1h" }, { v: "4h", l: "4h" },
   { v: "1d",  l: "1d"  }, { v: "1w", l: "1w" },
 ];
-const BRAPI_TF = { "1d": { range: "6mo", interval: "1d" }, "1w": { range: "2y", interval: "1wk" } };
+const BRAPI_TF = { "1d": { range: "3mo", interval: "1d" }, "1w": { range: "3mo", interval: "1wk" } };
 
 const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
 
