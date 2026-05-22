@@ -522,62 +522,80 @@ function VendasPanel({ vendas, setVendas, veiculos, setVeiculos, clientes, setCl
     delete data.clienteNome;
     delete data.clienteTelefone;
 
-    const isNova = !form.id || !vendas.find(v => v.id === form.id);
+    const vendaAnterior = form.id ? vendas.find(v => v.id === form.id) : null;
+    const isNova = !vendaAnterior;
 
-    if (form.id && vendas.find(v => v.id === form.id)) {
-      setVendas(vendas.map(v => v.id === form.id ? data : v));
-      toast.success("Venda atualizada.");
+    // gerar id de venda (mantém o existente em edições)
+    const vendaId = vendaAnterior ? vendaAnterior.id : uid();
+    data.id = vendaId;
+
+    if (vendaAnterior) {
+      setVendas(vendas.map(v => v.id === vendaId ? data : v));
     } else {
-      // gerar id de venda
-      const vendaId = uid();
-      data.id = vendaId;
       setVendas([data, ...vendas]);
+    }
 
-      // Marca veículo como vendido
-      setVeiculos(prev => {
-        let next = prev.map(v => v.id === data.veiculoId ? { ...v, status: "vendido", dataVenda: data.dataVenda } : v);
+    // Veículo trocou? (relevante apenas em edições)
+    const veiculoAnteriorId = vendaAnterior ? vendaAnterior.veiculoId : null;
+    const veiculoMudou = isNova || veiculoAnteriorId !== data.veiculoId;
 
-        // Se veio veículo em troca, adiciona ao estoque
-        if (form.formaPagamento === "troca" || form.formaPagamento === "misto") {
-          if (form.trocaVeiculo && valorTrocaNum > 0) {
-            const t = form.trocaVeiculo;
-            const veicTroca = {
-              id: uid(),
-              marca: (t.marca || "").toUpperCase(),
-              modelo: t.modelo || "",
-              cor: "—", corHex: "#888",
-              anoFabricacao: parseInt(t.ano) || new Date().getFullYear(),
-              anoModelo: parseInt(t.ano) || new Date().getFullYear(),
-              km: parseInt(t.km) || 0,
-              placa: t.placa || "",
-              combustivel: "flex", cambio: "manual",
-              valorCompra: valorTrocaNum,
-              valorFipe: null,
-              valorAnunciado: Math.round(valorTrocaNum * 1.15), // sugestão: 15% acima
-              valorMinimo: valorTrocaNum,
-              categoria: "compacto",
-              status: "estoque",
-              dataEntrada: data.dataVenda,
-              fornecedor: `Troca · venda ${data.dataVenda}`,
-              dataCompra: data.dataVenda,
-              formaCompra: "troca",
-              origem: "troca",
-              vendaOrigemId: vendaId,
-              origemTroca: { vendaId, clienteId },
-              despesasEntrada: [],
-              observacoes: t.obs || `Recebido em troca da venda ${data.dataVenda}.`,
-            };
-            next = [...next, veicTroca];
-          }
+    // Marca veículo como vendido (e reverte o anterior quando trocou)
+    setVeiculos(prev => {
+      let next = prev;
+      if (veiculoMudou) {
+        next = next.map(v => {
+          if (veiculoAnteriorId && v.id === veiculoAnteriorId) return { ...v, status: "estoque" };
+          if (v.id === data.veiculoId) return { ...v, status: "vendido", dataVenda: data.dataVenda };
+          return v;
+        });
+      }
+
+      // Se veio veículo em troca, adiciona ao estoque
+      if (form.formaPagamento === "troca" || form.formaPagamento === "misto") {
+        if (form.trocaVeiculo && valorTrocaNum > 0 && !form.trocaVeiculo.id) {
+          const t = form.trocaVeiculo;
+          const veicTroca = {
+            id: uid(),
+            marca: (t.marca || "").toUpperCase(),
+            modelo: t.modelo || "",
+            cor: "—", corHex: "#888",
+            ano: parseInt(t.ano) || new Date().getFullYear(),
+            anoModelo: parseInt(t.ano) || new Date().getFullYear(),
+            km: parseInt(t.km) || 0,
+            placa: t.placa || "",
+            combustivel: "flex", cambio: "manual",
+            valorCompra: valorTrocaNum,
+            valorFipe: null,
+            valorVenda: Math.round(valorTrocaNum * 1.15), // sugestão: 15% acima
+            valorMinimo: valorTrocaNum,
+            categoria: "outro",
+            status: "estoque",
+            dataEntrada: data.dataVenda,
+            fornecedor: `Troca · venda ${data.dataVenda}`,
+            dataCompra: data.dataVenda,
+            formaCompra: "troca",
+            origem: "troca",
+            vendaOrigemId: vendaId,
+            origemTroca: { vendaId, clienteId },
+            despesasEntrada: [],
+            obs: t.obs || `Recebido em troca da venda ${data.dataVenda}.`,
+          };
+          // marca o veículo de troca como já registrado para não duplicar em edições
+          form.trocaVeiculo.id = veicTroca.id;
+          data.trocaVeiculo = { ...form.trocaVeiculo };
+          next = [...next, veicTroca];
         }
-        return next;
-      });
+      }
+      return next;
+    });
 
-      // Se veio cheques recebidos, adiciona à carteira
-      if ((form.formaPagamento === "cheques" || form.formaPagamento === "misto") && (form.chequesRecebidos || []).length > 0 && setCheques) {
-        const novosCheques = (form.chequesRecebidos || [])
-          .filter(c => parseFloat(c.valor) > 0)
-          .map(c => ({
+    // Se veio cheques recebidos, adiciona à carteira (apenas os ainda não registrados)
+    if ((form.formaPagamento === "cheques" || form.formaPagamento === "misto") && (form.chequesRecebidos || []).length > 0 && setCheques) {
+      const novosCheques = (form.chequesRecebidos || [])
+        .filter(c => parseFloat(c.valor) > 0 && !c.registrado)
+        .map(c => {
+          c.registrado = true;
+          return {
             id: uid(),
             numero: c.numero || "",
             emitente: c.emitente || form.clienteNome || "",
@@ -590,24 +608,24 @@ function VendasPanel({ vendas, setVendas, veiculos, setVeiculos, clientes, setCl
             status: "aguardando",
             origemVendaId: vendaId,
             obs: `Recebido na venda ${data.dataVenda}`,
-          }));
-        if (novosCheques.length > 0) {
-          setCheques(prev => [...(prev || []), ...novosCheques]);
-        }
+          };
+        });
+      if (novosCheques.length > 0) {
+        setCheques(prev => [...(prev || []), ...novosCheques]);
       }
+    }
 
-      toast.success(
-        isNova
-          ? `Venda registrada · Lucro líquido: ${fmt(margem.absoluta)} (${margem.percentual.toFixed(1)}%)`
-          : "Venda atualizada."
-      );
+    toast.success(
+      isNova
+        ? `Venda registrada · Lucro líquido: ${fmt(margem.absoluta)} (${margem.percentual.toFixed(1)}%)`
+        : "Venda atualizada."
+    );
 
-      // ★ Abre recibo automaticamente em venda nova
-      if (isNova) {
-        const clienteRecibo = clientes.find(c => c.id === data.clienteId)
-          || (form.clienteNome ? { nome: form.clienteNome, telefone: form.clienteTelefone } : null);
-        setTimeout(() => setReciboVenda({ venda: data, veiculo: veicAtual, cliente: clienteRecibo }), 250);
-      }
+    // ★ Abre recibo automaticamente em venda nova
+    if (isNova) {
+      const clienteRecibo = clientes.find(c => c.id === data.clienteId)
+        || (form.clienteNome ? { nome: form.clienteNome, telefone: form.clienteTelefone } : null);
+      setTimeout(() => setReciboVenda({ venda: data, veiculo: veicAtual, cliente: clienteRecibo }), 250);
     }
     setForm(null);
     setFormErrors({});

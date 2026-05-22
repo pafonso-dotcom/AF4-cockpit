@@ -197,16 +197,20 @@ function NotificationsBlock() {
 
   const supported = isSupported();
 
-  const persistir = (next) => {
-    setCfg(next);
-    setNotifCfg(next);
+  // Aplica um updater (prev => next) ao cfg, persistindo o resultado.
+  const persistir = (updater) => {
+    setCfg(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      setNotifCfg(next);
+      return next;
+    });
   };
 
   const pedirPermissao = async () => {
     const result = await requestPermission();
     setPerm(result);
     if (result === "granted") {
-      persistir({ ...cfg, habilitada: true });
+      persistir(prev => ({ ...prev, habilitada: true }));
       setMsg({ tipo: "ok", txt: "Notificações ativadas! Você receberá avisos de vencimentos." });
     } else if (result === "denied") {
       setMsg({ tipo: "erro", txt: "Permissão negada. Habilite nas configurações do navegador." });
@@ -214,12 +218,12 @@ function NotificationsBlock() {
   };
 
   const desativar = () => {
-    persistir({ ...cfg, habilitada: false });
+    persistir(prev => ({ ...prev, habilitada: false }));
     setMsg({ tipo: "ok", txt: "Notificações desativadas." });
   };
 
   const toggleTipo = (tipo) => {
-    persistir({ ...cfg, tipos: { ...cfg.tipos, [tipo]: !cfg.tipos[tipo] } });
+    persistir(prev => ({ ...prev, tipos: { ...prev.tipos, [tipo]: !prev.tipos?.[tipo] } }));
   };
 
   return (
@@ -255,7 +259,7 @@ function NotificationsBlock() {
                   Avisar com antecedência de:
                 </label>
                 <select value={cfg.antecedenciaDias}
-                        onChange={e => persistir({ ...cfg, antecedenciaDias: parseInt(e.target.value) })}
+                        onChange={e => { const v = parseInt(e.target.value); persistir(prev => ({ ...prev, antecedenciaDias: v })); }}
                         style={{ padding: "6px 10px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 5 }}>
                   <option value="1">1 dia</option>
                   <option value="2">2 dias</option>

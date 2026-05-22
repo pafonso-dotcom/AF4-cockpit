@@ -89,13 +89,17 @@ export default function AReceberEDividas({
     if (totalParc > 1 && form.vencimento) {
       // Gera entradas restantes a partir da parcela "inicioParc"
       const novos = [];
-      const baseDate = new Date(form.vencimento);
+      // Parse "YYYY-MM-DD" como data local (evita o shift de fuso do new Date string)
+      const [baseY, baseM, baseD] = form.vencimento.split("-").map(Number);
       const grupoId = uid(); // pra agrupar todas as parcelas como um conjunto
       for (let i = inicioParc; i <= totalParc; i++) {
         const offset = i - inicioParc; // 1ª gerada usa o vencimento do form
-        const venc = new Date(baseDate);
-        venc.setMonth(venc.getMonth() + offset);
-        const vencISO = venc.toISOString().slice(0, 10);
+        // Avança meses mantendo o dia, sem deixar 29-31 transbordar pro mês seguinte
+        const alvoMes = baseM - 1 + offset;
+        const venc = new Date(baseY, alvoMes, 1);
+        const ultimoDia = new Date(baseY, alvoMes + 1, 0).getDate();
+        venc.setDate(Math.min(baseD, ultimoDia));
+        const vencISO = `${venc.getFullYear()}-${String(venc.getMonth() + 1).padStart(2, "0")}-${String(venc.getDate()).padStart(2, "0")}`;
         novos.push({
           ...data,
           id: uid(),

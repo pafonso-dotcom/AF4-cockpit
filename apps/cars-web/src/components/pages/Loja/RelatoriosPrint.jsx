@@ -260,14 +260,14 @@ export function RelatorioFunil({ leads = [], onClose }) {
     { id: "novo",        label: "Novo" },
     { id: "atendimento", label: "Atendimento" },
     { id: "negociacao",  label: "Negociação" },
-    { id: "aprovacao",   label: "Aprovação" },
+    { id: "aprov",       label: "Aprovação" },
     { id: "fechado",     label: "Fechado" },
   ];
 
   const porEstagio = useMemo(() => {
     return ESTAGIOS.map((e, idx) => {
       const items = leads.filter(l => l.estagio === e.id);
-      const valorTotal = items.reduce((s, l) => s + (parseFloat(l.valor) || 0), 0);
+      const valorTotal = items.reduce((s, l) => s + (parseFloat(l.valorEstimado) || 0), 0);
       // tempo médio em dias desde createdAt
       const hoje = new Date();
       let mediaDias = 0;

@@ -206,14 +206,17 @@ export default function CartaoExtrato({ cartao, transacoes = [], parcelamentos =
               <tbody>
                 {parcCartao.map((p, i) => {
                   const totalParc = Number(p.totalParcelas || p.parcelas || 0);
-                  const restantes = Number(p.parcelasRestantes || 0);
-                  const pagas = totalParc - restantes;
+                  const pagasArr = (p.parcelasPagas || []).length;
+                  const pagas = p.parcelasRestantes != null
+                    ? totalParc - Number(p.parcelasRestantes)
+                    : pagasArr;
+                  const restantes = totalParc - pagas;
                   const valor = Number(p.valorParcela || p.valor || 0);
                   return (
                     <tr key={p.id || i}>
                       <td>{p.descricao || p.nome || "—"}</td>
                       <td>{p.dataInicio || p.data || "—"}</td>
-                      <td style={{ textAlign: "right" }} className="num">{pagas + 1}/{totalParc}</td>
+                      <td style={{ textAlign: "right" }} className="num">{Math.min(pagas + 1, totalParc)}/{totalParc}</td>
                       <td style={{ textAlign: "right" }} className="num">{hidden ? "•••" : fmt(valor)}</td>
                       <td style={{ textAlign: "right" }} className="num">{hidden ? "•••" : fmt(valor * restantes)}</td>
                     </tr>

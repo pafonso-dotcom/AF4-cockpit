@@ -70,7 +70,8 @@ describe("parseOFX", () => {
 </OFX>`;
     const result = parseOFX(ofx);
     expect(result).toHaveLength(2);
-    expect(result[0].valor).toBeCloseTo(-150);
+    expect(result[0].valor).toBeCloseTo(150);
+    expect(result[0].tipo).toBe("despesa");
     expect(result[0].descricao).toBe("Mercado");
     expect(result[0].data).toBe("2024-01-15");
   });

@@ -25,9 +25,9 @@ export const chequesProximos = (cheques = [], dias = 7, ref = new Date()) => {
   const limite = new Date(ref);
   limite.setDate(limite.getDate() + dias);
   return (cheques || []).filter(c => {
-    if (!c || c.status === "COMPENSADO" || c.status === "DEVOLVIDO") return false;
-    if (!c.dataBomPara) return false;
-    const d = new Date(c.dataBomPara);
+    if (!c || c.status === "compensado" || c.status === "devolvido") return false;
+    if (!c.data) return false;
+    const d = new Date(c.data);
     return d >= ref && d <= limite;
   });
 };
@@ -36,8 +36,8 @@ export const chequesProximos = (cheques = [], dias = 7, ref = new Date()) => {
 export const chequesVencidos = (cheques = [], ref = new Date()) => {
   const refStr = ref.toISOString().slice(0, 10);
   return (cheques || []).filter(c => {
-    if (!c || c.status === "COMPENSADO" || c.status === "DEVOLVIDO") return false;
-    return c.dataBomPara && c.dataBomPara < refStr;
+    if (!c || c.status === "compensado" || c.status === "devolvido") return false;
+    return c.data && c.data < refStr;
   });
 };
 

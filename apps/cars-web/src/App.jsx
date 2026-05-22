@@ -758,7 +758,7 @@ export default function App() {
             )}
             {tab === "performance" && <Performance ativos={ativos} hidden={hidden} />}
             {tab === "proventos" && <Proventos ativos={ativos} hidden={hidden} />}
-            {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} proventos={proventos || []} operacoes={operacoes || []} hidden={hidden} />}
+            {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} proventos={[]} operacoes={[]} hidden={hidden} />}
             {tab === "mercado" && (
               <div className="px-6 md:px-10">
                 <Mercado ativos={ativos} apiKeys={apiKeys} />

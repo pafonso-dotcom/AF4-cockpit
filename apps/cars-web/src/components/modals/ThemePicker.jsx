@@ -62,7 +62,7 @@ export default function ThemePicker({ themeId, setThemeId, onClose }) {
 
                 <div className="flex items-start justify-between gap-3 mb-3 mt-1">
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: FONTS.serif, fontSize: 22, color: th.ink, lineHeight: 1.1, letterSpacing: "-0.01em" }}>
+                    <div style={{ fontFamily: T.serif, fontSize: 22, color: th.ink, lineHeight: 1.1, letterSpacing: "-0.01em" }}>
                       {th.nome}
                     </div>
                     <div style={{ color: th.muted, fontSize: 12, fontStyle: "italic", marginTop: 4 }}>
@@ -72,7 +72,7 @@ export default function ThemePicker({ themeId, setThemeId, onClose }) {
                   {active && (
                     <div style={{ background: th.gold, color: th.bg, padding: "4px 8px", flexShrink: 0,
                                   display: "flex", alignItems: "center", gap: 4,
-                                  fontFamily: FONTS.sans, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 600 }}>
+                                  fontFamily: T.sans, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 600 }}>
                       <Check size={10} /> Ativo
                     </div>
                   )}
@@ -80,14 +80,14 @@ export default function ThemePicker({ themeId, setThemeId, onClose }) {
 
                 {/* Sample editorial card */}
                 <div style={{ background: th.cardHi, border: `1px solid ${th.border}`, padding: 12, marginTop: 8 }}>
-                  <div style={{ fontFamily: FONTS.sans, fontSize: 9, letterSpacing: "0.2em",
+                  <div style={{ fontFamily: T.sans, fontSize: 9, letterSpacing: "0.2em",
                                 textTransform: "uppercase", color: th.muted, marginBottom: 4 }}>
                     Patrimônio
                   </div>
-                  <div style={{ fontFamily: FONTS.serif, fontSize: 22, color: th.ink, fontVariantNumeric: "tabular-nums" }}>
+                  <div style={{ fontFamily: T.serif, fontSize: 22, color: th.ink, fontVariantNumeric: "tabular-nums" }}>
                     R$ 124.928
                   </div>
-                  <div className="flex items-center gap-1 mt-1" style={{ color: th.green, fontFamily: FONTS.mono, fontSize: 11 }}>
+                  <div className="flex items-center gap-1 mt-1" style={{ color: th.green, fontFamily: T.mono, fontSize: 11 }}>
                     <ArrowUpRight size={12} /> +4.82%
                   </div>
                 </div>

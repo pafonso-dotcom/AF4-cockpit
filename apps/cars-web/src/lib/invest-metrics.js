@@ -12,7 +12,7 @@ const CDI_DIARIO = 0.000395;   // CDI diário aproximado
  */
 export const retornoMensal = (ativo) => {
   const preco = Number(ativo.preco || 0);
-  const precoMedio = Number(ativo.precoMedio || ativo.preco || 0);
+  const precoMedio = Number(ativo.pm ?? ativo.precoMedio ?? ativo.preco ?? 0);
   if (precoMedio <= 0) return 0;
   return (preco - precoMedio) / precoMedio;
 };
@@ -92,7 +92,7 @@ export const maxDrawdown = (ativos) => {
     const dd = (pico - valor) / pico;
     if (dd > maxDD) maxDD = dd;
   }
-  return -(maxDD * 100).toFixed(1);
+  return (-(maxDD * 100)).toFixed(1);
 };
 
 /**
@@ -156,7 +156,8 @@ export const alpha = (ativos) => {
  * Retorna { cenario, prob, impactoPct, valorEstimado }
  */
 export const stressTest = (ativos) => {
-  const total = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
+  const total = (ativos || []).reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
+  if (!ativos || ativos.length === 0 || total <= 0) return [];
 
   // Pesos por classe
   const pesos = { acao: 0, fii: 0, cripto: 0, rf: 0, etf: 0, outro: 0 };

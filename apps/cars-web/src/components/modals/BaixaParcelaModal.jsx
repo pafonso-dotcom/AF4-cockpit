@@ -9,12 +9,13 @@ import { fmt, todayISO } from "../../lib/format.js";
  * Devolve via onConfirm({ conta, data, obs }).
  */
 export default function BaixaParcelaModal({ item, contas, onConfirm, onClose }) {
-  if (!item) return null;
   const contasFiltradas = (contas || []).filter(c => !c.arquivada);
 
   const [contaId, setContaId] = useState(contasFiltradas[0]?.id || "");
-  const [data, setData] = useState(item.data || todayISO());
+  const [data, setData] = useState(item?.data || todayISO());
   const [obs, setObs] = useState("");
+
+  if (!item) return null;
 
   const conta = contasFiltradas.find(c => c.id === contaId);
 

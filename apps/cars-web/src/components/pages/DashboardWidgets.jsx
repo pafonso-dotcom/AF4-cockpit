@@ -12,15 +12,16 @@ export default function DashboardWidgets({ transacoes, categorias, devedores, di
     const out = [];
     transacoes.forEach(t => {
       if (t.compensado) return;
-      // For fixed monthly bills, compute the next due date
+      // For fixed monthly bills, compute this month's due date (clamped to last day)
       if (t.fixa && t.vencimento) {
         const m = today.getMonth();
         const y = today.getFullYear();
-        const d = t.vencimento;
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        const d = Math.min(t.vencimento, lastDay);
         const cur = new Date(y, m, d);
-        if (cur < today) cur.setMonth(cur.getMonth() + 1);
+        const atrasada = cur < today;
         const iso = cur.toISOString().slice(0, 10);
-        out.push({ ...t, _date: iso, _atrasada: false });
+        out.push({ ...t, _date: iso, _atrasada: atrasada });
       } else if (t.data) {
         out.push({ ...t, _date: t.data, _atrasada: t.data < todayStr });
       }

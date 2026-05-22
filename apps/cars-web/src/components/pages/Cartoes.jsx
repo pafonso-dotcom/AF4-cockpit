@@ -201,7 +201,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
       tipo: "despesa",
       descricao: `Fatura ${cartao.nome} · ${pagFatura.monthKey}`,
       valor: v,
-      categoria: categorias?.find(c => /cart[ãa]o|fatura/i.test(c.nome))?.nome || categorias?.[0]?.nome || "Outros",
+      categoria: categorias?.find(c => /cart[ãa]o|fatura/i.test(c.nome))?.nome || categorias?.filter(c => c.tipo === "despesa")?.[0]?.nome || "Outros",
       conta: conta.nome,
       data: pagFatura.data,
       compensado: true,
@@ -480,13 +480,15 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   <div className="parcelas-grid" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {Array.from({ length: p.totalParcelas }, (_, i) => i + 1).map(num => {
                       const paga = (p.parcelasPagas || []).includes(num);
-                      // Calcula data de cada parcela (mensal a partir da 1ª)
+                      // Calcula data de cada parcela usando o mesmo helper da fatura
                       let dataParcela = "";
                       let isAtual = false;
-                      if (p.dataPrimeira) {
-                        const base = new Date(p.dataPrimeira);
-                        base.setMonth(base.getMonth() + (num - 1));
-                        dataParcela = base.toISOString().slice(0, 10);
+                      const dt = dataDaParcela(p, num);
+                      if (dt) {
+                        const y = dt.getFullYear();
+                        const mo = String(dt.getMonth() + 1).padStart(2, "0");
+                        const d = String(dt.getDate()).padStart(2, "0");
+                        dataParcela = `${y}-${mo}-${d}`;
                         const hojeYM = new Date().toISOString().slice(0, 7);
                         isAtual = dataParcela.startsWith(hojeYM) && !paga;
                       }

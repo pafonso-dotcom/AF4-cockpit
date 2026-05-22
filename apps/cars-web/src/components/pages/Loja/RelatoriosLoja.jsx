@@ -81,10 +81,10 @@ export default function RelatoriosLoja({
     }
     const canais = {};
     leads.forEach(l => {
-      const c = l.canal || "Outros";
+      const c = l.origem || "Outros";
       if (!canais[c]) canais[c] = { total: 0, fechados: 0 };
       canais[c].total++;
-      if (l.status === "FECHADO") canais[c].fechados++;
+      if (l.estagio === "fechado") canais[c].fechados++;
     });
     return Object.entries(canais)
       .map(([nome, d]) => ({

@@ -25,8 +25,8 @@ export default function LojaPainel({ veiculos, vendas, leads, cheques, hidden })
     ? Math.round(disponiveis.reduce((s, v) => s + diasEmEstoque(v), 0) / disponiveis.length)
     : 0;
 
-  const leadsAtivos = (leads || []).filter(l => l.status !== "FECHADO" && l.status !== "PERDIDO");
-  const leadsHot = (leads || []).filter(l => l.status === "NEGOCIACAO" || l.status === "APROV_FINANCIAMENTO");
+  const leadsAtivos = (leads || []).filter(l => l.estagio !== "fechado" && l.estagio !== "perdido");
+  const leadsHot = (leads || []).filter(l => l.estagio === "negociacao" || l.estagio === "aprov");
 
   const chProx = chequesProximos(cheques || [], 7, hoje);
   const chVenc = chequesVencidos(cheques || [], hoje);

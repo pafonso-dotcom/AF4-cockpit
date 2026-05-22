@@ -12,7 +12,7 @@ export default function RelatoriosInvest({ ativos = [], proventos: proventosProp
   const [pdfAberto, setPdfAberto] = useState(false);
   // Patrimônio atual
   const valorAtual = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
-  const custo = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.precoMedio || a.preco || 0), 0);
+  const custo = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.pm ?? a.precoMedio ?? a.preco ?? 0), 0);
 
   // Evolução simulada do patrimônio (12 meses)
   const evolucao = useMemo(() => {
@@ -55,9 +55,9 @@ export default function RelatoriosInvest({ ativos = [], proventos: proventosProp
   // IR estimado simplificado por classe
   const irEstimado = useMemo(() => {
     const ganhoAcao = ativos.filter(a => (a.tipo || "").toLowerCase() === "acao")
-      .reduce((s, a) => s + (Number(a.preco || 0) - Number(a.precoMedio || 0)) * Number(a.qtd || 0), 0);
+      .reduce((s, a) => s + (Number(a.preco || 0) - Number(a.pm ?? a.precoMedio ?? a.preco ?? 0)) * Number(a.qtd || 0), 0);
     const ganhoCripto = ativos.filter(a => (a.tipo || "").toLowerCase() === "cripto")
-      .reduce((s, a) => s + (Number(a.preco || 0) - Number(a.precoMedio || 0)) * Number(a.qtd || 0), 0);
+      .reduce((s, a) => s + (Number(a.preco || 0) - Number(a.pm ?? a.precoMedio ?? a.preco ?? 0)) * Number(a.qtd || 0), 0);
 
     return [
       { label: "Day Trade",    value: 0,                        nota: "20%" },

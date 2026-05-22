@@ -17,13 +17,19 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
   const [selecionadas, setSelecionadas] = useState({});   // { "<pacoteId>:<nome>": true }
   const [vista, setVista] = useState("despesa"); // "receita" | "despesa"
 
+  // Agregação de transações por ID de categoria (evita somar em dobro
+  // quando pai e filha partilham o mesmo nome).
   const stats = useMemo(() => {
     const m = {};
+    const idPorNome = {};
+    categorias.forEach(c => { idPorNome[c.nome] = c.id; });
     transacoes.forEach(t => {
-      m[t.categoria] = (m[t.categoria] || 0) + Number(t.valor || 0);
+      const id = idPorNome[t.categoria];
+      if (id == null) return;
+      m[id] = (m[id] || 0) + Number(t.valor || 0);
     });
     return m;
-  }, [transacoes]);
+  }, [transacoes, categorias]);
 
   const [formErrors, setFormErrors] = useState({});
 
@@ -83,7 +89,7 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {despesasComLimite.map(c => {
-              const gasto = stats[c.nome] || 0;
+              const gasto = stats[c.id] || 0;
               const saldo = c.limite - gasto;
               const pct = Math.min(100, (gasto / c.limite) * 100);
               const estado = pct >= 100 ? "estourado" : pct >= 80 ? "alerta" : "ok";
@@ -377,8 +383,8 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
 
   // Total inclui valor próprio + filhas
   const valorComFilhas = (c) => {
-    const propria = stats[c.nome] || 0;
-    const filhas = (filhasPorPai[c.id] || []).reduce((s, f) => s + (stats[f.nome] || 0), 0);
+    const propria = stats[c.id] || 0;
+    const filhas = (filhasPorPai[c.id] || []).reduce((s, f) => s + (stats[f.id] || 0), 0);
     return propria + filhas;
   };
 
@@ -397,7 +403,7 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
             c={c}
             total={total}
             valor={valorComFilhas(c)}
-            valorProprio={stats[c.nome] || 0}
+            valorProprio={stats[c.id] || 0}
             filhas={filhasPorPai[c.id] || []}
             stats={stats}
             categorias={categorias}
@@ -581,7 +587,7 @@ function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {},
             </div>
           )}
           {filhas.map(f => {
-            const valorF = stats[f.nome] || 0;
+            const valorF = stats[f.id] || 0;
             return (
               <div key={f.id} style={{
                 padding: "8px 10px", display: "flex", alignItems: "center", gap: 8,

@@ -13,7 +13,7 @@ import {
 export default function InvestPainel({ ativos = [], transacoes = [], hidden }) {
   const totais = useMemo(() => {
     const valor = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
-    const investido = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.precoMedio || a.preco || 0), 0);
+    const investido = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.pm ?? a.precoMedio ?? a.preco ?? 0), 0);
     const variacao = investido > 0 ? ((valor - investido) / investido) * 100 : 0;
     return { valor, investido, variacao, ganho: valor - investido };
   }, [ativos]);
