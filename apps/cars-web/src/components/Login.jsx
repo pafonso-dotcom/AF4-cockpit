@@ -1,33 +1,46 @@
 import React, { useState } from "react";
-import { LogIn, UserPlus } from "lucide-react";
-import { signIn, signUp, supabaseConfigured } from "../lib/supabase.js";
+import { LogIn, UserPlus, Mail, KeyRound } from "lucide-react";
+import { signIn, signUp, resetPassword, updatePassword } from "../lib/supabase.js";
 
 /**
- * Tela de login Supabase Auth (e-mail + senha).
- * Renderiza quando supabase está configurado mas usuário não logou.
- * Se o user NUNCA configurar Supabase, esse component nem aparece —
- * o app roda direto no modo localStorage.
+ * Tela de autenticação (Supabase Auth · e-mail + senha).
+ * Modos: login · signup · reset (pedir link) · update (definir nova senha).
+ * Só é renderizada pelo AuthGate quando o Supabase está configurado.
  */
-export default function Login({ onLoggedIn }) {
-  const [mode, setMode] = useState("login"); // "login" | "signup"
+export default function Login({ mode: initialMode = "login", onPasswordUpdated }) {
+  const [mode,  setMode]  = useState(initialMode); // login | signup | reset | update
   const [email, setEmail] = useState("");
   const [pwd,   setPwd]   = useState("");
   const [busy,  setBusy]  = useState(false);
   const [err,   setErr]   = useState(null);
   const [msg,   setMsg]   = useState(null);
 
+  const go = (m) => { setMode(m); setErr(null); setMsg(null); setPwd(""); };
+
+  const needsEmail = mode === "login" || mode === "signup" || mode === "reset";
+  const needsPwd   = mode === "login" || mode === "signup" || mode === "update";
+
   const submit = async (e) => {
     e.preventDefault();
-    if (!email || !pwd) return;
-    setBusy(true); setErr(null); setMsg(null);
+    setErr(null); setMsg(null);
+    if (needsEmail && !email) return;
+    if (needsPwd && !pwd) return;
+    setBusy(true);
     try {
       if (mode === "signup") {
         await signUp(email.trim(), pwd);
-        setMsg("Cadastro criado. Verifique seu e-mail (se confirmação estiver ativa) e faça login.");
+        setMsg("Cadastro criado. Confirme seu e-mail pelo link que enviamos antes de fazer login.");
         setMode("login");
+        setPwd("");
+      } else if (mode === "reset") {
+        await resetPassword(email.trim());
+        setMsg("Se houver uma conta com esse e-mail, enviamos um link para redefinir a senha.");
+      } else if (mode === "update") {
+        await updatePassword(pwd);
+        onPasswordUpdated?.();
       } else {
         await signIn(email.trim(), pwd);
-        onLoggedIn?.();
+        // AuthGate detecta a nova sessão via onAuthChange.
       }
     } catch (e2) {
       setErr(traduzir(e2?.message ?? "Erro"));
@@ -36,96 +49,92 @@ export default function Login({ onLoggedIn }) {
     }
   };
 
-  if (!supabaseConfigured) {
-    return (
-      <div style={shellStyle}>
-        <div style={cardStyle}>
-          <Brand />
-          <p style={{ color: "var(--tm)", fontSize: 14, fontStyle: "italic", marginTop: 14, lineHeight: 1.6 }}>
-            Supabase não configurado nesta instalação. O app está rodando em modo
-            <strong style={{ color: "var(--tx)" }}> 100% local</strong> (dados ficam no navegador). Pra ativar
-            sync entre dispositivos, defina <code style={codeStyle}>VITE_SUPABASE_URL</code> e
-            <code style={codeStyle}>VITE_SUPABASE_ANON_KEY</code> no build.
-          </p>
-          <button onClick={onLoggedIn} className="btn-gold" style={{ marginTop: 18 }}>
-            Continuar offline
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const act = ACTIONS[mode];
 
   return (
     <div style={shellStyle}>
       <form onSubmit={submit} style={cardStyle}>
         <Brand />
         <div style={{ color: "var(--tm)", fontSize: 13, marginTop: 8, fontStyle: "italic" }}>
-          {mode === "login" ? "Entre com sua conta." : "Crie sua conta — dados ficam no seu Supabase."}
+          {TITLES[mode]}
         </div>
 
-        <div style={{ marginTop: 20 }}>
-          <label style={labelStyle}>E-mail</label>
-          <input type="email" required autoFocus autoComplete="email"
-                 value={email} onChange={(e) => setEmail(e.target.value)}
-                 placeholder="voce@exemplo.com" style={inputStyle} />
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <label style={labelStyle}>Senha</label>
-          <input type="password" required minLength={6}
-                 autoComplete={mode === "login" ? "current-password" : "new-password"}
-                 value={pwd} onChange={(e) => setPwd(e.target.value)}
-                 placeholder="••••••••" style={inputStyle} />
-        </div>
-
-        {err && (
-          <div style={{
-            marginTop: 14, padding: "10px 12px", fontSize: 13,
-            background: "color-mix(in srgb, var(--dn) 12%, transparent)",
-            color: "var(--dn)",
-            border: "1px solid color-mix(in srgb, var(--dn) 30%, transparent)",
-            borderRadius: 8,
-          }}>{err}</div>
+        {needsEmail && (
+          <div style={{ marginTop: 20 }}>
+            <label style={labelStyle}>E-mail</label>
+            <input type="email" required autoFocus autoComplete="email"
+                   value={email} onChange={(e) => setEmail(e.target.value)}
+                   placeholder="voce@exemplo.com" style={inputStyle} />
+          </div>
         )}
 
-        {msg && (
-          <div style={{
-            marginTop: 14, padding: "10px 12px", fontSize: 13,
-            background: "color-mix(in srgb, var(--sc) 12%, transparent)",
-            color: "var(--sc)",
-            border: "1px solid color-mix(in srgb, var(--sc) 30%, transparent)",
-            borderRadius: 8,
-          }}>{msg}</div>
+        {needsPwd && (
+          <div style={{ marginTop: 14 }}>
+            <label style={labelStyle}>{mode === "update" ? "Nova senha" : "Senha"}</label>
+            <input type="password" required minLength={6}
+                   autoFocus={mode === "update"}
+                   autoComplete={mode === "login" ? "current-password" : "new-password"}
+                   value={pwd} onChange={(e) => setPwd(e.target.value)}
+                   placeholder="••••••••" style={inputStyle} />
+          </div>
         )}
+
+        {err && <div style={alertErr}>{err}</div>}
+        {msg && <div style={alertOk}>{msg}</div>}
 
         <button type="submit" disabled={busy} className="btn-gold"
                 style={{ marginTop: 18, width: "100%", justifyContent: "center" }}>
-          {mode === "login" ? <LogIn size={14} /> : <UserPlus size={14} />}
-          {busy ? (mode === "login" ? "Entrando..." : "Cadastrando...") : (mode === "login" ? "Entrar" : "Cadastrar")}
+          {act.icon}
+          {busy ? act.busy : act.label}
         </button>
 
-        <button type="button" onClick={() => { setMode(mode === "login" ? "signup" : "login"); setErr(null); setMsg(null); }}
-                style={{
-                  marginTop: 14, width: "100%", padding: 8,
-                  background: "transparent", border: "none",
-                  color: "var(--tm)", fontSize: 12, fontFamily: "inherit", cursor: "pointer",
-                }}>
-          {mode === "login"
-            ? <>Não tem conta? <span style={{ color: "var(--ac)" }}>Cadastre-se</span></>
-            : <>Já tem conta? <span style={{ color: "var(--ac)" }}>Faça login</span></>}
-        </button>
-
-        <button type="button" onClick={onLoggedIn}
-                style={{
-                  marginTop: 6, width: "100%", padding: 8,
-                  background: "transparent", border: "none",
-                  color: "var(--td)", fontSize: 11, fontFamily: "inherit", cursor: "pointer",
-                  letterSpacing: ".1em", textTransform: "uppercase",
-                }}>
-          Pular · usar modo offline
-        </button>
+        {mode === "login" && (
+          <>
+            <LinkBtn onClick={() => go("reset")}>Esqueci minha senha</LinkBtn>
+            <LinkBtn onClick={() => go("signup")}>
+              Não tem conta? <span style={{ color: "var(--ac)" }}>Cadastre-se</span>
+            </LinkBtn>
+          </>
+        )}
+        {mode === "signup" && (
+          <LinkBtn onClick={() => go("login")}>
+            Já tem conta? <span style={{ color: "var(--ac)" }}>Faça login</span>
+          </LinkBtn>
+        )}
+        {mode === "reset" && (
+          <LinkBtn onClick={() => go("login")}>
+            <span style={{ color: "var(--ac)" }}>Voltar ao login</span>
+          </LinkBtn>
+        )}
       </form>
     </div>
+  );
+}
+
+const TITLES = {
+  login:  "Entre com sua conta.",
+  signup: "Crie sua conta para acessar a plataforma.",
+  reset:  "Informe seu e-mail para receber o link de redefinição.",
+  update: "Defina uma nova senha para sua conta.",
+};
+
+const ACTIONS = {
+  login:  { icon: <LogIn size={14} />,    label: "Entrar",            busy: "Entrando..." },
+  signup: { icon: <UserPlus size={14} />, label: "Cadastrar",         busy: "Cadastrando..." },
+  reset:  { icon: <Mail size={14} />,     label: "Enviar link",       busy: "Enviando..." },
+  update: { icon: <KeyRound size={14} />, label: "Salvar nova senha", busy: "Salvando..." },
+};
+
+function LinkBtn({ onClick, children }) {
+  return (
+    <button type="button" onClick={onClick}
+            style={{
+              marginTop: 12, width: "100%", padding: 8,
+              background: "transparent", border: "none",
+              color: "var(--tm)", fontSize: 12, fontFamily: "inherit", cursor: "pointer",
+            }}>
+      {children}
+    </button>
   );
 }
 
@@ -174,19 +183,34 @@ const inputStyle = {
   fontSize: 14, fontFamily: "inherit", outline: "none",
 };
 
-const codeStyle = {
-  background: "var(--be)", padding: "1px 5px",
-  fontSize: 12, fontFamily: "ui-monospace, monospace",
-  color: "var(--ac)", borderRadius: 4,
+const alertErr = {
+  marginTop: 14, padding: "10px 12px", fontSize: 13,
+  background: "color-mix(in srgb, var(--dn) 12%, transparent)",
+  color: "var(--dn)",
+  border: "1px solid color-mix(in srgb, var(--dn) 30%, transparent)",
+  borderRadius: 8,
+};
+
+const alertOk = {
+  marginTop: 14, padding: "10px 12px", fontSize: 13,
+  background: "color-mix(in srgb, var(--sc) 12%, transparent)",
+  color: "var(--sc)",
+  border: "1px solid color-mix(in srgb, var(--sc) 30%, transparent)",
+  borderRadius: 8,
 };
 
 function traduzir(msg) {
   const map = {
     "Invalid login credentials": "E-mail ou senha incorretos.",
-    "Email not confirmed":       "Verifique seu e-mail antes de entrar.",
+    "Email not confirmed":       "Confirme seu e-mail pelo link que enviamos antes de entrar.",
     "User already registered":   "Esse e-mail já está cadastrado.",
-    "Password should be at least 6 characters": "Senha deve ter no mínimo 6 caracteres.",
-    "Supabase nao configurado":  "Servidor de sync não configurado.",
+    "Password should be at least 6 characters": "A senha deve ter no mínimo 6 caracteres.",
+    "New password should be different from the old password.": "A nova senha deve ser diferente da anterior.",
+    "Unable to validate email address: invalid format": "E-mail inválido.",
+    "Email rate limit exceeded": "Muitas tentativas. Aguarde um momento e tente novamente.",
+    "For security purposes, you can only request this after 60 seconds.": "Aguarde um minuto antes de tentar novamente.",
+    "Auth session missing!": "Link expirado. Solicite um novo e-mail de redefinição.",
+    "Supabase nao configurado":  "Servidor de autenticação não configurado.",
   };
   return map[msg] ?? msg;
 }
