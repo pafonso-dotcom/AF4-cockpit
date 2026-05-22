@@ -69,6 +69,9 @@ function HeaderHorizontal({
   onOpenSettings,
   onQuickAction,
   pendingCounts = {},
+  contas = [], cartoes = [],
+  contaAberta, setContaAberta,
+  cartaoAberto, setCartaoAberto,
 }) {
 
   const perfilAtivo = getPerfilAtivo();
@@ -315,6 +318,45 @@ function HeaderHorizontal({
           })}
         </div>
       </div>
+
+      {/* ============== LINHA 4 · árvore (filhos) de Contas / Cartões ============== */}
+      {((tab === "contas" && contas.length > 0 && setContaAberta) ||
+        (tab === "cartoes" && cartoes.length > 0 && setCartaoAberto)) && (
+        <div style={{ borderTop: `1px solid ${NAV_BORDER}`, padding: "0 16px" }}>
+          <div style={{
+            maxWidth: 1280, margin: "0 auto",
+            display: "flex", gap: 6, overflowX: "auto", padding: "6px 0", alignItems: "center",
+          }}>
+            <span style={{ fontSize: 9.5, color: NAV_FAINT, letterSpacing: ".2em", textTransform: "uppercase", whiteSpace: "nowrap", paddingRight: 4 }}>
+              {tab === "contas" ? "Bancos" : "Cartões"} ·
+            </span>
+            {(tab === "contas" ? contas : cartoes).map(c => {
+              const ativo = tab === "contas"
+                ? contaAberta?.id === c.id
+                : cartaoAberto?.id === c.id;
+              return (
+                <button key={c.id}
+                  onClick={() => tab === "contas" ? setContaAberta(c) : setCartaoAberto(c)}
+                  style={{
+                    padding: "5px 12px", borderRadius: 14,
+                    background: ativo ? `${T.gold}22` : NAV_SOFT,
+                    color: ativo ? T.gold : NAV_MUTED,
+                    border: `1px solid ${ativo ? T.gold : NAV_BORDER}`,
+                    fontSize: 11.5, fontWeight: 500,
+                    cursor: "pointer", whiteSpace: "nowrap",
+                    fontFamily: T.sans,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>
+                  {tab === "contas" && c.cor && (
+                    <span style={{ width: 7, height: 7, borderRadius: 1.5, background: c.cor, flexShrink: 0 }} />
+                  )}
+                  {c.nome}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
