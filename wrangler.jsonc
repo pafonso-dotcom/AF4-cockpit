@@ -1,0 +1,11 @@
+{
+  // Cloudflare Workers static-assets deploy for the cars-web SPA.
+  // `wrangler deploy` runs from the repo root during Cloudflare builds;
+  // without this config it fails to pick a project inside the pnpm workspace.
+  "name": "af4-cockpit",
+  "compatibility_date": "2026-05-22",
+  "assets": {
+    "directory": "./apps/cars-web/dist",
+    "not_found_handling": "single-page-application"
+  }
+}
