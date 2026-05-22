@@ -204,6 +204,8 @@ function traduzir(msg) {
     "Invalid login credentials": "E-mail ou senha incorretos.",
     "Email not confirmed":       "Confirme seu e-mail pelo link que enviamos antes de entrar.",
     "User already registered":   "Esse e-mail já está cadastrado.",
+    "Signups not allowed for this instance": "O cadastro de novas contas está desativado no servidor.",
+    "Email signups are disabled": "O cadastro por e-mail está desativado no servidor.",
     "Password should be at least 6 characters": "A senha deve ter no mínimo 6 caracteres.",
     "New password should be different from the old password.": "A nova senha deve ser diferente da anterior.",
     "Unable to validate email address: invalid format": "E-mail inválido.",
