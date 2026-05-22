@@ -106,14 +106,19 @@ export async function fetchComRetry(url, opts, maxTentativas = 3) {
       const body = await res.text();
       throw erroAmigavel(res.status, body);
     } catch (e) {
-      // Erro de rede ou exception nossa: retry só se for transitório
-      const ehTransitorio = /failed to fetch|network|timeout|aborted/i.test(e.message || "");
-      if (tentativa < maxTentativas && ehTransitorio) {
+      // Erro de rede: retry se transitório. As mensagens variam por navegador —
+      // "Load failed" no Safari/iOS, "Failed to fetch" no Chrome, "NetworkError" no Firefox.
+      const msg = e.message || "";
+      const ehRede = /failed to fetch|load failed|networkerror|network error|network request failed|timeout|aborted/i.test(msg);
+      if (tentativa < maxTentativas && ehRede) {
         ultimoErro = e;
         const espera = ESPERAS[tentativa - 1] || 10000;
-        console.warn(`[gemini] erro de rede · backoff ${espera / 1000}s (${tentativa}/${maxTentativas}):`, e.message);
+        console.warn(`[gemini] erro de rede · backoff ${espera / 1000}s (${tentativa}/${maxTentativas}):`, msg);
         await new Promise(r => setTimeout(r, espera));
         continue;
+      }
+      if (ehRede) {
+        throw new Error("Não foi possível conectar ao serviço de IA. Verifique sua conexão com a internet e tente de novo — ou use a opção 'Colar texto' para enviar a fatura.");
       }
       throw e;
     }
