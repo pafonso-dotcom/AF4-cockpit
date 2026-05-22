@@ -3,6 +3,7 @@ import { Activity, Sparkles, X, Trash2, Check, AlertCircle, CheckCircle2, Upload
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, uid, todayISO } from "../../lib/format.js";
 import { gerarJSONGemini, gerarJSONGeminiComPDF, anonimizar, fetchComRetry } from "../../lib/gemini.js";
+import { printHTML } from "../../lib/importExport.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import PreviewImportarFaturaModal from "../modals/PreviewImportarFaturaModal.jsx";
 
@@ -320,6 +321,38 @@ Regras IMPORTANTES:
   };
   const removeTx = (id) => {
     setAnalysis(a => ({ ...a, transacoes: a.transacoes.filter(t => t.id !== id) }));
+  };
+
+  // Exporta a fatura analisada como PDF (via janela de impressão do navegador)
+  const exportarFaturaPDF = () => {
+    if (!analysis?.transacoes?.length) return;
+    const esc = (s) => String(s ?? "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+    const tot = analysis.transacoes.reduce((s, t) => s + Number(t.valor || 0), 0);
+    const cab = analiseRaw
+      ? [analiseRaw.banco || "Cartão",
+         analiseRaw.cartao_final && "···· " + analiseRaw.cartao_final,
+         analiseRaw.vencimento && "venc. " + analiseRaw.vencimento].filter(Boolean).join(" · ")
+      : "";
+    const linhas = analysis.transacoes.map(t => `<tr>
+      <td>${esc(t.data)}</td><td>${esc(t.descricao)}</td><td>${esc(t.categoria)}</td>
+      <td>${t.fixa ? "Fixa" : "Variável"}</td><td class="r">${esc(fmt(t.valor))}</td></tr>`).join("");
+    printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Fatura · AF4 Cockpit</title>
+<style>
+body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;margin:24px;color:#111}
+h1{font-size:18px;margin:0}.sub{color:#666;font-size:12px;margin:2px 0 16px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #ddd}
+th{text-transform:uppercase;font-size:10px;letter-spacing:.08em;color:#666}
+td.r{text-align:right;white-space:nowrap}
+tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
+</style></head><body>
+<h1>AF4 Cockpit · Análise de Fatura</h1>
+<div class="sub">${[esc(cab), analysis.transacoes.length + " lançamento(s)", "gerado em " + esc(new Date().toLocaleString("pt-BR"))].filter(Boolean).join(" · ")}</div>
+<table>
+<thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th style="text-align:right">Valor</th></tr></thead>
+<tbody>${linhas}</tbody>
+<tfoot><tr><td colspan="4">Total da fatura</td><td class="r">${esc(fmt(tot))}</td></tr></tfoot>
+</table></body></html>`);
   };
 
   const importAll = () => {
@@ -713,9 +746,14 @@ Regras IMPORTANTES:
                   Revise e ajuste antes de importar
                 </h3>
               </div>
-              <button onClick={reset} className="btn-ghost" style={{ fontSize: 12 }}>
-                <ChevronLeft size={12} className="inline mr-1" />Nova análise
-              </button>
+              <div className="flex gap-2">
+                <button onClick={exportarFaturaPDF} className="btn-ghost" style={{ fontSize: 12 }}>
+                  <FileText size={12} className="inline mr-1" />PDF
+                </button>
+                <button onClick={reset} className="btn-ghost" style={{ fontSize: 12 }}>
+                  <ChevronLeft size={12} className="inline mr-1" />Nova análise
+                </button>
+              </div>
             </div>
 
             {/* Header row */}
