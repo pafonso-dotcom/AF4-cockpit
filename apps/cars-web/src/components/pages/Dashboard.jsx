@@ -10,6 +10,8 @@ import { getKPIsMes } from "../../lib/agregador.js";
 
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const CORES_CAT = ["#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#84cc16","#6b7280"];
+const CLASS_LABEL = { acao: "Ações", fii: "FIIs", stock: "Stocks (US)", reit: "REITs (US)", etf: "ETFs", cripto: "Cripto", rf: "Renda Fixa", tesouro: "Tesouro", cdb: "CDB", outro: "Outros" };
+const CLASS_COR = { acao: "#f5a524", fii: "#10b981", stock: "#3b82f6", reit: "#0ea5e9", cripto: "#8b5cf6", rf: "#06b6d4", etf: "#fbbf24", tesouro: "#22c55e", cdb: "#14b8a6", outro: "#9ca3af" };
 
 function greetingForTime() {
   const h = new Date().getHours();
@@ -80,20 +82,20 @@ export default function Dashboard({
     return ant > 0 ? ((patrimonio - ant) / ant) * 100 : 0;
   }, [patrimonio, receitasMes, despesasMes]);
 
-  // ===== Fluxo de caixa por dia (mês atual) =====
-  const fluxoDia = useMemo(() => {
-    const dim = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0).getDate();
-    const arr = Array.from({ length: dim }, (_, i) => ({ dia: String(i+1).padStart(2,"0"), receita: 0, despesa: 0 }));
-    transacoes.forEach(t => {
-      if (!ehMesAtual(t.data)) return;
-      const d = parseInt((t.data||"").slice(8,10), 10);
-      if (!d || d < 1 || d > dim) return;
-      const slot = arr[d-1];
-      if (t.tipo === "receita") slot.receita += Number(t.valor||0);
-      else if (t.tipo === "despesa") slot.despesa += Number(t.valor||0);
+  // ===== Alocação atual dos investimentos (donut por classe) =====
+  const alocacao = useMemo(() => {
+    const m = {};
+    ativos.forEach(a => {
+      const v = Number(a.qtd || 0) * Number(a.preco || 0);
+      if (v <= 0) return;
+      const k = a.tipo || "outro";
+      m[k] = (m[k] || 0) + v;
     });
-    return arr;
-  }, [transacoes, mesISO]);
+    const tot = Object.values(m).reduce((s,v) => s+v, 0) || 1;
+    return Object.entries(m).sort((a,b) => b[1]-a[1]).map(([k,v]) => ({
+      tipo: k, label: CLASS_LABEL[k] || k, valor: v, pct: (v/tot)*100, cor: CLASS_COR[k] || "#9ca3af",
+    }));
+  }, [ativos]);
 
   // ===== Gastos por categoria (donut) =====
   const gastosCat = useMemo(() => {
@@ -174,7 +176,7 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
-        <FluxoCaixaCard data={fluxoDia} receitas={receitasMes} despesas={despesasMes} />
+        <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
         <InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("analiseia")} />
       </section>
 
@@ -287,28 +289,44 @@ function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
   );
 }
 
-function FluxoCaixaCard({ data, receitas, despesas }) {
+function AlocacaoCard({ data, total, hidden, onSeeAll }) {
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Fluxo de Caixa</div>
-        <div style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px" }}>Este mês</div>
+        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Alocação Atual</div>
+        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver carteira</button>
       </div>
-      <div style={{ display: "flex", gap: 16, fontSize: 11, marginBottom: 8, flexWrap: "wrap" }}>
-        <div><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: T.green, marginRight: 6 }} />Receitas <strong className="num" style={{ color: T.ink }}>{fmt(receitas)}</strong></div>
-        <div><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: T.red, marginRight: 6 }} />Despesas <strong className="num" style={{ color: T.ink }}>{fmt(despesas)}</strong></div>
+      {data.length === 0 ? (
+        <div style={{ padding: 32, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Nenhum ativo na carteira.</div>
+      ) : (
+      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ width: 150, height: 150, position: "relative", flexShrink: 0 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={data} dataKey="valor" cx="50%" cy="50%" innerRadius={48} outerRadius={70} stroke="none">
+                {data.map((d,i) => <Cell key={i} fill={d.cor} />)}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 9, color: T.muted, letterSpacing: ".15em" }}>TOTAL</div>
+              <div className="num" style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 600, color: T.ink }}>{hidden ? "•••" : fmt(total)}</div>
+            </div>
+          </div>
+        </div>
+        <div style={{ flex: 1, minWidth: 140, fontSize: 11, display: "flex", flexDirection: "column", gap: 5 }}>
+          {data.map((d,i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: d.cor, flexShrink: 0 }} />
+              <span style={{ flex: 1, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.label}</span>
+              <span style={{ color: T.ink }}>{fmtN(d.pct, 0)}%</span>
+              <span className="num" style={{ color: T.muted, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(d.valor)}</span>
+            </div>
+          ))}
+        </div>
       </div>
-      <div style={{ height: 180 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
-            <XAxis dataKey="dia" tick={{ fontSize: 10, fill: T.muted }} interval={Math.max(1, Math.ceil(data.length / 8))} />
-            <YAxis tick={{ fontSize: 9, fill: T.muted }} width={32} />
-            <Tooltip contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11 }} />
-            <Bar dataKey="receita" fill={T.green} radius={[2,2,0,0]} />
-            <Bar dataKey="despesa" fill={T.red} radius={[2,2,0,0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      )}
     </div>
   );
 }
