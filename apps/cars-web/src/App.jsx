@@ -602,7 +602,10 @@ export default function App() {
                          transacoes={transacoes} categorias={categorias} metas={metas}
                          cartoes={cartoes} parcelamentos={parcelamentos}
                          devedores={devedores} dividas={dividas}
-                         escopoAtivo={escopoAtivo} />
+                         fixas={fixas} fixaOcorrencias={fixaOcorrencias}
+                         escopoAtivo={escopoAtivo}
+                         onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setPdvOpen(false); setTab(t); }}
+                         onContaClick={(c) => { setTab("contas"); setContaAberta(c); }} />
             )}
             {tab === "contas" && !contaAberta && (
               <div className="px-6 md:px-10">
