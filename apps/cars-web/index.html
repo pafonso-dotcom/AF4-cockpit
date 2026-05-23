@@ -22,23 +22,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap" rel="stylesheet" />
 
     <title>AF4 Cockpit</title>
-    <script>
-      // Domínio canônico: redireciona *.workers.dev pro custom domain
-      // pra não criar "dois apps" com localStorages separados.
-      (function () {
-        if (location.hostname.endsWith(".workers.dev")) {
-          location.replace("https://af4.codder.com.br" + location.pathname + location.search + location.hash);
-        }
-      })();
-    </script>
   </head>
   <body data-c="gold">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-      // Kill-switch: abre https://af4.codder.com.br/?nosw=1 pra
-      // forçar desregistro do SW e limpar caches (útil em iPad com
-      // versão antiga travada).
+      // Kill-switch: adicione ?nosw=1 ao final da URL pra forçar
+      // desregistro do SW e limpar caches (útil em iPad com versão
+      // antiga travada).
       (function () {
         var params = new URLSearchParams(location.search);
         if (params.has("nosw") && "serviceWorker" in navigator) {
