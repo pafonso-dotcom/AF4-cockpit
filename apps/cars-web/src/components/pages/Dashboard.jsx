@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, FileText, BarChart3, PieChart as PieIcon } from "lucide-react";
+import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar } from "lucide-react";
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN } from "../../lib/format.js";
@@ -186,7 +186,7 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <GastosCategoriaCard data={gastosCat} hidden={hidden} />
-        <EvolucaoCard data={evolucao} valor={patrimonio} momAno={momAno} hidden={hidden} />
+        <AReceberCard devedores={devedores} hidden={hidden} onSeeAll={() => onTabChange?.("areceber")} />
         <ProjecaoCard projecao={projecao} hidden={hidden} />
       </section>
 
@@ -425,6 +425,130 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+    </div>
+  );
+}
+
+function AReceberCard({ devedores = [], hidden, onSeeAll }) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const fimSemana = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  })();
+  const fimMes = (() => {
+    const d = new Date();
+    const ultimoDia = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return ultimoDia.toISOString().slice(0, 10);
+  })();
+
+  const abertos = devedores.filter(d => !d.recebido);
+  const total = abertos.reduce((s, d) => s + (Number(d.valor) || 0), 0);
+
+  const atrasados = abertos.filter(d => d.vencimento && d.vencimento < hoje);
+  const hojeArr   = abertos.filter(d => d.vencimento === hoje);
+  const semana    = abertos.filter(d => d.vencimento && d.vencimento > hoje && d.vencimento <= fimSemana);
+  const mes       = abertos.filter(d => d.vencimento && d.vencimento > fimSemana && d.vencimento <= fimMes);
+
+  const somar = (arr) => arr.reduce((s, d) => s + (Number(d.valor) || 0), 0);
+
+  const buckets = [
+    { id: "atrasado", label: "Atrasados", icon: AlertCircle, cor: T.red,   itens: atrasados, valor: somar(atrasados) },
+    { id: "hoje",     label: "Vence hoje", icon: Clock,       cor: T.gold,  itens: hojeArr,   valor: somar(hojeArr) },
+    { id: "semana",   label: "Esta semana", icon: Calendar,   cor: T.blue || "#60a5fa", itens: semana, valor: somar(semana) },
+    { id: "mes",      label: "Este mês",   icon: Calendar,    cor: T.green, itens: mes,       valor: somar(mes) },
+  ];
+
+  const proximos = abertos
+    .filter(d => d.vencimento)
+    .sort((a, b) => (a.vencimento || "").localeCompare(b.vencimento || ""))
+    .slice(0, 3);
+
+  const formatarVenc = (iso) => {
+    if (!iso) return "—";
+    try {
+      const d = new Date(iso + "T00:00:00");
+      return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+    } catch { return iso; }
+  };
+
+  return (
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <HandCoins size={16} style={{ color: T.gold }} />
+          <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>A Receber</div>
+        </div>
+        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.gold, fontSize: 11, cursor: "pointer" }}>
+          Ver tudo
+        </button>
+      </div>
+
+      <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 600, color: T.ink, lineHeight: 1.1 }}>
+        {hidden ? "•••••" : fmt(total)}
+      </div>
+      <div style={{ fontSize: 11, color: T.muted, marginBottom: 12 }}>
+        {abertos.length} {abertos.length === 1 ? "recebível em aberto" : "recebíveis em aberto"}
+      </div>
+
+      {abertos.length === 0 ? (
+        <div style={{ padding: "20px 0", textAlign: "center", fontSize: 12, color: T.faint, fontStyle: "italic" }}>
+          Nenhum recebível pendente.
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
+            {buckets.map(b => {
+              const Icon = b.icon;
+              const ativo = b.itens.length > 0;
+              return (
+                <div key={b.id} style={{
+                  background: ativo ? `${b.cor}11` : T.bgSoft,
+                  border: `1px solid ${ativo ? `${b.cor}55` : T.border}`,
+                  borderRadius: 8, padding: "8px 10px",
+                  display: "flex", flexDirection: "column", gap: 2,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: ativo ? b.cor : T.faint, fontWeight: 600, letterSpacing: ".03em" }}>
+                    <Icon size={10} /> {b.label}
+                  </div>
+                  <div className="num" style={{ fontSize: 13, fontWeight: 600, color: ativo ? T.ink : T.faint }}>
+                    {hidden ? "•••" : (ativo ? fmt(b.valor) : "—")}
+                  </div>
+                  <div style={{ fontSize: 9.5, color: T.muted }}>
+                    {b.itens.length} {b.itens.length === 1 ? "item" : "itens"}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {proximos.length > 0 && (
+            <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
+              <div style={{ fontSize: 9.5, color: T.faint, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 6 }}>
+                Próximos vencimentos
+              </div>
+              {proximos.map(d => {
+                const atrasado = d.vencimento < hoje;
+                return (
+                  <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", fontSize: 11.5 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0, flex: 1 }}>
+                      <div style={{ color: T.ink, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {d.nome}
+                      </div>
+                      <div style={{ fontSize: 9.5, color: atrasado ? T.red : T.muted }}>
+                        {atrasado ? "atrasado · " : ""}{formatarVenc(d.vencimento)}
+                      </div>
+                    </div>
+                    <div className="num" style={{ color: T.ink, fontWeight: 600, marginLeft: 8, flexShrink: 0 }}>
+                      {hidden ? "•••" : fmt(Number(d.valor) || 0)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
