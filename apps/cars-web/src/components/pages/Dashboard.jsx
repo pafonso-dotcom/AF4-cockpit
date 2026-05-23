@@ -193,7 +193,7 @@ export default function Dashboard({
       <section className="dash-metas-grid" style={{
         display: "grid", gridTemplateColumns: "2.5fr 1fr", gap: 12, marginBottom: 24,
       }}>
-        <MetasCard metas={metas || []} hidden={hidden} onSeeAll={() => onTabChange?.("planejamento")} />
+        <MetasCard metas={metas || []} hidden={hidden} onSeeAll={() => onTabChange?.("metas")} />
         <PergunteIACard onClick={() => onTabChange?.("perguntar")} />
       </section>
 
@@ -466,8 +466,8 @@ function MetasCard({ metas, hidden, onSeeAll }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
         {metas.slice(0, 3).map(m => {
-          const meta = Number(m.valorMeta ?? m.valor ?? 0);
-          const atual = Number(m.valorAtual ?? m.aplicado ?? 0);
+          const meta = Number(m.alvo ?? m.valorMeta ?? m.valor ?? 0);
+          const atual = Number(m.atual ?? m.valorAtual ?? m.aplicado ?? 0);
           const pct = meta > 0 ? Math.min(100, (atual / meta) * 100) : 0;
           return (
             <div key={m.id} style={{ background: T.bgSoft, borderRadius: 8, padding: 10 }}>

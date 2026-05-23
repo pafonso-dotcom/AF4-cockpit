@@ -44,6 +44,7 @@ import Cartoes from "./components/pages/Cartoes.jsx";
 import Transacoes from "./components/pages/Transacoes.jsx";
 import Calendario from "./components/pages/Calendario.jsx";
 import Categorias from "./components/pages/Categorias.jsx";
+import Metas from "./components/pages/Metas.jsx";
 import Despesas from "./components/pages/Despesas.jsx";
 import ControleAnual from "./components/pages/Relatorios/ControleAnual.jsx";
 import Planejamento from "./components/pages/Planejamento/index.jsx";
@@ -720,6 +721,9 @@ export default function App() {
             {tab === "categorias" && (
               <Categorias categorias={categorias} setCategorias={setCategorias} transacoes={transacoes}
                           escopoAtivo={escopoAtivo} hidden={hidden} />
+            )}
+            {tab === "metas" && (
+              <Metas metas={metas} setMetas={setMetas} hidden={hidden} />
             )}
             {/* Rotas antigas (fixas, relatorios-anual, areceber) consolidadas em Planejamento — ver bloco unificado acima */}
             {tab === "analiseia" && (
