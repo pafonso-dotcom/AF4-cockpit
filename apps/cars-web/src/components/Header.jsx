@@ -7,7 +7,7 @@ import {
   Briefcase, TrendingUp, LineChart as LineIcon, Calculator, BarChart3,
   Car, Package, Target, Users, AlertCircle, History, MessageCircle,
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
-  Radar, Bookmark,
+  Radar, Bookmark, StickyNote,
 } from "lucide-react";
 
 /**
@@ -94,6 +94,7 @@ function HeaderHorizontal({
       { id: "calendario",   label: "Calendário",   icon: Calendar },
       { id: "planejamento", label: "Planejamento", icon: Target },
       { id: "metas",        label: "Metas",        icon: Target },
+      { id: "notas",        label: "Notas",        icon: StickyNote },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
@@ -452,6 +453,7 @@ function HeaderVertical({
       { id: "calendario",   label: "Calendário",   icon: Calendar },
       { id: "planejamento", label: "Planejamento", icon: Target },
       { id: "metas",        label: "Metas",        icon: Target },
+      { id: "notas",        label: "Notas",        icon: StickyNote },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
