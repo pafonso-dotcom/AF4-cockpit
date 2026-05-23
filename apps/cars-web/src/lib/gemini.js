@@ -166,6 +166,18 @@ export async function gerarJSONGemini(prompt, opts = {}) {
 }
 
 export async function gerarJSONGeminiComPDF(prompt, pdfBase64, opts = {}) {
+  return _gerarJSONGeminiComArquivo(prompt, pdfBase64, "application/pdf", opts);
+}
+
+/**
+ * Mesmo padrão do PDF mas pra imagem (JPG/PNG/WEBP/HEIC).
+ * Usado por OCR de comprovantes/cupons.
+ */
+export async function gerarJSONGeminiComImagem(prompt, imgBase64, mimeType = "image/jpeg", opts = {}) {
+  return _gerarJSONGeminiComArquivo(prompt, imgBase64, mimeType, opts);
+}
+
+async function _gerarJSONGeminiComArquivo(prompt, base64, mimeType, opts = {}) {
   const key = getKey(opts);
   if (!key) throw new Error("Chave do Gemini não configurada");
 
@@ -173,7 +185,7 @@ export async function gerarJSONGeminiComPDF(prompt, pdfBase64, opts = {}) {
     contents: [{
       parts: [
         { text: prompt },
-        { inline_data: { mime_type: "application/pdf", data: pdfBase64 } },
+        { inline_data: { mime_type: mimeType, data: base64 } },
       ],
     }],
     generationConfig: {
@@ -194,13 +206,13 @@ export async function gerarJSONGeminiComPDF(prompt, pdfBase64, opts = {}) {
 
   const data = await res.json();
   const texto = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-  if (!texto) throw new Error("Gemini retornou resposta vazia. Tente colar o texto da fatura.");
+  if (!texto) throw new Error("Gemini retornou resposta vazia.");
 
   const parsed = parseJSONTolerante(texto);
   if (parsed) return parsed;
 
   console.error("[gemini] JSON malformado · primeiros 500 chars:", texto.slice(0, 500));
-  throw new Error("O Gemini retornou um formato que não consegui entender. Tente: (1) Analisar de novo (geralmente funciona na segunda), ou (2) colar o texto da fatura no botão 'COLAR TEXTO'.");
+  throw new Error("O Gemini retornou um formato que não consegui entender. Tente de novo.");
 }
 
 // Anonimiza CPF e cartão antes de mandar pra IA
