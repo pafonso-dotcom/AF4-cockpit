@@ -44,7 +44,8 @@ export default function Dashboard({
   const transacoes = useMemo(() => {
     if (escopoAtivo === "tudo") return transacoesRaw || [];
     const setContas = new Set(contas.map(c => c.nome));
-    return (transacoesRaw || []).filter(t => !t.conta || setContas.has(t.conta));
+    // Strict: só transações com conta dentro do escopo (órfãs sem conta NÃO entram em pessoal ou negócio).
+    return (transacoesRaw || []).filter(t => t.conta && setContas.has(t.conta));
   }, [transacoesRaw, contas, escopoAtivo]);
 
   const mask = (s) => hidden ? "•••••" : s;

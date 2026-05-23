@@ -697,6 +697,7 @@ export default function App() {
                                   categorias={categorias}
                                   fixas={fixas} fixaOcorrencias={fixaOcorrencias}
                                   parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
+                                  escopoAtivo={escopoAtivo}
                                   hidden={hidden} />
             )}
             {tab === "transacoes" && (
