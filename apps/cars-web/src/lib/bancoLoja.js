@@ -22,14 +22,11 @@ export function getContaLojaNome(contas = [], fallback = "") {
 }
 
 // Garante que a conta "Banco da Loja · CC" exista. Retorna a lista (mutada se necessário).
-// Idempotente — se já existe não cria duplicata. Força escopo "negocio" na conta da Loja.
+// Idempotente — se já existe não cria duplicata, e respeita o escopo que o usuário
+// tiver definido (não sobrescreve). O default "negocio" só é aplicado na criação.
 export function ensureContaLoja(contas = [], { uid }) {
   const existente = getContaLoja(contas);
   if (existente) {
-    // Garante escopo "negocio" mesmo em contas legadas
-    if (existente.escopo !== "negocio") {
-      return contas.map(c => c === existente ? { ...c, escopo: "negocio" } : c);
-    }
     return contas;
   }
   const nova = {
