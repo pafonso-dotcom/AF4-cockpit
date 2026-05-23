@@ -157,6 +157,25 @@ export default function Metas({ metas, setMetas, hidden }) {
             </Field>
             <Field label="Aporte mensal (R$)">
               <input type="number" value={form.aporte} onChange={e => setForm({ ...form, aporte: e.target.value })} />
+              {(() => {
+                const alvo = parseFloat(form.alvo) || 0;
+                const atual = parseFloat(form.atual) || 0;
+                const prazo = parseFloat(form.prazo) || 0;
+                const falta = Math.max(0, alvo - atual);
+                const sugerido = prazo > 0 ? falta / prazo : 0;
+                if (sugerido <= 0) return null;
+                return (
+                  <div style={{ fontSize: 11, color: T.muted, marginTop: 6, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    Sugerido: <strong className="num" style={{ color: T.ink }}>{fmt(sugerido)}</strong>
+                    <span style={{ color: T.faint }}>= (alvo − atual) ÷ prazo</span>
+                    <button type="button"
+                            onClick={() => setForm({ ...form, aporte: sugerido.toFixed(2) })}
+                            style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 4, padding: "2px 10px", fontSize: 10, fontWeight: 600, cursor: "pointer", letterSpacing: ".05em", textTransform: "uppercase" }}>
+                      Usar
+                    </button>
+                  </div>
+                );
+              })()}
             </Field>
             <Field label="Taxa juros (% a.m.)">
               <input type="number" step="0.01" value={form.taxa} onChange={e => setForm({ ...form, taxa: e.target.value })} />
