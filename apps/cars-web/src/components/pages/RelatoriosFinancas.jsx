@@ -4,15 +4,26 @@ import { fmt } from "../../lib/format.js";
 import { BarChartDouble, BarChart, HorizontalBarList, ReportCard, ReportGrid } from "../ui/Charts.jsx";
 import { toPDF, toCSV, toPNG, hasPNGSupport } from "../../lib/exportRelatorio.js";
 import { getKPIsMes } from "../../lib/agregador.js";
+import { filtrarPorEscopo } from "../../lib/escopo.js";
 
 /**
  * Relatórios de Finanças · análises do período.
  */
 export default function RelatoriosFinancas({
-  transacoes = [], contas = [], categorias = [],
+  transacoes: transacoesRaw = [], contas: contasRaw = [], categorias = [],
   fixas = [], fixaOcorrencias = [], parcelamentos = [], dividas = [], devedores = [],
+  escopoAtivo = "tudo",
   hidden,
 }) {
+  // Aplica filtro de escopo (Pessoal / Negócio / Tudo) — contas de negócio
+  // não entram nos relatórios quando o escopo é "pessoal", e vice-versa.
+  const contas = useMemo(() => filtrarPorEscopo(contasRaw || [], escopoAtivo), [contasRaw, escopoAtivo]);
+  const transacoes = useMemo(() => {
+    if (escopoAtivo === "tudo") return transacoesRaw || [];
+    const setContas = new Set(contas.map(c => c.nome));
+    return (transacoesRaw || []).filter(t => t.conta && setContas.has(t.conta));
+  }, [transacoesRaw, contas, escopoAtivo]);
+
   const [pngOk, setPngOk] = useState(false);
   useEffect(() => { hasPNGSupport().then(setPngOk); }, []);
   const mesAtualKey = new Date().toISOString().slice(0, 7);
