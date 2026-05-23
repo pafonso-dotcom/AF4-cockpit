@@ -19,6 +19,7 @@ import {
 import GlobalStyles from "./components/ui/GlobalStyles.jsx";
 import Footer from "./components/ui/Footer.jsx";
 import Header from "./components/Header.jsx";
+import BottomTabBar from "./components/BottomTabBar.jsx";
 import KeyboardShortcuts from "./components/ui/KeyboardShortcuts.jsx";
 import ToastContainer from "./components/ui/ToastContainer.jsx";
 import ConfirmDialog from "./components/ui/ConfirmDialog.jsx";
@@ -906,6 +907,12 @@ export default function App() {
       </main>
 
       <Footer />
+      <BottomTabBar
+        modulo={modulo} setModulo={setModulo}
+        setTab={(t) => { setCartaoAberto(null); setContaAberta(null); setPdvOpen(false); setTab(t); }}
+        escopoAtivo={escopoAtivo}
+        onEscopoChange={(novo) => { setEscopoAtivo(novo); salvarEscopo(novo); }}
+      />
       <ToastContainer />
       <InstallPWA />
       <ConfirmDialog />
