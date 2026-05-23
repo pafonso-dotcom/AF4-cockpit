@@ -1,17 +1,22 @@
 /* ============================================================
-   STORAGE · persistência
-   - Se Supabase estiver configurado E user logado → usa Supabase
-     (sync entre dispositivos).
-   - Senão → localStorage do navegador (fallback offline).
-   - Em ambos os casos, escreve em localStorage como cache local
-     pra abrir rápido (offline-first).
+   STORAGE · persistência (3 modos, ordem de preferência):
+   1. Cloud KV (Cloudflare Worker + KV) — se token configurado em
+      localStorage("af4:sync-token"). Sync entre dispositivos sem login.
+   2. Supabase — se configurado E user logado (legado).
+   3. localStorage — fallback offline.
+   Em todos, escreve em localStorage como cache local pra abrir rápido.
    ============================================================ */
 
 import {
   supabaseConfigured, getSession,
-  fetchAurumState, saveAurumState as cloudSaveState,
-  fetchAurumKeys, saveAurumKeys as cloudSaveKeys,
+  fetchAurumState, saveAurumState as supabaseSaveState,
+  fetchAurumKeys, saveAurumKeys as supabaseSaveKeys,
 } from "./supabase.js";
+import {
+  syncEnabled,
+  cloudFetchState, cloudSaveState,
+  cloudFetchKeys, cloudSaveKeys,
+} from "./cloudSync.js";
 
 export const STORE_KEY  = "financas:dados:v1";
 export const MARKET_KEY = "financas:mercado:v1";
@@ -35,26 +40,46 @@ const local = {
    ============================================================ */
 
 export const loadAll = async () => {
-  // Tenta Supabase primeiro se logado
+  // 1. Cloud KV (Cloudflare) — preferido se token configurado
+  if (syncEnabled()) {
+    try {
+      const remote = await cloudFetchState();
+      if (remote) {
+        local.set(STORE_KEY, remote);
+        return remote;
+      }
+      // Sem dado remoto: promove localStorage atual pro cloud (migração)
+      const cached = local.get(STORE_KEY);
+      if (cached) {
+        try { await cloudSaveState(cached); } catch {}
+        return cached;
+      }
+      return null;
+    } catch (e) {
+      console.warn("[storage] cloud KV indisponível, usando localStorage:", e.message);
+      return local.get(STORE_KEY);
+    }
+  }
+
+  // 2. Supabase (legado)
   if (supabaseConfigured) {
     const session = await getSession();
     if (session) {
       const remote = await fetchAurumState();
       if (remote) {
-        // Atualiza cache local pra próxima abertura ser rápida
         local.set(STORE_KEY, remote);
         return remote;
       }
-      // Sem dado remoto: tenta promover localStorage existente pro cloud
       const cached = local.get(STORE_KEY);
       if (cached) {
-        await cloudSaveState(cached);
+        await supabaseSaveState(cached);
         return cached;
       }
       return null;
     }
   }
-  // Fallback: localStorage puro
+
+  // 3. Fallback: localStorage puro
   return local.get(STORE_KEY);
 };
 
@@ -68,34 +93,45 @@ export const saveAll = async (data, opts = {}) => {
   local.set(STORE_KEY, data);
   lastDataRef = data;
 
-  if (!supabaseConfigured) return;
-  const session = await getSession();
-  if (!session) return;
+  // Escolhe destino de sync (cloud KV tem precedência sobre Supabase)
+  const useCloud = syncEnabled();
+  const useSupabase = !useCloud && supabaseConfigured && !!(await getSession());
+  if (!useCloud && !useSupabase) return;
+
+  const doSave = async (payload) => {
+    if (useCloud) return cloudSaveState(payload);
+    return supabaseSaveState(payload);
+  };
 
   if (opts.immediate) {
     // Bypass do debounce — usado em ações destrutivas (Limpar Dados)
-    // pra garantir que o cloud reflita antes do user recarregar.
     clearTimeout(saveTimer);
     saveTimer = null;
-    await cloudSaveState(data);
+    try { await doSave(data); } catch (e) { console.warn("[storage] save falhou:", e.message); }
     return;
   }
 
-  // Cloud com debounce normal
+  // Sync com debounce normal
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    cloudSaveState(lastDataRef);
+    doSave(lastDataRef).catch(e => console.warn("[storage] save falhou:", e.message));
   }, REMOTE_DEBOUNCE_MS);
 };
 
 // Força flush imediato do save pendente (chame antes de reload/navigate)
 export const flushSave = async () => {
-  if (!supabaseConfigured || !lastDataRef) return;
-  const session = await getSession();
-  if (!session) return;
-  clearTimeout(saveTimer);
-  saveTimer = null;
-  await cloudSaveState(lastDataRef);
+  if (!lastDataRef) return;
+  if (syncEnabled()) {
+    clearTimeout(saveTimer); saveTimer = null;
+    try { await cloudSaveState(lastDataRef); } catch {}
+    return;
+  }
+  if (supabaseConfigured) {
+    const session = await getSession();
+    if (!session) return;
+    clearTimeout(saveTimer); saveTimer = null;
+    try { await supabaseSaveState(lastDataRef); } catch {}
+  }
 };
 
 /* ============================================================
@@ -103,6 +139,17 @@ export const flushSave = async () => {
    ============================================================ */
 
 export const loadKeys = async () => {
+  if (syncEnabled()) {
+    try {
+      const remote = await cloudFetchKeys();
+      if (remote) { local.set(KEYS_KEY, remote); return remote; }
+      const cached = local.get(KEYS_KEY);
+      if (cached) { try { await cloudSaveKeys(cached); } catch {} return cached; }
+      return null;
+    } catch {
+      return local.get(KEYS_KEY);
+    }
+  }
   if (supabaseConfigured) {
     const session = await getSession();
     if (session) {
@@ -112,7 +159,7 @@ export const loadKeys = async () => {
         return remote;
       }
       const cached = local.get(KEYS_KEY);
-      if (cached) { await cloudSaveKeys(cached); return cached; }
+      if (cached) { await supabaseSaveKeys(cached); return cached; }
       return null;
     }
   }
@@ -125,12 +172,13 @@ let lastKeysRef = null;
 export const saveKeys = async (data) => {
   local.set(KEYS_KEY, data);
   lastKeysRef = data;
-  if (supabaseConfigured) {
-    const session = await getSession();
-    if (!session) return;
-    clearTimeout(keysTimer);
-    keysTimer = setTimeout(() => {
-      cloudSaveKeys(lastKeysRef);
-    }, REMOTE_DEBOUNCE_MS);
-  }
+  const useCloud = syncEnabled();
+  const useSupabase = !useCloud && supabaseConfigured && !!(await getSession());
+  if (!useCloud && !useSupabase) return;
+
+  clearTimeout(keysTimer);
+  keysTimer = setTimeout(() => {
+    const save = useCloud ? cloudSaveKeys : supabaseSaveKeys;
+    save(lastKeysRef).catch(() => {});
+  }, REMOTE_DEBOUNCE_MS);
 };

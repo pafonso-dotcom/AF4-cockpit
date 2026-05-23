@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { T, THEMES, applyTheme } from "../../lib/theme.js";
 import { saveAll, loadAll } from "../../lib/storage.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import { CARDS_DISPONIVEIS, lerCardsConfig, salvarCardsConfig } from "../../lib/dashboardConfig.js";
+import {
+  getSyncToken, setSyncToken, gerarToken, pingSync, testarToken, syncEnabled,
+} from "../../lib/cloudSync.js";
 
 /**
  * Configurações centralizadas (estilo demo v3).
@@ -33,7 +36,10 @@ export default function Configuracoes({
                  onClearModule={onClearModule} />
       )}
       {subtab === "cfg-backup" && (
-        <Backup />
+        <>
+          <SyncCloud />
+          <Backup />
+        </>
       )}
     </div>
   );
@@ -474,6 +480,164 @@ function Backup() {
       <div className="ar">
         <div className="ai">💾</div>
         <div className="at"><strong>Recomendação</strong><p>Faça backup pelo menos uma vez por semana. Guarde o arquivo em Google Drive, iCloud ou pen-drive.</p></div>
+      </div>
+    </>
+  );
+}
+
+/* ============ SINCRONIZAÇÃO NA NUVEM ============ */
+function SyncCloud() {
+  const [token, setToken] = useState(() => getSyncToken());
+  const [salvo, setSalvo] = useState(() => getSyncToken());
+  const [status, setStatus] = useState(null); // null | { ok, erro?, kv? }
+  const [testando, setTestando] = useState(false);
+  const [ping, setPing] = useState(null);
+
+  useEffect(() => {
+    pingSync().then(setPing);
+  }, []);
+
+  const gerar = () => {
+    const novo = gerarToken();
+    setToken(novo);
+    setStatus(null);
+  };
+
+  const salvar = () => {
+    setSyncToken(token);
+    setSalvo(token);
+    setStatus(null);
+    if (token) toast.success("Token salvo. Recarregue a página pra sincronizar.");
+    else toast.success("Token removido.");
+  };
+
+  const testar = async () => {
+    setTestando(true);
+    setStatus(null);
+    // Garante que o token está salvo antes de testar
+    setSyncToken(token);
+    setSalvo(token);
+    const r = await testarToken();
+    setStatus(r);
+    setTestando(false);
+  };
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(token);
+      toast.success("Token copiado.");
+    } catch {
+      toast.error("Não foi possível copiar — selecione e copie manualmente.");
+    }
+  };
+
+  const dirty = token.trim() !== (salvo || "").trim();
+  const kvOk = ping?.ok && ping?.kv;
+
+  return (
+    <>
+      <div className="st"><h2>Sincronização entre dispositivos</h2><div className="mt">Cloudflare KV</div></div>
+
+      <div className="fb">
+        <h4>Status do servidor</h4>
+        <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 10 }}>
+          {ping == null && "Verificando..."}
+          {ping?.ok && ping.kv && (
+            <span style={{ color: T.green }}>● Servidor pronto. Sync habilitado.</span>
+          )}
+          {ping?.ok && !ping.kv && (
+            <span style={{ color: T.red }}>
+              ● O Worker está online, mas o KV namespace <strong>AF4_KV</strong> ainda não foi vinculado no Cloudflare Dashboard. Veja instruções abaixo.
+            </span>
+          )}
+          {ping?.ok === false && (
+            <span style={{ color: T.red }}>● Não foi possível alcançar o servidor: {ping.erro}</span>
+          )}
+        </div>
+      </div>
+
+      <div className="fb">
+        <h4>Seu token de sincronização</h4>
+        <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 12 }}>
+          Cole o <strong>mesmo token</strong> em cada dispositivo onde quer ver os mesmos dados.
+          Sem token, o app fica só no <em>localStorage</em> deste navegador.
+        </p>
+
+        <div style={{ display: "flex", gap: 6, alignItems: "stretch", flexWrap: "wrap" }}>
+          <input
+            type="text"
+            value={token}
+            onChange={e => setToken(e.target.value)}
+            placeholder="Cole o token aqui ou clique em Gerar novo"
+            style={{ flex: "1 1 280px", minWidth: 220, fontFamily: T.mono, fontSize: 13 }}
+            autoCorrect="off" autoCapitalize="off" spellCheck={false}
+          />
+          <button onClick={gerar} className="btn-ghost" style={{ whiteSpace: "nowrap" }}>
+            Gerar novo
+          </button>
+          {token && (
+            <button onClick={copiar} className="btn-ghost" style={{ whiteSpace: "nowrap" }}>
+              Copiar
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+          <button onClick={salvar} className="btn-gold" disabled={!dirty}
+            style={{ opacity: dirty ? 1 : 0.5, cursor: dirty ? "pointer" : "default" }}>
+            {token ? "Salvar token" : "Remover token"}
+          </button>
+          <button onClick={testar} className="btn-ghost" disabled={!token || testando}>
+            {testando ? "Testando..." : "Testar conexão"}
+          </button>
+        </div>
+
+        {status && (
+          <div style={{
+            marginTop: 10, padding: "8px 12px", borderRadius: 6, fontSize: 11.5,
+            background: status.ok ? `${T.green}15` : `${T.red}15`,
+            color: status.ok ? T.green : T.red,
+            border: `1px solid ${status.ok ? T.green : T.red}55`,
+          }}>
+            {status.ok ? "✓ Conexão OK · seus dados serão sincronizados." : `✗ ${status.erro}`}
+          </div>
+        )}
+
+        {salvo && !dirty && !status && (
+          <div style={{ marginTop: 10, fontSize: 11.5, color: T.muted, fontStyle: "italic" }}>
+            Token ativo. <strong>Recarregue a página</strong> pra que a sincronização entre em efeito.
+          </div>
+        )}
+      </div>
+
+      {!kvOk && ping?.ok === true && (
+        <div className="fb" style={{ borderColor: T.gold }}>
+          <h4>⚙️ Setup inicial (uma vez)</h4>
+          <ol style={{ paddingLeft: 18, fontSize: 12.5, color: T.muted, lineHeight: 1.7 }}>
+            <li>Abra <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" style={{ color: T.gold }}>dash.cloudflare.com</a></li>
+            <li>Workers & Pages → <strong>KV</strong> → <em>Create a namespace</em> → nome: <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>af4-state</code></li>
+            <li>Workers & Pages → <strong>af4cockpit</strong> → <em>Settings</em> → Variables and Secrets</li>
+            <li>KV namespace bindings → <em>Add binding</em>:
+              <ul style={{ paddingLeft: 18, marginTop: 4 }}>
+                <li>Variable name: <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>AF4_KV</code></li>
+                <li>KV namespace: <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>af4-state</code></li>
+              </ul>
+            </li>
+            <li>Save · aguarde uns 30s pro Worker reiniciar · recarregue esta página</li>
+          </ol>
+          <p style={{ fontSize: 11, color: T.faint, marginTop: 10, fontStyle: "italic" }}>
+            Setup uma única vez. Depois disso, basta gerar/colar o token aqui.
+          </p>
+        </div>
+      )}
+
+      <div className="ar" style={{ marginTop: 16 }}>
+        <div className="ai">🔐</div>
+        <div className="at">
+          <strong>Segurança</strong>
+          <p>Quem tiver o token tem acesso total aos seus dados. Trate como senha.
+          Use um token único e longo (o "Gerar novo" cria um UUID seguro).</p>
+        </div>
       </div>
     </>
   );
