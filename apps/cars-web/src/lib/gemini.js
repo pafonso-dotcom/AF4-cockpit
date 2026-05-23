@@ -177,6 +177,13 @@ export async function gerarJSONGeminiComImagem(prompt, imgBase64, mimeType = "im
   return _gerarJSONGeminiComArquivo(prompt, imgBase64, mimeType, opts);
 }
 
+/**
+ * Mesmo padrão mas pra áudio (webm/mp4/ogg/wav). Usado pra transações por voz.
+ */
+export async function gerarJSONGeminiComAudio(prompt, audioBase64, mimeType = "audio/webm", opts = {}) {
+  return _gerarJSONGeminiComArquivo(prompt, audioBase64, mimeType, opts);
+}
+
 async function _gerarJSONGeminiComArquivo(prompt, base64, mimeType, opts = {}) {
   const key = getKey(opts);
   if (!key) throw new Error("Chave do Gemini não configurada");
