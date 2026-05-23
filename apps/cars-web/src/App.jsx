@@ -741,7 +741,9 @@ export default function App() {
         {modulo === "invest" && (
           <>
             {tab === "investimentos" && (
-              <InvestPainel ativos={ativos} transacoes={transacoes} hidden={hidden} />
+              <InvestPainel ativos={ativos} transacoes={transacoes} categorias={categorias} hidden={hidden}
+                            onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setPdvOpen(false); setTab(t); }}
+                            onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }} />
             )}
             {tab === "invest-idv" && (
               <AnaliseIdV analises={tradeAnalisesIdV} setAnalises={setTradeAnalisesIdV} ativos={ativos} />
