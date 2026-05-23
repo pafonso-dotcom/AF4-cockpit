@@ -45,6 +45,7 @@ import Transacoes from "./components/pages/Transacoes.jsx";
 import Calendario from "./components/pages/Calendario.jsx";
 import Categorias from "./components/pages/Categorias.jsx";
 import Metas from "./components/pages/Metas.jsx";
+import Notas from "./components/pages/Notas.jsx";
 import Despesas from "./components/pages/Despesas.jsx";
 import ControleAnual from "./components/pages/Relatorios/ControleAnual.jsx";
 import Planejamento from "./components/pages/Planejamento/index.jsx";
@@ -109,6 +110,7 @@ export default function App() {
   const [transacoes, setTransacoes] = useState([]);
   const [ativos, setAtivos] = useState([]);
   const [metas, setMetas] = useState([]);
+  const [notas, setNotas] = useState([]);
   const [cartoes, setCartoes] = useState([]);
   const [parcelamentos, setParcelamentos] = useState([]);
   const [devedores, setDevedores] = useState([]);
@@ -151,6 +153,7 @@ export default function App() {
         })));
         setAtivos(data.ativos || seedAtivos);
         setMetas(data.metas || seedMetas);
+        setNotas(data.notas || []);
         setCartoes(data.cartoes || seedCartoes);
         // Migrate parcelamentos: convert cartaoNome → cartaoId
         const cartoesData = data.cartoes || seedCartoes;
@@ -233,14 +236,14 @@ export default function App() {
   useEffect(() => {
     if (loading) return;
     saveAll({
-      contas, categorias, transacoes, ativos, metas,
+      contas, categorias, transacoes, ativos, metas, notas,
       cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       veiculos, vendas, clientes, cheques, leads,
       themeId,
     });
-  }, [contas, categorias, transacoes, ativos, metas, cartoes, parcelamentos, devedores, dividas,
+  }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       veiculos, vendas, clientes, cheques, leads, themeId, loading]);
@@ -726,6 +729,9 @@ export default function App() {
             {tab === "metas" && (
               <Metas metas={metas} setMetas={setMetas} hidden={hidden} />
             )}
+            {tab === "notas" && (
+              <Notas notas={notas} setNotas={setNotas} />
+            )}
             {/* Rotas antigas (fixas, relatorios-anual, areceber) consolidadas em Planejamento — ver bloco unificado acima */}
             {tab === "analiseia" && (
               <AnaliseFatura
@@ -874,17 +880,17 @@ export default function App() {
                            // (bypass do debounce de 1.5s — senão recarregar
                            // antes do timer faz a versão antiga voltar do cloud).
                            const cleared = {
-                             contas, categorias, transacoes, ativos, metas,
+                             contas, categorias, transacoes, ativos, metas, notas,
                              cartoes, parcelamentos, devedores, dividas,
                              veiculos, vendas, clientes, cheques, leads, themeId,
                            };
                            if (id === "financas") {
                              cleared.contas = []; cleared.cartoes = []; cleared.parcelamentos = [];
                              cleared.transacoes = []; cleared.categorias = [];
-                             cleared.metas = []; cleared.devedores = []; cleared.dividas = [];
+                             cleared.metas = []; cleared.notas = []; cleared.devedores = []; cleared.dividas = [];
                              setContas([]); setCartoes([]); setParcelamentos([]);
                              setTransacoes([]); setCategorias([]);
-                             setMetas([]); setDevedores([]); setDividas([]);
+                             setMetas([]); setNotas([]); setDevedores([]); setDividas([]);
                            } else if (id === "invest") {
                              cleared.ativos = [];
                              setAtivos([]);
