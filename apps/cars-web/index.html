@@ -10,8 +10,6 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/icon.svg" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="AF4" />
 
     <!-- Open Graph -->
@@ -29,9 +27,9 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-      // Kill-switch: abre https://af4.codder.com.br/?nosw=1 pra
-      // forçar desregistro do SW e limpar caches (útil em iPad com
-      // versão antiga travada).
+      // Kill-switch: adicione ?nosw=1 ao final da URL pra forçar
+      // desregistro do SW e limpar caches (útil em iPad com versão
+      // antiga travada).
       (function () {
         var params = new URLSearchParams(location.search);
         if (params.has("nosw") && "serviceWorker" in navigator) {
