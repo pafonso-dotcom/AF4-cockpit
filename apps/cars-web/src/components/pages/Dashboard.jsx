@@ -134,10 +134,10 @@ export default function Dashboard({
   const projecao = useMemo(() => {
     const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
     return nextMonthsISO(6).map(m => {
-      let kpi = { receitas: 0, despesas: 0 };
-      try { kpi = getKPIsMes(m.iso, state, escopoAtivo) || kpi; } catch {}
-      const rec = Number(kpi.receitas || 0);
-      const des = Number(kpi.despesas || 0);
+      let kpi = null;
+      try { kpi = getKPIsMes(m.iso, state, escopoAtivo); } catch {}
+      const rec = Number(kpi?.totalGanhos || 0);
+      const des = Number(kpi?.totalPrevisto || 0);
       return { label: m.label, receita: rec, despesa: des, saldo: rec - des };
     });
   }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, escopoAtivo]);
