@@ -124,6 +124,13 @@ export default function GlobalStyles() {
       }
 
       /* ========== RESPONSIVO ========== */
+      /* Mobile: reserva espaço pro BottomTabBar (56px) + safe-area-inset-bottom do iPhone.
+         Footer fica escondido no celular (a tab bar substitui). */
+      @media (max-width: 640px) {
+        body { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0)); }
+        footer { display: none !important; }
+      }
+
       /* Touch-friendly: alvos clicáveis com mín 40px em mobile */
       @media (max-width: 768px) {
         button, .btn-gold, .btn-ghost { min-height: 40px; }

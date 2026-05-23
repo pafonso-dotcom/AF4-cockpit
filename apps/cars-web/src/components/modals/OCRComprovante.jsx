@@ -9,9 +9,10 @@ import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
 
 export default function OCRComprovante({
-  apiKey, contas, categorias,
+  contas, categorias,
   transacoes, setTransacoes, onClose,
 }) {
+  const temGeminiKey = !!(localStorage.getItem("af4:gemini-key") || "").trim();
   const [imagem, setImagem] = useState(null);
   const [step, setStep] = useState("upload");
   const [forma, setForma] = useState(null);
@@ -35,12 +36,12 @@ export default function OCRComprovante({
 
   const processar = async () => {
     if (!imagem) return;
-    if (!apiKey) { setErro("Configure a chave Anthropic em Configurações → API Keys."); return; }
+    if (!temGeminiKey) { setErro("Configure a chave Gemini em Configurações → APIs (1.500 análises/dia grátis)."); return; }
     setErro("");
     setStep("processando");
     try {
       const result = await ocrComprovante({
-        apiKey, file: imagem.file,
+        file: imagem.file,
         categoriasDisponiveis: categorias.map(c => c.nome),
       });
       setForma({
@@ -70,7 +71,7 @@ export default function OCRComprovante({
       valor: valorNum, data: forma.data,
       categoria: forma.categoria, subcategoria: forma.subcategoria || null,
       conta: forma.conta, compensado: true, fixa: false,
-      obs: forma.obs + " · OCR Claude Vision",
+      obs: forma.obs + " · OCR Gemini Vision",
     };
     setTransacoes([tx, ...transacoes]);
     audit.create("transação", forma.descricao, tx.id, { ...tx, fonte: "OCR" });
@@ -79,7 +80,7 @@ export default function OCRComprovante({
   };
 
   return (
-    <Modal title="Comprovante por foto · OCR Claude Vision" onClose={onClose} wide>
+    <Modal title="Comprovante por foto · Gemini Vision" onClose={onClose} wide>
       {step === "upload" && (
         <>
           {!imagem ? (
@@ -109,7 +110,7 @@ export default function OCRComprovante({
               </div>
               <div className="flex gap-3">
                 <button className="btn-gold" onClick={processar} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <Sparkles size={13} /> Processar com Claude Vision
+                  <Sparkles size={13} /> Processar com Gemini Vision
                 </button>
                 <button className="btn-ghost" onClick={() => setImagem(null)}>Outra imagem</button>
               </div>
@@ -127,7 +128,7 @@ export default function OCRComprovante({
         <div style={{ padding: 40, textAlign: "center" }}>
           <Sparkles size={36} className="spin" style={{ color: T.gold, marginBottom: 14 }} />
           <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, marginBottom: 6 }}>Analisando comprovante…</h3>
-          <p style={{ fontSize: 12, color: T.muted }}>Claude Vision está extraindo data, valor, estabelecimento e categoria.</p>
+          <p style={{ fontSize: 12, color: T.muted }}>Gemini Vision está extraindo data, valor, estabelecimento e categoria.</p>
         </div>
       )}
 

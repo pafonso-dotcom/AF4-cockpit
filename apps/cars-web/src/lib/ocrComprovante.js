@@ -1,36 +1,20 @@
 /**
- * OCR de comprovantes via Claude Vision API.
+ * OCR de comprovantes via Gemini 2.5 Flash Vision.
  *
  * Recebe imagem → extrai { descricao, valor, data, categoria } → retorna sugestão
- * pra criar transação.
+ * pra criar transação. Usa a chave do Gemini que já vive em localStorage
+ * ("af4:gemini-key"), configurada em Configurações → APIs.
  */
 
-const ENDPOINT = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-5";
+import { gerarJSONGeminiComImagem, fileToBase64 } from "./gemini.js";
 
-/**
- * Converte arquivo em base64 (sem o prefixo data:image/...;base64,).
- */
-export async function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      // dataURL formato: "data:image/png;base64,XXXX"
-      const base64 = result.split(",")[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+export { fileToBase64 };
 
 /**
- * Envia imagem ao Claude Vision pra extrair dados do comprovante.
- * Retorna objeto { descricao, valor, data, categoria, subcategoria, estabelecimento }
+ * Envia imagem ao Gemini Vision pra extrair dados do comprovante.
+ * Retorna objeto { descricao, valor, data, categoria, subcategoria, estabelecimento, tipo }
  */
-export async function ocrComprovante({ apiKey, file, categoriasDisponiveis = [] }) {
-  if (!apiKey) throw new Error("Configure a chave Anthropic em Configurações → API Keys.");
+export async function ocrComprovante({ file, categoriasDisponiveis = [] }) {
   if (!file) throw new Error("Nenhuma imagem fornecida.");
 
   const base64 = await fileToBase64(file);
@@ -60,55 +44,5 @@ Regras:
 
 Retorne SOMENTE o JSON, sem markdown, sem explicações, sem texto antes ou depois.`;
 
-  const res = await fetch(ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 512,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mediaType,
-                data: base64,
-              },
-            },
-            { type: "text", text: prompt },
-          ],
-        },
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    throw new Error(`Claude Vision retornou ${res.status}: ${errText.slice(0, 200)}`);
-  }
-
-  const data = await res.json();
-  const text = (data.content || [])
-    .filter(c => c.type === "text")
-    .map(c => c.text)
-    .join("\n")
-    .trim();
-
-  // Limpa caso venha em markdown code block
-  const jsonStr = text.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
-
-  try {
-    const parsed = JSON.parse(jsonStr);
-    return parsed;
-  } catch (err) {
-    throw new Error(`Resposta inválida do Claude: ${text.slice(0, 100)}`);
-  }
+  return gerarJSONGeminiComImagem(prompt, base64, mediaType, { maxOutputTokens: 512 });
 }

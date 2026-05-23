@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Activity, Plus, Trash2, Edit3, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText } from "lucide-react";
+import { Activity, Plus, Trash2, Edit3, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText, Mic } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
 import { parseValorBR, printHTML } from "../../lib/importExport.js";
@@ -11,12 +11,14 @@ import Modal from "../ui/Modal.jsx";
 import ImportExportModal from "../modals/ImportExportModal.jsx";
 import ImportarExtrato from "../modals/ImportarExtrato.jsx";
 import OCRComprovante from "../modals/OCRComprovante.jsx";
+import VoiceTransacao from "../modals/VoiceTransacao.jsx";
 
 export default function Transacoes({ transacoes, setTransacoes, categorias, contas, setContas, ativos, totais, hidden, pendingTransacao, clearPendingTransacao, parcelamentos, cartoes, apiKey, escopoAtivo = "tudo" }) {
   const [form, setForm] = useState(null);
   const [ieOpen, setIeOpen] = useState(false);
   const [importExtratoOpen, setImportExtratoOpen] = useState(false);
   const [ocrOpen, setOcrOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const [filterTipo, setFilterTipo] = useState("todas");
   const [filterCat, setFilterCat] = useState("todas");
   const [filterConta, setFilterConta] = useState("todas"); // "todas" | nome de conta | "particular"
@@ -366,6 +368,18 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
         sub="O fluxo cotidiano. Receitas e despesas registradas com método."
         action={
           <div className="flex gap-2 flex-wrap">
+            <button onClick={() => setVoiceOpen(true)}
+                    style={{
+                      background: `${T.gold}22`, color: T.gold,
+                      border: `1px solid ${T.gold}`,
+                      padding: "10px 16px", fontFamily: T.sans, fontSize: 12,
+                      letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500,
+                      cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                    }}
+                    title="Registrar transação por voz (Gemini)">
+              <Mic size={12} />
+              <span>Voz</span>
+            </button>
             <button onClick={() => setOcrOpen(true)}
                     style={{
                       background: `${T.blue || "#60a5fa"}22`, color: T.blue || "#60a5fa",
@@ -374,7 +388,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                       letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500,
                       cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
                     }}
-                    title="Tirar foto do comprovante (OCR via Claude Vision)">
+                    title="Tirar foto do comprovante (OCR via Gemini Vision)">
               <Camera size={12} />
               <span>Foto</span>
             </button>
@@ -888,10 +902,17 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
 
       {ocrOpen && (
         <OCRComprovante
-          apiKey={apiKey}
           contas={contas} categorias={categorias}
           transacoes={transacoes} setTransacoes={setTransacoes}
           onClose={() => setOcrOpen(false)}
+        />
+      )}
+
+      {voiceOpen && (
+        <VoiceTransacao
+          contas={contas} categorias={categorias}
+          transacoes={transacoes} setTransacoes={setTransacoes}
+          onClose={() => setVoiceOpen(false)}
         />
       )}
 

@@ -372,13 +372,9 @@ function HeaderHorizontal({
           .quick-actions .qbtn-collapsible .qbtn-text { display: none !important; }
           .header-subtitle { display: none; }
 
-          /* Linhas 2 e 3 mais compactas no mobile, com scroll horizontal */
-          .hdr-modules-row { padding: 0 10px !important; }
-          .hdr-modules-row > div { padding: 6px 0 !important; gap: 4px !important; }
-          .hdr-modules-row button {
-            padding: 7px 12px !important;
-            font-size: 10px !important;
-          }
+          /* No celular a linha de módulos vai pro BottomTabBar — escondida aqui pra
+             ganhar espaço vertical no topo. */
+          .hdr-modules-row { display: none !important; }
           .hdr-subtabs-row { padding: 0 10px !important; }
           .hdr-subtabs-row > div { padding: 0 !important; }
           .hdr-subtabs-row button {
