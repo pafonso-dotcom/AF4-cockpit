@@ -87,6 +87,7 @@ function HeaderHorizontal({
   const SUBTABS = {
     financas: [
       { id: "dashboard",    label: "Painel",       icon: Activity },
+      { id: "notas",        label: "Notas",        icon: StickyNote },
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "transacoes",   label: "Transações",   icon: Receipt },
@@ -94,7 +95,6 @@ function HeaderHorizontal({
       { id: "calendario",   label: "Calendário",   icon: Calendar },
       { id: "planejamento", label: "Planejamento", icon: Target },
       { id: "metas",        label: "Metas",        icon: Target },
-      { id: "notas",        label: "Notas",        icon: StickyNote },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
@@ -446,6 +446,7 @@ function HeaderVertical({
   const SUBTABS = {
     financas: [
       { id: "dashboard",    label: "Painel",       icon: Activity },
+      { id: "notas",        label: "Notas",        icon: StickyNote },
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "transacoes",   label: "Transações",   icon: Receipt },
@@ -453,7 +454,6 @@ function HeaderVertical({
       { id: "calendario",   label: "Calendário",   icon: Calendar },
       { id: "planejamento", label: "Planejamento", icon: Target },
       { id: "metas",        label: "Metas",        icon: Target },
-      { id: "notas",        label: "Notas",        icon: StickyNote },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
