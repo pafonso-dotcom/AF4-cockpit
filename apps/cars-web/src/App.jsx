@@ -677,7 +677,8 @@ export default function App() {
               <Metas metas={metas} setMetas={setMetas} hidden={hidden} />
             )}
             {tab === "notas" && (
-              <Notas notas={notas} setNotas={setNotas} />
+              <Notas agenda={agenda} setAgenda={setAgenda}
+                     notasLegacy={notas} setNotasLegacy={setNotas} />
             )}
             {/* Rotas antigas (fixas, relatorios-anual, areceber) consolidadas em Planejamento — ver bloco unificado acima */}
             {tab === "analiseia" && (

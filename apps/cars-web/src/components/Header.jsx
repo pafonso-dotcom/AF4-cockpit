@@ -86,7 +86,7 @@ function HeaderHorizontal({
   const SUBTABS = {
     financas: [
       { id: "dashboard",    label: "Painel",       icon: Activity },
-      { id: "notas",        label: "Notas",        icon: StickyNote },
+      { id: "notas",        label: "Agenda Pessoal", icon: StickyNote },
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "transacoes",   label: "Transações",   icon: Receipt },
@@ -425,7 +425,7 @@ function HeaderVertical({
   const SUBTABS = {
     financas: [
       { id: "dashboard",    label: "Painel",       icon: Activity },
-      { id: "notas",        label: "Notas",        icon: StickyNote },
+      { id: "notas",        label: "Agenda Pessoal", icon: StickyNote },
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "transacoes",   label: "Transações",   icon: Receipt },

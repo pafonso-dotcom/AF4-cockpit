@@ -1,233 +1,274 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Plus, Trash2, Edit3, Search, Tag as TagIcon, Pin, PinOff,
-  TrendingUp, Plane, Briefcase, Heart, Bookmark, StickyNote, FileText,
+  Briefcase, Plane, AlarmClock, Heart, Star, StickyNote, FileText,
+  Clock, MapPin, Link2, Check, ChevronDown,
 } from "lucide-react";
 import { T } from "../../lib/theme.js";
-import { uid } from "../../lib/format.js";
+import { uid, todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
 
-const CATEGORIAS_PADRAO = [
-  { id: "investimentos", label: "Investimentos", cor: "#5b9bd5", icon: TrendingUp },
-  { id: "viagens",       label: "Viagens",       cor: "#70ad47", icon: Plane },
-  { id: "trabalho",      label: "Trabalho",      cor: "#c9a96b", icon: Briefcase },
-  { id: "pessoal",       label: "Pessoal",       cor: "#e7a3a3", icon: Heart },
-  { id: "geral",         label: "Geral",         cor: "#9b9b9b", icon: Bookmark },
+const CATEGORIAS = [
+  { id: "compromisso", label: "Compromisso", cor: "#c9a96b", icon: Briefcase },
+  { id: "viagem",      label: "Viagem",      cor: "#70ad47", icon: Plane },
+  { id: "lembrete",    label: "Lembrete",    cor: "#5b9bd5", icon: AlarmClock },
+  { id: "pessoal",     label: "Pessoal",     cor: "#e7a3a3", icon: Heart },
+  { id: "evento",      label: "Evento",      cor: "#d97757", icon: Star },
 ];
 
-const catMeta = (id) =>
-  CATEGORIAS_PADRAO.find(c => c.id === id) || { id, label: id, cor: T.gold, icon: Bookmark };
+const catMeta = (id) => CATEGORIAS.find(c => c.id === id) || CATEGORIAS[0];
 
-function dataRelativa(iso) {
-  if (!iso) return "";
+// Migração: categorias antigas das Notas → categorias da Agenda
+const MAP_CAT_LEGACY = {
+  investimentos: "compromisso",
+  viagens: "viagem",
+  trabalho: "compromisso",
+  pessoal: "pessoal",
+  geral: "lembrete",
+};
+
+function formatarDataCurta(iso) {
+  if (!iso) return "—";
   try {
-    const d = new Date(iso);
-    const now = new Date();
-    const diffMs = now - d;
-    const diffMin = Math.floor(diffMs / 60000);
-    const diffH = Math.floor(diffMs / 3600000);
-    const diffDias = Math.floor(diffMs / 86400000);
-
-    if (diffMin < 1) return "agora";
-    if (diffMin < 60) return `há ${diffMin} min`;
-    if (diffH < 24) return `há ${diffH}h`;
-    if (diffDias === 0) return "hoje";
-    if (diffDias === 1) return "ontem";
-    if (diffDias < 7) return `há ${diffDias} dias`;
-    if (diffDias < 30) {
-      const semanas = Math.floor(diffDias / 7);
-      return `há ${semanas} sem`;
-    }
-    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "2-digit" });
-  } catch { return ""; }
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  } catch { return iso; }
 }
 
-// Mistura a cor da categoria com o fundo do card pra ficar "post-it" sutil
-function corPostIt(corHex, alpha = "1a") {
-  return `${corHex}${alpha}`;
+function formatarDataLonga(iso) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "long", year: "numeric" });
+  } catch { return iso; }
 }
 
-export default function Notas({ notas = [], setNotas }) {
+function diasAteHoje(iso) {
+  if (!iso) return Infinity;
+  try {
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const alvo = new Date(iso + "T00:00:00");
+    return Math.round((alvo - hoje) / 86400000);
+  } catch { return Infinity; }
+}
+
+function diasRelativos(iso) {
+  const d = diasAteHoje(iso);
+  if (d === 0) return "hoje";
+  if (d === 1) return "amanhã";
+  if (d === -1) return "ontem";
+  if (d > 1 && d <= 7) return `em ${d} dias`;
+  if (d < 0 && d >= -7) return `há ${-d} dias`;
+  if (d > 7 && d <= 30) return `em ${Math.round(d / 7)} sem`;
+  return formatarDataCurta(iso);
+}
+
+export default function Notas({ agenda = [], setAgenda, notasLegacy = [], setNotasLegacy }) {
   const [form, setForm] = useState(null);
   const [filtroCat, setFiltroCat] = useState("todas");
   const [busca, setBusca] = useState("");
   const [formErrors, setFormErrors] = useState({});
   const [quickAdd, setQuickAdd] = useState("");
+  const [mostrarPassados, setMostrarPassados] = useState(false);
 
-  const notasFiltradas = useMemo(() => {
+  // Migração de Notas legadas → Agenda (uma vez)
+  useEffect(() => {
+    if (!notasLegacy || notasLegacy.length === 0) return;
+    const migrados = notasLegacy.map(n => ({
+      id: n.id || uid(),
+      titulo: n.titulo || "(sem título)",
+      descricao: n.conteudo || "",
+      data: (n.createdAt || todayISO()).slice(0, 10),
+      horario: null,
+      duracao: null,
+      categoria: MAP_CAT_LEGACY[n.categoria] || "lembrete",
+      local: "",
+      link: "",
+      status: "agendado",
+      pinned: !!n.pinned,
+      createdAt: n.createdAt || new Date().toISOString(),
+      updatedAt: n.updatedAt || new Date().toISOString(),
+      // marca pra debug
+      _migrado: true,
+    }));
+    setAgenda([...(agenda || []), ...migrados]);
+    setNotasLegacy([]);
+    toast.success(`${migrados.length} ${migrados.length === 1 ? "nota migrada" : "notas migradas"} pra Agenda Pessoal.`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notasLegacy?.length]);
+
+  const eventosFiltrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return notas
-      .filter(n => filtroCat === "todas" || n.categoria === filtroCat)
-      .filter(n => !q
-        || (n.titulo || "").toLowerCase().includes(q)
-        || (n.conteudo || "").toLowerCase().includes(q)
-        || (n.tags || []).some(t => t.toLowerCase().includes(q)))
-      .slice()
-      .sort((a, b) => {
-        // Pinned no topo
-        if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
-        return (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || "");
-      });
-  }, [notas, filtroCat, busca]);
+    return (agenda || [])
+      .filter(e => filtroCat === "todas" || e.categoria === filtroCat)
+      .filter(e => !q
+        || (e.titulo || "").toLowerCase().includes(q)
+        || (e.descricao || "").toLowerCase().includes(q)
+        || (e.local || "").toLowerCase().includes(q));
+  }, [agenda, filtroCat, busca]);
 
-  const novaNota = (preset = {}) => {
+  // Separa em: pinned, futuros (próximos), passados
+  const { pinned, futuros, passados } = useMemo(() => {
+    const hojeISO = todayISO();
+    const p = [];
+    const f = [];
+    const pas = [];
+    eventosFiltrados.forEach(e => {
+      if (e.pinned) p.push(e);
+      else if (!e.data || e.data >= hojeISO) f.push(e);
+      else pas.push(e);
+    });
+    p.sort((a, b) => (a.data || "9999").localeCompare(b.data || "9999") || (a.horario || "").localeCompare(b.horario || ""));
+    f.sort((a, b) => (a.data || "9999").localeCompare(b.data || "9999") || (a.horario || "").localeCompare(b.horario || ""));
+    pas.sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+    return { pinned: p, futuros: f, passados: pas };
+  }, [eventosFiltrados]);
+
+  const novoEvento = (preset = {}) => {
     setForm({
       id: null,
       titulo: "",
-      conteudo: "",
-      categoria: "geral",
-      tagsRaw: "",
+      descricao: "",
+      data: todayISO(),
+      horario: "",
+      duracao: "",
+      categoria: "compromisso",
+      local: "",
+      link: "",
+      status: "agendado",
       pinned: false,
       ...preset,
     });
     setFormErrors({});
   };
 
-  const editarNota = (n) => {
+  const editarEvento = (ev) => {
     setForm({
-      ...n,
-      tagsRaw: (n.tags || []).join(", "),
+      ...ev,
+      horario: ev.horario || "",
+      duracao: ev.duracao != null ? String(ev.duracao) : "",
+      local: ev.local || "",
+      link: ev.link || "",
+      descricao: ev.descricao || "",
     });
     setFormErrors({});
   };
 
-  const togglePin = (n) => {
-    setNotas(notas.map(x => x.id === n.id ? { ...x, pinned: !x.pinned, updatedAt: new Date().toISOString() } : x));
-    toast.success(n.pinned ? "Nota desafixada." : "Nota fixada no topo.");
+  const togglePin = (ev) => {
+    setAgenda(agenda.map(e => e.id === ev.id ? { ...e, pinned: !e.pinned, updatedAt: new Date().toISOString() } : e));
+  };
+
+  const toggleFeito = (ev) => {
+    setAgenda(agenda.map(e => e.id === ev.id
+      ? { ...e, status: e.status === "feito" ? "agendado" : "feito", updatedAt: new Date().toISOString() }
+      : e));
   };
 
   const salvar = () => {
     const errs = {};
     if (!form.titulo?.trim()) errs.titulo = "Título é obrigatório";
-
+    if (!form.data) errs.data = "Data é obrigatória";
     setFormErrors(errs);
-    if (Object.keys(errs).length > 0) {
-      toast.error("Verifique os campos destacados.");
-      return;
-    }
+    if (Object.keys(errs).length > 0) { toast.error("Verifique os campos."); return; }
 
     const agora = new Date().toISOString();
-    const tags = (form.tagsRaw || "")
-      .split(",")
-      .map(t => t.trim())
-      .filter(Boolean);
-
     const data = {
       id: form.id || uid(),
       titulo: form.titulo.trim(),
-      conteudo: form.conteudo || "",
-      categoria: form.categoria || "geral",
-      tags,
+      descricao: form.descricao || "",
+      data: form.data,
+      horario: form.horario || null,
+      duracao: form.duracao ? parseInt(form.duracao, 10) : null,
+      categoria: form.categoria || "compromisso",
+      local: form.local || "",
+      link: form.link || "",
+      status: form.status || "agendado",
       pinned: !!form.pinned,
       createdAt: form.createdAt || agora,
       updatedAt: agora,
     };
 
-    if (form.id && notas.find(n => n.id === form.id)) {
-      setNotas(notas.map(n => n.id === form.id ? data : n));
-      toast.success("Nota atualizada.");
+    if (form.id && agenda.find(e => e.id === form.id)) {
+      setAgenda(agenda.map(e => e.id === form.id ? data : e));
+      toast.success("Evento atualizado.");
     } else {
-      setNotas([...notas, data]);
-      toast.success(`Nota "${data.titulo}" criada.`);
+      setAgenda([...agenda, data]);
+      toast.success(`"${data.titulo}" agendado.`);
     }
     setForm(null);
     setFormErrors({});
   };
 
-  const excluir = async (n) => {
+  const excluir = async (ev) => {
     const ok = await confirm({
-      title: `Excluir nota "${n.titulo}"?`,
+      title: `Excluir "${ev.titulo}"?`,
       danger: true, confirmLabel: "Excluir",
     });
     if (!ok) return;
-    const backup = notas;
-    setNotas(notas.filter(x => x.id !== n.id));
-    toast.success(`Nota "${n.titulo}" excluída.`, {
-      action: { label: "Desfazer", onClick: () => setNotas(backup) },
+    const backup = agenda;
+    setAgenda(agenda.filter(x => x.id !== ev.id));
+    toast.success(`"${ev.titulo}" excluído.`, {
+      action: { label: "Desfazer", onClick: () => setAgenda(backup) },
     });
   };
 
   const handleQuickAdd = () => {
     const t = quickAdd.trim();
     if (!t) return;
-    novaNota({ titulo: t });
+    novoEvento({ titulo: t });
     setQuickAdd("");
   };
 
   const contagemPorCat = useMemo(() => {
-    const m = { todas: notas.length };
-    for (const c of CATEGORIAS_PADRAO) m[c.id] = 0;
-    for (const n of notas) m[n.categoria] = (m[n.categoria] || 0) + 1;
+    const m = { todas: agenda.length };
+    for (const c of CATEGORIAS) m[c.id] = 0;
+    for (const e of agenda) m[e.categoria] = (m[e.categoria] || 0) + 1;
     return m;
-  }, [notas]);
+  }, [agenda]);
 
-  const pinnedCount = useMemo(() => notas.filter(n => n.pinned).length, [notas]);
+  const stats = useMemo(() => {
+    const total = agenda.length;
+    const hoje = agenda.filter(e => e.data === todayISO() && e.status !== "feito").length;
+    const proximos7 = agenda.filter(e => {
+      const d = diasAteHoje(e.data);
+      return d >= 0 && d <= 7 && e.status !== "feito";
+    }).length;
+    const atrasados = agenda.filter(e => {
+      const d = diasAteHoje(e.data);
+      return d < 0 && e.status !== "feito";
+    }).length;
+    return { total, hoje, proximos7, atrasados };
+  }, [agenda]);
 
   return (
     <div className="fade-up py-8">
-      <style>{`
-        .notas-card {
-          position: relative;
-          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-        }
-        .notas-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px -12px rgba(0,0,0,.35);
-        }
-        .notas-card .acoes { opacity: 0; transition: opacity .15s ease; }
-        .notas-card:hover .acoes, .notas-card:focus-within .acoes { opacity: 1; }
-        @media (max-width: 768px) { .notas-card .acoes { opacity: 1; } }
-        .notas-quick {
-          background: ${T.bgSoft};
-          border: 1px dashed ${T.border};
-          padding: 14px 16px;
-          border-radius: 10px;
-          display: flex; align-items: center; gap: 10px;
-          margin-bottom: 18px;
-          transition: border-color .15s ease, background .15s ease;
-        }
-        .notas-quick:focus-within {
-          border-color: ${T.gold};
-          background: ${T.card};
-        }
-        .notas-quick input {
-          flex: 1; background: transparent; border: none; outline: none;
-          color: ${T.ink}; font-size: 14px; font-family: inherit;
-        }
-        .notas-quick input::placeholder { color: ${T.faint}; }
-      `}</style>
-
       <PageHeader
-        eyebrow="Bloco de Notas"
-        title="Anotações"
-        sub="Ideias, lembretes e pensamentos — organizados por categoria e fácil de buscar."
+        eyebrow="Agenda Pessoal"
+        title="Compromissos"
+        sub="Lista detalhada dos seus eventos pessoais — também aparecem no Calendário."
         action={
-          <button className="btn-gold" onClick={() => novaNota()}>
-            <Plus size={14} className="inline mr-2" />Nova Nota
+          <button className="btn-gold" onClick={() => novoEvento()}>
+            <Plus size={14} className="inline mr-2" />Novo
           </button>
         }
       />
 
-      {/* Stats compactos */}
+      {/* Stats */}
       <div style={{
-        display: "flex", gap: 16, flexWrap: "wrap",
-        margin: "-8px 0 18px", fontSize: 11, color: T.muted,
+        display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16,
       }}>
-        <span><strong style={{ color: T.ink, fontWeight: 600 }}>{notas.length}</strong> {notas.length === 1 ? "nota" : "notas"} no total</span>
-        {pinnedCount > 0 && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <Pin size={11} style={{ color: T.gold }} />
-            <strong style={{ color: T.ink, fontWeight: 600 }}>{pinnedCount}</strong> fixada{pinnedCount === 1 ? "" : "s"}
-          </span>
-        )}
+        <StatBox label="Total" value={stats.total} cor={T.muted} />
+        <StatBox label="Hoje" value={stats.hoje} cor={T.gold} destaque={stats.hoje > 0} />
+        <StatBox label="Próx. 7d" value={stats.proximos7} cor={T.green} />
+        <StatBox label="Atrasados" value={stats.atrasados} cor={T.red} destaque={stats.atrasados > 0} />
       </div>
 
       {/* Quick add */}
-      <div className="notas-quick">
+      <div className="agenda-quick">
         <StickyNote size={16} style={{ color: T.gold, flexShrink: 0 }} />
         <input
           value={quickAdd}
@@ -248,13 +289,13 @@ export default function Notas({ notas = [], setNotas }) {
       </div>
 
       {/* Busca + filtros */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 22 }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 18 }}>
         <div style={{ position: "relative", flex: "1 1 240px", minWidth: 200 }}>
           <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: T.muted, pointerEvents: "none" }} />
           <input
             value={busca}
             onChange={e => setBusca(e.target.value)}
-            placeholder="Buscar por título, conteúdo ou tag..."
+            placeholder="Buscar por título, descrição ou local..."
             style={{
               width: "100%", padding: "9px 10px 9px 32px",
               background: T.card, border: `1px solid ${T.border}`,
@@ -263,14 +304,12 @@ export default function Notas({ notas = [], setNotas }) {
           />
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {[{ id: "todas", label: "Todas", icon: FileText }, ...CATEGORIAS_PADRAO].map(c => {
+          {[{ id: "todas", label: "Todas", icon: FileText }, ...CATEGORIAS].map(c => {
             const ativo = filtroCat === c.id;
             const cor = c.id === "todas" ? T.gold : c.cor;
             const Icon = c.icon;
             return (
-              <button
-                key={c.id}
-                onClick={() => setFiltroCat(c.id)}
+              <button key={c.id} onClick={() => setFiltroCat(c.id)}
                 style={{
                   padding: "7px 13px",
                   background: ativo ? `${cor}22` : T.card,
@@ -279,239 +318,312 @@ export default function Notas({ notas = [], setNotas }) {
                   fontSize: 11, fontWeight: 600, borderRadius: 100,
                   cursor: "pointer", letterSpacing: ".03em",
                   display: "flex", alignItems: "center", gap: 6,
-                  transition: "all .15s ease",
-                }}
-              >
+                }}>
                 <Icon size={11} />
                 {c.label}
                 <span style={{
                   opacity: 0.7, fontSize: 10,
                   padding: "1px 6px", borderRadius: 100,
                   background: ativo ? `${cor}33` : T.bgSoft,
-                }}>
-                  {contagemPorCat[c.id] || 0}
-                </span>
+                }}>{contagemPorCat[c.id] || 0}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Lista ou empty state */}
-      {notasFiltradas.length === 0 ? (
-        <EmptyState
-          temNotas={notas.length > 0}
-          onCriar={() => novaNota()}
-        />
+      {/* Lista de eventos agrupada */}
+      {pinned.length === 0 && futuros.length === 0 && passados.length === 0 ? (
+        <EmptyState onCriar={() => novoEvento()} temEventos={agenda.length > 0} />
       ) : (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-          gap: 14,
-        }}>
-          {notasFiltradas.map(n => {
-            const meta = catMeta(n.categoria);
-            const Icon = meta.icon;
-            return (
-              <div
-                key={n.id}
-                className="notas-card"
+        <>
+          {pinned.length > 0 && (
+            <SectionList title="📌 Fixados" eventos={pinned}
+                         onEdit={editarEvento} onPin={togglePin} onFeito={toggleFeito} onExcluir={excluir} />
+          )}
+          {futuros.length > 0 && (
+            <SectionList title="Próximos" eventos={futuros}
+                         onEdit={editarEvento} onPin={togglePin} onFeito={toggleFeito} onExcluir={excluir} />
+          )}
+          {passados.length > 0 && (
+            <>
+              <button
+                onClick={() => setMostrarPassados(!mostrarPassados)}
                 style={{
-                  background: corPostIt(meta.cor, "0d"),
-                  border: `1px solid ${corPostIt(meta.cor, "33")}`,
-                  borderTop: `3px solid ${meta.cor}`,
-                  padding: 16, borderRadius: 8,
-                  display: "flex", flexDirection: "column", gap: 8,
-                  minHeight: 170,
-                }}
-              >
-                {n.pinned && (
-                  <div style={{
-                    position: "absolute", top: -6, right: 10,
-                    background: T.gold, color: T.bg,
-                    width: 22, height: 22, borderRadius: "50%",
-                    display: "grid", placeItems: "center",
-                    boxShadow: "0 2px 6px rgba(0,0,0,.25)",
-                  }} title="Fixada">
-                    <Pin size={11} />
-                  </div>
-                )}
-
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                  <div style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    fontSize: 10, fontWeight: 700, letterSpacing: ".08em",
-                    textTransform: "uppercase", color: meta.cor,
-                  }}>
-                    <Icon size={11} />
-                    {meta.label}
-                  </div>
-                  <div className="acoes" style={{ display: "flex", gap: 4 }}>
-                    <IconBtn onClick={() => togglePin(n)} title={n.pinned ? "Desafixar" : "Fixar no topo"}>
-                      {n.pinned ? <PinOff size={13} /> : <Pin size={13} />}
-                    </IconBtn>
-                    <IconBtn onClick={() => editarNota(n)} title="Editar">
-                      <Edit3 size={13} />
-                    </IconBtn>
-                    <IconBtn onClick={() => excluir(n)} title="Excluir" danger>
-                      <Trash2 size={13} />
-                    </IconBtn>
-                  </div>
-                </div>
-
-                <h3 style={{
-                  fontFamily: T.serif, fontSize: 18, fontWeight: 600,
-                  color: T.ink, lineHeight: 1.25, margin: 0,
-                  cursor: "pointer",
-                }} onClick={() => editarNota(n)}>
-                  {n.titulo}
-                </h3>
-
-                {n.conteudo && (
-                  <p style={{
-                    fontSize: 12.5, color: T.muted, lineHeight: 1.55,
-                    margin: 0, whiteSpace: "pre-wrap",
-                    display: "-webkit-box", WebkitLineClamp: 5, WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}>
-                    {n.conteudo}
-                  </p>
-                )}
-
-                <div style={{ flex: 1 }} />
-
-                {n.tags && n.tags.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                    {n.tags.map(t => (
-                      <span key={t} style={{
-                        fontSize: 10, padding: "2px 8px", borderRadius: 100,
-                        background: corPostIt(meta.cor, "1a"),
-                        color: meta.cor, fontWeight: 600,
-                        display: "inline-flex", alignItems: "center", gap: 3,
-                      }}>
-                        <TagIcon size={9} />{t}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <div style={{
-                  fontSize: 10, color: T.faint, letterSpacing: ".05em",
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  marginTop: 4, paddingTop: 6, borderTop: `1px dashed ${corPostIt(meta.cor, "22")}`,
+                  background: "transparent", border: "none", color: T.muted,
+                  fontSize: 12, fontWeight: 600, letterSpacing: ".05em",
+                  textTransform: "uppercase", cursor: "pointer",
+                  margin: "20px 0 10px", padding: "8px 0",
+                  display: "flex", alignItems: "center", gap: 6,
                 }}>
-                  <span>
-                    {n.updatedAt && n.updatedAt !== n.createdAt ? "editado " : ""}
-                    {dataRelativa(n.updatedAt || n.createdAt)}
-                  </span>
-                  {n.conteudo && (
-                    <span title="Caracteres">
-                      {n.conteudo.length} chars
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                <ChevronDown size={14} style={{ transform: mostrarPassados ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform .2s" }} />
+                Passados ({passados.length})
+              </button>
+              {mostrarPassados && (
+                <SectionList title="" eventos={passados}
+                             onEdit={editarEvento} onPin={togglePin} onFeito={toggleFeito} onExcluir={excluir}
+                             dimmed />
+              )}
+            </>
+          )}
+        </>
       )}
 
-      {/* Modal de edição */}
+      {/* Modal */}
       {form && (
-        <Modal title={form.id ? "Editar Nota" : "Nova Nota"} onClose={() => setForm(null)}>
+        <Modal title={form.id ? "Editar evento" : "Novo evento"}
+               onClose={() => { setForm(null); setFormErrors({}); }}>
           <Field label="Título" required error={formErrors.titulo}>
-            <input
-              value={form.titulo}
-              onChange={e => setForm({ ...form, titulo: e.target.value })}
-              placeholder="Ex.: Estratégia FII Logística 2026"
-              autoFocus
-            />
+            <input value={form.titulo}
+                   onChange={e => setForm({ ...form, titulo: e.target.value })}
+                   placeholder="Ex.: Reunião com cliente, Voo São Paulo..."
+                   autoFocus />
           </Field>
-
           <div className="grid grid-cols-2 gap-3">
+            <Field label="Data" required error={formErrors.data}>
+              <input type="date" value={form.data}
+                     onChange={e => setForm({ ...form, data: e.target.value })} />
+            </Field>
+            <Field label="Horário (opcional)">
+              <input type="time" value={form.horario}
+                     onChange={e => setForm({ ...form, horario: e.target.value })} />
+            </Field>
             <Field label="Categoria">
-              <select
-                value={form.categoria}
-                onChange={e => setForm({ ...form, categoria: e.target.value })}
-              >
-                {CATEGORIAS_PADRAO.map(c => (
+              <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>
+                {CATEGORIAS.map(c => (
                   <option key={c.id} value={c.id}>{c.label}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Tags (separadas por vírgula)">
-              <input
-                value={form.tagsRaw}
-                onChange={e => setForm({ ...form, tagsRaw: e.target.value })}
-                placeholder="Ex.: fii, logistica, 2026"
-              />
+            <Field label="Duração (min, opcional)">
+              <input type="number" min="0" value={form.duracao}
+                     onChange={e => setForm({ ...form, duracao: e.target.value })}
+                     placeholder="ex.: 60" />
             </Field>
           </div>
-
-          <Field label="Conteúdo">
-            <textarea
-              value={form.conteudo}
-              onChange={e => setForm({ ...form, conteudo: e.target.value })}
-              placeholder="Escreve aqui..."
-              rows={10}
-              style={{ resize: "vertical", minHeight: 160, fontFamily: "inherit", lineHeight: 1.6 }}
-            />
+          <Field label="Local (opcional)">
+            <input value={form.local}
+                   onChange={e => setForm({ ...form, local: e.target.value })}
+                   placeholder="Endereço, sala, link da call..." />
           </Field>
-
-          <label style={{
-            display: "flex", alignItems: "center", gap: 8,
-            fontSize: 12, color: T.muted, marginBottom: 16, cursor: "pointer",
-          }}>
-            <input type="checkbox"
-              checked={!!form.pinned}
-              onChange={e => setForm({ ...form, pinned: e.target.checked })}
-              style={{ accentColor: T.gold, width: 14, height: 14 }} />
+          <Field label="Link (opcional)">
+            <input type="url" value={form.link}
+                   onChange={e => setForm({ ...form, link: e.target.value })}
+                   placeholder="https://..." />
+          </Field>
+          <Field label="Descrição">
+            <textarea value={form.descricao}
+                      onChange={e => setForm({ ...form, descricao: e.target.value })}
+                      placeholder="Detalhes, agenda, anotações..."
+                      rows={4}
+                      style={{ resize: "vertical", fontFamily: "inherit" }} />
+          </Field>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: T.muted, marginBottom: 16, cursor: "pointer" }}>
+            <input type="checkbox" checked={!!form.pinned}
+                   onChange={e => setForm({ ...form, pinned: e.target.checked })}
+                   style={{ accentColor: T.gold, width: 14, height: 14 }} />
             <Pin size={12} style={{ color: T.gold }} />
-            Fixar esta nota no topo
+            Fixar este compromisso no topo
           </label>
-
-          <div className="flex gap-3 mt-2">
+          <div className="flex gap-3 mt-2 flex-wrap">
             <button className="btn-gold" onClick={salvar}>Salvar</button>
-            <button className="btn-ghost" onClick={() => setForm(null)}>Cancelar</button>
+            <button className="btn-ghost" onClick={() => { setForm(null); setFormErrors({}); }}>Cancelar</button>
+            {form.id && (
+              <button onClick={() => { excluir(form); setForm(null); }}
+                style={{ marginLeft: "auto", background: "transparent", color: T.red, border: `1px solid ${T.red}`, padding: "10px 16px", fontSize: 11, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Trash2 size={12} /> Excluir
+              </button>
+            )}
           </div>
         </Modal>
       )}
+
+      <style>{`
+        .agenda-quick {
+          background: ${T.bgSoft};
+          border: 1px dashed ${T.border};
+          padding: 12px 14px;
+          border-radius: 10px;
+          display: flex; align-items: center; gap: 10px;
+          margin-bottom: 16px;
+          transition: border-color .15s ease, background .15s ease;
+        }
+        .agenda-quick:focus-within {
+          border-color: ${T.gold};
+          background: ${T.card};
+        }
+        .agenda-quick input {
+          flex: 1; background: transparent; border: none; outline: none;
+          color: ${T.ink}; font-size: 14px; font-family: inherit;
+        }
+        .agenda-quick input::placeholder { color: ${T.faint}; }
+      `}</style>
     </div>
   );
 }
 
 /* ============ subcomponentes ============ */
 
-function IconBtn({ onClick, title, children, danger }) {
+function StatBox({ label, value, cor, destaque }) {
   return (
-    <button
-      onClick={onClick}
-      title={title}
-      aria-label={title}
+    <div style={{
+      background: destaque ? `${cor}15` : T.card,
+      border: `1px solid ${destaque ? `${cor}55` : T.border}`,
+      borderRadius: 8, padding: "10px 12px",
+    }}>
+      <div style={{ fontSize: 10, color: T.muted, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 600 }}>
+        {label}
+      </div>
+      <div className="num" style={{ fontSize: 20, fontWeight: 700, color: destaque ? cor : T.ink, marginTop: 2 }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function SectionList({ title, eventos, onEdit, onPin, onFeito, onExcluir, dimmed }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      {title && (
+        <div style={{ fontSize: 11, color: T.muted, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
+          {title}
+        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {eventos.map(ev => (
+          <EventoCard key={ev.id} ev={ev}
+                      onEdit={onEdit} onPin={onPin} onFeito={onFeito} onExcluir={onExcluir}
+                      dimmed={dimmed} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EventoCard({ ev, onEdit, onPin, onFeito, onExcluir, dimmed }) {
+  const meta = catMeta(ev.categoria);
+  const Icon = meta.icon;
+  const feito = ev.status === "feito";
+  const dias = diasAteHoje(ev.data);
+  const atrasado = !feito && dias < 0;
+
+  return (
+    <div style={{
+      background: `${meta.cor}0d`,
+      border: `1px solid ${meta.cor}33`,
+      borderLeft: `4px solid ${meta.cor}`,
+      borderRadius: 8,
+      padding: "12px 14px",
+      display: "grid",
+      gridTemplateColumns: "auto 1fr auto",
+      gap: 12,
+      opacity: feito || dimmed ? 0.55 : 1,
+      transition: "opacity .15s",
+    }}>
+      {/* Coluna 1 — data + ícone */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 56 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: atrasado ? T.red : T.ink, lineHeight: 1 }}>
+          {formatarDataCurta(ev.data)?.split(" ")[0]}
+        </div>
+        <div style={{ fontSize: 9, color: T.muted, letterSpacing: ".1em", textTransform: "uppercase", marginTop: 2 }}>
+          {formatarDataCurta(ev.data)?.split(" ")[1] || ""}
+        </div>
+        <div style={{
+          background: `${meta.cor}22`, color: meta.cor,
+          width: 22, height: 22, borderRadius: "50%",
+          display: "grid", placeItems: "center", marginTop: 6,
+        }}>
+          <Icon size={11} />
+        </div>
+      </div>
+
+      {/* Coluna 2 — conteúdo */}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          {ev.pinned && <Pin size={11} style={{ color: T.gold }} />}
+          <strong style={{
+            fontSize: 14, color: T.ink,
+            textDecoration: feito ? "line-through" : "none",
+          }}>
+            {ev.titulo}
+          </strong>
+          <span style={{
+            fontSize: 9, fontWeight: 700, letterSpacing: ".08em",
+            textTransform: "uppercase", color: meta.cor,
+            padding: "1px 6px", borderRadius: 3, background: `${meta.cor}22`,
+          }}>
+            {meta.label}
+          </span>
+          <span style={{ fontSize: 10.5, color: atrasado ? T.red : T.muted, fontStyle: "italic" }}>
+            · {diasRelativos(ev.data)}
+          </span>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: 11, color: T.muted, marginTop: 4 }}>
+          {ev.horario && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+              <Clock size={10} />{ev.horario}{ev.duracao ? ` · ${ev.duracao}min` : ""}
+            </span>
+          )}
+          {ev.local && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+              <MapPin size={10} />{ev.local}
+            </span>
+          )}
+          {ev.link && (
+            <a href={ev.link} target="_blank" rel="noopener noreferrer"
+               style={{ color: T.gold, display: "inline-flex", alignItems: "center", gap: 3 }}>
+              <Link2 size={10} />Link
+            </a>
+          )}
+        </div>
+        {ev.descricao && (
+          <div style={{
+            fontSize: 12, color: T.muted, marginTop: 6, lineHeight: 1.5,
+            whiteSpace: "pre-wrap",
+            display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden",
+          }}>
+            {ev.descricao}
+          </div>
+        )}
+      </div>
+
+      {/* Coluna 3 — ações */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <IconBtn onClick={() => onFeito(ev)} title={feito ? "Desmarcar" : "Marcar feito"} cor={feito ? T.green : T.muted} bg={feito ? `${T.green}22` : "transparent"}>
+          <Check size={13} />
+        </IconBtn>
+        <IconBtn onClick={() => onPin(ev)} title={ev.pinned ? "Desafixar" : "Fixar"} cor={ev.pinned ? T.gold : T.muted}>
+          {ev.pinned ? <PinOff size={13} /> : <Pin size={13} />}
+        </IconBtn>
+        <IconBtn onClick={() => onEdit(ev)} title="Editar" cor={T.muted}>
+          <Edit3 size={13} />
+        </IconBtn>
+        <IconBtn onClick={() => onExcluir(ev)} title="Excluir" cor={T.red}>
+          <Trash2 size={13} />
+        </IconBtn>
+      </div>
+    </div>
+  );
+}
+
+function IconBtn({ children, onClick, title, cor, bg }) {
+  return (
+    <button onClick={onClick} title={title} aria-label={title}
       style={{
-        background: "transparent",
+        background: bg || "transparent",
         border: `1px solid ${T.border}`,
-        color: danger ? T.red : T.muted,
+        color: cor,
         width: 26, height: 26, borderRadius: 5,
-        cursor: "pointer",
-        display: "grid", placeItems: "center",
+        cursor: "pointer", display: "grid", placeItems: "center",
         transition: "all .15s ease",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = danger ? `${T.red}15` : T.bgSoft;
-        e.currentTarget.style.borderColor = danger ? T.red : T.gold;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = "transparent";
-        e.currentTarget.style.borderColor = T.border;
-      }}
-    >
+        minHeight: 26,
+      }}>
       {children}
     </button>
   );
 }
 
-function EmptyState({ temNotas, onCriar }) {
+function EmptyState({ onCriar, temEventos }) {
   return (
     <div style={{
       textAlign: "center", padding: "64px 24px",
@@ -520,26 +632,22 @@ function EmptyState({ temNotas, onCriar }) {
       <div style={{
         width: 60, height: 60, margin: "0 auto 16px",
         borderRadius: 14, background: `${T.gold}15`,
-        display: "grid", placeItems: "center",
-        color: T.gold,
+        display: "grid", placeItems: "center", color: T.gold,
       }}>
         <StickyNote size={28} />
       </div>
-      <h3 style={{
-        fontFamily: T.serif, fontSize: 22, color: T.ink,
-        margin: "0 0 8px", fontWeight: 600,
-      }}>
-        {temNotas ? "Nada por aqui" : "Comece a anotar"}
+      <h3 style={{ fontFamily: T.serif, fontSize: 22, color: T.ink, margin: "0 0 8px", fontWeight: 600 }}>
+        {temEventos ? "Nada por aqui" : "Comece sua agenda"}
       </h3>
       <p style={{ color: T.muted, fontSize: 13, margin: "0 0 20px", maxWidth: 380, marginLeft: "auto", marginRight: "auto" }}>
-        {temNotas
-          ? "Nenhuma nota corresponde à busca ou ao filtro selecionado."
-          : "Use as Notas pra capturar ideias de investimento, planos de viagem, lembretes do trabalho ou qualquer coisa que precise lembrar depois."}
+        {temEventos
+          ? "Nenhum evento corresponde à busca ou ao filtro selecionado."
+          : "Cadastre compromissos, viagens, lembretes ou eventos importantes. Tudo também aparece no Calendário."}
       </p>
-      {!temNotas && (
+      {!temEventos && (
         <button className="btn-gold" onClick={onCriar}>
           <Plus size={14} className="inline mr-2" />
-          Criar primeira nota
+          Criar primeiro evento
         </button>
       )}
     </div>
