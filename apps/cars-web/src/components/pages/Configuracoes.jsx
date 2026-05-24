@@ -353,7 +353,6 @@ function Modulos({ modulesEnabled, setModulesEnabled, onClearModule }) {
   const modulos = [
     { id: "financas", label: "Finanças", desc: "Contas, cartões, transações, categorias, calendário, despesas, análise IA" },
     { id: "invest",   label: "Investimentos", desc: "Carteira, performance, proventos, mercado, simulador" },
-    { id: "loja",     label: "Loja AF4", desc: "Estoque, vendas, funil, cheques, clientes" },
   ];
 
   const toggle = (id) => {
@@ -464,7 +463,7 @@ function Backup() {
       <div className="fb">
         <h4>Exportar</h4>
         <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 14 }}>
-          Baixa todos os seus dados (contas, transações, cartões, investimentos, loja, configurações) em um único arquivo JSON.
+          Baixa todos os seus dados (contas, transações, cartões, investimentos, configurações) em um único arquivo JSON.
         </p>
         <button className="btn-gold" onClick={exportar}>↓ Baixar backup completo</button>
       </div>

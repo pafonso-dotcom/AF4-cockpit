@@ -1,17 +1,16 @@
 import React from "react";
-import { Wallet, Briefcase, Car, Settings } from "lucide-react";
+import { Wallet, Briefcase, Settings } from "lucide-react";
 import { T } from "../lib/theme.js";
 
 /**
- * Bottom tab bar fixo no celular (≤640px). Esconde em desktop.
- * Navega entre os 3 módulos + abre Configurações.
+ * Bottom tab bar fixo no celular (≤768px). Esconde em desktop.
+ * Navega entre os 2 módulos + abre Configurações.
  */
-export default function BottomTabBar({ modulo, setModulo, setTab, escopoAtivo, onEscopoChange }) {
+export default function BottomTabBar({ modulo, setModulo, setTab }) {
   const irPara = (id) => {
     setModulo(id);
     const firstTab = FIRST_TAB_OF[id];
     if (firstTab) setTab(firstTab);
-    if (id === "loja" && escopoAtivo === "pessoal") onEscopoChange?.("negocio");
   };
 
   const irConfig = () => {
@@ -22,7 +21,6 @@ export default function BottomTabBar({ modulo, setModulo, setTab, escopoAtivo, o
   const items = [
     { id: "financas", label: "Finanças", icon: Wallet,    onClick: () => irPara("financas") },
     { id: "invest",   label: "Invest",   icon: Briefcase, onClick: () => irPara("invest") },
-    { id: "loja",     label: "Loja",     icon: Car,       onClick: () => irPara("loja") },
     { id: "config",   label: "Config",   icon: Settings,  onClick: irConfig },
   ];
 
@@ -95,5 +93,4 @@ export default function BottomTabBar({ modulo, setModulo, setTab, escopoAtivo, o
 const FIRST_TAB_OF = {
   financas: "dashboard",
   invest:   "investimentos",
-  loja:     "loja-painel",
 };

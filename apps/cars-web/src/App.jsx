@@ -13,7 +13,6 @@ import { checkAndNotify, getConfig as getNotifCfg } from "./lib/notifications.js
 import {
   seedContas, seedCategorias, seedTransacoes, seedAtivos, seedMetas,
   seedCartoes, seedParcelamentos, seedDevedores, seedDividas,
-  seedVeiculos, seedVendas, seedClientes,
 } from "./lib/seeds.js";
 
 import GlobalStyles from "./components/ui/GlobalStyles.jsx";
@@ -29,7 +28,6 @@ import ThemePicker from "./components/modals/ThemePicker.jsx";
 import SettingsModal from "./components/modals/SettingsModal.jsx";
 import PerfisModal from "./components/modals/PerfisModal.jsx";
 import { getPerfilAtivo } from "./lib/perfis.js";
-import { ensureContaLoja } from "./lib/bancoLoja.js";
 import { garantirOcorrenciasDoAno } from "./lib/fixas.js";
 import { atualizarCarteira } from "./lib/cotacoes.js";
 import { useKeyboardShortcuts } from "./lib/keyboardShortcuts.js";
@@ -56,14 +54,6 @@ import AnaliseIdV from "./components/pages/Trade/AnaliseIdV.jsx";
 import Analise from "./components/pages/Analise.jsx";
 import Mercado from "./components/pages/Mercado.jsx";
 import Simulador from "./components/pages/Simulador.jsx";
-import Loja from "./components/pages/Loja.jsx";
-import LojaPainel from "./components/pages/Loja/LojaPainel.jsx";
-import NovoVeiculo from "./components/pages/Loja/NovoVeiculo.jsx";
-import RelatoriosLoja from "./components/pages/Loja/RelatoriosLoja.jsx";
-import PDVGerador from "./components/pages/Loja/PDVGerador.jsx";
-import Funil from "./components/pages/Loja/Funil.jsx";
-import Cheques from "./components/pages/Loja/Cheques.jsx";
-import BancoLoja from "./components/pages/Loja/BancoLoja.jsx";
 import InvestPainel from "./components/pages/Invest/InvestPainel.jsx";
 import Performance from "./components/pages/Invest/Performance.jsx";
 import Proventos from "./components/pages/Invest/Proventos.jsx";
@@ -74,7 +64,6 @@ import ContaExtrato from "./components/pages/ContaExtrato.jsx";
 import AReceberEDividas from "./components/pages/AReceberEDividas.jsx";
 import AuditLog from "./components/pages/AuditLog.jsx";
 import PergunteAoClaude from "./components/pages/PergunteAoClaude.jsx";
-import WhatsAppTemplates from "./components/pages/WhatsAppTemplates.jsx";
 import Configuracoes from "./components/pages/Configuracoes.jsx";
 
 export default function App() {
@@ -83,12 +72,10 @@ export default function App() {
     const perms = getPerfilAtivo()?.permissoes || { financas: true };
     if (perms.financas) return "financas";
     if (perms.invest)   return "invest";
-    if (perms.loja)     return "loja";
     return "financas";
-  }); // 'financas' | 'invest' | 'loja' | 'config'
+  }); // 'financas' | 'invest' | 'config'
   const [tab, setTab] = useState("dashboard");
   const [pendingTransacao, setPendingTransacao] = useState(null);
-  const [pendingNovoVeiculo, setPendingNovoVeiculo] = useState(null); // pré-preenche NovoVeiculo (ex.: troca)
   const [atalhosVisivel, setAtalhosVisivel] = useState(false);
   const { isVertical } = useLayout();
   const [hidden, setHidden] = useState(false);
@@ -97,12 +84,11 @@ export default function App() {
   const [themeId, setThemeId] = useState("gold");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [modulesEnabled, setModulesEnabled] = useState({ financas: true, invest: true, loja: true });
+  const [modulesEnabled, setModulesEnabled] = useState({ financas: true, invest: true });
   const [apiKeys, setApiKeys] = useState({ brapi: "", alphavantage: "", anthropic: "", useRealMarket: true });
   const [marketStatus, setMarketStatus] = useState({ at: null, mode: "sim", okCount: 0, total: 0 });
   const [cartaoAberto, setCartaoAberto] = useState(null);
   const [contaAberta, setContaAberta] = useState(null);
-  const [pdvOpen, setPdvOpen] = useState(false);
 
   applyTheme(themeId);
 
@@ -131,19 +117,12 @@ export default function App() {
   const [tradeOnboardingVisto, setTradeOnboardingVisto] = useState(false);
   const [analiseAlvo, setAnaliseAlvo] = useState(null);
 
-  // Loja AF4
-  const [veiculos, setVeiculos] = useState([]);
-  const [vendas, setVendas] = useState([]);
-  const [clientes, setClientes] = useState([]);
-  const [cheques, setCheques] = useState([]);
-  const [leads, setLeads] = useState([]);
-
   /* ---------- Load on mount ---------- */
   useEffect(() => {
     (async () => {
       const [data, keys] = await Promise.all([loadAll(), loadKeys()]);
       if (data) {
-        setContas(ensureContaLoja(data.contas || seedContas, { uid }));
+        setContas(data.contas || seedContas);
         setCategorias((data.categorias || seedCategorias).map(c => ({ ...c, limite: c.limite ?? null })));
         setTransacoes((data.transacoes || seedTransacoes).map(t => ({
           ...t,
@@ -174,20 +153,6 @@ export default function App() {
         setTradeHistorico(data.tradeHistorico || []);
         setTradeAnalisesIdV(data.tradeAnalisesIdV || []);
         setTradeOnboardingVisto(!!data.tradeOnboardingVisto);
-        // LOJA
-        const veicData = data.veiculos || seedVeiculos;
-        setVeiculos(veicData);
-        setClientes(data.clientes || seedClientes);
-        // Hydrate seed vendas com IDs reais do estoque (apenas em seed; backups têm IDs próprios)
-        const vendasData = data.vendas || seedVendas.map(v => {
-          if (v.veiculoId === null && veicData.length > 2) {
-            return { ...v, veiculoId: veicData[2].id, clienteId: (data.clientes || seedClientes)[0]?.id || null };
-          }
-          return v;
-        });
-        setVendas(vendasData);
-        setCheques(data.cheques || []);
-        setLeads(data.leads || []);
         if (data.themeId && THEMES[data.themeId]) setThemeId(data.themeId);
         // Migração one-shot: marca contas/categorias antigas com escopo detectado
         setTimeout(() => {
@@ -197,7 +162,7 @@ export default function App() {
           );
         }, 100);
       } else {
-        setContas(ensureContaLoja(seedContas, { uid }));
+        setContas(seedContas);
         setCategorias(seedCategorias);
         setTransacoes(seedTransacoes);
         setAtivos(seedAtivos);
@@ -218,15 +183,6 @@ export default function App() {
         setTradeHistorico([]);
         setTradeAnalisesIdV([]);
         setTradeOnboardingVisto(false);
-        setVeiculos(seedVeiculos);
-        setClientes(seedClientes);
-        // Hydrate seed vendas: 1ª venda referencia o 3º veículo (Argo)
-        setVendas(seedVendas.map(v => {
-          if (v.veiculoId === null && seedVeiculos.length > 2) {
-            return { ...v, veiculoId: seedVeiculos[2].id, clienteId: seedClientes[0]?.id || null };
-          }
-          return v;
-        }));
       }
       if (keys) setApiKeys(prev => ({ ...prev, ...keys }));
       setLoading(false);
@@ -241,13 +197,12 @@ export default function App() {
       cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
-      veiculos, vendas, clientes, cheques, leads,
       themeId,
     });
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
-      veiculos, vendas, clientes, cheques, leads, themeId, loading]);
+      themeId, loading]);
 
   useEffect(() => {
     if (loading) return;
@@ -289,7 +244,6 @@ export default function App() {
         contas, categorias, transacoes, ativos, metas,
         cartoes, parcelamentos, devedores, dividas,
         fixas, fixaOcorrencias,
-        veiculos, vendas, clientes, cheques, leads,
         themeId,
         savedAt: new Date().toISOString(),
       };
@@ -309,12 +263,12 @@ export default function App() {
     const tick = () => {
       const cfg = getNotifCfg();
       if (!cfg.habilitada) return;
-      checkAndNotify({ devedores, dividas, cheques });
+      checkAndNotify({ devedores, dividas });
     };
     tick(); // primeira vez logo após boot
     const id = setInterval(tick, 30 * 60 * 1000); // a cada 30min
     return () => clearInterval(id);
-  }, [loading, devedores, dividas, cheques]);
+  }, [loading, devedores, dividas]);
 
   /* ---------- Atalhos de teclado globais: N / V / A ---------- */
   useEffect(() => {
@@ -329,17 +283,12 @@ export default function App() {
 
       if (e.key === "n" || e.key === "N") {
         e.preventDefault();
-        setCartaoAberto(null); setContaAberta(null); setPdvOpen(false);
+        setCartaoAberto(null); setContaAberta(null);
         setModulo("financas"); setTab("transacoes");
         handleCreateTransacao(contas[0]?.nome || "");
-      } else if (e.key === "v" || e.key === "V") {
-        e.preventDefault();
-        setCartaoAberto(null); setContaAberta(null); setPdvOpen(false);
-        setModulo("loja"); setTab("loja-vendas");
-        setTimeout(() => window.dispatchEvent(new CustomEvent("af4:open-new-venda")), 50);
       } else if (e.key === "a" || e.key === "A") {
         e.preventDefault();
-        setCartaoAberto(null); setContaAberta(null); setPdvOpen(false);
+        setCartaoAberto(null); setContaAberta(null);
         setModulo("invest"); setTab("investimentos");
         setTimeout(() => window.dispatchEvent(new CustomEvent("af4:open-new-aporte")), 50);
       }
@@ -413,24 +362,19 @@ export default function App() {
   // Quick actions (também usadas pelos atalhos N/V/A)
   const handleQuickAction = useCallback((kind) => {
     if (kind === "transacao") {
-      setCartaoAberto(null); setContaAberta(null); setPdvOpen(false);
+      setCartaoAberto(null); setContaAberta(null);
       setModulo("financas"); setTab("transacoes");
       setPendingTransacao({ conta: contas[0]?.nome || "" });
-    } else if (kind === "venda") {
-      setCartaoAberto(null); setContaAberta(null); setPdvOpen(false);
-      setModulo("loja"); setTab("loja-vendas");
-      window.dispatchEvent(new CustomEvent("af4:open-new-venda"));
     } else if (kind === "aporte") {
-      setCartaoAberto(null); setContaAberta(null); setPdvOpen(false);
+      setCartaoAberto(null); setContaAberta(null);
       setModulo("invest"); setTab("investimentos");
       window.dispatchEvent(new CustomEvent("af4:open-new-aporte"));
     }
   }, [contas]);
 
-  // Atalhos de teclado globais (N/V/A/?)
+  // Atalhos de teclado globais (N/A/?)
   useKeyboardShortcuts({
     onNovaTransacao: () => handleQuickAction("transacao"),
-    onNovaVenda: () => handleQuickAction("venda"),
     onNovoAporte: () => handleQuickAction("aporte"),
     onMostrarAtalhos: () => setAtalhosVisivel(true),
   });
@@ -525,7 +469,7 @@ export default function App() {
       <GlobalStyles />
       <Header
         modulo={modulo} setModulo={setModulo}
-        tab={tab} setTab={(t) => { setCartaoAberto(null); setContaAberta(null); setPdvOpen(false); setTab(t); }}
+        tab={tab} setTab={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
         contas={contas} cartoes={cartoes}
         contaAberta={contaAberta} setContaAberta={setContaAberta}
         cartaoAberto={cartaoAberto} setCartaoAberto={setCartaoAberto}
@@ -558,16 +502,11 @@ export default function App() {
         onQuickAction={(kind) => {
           // ★ atalhos rápidos do header sempre disponíveis
           if (kind === "transacao") {
-            setCartaoAberto(null); setContaAberta(null); setPdvOpen(false);
+            setCartaoAberto(null); setContaAberta(null);
             setModulo("financas"); setTab("transacoes");
             handleCreateTransacao(contas[0]?.nome || "");
-          } else if (kind === "venda") {
-            setCartaoAberto(null); setContaAberta(null); setPdvOpen(false);
-            setModulo("loja"); setTab("loja-vendas");
-            // dispara abertura do modal de nova venda via flag (próxima renderização da Loja captura)
-            window.dispatchEvent(new CustomEvent("af4:open-new-venda"));
           } else if (kind === "aporte") {
-            setCartaoAberto(null); setContaAberta(null); setPdvOpen(false);
+            setCartaoAberto(null); setContaAberta(null);
             setModulo("invest"); setTab("investimentos");
             window.dispatchEvent(new CustomEvent("af4:open-new-aporte"));
           }
@@ -576,7 +515,7 @@ export default function App() {
       />
 
       <KeyboardShortcuts
-        setTab={(t) => { setCartaoAberto(null); setContaAberta(null); setPdvOpen(false); setTab(t); }}
+        setTab={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
         transacoes={transacoes} contas={contas}
         ativos={ativos} cartoes={cartoes}
       />
@@ -607,7 +546,7 @@ export default function App() {
                          devedores={devedores} dividas={dividas}
                          fixas={fixas} fixaOcorrencias={fixaOcorrencias}
                          escopoAtivo={escopoAtivo}
-                         onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setPdvOpen(false); setTab(t); }}
+                         onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
                          onContaClick={(c) => { setTab("contas"); setContaAberta(c); }} />
             )}
             {tab === "contas" && !contaAberta && (
@@ -670,8 +609,7 @@ export default function App() {
                 <PergunteAoClaude
                   apiKey={apiKeys.anthropic}
                   transacoes={transacoes} contas={contas} ativos={ativos}
-                  vendas={vendas} veiculos={veiculos}
-                  devedores={devedores} dividas={dividas} cheques={cheques}
+                  devedores={devedores} dividas={dividas}
                 />
               </div>
             )}
@@ -754,7 +692,7 @@ export default function App() {
           <>
             {tab === "investimentos" && (
               <InvestPainel ativos={ativos} transacoes={transacoes} categorias={categorias} hidden={hidden}
-                            onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setPdvOpen(false); setTab(t); }}
+                            onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
                             onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }} />
             )}
             {tab === "invest-idv" && (
@@ -787,75 +725,6 @@ export default function App() {
           </>
         )}
 
-        {/* MÓDULO: LOJA AF4 */}
-        {modulo === "loja" && (
-          <>
-            {tab === "loja-painel" && (
-              <LojaPainel veiculos={veiculos} vendas={vendas} leads={leads} cheques={cheques} hidden={hidden} />
-            )}
-            {tab === "loja-novo" && (
-              <NovoVeiculo
-                veiculos={veiculos} setVeiculos={setVeiculos}
-                transacoes={transacoes} setTransacoes={setTransacoes}
-                dividas={dividas} setDividas={setDividas}
-                cheques={cheques} setCheques={setCheques}
-                contas={contas} setContas={setContas}
-                pendingNovoVeiculo={pendingNovoVeiculo}
-                clearPendingNovoVeiculo={() => setPendingNovoVeiculo(null)}
-                setTab={setTab}
-              />
-            )}
-            {(tab === "loja-estoque" || tab === "loja-vendas" || tab === "loja-clientes") && (
-              <div className="px-6 md:px-10">
-                <Loja veiculos={veiculos} setVeiculos={setVeiculos}
-                      vendas={vendas} setVendas={setVendas}
-                      clientes={clientes} setClientes={setClientes}
-                      cheques={cheques} setCheques={setCheques}
-                      hidden={hidden}
-                      onEfetivarCompraTroca={(dados) => {
-                        setPendingNovoVeiculo({ ...dados, modo: "compra-troca" });
-                        setTab("loja-novo");
-                      }}
-                      subtabExterno={tab === "loja-estoque" ? "estoque" : tab === "loja-vendas" ? "vendas" : "clientes"} />
-              </div>
-            )}
-            {tab === "loja-funil" && (
-              <div className="px-6 md:px-10 py-8">
-                <Funil leads={leads} setLeads={setLeads} veiculos={veiculos} />
-              </div>
-            )}
-            {tab === "loja-cheques" && (
-              <div className="px-6 md:px-10 py-8">
-                <Cheques cheques={cheques} setCheques={setCheques}
-                         contas={contas} setContas={setContas}
-                         transacoes={transacoes} setTransacoes={setTransacoes}
-                         devedores={devedores} setDevedores={setDevedores}
-                         hidden={hidden} setTab={setTab} />
-              </div>
-            )}
-            {tab === "loja-banco" && (
-              <div className="px-6 md:px-10 py-8">
-                <BancoLoja vendas={vendas} veiculos={veiculos} cheques={cheques} hidden={hidden} />
-              </div>
-            )}
-            {tab === "loja-relatorios" && !pdvOpen && (
-              <RelatoriosLoja veiculos={veiculos} vendas={vendas} leads={leads} clientes={clientes}
-                              cheques={cheques} transacoes={transacoes} contas={contas}
-                              hidden={hidden}
-                              onAbrirPDV={() => setPdvOpen(true)} />
-            )}
-            {tab === "loja-relatorios" && pdvOpen && (
-              <PDVGerador
-                veiculos={veiculos} vendas={vendas} clientes={clientes}
-                onVoltar={() => setPdvOpen(false)}
-              />
-            )}
-            {tab === "loja-whatsapp" && (
-              <WhatsAppTemplates />
-            )}
-          </>
-        )}
-
         {/* TELAS DE ANÁLISE TÉCNICA (dentro do módulo Investimentos) */}
         {modulo === "invest" && (
           <div className="px-6 md:px-10">
@@ -882,8 +751,7 @@ export default function App() {
                            // antes do timer faz a versão antiga voltar do cloud).
                            const cleared = {
                              contas, categorias, transacoes, ativos, metas, notas,
-                             cartoes, parcelamentos, devedores, dividas,
-                             veiculos, vendas, clientes, cheques, leads, themeId,
+                             cartoes, parcelamentos, devedores, dividas, themeId,
                            };
                            if (id === "financas") {
                              cleared.contas = []; cleared.cartoes = []; cleared.parcelamentos = [];
@@ -895,11 +763,6 @@ export default function App() {
                            } else if (id === "invest") {
                              cleared.ativos = [];
                              setAtivos([]);
-                           } else if (id === "loja") {
-                             cleared.veiculos = []; cleared.vendas = []; cleared.clientes = [];
-                             cleared.cheques = []; cleared.leads = [];
-                             setVeiculos([]); setVendas([]); setClientes([]);
-                             setCheques([]); setLeads([]);
                            }
                            await saveAll(cleared, { immediate: true });
                          }} />
@@ -909,9 +772,7 @@ export default function App() {
       <Footer />
       <BottomTabBar
         modulo={modulo} setModulo={setModulo}
-        setTab={(t) => { setCartaoAberto(null); setContaAberta(null); setPdvOpen(false); setTab(t); }}
-        escopoAtivo={escopoAtivo}
-        onEscopoChange={(novo) => { setEscopoAtivo(novo); salvarEscopo(novo); }}
+        setTab={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
       />
       <ToastContainer />
       <InstallPWA />
