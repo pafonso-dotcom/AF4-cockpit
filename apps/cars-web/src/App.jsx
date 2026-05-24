@@ -110,6 +110,9 @@ export default function App() {
   const [fixas, setFixas] = useState([]);
   const [fixaOcorrencias, setFixaOcorrencias] = useState([]);
 
+  // Agenda pessoal (compromissos, viagens, lembretes, eventos)
+  const [agenda, setAgenda] = useState([]);
+
   // AF4 Trade
   const [tradeWatchlist, setTradeWatchlist] = useState([]);
   const [tradeHistorico, setTradeHistorico] = useState([]);
@@ -149,6 +152,7 @@ export default function App() {
         // Migração silenciosa: se backup antigo não tem essas chaves, vira []
         setFixas(data.fixas || []);
         setFixaOcorrencias(data.fixaOcorrencias || []);
+        setAgenda(data.agenda || []);
         setTradeWatchlist(data.tradeWatchlist || []);
         setTradeHistorico(data.tradeHistorico || []);
         setTradeAnalisesIdV(data.tradeAnalisesIdV || []);
@@ -179,6 +183,7 @@ export default function App() {
         setDividas(seedDividas);
         setFixas([]);
         setFixaOcorrencias([]);
+        setAgenda([]);
         setTradeWatchlist([]);
         setTradeHistorico([]);
         setTradeAnalisesIdV([]);
@@ -195,12 +200,12 @@ export default function App() {
     saveAll({
       contas, categorias, transacoes, ativos, metas, notas,
       cartoes, parcelamentos, devedores, dividas,
-      fixas, fixaOcorrencias,
+      fixas, fixaOcorrencias, agenda,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId,
     });
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
-      fixas, fixaOcorrencias,
+      fixas, fixaOcorrencias, agenda,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId, loading]);
 
@@ -659,6 +664,7 @@ export default function App() {
                           categorias={categorias} hidden={hidden}
                           fixas={fixas} fixaOcorrencias={fixaOcorrencias}
                           parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
+                          agenda={agenda} setAgenda={setAgenda}
                           escopoAtivo={escopoAtivo} />
             )}
             {tab === "categorias" && (
