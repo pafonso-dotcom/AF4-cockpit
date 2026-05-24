@@ -5,7 +5,8 @@ import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import { CARDS_DISPONIVEIS, lerCardsConfig, salvarCardsConfig } from "../../lib/dashboardConfig.js";
 import {
-  getSyncToken, setSyncToken, gerarToken, pingSync, testarToken, syncEnabled,
+  getSyncToken, setSyncToken, gerarToken, pingSync,
+  cloudFetchState, cloudSaveState,
 } from "../../lib/cloudSync.js";
 
 /**
@@ -484,13 +485,13 @@ function Backup() {
   );
 }
 
-/* ============ SINCRONIZAÇÃO NA NUVEM ============ */
+/* ============ SINCRONIZAÇÃO NA NUVEM (MANUAL) ============ */
 function SyncCloud() {
   const [token, setToken] = useState(() => getSyncToken());
   const [salvo, setSalvo] = useState(() => getSyncToken());
-  const [status, setStatus] = useState(null); // null | { ok, erro?, kv? }
-  const [testando, setTestando] = useState(false);
   const [ping, setPing] = useState(null);
+  const [busy, setBusy] = useState(null); // null | "upload" | "download"
+  const [msg, setMsg] = useState(null);    // { ok, texto }
 
   useEffect(() => {
     pingSync().then(setPing);
@@ -499,26 +500,15 @@ function SyncCloud() {
   const gerar = () => {
     const novo = gerarToken();
     setToken(novo);
-    setStatus(null);
+    setSyncToken(novo);
+    setSalvo(novo);
+    setMsg({ ok: true, texto: "Token gerado e salvo." });
   };
 
   const salvar = () => {
     setSyncToken(token);
     setSalvo(token);
-    setStatus(null);
-    if (token) toast.success("Token salvo. Recarregue a página pra sincronizar.");
-    else toast.success("Token removido.");
-  };
-
-  const testar = async () => {
-    setTestando(true);
-    setStatus(null);
-    // Garante que o token está salvo antes de testar
-    setSyncToken(token);
-    setSalvo(token);
-    const r = await testarToken();
-    setStatus(r);
-    setTestando(false);
+    setMsg({ ok: true, texto: token ? "Token salvo." : "Token removido." });
   };
 
   const copiar = async () => {
@@ -530,23 +520,69 @@ function SyncCloud() {
     }
   };
 
+  const upload = async () => {
+    if (!token) { setMsg({ ok: false, texto: "Configure um token primeiro." }); return; }
+    setBusy("upload"); setMsg(null);
+    try {
+      setSyncToken(token); // garante que o token está salvo
+      const dados = await loadAll();
+      if (!dados) {
+        setMsg({ ok: false, texto: "Nada pra enviar — localStorage vazio." });
+        return;
+      }
+      const r = await cloudSaveState(dados);
+      const bytes = r?.bytes ? ` (${(r.bytes / 1024).toFixed(1)} KB)` : "";
+      setMsg({ ok: true, texto: `✓ Dados enviados pra nuvem${bytes}. Agora vá em outro dispositivo, cole o mesmo token e clique "Baixar da nuvem".` });
+    } catch (e) {
+      setMsg({ ok: false, texto: `Erro ao enviar: ${e?.message || e}` });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const download = async () => {
+    if (!token) { setMsg({ ok: false, texto: "Configure um token primeiro." }); return; }
+    setBusy("download"); setMsg(null);
+    try {
+      setSyncToken(token);
+      const remoto = await cloudFetchState();
+      if (!remoto) {
+        setMsg({ ok: false, texto: "Nada na nuvem pra esse token. Faz upload de outro dispositivo primeiro." });
+        return;
+      }
+      const ok = await confirm({
+        title: "Substituir dados locais?",
+        body: "Os dados da nuvem vão SUBSTITUIR tudo que está nesse navegador. Faça backup antes se não tiver certeza.",
+        danger: true,
+        confirmLabel: "Substituir",
+      });
+      if (!ok) { setBusy(null); return; }
+      await saveAll(remoto, { immediate: true });
+      setMsg({ ok: true, texto: "✓ Dados baixados da nuvem. Recarregue a página." });
+    } catch (e) {
+      setMsg({ ok: false, texto: `Erro ao baixar: ${e?.message || e}` });
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const dirty = token.trim() !== (salvo || "").trim();
   const kvOk = ping?.ok && ping?.kv;
 
   return (
     <>
-      <div className="st"><h2>Sincronização entre dispositivos</h2><div className="mt">Cloudflare KV</div></div>
+      <div className="st"><h2>Sincronização entre dispositivos</h2><div className="mt">Cloudflare KV · Manual</div></div>
 
       <div className="fb">
         <h4>Status do servidor</h4>
         <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 10 }}>
           {ping == null && "Verificando..."}
           {ping?.ok && ping.kv && (
-            <span style={{ color: T.green }}>● Servidor pronto. Sync habilitado.</span>
+            <span style={{ color: T.green }}>● Servidor pronto. {ping.version && <em style={{ color: T.faint }}>(v{ping.version})</em>}</span>
           )}
           {ping?.ok && !ping.kv && (
             <span style={{ color: T.red }}>
-              ● O Worker está online, mas o KV namespace <strong>AF4_KV</strong> ainda não foi vinculado no Cloudflare Dashboard. Veja instruções abaixo.
+              ● O Worker está online, mas o KV namespace <strong>AF4_KV</strong> não foi vinculado. Veja instruções abaixo.
             </span>
           )}
           {ping?.ok === false && (
@@ -556,10 +592,10 @@ function SyncCloud() {
       </div>
 
       <div className="fb">
-        <h4>Seu token de sincronização</h4>
+        <h4>1. Seu token</h4>
         <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 12 }}>
-          Cole o <strong>mesmo token</strong> em cada dispositivo onde quer ver os mesmos dados.
-          Sem token, o app fica só no <em>localStorage</em> deste navegador.
+          Cada dispositivo que tiver o <strong>mesmo token</strong> pode trocar dados via "Enviar" e "Baixar".
+          Mantenha o token em segurança — quem tem o token tem seus dados.
         </p>
 
         <div style={{ display: "flex", gap: 6, alignItems: "stretch", flexWrap: "wrap" }}>
@@ -581,30 +617,60 @@ function SyncCloud() {
           )}
         </div>
 
-        <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-          <button onClick={salvar} className="btn-gold" disabled={!dirty}
-            style={{ opacity: dirty ? 1 : 0.5, cursor: dirty ? "pointer" : "default" }}>
+        {dirty && (
+          <button onClick={salvar} className="btn-gold" style={{ marginTop: 10 }}>
             {token ? "Salvar token" : "Remover token"}
           </button>
-          <button onClick={testar} className="btn-ghost" disabled={!token || testando}>
-            {testando ? "Testando..." : "Testar conexão"}
+        )}
+      </div>
+
+      <div className="fb">
+        <h4>2. Enviar e baixar</h4>
+        <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 12 }}>
+          Sincronização <strong>manual</strong>: você decide quando enviar pra nuvem ou baixar.
+          Nada acontece automaticamente.
+        </p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <button onClick={upload}
+            className="btn-gold"
+            disabled={!salvo || !kvOk || busy === "upload"}
+            style={{
+              opacity: (!salvo || !kvOk) ? 0.5 : 1,
+              cursor: (!salvo || !kvOk) ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+            {busy === "upload" ? "Enviando..." : "☁️ ↑ Enviar pra nuvem"}
+          </button>
+          <button onClick={download}
+            className="btn"
+            disabled={!salvo || !kvOk || busy === "download"}
+            style={{
+              background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`,
+              padding: "10px 20px", fontSize: 12, fontWeight: 600, letterSpacing: "0.1em",
+              textTransform: "uppercase", cursor: (!salvo || !kvOk) ? "not-allowed" : "pointer",
+              opacity: (!salvo || !kvOk) ? 0.5 : 1,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+            {busy === "download" ? "Baixando..." : "☁️ ↓ Baixar da nuvem"}
           </button>
         </div>
 
-        {status && (
+        {msg && (
           <div style={{
-            marginTop: 10, padding: "8px 12px", borderRadius: 6, fontSize: 11.5,
-            background: status.ok ? `${T.green}15` : `${T.red}15`,
-            color: status.ok ? T.green : T.red,
-            border: `1px solid ${status.ok ? T.green : T.red}55`,
+            marginTop: 12, padding: "10px 14px", borderRadius: 6, fontSize: 12,
+            background: msg.ok ? `${T.green}15` : `${T.red}15`,
+            color: msg.ok ? T.green : T.red,
+            border: `1px solid ${msg.ok ? T.green : T.red}55`,
+            lineHeight: 1.5,
           }}>
-            {status.ok ? "✓ Conexão OK · seus dados serão sincronizados." : `✗ ${status.erro}`}
+            {msg.texto}
           </div>
         )}
 
-        {salvo && !dirty && !status && (
+        {!salvo && (
           <div style={{ marginTop: 10, fontSize: 11.5, color: T.muted, fontStyle: "italic" }}>
-            Token ativo. <strong>Recarregue a página</strong> pra que a sincronização entre em efeito.
+            Salve um token primeiro pra habilitar os botões.
           </div>
         )}
       </div>
@@ -615,27 +681,20 @@ function SyncCloud() {
           <ol style={{ paddingLeft: 18, fontSize: 12.5, color: T.muted, lineHeight: 1.7 }}>
             <li>Abra <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" style={{ color: T.gold }}>dash.cloudflare.com</a></li>
             <li>Workers & Pages → <strong>KV</strong> → <em>Create a namespace</em> → nome: <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>af4-state</code></li>
-            <li>Workers & Pages → <strong>af4cockpit</strong> → <em>Settings</em> → Variables and Secrets</li>
-            <li>KV namespace bindings → <em>Add binding</em>:
-              <ul style={{ paddingLeft: 18, marginTop: 4 }}>
-                <li>Variable name: <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>AF4_KV</code></li>
-                <li>KV namespace: <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>af4-state</code></li>
-              </ul>
-            </li>
-            <li>Save · aguarde uns 30s pro Worker reiniciar · recarregue esta página</li>
+            <li>Workers & Pages → <strong>af4cockpit</strong> → <em>Bindings</em> → <em>Add binding</em>: KV namespace, variable <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>AF4_KV</code>, namespace <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>af4-state</code></li>
+            <li>Save · aguarde ~30s · recarregue</li>
           </ol>
-          <p style={{ fontSize: 11, color: T.faint, marginTop: 10, fontStyle: "italic" }}>
-            Setup uma única vez. Depois disso, basta gerar/colar o token aqui.
-          </p>
         </div>
       )}
 
       <div className="ar" style={{ marginTop: 16 }}>
-        <div className="ai">🔐</div>
+        <div className="ai">💡</div>
         <div className="at">
-          <strong>Segurança</strong>
-          <p>Quem tiver o token tem acesso total aos seus dados. Trate como senha.
-          Use um token único e longo (o "Gerar novo" cria um UUID seguro).</p>
+          <strong>Como usar no dia a dia</strong>
+          <p>
+            <strong>Dispositivo principal:</strong> quando quiser sincronizar, vem aqui → "Enviar pra nuvem".<br />
+            <strong>Outros dispositivos:</strong> cola o mesmo token → "Baixar da nuvem" → recarrega a página.
+          </p>
         </div>
       </div>
     </>
