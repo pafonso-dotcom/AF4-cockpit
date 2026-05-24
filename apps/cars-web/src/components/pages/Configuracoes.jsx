@@ -1,9 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { T, THEMES, applyTheme } from "../../lib/theme.js";
 import { saveAll, loadAll } from "../../lib/storage.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import { CARDS_DISPONIVEIS, lerCardsConfig, salvarCardsConfig } from "../../lib/dashboardConfig.js";
+import {
+  getGistToken, setGistToken, testGistToken,
+  gistFetchState, gistSaveState,
+} from "../../lib/gistSync.js";
 
 /**
  * Configurações centralizadas (estilo demo v3).
@@ -33,7 +37,10 @@ export default function Configuracoes({
                  onClearModule={onClearModule} />
       )}
       {subtab === "cfg-backup" && (
-        <Backup />
+        <>
+          <SyncGist />
+          <Backup />
+        </>
       )}
     </div>
   );
@@ -473,6 +480,230 @@ function Backup() {
       <div className="ar">
         <div className="ai">💾</div>
         <div className="at"><strong>Recomendação</strong><p>Faça backup pelo menos uma vez por semana. Guarde o arquivo em Google Drive, iCloud ou pen-drive.</p></div>
+      </div>
+    </>
+  );
+}
+
+/* ============ SINCRONIZAÇÃO VIA GITHUB GIST ============ */
+function SyncGist() {
+  const [token, setToken] = useState(() => getGistToken());
+  const [salvo, setSalvo] = useState(() => getGistToken());
+  const [user, setUser] = useState(null);   // { login, name } se conectado
+  const [busy, setBusy] = useState(null);    // null | "test" | "upload" | "download"
+  const [msg, setMsg] = useState(null);      // { ok, texto }
+
+  // Valida o token salvo no boot pra mostrar quem está conectado
+  useEffect(() => {
+    if (!salvo) { setUser(null); return; }
+    testGistToken(salvo).then(r => {
+      if (r.ok) setUser({ login: r.login, name: r.name });
+      else setUser(null);
+    });
+  }, [salvo]);
+
+  const salvar = async () => {
+    setBusy("test"); setMsg(null);
+    const r = await testGistToken(token);
+    if (r.ok) {
+      setGistToken(token);
+      setSalvo(token);
+      setUser({ login: r.login, name: r.name });
+      setMsg({ ok: true, texto: `✓ Conectado como @${r.login}. Token salvo neste navegador.` });
+    } else {
+      setMsg({ ok: false, texto: `Token inválido: ${r.erro}` });
+    }
+    setBusy(null);
+  };
+
+  const remover = () => {
+    setGistToken("");
+    setToken("");
+    setSalvo("");
+    setUser(null);
+    setMsg({ ok: true, texto: "Token removido." });
+  };
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(token);
+      toast.success("Token copiado.");
+    } catch {
+      toast.error("Não foi possível copiar — selecione e copie manualmente.");
+    }
+  };
+
+  const upload = async () => {
+    if (!salvo) { setMsg({ ok: false, texto: "Salve um token primeiro." }); return; }
+    setBusy("upload"); setMsg(null);
+    try {
+      const dados = await loadAll();
+      if (!dados) {
+        setMsg({ ok: false, texto: "Nada pra enviar — localStorage vazio." });
+        return;
+      }
+      const r = await gistSaveState(dados);
+      const kb = r?.bytes ? `${(r.bytes / 1024).toFixed(1)} KB` : "ok";
+      setMsg({ ok: true, texto: `✓ Dados enviados pra nuvem (${kb}). Em outro dispositivo, cole o mesmo token → "Baixar da nuvem".` });
+    } catch (e) {
+      setMsg({ ok: false, texto: `Erro ao enviar: ${e?.message || e}` });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const download = async () => {
+    if (!salvo) { setMsg({ ok: false, texto: "Salve um token primeiro." }); return; }
+    setBusy("download"); setMsg(null);
+    try {
+      const remoto = await gistFetchState();
+      if (!remoto) {
+        setMsg({ ok: false, texto: "Nada na nuvem ainda. Faça upload primeiro de outro dispositivo." });
+        return;
+      }
+      const ok = await confirm({
+        title: "Substituir dados locais?",
+        body: "Os dados da nuvem vão SUBSTITUIR tudo neste navegador. Faça backup JSON antes se quiser garantir.",
+        danger: true,
+        confirmLabel: "Substituir",
+      });
+      if (!ok) { setBusy(null); return; }
+      await saveAll(remoto, { immediate: true });
+      setMsg({ ok: true, texto: "✓ Dados baixados. Recarregue a página." });
+    } catch (e) {
+      setMsg({ ok: false, texto: `Erro ao baixar: ${e?.message || e}` });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const dirty = token.trim() !== (salvo || "").trim();
+  const conectado = !!salvo && !!user;
+
+  return (
+    <>
+      <div className="st"><h2>Sincronização entre dispositivos</h2><div className="mt">GitHub Gist</div></div>
+
+      <div className="fb">
+        <h4>1. Conectar com GitHub</h4>
+        <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 12 }}>
+          Use um <strong>Personal Access Token</strong> do GitHub com escopo <code style={{ background: T.bgSoft, padding: "1px 6px", borderRadius: 3 }}>gist</code>.
+          Veja o passo a passo de como gerar logo abaixo.
+        </p>
+
+        <div style={{ display: "flex", gap: 6, alignItems: "stretch", flexWrap: "wrap" }}>
+          <input
+            type="password"
+            value={token}
+            onChange={e => setToken(e.target.value)}
+            placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+            style={{ flex: "1 1 280px", minWidth: 220, fontFamily: T.mono, fontSize: 13 }}
+            autoCorrect="off" autoCapitalize="off" spellCheck={false}
+          />
+          {token && (
+            <button onClick={copiar} className="btn-ghost" style={{ whiteSpace: "nowrap" }}>
+              Copiar
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+          {dirty && (
+            <button onClick={salvar} className="btn-gold" disabled={busy === "test"}>
+              {busy === "test" ? "Validando..." : "Salvar e conectar"}
+            </button>
+          )}
+          {salvo && (
+            <button onClick={remover} className="btn-ghost">
+              Remover token
+            </button>
+          )}
+        </div>
+
+        {conectado && !dirty && (
+          <div style={{
+            marginTop: 12, padding: "10px 14px", borderRadius: 6, fontSize: 12.5,
+            background: `${T.green}15`, color: T.green, border: `1px solid ${T.green}55`,
+          }}>
+            ● Conectado como <strong>@{user.login}</strong>{user.name ? ` (${user.name})` : ""}.
+          </div>
+        )}
+
+        {msg && (
+          <div style={{
+            marginTop: 12, padding: "10px 14px", borderRadius: 6, fontSize: 12,
+            background: msg.ok ? `${T.green}15` : `${T.red}15`,
+            color: msg.ok ? T.green : T.red,
+            border: `1px solid ${msg.ok ? T.green : T.red}55`,
+            lineHeight: 1.5,
+          }}>
+            {msg.texto}
+          </div>
+        )}
+      </div>
+
+      <div className="fb">
+        <h4>2. Enviar e baixar</h4>
+        <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 12 }}>
+          <strong>Dispositivo principal</strong>: clica "Enviar pra nuvem" quando quiser sincronizar.<br />
+          <strong>Outros dispositivos</strong>: cola o mesmo token → "Baixar da nuvem" → recarrega.
+        </p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <button onClick={upload}
+            className="btn-gold"
+            disabled={!conectado || busy === "upload"}
+            style={{
+              opacity: !conectado ? 0.5 : 1,
+              cursor: !conectado ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+            {busy === "upload" ? "Enviando..." : "☁️ ↑ Enviar pra nuvem"}
+          </button>
+          <button onClick={download}
+            disabled={!conectado || busy === "download"}
+            style={{
+              background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`,
+              padding: "10px 20px", fontSize: 12, fontWeight: 600, letterSpacing: "0.1em",
+              textTransform: "uppercase", cursor: !conectado ? "not-allowed" : "pointer",
+              opacity: !conectado ? 0.5 : 1,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+            {busy === "download" ? "Baixando..." : "☁️ ↓ Baixar da nuvem"}
+          </button>
+        </div>
+      </div>
+
+      <div className="fb" style={{ borderColor: T.gold }}>
+        <h4>📋 Como gerar o token no GitHub (uma vez)</h4>
+        <ol style={{ paddingLeft: 18, fontSize: 12.5, color: T.muted, lineHeight: 1.7 }}>
+          <li>
+            Abra{" "}
+            <a href="https://github.com/settings/tokens/new?description=AF4%20Cockpit&scopes=gist" target="_blank" rel="noopener noreferrer" style={{ color: T.gold }}>
+              github.com/settings/tokens/new
+            </a>{" "}
+            (já vem com o escopo certo marcado)
+          </li>
+          <li><strong>Note</strong> (descrição): <em>AF4 Cockpit</em> (ou o que quiser)</li>
+          <li><strong>Expiration</strong>: escolha "No expiration" pra nunca expirar, ou "1 year" pra renovar anualmente</li>
+          <li><strong>Select scopes</strong>: marque apenas <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>gist</code> (importante — só esse, mais nada)</li>
+          <li>Botão verde "Generate token" no fim</li>
+          <li>O token aparece <strong>uma única vez</strong> — começa com <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>ghp_</code>. Copie e cole no campo acima.</li>
+        </ol>
+      </div>
+
+      <div className="ar" style={{ marginTop: 16 }}>
+        <div className="ai">🔐</div>
+        <div className="at">
+          <strong>Segurança</strong>
+          <p>
+            O token só acessa Gists (não acessa seus repositórios). Quem tiver o token vê seus
+            dados financeiros — trate como senha. Pode revogar a qualquer momento em{" "}
+            <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" style={{ color: T.gold }}>
+              github.com/settings/tokens
+            </a>.
+          </p>
+        </div>
       </div>
     </>
   );
