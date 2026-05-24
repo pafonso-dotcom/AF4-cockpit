@@ -125,16 +125,27 @@ export default function GlobalStyles() {
 
       /* ========== RESPONSIVO ========== */
       /* Mobile: reserva espaço pro BottomTabBar (56px) + safe-area-inset-bottom do iPhone.
-         Footer fica escondido no celular (a tab bar substitui). */
-      @media (max-width: 640px) {
+         Footer fica escondido no celular (a tab bar substitui).
+         Breakpoint subiu pra 768px pra cobrir iPad em portrait. */
+      @media (max-width: 768px) {
         body { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0)); }
         footer { display: none !important; }
       }
 
-      /* Touch-friendly: alvos clicáveis com mín 40px em mobile */
+      /* Touch-friendly: alvos clicáveis com mín 44px em mobile (iOS HIG) */
       @media (max-width: 768px) {
-        button, .btn-gold, .btn-ghost { min-height: 40px; }
-        input, select, textarea { font-size: 16px; padding: 11px 12px; } /* 16px evita zoom auto no iOS */
+        button, .btn-gold, .btn-ghost { min-height: 44px; }
+        input, select, textarea { font-size: 16px; padding: 12px 13px; } /* 16px evita zoom auto no iOS */
+
+        /* Dashboard: KPIs ficam tininhos em 5 colunas no celular → 2 cols (hero ocupa 2). */
+        .dash-kpi-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+        .dash-kpi-grid > :first-child { grid-column: 1 / -1; }  /* Patrimônio (hero) span 2 */
+        .dash-mid-grid, .dash-bot-grid, .dash-metas-grid {
+          grid-template-columns: 1fr !important;
+          gap: 10px !important;
+        }
+        /* Tipografia ligeiramente maior em valores numéricos do Dashboard */
+        .dash-kpi-grid .num { font-size: 17px !important; }
 
         /* Header / SUBTABS rolam horizontalmente sem scrollbar visível */
         .subnav, [data-subnav] {

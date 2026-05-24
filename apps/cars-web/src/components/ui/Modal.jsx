@@ -87,18 +87,41 @@ export default function Modal({ title, children, onClose, wide, isDirty = false 
                   position: "absolute", top: 12, right: 12,
                   color: T.muted, background: "transparent",
                   border: "none", cursor: "pointer", padding: 6,
-                  minWidth: 40, minHeight: 40, // área de toque maior no mobile
+                  minWidth: 44, minHeight: 44, // área de toque iOS HIG mínima
                   display: "grid", placeItems: "center",
-                  borderRadius: 8,
+                  borderRadius: 8, zIndex: 2,
                 }}>
-          <X size={20} />
+          <X size={22} />
         </button>
         <h3 style={{
           fontFamily: T.serif, fontSize: "clamp(20px, 4.5vw, 28px)", color: T.ink,
-          marginBottom: 20, letterSpacing: "-0.02em", paddingRight: 44,
+          marginBottom: 20, letterSpacing: "-0.02em", paddingRight: 50,
         }}>{title}</h3>
         {children}
       </div>
+
+      {/* Mobile: modal vira sheet fullscreen */}
+      <style>{`
+        @media (max-width: 640px) {
+          .modal-overlay-bg {
+            padding: 0 !important;
+            background: ${T.bg} !important;
+            align-items: stretch !important;
+          }
+          .modal-content {
+            max-width: 100% !important;
+            width: 100% !important;
+            max-height: none !important;
+            min-height: 100vh;
+            border-radius: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding-top: max(24px, env(safe-area-inset-top, 0px)) !important;
+            padding-bottom: max(80px, calc(env(safe-area-inset-bottom, 0px) + 70px)) !important;
+          }
+        }
+      `}</style>
     </div>
   );
 
