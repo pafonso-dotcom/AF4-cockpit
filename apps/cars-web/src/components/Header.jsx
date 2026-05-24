@@ -101,14 +101,11 @@ function HeaderHorizontal({
     ],
     invest: [
       { id: "investimentos", label: "Painel",       icon: BarChart3 },
-      { id: "invest-idv",    label: "Análise IdV",  icon: Sparkles },
       { id: "carteira",      label: "Carteira",     icon: Briefcase },
-      { id: "performance",   label: "Performance",  icon: TrendingUp },
+      { id: "analises",      label: "Análises",     icon: Radar },
       { id: "proventos",     label: "Proventos",    icon: DollarSign },
-      { id: "analise-carteira", label: "Análise da Carteira", icon: Radar },
       { id: "mercado",       label: "Mercado",      icon: LineIcon },
       { id: "relatorios-i",  label: "Relatórios",   icon: BarChart3 },
-      { id: "projecao",      label: "Projeção",     icon: TrendingUp },
       { id: "simulador",     label: "Simulador",    icon: Calculator },
     ],
     config: [
@@ -443,14 +440,11 @@ function HeaderVertical({
     ],
     invest: [
       { id: "investimentos", label: "Painel",       icon: BarChart3 },
-      { id: "invest-idv",    label: "Análise IdV",  icon: Sparkles },
       { id: "carteira",      label: "Carteira",     icon: Briefcase },
-      { id: "performance",   label: "Performance",  icon: TrendingUp },
+      { id: "analises",      label: "Análises",     icon: Radar },
       { id: "proventos",     label: "Proventos",    icon: DollarSign },
-      { id: "analise-carteira", label: "Análise da Carteira", icon: Radar },
       { id: "mercado",       label: "Mercado",      icon: LineIcon },
       { id: "relatorios-i",  label: "Relatórios",   icon: BarChart3 },
-      { id: "projecao",      label: "Projeção",     icon: TrendingUp },
       { id: "simulador",     label: "Simulador",    icon: Calculator },
     ],
     config: [
