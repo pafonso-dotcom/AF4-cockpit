@@ -55,6 +55,7 @@ import Analise from "./components/pages/Analise.jsx";
 import Mercado from "./components/pages/Mercado.jsx";
 import Simulador from "./components/pages/Simulador.jsx";
 import Projecao from "./components/pages/Invest/Projecao.jsx";
+import AnalisesUnificada from "./components/pages/Invest/Analises.jsx";
 import InvestPainel from "./components/pages/Invest/InvestPainel.jsx";
 import Performance from "./components/pages/Invest/Performance.jsx";
 import Proventos from "./components/pages/Invest/Proventos.jsx";
@@ -702,8 +703,14 @@ export default function App() {
                             onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
                             onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }} />
             )}
-            {tab === "invest-idv" && (
-              <AnaliseIdV analises={tradeAnalisesIdV} setAnalises={setTradeAnalisesIdV} ativos={ativos} />
+            {tab === "analises" && (
+              <div className="px-6 md:px-10">
+                <AnalisesUnificada
+                  ativos={ativos} hidden={hidden}
+                  tradeAnalisesIdV={tradeAnalisesIdV} setTradeAnalisesIdV={setTradeAnalisesIdV}
+                  onAnalisarAtivo={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
+                />
+              </div>
             )}
             {tab === "carteira" && (
               <div className="px-6 md:px-10">
@@ -716,17 +723,11 @@ export default function App() {
                                hidden={hidden} />
               </div>
             )}
-            {tab === "performance" && <Performance ativos={ativos} hidden={hidden} />}
             {tab === "proventos" && <Proventos ativos={ativos} hidden={hidden} />}
             {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} proventos={[]} operacoes={[]} hidden={hidden} />}
             {tab === "mercado" && (
               <div className="px-6 md:px-10">
                 <Mercado ativos={ativos} apiKeys={apiKeys} />
-              </div>
-            )}
-            {tab === "projecao" && (
-              <div className="px-6 md:px-10">
-                <Projecao ativos={ativos} hidden={hidden} />
               </div>
             )}
             {tab === "simulador" && (
@@ -737,17 +738,11 @@ export default function App() {
           </>
         )}
 
-        {/* TELAS DE ANÁLISE TÉCNICA (dentro do módulo Investimentos) */}
-        {modulo === "invest" && (
+        {/* TELA DE ANÁLISE TÉCNICA DE UM ATIVO (fluxo a partir do Análise da Carteira) */}
+        {modulo === "invest" && tab === "trade-ativo" && (
           <div className="px-6 md:px-10">
-            {tab === "analise-carteira" && (
-              <AnaliseCarteira ativos={ativos} hidden={hidden}
-                onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }} />
-            )}
-            {tab === "trade-ativo" && (
-              <AnaliseTrade tradeWatchlist={tradeWatchlist} ativos={ativos} alvoInicial={analiseAlvo}
-                            onVoltar={() => setTab("analise-carteira")} />
-            )}
+            <AnaliseTrade tradeWatchlist={tradeWatchlist} ativos={ativos} alvoInicial={analiseAlvo}
+                          onVoltar={() => setTab("analises")} />
           </div>
         )}
 
