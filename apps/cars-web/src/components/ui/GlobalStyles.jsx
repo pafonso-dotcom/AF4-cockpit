@@ -166,24 +166,45 @@ export default function GlobalStyles() {
         .tbl-extrato thead { display: none !important; }
         .tbl-extrato tbody { display: block !important; }
         .tbl-extrato tr {
-          display: grid !important;
-          grid-template-columns: 1fr auto;
-          column-gap: 10px;
-          row-gap: 2px;
-          padding: 12px;
+          display: block !important;
+          padding: 12px 14px;
           margin-bottom: 8px;
           background: ${T.card};
           border: 1px solid ${T.border};
           border-radius: 8px;
+          position: relative;
         }
         .tbl-extrato td { display: block !important; padding: 0 !important; border: none !important; }
-        .tbl-extrato td:nth-child(1) { grid-column: 1; grid-row: 1; font-size: 11px; color: ${T.faint}; }
-        .tbl-extrato td:nth-child(2) { grid-column: 1; grid-row: 2; font-size: 13px; }
+        /* Data: pequena no topo esquerdo */
+        .tbl-extrato td:nth-child(1) { font-size: 10.5px; color: ${T.faint}; margin-bottom: 4px !important; padding-right: 100px !important; }
+        /* Descrição: principal */
+        .tbl-extrato td:nth-child(2) { font-size: 13.5px; padding-right: 100px !important; line-height: 1.3; }
+        /* Obs: escondida no mobile */
         .tbl-extrato td:nth-child(3) { display: none !important; }
-        .tbl-extrato td:nth-child(4) { grid-column: 1; grid-row: 3; font-size: 11px; }
-        .tbl-extrato td:nth-child(5) { grid-column: 2; grid-row: 1 / span 2; text-align: right !important; font-size: 16px !important; align-self: center; }
-        .tbl-extrato td:nth-child(6) { grid-column: 2; grid-row: 3; text-align: right !important; font-size: 10.5px; color: ${T.faint}; }
-        .tbl-extrato td:nth-child(7) { grid-column: 1 / -1; grid-row: 4; text-align: right !important; padding-top: 4px !important; border-top: 1px dashed ${T.border}; margin-top: 4px; }
+        /* Categoria: inline, margem direita */
+        .tbl-extrato td:nth-child(4) { display: inline-block !important; margin-top: 6px !important; }
+        /* Valor: flutuante no canto superior direito */
+        .tbl-extrato td:nth-child(5) {
+          position: absolute !important;
+          top: 12px; right: 14px;
+          font-size: 15px !important;
+          font-weight: 700 !important;
+          text-align: right !important;
+        }
+        /* Saldo: alinhado à direita, abaixo do valor (que está absolute) */
+        .tbl-extrato td:nth-child(6) {
+          position: absolute !important;
+          top: 34px; right: 14px;
+          text-align: right !important;
+          font-size: 10.5px;
+        }
+        /* Ações: separador + ícones à direita */
+        .tbl-extrato td:nth-child(7) {
+          margin-top: 10px !important;
+          padding-top: 8px !important;
+          text-align: right !important;
+          border-top: 1px dashed ${T.border};
+        }
 
         /* Header / SUBTABS rolam horizontalmente sem scrollbar visível */
         .subnav, [data-subnav] {
