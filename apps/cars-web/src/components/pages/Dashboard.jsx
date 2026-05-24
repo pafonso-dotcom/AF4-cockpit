@@ -37,6 +37,7 @@ export default function Dashboard({
   hidden, contas: contasRaw, ativos = [], transacoes: transacoesRaw,
   categorias, metas, cartoes = [], parcelamentos = [], devedores = [], dividas = [],
   fixas = [], fixaOcorrencias = [],
+  agenda = [],
   escopoAtivo = "tudo",
   onTabChange, onContaClick, userName = "Paulo",
 }) {
@@ -160,6 +161,9 @@ export default function Dashboard({
           Aqui está o resumo da sua vida financeira.
         </div>
       </div>
+
+      {/* Top 3 do dia */}
+      <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
 
       {/* KPI row */}
       <section className="dash-kpi-grid" style={{
@@ -629,5 +633,64 @@ function PergunteIACard({ onClick }) {
       </div>
       <ArrowRight size={16} style={{ color: T.muted }} />
     </button>
+  );
+}
+
+/* ============ Top 3 do Dia (Agenda Pessoal) ============ */
+function Top3DoDia({ agenda = [], onAbrir }) {
+  const top3 = useMemo(() => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    return agenda
+      .filter(e => e.status !== "feito")
+      .filter(e => e.data && e.data >= hoje)
+      .sort((a, b) =>
+        (a.data || "9999").localeCompare(b.data || "9999")
+        || (a.horario || "23:59").localeCompare(b.horario || "23:59")
+      )
+      .slice(0, 3);
+  }, [agenda]);
+
+  if (top3.length === 0) return null;
+
+  const hoje = new Date().toISOString().slice(0, 10);
+
+  return (
+    <div style={{
+      background: T.card, border: `1px solid ${T.gold}55`,
+      borderLeft: `4px solid ${T.gold}`,
+      borderRadius: 10, padding: 14, marginBottom: 16,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: T.gold, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" }}>
+          🎯 Próximos compromissos
+        </div>
+        <button onClick={onAbrir}
+          style={{ background: "transparent", border: "none", color: T.gold, fontSize: 11, cursor: "pointer" }}>
+          Ver agenda
+        </button>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {top3.map(ev => {
+          const isHoje = ev.data === hoje;
+          return (
+            <div key={ev.id} style={{
+              display: "flex", alignItems: "center", gap: 10, fontSize: 12.5,
+            }}>
+              <div style={{
+                width: 8, height: 8, borderRadius: "50%",
+                background: isHoje ? T.gold : T.muted, flexShrink: 0,
+              }} />
+              <div style={{ flex: 1, color: T.ink, fontWeight: isHoje ? 600 : 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {ev.titulo}
+              </div>
+              <div style={{ color: T.muted, fontSize: 11, flexShrink: 0 }}>
+                {isHoje ? "hoje" : ev.data?.slice(8, 10) + "/" + ev.data?.slice(5, 7)}
+                {ev.horario && ` · ${ev.horario}`}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

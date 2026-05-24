@@ -87,6 +87,9 @@ function HeaderHorizontal({
     financas: [
       { id: "dashboard",    label: "Painel",       icon: Activity },
       { id: "notas",        label: "Agenda Pessoal", icon: StickyNote },
+      { id: "habitos",      label: "Hábitos",      icon: Sparkles },
+      { id: "diario",       label: "Diário",       icon: Bookmark },
+      { id: "compras",      label: "Compras",      icon: Tag },
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "transacoes",   label: "Transações",   icon: Receipt },
@@ -426,6 +429,9 @@ function HeaderVertical({
     financas: [
       { id: "dashboard",    label: "Painel",       icon: Activity },
       { id: "notas",        label: "Agenda Pessoal", icon: StickyNote },
+      { id: "habitos",      label: "Hábitos",      icon: Sparkles },
+      { id: "diario",       label: "Diário",       icon: Bookmark },
+      { id: "compras",      label: "Compras",      icon: Tag },
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "transacoes",   label: "Transações",   icon: Receipt },
