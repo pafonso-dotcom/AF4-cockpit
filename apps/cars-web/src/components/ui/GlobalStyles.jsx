@@ -154,6 +154,37 @@ export default function GlobalStyles() {
         .cartao-hero-fatura { text-align: left !important; width: 100%; }
         .cartao-hero-valor { font-size: 24px !important; }
 
+        /* Conteúdo das páginas usa toda a largura no celular (px-6/px-10 viram px-2) */
+        .px-6, .px-10, .md\\:px-10 {
+          padding-left: 8px !important;
+          padding-right: 8px !important;
+        }
+
+        /* Tabela de Extrato vira lista de cards no celular */
+        .tbl-extrato-wrap { overflow: visible !important; border: none !important; background: transparent !important; }
+        .tbl-extrato { min-width: 0 !important; table-layout: auto !important; display: block !important; }
+        .tbl-extrato thead { display: none !important; }
+        .tbl-extrato tbody { display: block !important; }
+        .tbl-extrato tr {
+          display: grid !important;
+          grid-template-columns: 1fr auto;
+          column-gap: 10px;
+          row-gap: 2px;
+          padding: 12px;
+          margin-bottom: 8px;
+          background: ${T.card};
+          border: 1px solid ${T.border};
+          border-radius: 8px;
+        }
+        .tbl-extrato td { display: block !important; padding: 0 !important; border: none !important; }
+        .tbl-extrato td:nth-child(1) { grid-column: 1; grid-row: 1; font-size: 11px; color: ${T.faint}; }
+        .tbl-extrato td:nth-child(2) { grid-column: 1; grid-row: 2; font-size: 13px; }
+        .tbl-extrato td:nth-child(3) { display: none !important; }
+        .tbl-extrato td:nth-child(4) { grid-column: 1; grid-row: 3; font-size: 11px; }
+        .tbl-extrato td:nth-child(5) { grid-column: 2; grid-row: 1 / span 2; text-align: right !important; font-size: 16px !important; align-self: center; }
+        .tbl-extrato td:nth-child(6) { grid-column: 2; grid-row: 3; text-align: right !important; font-size: 10.5px; color: ${T.faint}; }
+        .tbl-extrato td:nth-child(7) { grid-column: 1 / -1; grid-row: 4; text-align: right !important; padding-top: 4px !important; border-top: 1px dashed ${T.border}; margin-top: 4px; }
+
         /* Header / SUBTABS rolam horizontalmente sem scrollbar visível */
         .subnav, [data-subnav] {
           overflow-x: auto;
