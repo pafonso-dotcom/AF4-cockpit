@@ -51,7 +51,7 @@ async function handleApi(request, env, url) {
   }
 
   if (url.pathname === "/api/ping") {
-    return json({ ok: true, kv: !!env.AF4_KV });
+    return json({ ok: true, kv: !!env.AF4_KV, version: "2026-05-24-1" });
   }
 
   if (!env.AF4_KV) {
@@ -64,22 +64,40 @@ async function handleApi(request, env, url) {
   }
 
   if (url.pathname === "/api/state" || url.pathname === "/api/keys") {
-    const kvKey = `${url.pathname.slice(5)}:${token}`; // "state:xxx" ou "keys:xxx"
+    const kind = url.pathname === "/api/state" ? "state" : "keys";
+    const kvKey = `${kind}:${token}`;
 
     if (request.method === "GET") {
-      const data = await env.AF4_KV.get(kvKey, "json");
-      return json({ data: data ?? null });
+      // Lê como string e parseia aqui (evita crash silencioso se valor antigo não for JSON)
+      let raw;
+      try {
+        raw = await env.AF4_KV.get(kvKey);
+      } catch (e) {
+        return json({ error: `KV.get falhou: ${e?.message || e}` }, 500);
+      }
+      if (raw == null) return json({ data: null });
+      try {
+        return json({ data: JSON.parse(raw) });
+      } catch (e) {
+        return json({ error: `Valor no KV não é JSON válido (${raw.length} bytes): ${e?.message || e}` }, 500);
+      }
     }
     if (request.method === "PUT") {
       let body;
       try { body = await request.json(); }
-      catch { return json({ error: "Body inválido (esperado JSON)." }, 400); }
+      catch (e) { return json({ error: `Body inválido (esperado JSON): ${e?.message || e}` }, 400); }
+      let str;
+      try { str = JSON.stringify(body); }
+      catch (e) { return json({ error: `Não foi possível serializar o body: ${e?.message || e}` }, 400); }
       // Defesa: limita tamanho a 24MB (KV value max is 25MB)
-      const str = JSON.stringify(body);
       if (str.length > 24 * 1024 * 1024) {
         return json({ error: "Estado muito grande (>24MB)." }, 413);
       }
-      await env.AF4_KV.put(kvKey, str);
+      try {
+        await env.AF4_KV.put(kvKey, str);
+      } catch (e) {
+        return json({ error: `KV.put falhou: ${e?.message || e}` }, 500);
+      }
       return json({ ok: true, bytes: str.length });
     }
     return json({ error: "Método não suportado." }, 405);
@@ -93,10 +111,29 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith("/api/")) {
-      return handleApi(request, env, url);
+      try {
+        return await handleApi(request, env, url);
+      } catch (e) {
+        console.error("[worker]", e?.stack || e?.message || e);
+        return new Response(JSON.stringify({
+          error: `Worker crash: ${e?.message || String(e)}`,
+          stack: (e?.stack || "").split("\n").slice(0, 4).join(" | "),
+        }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...CORS },
+        });
+      }
     }
 
-    // Tudo o resto → static assets
-    return env.ASSETS.fetch(request);
+    // Static assets — mas força no-cache na HTML pra evitar JS antigo cacheado
+    const res = await env.ASSETS.fetch(request);
+    const isHtml = (res.headers.get("content-type") || "").includes("text/html");
+    if (isHtml) {
+      const headers = new Headers(res.headers);
+      headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      headers.set("Pragma", "no-cache");
+      return new Response(res.body, { status: res.status, headers });
+    }
+    return res;
   },
 };

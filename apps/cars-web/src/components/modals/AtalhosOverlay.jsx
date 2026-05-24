@@ -4,7 +4,6 @@ import { T } from "../../lib/theme.js";
 
 const ATALHOS = [
   { tecla: "N",   desc: "Nova Transação" },
-  { tecla: "V",   desc: "Nova Venda (Loja AF4)" },
   { tecla: "A",   desc: "Novo Aporte (Investimentos)" },
   { tecla: "?",   desc: "Mostrar esta lista" },
   { tecla: "Esc", desc: "Fechar modais" },

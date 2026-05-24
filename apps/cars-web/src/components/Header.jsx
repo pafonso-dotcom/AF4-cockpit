@@ -5,7 +5,7 @@ import { useLayout } from "../lib/useLayout.js";
 import {
   Activity, Wallet, CreditCard, Receipt, Calendar, Tag, Sparkles, PiggyBank,
   Briefcase, TrendingUp, LineChart as LineIcon, Calculator, BarChart3,
-  Car, Package, Target, Users, AlertCircle, History, MessageCircle,
+  Package, Target, Users, AlertCircle, History, MessageCircle,
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
   Radar, Bookmark, StickyNote,
 } from "lucide-react";
@@ -13,7 +13,7 @@ import {
 /**
  * Header AF4 Cockpit · v4 (refatorado pra hierarquia clara)
  *  Linha 1 (sempre): logo · separador · subtabs (scroll) · separador · quick actions · separador · utility · gap · settings · avatar
- *  Linha 2 (≥640px): módulos (Finanças/Invest/Loja)
+ *  Linha 2 (≥640px): módulos (Finanças/Invest)
  *  Mobile (<640px): linha 1 = logo + settings; linha 2 = subtabs scroll
  */
 export default function Header(props) {
@@ -75,12 +75,11 @@ function HeaderHorizontal({
 }) {
 
   const perfilAtivo = getPerfilAtivo();
-  const perms = perfilAtivo?.permissoes || { financas: true, invest: true, loja: true, trade: true, config: true };
+  const perms = perfilAtivo?.permissoes || { financas: true, invest: true, trade: true, config: true };
 
   const TODOS_MODULOS = [
     { id: "financas", label: "Finanças",      icon: Wallet,    desc: "Pessoal" },
     { id: "invest",   label: "Investimentos", icon: Briefcase, desc: "Carteira" },
-    { id: "loja",     label: "Loja AF4",      icon: Car,       desc: "Comercial" },
   ];
   const MODULOS = TODOS_MODULOS.filter(m => perms[m.id] !== false);
 
@@ -110,18 +109,6 @@ function HeaderHorizontal({
       { id: "mercado",       label: "Mercado",      icon: LineIcon },
       { id: "relatorios-i",  label: "Relatórios",   icon: BarChart3 },
       { id: "simulador",     label: "Simulador",    icon: Calculator },
-    ],
-    loja: [
-      { id: "loja-painel",   label: "Painel",       icon: BarChart3 },
-      { id: "loja-estoque",  label: "Estoque",      icon: Package },
-      { id: "loja-novo",     label: "Novo Veículo", icon: Car },
-      { id: "loja-vendas",   label: "Vendas",       icon: TrendingUp },
-      { id: "loja-funil",    label: "Funil",        icon: Target },
-      { id: "loja-cheques",  label: "Cheques",      icon: Receipt },
-      { id: "loja-banco",    label: "Banco",        icon: Wallet },
-      { id: "loja-relatorios", label: "Relatórios", icon: BarChart3 },
-      { id: "loja-whatsapp", label: "WhatsApp",   icon: MessageCircle },
-      { id: "loja-clientes", label: "Clientes",     icon: Users },
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência",    icon: Sparkles },
@@ -257,7 +244,6 @@ function HeaderHorizontal({
                 setModulo(m.id);
                 const firstTab = SUBTABS[m.id]?.[0]?.id;
                 if (firstTab) setTab(firstTab);
-                if (m.id === "loja" && escopoAtivo === "pessoal") onEscopoChange?.("negocio");
               }}
                 style={{
                   padding: "9px 16px", borderRadius: 8,
@@ -430,12 +416,11 @@ function HeaderVertical({
   cartaoAberto, setCartaoAberto,
 }) {
   const perfilAtivo = getPerfilAtivo();
-  const perms = perfilAtivo?.permissoes || { financas: true, invest: true, loja: true, trade: true, config: true };
+  const perms = perfilAtivo?.permissoes || { financas: true, invest: true, trade: true, config: true };
 
   const TODOS_MODULOS = [
     { id: "financas", label: "Finanças",      icon: Wallet },
     { id: "invest",   label: "Investimentos", icon: Briefcase },
-    { id: "loja",     label: "Loja AF4",      icon: Car },
   ];
   const MODULOS = TODOS_MODULOS.filter(m => perms[m.id] !== false);
 
@@ -465,18 +450,6 @@ function HeaderVertical({
       { id: "mercado",       label: "Mercado",      icon: LineIcon },
       { id: "relatorios-i",  label: "Relatórios",   icon: BarChart3 },
       { id: "simulador",     label: "Simulador",    icon: Calculator },
-    ],
-    loja: [
-      { id: "loja-painel",   label: "Painel",       icon: BarChart3 },
-      { id: "loja-estoque",  label: "Estoque",      icon: Package },
-      { id: "loja-novo",     label: "Novo Veículo", icon: Car },
-      { id: "loja-vendas",   label: "Vendas",       icon: TrendingUp },
-      { id: "loja-funil",    label: "Funil",        icon: Target },
-      { id: "loja-cheques",  label: "Cheques",      icon: Receipt },
-      { id: "loja-banco",    label: "Banco",        icon: Wallet },
-      { id: "loja-relatorios", label: "Relatórios", icon: BarChart3 },
-      { id: "loja-whatsapp", label: "WhatsApp",     icon: MessageCircle },
-      { id: "loja-clientes", label: "Clientes",     icon: Users },
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência", icon: Sparkles },
@@ -530,8 +503,7 @@ function HeaderVertical({
                     setModulo(m.id);
                     const first = SUBTABS[m.id]?.[0]?.id;
                     if (first) setTab(first);
-                    if (m.id === "loja" && escopoAtivo === "pessoal") onEscopoChange?.("negocio");
-                  }}
+                      }}
                   style={{
                     padding: "8px 10px", borderRadius: 7,
                     background: ativo ? "rgba(255,255,255,0.08)" : "transparent",
