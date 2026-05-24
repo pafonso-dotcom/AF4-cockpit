@@ -49,6 +49,8 @@ import Habitos from "./components/pages/Habitos.jsx";
 import Diario from "./components/pages/Diario.jsx";
 import Compras from "./components/pages/Compras.jsx";
 import Ideias from "./components/pages/Ideias.jsx";
+import Tarefas from "./components/pages/Tarefas.jsx";
+import AgendaInicio from "./components/pages/AgendaInicio.jsx";
 import PomodoroFloat from "./components/PomodoroFloat.jsx";
 import Despesas from "./components/pages/Despesas.jsx";
 import ControleAnual from "./components/pages/Relatorios/ControleAnual.jsx";
@@ -124,6 +126,7 @@ export default function App() {
   const [diario, setDiario] = useState([]);
   const [compras, setCompras] = useState([]);
   const [ideias, setIdeias] = useState([]);
+  const [tarefas, setTarefas] = useState([]);
 
   // AF4 Trade
   const [tradeWatchlist, setTradeWatchlist] = useState([]);
@@ -169,6 +172,7 @@ export default function App() {
         setDiario(data.diario || []);
         setCompras(data.compras || []);
         setIdeias(data.ideias || []);
+        setTarefas(data.tarefas || []);
         setTradeWatchlist(data.tradeWatchlist || []);
         setTradeHistorico(data.tradeHistorico || []);
         setTradeAnalisesIdV(data.tradeAnalisesIdV || []);
@@ -204,6 +208,7 @@ export default function App() {
         setDiario([]);
         setCompras([]);
         setIdeias([]);
+        setTarefas([]);
         setTradeWatchlist([]);
         setTradeHistorico([]);
         setTradeAnalisesIdV([]);
@@ -221,13 +226,13 @@ export default function App() {
       contas, categorias, transacoes, ativos, metas, notas,
       cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras, ideias,
+      habitos, diario, compras, ideias, tarefas,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId,
     });
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras, ideias,
+      habitos, diario, compras, ideias, tarefas,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId, loading]);
 
@@ -701,9 +706,16 @@ export default function App() {
           </div>
         )}
 
-        {/* MÓDULO: AGENDA — vida pessoal (compromissos, ideias, metas, hábitos, diário, compras) */}
+        {/* MÓDULO: AGENDA — vida pessoal (início, compromissos, calendário, tarefas, ideias, metas, compras) */}
         {modulo === "agenda" && (
           <div className="px-6 md:px-10">
+            {tab === "inicio" && (
+              <AgendaInicio
+                agenda={agenda} tarefas={tarefas} ideias={ideias}
+                compras={compras} metas={metas}
+                setTab={setTab}
+              />
+            )}
             {tab === "notas" && (
               <Notas agenda={agenda} setAgenda={setAgenda}
                      notasLegacy={notas} setNotasLegacy={setNotas} />
@@ -717,17 +729,14 @@ export default function App() {
                           agenda={agenda} setAgenda={setAgenda}
                           escopoAtivo={escopoAtivo} />
             )}
+            {tab === "tarefas" && (
+              <Tarefas tarefas={tarefas} setTarefas={setTarefas} />
+            )}
             {tab === "ideias" && (
               <Ideias ideias={ideias} setIdeias={setIdeias} />
             )}
             {tab === "metas" && (
               <Metas metas={metas} setMetas={setMetas} hidden={hidden} />
-            )}
-            {tab === "habitos" && (
-              <Habitos habitos={habitos} setHabitos={setHabitos} />
-            )}
-            {tab === "diario" && (
-              <Diario diario={diario} setDiario={setDiario} />
             )}
             {tab === "compras" && (
               <Compras compras={compras} setCompras={setCompras} />

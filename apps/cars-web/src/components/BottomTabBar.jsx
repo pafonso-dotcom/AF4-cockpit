@@ -94,5 +94,5 @@ export default function BottomTabBar({ modulo, setModulo, setTab }) {
 const FIRST_TAB_OF = {
   financas: "dashboard",
   invest:   "investimentos",
-  agenda:   "notas",
+  agenda:   "inicio",
 };

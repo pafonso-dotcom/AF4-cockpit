@@ -7,7 +7,7 @@ import {
   Briefcase, TrendingUp, LineChart as LineIcon, Calculator, BarChart3,
   Package, Target, Users, AlertCircle, History, MessageCircle,
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
-  Radar, Bookmark, StickyNote,
+  Radar, Bookmark, StickyNote, Home, CheckSquare,
 } from "lucide-react";
 
 /**
@@ -98,12 +98,12 @@ function HeaderHorizontal({
       { id: "audit",        label: "Histórico",    icon: History },
     ],
     agenda: [
+      { id: "inicio",     label: "Início",         icon: Home },
       { id: "notas",      label: "Compromissos",   icon: StickyNote },
       { id: "calendario", label: "Calendário",     icon: Calendar },
+      { id: "tarefas",    label: "Tarefas",        icon: CheckSquare },
       { id: "ideias",     label: "Ideias",         icon: Sparkles },
       { id: "metas",      label: "Metas",          icon: Target },
-      { id: "habitos",    label: "Hábitos",        icon: Sparkles },
-      { id: "diario",     label: "Diário",         icon: Bookmark },
       { id: "compras",    label: "Compras",        icon: Tag },
     ],
     invest: [
@@ -444,12 +444,12 @@ function HeaderVertical({
       { id: "audit",        label: "Histórico",    icon: History },
     ],
     agenda: [
+      { id: "inicio",     label: "Início",         icon: Home },
       { id: "notas",      label: "Compromissos",   icon: StickyNote },
       { id: "calendario", label: "Calendário",     icon: Calendar },
+      { id: "tarefas",    label: "Tarefas",        icon: CheckSquare },
       { id: "ideias",     label: "Ideias",         icon: Sparkles },
       { id: "metas",      label: "Metas",          icon: Target },
-      { id: "habitos",    label: "Hábitos",        icon: Sparkles },
-      { id: "diario",     label: "Diário",         icon: Bookmark },
       { id: "compras",    label: "Compras",        icon: Tag },
     ],
     invest: [
