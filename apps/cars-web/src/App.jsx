@@ -45,6 +45,10 @@ import Calendario from "./components/pages/Calendario.jsx";
 import Categorias from "./components/pages/Categorias.jsx";
 import Metas from "./components/pages/Metas.jsx";
 import Notas from "./components/pages/Notas.jsx";
+import Habitos from "./components/pages/Habitos.jsx";
+import Diario from "./components/pages/Diario.jsx";
+import Compras from "./components/pages/Compras.jsx";
+import PomodoroFloat from "./components/PomodoroFloat.jsx";
 import Despesas from "./components/pages/Despesas.jsx";
 import ControleAnual from "./components/pages/Relatorios/ControleAnual.jsx";
 import Planejamento from "./components/pages/Planejamento/index.jsx";
@@ -114,6 +118,10 @@ export default function App() {
 
   // Agenda pessoal (compromissos, viagens, lembretes, eventos)
   const [agenda, setAgenda] = useState([]);
+  // Fase 1: hábitos com streaks, diário rápido, lista de compras
+  const [habitos, setHabitos] = useState([]);
+  const [diario, setDiario] = useState([]);
+  const [compras, setCompras] = useState([]);
 
   // AF4 Trade
   const [tradeWatchlist, setTradeWatchlist] = useState([]);
@@ -155,6 +163,9 @@ export default function App() {
         setFixas(data.fixas || []);
         setFixaOcorrencias(data.fixaOcorrencias || []);
         setAgenda(data.agenda || []);
+        setHabitos(data.habitos || []);
+        setDiario(data.diario || []);
+        setCompras(data.compras || []);
         setTradeWatchlist(data.tradeWatchlist || []);
         setTradeHistorico(data.tradeHistorico || []);
         setTradeAnalisesIdV(data.tradeAnalisesIdV || []);
@@ -186,6 +197,9 @@ export default function App() {
         setFixas([]);
         setFixaOcorrencias([]);
         setAgenda([]);
+        setHabitos([]);
+        setDiario([]);
+        setCompras([]);
         setTradeWatchlist([]);
         setTradeHistorico([]);
         setTradeAnalisesIdV([]);
@@ -203,11 +217,13 @@ export default function App() {
       contas, categorias, transacoes, ativos, metas, notas,
       cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
+      habitos, diario, compras,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId,
     });
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
+      habitos, diario, compras,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId, loading]);
 
@@ -552,6 +568,7 @@ export default function App() {
                          cartoes={cartoes} parcelamentos={parcelamentos}
                          devedores={devedores} dividas={dividas}
                          fixas={fixas} fixaOcorrencias={fixaOcorrencias}
+                         agenda={agenda}
                          escopoAtivo={escopoAtivo}
                          onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
                          onContaClick={(c) => { setTab("contas"); setContaAberta(c); }} />
@@ -680,6 +697,21 @@ export default function App() {
               <Notas agenda={agenda} setAgenda={setAgenda}
                      notasLegacy={notas} setNotasLegacy={setNotas} />
             )}
+            {tab === "habitos" && (
+              <div className="px-6 md:px-10">
+                <Habitos habitos={habitos} setHabitos={setHabitos} />
+              </div>
+            )}
+            {tab === "diario" && (
+              <div className="px-6 md:px-10">
+                <Diario diario={diario} setDiario={setDiario} />
+              </div>
+            )}
+            {tab === "compras" && (
+              <div className="px-6 md:px-10">
+                <Compras compras={compras} setCompras={setCompras} />
+              </div>
+            )}
             {/* Rotas antigas (fixas, relatorios-anual, areceber) consolidadas em Planejamento — ver bloco unificado acima */}
             {tab === "analiseia" && (
               <AnaliseFatura
@@ -782,6 +814,7 @@ export default function App() {
         modulo={modulo} setModulo={setModulo}
         setTab={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
       />
+      <PomodoroFloat />
       <ToastContainer />
       <InstallPWA />
       <ConfirmDialog />

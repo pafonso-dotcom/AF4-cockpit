@@ -3,6 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { TrendingUp, Target, DollarSign, Calculator } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
+import { parseValorBR } from "../../../lib/importExport.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import Field from "../../ui/Field.jsx";
 
@@ -57,9 +58,9 @@ export default function Projecao({ ativos = [], hidden }) {
     }
   }, [tipoManual, isManual]);
 
-  // Valores numéricos parseados
-  const valorInputado = parseFloat(String(aporteValor).replace(",", ".")) || 0;
-  const taxa = parseFloat(String(taxaMensal).replace(",", ".")) || 0;
+  // Valores numéricos parseados (parseValorBR trata "1.500,50" e "1500.50")
+  const valorInputado = parseValorBR(aporteValor);
+  const taxa = parseValorBR(taxaMensal);
   const meses = prazoAnos * 12;
 
   // Se modo "total": divide o valor total pelos meses pra obter o aporte mensal equivalente
@@ -70,7 +71,7 @@ export default function Projecao({ ativos = [], hidden }) {
   // Valor inicial: da carteira ou manual
   const valorInicial = useMemo(() => {
     if (isManual) {
-      return parseFloat(String(valorInicialManual).replace(",", ".")) || 0;
+      return parseValorBR(valorInicialManual);
     }
     if (!ativo) return 0;
     return Number(ativo.qtd || 0) * Number(ativo.preco || 0);
@@ -81,7 +82,7 @@ export default function Projecao({ ativos = [], hidden }) {
     return Number(ativo.qtd || 0) * Number(ativo.pm ?? ativo.precoMedio ?? 0);
   }, [ativo, isManual]);
 
-  const taxaCdbN = parseFloat(String(taxaCdb).replace(",", ".")) || 0;
+  const taxaCdbN = parseValorBR(taxaCdb);
 
   // Projeção mês a mês (ativo + CDB comparativo, mesmo aporte)
   const projecao = useMemo(() => {

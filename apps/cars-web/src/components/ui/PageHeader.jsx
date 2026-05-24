@@ -14,12 +14,13 @@ export default function PageHeader({ eyebrow, title, sub, action }) {
       </div>
       {action && <div>{action}</div>}
       <style>{`
-        .page-header-title { font-size: clamp(36px, 6vw, 56px); }
-        .page-header-sub { font-size: 17px; }
+        .page-header { margin-bottom: 14px !important; padding-bottom: 10px !important; }
+        .page-header-title { font-size: clamp(28px, 5vw, 42px); margin-top: 4px !important; }
+        .page-header-sub { font-size: 14px; margin-top: 4px !important; }
         @media (max-width: 768px) {
-          .page-header { margin-bottom: 18px; padding-bottom: 14px; gap: 10px; }
-          .page-header-title { font-size: 28px !important; line-height: 1.1 !important; }
-          .page-header-sub { font-size: 13px !important; margin-top: 4px !important; }
+          .page-header { margin-bottom: 12px !important; padding-bottom: 8px !important; gap: 8px !important; }
+          .page-header-title { font-size: 22px !important; line-height: 1.1 !important; }
+          .page-header-sub { font-size: 12px !important; margin-top: 3px !important; }
         }
       `}</style>
     </div>
