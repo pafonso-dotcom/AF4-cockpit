@@ -36,14 +36,24 @@ export default function Projecao({ ativos = [], hidden }) {
   const [prazoAnos, setPrazoAnos] = useState(10);
   const [taxaMensal, setTaxaMensal] = useState("0.85");
   const [valorInicialManual, setValorInicialManual] = useState("10000");
+  // Ativo futuro (Personalizado): nome + classe
+  const [tickerManual, setTickerManual] = useState("");
+  const [tipoManual, setTipoManual] = useState("fii");
 
-  // Atualiza valores sugeridos quando troca o ativo
+  // Atualiza valores sugeridos quando troca o ativo (ou classe no modo manual)
   useEffect(() => {
     if (ativo) {
       const sugerida = TAXA_SUGERIDA[ativo.tipo] ?? 0.85;
       setTaxaMensal(String(sugerida));
     }
   }, [ativo?.id]);
+
+  useEffect(() => {
+    if (isManual) {
+      const sugerida = TAXA_SUGERIDA[tipoManual] ?? 0.85;
+      setTaxaMensal(String(sugerida));
+    }
+  }, [tipoManual, isManual]);
 
   // Valores numéricos parseados
   const valorInputado = parseFloat(String(aporteValor).replace(",", ".")) || 0;
@@ -131,7 +141,7 @@ export default function Projecao({ ativos = [], hidden }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Ativo">
             <select value={ativoId} onChange={e => setAtivoId(e.target.value)}>
-              <option value="manual">✏️ Personalizado (informar valor)</option>
+              <option value="manual">✏️ Ativo futuro / Personalizado</option>
               {ativosComPosicao.length > 0 && (
                 <optgroup label="Da sua carteira">
                   {ativosComPosicao.map(a => {
@@ -147,11 +157,12 @@ export default function Projecao({ ativos = [], hidden }) {
             </select>
           </Field>
           {isManual ? (
-            <Field label="Valor inicial (R$)">
-              <input type="text" inputMode="decimal"
-                     value={valorInicialManual}
-                     onChange={e => setValorInicialManual(e.target.value)}
-                     placeholder="Ex.: 10000" />
+            <Field label="Nome / Ticker do ativo futuro">
+              <input type="text"
+                     value={tickerManual}
+                     onChange={e => setTickerManual(e.target.value)}
+                     placeholder="Ex.: MXRF11, ITSA4, AAPL, BTC..."
+                     autoCorrect="off" autoCapitalize="characters" spellCheck={false} />
             </Field>
           ) : (
             <Field label="Valor inicial (atual da carteira)">
@@ -159,11 +170,35 @@ export default function Projecao({ ativos = [], hidden }) {
                      style={{ background: T.bgSoft, color: T.ink, opacity: 0.8 }} />
             </Field>
           )}
+          {isManual && (
+            <>
+              <Field label="Classe do ativo">
+                <select value={tipoManual} onChange={e => setTipoManual(e.target.value)}>
+                  <option value="acao">Ações</option>
+                  <option value="fii">FIIs</option>
+                  <option value="stock">Stocks (US)</option>
+                  <option value="reit">REITs (US)</option>
+                  <option value="etf">ETFs</option>
+                  <option value="cripto">Cripto</option>
+                  <option value="rf">Renda Fixa</option>
+                  <option value="tesouro">Tesouro</option>
+                  <option value="cdb">CDB</option>
+                  <option value="outro">Outros</option>
+                </select>
+              </Field>
+              <Field label="Valor inicial (R$)">
+                <input type="text" inputMode="decimal"
+                       value={valorInicialManual}
+                       onChange={e => setValorInicialManual(e.target.value)}
+                       placeholder="Ex.: 10000 (zero se vai começar do nada)" />
+              </Field>
+            </>
+          )}
           <Field label="Prazo (anos)">
             <input type="number" min="1" max="40" value={prazoAnos}
                    onChange={e => setPrazoAnos(Math.max(1, Math.min(40, parseInt(e.target.value, 10) || 1)))} />
           </Field>
-          <Field label={`Taxa esperada (% ao mês)${ativo ? ` — ${TAXA_SUGERIDA[ativo.tipo] ?? 0.85}% sugerido pra ${CLASS_LABEL[ativo.tipo] || ativo.tipo}` : ""}`}>
+          <Field label={`Taxa esperada (% ao mês) — ${TAXA_SUGERIDA[isManual ? tipoManual : ativo?.tipo] ?? 0.85}% sugerido pra ${CLASS_LABEL[isManual ? tipoManual : ativo?.tipo] || (isManual ? tipoManual : ativo?.tipo)}`}>
             <input type="text" inputMode="decimal"
                    value={taxaMensal}
                    onChange={e => setTaxaMensal(e.target.value)}
@@ -215,7 +250,11 @@ export default function Projecao({ ativos = [], hidden }) {
         <KpiCard
           label="Valor inicial"
           value={hidden ? "•••" : fmt(valorInicial)}
-          sub={ativo ? `${ativo.qtd} cotas × ${fmt(Number(ativo.preco || 0))}` : (isManual ? "Personalizado" : "")}
+          sub={
+            ativo ? `${ativo.qtd} cotas × ${fmt(Number(ativo.preco || 0))}`
+              : isManual ? (tickerManual ? `${tickerManual.toUpperCase()} · ${CLASS_LABEL[tipoManual] || tipoManual}` : `Futuro · ${CLASS_LABEL[tipoManual] || tipoManual}`)
+              : ""
+          }
           icon={DollarSign}
           cor={T.gold}
         />
