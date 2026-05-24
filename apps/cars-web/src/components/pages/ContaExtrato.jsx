@@ -303,8 +303,8 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           Nenhum lançamento {busca ? `para "${busca}"` : "no período selecionado"}.
         </div>
       ) : (
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "auto" }}>
-          <table className="tbl" style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", fontSize: 13, tableLayout: "fixed" }}>
+        <div className="tbl-extrato-wrap" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "auto" }}>
+          <table className="tbl tbl-extrato" style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", fontSize: 13, tableLayout: "fixed" }}>
             <thead>
               <tr style={{ background: T.bgSoft }}>
                 <Th onClick={() => setSortDir(sortDir === "desc" ? "asc" : "desc")} clickable
