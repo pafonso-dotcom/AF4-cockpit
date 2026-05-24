@@ -54,6 +54,7 @@ import AnaliseIdV from "./components/pages/Trade/AnaliseIdV.jsx";
 import Analise from "./components/pages/Analise.jsx";
 import Mercado from "./components/pages/Mercado.jsx";
 import Simulador from "./components/pages/Simulador.jsx";
+import Projecao from "./components/pages/Invest/Projecao.jsx";
 import InvestPainel from "./components/pages/Invest/InvestPainel.jsx";
 import Performance from "./components/pages/Invest/Performance.jsx";
 import Proventos from "./components/pages/Invest/Proventos.jsx";
@@ -721,6 +722,11 @@ export default function App() {
             {tab === "mercado" && (
               <div className="px-6 md:px-10">
                 <Mercado ativos={ativos} apiKeys={apiKeys} />
+              </div>
+            )}
+            {tab === "projecao" && (
+              <div className="px-6 md:px-10">
+                <Projecao ativos={ativos} hidden={hidden} />
               </div>
             )}
             {tab === "simulador" && (
