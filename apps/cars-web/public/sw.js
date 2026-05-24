@@ -1,10 +1,10 @@
-// AF4 Cockpit Service Worker — v4
+// AF4 Cockpit Service Worker — v5
 // - Network-first pra navegação (HTML/index) — sempre carrega versão fresca
 // - Cache-first pra assets (JS/CSS/imagens) — performance
-// - APIs externas (Brapi, CoinGecko) — network only
+// - /api/* e APIs externas → bypass total (sem cache, sem intercept)
 // Sempre que mudar a UI, bump a versão CACHE pra invalidar tudo do cliente.
 
-const CACHE = "af4-cockpit-v1783300000";
+const CACHE = "af4-cockpit-v1783400000";
 const PRECACHE = ["./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
@@ -25,6 +25,11 @@ self.addEventListener("fetch", (e) => {
 
   // External APIs — pass-through, sem cache
   if (url.origin !== location.origin) return;
+
+  // /api/* sempre direto na rede (evita cache de respostas dinâmicas + bug
+  // de "string did not match expected pattern" do WebKit quando o SW
+  // intercepta requests autenticadas com header Authorization)
+  if (url.pathname.startsWith("/api/")) return;
 
   const isNavigation =
     e.request.mode === "navigate" ||
