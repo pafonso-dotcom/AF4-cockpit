@@ -123,6 +123,15 @@ export default function GlobalStyles() {
         .no-page-break { page-break-inside: avoid; }
       }
 
+      /* ========== DENSIDADE GLOBAL — informações mais próximas ========== */
+      /* Aperta padding/margem nas páginas pra não ter espaços vazios grandes */
+      .py-8 { padding-top: 18px !important; padding-bottom: 18px !important; }
+      .mb-8 { margin-bottom: 14px !important; }
+      .mb-6 { margin-bottom: 10px !important; }
+      .pb-6 { padding-bottom: 10px !important; }
+      .mt-6 { margin-top: 14px !important; }
+      .gap-6 { gap: 12px !important; }
+
       /* ========== RESPONSIVO ========== */
       /* Mobile: reserva espaço pro BottomTabBar (56px) + safe-area-inset-bottom do iPhone.
          Footer fica escondido no celular (a tab bar substitui).

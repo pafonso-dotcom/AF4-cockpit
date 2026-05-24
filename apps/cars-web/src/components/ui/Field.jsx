@@ -15,8 +15,8 @@ import { T } from "../../lib/theme.js";
 export default function Field({ label, children, error, required, hint }) {
   const hasError = !!error;
   return (
-    <div className="mb-4">
-      <div className="label-eyebrow mb-2 flex items-center gap-2" style={{
+    <div className="mb-3">
+      <div className="label-eyebrow mb-1 flex items-center gap-2" style={{
         color: hasError ? T.red : undefined,
       }}>
         <span>{label}</span>
