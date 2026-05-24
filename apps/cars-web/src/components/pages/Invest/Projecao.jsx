@@ -24,38 +24,50 @@ export default function Projecao({ ativos = [], hidden }) {
     [ativos]
   );
 
-  const [ativoId, setAtivoId] = useState(ativosComPosicao[0]?.id || "");
+  const [ativoId, setAtivoId] = useState(ativosComPosicao[0]?.id || "manual");
+  const isManual = ativoId === "manual";
   const ativo = useMemo(
-    () => ativosComPosicao.find(a => a.id === ativoId) || ativosComPosicao[0],
-    [ativosComPosicao, ativoId]
+    () => isManual ? null : (ativosComPosicao.find(a => a.id === ativoId) || ativosComPosicao[0]),
+    [ativosComPosicao, ativoId, isManual]
   );
 
-  const [aporteMensal, setAporteMensal] = useState("500");
+  const [aporteValor, setAporteValor] = useState("500");
+  const [aporteModo, setAporteModo] = useState("mensal"); // "mensal" | "total"
   const [prazoAnos, setPrazoAnos] = useState(10);
   const [taxaMensal, setTaxaMensal] = useState("0.85");
+  const [valorInicialManual, setValorInicialManual] = useState("10000");
 
   // Atualiza valores sugeridos quando troca o ativo
   useEffect(() => {
-    if (!ativo) return;
-    const sugerida = TAXA_SUGERIDA[ativo.tipo] ?? 0.85;
-    setTaxaMensal(String(sugerida));
+    if (ativo) {
+      const sugerida = TAXA_SUGERIDA[ativo.tipo] ?? 0.85;
+      setTaxaMensal(String(sugerida));
+    }
   }, [ativo?.id]);
 
   // Valores numéricos parseados
-  const aporte = parseFloat(String(aporteMensal).replace(",", ".")) || 0;
+  const valorInputado = parseFloat(String(aporteValor).replace(",", ".")) || 0;
   const taxa = parseFloat(String(taxaMensal).replace(",", ".")) || 0;
   const meses = prazoAnos * 12;
 
-  // Valor inicial = posição atual do ativo
+  // Se modo "total": divide o valor total pelos meses pra obter o aporte mensal equivalente
+  const aporte = aporteModo === "total"
+    ? (meses > 0 ? valorInputado / meses : 0)
+    : valorInputado;
+
+  // Valor inicial: da carteira ou manual
   const valorInicial = useMemo(() => {
+    if (isManual) {
+      return parseFloat(String(valorInicialManual).replace(",", ".")) || 0;
+    }
     if (!ativo) return 0;
     return Number(ativo.qtd || 0) * Number(ativo.preco || 0);
-  }, [ativo]);
+  }, [ativo, isManual, valorInicialManual]);
 
   const custoAtual = useMemo(() => {
-    if (!ativo) return 0;
+    if (isManual || !ativo) return 0;
     return Number(ativo.qtd || 0) * Number(ativo.pm ?? ativo.precoMedio ?? 0);
-  }, [ativo]);
+  }, [ativo, isManual]);
 
   // Projeção mês a mês
   const projecao = useMemo(() => {
@@ -106,78 +118,104 @@ export default function Projecao({ ativos = [], hidden }) {
     return anos;
   }, [projecao, prazoAnos]);
 
-  if (ativosComPosicao.length === 0) {
-    return (
-      <div className="fade-up py-8">
-        <PageHeader
-          eyebrow="Capítulo VIII"
-          title="Projeção"
-          sub="Simule a evolução de um ativo da sua carteira com aporte regular."
-        />
-        <div style={{
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 12,
-          padding: 40, textAlign: "center", color: T.muted,
-        }}>
-          <Calculator size={32} style={{ color: T.faint, marginBottom: 12 }} />
-          <div style={{ fontSize: 14, color: T.ink, fontWeight: 500, marginBottom: 4 }}>
-            Sem ativos em carteira
-          </div>
-          <div style={{ fontSize: 12 }}>
-            Cadastre um ativo na Carteira pra simular a projeção dele aqui.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="fade-up py-8">
       <PageHeader
         eyebrow="Capítulo VIII"
         title="Projeção"
-        sub="Simule a evolução de um ativo da sua carteira com aporte regular."
+        sub="Simule a evolução de um ativo (da sua carteira ou personalizado) com aporte regular."
       />
 
       {/* Form */}
       <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, marginBottom: 18 }}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label="Ativo da carteira">
-            <select value={ativo?.id || ""} onChange={e => setAtivoId(e.target.value)}>
-              {ativosComPosicao.map(a => {
-                const v = Number(a.qtd || 0) * Number(a.preco || 0);
-                return (
-                  <option key={a.id} value={a.id}>
-                    {a.ticker} · {CLASS_LABEL[a.tipo] || a.tipo} · {hidden ? "•••" : fmt(v)}
-                  </option>
-                );
-              })}
+          <Field label="Ativo">
+            <select value={ativoId} onChange={e => setAtivoId(e.target.value)}>
+              <option value="manual">✏️ Personalizado (informar valor)</option>
+              {ativosComPosicao.length > 0 && (
+                <optgroup label="Da sua carteira">
+                  {ativosComPosicao.map(a => {
+                    const v = Number(a.qtd || 0) * Number(a.preco || 0);
+                    return (
+                      <option key={a.id} value={a.id}>
+                        {a.ticker} · {CLASS_LABEL[a.tipo] || a.tipo} · {hidden ? "•••" : fmt(v)}
+                      </option>
+                    );
+                  })}
+                </optgroup>
+              )}
             </select>
           </Field>
-          <Field label="Aporte mensal (R$)">
-            <input type="text" inputMode="decimal"
-                   value={aporteMensal}
-                   onChange={e => setAporteMensal(e.target.value)}
-                   placeholder="Ex.: 500" />
-          </Field>
+          {isManual ? (
+            <Field label="Valor inicial (R$)">
+              <input type="text" inputMode="decimal"
+                     value={valorInicialManual}
+                     onChange={e => setValorInicialManual(e.target.value)}
+                     placeholder="Ex.: 10000" />
+            </Field>
+          ) : (
+            <Field label="Valor inicial (atual da carteira)">
+              <input type="text" value={hidden ? "•••" : fmt(valorInicial)} disabled
+                     style={{ background: T.bgSoft, color: T.ink, opacity: 0.8 }} />
+            </Field>
+          )}
           <Field label="Prazo (anos)">
             <input type="number" min="1" max="40" value={prazoAnos}
                    onChange={e => setPrazoAnos(Math.max(1, Math.min(40, parseInt(e.target.value, 10) || 1)))} />
           </Field>
-          <Field label={`Taxa esperada (% ao mês) — ${TAXA_SUGERIDA[ativo?.tipo] ?? 0.85}% sugerido pra ${CLASS_LABEL[ativo?.tipo] || ativo?.tipo}`}>
+          <Field label={`Taxa esperada (% ao mês)${ativo ? ` — ${TAXA_SUGERIDA[ativo.tipo] ?? 0.85}% sugerido pra ${CLASS_LABEL[ativo.tipo] || ativo.tipo}` : ""}`}>
             <input type="text" inputMode="decimal"
                    value={taxaMensal}
                    onChange={e => setTaxaMensal(e.target.value)}
                    placeholder="0.85" />
           </Field>
         </div>
+
+        {/* Aporte: mensal ou total */}
+        <div style={{ marginTop: 14 }}>
+          <div className="label-eyebrow" style={{ marginBottom: 8 }}>
+            Aporte adicional durante o prazo
+          </div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+            {[
+              { id: "mensal", label: "Por mês" },
+              { id: "total",  label: "Total no período" },
+            ].map(m => {
+              const ativoModo = aporteModo === m.id;
+              return (
+                <button key={m.id} onClick={() => setAporteModo(m.id)}
+                  style={{
+                    padding: "7px 14px",
+                    background: ativoModo ? `${T.gold}22` : T.card,
+                    border: `1px solid ${ativoModo ? T.gold : T.border}`,
+                    color: ativoModo ? T.gold : T.muted,
+                    fontSize: 11, fontWeight: 600, borderRadius: 100,
+                    cursor: "pointer", letterSpacing: ".03em",
+                  }}>
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+          <input type="text" inputMode="decimal"
+                 value={aporteValor}
+                 onChange={e => setAporteValor(e.target.value)}
+                 placeholder={aporteModo === "total" ? `Ex.: 60000 (em ${prazoAnos} ano${prazoAnos === 1 ? "" : "s"})` : "Ex.: 500"}
+                 style={{ width: "100%" }} />
+          {aporteModo === "total" && meses > 0 && valorInputado > 0 && (
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 6, fontStyle: "italic" }}>
+              Equivale a <strong style={{ color: T.ink }}>{fmt(aporte)}/mês</strong> ao longo de {meses} meses
+            </div>
+          )}
+        </div>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3" style={{ marginBottom: 18 }}>
         <KpiCard
-          label="Valor atual"
+          label="Valor inicial"
           value={hidden ? "•••" : fmt(valorInicial)}
-          sub={ativo ? `${ativo.qtd} cotas × ${fmt(Number(ativo.preco || 0))}` : ""}
+          sub={ativo ? `${ativo.qtd} cotas × ${fmt(Number(ativo.preco || 0))}` : (isManual ? "Personalizado" : "")}
           icon={DollarSign}
           cor={T.gold}
         />
