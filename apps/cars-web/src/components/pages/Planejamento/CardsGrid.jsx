@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
-import { Calendar, BarChart3, Wallet, CreditCard, AlertTriangle, ChevronRight } from "lucide-react";
+import { Calendar, BarChart3, Wallet, CreditCard, AlertTriangle, ChevronRight, Shield } from "lucide-react";
 import { T } from "../../../lib/theme.js";
-import { fmt, todayISO } from "../../../lib/format.js";
+import { fmt, fmtN, todayISO } from "../../../lib/format.js";
 
 export default function CardsGrid({
   transacoes = [],
@@ -9,6 +9,7 @@ export default function CardsGrid({
   dividas = [],
   fixaOcorrencias = [],
   parcelamentos = [],
+  contas = [],
   hidden,
   onAbrir,
 }) {
@@ -61,6 +62,23 @@ export default function CardsGrid({
       ...dividasAbertas.filter(d => d.vencimento && d.vencimento <= em3dias),
     ];
 
+    // Reserva de emergência: média 3m × 6 vs saldo líquido
+    const mesesRef = [-1, -2, -3].map(off => {
+      const d = new Date(); d.setMonth(d.getMonth() + off);
+      return d.toISOString().slice(0, 7);
+    });
+    const despesas3m = transacoes
+      .filter(t => t.tipo === "despesa" && t.compensado !== false)
+      .filter(t => mesesRef.some(m => (t.data || "").startsWith(m)));
+    const custoMedioMensal = despesas3m.length > 0
+      ? despesas3m.reduce((s, t) => s + (parseFloat(t.valor) || 0), 0) / 3
+      : 0;
+    const reservaIdeal = custoMedioMensal * 6;
+    const saldoLiquido = (typeof contas !== "undefined" ? contas : [])
+      .filter(c => c.tipo !== "credito")
+      .reduce((s, c) => s + (parseFloat(c.saldo) || 0), 0);
+    const pctReserva = reservaIdeal > 0 ? Math.min(100, (saldoLiquido / reservaIdeal) * 100) : 0;
+
     return {
       despesasTotal: fixasMes.length + variaveisMes.length,
       despesasFixas: fixasMes.length,
@@ -70,8 +88,9 @@ export default function CardsGrid({
       totalReceber, qtdReceber: aReceber.length,
       parcelasAtivas: parcelasAtivas.length, parcelasMesValor,
       atencao: atencao.length,
+      reservaIdeal, saldoLiquido, pctReserva, custoMedioMensal,
     };
-  }, [transacoes, devedores, dividas, fixaOcorrencias, parcelamentos]);
+  }, [transacoes, devedores, dividas, fixaOcorrencias, parcelamentos, contas]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -152,6 +171,78 @@ export default function CardsGrid({
         valor={`${stats.atencao} ${stats.atencao === 1 ? "item" : "itens"}`}
         valorCor={stats.atencao > 0 ? T.red : T.muted}
       />
+
+      {/* RESERVA DE EMERGÊNCIA */}
+      <CardReserva
+        onClick={() => onAbrir("reserva")}
+        stats={stats}
+        hidden={hidden}
+      />
+    </div>
+  );
+}
+
+function CardReserva({ onClick, stats, hidden }) {
+  const tem = stats.reservaIdeal > 0;
+  const pct = stats.pctReserva || 0;
+  const pronta = pct >= 100;
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        gridColumn: "1 / -1",
+        background: T.card, border: `1px solid ${pronta ? T.green + "66" : T.border}`,
+        borderLeft: `3px solid ${pronta ? T.green : T.gold}`,
+        borderRadius: 10, padding: 16, cursor: "pointer",
+        transition: "all .2s",
+      }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 4px 12px ${T.gold}22`; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 10,
+          background: T.bgSoft, display: "grid", placeItems: "center", flexShrink: 0,
+        }}>
+          <Shield size={20} color={pronta ? T.green : T.gold} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h4 style={{ fontSize: 13.5, fontWeight: 600, color: T.ink }}>
+            Reserva de Emergência
+          </h4>
+          <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+            {tem
+              ? `Ideal: ${hidden ? "•••" : fmt(stats.reservaIdeal)} (6× custo médio de ${hidden ? "•••" : fmt(stats.custoMedioMensal)})`
+              : "Calcule sua reserva ideal e plano de construção"}
+          </div>
+        </div>
+        <ChevronRight size={14} color={T.gold} style={{ flexShrink: 0 }} />
+      </div>
+      {tem && (
+        <>
+          <div style={{
+            height: 8, background: T.border, borderRadius: 999, overflow: "hidden",
+            marginTop: 6,
+          }}>
+            <div style={{
+              width: `${pct}%`, height: "100%",
+              background: pronta ? T.green : T.gold,
+              transition: "width .4s",
+            }} />
+          </div>
+          <div style={{
+            display: "flex", justifyContent: "space-between",
+            fontSize: 11, color: T.muted, marginTop: 6,
+          }}>
+            <span>Você tem: <strong style={{ color: pronta ? T.green : T.ink }} className="num">
+              {hidden ? "•••" : fmt(stats.saldoLiquido)}
+            </strong></span>
+            <span style={{ color: pronta ? T.green : T.gold, fontWeight: 600 }}>
+              {fmtN(pct, 1)}%
+            </span>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -615,6 +615,7 @@ export default function App() {
                 fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
                 parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
                 cartoes={cartoes} setCartoes={setCartoes}
+                metas={metas} setMetas={setMetas}
                 escopoAtivo={escopoAtivo}
                 hidden={hidden}
               />

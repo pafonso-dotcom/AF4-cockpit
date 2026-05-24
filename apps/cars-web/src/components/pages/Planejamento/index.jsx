@@ -8,6 +8,7 @@ import AnualView from "./AnualView.jsx";
 import RecebiveisView from "./RecebiveisView.jsx";
 import ParcelasView from "./ParcelasView.jsx";
 import AtencaoView from "./AtencaoView.jsx";
+import ReservaEmergenciaView from "./ReservaEmergenciaView.jsx";
 
 /**
  * Hub de Planejamento de Finanças.
@@ -24,6 +25,7 @@ export default function Planejamento(props) {
     recebiveis: RecebiveisView,
     parcelas: ParcelasView,
     atencao: AtencaoView,
+    reserva: ReservaEmergenciaView,
   };
 
   if (cardAberto && views[cardAberto]) {
