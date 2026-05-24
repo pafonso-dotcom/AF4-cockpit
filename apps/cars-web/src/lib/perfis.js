@@ -2,8 +2,7 @@
  * Multi-usuário · sistema de perfis com permissões.
  *
  * Sem backend, isso é "soft auth" — o app simplesmente esconde abas
- * conforme o perfil ativo. Útil pra rotina (Paulo deixa um iPad
- * pro Anderson Kid na loja, ele só vê o módulo Loja).
+ * conforme o perfil ativo.
  *
  * Persistência: af4:perfis:v1 (lista) · af4:perfil-ativo:v1 (id atual)
  */
@@ -16,11 +15,10 @@ const PERFIL_PADRAO = {
   nome: "Paulo Afonso",
   email: "",
   cor: "#c9a961",
-  role: "admin", // admin | vendedor | viewer
+  role: "admin", // admin | viewer
   permissoes: {
     financas: true,
     invest: true,
-    loja: true,
     config: true,
   },
 };
@@ -29,17 +27,12 @@ const ROLES = {
   admin: {
     label: "Administrador",
     cor: "#c9a961",
-    permissoes: { financas: true, invest: true, loja: true, config: true },
-  },
-  vendedor: {
-    label: "Vendedor",
-    cor: "#60a5fa",
-    permissoes: { financas: false, invest: false, loja: true, config: false },
+    permissoes: { financas: true, invest: true, config: true },
   },
   viewer: {
     label: "Visualizador",
     cor: "#9ca3af",
-    permissoes: { financas: "view", invest: "view", loja: "view", config: false },
+    permissoes: { financas: "view", invest: "view", config: false },
   },
 };
 
@@ -117,7 +110,7 @@ export function getRoles() { return ROLES; }
 
 /**
  * Hook utilitário pra checar se o perfil ativo tem acesso a um módulo.
- * Aceita "financas" | "invest" | "loja" | "config".
+ * Aceita "financas" | "invest" | "config".
  * Retorna: true (full) · "view" (só leitura) · false (sem acesso).
  */
 export function temPermissao(modulo) {
