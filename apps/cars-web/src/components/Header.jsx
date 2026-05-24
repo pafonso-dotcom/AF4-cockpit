@@ -108,6 +108,7 @@ function HeaderHorizontal({
       { id: "analise-carteira", label: "Análise da Carteira", icon: Radar },
       { id: "mercado",       label: "Mercado",      icon: LineIcon },
       { id: "relatorios-i",  label: "Relatórios",   icon: BarChart3 },
+      { id: "projecao",      label: "Projeção",     icon: TrendingUp },
       { id: "simulador",     label: "Simulador",    icon: Calculator },
     ],
     config: [
@@ -449,6 +450,7 @@ function HeaderVertical({
       { id: "analise-carteira", label: "Análise da Carteira", icon: Radar },
       { id: "mercado",       label: "Mercado",      icon: LineIcon },
       { id: "relatorios-i",  label: "Relatórios",   icon: BarChart3 },
+      { id: "projecao",      label: "Projeção",     icon: TrendingUp },
       { id: "simulador",     label: "Simulador",    icon: Calculator },
     ],
     config: [
