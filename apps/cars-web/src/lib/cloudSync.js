@@ -66,8 +66,13 @@ async function api(method, path, body) {
 
   if (!res.ok) {
     let detail = "";
-    try { detail = (await res.json()).error || ""; } catch {}
-    throw new Error(`Sync ${res.status}: ${detail || res.statusText}`);
+    try {
+      const body = await res.json();
+      detail = body?.error || body?.stack || "";
+    } catch {
+      try { detail = await res.text(); } catch {}
+    }
+    throw new Error(`Sync ${res.status}: ${detail || res.statusText || "(sem detalhe)"}`);
   }
   return res.json();
 }

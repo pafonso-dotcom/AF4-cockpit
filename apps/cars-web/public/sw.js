@@ -4,7 +4,7 @@
 // - APIs externas (Brapi, CoinGecko) — network only
 // Sempre que mudar a UI, bump a versão CACHE pra invalidar tudo do cliente.
 
-const CACHE = "af4-cockpit-v1783200000";
+const CACHE = "af4-cockpit-v1783300000";
 const PRECACHE = ["./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
