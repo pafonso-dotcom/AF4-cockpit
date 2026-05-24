@@ -51,7 +51,7 @@ async function handleApi(request, env, url) {
   }
 
   if (url.pathname === "/api/ping") {
-    return json({ ok: true, kv: !!env.AF4_KV });
+    return json({ ok: true, kv: !!env.AF4_KV, version: "2026-05-24-1" });
   }
 
   if (!env.AF4_KV) {
@@ -125,7 +125,15 @@ export default {
       }
     }
 
-    // Tudo o resto → static assets
-    return env.ASSETS.fetch(request);
+    // Static assets — mas força no-cache na HTML pra evitar JS antigo cacheado
+    const res = await env.ASSETS.fetch(request);
+    const isHtml = (res.headers.get("content-type") || "").includes("text/html");
+    if (isHtml) {
+      const headers = new Headers(res.headers);
+      headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      headers.set("Pragma", "no-cache");
+      return new Response(res.body, { status: res.status, headers });
+    }
+    return res;
   },
 };
