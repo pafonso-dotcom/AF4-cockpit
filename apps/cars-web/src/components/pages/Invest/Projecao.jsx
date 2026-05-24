@@ -1,11 +1,12 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
-import { TrendingUp, Target, DollarSign, Calculator } from "lucide-react";
+import { TrendingUp, Target, DollarSign, Calculator, Sparkles } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
 import { parseValorBR } from "../../../lib/importExport.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import Field from "../../ui/Field.jsx";
+import SugestaoAporte from "./SugestaoAporte.jsx";
 
 const CLASS_LABEL = {
   acao: "Ações", fii: "FIIs", stock: "Stocks (US)", reit: "REITs (US)", etf: "ETFs",
@@ -18,7 +19,7 @@ const TAXA_SUGERIDA = {
   cripto: 1.50, rf: 0.80, tesouro: 0.75, cdb: 0.85, outro: 0.85,
 };
 
-export default function Projecao({ ativos = [], hidden }) {
+export default function Projecao({ ativos = [], hidden, apiKeys = {} }) {
   // Carteira com posição (qtd > 0)
   const ativosComPosicao = useMemo(
     () => (ativos || []).filter(a => Number(a.qtd || 0) > 0),
@@ -42,6 +43,26 @@ export default function Projecao({ ativos = [], hidden }) {
   const [tipoManual, setTipoManual] = useState("fii");
   // Taxa CDB pra comparação (default ~0.90% a.m. = 100% CDI aproximado)
   const [taxaCdb, setTaxaCdb] = useState("0.90");
+
+  // Modal de sugestão por IA
+  const [sugestaoOpen, setSugestaoOpen] = useState(false);
+
+  // Aplica uma opção sugerida pela IA aos campos da projeção
+  const aplicarSugestao = ({ ticker, classe, valor }) => {
+    // Procura o ativo na carteira pra usar dados reais (preço, qtd, pm)
+    const naCarteira = ativosComPosicao.find(a =>
+      (a.ticker || "").toUpperCase() === (ticker || "").toUpperCase()
+    );
+    if (naCarteira) {
+      setAtivoId(naCarteira.id);
+    } else {
+      // Não tem na carteira → modo manual com ticker preenchido
+      setAtivoId("manual");
+      setTickerManual(String(ticker || "").toUpperCase());
+      setTipoManual(classe || "acao");
+      setValorInicialManual(String(Math.round(valor || 0)));
+    }
+  };
 
   // Atualiza valores sugeridos quando troca o ativo (ou classe no modo manual)
   useEffect(() => {
@@ -143,6 +164,20 @@ export default function Projecao({ ativos = [], hidden }) {
         eyebrow="Capítulo VIII"
         title="Projeção"
         sub="Simule a evolução de um ativo (da sua carteira ou personalizado) com aporte regular."
+        action={
+          <button className="btn-gold" onClick={() => setSugestaoOpen(true)}>
+            <Sparkles size={13} className="inline mr-2" />
+            Sugestão de Aporte (IA)
+          </button>
+        }
+      />
+
+      <SugestaoAporte
+        open={sugestaoOpen}
+        onClose={() => setSugestaoOpen(false)}
+        ativosCarteira={ativos}
+        apiKey={apiKeys.anthropic}
+        onAplicarProjecao={aplicarSugestao}
       />
 
       {/* Form */}

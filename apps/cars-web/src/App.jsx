@@ -758,6 +758,7 @@ export default function App() {
                   ativos={ativos} hidden={hidden}
                   tradeAnalisesIdV={tradeAnalisesIdV} setTradeAnalisesIdV={setTradeAnalisesIdV}
                   onAnalisarAtivo={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
+                  apiKeys={apiKeys}
                 />
               </div>
             )}
