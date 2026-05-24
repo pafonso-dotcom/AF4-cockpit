@@ -80,27 +80,31 @@ function HeaderHorizontal({
   const TODOS_MODULOS = [
     { id: "financas", label: "Finanças",      icon: Wallet,    desc: "Pessoal" },
     { id: "invest",   label: "Investimentos", icon: Briefcase, desc: "Carteira" },
+    { id: "agenda",   label: "Agenda",        icon: Calendar,  desc: "Vida" },
   ];
   const MODULOS = TODOS_MODULOS.filter(m => perms[m.id] !== false);
 
   const SUBTABS = {
     financas: [
       { id: "dashboard",    label: "Painel",       icon: Activity },
-      { id: "notas",        label: "Agenda Pessoal", icon: StickyNote },
-      { id: "habitos",      label: "Hábitos",      icon: Sparkles },
-      { id: "diario",       label: "Diário",       icon: Bookmark },
-      { id: "compras",      label: "Compras",      icon: Tag },
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "transacoes",   label: "Transações",   icon: Receipt },
       { id: "analiseia",    label: "Análise IA",   icon: Sparkles },
-      { id: "calendario",   label: "Agenda",       icon: Calendar },
       { id: "planejamento", label: "Planejamento", icon: Target },
-      { id: "metas",        label: "Metas",        icon: Target },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
       { id: "audit",        label: "Histórico",    icon: History },
+    ],
+    agenda: [
+      { id: "notas",      label: "Compromissos",   icon: StickyNote },
+      { id: "calendario", label: "Calendário",     icon: Calendar },
+      { id: "ideias",     label: "Ideias",         icon: Sparkles },
+      { id: "metas",      label: "Metas",          icon: Target },
+      { id: "habitos",    label: "Hábitos",        icon: Sparkles },
+      { id: "diario",     label: "Diário",         icon: Bookmark },
+      { id: "compras",    label: "Compras",        icon: Tag },
     ],
     invest: [
       { id: "investimentos", label: "Painel",       icon: BarChart3 },
@@ -422,27 +426,31 @@ function HeaderVertical({
   const TODOS_MODULOS = [
     { id: "financas", label: "Finanças",      icon: Wallet },
     { id: "invest",   label: "Investimentos", icon: Briefcase },
+    { id: "agenda",   label: "Agenda",        icon: Calendar },
   ];
   const MODULOS = TODOS_MODULOS.filter(m => perms[m.id] !== false);
 
   const SUBTABS = {
     financas: [
       { id: "dashboard",    label: "Painel",       icon: Activity },
-      { id: "notas",        label: "Agenda Pessoal", icon: StickyNote },
-      { id: "habitos",      label: "Hábitos",      icon: Sparkles },
-      { id: "diario",       label: "Diário",       icon: Bookmark },
-      { id: "compras",      label: "Compras",      icon: Tag },
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "transacoes",   label: "Transações",   icon: Receipt },
       { id: "analiseia",    label: "Análise IA",   icon: Sparkles },
-      { id: "calendario",   label: "Agenda",       icon: Calendar },
       { id: "planejamento", label: "Planejamento", icon: Target },
-      { id: "metas",        label: "Metas",        icon: Target },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
       { id: "audit",        label: "Histórico",    icon: History },
+    ],
+    agenda: [
+      { id: "notas",      label: "Compromissos",   icon: StickyNote },
+      { id: "calendario", label: "Calendário",     icon: Calendar },
+      { id: "ideias",     label: "Ideias",         icon: Sparkles },
+      { id: "metas",      label: "Metas",          icon: Target },
+      { id: "habitos",    label: "Hábitos",        icon: Sparkles },
+      { id: "diario",     label: "Diário",         icon: Bookmark },
+      { id: "compras",    label: "Compras",        icon: Tag },
     ],
     invest: [
       { id: "investimentos", label: "Painel",       icon: BarChart3 },

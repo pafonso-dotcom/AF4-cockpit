@@ -48,6 +48,7 @@ import Notas from "./components/pages/Notas.jsx";
 import Habitos from "./components/pages/Habitos.jsx";
 import Diario from "./components/pages/Diario.jsx";
 import Compras from "./components/pages/Compras.jsx";
+import Ideias from "./components/pages/Ideias.jsx";
 import PomodoroFloat from "./components/PomodoroFloat.jsx";
 import Despesas from "./components/pages/Despesas.jsx";
 import ControleAnual from "./components/pages/Relatorios/ControleAnual.jsx";
@@ -118,10 +119,11 @@ export default function App() {
 
   // Agenda pessoal (compromissos, viagens, lembretes, eventos)
   const [agenda, setAgenda] = useState([]);
-  // Fase 1: hábitos com streaks, diário rápido, lista de compras
+  // Fase 1: hábitos com streaks, diário rápido, lista de compras, ideias livres
   const [habitos, setHabitos] = useState([]);
   const [diario, setDiario] = useState([]);
   const [compras, setCompras] = useState([]);
+  const [ideias, setIdeias] = useState([]);
 
   // AF4 Trade
   const [tradeWatchlist, setTradeWatchlist] = useState([]);
@@ -166,6 +168,7 @@ export default function App() {
         setHabitos(data.habitos || []);
         setDiario(data.diario || []);
         setCompras(data.compras || []);
+        setIdeias(data.ideias || []);
         setTradeWatchlist(data.tradeWatchlist || []);
         setTradeHistorico(data.tradeHistorico || []);
         setTradeAnalisesIdV(data.tradeAnalisesIdV || []);
@@ -200,6 +203,7 @@ export default function App() {
         setHabitos([]);
         setDiario([]);
         setCompras([]);
+        setIdeias([]);
         setTradeWatchlist([]);
         setTradeHistorico([]);
         setTradeAnalisesIdV([]);
@@ -217,13 +221,13 @@ export default function App() {
       contas, categorias, transacoes, ativos, metas, notas,
       cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras,
+      habitos, diario, compras, ideias,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId,
     });
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras,
+      habitos, diario, compras, ideias,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId, loading]);
 
@@ -677,40 +681,9 @@ export default function App() {
                           escopoAtivo={escopoAtivo}
                           hidden={hidden} />
             )}
-            {tab === "calendario" && (
-              <Calendario transacoes={transacoes} setTransacoes={setTransacoes}
-                          contas={contas} setContas={setContas}
-                          categorias={categorias} hidden={hidden}
-                          fixas={fixas} fixaOcorrencias={fixaOcorrencias}
-                          parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
-                          agenda={agenda} setAgenda={setAgenda}
-                          escopoAtivo={escopoAtivo} />
-            )}
             {tab === "categorias" && (
               <Categorias categorias={categorias} setCategorias={setCategorias} transacoes={transacoes}
                           escopoAtivo={escopoAtivo} hidden={hidden} />
-            )}
-            {tab === "metas" && (
-              <Metas metas={metas} setMetas={setMetas} hidden={hidden} />
-            )}
-            {tab === "notas" && (
-              <Notas agenda={agenda} setAgenda={setAgenda}
-                     notasLegacy={notas} setNotasLegacy={setNotas} />
-            )}
-            {tab === "habitos" && (
-              <div className="px-6 md:px-10">
-                <Habitos habitos={habitos} setHabitos={setHabitos} />
-              </div>
-            )}
-            {tab === "diario" && (
-              <div className="px-6 md:px-10">
-                <Diario diario={diario} setDiario={setDiario} />
-              </div>
-            )}
-            {tab === "compras" && (
-              <div className="px-6 md:px-10">
-                <Compras compras={compras} setCompras={setCompras} />
-              </div>
             )}
             {/* Rotas antigas (fixas, relatorios-anual, areceber) consolidadas em Planejamento — ver bloco unificado acima */}
             {tab === "analiseia" && (
@@ -724,6 +697,40 @@ export default function App() {
                 parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
                 apiKeys={apiKeys} hidden={hidden}
               />
+            )}
+          </div>
+        )}
+
+        {/* MÓDULO: AGENDA — vida pessoal (compromissos, ideias, metas, hábitos, diário, compras) */}
+        {modulo === "agenda" && (
+          <div className="px-6 md:px-10">
+            {tab === "notas" && (
+              <Notas agenda={agenda} setAgenda={setAgenda}
+                     notasLegacy={notas} setNotasLegacy={setNotas} />
+            )}
+            {tab === "calendario" && (
+              <Calendario transacoes={transacoes} setTransacoes={setTransacoes}
+                          contas={contas} setContas={setContas}
+                          categorias={categorias} hidden={hidden}
+                          fixas={fixas} fixaOcorrencias={fixaOcorrencias}
+                          parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
+                          agenda={agenda} setAgenda={setAgenda}
+                          escopoAtivo={escopoAtivo} />
+            )}
+            {tab === "ideias" && (
+              <Ideias ideias={ideias} setIdeias={setIdeias} />
+            )}
+            {tab === "metas" && (
+              <Metas metas={metas} setMetas={setMetas} hidden={hidden} />
+            )}
+            {tab === "habitos" && (
+              <Habitos habitos={habitos} setHabitos={setHabitos} />
+            )}
+            {tab === "diario" && (
+              <Diario diario={diario} setDiario={setDiario} />
+            )}
+            {tab === "compras" && (
+              <Compras compras={compras} setCompras={setCompras} />
             )}
           </div>
         )}

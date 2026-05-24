@@ -1,5 +1,5 @@
 import React from "react";
-import { Wallet, Briefcase, Settings } from "lucide-react";
+import { Wallet, Briefcase, Calendar, Settings } from "lucide-react";
 import { T } from "../lib/theme.js";
 
 /**
@@ -21,6 +21,7 @@ export default function BottomTabBar({ modulo, setModulo, setTab }) {
   const items = [
     { id: "financas", label: "Finanças", icon: Wallet,    onClick: () => irPara("financas") },
     { id: "invest",   label: "Invest",   icon: Briefcase, onClick: () => irPara("invest") },
+    { id: "agenda",   label: "Agenda",   icon: Calendar,  onClick: () => irPara("agenda") },
     { id: "config",   label: "Config",   icon: Settings,  onClick: irConfig },
   ];
 
@@ -93,4 +94,5 @@ export default function BottomTabBar({ modulo, setModulo, setTab }) {
 const FIRST_TAB_OF = {
   financas: "dashboard",
   invest:   "investimentos",
+  agenda:   "notas",
 };
