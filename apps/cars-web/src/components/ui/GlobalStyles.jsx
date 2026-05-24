@@ -166,45 +166,30 @@ export default function GlobalStyles() {
         .tbl-extrato thead { display: none !important; }
         .tbl-extrato tbody { display: block !important; }
         .tbl-extrato tr {
-          display: block !important;
-          padding: 12px 14px;
-          margin-bottom: 8px;
+          display: grid !important;
+          grid-template-columns: 1fr auto;
+          grid-template-areas:
+            "data acoes"
+            "desc valor"
+            "cat  saldo";
+          column-gap: 14px;
+          row-gap: 2px;
+          padding: 10px 14px !important;
+          margin-bottom: 8px !important;
           background: ${T.card};
           border: 1px solid ${T.border};
           border-radius: 8px;
-          position: relative;
         }
         .tbl-extrato td { display: block !important; padding: 0 !important; border: none !important; }
-        /* Data: pequena no topo esquerdo */
-        .tbl-extrato td:nth-child(1) { font-size: 10.5px; color: ${T.faint}; margin-bottom: 4px !important; padding-right: 100px !important; }
-        /* Descrição: principal */
-        .tbl-extrato td:nth-child(2) { font-size: 13.5px; padding-right: 100px !important; line-height: 1.3; }
-        /* Obs: escondida no mobile */
+        .tbl-extrato td:nth-child(1) { grid-area: data; font-size: 10.5px; color: ${T.faint}; }
+        .tbl-extrato td:nth-child(2) { grid-area: desc; font-size: 13.5px; line-height: 1.3; }
         .tbl-extrato td:nth-child(3) { display: none !important; }
-        /* Categoria: inline, margem direita */
-        .tbl-extrato td:nth-child(4) { display: inline-block !important; margin-top: 6px !important; }
-        /* Valor: flutuante no canto superior direito */
-        .tbl-extrato td:nth-child(5) {
-          position: absolute !important;
-          top: 12px; right: 14px;
-          font-size: 15px !important;
-          font-weight: 700 !important;
-          text-align: right !important;
-        }
-        /* Saldo: alinhado à direita, abaixo do valor (que está absolute) */
-        .tbl-extrato td:nth-child(6) {
-          position: absolute !important;
-          top: 34px; right: 14px;
-          text-align: right !important;
-          font-size: 10.5px;
-        }
-        /* Ações: separador + ícones à direita */
-        .tbl-extrato td:nth-child(7) {
-          margin-top: 10px !important;
-          padding-top: 8px !important;
-          text-align: right !important;
-          border-top: 1px dashed ${T.border};
-        }
+        .tbl-extrato td:nth-child(4) { grid-area: cat; }
+        .tbl-extrato td:nth-child(5) { grid-area: valor; text-align: right !important; font-size: 14.5px !important; font-weight: 700 !important; align-self: center; }
+        .tbl-extrato td:nth-child(6) { grid-area: saldo; text-align: right !important; font-size: 10.5px !important; align-self: center; }
+        .tbl-extrato td:nth-child(7) { grid-area: acoes; text-align: right !important; align-self: start; }
+        /* Botões de ação e categoria compactos no card (override global mín-44) */
+        .tbl-extrato td button { min-height: 26px !important; padding: 3px 5px !important; }
 
         /* Header / SUBTABS rolam horizontalmente sem scrollbar visível */
         .subnav, [data-subnav] {
