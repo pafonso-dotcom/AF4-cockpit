@@ -39,6 +39,8 @@ export default function Projecao({ ativos = [], hidden }) {
   // Ativo futuro (Personalizado): nome + classe
   const [tickerManual, setTickerManual] = useState("");
   const [tipoManual, setTipoManual] = useState("fii");
+  // Taxa CDB pra comparação (default ~0.90% a.m. = 100% CDI aproximado)
+  const [taxaCdb, setTaxaCdb] = useState("0.90");
 
   // Atualiza valores sugeridos quando troca o ativo (ou classe no modo manual)
   useEffect(() => {
@@ -79,21 +81,26 @@ export default function Projecao({ ativos = [], hidden }) {
     return Number(ativo.qtd || 0) * Number(ativo.pm ?? ativo.precoMedio ?? 0);
   }, [ativo, isManual]);
 
-  // Projeção mês a mês
+  const taxaCdbN = parseFloat(String(taxaCdb).replace(",", ".")) || 0;
+
+  // Projeção mês a mês (ativo + CDB comparativo, mesmo aporte)
   const projecao = useMemo(() => {
     const out = [];
     const r = taxa / 100;
+    const rCdb = taxaCdbN / 100;
     let acumulado = valorInicial;
+    let cdb = valorInicial;
     let aportadoTotal = valorInicial;
-    // Mês 0
     out.push({
       mes: 0, ano: 0,
       acumulado: round(acumulado),
       aportado: round(aportadoTotal),
       ganhos: 0,
+      cdb: round(cdb),
     });
     for (let i = 1; i <= meses; i++) {
       acumulado = acumulado * (1 + r) + aporte;
+      cdb = cdb * (1 + rCdb) + aporte;
       aportadoTotal += aporte;
       out.push({
         mes: i,
@@ -101,10 +108,11 @@ export default function Projecao({ ativos = [], hidden }) {
         acumulado: round(acumulado),
         aportado: round(aportadoTotal),
         ganhos: round(acumulado - aportadoTotal),
+        cdb: round(cdb),
       });
     }
     return out;
-  }, [valorInicial, aporte, taxa, meses]);
+  }, [valorInicial, aporte, taxa, taxaCdbN, meses]);
 
   const final = projecao[projecao.length - 1];
   const valorFinal = final?.acumulado || 0;
@@ -287,8 +295,23 @@ export default function Projecao({ ativos = [], hidden }) {
           Evolução em {prazoAnos} {prazoAnos === 1 ? "ano" : "anos"}
         </div>
         <div style={{ fontSize: 12, color: T.muted, marginBottom: 14 }}>
-          Aporte de {fmt(aporte)}/mês a {fmtN(taxa, 2)}% a.m. compostos
+          Aporte de {fmt(aporte)}/mês — Ativo a {fmtN(taxa, 2)}% a.m. · CDB a {fmtN(taxaCdbN, 2)}% a.m.
         </div>
+
+        {/* Controle da taxa do CDB pra comparativo */}
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11, color: T.muted, letterSpacing: ".08em", textTransform: "uppercase" }}>
+            Taxa CDB (% a.m.) pra comparativo:
+          </span>
+          <input type="text" inputMode="decimal"
+                 value={taxaCdb}
+                 onChange={e => setTaxaCdb(e.target.value)}
+                 style={{ width: 90, padding: "6px 10px", fontSize: 12, fontFamily: T.mono }} />
+          <span style={{ fontSize: 10, color: T.faint, fontStyle: "italic" }}>
+            (0.90% ≈ 100% CDI · 1.00% ≈ 110% CDI)
+          </span>
+        </div>
+
         <div style={{ height: 320 }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={projecao}>
@@ -300,6 +323,10 @@ export default function Projecao({ ativos = [], hidden }) {
                 <linearGradient id="grad-aportado" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={T.gold} stopOpacity={0.3} />
                   <stop offset="100%" stopColor={T.gold} stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="grad-cdb" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={T.blue || "#5b9bd5"} stopOpacity={0.25} />
+                  <stop offset="100%" stopColor={T.blue || "#5b9bd5"} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid stroke={T.border} strokeDasharray="3 3" />
@@ -316,11 +343,20 @@ export default function Projecao({ ativos = [], hidden }) {
               />
               <Tooltip
                 contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11 }}
-                formatter={(v, name) => [fmt(v), name === "acumulado" ? "Acumulado" : name === "aportado" ? "Aportado" : "Ganhos"]}
+                formatter={(v, name) => [fmt(v),
+                  name === "acumulado" ? "Ativo" :
+                  name === "aportado" ? "Aportado" :
+                  name === "cdb" ? "CDB" : name
+                ]}
                 labelFormatter={(m) => `Mês ${m} (${Math.floor(m / 12)}a ${m % 12}m)`}
               />
-              <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => v === "acumulado" ? "Acumulado" : v === "aportado" ? "Aportado" : v} />
+              <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) =>
+                v === "acumulado" ? "Ativo escolhido" :
+                v === "aportado" ? "Aportado" :
+                v === "cdb" ? `CDB (${fmtN(taxaCdbN, 2)}% a.m.)` : v
+              } />
               <Area type="monotone" dataKey="aportado" stroke={T.gold} fill="url(#grad-aportado)" strokeWidth={1.5} />
+              <Area type="monotone" dataKey="cdb" stroke={T.blue || "#5b9bd5"} fill="url(#grad-cdb)" strokeWidth={2} strokeDasharray="6 3" />
               <Area type="monotone" dataKey="acumulado" stroke={T.green} fill="url(#grad-acumulado)" strokeWidth={2.5} />
             </AreaChart>
           </ResponsiveContainer>
@@ -362,19 +398,47 @@ export default function Projecao({ ativos = [], hidden }) {
         </div>
       </div>
 
-      {/* Comparativo */}
+      {/* Comparativos */}
       <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 20 }}>
-        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.ink, marginBottom: 10 }}>
-          E se você <em>não</em> aportasse?
+        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.ink, marginBottom: 12 }}>
+          Comparativos
         </div>
-        <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 14, lineHeight: 1.6 }}>
-          Mantendo só o valor que você já tem hoje ({fmt(valorInicial)}) na mesma taxa,
-          em {prazoAnos} {prazoAnos === 1 ? "ano" : "anos"} você teria <strong style={{ color: T.ink }}>{fmt(cenarioSemAporte)}</strong>.
-          Com aporte mensal de {fmt(aporte)} você chega a <strong style={{ color: T.green }}>{fmt(valorFinal)}</strong> —
-          uma diferença de <strong style={{ color: T.gold }}>{fmt(valorFinal - cenarioSemAporte)}</strong>.
-        </p>
+
+        {/* Ativo vs CDB */}
+        {(() => {
+          const cdbFinal = projecao[projecao.length - 1]?.cdb || 0;
+          const diff = valorFinal - cdbFinal;
+          const melhor = diff >= 0;
+          return (
+            <div style={{
+              padding: 12, marginBottom: 10, borderRadius: 8,
+              background: melhor ? `${T.green}10` : `${T.red}10`,
+              border: `1px solid ${melhor ? T.green : T.red}33`,
+            }}>
+              <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.6 }}>
+                <strong style={{ color: T.ink }}>Ativo vs CDB</strong> · em {prazoAnos} {prazoAnos === 1 ? "ano" : "anos"}:<br />
+                Ativo escolhido: <strong style={{ color: T.green }}>{fmt(valorFinal)}</strong> ·
+                CDB ({fmtN(taxaCdbN, 2)}% a.m.): <strong style={{ color: T.blue || "#5b9bd5" }}>{fmt(cdbFinal)}</strong><br />
+                <span style={{ color: melhor ? T.green : T.red, fontWeight: 600 }}>
+                  {melhor ? "▲" : "▼"} {fmt(Math.abs(diff))} {melhor ? "a mais" : "a menos"} no ativo
+                </span>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Sem aporte */}
+        <div style={{ padding: 12, borderRadius: 8, background: T.bgSoft, border: `1px solid ${T.border}` }}>
+          <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.6 }}>
+            <strong style={{ color: T.ink }}>E se você não aportasse?</strong><br />
+            Mantendo só {fmt(valorInicial)} na mesma taxa do ativo, em {prazoAnos} {prazoAnos === 1 ? "ano" : "anos"} você teria <strong style={{ color: T.ink }}>{fmt(cenarioSemAporte)}</strong>.
+            Com {fmt(aporte)}/mês você chega a <strong style={{ color: T.green }}>{fmt(valorFinal)}</strong> —
+            diferença de <strong style={{ color: T.gold }}>{fmt(valorFinal - cenarioSemAporte)}</strong>.
+          </div>
+        </div>
+
         {custoAtual > 0 && (
-          <div style={{ fontSize: 11, color: T.faint, fontStyle: "italic" }}>
+          <div style={{ fontSize: 11, color: T.faint, fontStyle: "italic", marginTop: 12 }}>
             Seu custo médio atual: {fmt(custoAtual)} · Posição atual: {fmt(valorInicial)} ·
             Resultado atual: {fmt(valorInicial - custoAtual)} ({fmtN(custoAtual > 0 ? ((valorInicial - custoAtual) / custoAtual) * 100 : 0, 1)}%)
           </div>
