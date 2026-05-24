@@ -49,7 +49,7 @@ export default function BottomTabBar({ modulo, setModulo, setTab, escopoAtivo, o
         .bottom-tab-bar {
           display: none;
         }
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           .bottom-tab-bar {
             display: block;
             position: fixed; left: 0; right: 0; bottom: 0;

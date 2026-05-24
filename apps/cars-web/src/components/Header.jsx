@@ -364,7 +364,7 @@ function HeaderHorizontal({
           border-color: ${T.gold}55 !important;
         }
         .show-mobile { display: none; }
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           .hide-mobile { display: none !important; }
           .show-mobile { display: block; }
           /* Quick actions seguem visíveis (linha 1) mas só com ícone */

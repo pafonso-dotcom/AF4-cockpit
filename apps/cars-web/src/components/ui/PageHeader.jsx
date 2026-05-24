@@ -16,9 +16,9 @@ export default function PageHeader({ eyebrow, title, sub, action }) {
       <style>{`
         .page-header-title { font-size: clamp(36px, 6vw, 56px); }
         .page-header-sub { font-size: 17px; }
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           .page-header { margin-bottom: 18px; padding-bottom: 14px; gap: 10px; }
-          .page-header-title { font-size: 26px !important; line-height: 1.1 !important; }
+          .page-header-title { font-size: 28px !important; line-height: 1.1 !important; }
           .page-header-sub { font-size: 13px !important; margin-top: 4px !important; }
         }
       `}</style>
