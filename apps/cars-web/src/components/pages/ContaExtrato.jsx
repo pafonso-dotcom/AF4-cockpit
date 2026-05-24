@@ -167,19 +167,28 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
       )}
 
       {/* Header com saldo grande */}
-      <div style={{
+      <div className="conta-hero" style={{
         background: `linear-gradient(135deg, ${T.card}, ${T.cardHi || T.card})`,
         border: `1px solid ${T.border}`,
         borderRadius: 14, padding: 24, marginBottom: 16,
         borderTop: `3px solid ${conta.cor || T.gold}`,
       }}>
         <div className="label-eyebrow">Extrato · {conta.instituicao} · {conta.tipo}</div>
-        <h2 style={{ fontFamily: T.serif, fontSize: 26, color: T.ink, marginTop: 6, marginBottom: 16, letterSpacing: "-0.02em" }}>
+        <h2 className="conta-hero-name" style={{ fontFamily: T.serif, color: T.ink, marginTop: 6, marginBottom: 16, letterSpacing: "-0.02em" }}>
           {conta.nome}
         </h2>
-        <div className="num" style={{ fontFamily: T.serif, fontSize: 42, color: T.gold, fontWeight: 300, lineHeight: 1 }}>
+        <div className="num conta-hero-value" style={{ fontFamily: T.serif, color: T.gold, fontWeight: 300, lineHeight: 1, wordBreak: "break-word" }}>
           {hidden ? "R$ •••••" : fmt(conta.saldo)}
         </div>
+        <style>{`
+          .conta-hero-name { font-size: 26px; }
+          .conta-hero-value { font-size: 42px; }
+          @media (max-width: 480px) {
+            .conta-hero { padding: 18px !important; }
+            .conta-hero-name { font-size: 20px !important; margin-bottom: 10px !important; }
+            .conta-hero-value { font-size: clamp(26px, 8vw, 34px) !important; }
+          }
+        `}</style>
 
         <div style={{
           display: "flex", gap: 18, flexWrap: "wrap",

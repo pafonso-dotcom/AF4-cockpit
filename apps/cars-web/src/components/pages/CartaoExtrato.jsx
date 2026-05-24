@@ -130,31 +130,31 @@ export default function CartaoExtrato({ cartao, transacoes = [], parcelamentos =
       </button>
 
       {/* Banner */}
-      <div style={{
+      <div className="cartao-hero" style={{
         display: "flex", alignItems: "center", gap: 18, padding: 24,
         background: gradient, borderRadius: 12, marginBottom: 18,
         color: "#fff", flexWrap: "wrap",
       }}>
-        <div style={{
+        <div className="cartao-hero-icon" style={{
           width: 60, height: 60, borderRadius: 12,
           display: "grid", placeItems: "center",
           fontSize: 32, flexShrink: 0,
           background: "rgba(0,0,0,.2)",
         }}>💳</div>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 18, fontWeight: 500 }}>{cartao.nome}</div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div className="cartao-hero-name" style={{ fontSize: 18, fontWeight: 500 }}>{cartao.nome}</div>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,.85)", marginTop: 4 }}>
             Vence dia {cartao.diaVencimento || cartao.vencimento || "—"}
             {cartao.final && ` · Final ${cartao.final}`}
             {` · ${txCartao.length} transações no mês`}
           </div>
         </div>
-        <div style={{ textAlign: "right" }}>
+        <div className="cartao-hero-fatura" style={{ textAlign: "right" }}>
           <div style={{
             fontSize: 10, color: "rgba(255,255,255,.7)",
             letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 4,
           }}>Fatura {pctUso > 60 ? "· ⚠ ALERTA" : "atual"}</div>
-          <div style={{ fontSize: 28, fontWeight: 300, fontVariantNumeric: "tabular-nums" }}>
+          <div className="cartao-hero-valor" style={{ fontSize: 28, fontWeight: 300, fontVariantNumeric: "tabular-nums", wordBreak: "break-word" }}>
             {hidden ? "•••" : fmt(fatura)}
           </div>
         </div>

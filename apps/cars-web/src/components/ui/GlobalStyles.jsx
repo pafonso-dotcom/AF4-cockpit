@@ -147,6 +147,13 @@ export default function GlobalStyles() {
         /* Tipografia ligeiramente maior em valores numéricos do Dashboard */
         .dash-kpi-grid .num { font-size: 17px !important; }
 
+        /* Cartão hero (CartaoExtrato): valores numéricos quebram linha pra não cortar */
+        .cartao-hero { padding: 18px !important; gap: 12px !important; }
+        .cartao-hero-icon { width: 48px !important; height: 48px !important; font-size: 26px !important; }
+        .cartao-hero-name { font-size: 16px !important; }
+        .cartao-hero-fatura { text-align: left !important; width: 100%; }
+        .cartao-hero-valor { font-size: 24px !important; }
+
         /* Header / SUBTABS rolam horizontalmente sem scrollbar visível */
         .subnav, [data-subnav] {
           overflow-x: auto;
