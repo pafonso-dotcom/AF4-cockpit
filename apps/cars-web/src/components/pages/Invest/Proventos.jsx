@@ -38,22 +38,29 @@ export default function Proventos({
   setProventosRecebidos,
   proventosIgnorados = {},
   setProventosIgnorados,
+  proventosManuais = [],
+  setProventosManuais,
   contas = [], setContas,
   categorias = [],
   transacoes = [], setTransacoes,
 }) {
-  // Calendário recalculado a partir dos ativos. Removemos os que o user
-  // marcou como "Ignorar" — somem da lista até serem reativados (toggle
-  // "Mostrar ignorados" no header).
+  // Calendário = proventos automáticos (calculados a partir da carteira)
+  // + lançamentos manuais do user. Lançamentos manuais têm `manual: true`
+  // e podem ter ticker fora da carteira (proventos antigos, ETFs, etc).
+  // Os ignorados somem por padrão; toggle "Mostrar ignorados" no header.
   const [mostrarIgnorados, setMostrarIgnorados] = useState(false);
+  const [manualForm, setManualForm] = useState(null);
   const proventos = useMemo(() => {
-    const lista = calendarioProventos(ativos);
-    return mostrarIgnorados ? lista : lista.filter(p => !proventosIgnorados[p.id]);
-  }, [ativos, proventosIgnorados, mostrarIgnorados]);
-  const totalIgnorados = useMemo(
-    () => calendarioProventos(ativos).filter(p => proventosIgnorados[p.id]).length,
-    [ativos, proventosIgnorados]
-  );
+    const auto = calendarioProventos(ativos);
+    const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
+    const todos = [...auto, ...manuais].sort((a, b) => (a.data || "").localeCompare(b.data || ""));
+    return mostrarIgnorados ? todos : todos.filter(p => !proventosIgnorados[p.id]);
+  }, [ativos, proventosIgnorados, mostrarIgnorados, proventosManuais]);
+  const totalIgnorados = useMemo(() => {
+    const auto = calendarioProventos(ativos);
+    const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
+    return [...auto, ...manuais].filter(p => proventosIgnorados[p.id]).length;
+  }, [ativos, proventosIgnorados, proventosManuais]);
 
   const [baixaForm, setBaixaForm] = useState(null);
   const [transferirForm, setTransferirForm] = useState(null);
@@ -283,6 +290,66 @@ export default function Proventos({
     toast.success(`Provento ${provento.ticker} reativado.`);
   };
 
+  /* ===== Ação: LANÇAR provento MANUAL ===== */
+  // Útil quando o cálculo automático não bate com o extrato real, ou
+  // pra registrar proventos de ativos que saíram da carteira / não estão
+  // mais no sistema.
+  const abrirNovoManual = () => {
+    setManualForm({
+      id: null,
+      ticker: "",
+      tipo: "Dividendo",
+      data: hoje.toISOString().slice(0, 10),
+      qtd: "",
+      valorPorCota: "",
+    });
+  };
+
+  const salvarManual = () => {
+    const f = manualForm;
+    const ticker = (f.ticker || "").trim().toUpperCase();
+    const qtd = Number(f.qtd);
+    const vpc = Number(f.valorPorCota);
+    if (!ticker) { toast.error("Informe o ticker."); return; }
+    if (!f.data) { toast.error("Informe a data."); return; }
+    if (!Number.isFinite(qtd) || qtd <= 0) { toast.error("Quantidade inválida."); return; }
+    if (!Number.isFinite(vpc) || vpc <= 0) { toast.error("Valor por cota inválido."); return; }
+
+    const total = qtd * vpc;
+    const novo = {
+      id: f.id || `manual-${uid()}`,
+      data: f.data,
+      ticker,
+      tipo: f.tipo || "Dividendo",
+      valorPorCota: vpc,
+      qtd,
+      total,
+    };
+    if (f.id) {
+      setProventosManuais((proventosManuais || []).map(p => p.id === f.id ? novo : p));
+      toast.success(`Provento ${ticker} atualizado.`);
+    } else {
+      setProventosManuais([...(proventosManuais || []), novo]);
+      toast.success(`Provento ${ticker} lançado.`);
+    }
+    setManualForm(null);
+  };
+
+  const excluirManual = async (provento) => {
+    if (proventosRecebidos[provento.id]) {
+      toast.error("Estorne a baixa antes de excluir o lançamento.");
+      return;
+    }
+    const ok = await confirm({
+      title: `Excluir provento manual ${provento.ticker}?`,
+      body: `O lançamento de ${fmt(provento.total)} (${provento.tipo} em ${provento.data}) será removido.`,
+      danger: true, confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+    setProventosManuais((proventosManuais || []).filter(p => p.id !== provento.id));
+    toast.success(`Lançamento ${provento.ticker} excluído.`);
+  };
+
   /* ===== Ação: TRANSFERIR da carteira pra conta real ===== */
   const confirmarTransferencia = () => {
     const { valor, contaDestino } = transferirForm;
@@ -366,12 +433,17 @@ export default function Proventos({
         title="Calendário & Carteira"
         sub="Dividendos, JCP e rendimentos previstos + carteira virtual pra acumular ou reinvestir."
         action={
-          totalIgnorados > 0 && (
-            <button onClick={() => setMostrarIgnorados(v => !v)} className="btn-ghost"
-                    style={{ fontSize: 11 }}>
-              {mostrarIgnorados ? "Esconder" : "Mostrar"} ignorados ({totalIgnorados})
+          <div className="flex gap-2 flex-wrap">
+            {totalIgnorados > 0 && (
+              <button onClick={() => setMostrarIgnorados(v => !v)} className="btn-ghost"
+                      style={{ fontSize: 11 }}>
+                {mostrarIgnorados ? "Esconder" : "Mostrar"} ignorados ({totalIgnorados})
+              </button>
+            )}
+            <button onClick={abrirNovoManual} className="btn-gold" style={{ fontSize: 11 }}>
+              + Lançar manual
             </button>
-          )
+          </div>
         }
       />
 
@@ -532,7 +604,19 @@ export default function Proventos({
                       opacity: recebido ? 0.55 : 1,
                     }}>
                       <Td>{p.data.slice(8, 10)}/{p.data.slice(5, 7)}</Td>
-                      <Td><strong>{p.ticker}</strong></Td>
+                      <Td>
+                        <strong>{p.ticker}</strong>
+                        {p.manual && (
+                          <span title="Lançamento manual"
+                                style={{
+                                  marginLeft: 6, fontSize: 8.5, padding: "1px 5px", borderRadius: 3,
+                                  background: `${T.gold}33`, color: T.gold,
+                                  letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700,
+                                }}>
+                            Manual
+                          </span>
+                        )}
+                      </Td>
                       <Td>
                         <span style={{
                           fontSize: 10, padding: "2px 7px", borderRadius: 4,
@@ -606,9 +690,21 @@ export default function Proventos({
                                     }}>
                               <ArrowDownToLine size={11} /> Baixar
                             </button>
-                            <button onClick={() => ignorarProvento(p)}
-                                    title="Excluir/ignorar este provento previsto"
-                                    aria-label={`Excluir provento previsto ${p.ticker}`}
+                            {p.manual && (
+                              <button onClick={() => setManualForm({ ...p, qtd: String(p.qtd), valorPorCota: String(p.valorPorCota) })}
+                                      title="Editar lançamento manual"
+                                      aria-label={`Editar lançamento manual ${p.ticker}`}
+                                      style={{
+                                        background: "transparent", border: `1px solid ${T.border}`,
+                                        color: T.muted, padding: "2px 7px", borderRadius: 4,
+                                        cursor: "pointer", fontSize: 10, letterSpacing: ".05em",
+                                      }}>
+                                ✎
+                              </button>
+                            )}
+                            <button onClick={() => p.manual ? excluirManual(p) : ignorarProvento(p)}
+                                    title={p.manual ? "Excluir lançamento manual" : "Excluir/ignorar este provento previsto"}
+                                    aria-label={p.manual ? `Excluir lançamento manual ${p.ticker}` : `Excluir provento previsto ${p.ticker}`}
                                     style={{
                                       background: "transparent", border: `1px solid ${T.border}`,
                                       color: T.red, padding: "2px 5px", borderRadius: 4,
@@ -627,6 +723,70 @@ export default function Proventos({
           </div>
         </div>
       ))}
+
+      {/* MODAL: LANÇAMENTO MANUAL */}
+      {manualForm && (
+        <Modal title={manualForm.id ? "Editar lançamento manual" : "Lançar provento manual"}
+               onClose={() => setManualForm(null)}>
+          <div style={{ fontSize: 12, color: T.muted, marginBottom: 12, fontStyle: "italic" }}>
+            Use quando o cálculo automático não bate com seu extrato, ou pra registrar proventos de ativos fora da carteira.
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Ticker" required>
+              <input value={manualForm.ticker}
+                     onChange={e => setManualForm({ ...manualForm, ticker: e.target.value })}
+                     placeholder="Ex.: PETR4" />
+            </Field>
+            <Field label="Tipo" required>
+              <select value={manualForm.tipo}
+                      onChange={e => setManualForm({ ...manualForm, tipo: e.target.value })}>
+                <option value="Dividendo">Dividendo</option>
+                <option value="JCP">JCP</option>
+                <option value="Rendimento">Rendimento (FII)</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </Field>
+          </div>
+          <Field label="Data do pagamento" required>
+            <input type="date" value={manualForm.data}
+                   onChange={e => setManualForm({ ...manualForm, data: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Quantidade de cotas" required>
+              <input type="number" step="0.00000001" value={manualForm.qtd}
+                     onChange={e => setManualForm({ ...manualForm, qtd: e.target.value })}
+                     placeholder="100" />
+            </Field>
+            <Field label="Valor por cota (R$)" required>
+              <input type="number" step="0.0001" value={manualForm.valorPorCota}
+                     onChange={e => setManualForm({ ...manualForm, valorPorCota: e.target.value })}
+                     placeholder="0,50" />
+            </Field>
+          </div>
+          {(() => {
+            const q = Number(manualForm.qtd) || 0;
+            const v = Number(manualForm.valorPorCota) || 0;
+            const total = q * v;
+            return total > 0 ? (
+              <div style={{
+                padding: 10, marginTop: 4, background: `${T.green}11`,
+                border: `1px solid ${T.green}33`, borderRadius: 6,
+                fontSize: 12.5, color: T.muted, display: "flex", justifyContent: "space-between",
+              }}>
+                <span>Total previsto:</span>
+                <strong className="num" style={{ color: T.green }}>{fmt(total)}</strong>
+              </div>
+            ) : null;
+          })()}
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => setManualForm(null)}>Cancelar</button>
+            <button className="btn-gold" onClick={salvarManual}>
+              <Check size={13} className="inline mr-1" />
+              {manualForm.id ? "Salvar" : "Lançar"}
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {/* MODAL: BAIXAR PROVENTO */}
       {baixaForm && (() => {
