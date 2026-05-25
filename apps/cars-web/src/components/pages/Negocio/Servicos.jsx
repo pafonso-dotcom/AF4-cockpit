@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Plus, Trash2, Edit3, Check, Wrench, X, ChevronDown, ChevronRight, DollarSign, TrendingUp } from "lucide-react";
+import { Plus, Trash2, Edit3, Check, Wrench, X, ChevronDown, ChevronRight, DollarSign, TrendingUp, Repeat, Pause, Play, Receipt } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../../lib/format.js";
 import { toast } from "../../../lib/toast.js";
@@ -21,6 +21,7 @@ import Modal from "../../ui/Modal.jsx";
 export default function Servicos({
   servicos = [], setServicos,
   vendas = [], setVendas,
+  contratos = [], setContratos,
   clientes = [],
   veiculos = [],
   contas = [], setContas,
@@ -30,8 +31,10 @@ export default function Servicos({
 }) {
   const [servicoForm, setServicoForm] = useState(null);
   const [vendaForm, setVendaForm] = useState(null);
+  const [contratoForm, setContratoForm] = useState(null);
   const [filtroVendas, setFiltroVendas] = useState("mes"); // mes | tudo
   const [catalogoExpandido, setCatalogoExpandido] = useState(true);
+  const [contratosExpandido, setContratosExpandido] = useState(true);
 
   const ativos = useMemo(
     () => servicos.filter(s => s.ativo !== false),
@@ -228,6 +231,150 @@ export default function Servicos({
     toast.success("Venda estornada.");
   };
 
+  /* ---------- Contratos recorrentes (CRM, tráfego, app, etc) ---------- */
+
+  // Referência da competência atual conforme a recorrência
+  const refAtual = (recorrencia) => {
+    const d = new Date();
+    if (recorrencia === "anual") return String(d.getFullYear());
+    return d.toISOString().slice(0, 7); // mensal: YYYY-MM
+  };
+
+  const abrirContratoNovo = () => setContratoForm({
+    id: null,
+    clienteId: clientes[0]?.id || "",
+    servicoId: "",
+    nome: "",
+    valor: "",
+    custo: "",
+    recorrencia: "mensal", // mensal | anual
+    dataInicio: todayISO(),
+    contaDestino: contas[0]?.nome || "",
+    obs: "",
+    ativo: true,
+  });
+
+  const abrirContratoEditar = (c) => setContratoForm({
+    ...c,
+    valor: String(c.valor ?? ""),
+    custo: String(c.custo ?? ""),
+  });
+
+  const onContratoTrocarServico = (servicoId) => {
+    if (!servicoId) {
+      setContratoForm({ ...contratoForm, servicoId: "", nome: "" });
+      return;
+    }
+    const s = servicos.find(x => x.id === servicoId);
+    if (s) {
+      setContratoForm({
+        ...contratoForm,
+        servicoId,
+        nome: s.nome,
+        valor: String(s.precoSugerido ?? ""),
+        custo: String(s.custoBase ?? ""),
+      });
+    }
+  };
+
+  const salvarContrato = () => {
+    const nome = (contratoForm.nome || "").trim();
+    const valor = Number(contratoForm.valor);
+    const custo = Number(contratoForm.custo) || 0;
+    if (!nome) { toast.error("Informe o nome do contrato."); return; }
+    if (!contratoForm.clienteId) { toast.error("Selecione um cliente."); return; }
+    if (!Number.isFinite(valor) || valor <= 0) { toast.error("Valor inválido."); return; }
+    if (!contratoForm.contaDestino) { toast.error("Selecione a conta destino."); return; }
+
+    const dados = {
+      ...contratoForm,
+      nome, valor, custo,
+      obs: (contratoForm.obs || "").trim(),
+    };
+    if (contratoForm.id) {
+      setContratos((contratos || []).map(c => c.id === contratoForm.id ? dados : c));
+      toast.success("Contrato atualizado.");
+    } else {
+      setContratos([{ ...dados, id: uid(), ultimaFaturaRef: null, criadoEm: new Date().toISOString() }, ...(contratos || [])]);
+      toast.success("Contrato criado.");
+    }
+    setContratoForm(null);
+  };
+
+  const excluirContrato = async (c) => {
+    const ok = await confirm({
+      title: `Excluir contrato "${c.nome}"?`,
+      body: "As faturas já geradas continuam registradas, mas o contrato some daqui.",
+      danger: true, confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+    setContratos((contratos || []).filter(x => x.id !== c.id));
+    toast.success("Contrato removido.");
+  };
+
+  const toggleContratoAtivo = (c) => {
+    setContratos((contratos || []).map(x => x.id === c.id ? { ...x, ativo: !(x.ativo !== false) } : x));
+  };
+
+  // Gera fatura (= venda) referente à competência atual. Skip se já gerou.
+  const gerarFatura = (c) => {
+    const ref = refAtual(c.recorrencia);
+    if (c.ultimaFaturaRef === ref) {
+      toast.error(`Fatura de ${ref} já foi gerada.`);
+      return;
+    }
+    const conta = contas.find(co => co.nome === c.contaDestino);
+    if (!conta) { toast.error(`Conta "${c.contaDestino}" não existe mais. Edite o contrato.`); return; }
+
+    const cliente = clientes.find(cl => cl.id === c.clienteId);
+    const refLabel = c.recorrencia === "anual" ? `Ano ${ref}` : `${ref.slice(5)}/${ref.slice(0, 4)}`;
+
+    const novaVenda = {
+      id: uid(),
+      servicoId: c.servicoId || null,
+      contratoId: c.id,
+      nome: `${c.nome} · ${refLabel}`,
+      data: todayISO(),
+      valor: Number(c.valor || 0),
+      custo: Number(c.custo || 0),
+      clienteId: c.clienteId || null,
+      veiculoId: null,
+      contaDestino: c.contaDestino,
+      obs: `Fatura recorrente · ref ${ref}`,
+    };
+
+    const catServ = categorias.find(cat => cat.tipo === "receita" && /serv|negocio|aluguel|recorr/i.test(cat.nome))?.nome
+                 || categorias.find(cat => cat.tipo === "receita")?.nome
+                 || "Outros";
+    setTransacoes([{
+      id: uid(),
+      tipo: "receita",
+      descricao: `${c.nome}${cliente ? ` · ${cliente.nome}` : ""} · ${refLabel}`,
+      categoria: catServ,
+      conta: c.contaDestino,
+      data: todayISO(),
+      valor: Number(c.valor || 0),
+      compensado: true,
+      fixa: false,
+      obs: `Fatura recorrente do módulo Negócio (serviço ${novaVenda.id})`,
+    }, ...transacoes]);
+
+    setContas(contas.map(co => co.id === conta.id
+      ? { ...co, saldo: (parseFloat(co.saldo) || 0) + Number(c.valor || 0) } : co));
+
+    setVendas([novaVenda, ...vendas]);
+    setContratos((contratos || []).map(x => x.id === c.id ? { ...x, ultimaFaturaRef: ref } : x));
+    toast.success(`Fatura ${refLabel} gerada · ${fmt(c.valor)}`);
+  };
+
+  const gerarFaturasPendentes = () => {
+    const ativos = (contratos || []).filter(c => c.ativo !== false);
+    if (ativos.length === 0) { toast.error("Nenhum contrato ativo."); return; }
+    const pendentes = ativos.filter(c => c.ultimaFaturaRef !== refAtual(c.recorrencia));
+    if (pendentes.length === 0) { toast.error("Todas as faturas do período já foram geradas."); return; }
+    pendentes.forEach(gerarFatura);
+  };
+
   return (
     <div className="fade-up py-8 px-6">
       <PageHeader
@@ -324,6 +471,128 @@ export default function Servicos({
                   </div>
                 </div>
               ))}
+            </div>
+          )
+        )}
+      </div>
+
+      {/* CONTRATOS RECORRENTES */}
+      <div style={{
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        padding: 14, marginBottom: 14,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+          <button onClick={() => setContratosExpandido(v => !v)}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0,
+                           display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ color: T.gold }}>
+              {contratosExpandido ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+            <Repeat size={14} style={{ color: T.gold }} />
+            <span className="label-eyebrow">
+              Contratos recorrentes ({(contratos || []).filter(c => c.ativo !== false).length} ativos)
+            </span>
+          </button>
+          <div style={{ display: "flex", gap: 6 }}>
+            {(contratos || []).filter(c => c.ativo !== false).length > 0 && (
+              <button onClick={gerarFaturasPendentes}
+                style={{
+                  background: T.gold, color: T.bg, border: "none",
+                  padding: "5px 12px", borderRadius: 5, cursor: "pointer",
+                  fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                }}>
+                <Receipt size={11} /> Gerar faturas do período
+              </button>
+            )}
+            <button onClick={abrirContratoNovo}
+              style={{
+                background: "transparent", border: `1px solid ${T.border}`,
+                color: T.muted, padding: "5px 10px", borderRadius: 5, cursor: "pointer",
+                fontSize: 10, letterSpacing: ".05em", textTransform: "uppercase",
+              }}>
+              <Plus size={11} className="inline mr-1" /> Novo contrato
+            </button>
+          </div>
+        </div>
+
+        {contratosExpandido && (
+          (contratos || []).length === 0 ? (
+            <div style={{ padding: 18, fontSize: 12, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
+              Nenhum contrato recorrente. Use pra CRM, tráfego pago, app, aluguel, mensalidades, qualquer serviço que se repita.
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 6 }}>
+              {(contratos || []).map(c => {
+                const cliente = clientes.find(cl => cl.id === c.clienteId);
+                const ref = refAtual(c.recorrencia);
+                const faturadoEsteMes = c.ultimaFaturaRef === ref;
+                const inativo = c.ativo === false;
+                return (
+                  <div key={c.id} style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr auto auto auto",
+                    gap: 10, alignItems: "center", padding: "10px 12px", borderRadius: 6,
+                    background: T.bgSoft, opacity: inativo ? 0.55 : 1,
+                    borderLeft: `3px solid ${faturadoEsteMes ? T.green : T.gold}`,
+                  }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>{c.nome}</span>
+                        <span style={{
+                          fontSize: 9, padding: "1px 6px", borderRadius: 3,
+                          background: `${T.gold}22`, color: T.gold,
+                          letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700,
+                        }}>
+                          {c.recorrencia === "anual" ? "Anual" : "Mensal"}
+                        </span>
+                        {inativo && (
+                          <span style={{ fontSize: 9, padding: "1px 6px", background: T.border,
+                                         color: T.muted, borderRadius: 3, letterSpacing: ".1em", textTransform: "uppercase" }}>
+                            Pausado
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: T.muted, marginTop: 3, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        {cliente && <span>👤 {cliente.nome}</span>}
+                        <span>→ {c.contaDestino}</span>
+                        {c.ultimaFaturaRef && (
+                          <span style={{ color: faturadoEsteMes ? T.green : T.muted }}>
+                            Última: {c.recorrencia === "anual" ? c.ultimaFaturaRef : `${c.ultimaFaturaRef.slice(5)}/${c.ultimaFaturaRef.slice(0, 4)}`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="num" style={{ fontSize: 13, color: T.gold, fontWeight: 600 }}>
+                      {hidden ? "•••" : fmt(c.valor)}
+                    </span>
+                    <button onClick={() => gerarFatura(c)}
+                            disabled={faturadoEsteMes || inativo}
+                            title={faturadoEsteMes ? "Já gerada no período" : "Gerar fatura agora"}
+                            style={{
+                              ...btnIcon(),
+                              minWidth: 32, minHeight: 32,
+                              opacity: (faturadoEsteMes || inativo) ? 0.4 : 1,
+                              cursor: (faturadoEsteMes || inativo) ? "not-allowed" : "pointer",
+                            }}>
+                      <Receipt size={12} />
+                    </button>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button onClick={() => toggleContratoAtivo(c)}
+                              title={inativo ? "Reativar" : "Pausar"}
+                              style={btnIcon()}>
+                        {inativo ? <Play size={12} /> : <Pause size={12} />}
+                      </button>
+                      <button onClick={() => abrirContratoEditar(c)} title="Editar" style={btnIcon()}>
+                        <Edit3 size={12} />
+                      </button>
+                      <button onClick={() => excluirContrato(c)} title="Excluir" style={btnIcon({ color: T.red })}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )
         )}
@@ -511,6 +780,94 @@ export default function Servicos({
           </Modal>
         );
       })()}
+
+      {/* MODAL: contrato recorrente */}
+      {contratoForm && (
+        <Modal title={contratoForm.id ? "Editar contrato" : "Novo contrato recorrente"}
+               onClose={() => setContratoForm(null)}>
+          <div style={{ fontSize: 12, color: T.muted, marginBottom: 12, fontStyle: "italic" }}>
+            Use pra cobrar serviços que se repetem todo mês (CRM, tráfego pago, app, aluguel, mensalidade…). Cada faturamento cria uma receita no Finanças.
+          </div>
+          <Field label="Cliente" required>
+            <select value={contratoForm.clienteId}
+                    onChange={e => setContratoForm({ ...contratoForm, clienteId: e.target.value })}>
+              <option value="">Selecione…</option>
+              {clientes.map(c => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Serviço do catálogo (opcional)">
+            <select value={contratoForm.servicoId}
+                    onChange={e => onContratoTrocarServico(e.target.value)}>
+              <option value="">— digitar nome livre —</option>
+              {servicos.filter(s => s.ativo !== false).map(s => (
+                <option key={s.id} value={s.id}>{s.nome} · {fmt(s.precoSugerido)}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Nome do serviço/contrato" required>
+            <input value={contratoForm.nome}
+                   onChange={e => setContratoForm({ ...contratoForm, nome: e.target.value })}
+                   placeholder="Ex.: CRM mensal · Tráfego pago · App XYZ" />
+          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Field label="Valor (R$)" required>
+              <input type="number" step="0.01" value={contratoForm.valor}
+                     onChange={e => setContratoForm({ ...contratoForm, valor: e.target.value })}
+                     placeholder="200" />
+            </Field>
+            <Field label="Custo (R$)">
+              <input type="number" step="0.01" value={contratoForm.custo}
+                     onChange={e => setContratoForm({ ...contratoForm, custo: e.target.value })}
+                     placeholder="50" />
+            </Field>
+            <Field label="Recorrência" required>
+              <select value={contratoForm.recorrencia}
+                      onChange={e => setContratoForm({ ...contratoForm, recorrencia: e.target.value })}>
+                <option value="mensal">Mensal</option>
+                <option value="anual">Anual</option>
+              </select>
+            </Field>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Data de início">
+              <input type="date" value={contratoForm.dataInicio}
+                     onChange={e => setContratoForm({ ...contratoForm, dataInicio: e.target.value })} />
+            </Field>
+            <Field label="Conta que recebe" required>
+              <select value={contratoForm.contaDestino}
+                      onChange={e => setContratoForm({ ...contratoForm, contaDestino: e.target.value })}>
+                <option value="">Selecione…</option>
+                {contas.map(c => (
+                  <option key={c.id} value={c.nome}>{c.nome}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <Field label="Observações">
+            <textarea value={contratoForm.obs} rows={2}
+                      onChange={e => setContratoForm({ ...contratoForm, obs: e.target.value })}
+                      placeholder="Detalhes do contrato, escopo, link..."
+                      style={{ resize: "vertical", fontFamily: "inherit" }} />
+          </Field>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, cursor: "pointer" }}>
+            <input type="checkbox" checked={contratoForm.ativo !== false}
+                   onChange={e => setContratoForm({ ...contratoForm, ativo: e.target.checked })}
+                   style={{ width: 16, height: 16, accentColor: T.gold }} />
+            <span style={{ fontSize: 12.5, color: T.muted }}>
+              Ativo (entra no "Gerar faturas do período")
+            </span>
+          </label>
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => setContratoForm(null)}>Cancelar</button>
+            <button className="btn-gold" onClick={salvarContrato}>
+              <Check size={13} className="inline mr-1" />
+              {contratoForm.id ? "Salvar" : "Criar contrato"}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
