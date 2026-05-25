@@ -13,6 +13,7 @@ const PROV_RE = /provent|dividend|rendiment|juros sobre|jcp\b/i;
 export default function InvestPainel({
   ativos = [], transacoes = [], categorias = [],
   hidden, onTabChange, onAnalisar,
+  onAbrirAnaliseCarteira, onAbrirAnaliseIdv,
 }) {
   const mask = (s) => hidden ? "•••••" : s;
   const hoje = new Date();
@@ -140,7 +141,7 @@ export default function InvestPainel({
       }}>
         <AlocacaoCard data={alocacao} total={t.valor} hidden={hidden} />
         <TopAtivosCard items={topAtivos} hidden={hidden} onAnalisar={onAnalisar} onSeeAll={() => onTabChange?.("carteira")} />
-        <SinaisCTA onClick={() => onTabChange?.("analise-carteira")} />
+        <SinaisCTA onClick={() => onAbrirAnaliseCarteira?.()} />
       </section>
 
       {/* Linha 3 */}
@@ -157,9 +158,9 @@ export default function InvestPainel({
         display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12,
       }}>
         <AtalhoCard label="Análise da Carteira" sub="Varredura técnica de todos os ativos"
-                    icon={BarChart3} cor={T.gold} onClick={() => onTabChange?.("analise-carteira")} />
+                    icon={BarChart3} cor={T.gold} onClick={() => onAbrirAnaliseCarteira?.()} />
         <AtalhoCard label="Análise IdV" sub="Critérios fundamentalistas"
-                    icon={Award} cor={T.green} onClick={() => onTabChange?.("invest-idv")} />
+                    icon={Award} cor={T.green} onClick={() => onAbrirAnaliseIdv?.()} />
         <AtalhoCard label="Pergunte à IA" sub="Tire dúvidas e obtenha análises"
                     icon={Sparkles} cor={T.blue || "#60a5fa"} onClick={() => onTabChange?.("perguntar")} />
       </section>
