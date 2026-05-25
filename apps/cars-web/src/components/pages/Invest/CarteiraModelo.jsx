@@ -146,6 +146,26 @@ export default function CarteiraModelo({
     setSugestaoOpen(true);
   };
 
+  // Edita uma classe: se modelo é builtin, duplica primeiro e abre editor no clone
+  const editarClasse = (classeKey) => {
+    if (!modelo) return;
+    if (modelo.builtin) {
+      const novoId = `custom-${Date.now()}`;
+      const copia = {
+        ...JSON.parse(JSON.stringify(modelo)),
+        id: novoId,
+        nome: `${modelo.nome} (editado)`,
+        builtin: false,
+      };
+      setCarteirasModeloCustom([...(carteirasModeloCustom || []), copia]);
+      setModeloAtivoId(novoId);
+      toast.info("Modelo padrão duplicado pra você editar.");
+      setTimeout(() => setEditando({ classeKey }), 50);
+      return;
+    }
+    setEditando({ classeKey });
+  };
+
   const toggleClasse = (k) => setClassesExpandidas(p => ({ ...p, [k]: !p[k] }));
 
   return (
@@ -249,8 +269,7 @@ export default function CarteiraModelo({
           onToggle={() => toggleClasse(k)}
           hidden={hidden}
           onSugerirIA={abrirSugestao}
-          onEditar={() => setEditando({ classeKey: k })}
-          podeEditar={!modelo.builtin}
+          onEditar={() => editarClasse(k)}
         />
       ))}
 
@@ -299,7 +318,7 @@ export default function CarteiraModelo({
 /* ============================================================
    ClasseBlock — bloco colapsível de uma classe (FII / Ação / Stock / REIT)
    ============================================================ */
-function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaClasse, expandida, onToggle, hidden, onSugerirIA, onEditar, podeEditar }) {
+function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaClasse, expandida, onToggle, hidden, onSugerirIA, onEditar }) {
   const cor = COR_CLASSE[classeKey] || T.gold;
   const Icon = ICONE_CLASSE[classeKey] || Target;
 
@@ -358,8 +377,18 @@ function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaC
           <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
             {LABEL_CLASSE[classeKey] || classeKey}
             <span style={{ fontSize: 11, color: T.muted, fontWeight: 400, marginLeft: 8 }}>
-              {totalTickersOk} de {classeConfig.tickers.length} tickers
+              {totalTickersOk} de {classeConfig.tickers.length} no modelo
             </span>
+            {analise.qtdAtivosClasse > 0 && (
+              <span style={{ fontSize: 11, color: T.faint, fontWeight: 400, marginLeft: 6 }}>
+                · {analise.qtdAtivosClasse} {analise.qtdAtivosClasse === 1 ? "ativo" : "ativos"} na carteira
+              </span>
+            )}
+            {analise.foraDoModelo.length > 0 && (
+              <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 700, marginLeft: 6, padding: "1px 6px", background: "#fbbf2422", borderRadius: 3 }}>
+                {analise.foraDoModelo.length} fora
+              </span>
+            )}
           </div>
           <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
             Atual {hidden ? "•••" : fmt(totalAtual)}
@@ -375,7 +404,7 @@ function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaC
             )}
           </div>
         </div>
-        {podeEditar && expandida && (
+        {expandida && (
           <button onClick={(e) => { e.stopPropagation(); onEditar(); }}
                   style={iconBtn(T.muted)} title="Editar tickers e %">
             <Edit3 size={13} />
@@ -461,18 +490,71 @@ function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaC
             );
           })}
 
-          {/* Fora do modelo */}
+          {/* Fora do modelo — lista visual com cards */}
           {analise.foraDoModelo.length > 0 && (
-            <div style={{
-              marginTop: 12, padding: 10,
-              background: `${T.gold}11`, border: `1px solid ${T.gold}44`,
-              borderRadius: 8, fontSize: 11.5, color: T.muted,
-            }}>
-              <AlertCircle size={12} className="inline mr-1" style={{ color: T.gold }} />
-              <strong style={{ color: T.gold }}>Ativos fora do modelo:</strong>{" "}
-              {analise.foraDoModelo.map(f => `${f.ticker} (${fmt(f.valor)})`).join(", ")}
+            <div style={{ marginTop: 14 }}>
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                fontSize: 11, color: "#fbbf24", letterSpacing: ".08em", textTransform: "uppercase",
+                fontWeight: 700, marginBottom: 6,
+                paddingBottom: 4, borderBottom: `1px solid #fbbf2455`,
+              }}>
+                <span>
+                  <AlertCircle size={11} className="inline mr-1" />
+                  Ativos seus FORA do modelo ({analise.foraDoModelo.length})
+                </span>
+                <span style={{ color: T.muted, fontSize: 10.5, fontWeight: 500, letterSpacing: 0, textTransform: "none" }}>
+                  Total: {hidden ? "•••" : fmt(analise.foraDoModelo.reduce((s, f) => s + f.valor, 0))}
+                </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                {analise.foraDoModelo.map(f => (
+                  <div key={f.ticker} style={{
+                    background: T.bgSoft, border: `1px solid ${T.border}`,
+                    borderLeft: `3px solid #fbbf24`,
+                    borderRadius: 8, padding: "9px 12px",
+                    display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center",
+                  }}>
+                    <div style={{
+                      padding: "4px 9px", background: "#fbbf2422", color: "#fbbf24",
+                      fontSize: 11, fontWeight: 700, borderRadius: 5, letterSpacing: ".03em",
+                      minWidth: 64, textAlign: "center",
+                    }}>
+                      {f.ticker}
+                    </div>
+                    <div style={{ minWidth: 0, fontSize: 11, color: T.muted }}>
+                      {f.qtd} × {fmt(f.preco)}
+                      {f.segmento && <span style={{ marginLeft: 6, fontStyle: "italic", color: T.faint }}>· {f.segmento}</span>}
+                    </div>
+                    <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <div className="num" style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>
+                        {hidden ? "•••" : fmt(f.valor)}
+                      </div>
+                      <div style={{ fontSize: 10, color: T.faint, marginTop: 1 }}>
+                        {f.pctDaClasse.toFixed(1)}% da classe
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 10.5, color: T.muted, marginTop: 6, fontStyle: "italic" }}>
+                💡 Esses ativos não estão previstos no modelo. Use o botão abaixo pra adicioná-los (duplica automaticamente se for modelo padrão).
+              </div>
             </div>
           )}
+
+          {/* Botão Adicionar/editar tickers — auto-duplica se for builtin */}
+          <button onClick={onEditar}
+                  style={{
+                    marginTop: 14, width: "100%",
+                    background: `${cor}11`, color: cor,
+                    border: `1.5px dashed ${cor}88`, padding: "10px 12px",
+                    fontSize: 12, fontWeight: 600, borderRadius: 8,
+                    cursor: "pointer", letterSpacing: ".03em",
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  }}>
+            <Plus size={13} /> Adicionar / editar tickers desta classe
+          </button>
         </div>
       )}
     </div>
@@ -555,9 +637,18 @@ function TickerRow({ linha, cor, hidden, onSugerirIA }) {
    ============================================================ */
 function EditarClasseModal({ classeKey, classeConfig, onSalvar, onClose }) {
   const [tickers, setTickers] = useState(JSON.parse(JSON.stringify(classeConfig.tickers || [])));
+  const [highlightIdx, setHighlightIdx] = useState(null);
 
   const adicionar = () => {
-    setTickers([...tickers, { ticker: "", pct: 0, segmento: "" }]);
+    // Insere no TOPO (visível) + highlight + scroll pra cima da lista
+    setTickers([{ ticker: "", pct: 0, segmento: "", _novo: true }, ...tickers]);
+    setHighlightIdx(0);
+    setTimeout(() => {
+      const el = document.getElementById("editar-classe-lista");
+      if (el) el.scrollTop = 0;
+      const input = document.getElementById("ticker-input-0");
+      if (input) input.focus();
+    }, 50);
   };
 
   const remover = (i) => {
@@ -593,29 +684,53 @@ function EditarClasseModal({ classeKey, classeConfig, onSalvar, onClose }) {
         {Math.abs(somaPct - 100) > 0.5 && <span style={{ color: T.red }}> (precisa ser 100%)</span>}
       </div>
 
-      <div style={{ maxHeight: 400, overflowY: "auto", marginBottom: 12 }}>
-        {tickers.map((t, i) => (
-          <div key={i} style={{
-            display: "grid", gridTemplateColumns: "1.2fr 0.6fr 1.5fr auto", gap: 6,
-            padding: 6, marginBottom: 6, background: T.bgSoft, borderRadius: 6,
-            alignItems: "center",
-          }}>
-            <input value={t.ticker} onChange={e => atualizar(i, "ticker", e.target.value.toUpperCase())}
-                   placeholder="TICKER" style={{ fontSize: 12 }} />
-            <input type="number" step="0.1" value={t.pct} onChange={e => atualizar(i, "pct", e.target.value)}
-                   placeholder="% alvo" style={{ fontSize: 12 }} />
-            <input value={t.segmento || ""} onChange={e => atualizar(i, "segmento", e.target.value)}
-                   placeholder="Segmento / Setor" style={{ fontSize: 12 }} />
-            <button onClick={() => remover(i)} style={iconBtn(T.red)}>
-              <Trash2 size={12} />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <button className="btn-ghost" onClick={adicionar} style={{ marginBottom: 12, fontSize: 11.5 }}>
-        <Plus size={12} className="inline mr-1" /> Adicionar ticker
+      {/* Botão Adicionar EM CIMA da lista (mais visível) */}
+      <button onClick={adicionar}
+              style={{
+                marginBottom: 10, width: "100%",
+                background: T.gold, color: T.bg,
+                border: "none", padding: "10px 14px",
+                fontSize: 12, fontWeight: 700, borderRadius: 8,
+                cursor: "pointer", letterSpacing: ".05em", textTransform: "uppercase",
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+              }}>
+        <Plus size={14} /> Adicionar Ticker
       </button>
+
+      <div id="editar-classe-lista" style={{ maxHeight: 380, overflowY: "auto", marginBottom: 12 }}>
+        {tickers.map((t, i) => {
+          const isNew = highlightIdx === i || t._novo;
+          return (
+            <div key={i} style={{
+              display: "grid", gridTemplateColumns: "1.2fr 0.6fr 1.5fr auto", gap: 6,
+              padding: 6, marginBottom: 6,
+              background: isNew ? `${T.gold}15` : T.bgSoft,
+              border: isNew ? `1px solid ${T.gold}` : `1px solid transparent`,
+              borderRadius: 6, alignItems: "center",
+              transition: "background .3s, border .3s",
+            }}>
+              <input id={`ticker-input-${i}`}
+                     value={t.ticker}
+                     onChange={e => atualizar(i, "ticker", e.target.value.toUpperCase())}
+                     placeholder="TICKER" style={{ fontSize: 12 }} />
+              <input type="number" step="0.1" value={t.pct}
+                     onChange={e => atualizar(i, "pct", e.target.value)}
+                     placeholder="% alvo" style={{ fontSize: 12 }} />
+              <input value={t.segmento || ""}
+                     onChange={e => atualizar(i, "segmento", e.target.value)}
+                     placeholder="Segmento / Setor" style={{ fontSize: 12 }} />
+              <button onClick={() => remover(i)} style={iconBtn(T.red)}>
+                <Trash2 size={12} />
+              </button>
+            </div>
+          );
+        })}
+        {tickers.length === 0 && (
+          <div style={{ textAlign: "center", padding: 24, color: T.muted, fontSize: 12, fontStyle: "italic" }}>
+            Nenhum ticker. Clique em "Adicionar Ticker" acima.
+          </div>
+        )}
+      </div>
 
       <div className="flex gap-3 justify-end mt-4">
         <button className="btn-ghost" onClick={onClose}>Cancelar</button>
