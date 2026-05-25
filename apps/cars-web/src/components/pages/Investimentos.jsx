@@ -11,6 +11,7 @@ import Field from "../ui/Field.jsx";
 import StatCard from "../ui/StatCard.jsx";
 import Modal from "../ui/Modal.jsx";
 import PdfCarteira from "./Invest/PdfCarteira.jsx";
+import CarteiraSaude from "./Invest/CarteiraSaude.jsx";
 
 const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
 
@@ -375,6 +376,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
           </div>
         }
       />
+
+      <CarteiraSaude ativos={ativos} hidden={hidden} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6 no-print" style={{ background: T.border }}>
         <StatCard label="Valor Investido" value={hidden ? "•••••" : fmt(totais.custo)} accent={T.muted} icon={DollarSign}
