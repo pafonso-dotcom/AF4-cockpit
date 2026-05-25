@@ -22,6 +22,8 @@ export default function AnalisesUnificada({
   apiKeys = {},
   projetarAlvo,
   onConsumirProjetarAlvo,
+  viewInicial,
+  onConsumirViewInicial,
 }) {
   const [view, setView] = useState("performance");
 
@@ -29,6 +31,17 @@ export default function AnalisesUnificada({
   useEffect(() => {
     if (projetarAlvo) setView("projecao");
   }, [projetarAlvo]);
+
+  // Quando alguém pede pra abrir numa view específica (ex: InvestPainel
+  // → "Análise da Carteira" / "Análise IdV"), troca a view e limpa o
+  // sinal pra não voltar quando o user trocar manualmente depois.
+  useEffect(() => {
+    if (viewInicial) {
+      setView(viewInicial);
+      onConsumirViewInicial?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewInicial]);
 
   return (
     <div className="fade-up py-8">

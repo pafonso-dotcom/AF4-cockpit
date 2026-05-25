@@ -163,6 +163,9 @@ export default function App() {
   const [tradeOnboardingVisto, setTradeOnboardingVisto] = useState(false);
   const [analiseAlvo, setAnaliseAlvo] = useState(null);
   const [projetarAlvo, setProjetarAlvo] = useState(null);
+  // View inicial pra AnalisesUnificada — quando InvestPainel pede pra
+  // abrir direto em "carteira-analise" ou "idv", esse state sinaliza.
+  const [analiseViewInicial, setAnaliseViewInicial] = useState(null);
 
   /* ---------- Load on mount ---------- */
   useEffect(() => {
@@ -854,6 +857,8 @@ export default function App() {
             {tab === "investimentos" && (
               <InvestPainel ativos={ativos} transacoes={transacoes} categorias={categorias} hidden={hidden}
                             onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
+                            onAbrirAnaliseCarteira={() => { setAnaliseViewInicial("carteira-analise"); setTab("analises"); }}
+                            onAbrirAnaliseIdv={() => { setAnaliseViewInicial("idv"); setTab("analises"); }}
                             onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }} />
             )}
             {tab === "analises" && (
@@ -865,6 +870,8 @@ export default function App() {
                   apiKeys={apiKeys}
                   projetarAlvo={projetarAlvo}
                   onConsumirProjetarAlvo={() => setProjetarAlvo(null)}
+                  viewInicial={analiseViewInicial}
+                  onConsumirViewInicial={() => setAnaliseViewInicial(null)}
                 />
               </div>
             )}
