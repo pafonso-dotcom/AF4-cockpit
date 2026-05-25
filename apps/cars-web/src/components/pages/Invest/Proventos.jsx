@@ -99,7 +99,7 @@ export default function Proventos({
   };
 
   const confirmarBaixa = () => {
-    const { provento, destino, ativoDestinoId, dataBaixa, valorAjustado } = baixaForm;
+    const { provento, destino, ativoDestinoId, contaDestino, dataBaixa, valorAjustado } = baixaForm;
     const valor = Number(valorAjustado);
     if (!Number.isFinite(valor) || valor <= 0) {
       toast.error("Informe um valor válido.");
@@ -107,6 +107,41 @@ export default function Proventos({
     }
     const proventoKey = provento.id;
 
+    // Caso 1: DEPOSITAR DIRETO EM CONTA BANCÁRIA
+    // Pula a carteira virtual — cria transação de receita + ajusta saldo
+    // da conta. Útil pra quando o dividendo já caiu na corretora/banco e
+    // o user quer registrar diretamente no fluxo financeiro (extrato,
+    // dashboard, relatórios) sem passar pela carteira de proventos.
+    if (destino === "conta") {
+      if (!contaDestino) { toast.error("Selecione a conta destino."); return; }
+      const conta = contas.find(c => c.nome === contaDestino);
+      if (!conta) { toast.error("Conta não encontrada."); return; }
+      const catProv = categorias.find(c => c.tipo === "receita" && /provent|dividend|renda/i.test(c.nome))?.nome
+                   || categorias.find(c => c.tipo === "receita")?.nome
+                   || "Outros";
+      setTransacoes([{
+        id: uid(),
+        tipo: "receita",
+        descricao: `${provento.ticker} · ${provento.tipo}`,
+        categoria: catProv,
+        conta: contaDestino,
+        data: dataBaixa,
+        valor,
+        compensado: true,
+        fixa: false,
+        obs: `Provento baixado direto em conta · ${provento.data.slice(8, 10)}/${provento.data.slice(5, 7)}`,
+      }, ...transacoes]);
+      setContas(contas.map(c => c.id === conta.id ? { ...c, saldo: (parseFloat(c.saldo) || 0) + valor } : c));
+      setProventosRecebidos({
+        ...proventosRecebidos,
+        [proventoKey]: { dataBaixa, valor, destino, contaDestino },
+      });
+      setBaixaForm(null);
+      toast.success(`${fmt(valor)} depositado em ${contaDestino}.`);
+      return;
+    }
+
+    // Caso 2 e 3 usam a carteira virtual (carteira ou reinvestir)
     // Adiciona entrada de RECEBIMENTO no histórico da carteira virtual
     const hist = carteiraProventos.historico || [];
     const novoRecebimento = {
@@ -167,31 +202,56 @@ export default function Proventos({
   };
 
   /* ===== Ação: ESTORNAR baixa (excluir provento já recebido) ===== */
-  // Reverte a marcação de "Recebido", remove as entradas associadas do
-  // histórico da carteira virtual e ajusta o saldo. Se a baixa foi
-  // reinvestida em um ativo, a COMPRA não é desfeita aqui — o user
-  // ajusta manualmente em Investimentos se quiser.
+  // Reverte a marcação de "Recebido" e desfaz os efeitos da baixa em
+  // cada modo:
+  //  - carteira: tira saldo e entradas do histórico virtual
+  //  - conta: remove a transação de receita + ajusta saldo da conta
+  //  - reinvestir: tira saldo virtual; a COMPRA do ativo NÃO é desfeita
+  //    (avisa no confirm — user ajusta manual em Investimentos)
   const estornarBaixa = async (provento) => {
     const baixaInfo = proventosRecebidos[provento.id];
     if (!baixaInfo) return;
     const foiReinvestido = baixaInfo.destino === "reinvestir";
+    const foiConta = baixaInfo.destino === "conta";
     const ok = await confirm({
       title: `Estornar baixa de ${provento.ticker}?`,
       body: foiReinvestido
         ? `A baixa de ${fmt(baixaInfo.valor || provento.total)} (${provento.tipo}) será revertida. ATENÇÃO: como foi reinvestida, a compra do ativo NÃO é desfeita automaticamente — ajuste manualmente em Investimentos se quiser desfazer.`
-        : `A baixa de ${fmt(baixaInfo.valor || provento.total)} (${provento.tipo}) será revertida e o saldo voltará pra Carteira de Proventos.`,
+        : foiConta
+          ? `A baixa de ${fmt(baixaInfo.valor || provento.total)} (${provento.tipo}) será revertida. A transação de receita criada em ${baixaInfo.contaDestino} será removida e o saldo da conta ajustado.`
+          : `A baixa de ${fmt(baixaInfo.valor || provento.total)} (${provento.tipo}) será revertida e o saldo voltará pra Carteira de Proventos.`,
       confirmLabel: "Estornar",
       danger: true,
     });
     if (!ok) return;
 
-    const hist = carteiraProventos.historico || [];
-    const associadas = hist.filter(h => h.proventoKey === provento.id);
-    const valorLiquido = associadas.reduce((s, h) => s + Number(h.valor || 0), 0);
-    setCarteiraProventos({
-      saldo: (carteiraProventos.saldo || 0) - valorLiquido,
-      historico: hist.filter(h => h.proventoKey !== provento.id),
-    });
+    if (foiConta) {
+      const v = Number(baixaInfo.valor || 0);
+      const contaNome = baixaInfo.contaDestino;
+      // Remove transação criada pela baixa (match por descrição + data + valor + conta).
+      setTransacoes(transacoes.filter(t => !(
+        t.conta === contaNome &&
+        t.valor === v &&
+        t.tipo === "receita" &&
+        t.data === baixaInfo.dataBaixa &&
+        (t.descricao || "").startsWith(`${provento.ticker} ·`)
+      )));
+      const conta = contas.find(c => c.nome === contaNome);
+      if (conta) {
+        setContas(contas.map(c => c.id === conta.id
+          ? { ...c, saldo: (parseFloat(c.saldo) || 0) - v }
+          : c));
+      }
+    } else {
+      // carteira ou reinvestir: ajusta a carteira virtual
+      const hist = carteiraProventos.historico || [];
+      const associadas = hist.filter(h => h.proventoKey === provento.id);
+      const valorLiquido = associadas.reduce((s, h) => s + Number(h.valor || 0), 0);
+      setCarteiraProventos({
+        saldo: (carteiraProventos.saldo || 0) - valorLiquido,
+        historico: hist.filter(h => h.proventoKey !== provento.id),
+      });
+    }
 
     const next = { ...proventosRecebidos };
     delete next[provento.id];
@@ -612,7 +672,8 @@ export default function Proventos({
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
               {[
                 { id: "carteira",   label: "Deixar na Carteira de Proventos",  desc: "Acumula pra usar depois." },
-                { id: "reinvestir", label: "Reinvestir agora em um ativo",      desc: "Compra mais cotas direto." },
+                { id: "conta",      label: "Depositar em conta bancária",      desc: "Vira receita real na conta (extrato + relatórios)." },
+                { id: "reinvestir", label: "Reinvestir agora em um ativo",     desc: "Compra mais cotas direto." },
               ].map(opt => {
                 const ativo = baixaForm.destino === opt.id;
                 return (
@@ -640,6 +701,20 @@ export default function Proventos({
                 );
               })}
             </div>
+
+            {baixaForm.destino === "conta" && (
+              <Field label="Conta bancária destino" required>
+                <select value={baixaForm.contaDestino || ""}
+                        onChange={e => setBaixaForm({ ...baixaForm, contaDestino: e.target.value })}>
+                  <option value="">Selecione…</option>
+                  {contas.map(c => (
+                    <option key={c.id} value={c.nome}>
+                      {c.nome} · saldo {fmt(c.saldo || 0)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
 
             {baixaForm.destino === "reinvestir" && (
               <>
@@ -676,7 +751,10 @@ export default function Proventos({
             <div className="flex gap-3 justify-end mt-6">
               <button className="btn-ghost" onClick={() => setBaixaForm(null)}>Cancelar</button>
               <button className="btn-gold" onClick={confirmarBaixa}
-                      disabled={baixaForm.destino === "reinvestir" && !baixaForm.ativoDestinoId}>
+                      disabled={
+                        (baixaForm.destino === "reinvestir" && !baixaForm.ativoDestinoId) ||
+                        (baixaForm.destino === "conta" && !baixaForm.contaDestino)
+                      }>
                 <Check size={13} className="inline mr-1" />
                 Confirmar baixa
               </button>
