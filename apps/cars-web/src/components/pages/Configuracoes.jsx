@@ -780,7 +780,7 @@ function MigracaoSupabase() {
       <div className="eb">Migração de dados pras tabelas relacionais</div>
       <p className="hs" style={{ marginBottom: 14 }}>
         Move seus dados do snapshot JSON (<code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>aurum_state</code>) pras tabelas normalizadas novas
-        (definidas em <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>docs/sql/001_initial_schema.sql</code>).
+        (definidas em <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>supabase/migrations/</code>).
         Estratégia: espelhamento gradual — app continua salvando em localStorage até cutover final.
       </p>
 

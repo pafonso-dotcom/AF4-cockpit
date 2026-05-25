@@ -719,7 +719,8 @@ auth.users ──┬─< perfis
 ### Fase 1 — Schema (PR docs)
 - [x] Mapear todas as entidades
 - [x] Documentar issues
-- [x] Gerar `001_initial_schema.sql`
+- [x] Gerar `supabase/migrations/20260525000000_initial_schema.sql`
+- [x] Setup GitHub Actions deploy automático (`docs/db-deploy.md`)
 - [ ] Revisar SQL com o time
 - [ ] Aplicar no Supabase staging
 
