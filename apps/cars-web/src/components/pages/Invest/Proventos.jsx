@@ -153,6 +153,40 @@ export default function Proventos({
     );
   };
 
+  /* ===== Ação: ESTORNAR baixa (excluir provento já recebido) ===== */
+  // Reverte a marcação de "Recebido", remove as entradas associadas do
+  // histórico da carteira virtual e ajusta o saldo. Se a baixa foi
+  // reinvestida em um ativo, a COMPRA não é desfeita aqui — o user
+  // ajusta manualmente em Investimentos se quiser.
+  const estornarBaixa = async (provento) => {
+    const baixaInfo = proventosRecebidos[provento.id];
+    if (!baixaInfo) return;
+    const foiReinvestido = baixaInfo.destino === "reinvestir";
+    const ok = await confirm({
+      title: `Estornar baixa de ${provento.ticker}?`,
+      body: foiReinvestido
+        ? `A baixa de ${fmt(baixaInfo.valor || provento.total)} (${provento.tipo}) será revertida. ATENÇÃO: como foi reinvestida, a compra do ativo NÃO é desfeita automaticamente — ajuste manualmente em Investimentos se quiser desfazer.`
+        : `A baixa de ${fmt(baixaInfo.valor || provento.total)} (${provento.tipo}) será revertida e o saldo voltará pra Carteira de Proventos.`,
+      confirmLabel: "Estornar",
+      danger: true,
+    });
+    if (!ok) return;
+
+    const hist = carteiraProventos.historico || [];
+    const associadas = hist.filter(h => h.proventoKey === provento.id);
+    const valorLiquido = associadas.reduce((s, h) => s + Number(h.valor || 0), 0);
+    setCarteiraProventos({
+      saldo: (carteiraProventos.saldo || 0) - valorLiquido,
+      historico: hist.filter(h => h.proventoKey !== provento.id),
+    });
+
+    const next = { ...proventosRecebidos };
+    delete next[provento.id];
+    setProventosRecebidos(next);
+
+    toast.success(`Baixa de ${provento.ticker} estornada.`);
+  };
+
   /* ===== Ação: TRANSFERIR da carteira pra conta real ===== */
   const confirmarTransferencia = () => {
     const { valor, contaDestino } = transferirForm;
@@ -416,12 +450,24 @@ export default function Proventos({
                       </Td>
                       <Td align="right">
                         {recebido ? (
-                          <span style={{
-                            display: "inline-flex", alignItems: "center", gap: 4,
-                            fontSize: 10, color: T.green, fontWeight: 700,
-                            padding: "3px 7px", background: `${T.green}22`, borderRadius: 4,
-                          }}>
-                            <Check size={11} /> Recebido
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                            <span style={{
+                              display: "inline-flex", alignItems: "center", gap: 4,
+                              fontSize: 10, color: T.green, fontWeight: 700,
+                              padding: "3px 7px", background: `${T.green}22`, borderRadius: 4,
+                            }}>
+                              <Check size={11} /> Recebido
+                            </span>
+                            <button onClick={() => estornarBaixa(p)}
+                                    title="Estornar baixa"
+                                    aria-label={`Estornar baixa de ${p.ticker}`}
+                                    style={{
+                                      background: "transparent", border: `1px solid ${T.border}`,
+                                      color: T.red, padding: "2px 5px", borderRadius: 4,
+                                      cursor: "pointer", display: "inline-flex", alignItems: "center",
+                                    }}>
+                              <X size={11} />
+                            </button>
                           </span>
                         ) : (
                           <button onClick={() => abrirBaixa(p)}
