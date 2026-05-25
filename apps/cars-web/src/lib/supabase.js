@@ -15,12 +15,8 @@ import { createClient } from "@supabase/supabase-js";
 // Migrado em 2026-05-25 do projeto antigo (rffxplwshwfjnedefvqg).
 const URL = import.meta.env.VITE_SUPABASE_URL
   || "https://maqlnsivmreagpkhbkbn.supabase.co";
-// TODO(2026-05-25): atualizar a anon key abaixo com a do novo projeto.
-// Até lá, a chave antiga aponta pro projeto rffx... — auth e cliente vão
-// FALHAR contra o projeto novo. Configurar via VITE_SUPABASE_ANON_KEY no
-// build OU substituir o fallback hardcoded abaixo.
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
-  || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmZnhwbHdzaHdmam5lZGVmdnFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NDI0OTAsImV4cCI6MjA5MzUxODQ5MH0.R-ZLZ0vHgbRKu_VbqAnWG_22Nd5ijwR8Fxas8UsQan4";
+  || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hcWxuc2l2bXJlYWdwa2hia2JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NzQ4NjMsImV4cCI6MjA5NTA1MDg2M30.eMWAkJca6TQ1J8728IoQ3MnWdq37uHAlA4ybiCwdOkQ";
 
 export const supabaseConfigured = !!(URL && KEY);
 
