@@ -729,7 +729,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
             </Field>
           </div>
           <SegmentoField form={form} setForm={setForm} />
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label="Quantidade">
               <input type="number" step="0.00000001" value={form.qtd} onChange={e => setForm({ ...form, qtd: e.target.value })} placeholder="8" />
             </Field>
