@@ -304,19 +304,18 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         </div>
       ) : (
         <div className="tbl-extrato-wrap" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "auto" }}>
-          <table className="tbl tbl-extrato" style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", fontSize: 13, tableLayout: "fixed" }}>
+          <table className="tbl tbl-extrato" style={{ width: "100%", minWidth: 580, borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: T.bgSoft }}>
-                <Th onClick={() => setSortDir(sortDir === "desc" ? "asc" : "desc")} clickable
-                    style={{ width: 100 }}>
+                <Th onClick={() => setSortDir(sortDir === "desc" ? "asc" : "desc")} clickable>
                   Data {sortDir === "desc" ? <ArrowDown size={11} /> : <ArrowUp size={11} />}
                 </Th>
-                <Th style={{ width: "32%" }}>Descrição</Th>
-                <Th style={{ width: "18%" }}>Obs</Th>
-                <Th style={{ width: 140 }}>Categoria</Th>
-                <Th align="right" style={{ width: 120 }}>Valor</Th>
-                <Th align="right" style={{ width: 130 }}>Saldo</Th>
-                <Th align="right" style={{ width: 80 }}>Ações</Th>
+                <Th>Descrição</Th>
+                <Th className="hidden md:table-cell">Obs</Th>
+                <Th className="hidden sm:table-cell">Categoria</Th>
+                <Th align="right">Valor</Th>
+                <Th align="right" className="hidden md:table-cell">Saldo</Th>
+                <Th align="right">Ações</Th>
               </tr>
             </thead>
             <tbody>
@@ -350,10 +349,10 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                         <span style={{ color: T.ink, fontWeight: 500 }}>{t.descricao}</span>
                       </div>
                     </td>
-                    <td style={{ ...tdSty, color: T.muted, fontSize: 11.5, fontStyle: t.obs ? "normal" : "italic" }}>
+                    <td className="hidden md:table-cell" style={{ ...tdSty, color: T.muted, fontSize: 11.5, fontStyle: t.obs ? "normal" : "italic" }}>
                       {t.obs || <span style={{ color: T.faint }}>—</span>}
                     </td>
-                    <td style={tdSty}>
+                    <td className="hidden sm:table-cell" style={tdSty}>
                       {editCatId === t.id ? (
                         <select
                           autoFocus
@@ -399,7 +398,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                     }}>
                       {t.tipo === "receita" ? "+ " : "− "}{hidden ? "•••" : fmt(t.valor)}
                     </td>
-                    <td className="num" style={{
+                    <td className="num hidden md:table-cell" style={{
                       ...tdSty, textAlign: "right",
                       color: t.compensado ? (saldoApos != null && saldoApos < 0 ? T.red : T.ink) : T.faint,
                       fontStyle: t.compensado ? "normal" : "italic",
@@ -466,9 +465,9 @@ const iconBtn = {
   marginLeft: 4,
 };
 
-function Th({ children, align, style, onClick, clickable }) {
+function Th({ children, align, style, onClick, clickable, className }) {
   return (
-    <th onClick={onClick} style={{
+    <th onClick={onClick} className={className} style={{
       padding: "8px 10px",
       textAlign: align || "left",
       fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",

@@ -42,11 +42,11 @@ export default function Historico({ tradeHistorico = [], setTradeHistorico }) {
         </div>
       ) : (
         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "auto" }}>
-          <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 600 }}>
+          <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 400 }}>
             <thead>
               <tr style={{ background: T.bgSoft }}>
                 <th style={th}>Quando</th>
-                <th style={th}>Timeframe</th>
+                <th style={th} className="hidden sm:table-cell">Timeframe</th>
                 <th style={th}>Top 5 (por score)</th>
               </tr>
             </thead>
@@ -59,8 +59,11 @@ export default function Historico({ tradeHistorico = [], setTradeHistorico }) {
                       <div style={{ color: T.ink, fontWeight: 500 }}>
                         {d.toLocaleDateString("pt-BR")} {d.toLocaleTimeString("pt-BR").slice(0, 5)}
                       </div>
+                      <div className="sm:hidden" style={{ color: T.faint, fontSize: 10, marginTop: 2 }}>
+                        {h.intervalo || "—"}
+                      </div>
                     </td>
-                    <td style={{ ...td, color: T.muted }}>{h.intervalo || "—"}</td>
+                    <td className="hidden sm:table-cell" style={{ ...td, color: T.muted }}>{h.intervalo || "—"}</td>
                     <td style={td}>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                         {(h.top5 || []).map(t => {
