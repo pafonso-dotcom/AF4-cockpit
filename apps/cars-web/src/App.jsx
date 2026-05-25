@@ -146,6 +146,7 @@ export default function App() {
   const [negocioVendasVeiculos,  setNegocioVendasVeiculos]  = useState([]); // vendas de carros
   const [negocioServicos,        setNegocioServicos]        = useState([]); // catálogo de serviços
   const [negocioVendasServicos,  setNegocioVendasServicos]  = useState([]); // vendas de serviços
+  const [negocioContratos,       setNegocioContratos]       = useState([]); // contratos recorrentes (CRM, tráfego, app, etc)
   const [negocioClientes,        setNegocioClientes]        = useState([]); // clientes
 
   // Objetivos da carteira (árvore IdV-style)
@@ -223,6 +224,7 @@ export default function App() {
         setNegocioVendasVeiculos(data.negocioVendasVeiculos || []);
         setNegocioServicos(data.negocioServicos || []);
         setNegocioVendasServicos(data.negocioVendasServicos || []);
+        setNegocioContratos(data.negocioContratos || []);
         setNegocioClientes(data.negocioClientes || []);
         setObjetivosCarteira(data.objetivosCarteira || []);
         setCarteirasModeloCustom(data.carteirasModeloCustom || []);
@@ -273,6 +275,7 @@ export default function App() {
         setNegocioVendasVeiculos([]);
         setNegocioServicos([]);
         setNegocioVendasServicos([]);
+        setNegocioContratos([]);
         setNegocioClientes([]);
         setObjetivosCarteira([]);
         setCarteirasModeloCustom([]);
@@ -298,7 +301,7 @@ export default function App() {
       cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
-      negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioClientes,
+      negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes,
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
@@ -307,7 +310,7 @@ export default function App() {
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
-      negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioClientes,
+      negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes,
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
@@ -904,6 +907,7 @@ export default function App() {
               <NegocioServicos
                 servicos={negocioServicos} setServicos={setNegocioServicos}
                 vendas={negocioVendasServicos} setVendas={setNegocioVendasServicos}
+                contratos={negocioContratos} setContratos={setNegocioContratos}
                 clientes={negocioClientes}
                 veiculos={negocioVeiculos}
                 contas={contas} setContas={setContas}
