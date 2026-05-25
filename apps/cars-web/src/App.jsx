@@ -142,6 +142,9 @@ export default function App() {
   const [carteiraProventos, setCarteiraProventos] = useState({ saldo: 0, historico: [] });
   // Proventos marcados como recebidos: { [proventoKey]: { dataBaixa, destino, valor } }
   const [proventosRecebidos, setProventosRecebidos] = useState({});
+  // Proventos que o user marcou como "Ignorados" (não interessam, foram
+  // excluídos da lista de previstos). Persistidos junto com o resto.
+  const [proventosIgnorados, setProventosIgnorados] = useState({});
 
   // AF4 Trade
   const [tradeWatchlist, setTradeWatchlist] = useState([]);
@@ -194,6 +197,7 @@ export default function App() {
         if (data.modeloAtivoId) setModeloAtivoId(data.modeloAtivoId);
         setCarteiraProventos(data.carteiraProventos || { saldo: 0, historico: [] });
         setProventosRecebidos(data.proventosRecebidos || {});
+        setProventosIgnorados(data.proventosIgnorados || {});
         setTradeWatchlist(data.tradeWatchlist || []);
         setTradeHistorico(data.tradeHistorico || []);
         setTradeAnalisesIdV(data.tradeAnalisesIdV || []);
@@ -234,6 +238,7 @@ export default function App() {
         setCarteirasModeloCustom([]);
         setCarteiraProventos({ saldo: 0, historico: [] });
         setProventosRecebidos({});
+        setProventosIgnorados({});
         setTradeWatchlist([]);
         setTradeHistorico([]);
         setTradeAnalisesIdV([]);
@@ -253,7 +258,7 @@ export default function App() {
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, objetivosCarteira,
       carteirasModeloCustom, modeloAtivoId,
-      carteiraProventos, proventosRecebidos,
+      carteiraProventos, proventosRecebidos, proventosIgnorados,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId,
     });
@@ -261,7 +266,7 @@ export default function App() {
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, objetivosCarteira,
       carteirasModeloCustom, modeloAtivoId,
-      carteiraProventos, proventosRecebidos,
+      carteiraProventos, proventosRecebidos, proventosIgnorados,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId, loading]);
 
@@ -869,6 +874,8 @@ export default function App() {
                 setCarteiraProventos={setCarteiraProventos}
                 proventosRecebidos={proventosRecebidos}
                 setProventosRecebidos={setProventosRecebidos}
+                proventosIgnorados={proventosIgnorados}
+                setProventosIgnorados={setProventosIgnorados}
                 contas={contas} setContas={setContas}
                 categorias={categorias}
                 transacoes={transacoes} setTransacoes={setTransacoes}
