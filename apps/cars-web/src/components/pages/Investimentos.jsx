@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart } from "lucide-react";
+import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart, Calculator } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, fmtP, uid, generateHistory, todayISO } from "../../lib/format.js";
@@ -52,7 +52,7 @@ const SEGMENTOS = {
   ],
 };
 
-export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, onRefresh, refreshing, onAnalisar, hidden }) {
+export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, onRefresh, refreshing, onAnalisar, onProjetar, hidden }) {
   const [form, setForm] = useState(null);
   const [aporteForm, setAporteForm] = useState(null);
   const [vendaForm, setVendaForm] = useState(null);
@@ -424,6 +424,12 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     <LineChart size={14} />
                   </button>
                 )}
+                {onProjetar && (
+                  <button onClick={() => onProjetar(a)} aria-label={`Projetar ${a.ticker}`} title="Projetar evolução deste ativo"
+                          style={{ color: T.gold, padding: 6, background: "transparent", border: `1px solid ${T.gold}`, cursor: "pointer" }}>
+                    <Calculator size={14} />
+                  </button>
+                )}
                 <button onClick={() => setForm(a)} aria-label={`Editar ${a.ticker}`} style={{ color: T.muted, padding: 6, background: "transparent", border: `1px solid ${T.border}`, cursor: "pointer" }}>
                   <Edit3 size={14} />
                 </button>
@@ -530,6 +536,10 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     {onAnalisar && TIPOS_ANALISAVEIS.includes(a.tipo) && (
                       <button onClick={e => { e.stopPropagation(); onAnalisar(a); }} aria-label={`Analisar ${a.ticker}`} title="Análise técnica"
                               style={{ color: T.gold, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><LineChart size={12} /></button>
+                    )}
+                    {onProjetar && (
+                      <button onClick={e => { e.stopPropagation(); onProjetar(a); }} aria-label={`Projetar ${a.ticker}`} title="Projetar evolução deste ativo"
+                              style={{ color: T.gold, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Calculator size={12} /></button>
                     )}
                     <button onClick={e => { e.stopPropagation(); setForm(a); }} aria-label={`Editar ${a.ticker}`} style={{ color: T.muted, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Edit3 size={12} /></button>
                     <button onClick={async e => {
@@ -849,14 +859,40 @@ function DetalheAtivo({ ativo, onClose }) {
 
 /**
  * SegmentoField — campo Segmento/Setor que adapta as opções ao tipo do ativo.
- * Inclui opção "Outros" que libera input de texto livre.
+ * Inclui modo "Outros" com input livre. Detecta automaticamente que o
+ * usuário está editando um ativo com segmento fora da lista.
  */
 function SegmentoField({ form, setForm }) {
   const opcoes = SEGMENTOS[form.tipo] || [];
   const valor = form.segmento || "";
-  const isOutros = valor === "__outros__" || (valor && !opcoes.includes(valor) && valor !== "");
-  // Estado interno: se for valor livre (não está nas opções), trata como "Outros"
-  const selectValue = !valor ? "" : (opcoes.includes(valor) ? valor : "__outros__");
+
+  // Modo: "preset" (escolheu da lista) | "custom" (digitando livre) | "" (não escolheu)
+  // Inicializa: se já tem segmento e NÃO está na lista, força modo custom
+  const detectarModo = () => {
+    if (!valor) return "";
+    return opcoes.includes(valor) ? "preset" : "custom";
+  };
+  const [modo, setModo] = useState(detectarModo());
+
+  // Quando troca o TIPO, reseta o modo
+  useEffect(() => {
+    setModo(detectarModo());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.tipo]);
+
+  const handleSelectChange = (v) => {
+    if (v === "__custom__") {
+      setModo("custom");
+      // Mantém valor atual se já tiver, senão zera pra ele digitar
+      if (opcoes.includes(valor)) setForm({ ...form, segmento: "" });
+    } else if (v === "") {
+      setModo("");
+      setForm({ ...form, segmento: "" });
+    } else {
+      setModo("preset");
+      setForm({ ...form, segmento: v });
+    }
+  };
 
   return (
     <Field
@@ -865,23 +901,19 @@ function SegmentoField({ form, setForm }) {
             : "Segmento / Setor"}
       hint="Ajuda a classificar nas análises da carteira (diversificação por setor)."
     >
-      <div style={{ display: "flex", gap: 6 }}>
-        <select value={selectValue}
-                onChange={e => {
-                  const v = e.target.value;
-                  if (v === "__outros__") setForm({ ...form, segmento: "" });
-                  else setForm({ ...form, segmento: v });
-                }}
-                style={{ flex: 1 }}>
+      <div style={{ display: "flex", gap: 6, flexDirection: "column" }}>
+        <select value={modo === "custom" ? "__custom__" : (modo === "preset" ? valor : "")}
+                onChange={e => handleSelectChange(e.target.value)}>
           <option value="">— escolha —</option>
           {opcoes.map(s => <option key={s} value={s}>{s}</option>)}
-          <option value="__outros__">Outros (digite ao lado)</option>
+          <option value="__custom__">+ Outros (digitar segmento personalizado)</option>
         </select>
-        {selectValue === "__outros__" && (
-          <input value={valor === "__outros__" ? "" : valor}
+        {modo === "custom" && (
+          <input value={valor}
                  onChange={e => setForm({ ...form, segmento: e.target.value })}
-                 placeholder="Digite o segmento"
-                 style={{ flex: 1 }} />
+                 placeholder="Digite o segmento/setor (ex.: Petróleo, Saneamento, AI...)"
+                 autoFocus
+                 style={{ marginTop: 2 }} />
         )}
       </div>
     </Field>

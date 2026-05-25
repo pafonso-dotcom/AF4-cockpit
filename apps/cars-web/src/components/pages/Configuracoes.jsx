@@ -8,6 +8,8 @@ import {
   getGistToken, setGistToken, testGistToken,
   gistFetchState, gistSaveState,
 } from "../../lib/gistSync.js";
+import { migrarTudo } from "../../lib/db/migrate.js";
+import { tabelasNovasExistem, snapshotContagens } from "../../lib/db/client.js";
 
 /**
  * Configurações centralizadas (estilo demo v3).
@@ -38,6 +40,7 @@ export default function Configuracoes({
       )}
       {subtab === "cfg-backup" && (
         <>
+          <MigracaoSupabase />
           <SyncGist />
           <Backup />
         </>
@@ -706,6 +709,234 @@ function SyncGist() {
         </div>
       </div>
     </>
+  );
+}
+
+/* ============ MIGRAÇÃO PRA NOVAS TABELAS SUPABASE ============ */
+function MigracaoSupabase() {
+  const [statusTabelas, setStatusTabelas] = useState("checking"); // checking|existem|nao_existem|erro
+  const [contagens, setContagens] = useState(null);
+  const [resultado, setResultado] = useState(null);
+  const [progresso, setProgresso] = useState(null); // {tabela, atual, total, msg}
+  const [rodando, setRodando] = useState(false);
+
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      try {
+        const existem = await tabelasNovasExistem();
+        if (!ativo) return;
+        setStatusTabelas(existem ? "existem" : "nao_existem");
+        if (existem) {
+          const c = await snapshotContagens();
+          if (ativo) setContagens(c);
+        }
+      } catch (e) {
+        if (ativo) setStatusTabelas("erro");
+      }
+    })();
+    return () => { ativo = false; };
+  }, []);
+
+  const rodar = async (dryRun) => {
+    if (!dryRun) {
+      const ok = await confirm({
+        title: "Migrar dados pra novas tabelas?",
+        message: "Vai escrever direto no Supabase. Idempotente (rodar 2x não duplica), mas confirme que o SQL 001_initial_schema já foi aplicado.",
+        confirmLabel: "Migrar agora",
+      });
+      if (!ok) return;
+    }
+    setRodando(true);
+    setResultado(null);
+    setProgresso(null);
+    try {
+      const dados = await loadAll();
+      if (!dados) throw new Error("Sem dados em localStorage.");
+      const r = await migrarTudo(dados, {
+        dryRun,
+        onProgress: (p) => setProgresso(p),
+      });
+      setResultado(r);
+      if (!dryRun && r.ok) {
+        // Atualiza contagens depois de migração real
+        const c = await snapshotContagens();
+        setContagens(c);
+        toast.success("Migração concluída!");
+      } else if (dryRun) {
+        toast.info("Dry-run OK — nenhuma escrita feita.");
+      } else {
+        toast.error(`Migração com ${r.erros.length} erro(s). Veja detalhes.`);
+      }
+    } catch (e) {
+      toast.error(e.message || "Erro na migração");
+    } finally {
+      setRodando(false);
+    }
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <div className="eb">Migração de dados pras tabelas relacionais</div>
+      <p className="hs" style={{ marginBottom: 14 }}>
+        Move seus dados do snapshot JSON (<code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>aurum_state</code>) pras tabelas normalizadas novas
+        (definidas em <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>supabase/migrations/</code>).
+        Estratégia: espelhamento gradual — app continua salvando em localStorage até cutover final.
+      </p>
+
+      {/* Status das tabelas */}
+      <div style={{
+        padding: 12, marginBottom: 12, borderRadius: 8,
+        background: statusTabelas === "existem" ? `${T.green}11`
+                  : statusTabelas === "nao_existem" ? `${T.gold}11`
+                  : `${T.muted}22`,
+        border: `1px solid ${
+          statusTabelas === "existem" ? T.green
+          : statusTabelas === "nao_existem" ? T.gold
+          : T.border
+        }55`,
+      }}>
+        {statusTabelas === "checking" && <span style={{ color: T.muted, fontSize: 12 }}>Checando status das tabelas…</span>}
+        {statusTabelas === "existem" && (
+          <span style={{ color: T.green, fontSize: 13 }}>
+            ✓ Tabelas novas existem no Supabase
+          </span>
+        )}
+        {statusTabelas === "nao_existem" && (
+          <div style={{ fontSize: 13, color: T.ink }}>
+            ⚠ Tabelas novas <strong>não existem</strong> no Supabase ainda.
+            <div style={{ fontSize: 11.5, color: T.muted, marginTop: 4 }}>
+              Aplique <code>docs/sql/001_initial_schema.sql</code> no Supabase SQL Editor primeiro.
+            </div>
+          </div>
+        )}
+        {statusTabelas === "erro" && (
+          <span style={{ color: T.red, fontSize: 12 }}>Erro ao consultar Supabase.</span>
+        )}
+      </div>
+
+      {/* Contagens atuais */}
+      {contagens && (
+        <div style={{ marginBottom: 12, padding: 10, background: T.bgSoft, borderRadius: 6 }}>
+          <div className="eb" style={{ fontSize: 10, marginBottom: 6 }}>Linhas hoje nas tabelas</div>
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+            gap: 6, fontSize: 11.5,
+          }}>
+            {Object.entries(contagens).map(([t, n]) => (
+              <div key={t} style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: T.muted }}>{t}</span>
+                <strong style={{ color: n > 0 ? T.green : T.faint }} className="num">{n}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cobertura V2 */}
+      <div style={{
+        padding: 10, marginBottom: 12,
+        background: T.bgSoft, border: `1px dashed ${T.border}`, borderRadius: 6,
+        fontSize: 11.5, color: T.muted,
+      }}>
+        <strong style={{ color: T.ink }}>V2 cobre 13 entidades:</strong> contas, categorias (self-ref),
+        cartoes, ativos, metas, agenda, tarefas, compras, ideias, fixas, parcelamentos,
+        compromissos (consolida devedores+dividas), transacoes (com FKs contas+categorias).
+        <br />
+        <strong style={{ color: T.ink }}>Próximo V3:</strong> fixa_ocorrencias, objetivos_carteira,
+        carteiras_modelo, proventos, trade_*, habitos+check_ins, diario, perfis, user_preferences, api_keys.
+        Transações ainda não vinculam ativo/cartao/parcelamento/fixa (V3).
+      </div>
+
+      {/* Botões */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        <button className="btn-ghost"
+                onClick={() => rodar(true)}
+                disabled={rodando || statusTabelas !== "existem"}
+                style={{ opacity: (rodando || statusTabelas !== "existem") ? 0.5 : 1 }}>
+          {rodando ? "Rodando…" : "Dry-run (simular)"}
+        </button>
+        <button className="btn-gold"
+                onClick={() => rodar(false)}
+                disabled={rodando || statusTabelas !== "existem"}
+                style={{ opacity: (rodando || statusTabelas !== "existem") ? 0.5 : 1 }}>
+          {rodando ? "Rodando…" : "Migrar agora"}
+        </button>
+      </div>
+
+      {/* Progresso */}
+      {progresso && rodando && (
+        <div style={{
+          padding: 10, marginBottom: 12,
+          background: `${T.gold}11`, border: `1px solid ${T.gold}44`,
+          borderRadius: 6, fontSize: 12,
+        }}>
+          <strong style={{ color: T.gold }}>{progresso.tabela}</strong>
+          {progresso.total > 0 && (
+            <span style={{ color: T.muted, marginLeft: 8 }}>
+              {progresso.atual} / {progresso.total}
+            </span>
+          )}
+          {progresso.msg && (
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 4, fontStyle: "italic" }}>
+              {progresso.msg}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Resultado */}
+      {resultado && (
+        <div style={{
+          padding: 12, marginBottom: 4,
+          background: T.card, border: `1px solid ${resultado.ok ? T.green : T.gold}55`,
+          borderLeft: `3px solid ${resultado.ok ? T.green : T.gold}`,
+          borderRadius: 8,
+        }}>
+          <div style={{
+            fontSize: 12, fontWeight: 700,
+            color: resultado.ok ? T.green : T.gold,
+            marginBottom: 8, letterSpacing: ".05em", textTransform: "uppercase",
+          }}>
+            {resultado.dryRun ? "Dry-run: " : ""}{resultado.ok ? "Sucesso" : `${resultado.erros.length} erro(s)`}
+          </div>
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+            gap: 6, fontSize: 11.5,
+          }}>
+            {Object.entries(resultado.resultados).map(([tabela, r]) => (
+              <div key={tabela} style={{
+                padding: 8, background: T.bgSoft, borderRadius: 4,
+                borderLeft: `2px solid ${r.erro > 0 ? T.red : T.green}`,
+              }}>
+                <div style={{ color: T.ink, fontWeight: 600 }}>{tabela}</div>
+                <div style={{ color: T.muted, fontSize: 11, marginTop: 2 }}>
+                  ok: <strong style={{ color: T.green }}>{r.ok}</strong> · erro: <strong style={{ color: r.erro > 0 ? T.red : T.muted }}>{r.erro || 0}</strong>
+                  {r.pulados > 0 && <> · pulados: {r.pulados}</>}
+                </div>
+              </div>
+            ))}
+          </div>
+          {resultado.erros.length > 0 && (
+            <details style={{ marginTop: 10, fontSize: 11 }}>
+              <summary style={{ cursor: "pointer", color: T.red, fontWeight: 600 }}>
+                Ver {resultado.erros.length} erro(s)
+              </summary>
+              <div style={{
+                maxHeight: 200, overflowY: "auto", marginTop: 6,
+                padding: 8, background: T.bg, borderRadius: 4,
+              }}>
+                {resultado.erros.map((e, i) => (
+                  <div key={i} style={{ marginBottom: 4, color: T.muted }}>
+                    <strong style={{ color: T.red }}>{e.tabela}</strong> · {e.item} → {e.erro}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

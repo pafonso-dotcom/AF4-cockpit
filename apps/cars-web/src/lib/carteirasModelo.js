@@ -157,6 +157,21 @@ export const MODELOS_BUILTIN = [
 // ============================================================
 
 /**
+ * Normaliza ticker pra comparação tolerante.
+ * - Uppercase
+ * - Remove sufixos comuns: .SA, .SAO, .US, .NYSE, .NASDAQ
+ * - Remove espaços/whitespace
+ */
+export function normalizeTicker(t) {
+  if (!t) return "";
+  return String(t)
+    .trim()
+    .toUpperCase()
+    .replace(/\.(SA|SAO|US|NYSE|NASDAQ|NQ|NY)$/i, "")
+    .replace(/\s+/g, "");
+}
+
+/**
  * Verifica uma regra contra os tickers do modelo + carteira atual.
  * Retorna { ok: bool, valorAtual: any, mensagem: string }
  */
@@ -164,10 +179,10 @@ export function avaliarRegra(regra, tickersModelo, ativosCarteira) {
   const tickerByCarteira = new Map(
     (ativosCarteira || [])
       .filter(a => Number(a.qtd || 0) > 0)
-      .map(a => [(a.ticker || "").toUpperCase(), a])
+      .map(a => [normalizeTicker(a.ticker), a])
   );
   const tickersDoModeloNaCarteira = tickersModelo
-    .filter(t => tickerByCarteira.has((t.ticker || "").toUpperCase()));
+    .filter(t => tickerByCarteira.has(normalizeTicker(t.ticker)));
 
   switch (regra.tipo) {
     case "min_tickers": {
@@ -262,13 +277,13 @@ export function analisarClasse({ classeConfig, ativosCarteira, ativosTipo, aport
 
   const total = aporteAlvo > 0 ? totalDaClasseAtual + aporteAlvo : totalDaClasseAtual;
 
-  // Cria linha por ticker do modelo
+  // Cria linha por ticker do modelo (matching tolerante via normalizeTicker)
   const tickerToAtivo = new Map(
-    ativosDaClasse.map(a => [(a.ticker || "").toUpperCase(), a])
+    ativosDaClasse.map(a => [normalizeTicker(a.ticker), a])
   );
 
   const linhas = classeConfig.tickers.map(t => {
-    const ativo = tickerToAtivo.get((t.ticker || "").toUpperCase());
+    const ativo = tickerToAtivo.get(normalizeTicker(t.ticker));
     const valorAtual = ativo ? Number(ativo.qtd || 0) * Number(ativo.preco || 0) : 0;
     const valorAlvo = total * (Number(t.pct || 0) / 100);
     const falta = Math.max(0, valorAlvo - valorAtual);
@@ -289,17 +304,23 @@ export function analisarClasse({ classeConfig, ativosCarteira, ativosTipo, aport
   const somaPctModelo = classeConfig.tickers.reduce((s, t) => s + Number(t.pct || 0), 0);
 
   // Ativos da carteira que NÃO estão no modelo (alerta "fora do plano")
-  const tickersModeloSet = new Set(classeConfig.tickers.map(t => (t.ticker || "").toUpperCase()));
-  const foraDoModelo = ativosDaClasse.filter(a => !tickersModeloSet.has((a.ticker || "").toUpperCase()));
+  const tickersModeloSet = new Set(classeConfig.tickers.map(t => normalizeTicker(t.ticker)));
+  const foraDoModelo = ativosDaClasse.filter(a => !tickersModeloSet.has(normalizeTicker(a.ticker)));
 
   return {
     linhas,
     totalAtual: totalDaClasseAtual,
     totalProjetado: total,
     somaPctModelo,
+    qtdAtivosClasse: ativosDaClasse.length,
     foraDoModelo: foraDoModelo.map(a => ({
       ticker: a.ticker,
+      nome: a.nome || "",
+      segmento: a.segmento || "",
+      qtd: Number(a.qtd || 0),
+      preco: Number(a.preco || 0),
       valor: Number(a.qtd || 0) * Number(a.preco || 0),
+      pctDaClasse: totalDaClasseAtual > 0 ? (Number(a.qtd || 0) * Number(a.preco || 0)) / totalDaClasseAtual * 100 : 0,
     })),
   };
 }
