@@ -547,7 +547,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                        onChange={e => setForm({ ...form, bandeiraCustom: { ...form.bandeiraCustom, nome: e.target.value } })}
                        placeholder="Ex.: Will Bank · BTG · Empresarial" />
               </Field>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Field label="Cor 1 (escura)">
                   <input type="color" value={form.bandeiraCustom?.cor1 || "#c9a96b"}
                          onChange={e => {
@@ -562,7 +562,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                              },
                            });
                          }}
-                         style={{ width: "100%", height: 38, padding: 2, cursor: "pointer" }} />
+                         style={{ width: "100%", height: 44, padding: 2, cursor: "pointer" }} />
                 </Field>
                 <Field label="Cor 2 (clara)">
                   <input type="color" value={form.bandeiraCustom?.cor2 || "#8a7140"}
@@ -578,7 +578,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                              },
                            });
                          }}
-                         style={{ width: "100%", height: 38, padding: 2, cursor: "pointer" }} />
+                         style={{ width: "100%", height: 44, padding: 2, cursor: "pointer" }} />
                 </Field>
                 <Field label="Texto">
                   <input type="color" value={form.bandeiraCustom?.fgColor || "#ffffff"}
@@ -590,7 +590,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                              fg: e.target.value,
                            },
                          })}
-                         style={{ width: "100%", height: 38, padding: 2, cursor: "pointer" }} />
+                         style={{ width: "100%", height: 44, padding: 2, cursor: "pointer" }} />
                 </Field>
               </div>
               {/* Live preview */}
