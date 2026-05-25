@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar } from "lucide-react";
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
@@ -7,6 +7,7 @@ import { gerarInsights } from "../../lib/intelligence.js";
 import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { getKPIsMes } from "../../lib/agregador.js";
+import { supabase } from "../../lib/supabase.js";
 
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const CORES_CAT = ["#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#84cc16","#6b7280"];
@@ -18,6 +19,18 @@ function greetingForTime() {
   if (h < 12) return "Bom dia";
   if (h < 18) return "Boa tarde";
   return "Boa noite";
+}
+
+// Extrai um primeiro nome amigável do usuário Supabase:
+//   user_metadata.full_name / .name → primeira palavra
+//   senão, parte local do email (antes do @), com 1ª letra maiúscula
+function deriveFirstName(user) {
+  if (!user) return "";
+  const md = user.user_metadata || {};
+  const raw = md.full_name || md.name || (user.email || "").split("@")[0] || "";
+  const first = String(raw).trim().split(/\s+/)[0] || "";
+  if (!first) return "";
+  return first.charAt(0).toUpperCase() + first.slice(1);
 }
 
 function nextMonthsISO(n = 6) {
@@ -39,8 +52,22 @@ export default function Dashboard({
   fixas = [], fixaOcorrencias = [],
   agenda = [],
   escopoAtivo = "tudo",
-  onTabChange, onContaClick, userName = "Paulo",
+  onTabChange, onContaClick,
 }) {
+  // Nome do usuário logado, resolvido via Supabase auth.
+  // Sem sessão (modo local em dev) o nome fica vazio → saudação sem nome.
+  const [userName, setUserName] = useState("");
+  useEffect(() => {
+    if (!supabase) return;
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (active) setUserName(deriveFirstName(data?.user));
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserName(deriveFirstName(session?.user));
+    });
+    return () => { active = false; sub.subscription.unsubscribe(); };
+  }, []);
   const contas = useMemo(() => filtrarPorEscopo(contasRaw || [], escopoAtivo), [contasRaw, escopoAtivo]);
   const transacoes = useMemo(() => {
     if (escopoAtivo === "tudo") return transacoesRaw || [];
@@ -155,7 +182,7 @@ export default function Dashboard({
       {/* Greeting */}
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontFamily: T.serif, fontSize: 28, fontWeight: 600, color: T.ink, margin: 0 }}>
-          {greetingForTime()}, {userName}! 👋
+          {greetingForTime()}{userName ? `, ${userName}` : ""}! 👋
         </h1>
         <div style={{ color: T.muted, fontSize: 13, marginTop: 4 }}>
           Aqui está o resumo da sua vida financeira.
