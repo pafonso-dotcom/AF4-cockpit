@@ -50,6 +50,7 @@ import Diario from "./components/pages/Diario.jsx";
 import Compras from "./components/pages/Compras.jsx";
 import Ideias from "./components/pages/Ideias.jsx";
 import Tarefas from "./components/pages/Tarefas.jsx";
+import SugestoesMelhorias from "./components/pages/SugestoesMelhorias.jsx";
 import AgendaInicio from "./components/pages/AgendaInicio.jsx";
 import PomodoroFloat from "./components/PomodoroFloat.jsx";
 import Despesas from "./components/pages/Despesas.jsx";
@@ -129,6 +130,8 @@ export default function App() {
   const [compras, setCompras] = useState([]);
   const [ideias, setIdeias] = useState([]);
   const [tarefas, setTarefas] = useState([]);
+  // Sugestões de melhorias do próprio app (aba Agenda → Sugestões).
+  const [sugestoes, setSugestoes] = useState([]);
 
   // Objetivos da carteira (árvore IdV-style)
   const [objetivosCarteira, setObjetivosCarteira] = useState([]);
@@ -196,6 +199,7 @@ export default function App() {
         setCompras(data.compras || []);
         setIdeias(data.ideias || []);
         setTarefas(data.tarefas || []);
+        setSugestoes(data.sugestoes || []);
         setObjetivosCarteira(data.objetivosCarteira || []);
         setCarteirasModeloCustom(data.carteirasModeloCustom || []);
         if (data.modeloAtivoId) setModeloAtivoId(data.modeloAtivoId);
@@ -239,6 +243,7 @@ export default function App() {
         setCompras([]);
         setIdeias([]);
         setTarefas([]);
+        setSugestoes([]);
         setObjetivosCarteira([]);
         setCarteirasModeloCustom([]);
         setCarteiraProventos({ saldo: 0, historico: [] });
@@ -262,7 +267,7 @@ export default function App() {
       contas, categorias, transacoes, ativos, metas, notas,
       cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras, ideias, tarefas, objetivosCarteira,
+      habitos, diario, compras, ideias, tarefas, sugestoes, objetivosCarteira,
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
@@ -270,7 +275,7 @@ export default function App() {
     });
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras, ideias, tarefas, objetivosCarteira,
+      habitos, diario, compras, ideias, tarefas, sugestoes, objetivosCarteira,
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
@@ -806,6 +811,9 @@ export default function App() {
             )}
             {tab === "ideias" && (
               <Ideias ideias={ideias} setIdeias={setIdeias} />
+            )}
+            {tab === "sugestoes" && (
+              <SugestoesMelhorias sugestoes={sugestoes} setSugestoes={setSugestoes} />
             )}
             {tab === "metas" && (
               <Metas metas={metas} setMetas={setMetas} hidden={hidden} />
