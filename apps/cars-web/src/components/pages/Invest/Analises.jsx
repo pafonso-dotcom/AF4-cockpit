@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TrendingUp, Sparkles, Radar, Calculator } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import PageHeader from "../../ui/PageHeader.jsx";
@@ -20,8 +20,15 @@ export default function AnalisesUnificada({
   tradeAnalisesIdV, setTradeAnalisesIdV,
   onAnalisarAtivo,
   apiKeys = {},
+  projetarAlvo,
+  onConsumirProjetarAlvo,
 }) {
   const [view, setView] = useState("performance");
+
+  // Quando chega um alvo de fora (botão "Projetar" da Carteira), pula direto pra view projeção
+  useEffect(() => {
+    if (projetarAlvo) setView("projecao");
+  }, [projetarAlvo]);
 
   return (
     <div className="fade-up py-8">
@@ -59,7 +66,13 @@ export default function AnalisesUnificada({
         {view === "performance"      && <Performance ativos={ativos} hidden={hidden} />}
         {view === "idv"              && <AnaliseIdV analises={tradeAnalisesIdV} setAnalises={setTradeAnalisesIdV} ativos={ativos} />}
         {view === "carteira-analise" && <AnaliseCarteira ativos={ativos} hidden={hidden} onAnalisar={onAnalisarAtivo} />}
-        {view === "projecao"         && <Projecao ativos={ativos} hidden={hidden} apiKeys={apiKeys} />}
+        {view === "projecao"         && (
+          <Projecao
+            ativos={ativos} hidden={hidden} apiKeys={apiKeys}
+            alvoInicial={projetarAlvo}
+            onConsumirAlvo={onConsumirProjetarAlvo}
+          />
+        )}
       </div>
     </div>
   );

@@ -149,6 +149,7 @@ export default function App() {
   const [tradeAnalisesIdV, setTradeAnalisesIdV] = useState([]);
   const [tradeOnboardingVisto, setTradeOnboardingVisto] = useState(false);
   const [analiseAlvo, setAnaliseAlvo] = useState(null);
+  const [projetarAlvo, setProjetarAlvo] = useState(null);
 
   /* ---------- Load on mount ---------- */
   useEffect(() => {
@@ -788,6 +789,8 @@ export default function App() {
                   tradeAnalisesIdV={tradeAnalisesIdV} setTradeAnalisesIdV={setTradeAnalisesIdV}
                   onAnalisarAtivo={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
                   apiKeys={apiKeys}
+                  projetarAlvo={projetarAlvo}
+                  onConsumirProjetarAlvo={() => setProjetarAlvo(null)}
                 />
               </div>
             )}
@@ -799,6 +802,7 @@ export default function App() {
                                transacoes={transacoes} setTransacoes={setTransacoes}
                                onRefresh={refreshMarket} refreshing={refreshing}
                                onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
+                               onProjetar={(ativo) => { setProjetarAlvo(ativo); setTab("analises"); }}
                                hidden={hidden} />
               </div>
             )}

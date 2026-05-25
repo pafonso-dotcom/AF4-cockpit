@@ -19,14 +19,22 @@ const TAXA_SUGERIDA = {
   cripto: 1.50, rf: 0.80, tesouro: 0.75, cdb: 0.85, outro: 0.85,
 };
 
-export default function Projecao({ ativos = [], hidden, apiKeys = {} }) {
+export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicial, onConsumirAlvo }) {
   // Carteira com posição (qtd > 0)
   const ativosComPosicao = useMemo(
     () => (ativos || []).filter(a => Number(a.qtd || 0) > 0),
     [ativos]
   );
 
-  const [ativoId, setAtivoId] = useState(ativosComPosicao[0]?.id || "manual");
+  const [ativoId, setAtivoId] = useState(alvoInicial?.id || ativosComPosicao[0]?.id || "manual");
+
+  // Quando recebe alvo de fora (botão "Projetar" da Carteira), seleciona aquele ativo
+  useEffect(() => {
+    if (alvoInicial?.id) {
+      setAtivoId(alvoInicial.id);
+      onConsumirAlvo?.();
+    }
+  }, [alvoInicial?.id]);
   const isManual = ativoId === "manual";
   const ativo = useMemo(
     () => isManual ? null : (ativosComPosicao.find(a => a.id === ativoId) || ativosComPosicao[0]),
