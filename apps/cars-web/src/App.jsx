@@ -137,6 +137,12 @@ export default function App() {
   const [carteirasModeloCustom, setCarteirasModeloCustom] = useState([]);
   const [modeloAtivoId, setModeloAtivoId] = useState("idv-iniciante");
 
+  // Carteira virtual de proventos (saldo + histórico de movimentações)
+  // Modelo: { saldo: number, historico: [{id, data, tipo, valor, descricao, proventoKey?, ticker?}] }
+  const [carteiraProventos, setCarteiraProventos] = useState({ saldo: 0, historico: [] });
+  // Proventos marcados como recebidos: { [proventoKey]: { dataBaixa, destino, valor } }
+  const [proventosRecebidos, setProventosRecebidos] = useState({});
+
   // AF4 Trade
   const [tradeWatchlist, setTradeWatchlist] = useState([]);
   const [tradeHistorico, setTradeHistorico] = useState([]);
@@ -185,6 +191,8 @@ export default function App() {
         setObjetivosCarteira(data.objetivosCarteira || []);
         setCarteirasModeloCustom(data.carteirasModeloCustom || []);
         if (data.modeloAtivoId) setModeloAtivoId(data.modeloAtivoId);
+        setCarteiraProventos(data.carteiraProventos || { saldo: 0, historico: [] });
+        setProventosRecebidos(data.proventosRecebidos || {});
         setTradeWatchlist(data.tradeWatchlist || []);
         setTradeHistorico(data.tradeHistorico || []);
         setTradeAnalisesIdV(data.tradeAnalisesIdV || []);
@@ -223,6 +231,8 @@ export default function App() {
         setTarefas([]);
         setObjetivosCarteira([]);
         setCarteirasModeloCustom([]);
+        setCarteiraProventos({ saldo: 0, historico: [] });
+        setProventosRecebidos({});
         setTradeWatchlist([]);
         setTradeHistorico([]);
         setTradeAnalisesIdV([]);
@@ -242,6 +252,7 @@ export default function App() {
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, objetivosCarteira,
       carteirasModeloCustom, modeloAtivoId,
+      carteiraProventos, proventosRecebidos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId,
     });
@@ -249,6 +260,7 @@ export default function App() {
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, objetivosCarteira,
       carteirasModeloCustom, modeloAtivoId,
+      carteiraProventos, proventosRecebidos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId, loading]);
 
@@ -814,7 +826,19 @@ export default function App() {
                 />
               </div>
             )}
-            {tab === "proventos" && <Proventos ativos={ativos} hidden={hidden} />}
+            {tab === "proventos" && (
+              <Proventos
+                ativos={ativos} setAtivos={setAtivos}
+                hidden={hidden}
+                carteiraProventos={carteiraProventos}
+                setCarteiraProventos={setCarteiraProventos}
+                proventosRecebidos={proventosRecebidos}
+                setProventosRecebidos={setProventosRecebidos}
+                contas={contas} setContas={setContas}
+                categorias={categorias}
+                transacoes={transacoes} setTransacoes={setTransacoes}
+              />
+            )}
             {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} proventos={[]} operacoes={[]} hidden={hidden} />}
             {tab === "mercado" && (
               <div className="px-6 md:px-10">

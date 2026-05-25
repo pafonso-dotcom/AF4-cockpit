@@ -203,6 +203,14 @@ export const stressTest = (ativos) => {
  * Calendário de proventos simulado para os próximos 90 dias.
  * Cada ativo tipo "acao" ou "fii" gera 1 provento por mês.
  */
+// Pseudo-random determinístico baseado em string (mesma seed = mesmo resultado)
+function pseudoRandom(seed) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  // LCG simples — gera valor em [0,1)
+  return ((h * 9301 + 49297) % 233280) / 233280;
+}
+
 export const calendarioProventos = (ativos, hoje = new Date()) => {
   const proventos = [];
 
@@ -214,29 +222,34 @@ export const calendarioProventos = (ativos, hoje = new Date()) => {
     const preco = Number(a.preco || 0);
     if (qtd <= 0 || preco <= 0) return;
 
-    // FII: rendimento ~ 0,8% ao mês. Ação: dividendo ~ 0,5-1% (trimestral).
+    // FII: rendimento ~ 0,7-1,2% ao mês. Ação: dividendo ~ 0,5-1,5% (trimestral).
+    // Usa pseudoRandom estável (mesma seed = mesmo valor a cada render)
     let valorPorCota = 0;
     let frequencia = 1;
     let tipoProv = "";
 
     if (tipo === "fii") {
-      valorPorCota = preco * (0.007 + Math.random() * 0.005);
+      valorPorCota = preco * (0.007 + pseudoRandom(`${a.ticker}-yield`) * 0.005);
       frequencia = 1; // todo mês
       tipoProv = "Rendimento";
     } else {
-      valorPorCota = preco * (0.005 + Math.random() * 0.01);
+      valorPorCota = preco * (0.005 + pseudoRandom(`${a.ticker}-yield`) * 0.01);
       frequencia = 3; // trimestral
-      tipoProv = Math.random() > 0.5 ? "Dividendo" : "JCP";
+      tipoProv = pseudoRandom(`${a.ticker}-type`) > 0.5 ? "Dividendo" : "JCP";
     }
 
     for (let m = 1; m <= 3; m++) {
       if (tipo === "acao" && m % frequencia !== 0) continue;
       const data = new Date(hoje);
-      data.setDate(15 + Math.floor(Math.random() * 10));
+      // dia 15 + offset estável (mesmo ticker+mês = mesmo dia)
+      data.setDate(15 + Math.floor(pseudoRandom(`${a.ticker}-day-${m}`) * 10));
       data.setMonth(data.getMonth() + m - 1);
+      const dataISO = data.toISOString().slice(0, 10);
 
       proventos.push({
-        data: data.toISOString().slice(0, 10),
+        // Key estável pra rastreio de "recebido"
+        id: `${a.ticker}-${dataISO}-${tipoProv}`,
+        data: dataISO,
         ticker: a.ticker || a.nome,
         tipo: tipoProv,
         valorPorCota,
