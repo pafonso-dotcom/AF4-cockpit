@@ -9,6 +9,7 @@ import { signIn, signUp, resetPassword, updatePassword } from "../lib/supabase.j
  */
 export default function Login({ mode: initialMode = "login", onPasswordUpdated }) {
   const [mode,  setMode]  = useState(initialMode); // login | signup | reset | update
+  const [name,  setName]  = useState("");
   const [email, setEmail] = useState("");
   const [pwd,   setPwd]   = useState("");
   const [busy,  setBusy]  = useState(false);
@@ -17,18 +18,20 @@ export default function Login({ mode: initialMode = "login", onPasswordUpdated }
 
   const go = (m) => { setMode(m); setErr(null); setMsg(null); setPwd(""); };
 
+  const needsName  = mode === "signup";
   const needsEmail = mode === "login" || mode === "signup" || mode === "reset";
   const needsPwd   = mode === "login" || mode === "signup" || mode === "update";
 
   const submit = async (e) => {
     e.preventDefault();
     setErr(null); setMsg(null);
+    if (needsName && !name.trim()) return;
     if (needsEmail && !email) return;
     if (needsPwd && !pwd) return;
     setBusy(true);
     try {
       if (mode === "signup") {
-        await signUp(email.trim(), pwd);
+        await signUp(email.trim(), pwd, name);
         setMsg("Cadastro criado. Confirme seu e-mail pelo link que enviamos antes de fazer login.");
         setMode("login");
         setPwd("");
@@ -59,10 +62,19 @@ export default function Login({ mode: initialMode = "login", onPasswordUpdated }
           {TITLES[mode]}
         </div>
 
-        {needsEmail && (
+        {needsName && (
           <div style={{ marginTop: 20 }}>
+            <label style={labelStyle}>Nome</label>
+            <input type="text" required autoFocus autoComplete="name"
+                   value={name} onChange={(e) => setName(e.target.value)}
+                   placeholder="Como devemos te chamar" style={inputStyle} />
+          </div>
+        )}
+
+        {needsEmail && (
+          <div style={{ marginTop: needsName ? 14 : 20 }}>
             <label style={labelStyle}>E-mail</label>
-            <input type="email" required autoFocus autoComplete="email"
+            <input type="email" required autoFocus={!needsName} autoComplete="email"
                    value={email} onChange={(e) => setEmail(e.target.value)}
                    placeholder="voce@exemplo.com" style={inputStyle} />
           </div>
