@@ -6,6 +6,12 @@
    AF4 Cockpit · estilo demo v3 (Poppins · dark · 7 paletas)
    ============================================================ */
 
+/* Customização do usuário em "Aparência":
+   --text-scale aplica zoom global (0.9 / 1.0 / 1.15).
+   --text-color sobrescreve a cor base do texto quando definida. */
+html { zoom: var(--text-scale, 1); }
+body { color: var(--text-color, inherit); }
+
 :root {
   --bg: #0a0a0c;
   --be: #111114;
@@ -651,7 +657,7 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
    .pdf-page-break = força quebra antes do elemento
    ============================================================ */
 @media print {
-  body { background: #fff !important; color: #111 !important; }
+  body { background: #fff !important; color: #111 !important; overflow: visible !important; }
   .no-print, nav, header, footer, .toast-container, .modal-overlay-bg { display: none !important; }
   .modal-content,
   .print-area {
@@ -659,6 +665,8 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
     inset: auto !important;
     max-width: none !important;
     width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;

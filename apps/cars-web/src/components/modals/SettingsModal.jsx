@@ -153,6 +153,7 @@ export default function SettingsModal({ apiKeys, setApiKeys, onClose }) {
         <BackupRestore />
         <SyncBlock />
         <NotificationsBlock />
+        <MarketPollingBlock />
 
         <div className="flex gap-3 mt-6">
           <button className="btn-gold" onClick={save}>Salvar configurações</button>
@@ -297,6 +298,48 @@ function NotificationsBlock() {
           {msg.txt}
         </div>
       )}
+    </div>
+  );
+}
+
+const POLLING_OPTIONS = [
+  { v: 0,  l: "Desligado" },
+  { v: 1,  l: "A cada 1 minuto" },
+  { v: 5,  l: "A cada 5 minutos" },
+  { v: 10, l: "A cada 10 minutos" },
+  { v: 15, l: "A cada 15 minutos" },
+  { v: 30, l: "A cada 30 minutos" },
+];
+
+function MarketPollingBlock() {
+  const [min, setMin] = useState(() => Number(localStorage.getItem("af4:invest:polling-min")) || 0);
+
+  const onChange = (v) => {
+    setMin(v);
+    localStorage.setItem("af4:invest:polling-min", String(v));
+    // App.jsx escuta esse evento pra reagendar o timer sem reload.
+    window.dispatchEvent(new Event("af4:polling-changed"));
+  };
+
+  return (
+    <div style={{ marginTop: 18, padding: 14, border: `1px solid ${T.border}`, background: T.bgSoft, borderRadius: 7 }}>
+      <div className="label-eyebrow" style={{ marginBottom: 6 }}>
+        Atualização automática de cotações
+      </div>
+      <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 10, lineHeight: 1.55 }}>
+        Refaz a busca de preços (BRAPI · Binance) periodicamente, sem precisar clicar em "Atualizar mercado". Pausa quando a aba não está visível.
+      </div>
+      <select value={min} onChange={(e) => onChange(Number(e.target.value))}
+              style={{
+                width: "100%", padding: "8px 10px",
+                background: T.card, color: T.ink,
+                border: `1px solid ${T.border}`, borderRadius: 6,
+                fontSize: 13, fontFamily: "inherit", cursor: "pointer",
+              }}>
+        {POLLING_OPTIONS.map(o => (
+          <option key={o.v} value={o.v}>{o.l}</option>
+        ))}
+      </select>
     </div>
   );
 }
