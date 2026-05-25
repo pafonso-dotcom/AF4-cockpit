@@ -232,14 +232,14 @@ function IdeiaCard({ item, onTogglePin, onExcluir, onEditar }) {
                 style={{
                   background: "transparent", border: "none",
                   color: item.pinned ? T.gold : T.muted,
-                  cursor: "pointer", padding: 4, minHeight: 26,
+                  cursor: "pointer", padding: 8, minHeight: 36, minWidth: 36, display: "grid", placeItems: "center",
                 }}>
           {item.pinned ? <Pin size={14} /> : <PinOff size={14} />}
         </button>
         <button onClick={() => onExcluir(item)} title="Excluir"
                 style={{
                   background: "transparent", border: "none", color: T.muted,
-                  cursor: "pointer", padding: 4, minHeight: 26,
+                  cursor: "pointer", padding: 8, minHeight: 36, minWidth: 36, display: "grid", placeItems: "center",
                 }}>
           <Trash2 size={14} />
         </button>

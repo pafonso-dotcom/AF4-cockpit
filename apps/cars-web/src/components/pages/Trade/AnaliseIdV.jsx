@@ -199,7 +199,7 @@ export default function AnaliseIdV({ analises = [], setAnalises, ativos = [] }) 
                               </select>
                             );
                           })() : (
-                            <input value={analise.valores[c.id] || ""} onChange={e => atualizar(analise.id, c.id, e.target.value)} placeholder={c.unidade || ""} style={{ width: 100, padding: "4px 8px", fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 5, background: T.card, color: T.ink }} />
+                            <input value={analise.valores[c.id] || ""} onChange={e => atualizar(analise.id, c.id, e.target.value)} placeholder={c.unidade || ""} style={{ width: 100, padding: "6px 8px", fontSize: 13, border: `1px solid ${T.border}`, borderRadius: 5, background: T.card, color: T.ink }} />
                           )}
                         </div>
                       );
