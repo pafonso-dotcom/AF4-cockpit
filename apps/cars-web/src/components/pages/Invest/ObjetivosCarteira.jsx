@@ -5,23 +5,29 @@
  * Cada nó:
  *   - label, percent (% do PAI), parentId, classeMatch (acao/fii/etc — só leafs)
  *
- * Pré-seed com estrutura IdV (RF/RV → País → Classe) mas tudo editável.
+ * Visualizações:
+ *   - Desktop ≥768px: árvore visual estilo org-chart (cards conectados por linhas)
+ *   - Mobile: lista vertical indentada
  *
  * Comparação:
  *   - % atual da carteira em cada nó (via classeMatch dos descendentes)
  *   - falta R$ pra alcançar o alvo
  *   - barra de progresso
  *
- * Integração: botão "Sugerir aporte (IA)" abre o modal SugestaoAporte
- * já existente, passando o valor "falta R$" como sugestão inicial.
+ * Aporte mensal:
+ *   - Campo no topo pro usuário definir quanto vai aportar
+ *   - Distribui automaticamente pelas folhas, priorizando as abaixo do alvo
+ *   - Lista "Onde aportar este mês" com botão IA por folha
  */
 import React, { useMemo, useState } from "react";
 import {
-  Plus, Trash2, Edit3, ChevronDown, ChevronRight, Sparkles,
+  Plus, Trash2, Edit3, Sparkles,
   CheckCircle2, AlertCircle, Target, TrendingUp, Building2, Landmark,
+  Wallet, ArrowRight,
 } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN, uid } from "../../../lib/format.js";
+import { parseValorBR } from "../../../lib/importExport.js";
 import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import PageHeader from "../../ui/PageHeader.jsx";
@@ -65,6 +71,9 @@ export default function ObjetivosCarteira({
   const [editando, setEditando] = useState(null); // node sendo editado
   const [sugestaoOpen, setSugestaoOpen] = useState(false);
   const [sugestaoBucket, setSugestaoBucket] = useState(null); // node escolhido para sugestão
+  const [aporteMensal, setAporteMensal] = useState("");
+
+  const aporteN = parseValorBR(aporteMensal) || 0;
 
   /* ===== Total da carteira ===== */
   const totalCarteira = useMemo(() =>
@@ -72,10 +81,9 @@ export default function ObjetivosCarteira({
       s + (Number(a.qtd || 0) * Number(a.preco || 0)), 0
     ), [ativos]);
 
-  /* ===== Computa valor atual em R$ de cada nó (recursivo) ===== */
+  /* ===== Valor atual em R$ de cada nó (recursivo: folha = soma de ativos do match; pai = soma dos filhos) ===== */
   const valorPorNo = useMemo(() => {
     const map = new Map();
-    // Para cada folha: soma ativos cujo tipo bate com classeMatch
     const folhas = tree.filter(n => !tree.some(c => c.parentId === n.id));
     folhas.forEach(folha => {
       if (!folha.classeMatch || folha.classeMatch.length === 0) {
@@ -87,7 +95,6 @@ export default function ObjetivosCarteira({
         .reduce((s, a) => s + (Number(a.qtd || 0) * Number(a.preco || 0)), 0);
       map.set(folha.id, v);
     });
-    // Para cada nó intermediário: soma dos filhos
     const calcular = (nodeId) => {
       if (map.has(nodeId)) return map.get(nodeId);
       const filhos = tree.filter(n => n.parentId === nodeId);
@@ -99,9 +106,10 @@ export default function ObjetivosCarteira({
     return map;
   }, [tree, ativos]);
 
-  /* ===== Valor alvo de cada nó (cascateia % de cima pra baixo) ===== */
+  /* ===== Valor alvo (cascateia % do pai pra baixo) — calculado pro NOVO total (atual + aporte) ===== */
   const valorAlvo = useMemo(() => {
     const map = new Map();
+    const totalProjetado = totalCarteira + aporteN;
     const calcular = (nodeId, valorDoPai) => {
       const node = tree.find(n => n.id === nodeId);
       if (!node) return;
@@ -109,20 +117,60 @@ export default function ObjetivosCarteira({
       map.set(nodeId, valor);
       tree.filter(n => n.parentId === nodeId).forEach(f => calcular(f.id, valor));
     };
-    tree.filter(n => n.parentId === null).forEach(root => calcular(root.id, totalCarteira));
+    tree.filter(n => n.parentId === null).forEach(root => calcular(root.id, totalProjetado));
     return map;
-  }, [tree, totalCarteira]);
+  }, [tree, totalCarteira, aporteN]);
+
+  /* ===== Distribuição do aporte: prioriza folhas abaixo do alvo ===== */
+  const distribuicaoAporte = useMemo(() => {
+    if (aporteN <= 0) return new Map();
+    const folhas = tree.filter(n => !tree.some(c => c.parentId === n.id));
+    const faltas = folhas.map(f => ({
+      node: f,
+      atual: valorPorNo.get(f.id) || 0,
+      alvo: valorAlvo.get(f.id) || 0,
+      falta: Math.max(0, (valorAlvo.get(f.id) || 0) - (valorPorNo.get(f.id) || 0)),
+    }));
+    const somaFaltas = faltas.reduce((s, f) => s + f.falta, 0);
+    const map = new Map();
+
+    if (somaFaltas > 0) {
+      // Distribui o aporte proporcionalmente ao gap
+      // Mas limita cada folha ao máximo do gap (pra não passar do alvo)
+      let restante = aporteN;
+      const ordenado = [...faltas].filter(f => f.falta > 0).sort((a, b) => b.falta - a.falta);
+      for (const f of ordenado) {
+        const proporcao = f.falta / somaFaltas;
+        const valor = Math.min(f.falta, aporteN * proporcao);
+        map.set(f.node.id, valor);
+        restante -= valor;
+      }
+      // Se sobrou (porque algumas folhas atingiram o teto), distribui o restante pelo % alvo das folhas
+      if (restante > 0.5) {
+        folhas.forEach(f => {
+          const proporcao = (valorAlvo.get(f.id) || 0) / (totalCarteira + aporteN);
+          map.set(f.node?.id ?? f.id, (map.get(f.node?.id ?? f.id) || 0) + restante * proporcao);
+        });
+      }
+    } else {
+      // Tudo no alvo ou acima — distribui pelo % do alvo
+      folhas.forEach(f => {
+        const totalAlvos = folhas.reduce((s, x) => s + (valorAlvo.get(x.id) || 0), 0);
+        const proporcao = totalAlvos > 0 ? (valorAlvo.get(f.id) || 0) / totalAlvos : 0;
+        map.set(f.id, aporteN * proporcao);
+      });
+    }
+    return map;
+  }, [tree, valorPorNo, valorAlvo, aporteN, totalCarteira]);
 
   /* ===== Validação: filhos somam 100%? ===== */
   const validacoes = useMemo(() => {
     const problemas = [];
-    // Raízes devem somar 100
     const raizes = tree.filter(n => n.parentId === null);
     const somaRaiz = raizes.reduce((s, n) => s + Number(n.percent || 0), 0);
     if (Math.abs(somaRaiz - 100) > 0.01 && raizes.length > 0) {
       problemas.push(`Raízes somam ${somaRaiz}% (precisa ser 100%)`);
     }
-    // Cada pai com filhos: filhos somam 100
     tree.forEach(node => {
       const filhos = tree.filter(n => n.parentId === node.id);
       if (filhos.length > 0) {
@@ -176,28 +224,42 @@ export default function ObjetivosCarteira({
     toast.success("Árvore restaurada.");
   };
 
-  /* ===== Sugestão IA pra um bucket específico ===== */
-  const abrirSugestao = (node) => {
-    const atual = valorPorNo.get(node.id) || 0;
-    const alvo = valorAlvo.get(node.id) || 0;
-    const falta = Math.max(0, alvo - atual);
-    if (falta <= 0) {
-      toast.info(`"${node.label}" já está acima do alvo. Nada a aportar.`);
+  /* ===== Sugestão IA pra um bucket ===== */
+  const abrirSugestao = (node, valorPadrao) => {
+    const valor = valorPadrao != null
+      ? valorPadrao
+      : Math.max(0, (valorAlvo.get(node.id) || 0) - (valorPorNo.get(node.id) || 0));
+    if (valor <= 0) {
+      toast.info(`"${node.label}" já está acima do alvo.`);
       return;
     }
-    setSugestaoBucket({ node, valor: falta });
+    setSugestaoBucket({ node, valor });
     setSugestaoOpen(true);
   };
 
-  /* ===== Render ===== */
   const raizes = tree.filter(n => n.parentId === null);
+
+  /* ===== Folhas com aporte sugerido (pra "Onde aportar este mês") ===== */
+  const folhasOrdenadasParaAporte = useMemo(() => {
+    if (aporteN <= 0) return [];
+    const folhas = tree.filter(n => !tree.some(c => c.parentId === n.id));
+    return folhas
+      .map(f => ({
+        node: f,
+        valorSugerido: distribuicaoAporte.get(f.id) || 0,
+        atual: valorPorNo.get(f.id) || 0,
+        alvo: valorAlvo.get(f.id) || 0,
+      }))
+      .filter(f => f.valorSugerido > 0.5)
+      .sort((a, b) => b.valorSugerido - a.valorSugerido);
+  }, [tree, distribuicaoAporte, valorPorNo, valorAlvo, aporteN]);
 
   return (
     <div className="fade-up py-8">
       <PageHeader
         eyebrow="Investimentos"
         title="Objetivos"
-        sub="Defina a alocação ideal da sua carteira e acompanhe quanto falta pra alcançar."
+        sub="Defina a alocação ideal da sua carteira. O sistema mostra quanto falta e onde aportar."
         action={
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <button className="btn-ghost" onClick={resetarPadrao}>
@@ -212,25 +274,116 @@ export default function ObjetivosCarteira({
         }
       />
 
-      {/* Resumo da carteira */}
+      {/* Resumo da carteira + aporte mensal */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
-        padding: 14, marginBottom: 14,
-        display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12,
-      }}>
-        <div>
-          <div className="label-eyebrow">Patrimônio total da carteira</div>
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14,
+      }} className="objetivos-resumo">
+        <div style={{
+          background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
+          padding: 14,
+        }}>
+          <div className="label-eyebrow">
+            <Wallet size={11} className="inline mr-1" />
+            Patrimônio total
+          </div>
           <div className="num" style={{
             fontFamily: T.serif, fontSize: 26, color: T.ink, fontWeight: 600, marginTop: 4,
           }}>
             {hidden ? "•••" : fmt(totalCarteira)}
           </div>
+          <div style={{ fontSize: 11, color: T.faint, marginTop: 4 }}>
+            {(ativos || []).filter(a => Number(a.qtd || 0) > 0).length} ativos na carteira
+          </div>
         </div>
-        <div style={{ fontSize: 11, color: T.muted, maxWidth: 320, lineHeight: 1.5 }}>
-          Os % abaixo são <strong>cascateados</strong>: cada nó representa % do PAI.
-          Folhas mapeiam classes de ativos (Ações, FIIs, CDB…).
+
+        <div style={{
+          background: `linear-gradient(135deg, ${T.gold}11, ${T.card})`,
+          border: `1px solid ${T.gold}66`,
+          borderLeft: `3px solid ${T.gold}`,
+          borderRadius: 12, padding: 14,
+        }}>
+          <div className="label-eyebrow" style={{ color: T.gold }}>
+            <ArrowRight size={11} className="inline mr-1" />
+            Quanto vai aportar este mês?
+          </div>
+          <input type="text" inputMode="decimal"
+                 value={aporteMensal}
+                 onChange={e => setAporteMensal(e.target.value)}
+                 placeholder="Ex.: 2.500,00"
+                 style={{
+                   marginTop: 6, fontSize: 22,
+                   fontFamily: T.serif, fontWeight: 600,
+                   border: `1px solid ${T.border}`, background: T.bg,
+                 }} />
+          {aporteN > 0 && (
+            <div style={{ fontSize: 11, color: T.gold, marginTop: 6, fontWeight: 600 }}>
+              + {fmt(aporteN)} → Total projetado: {fmt(totalCarteira + aporteN)}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Onde aportar este mês — só aparece com aporteMensal > 0 */}
+      {folhasOrdenadasParaAporte.length > 0 && (
+        <div style={{
+          background: T.card, border: `1px solid ${T.gold}55`,
+          borderRadius: 12, padding: 14, marginBottom: 14,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <Target size={16} style={{ color: T.gold }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
+              Onde aportar este mês
+            </span>
+            <span style={{ fontSize: 11, color: T.muted, fontStyle: "italic" }}>
+              Distribuição automática priorizando categorias abaixo do alvo
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {folhasOrdenadasParaAporte.map(({ node, valorSugerido, atual, alvo }) => {
+              const pct = aporteN > 0 ? (valorSugerido / aporteN) * 100 : 0;
+              const corLeaf = corDaClasse(node.classeMatch);
+              return (
+                <div key={node.id} style={{
+                  display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: 12, alignItems: "center",
+                  padding: "10px 12px", background: T.bgSoft, borderRadius: 8,
+                  borderLeft: `3px solid ${corLeaf}`,
+                }}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: 6,
+                    background: `${corLeaf}22`, color: corLeaf,
+                    display: "grid", placeItems: "center",
+                  }}>
+                    {iconeDaClasse(node.classeMatch, 14)}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>{node.label}</div>
+                    <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>
+                      Atual {hidden ? "•••" : fmt(atual)} · Alvo {hidden ? "•••" : fmt(alvo)}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                    <div className="num" style={{ fontSize: 15, fontWeight: 700, color: T.gold }}>
+                      {hidden ? "•••" : fmt(valorSugerido)}
+                    </div>
+                    <div style={{ fontSize: 10, color: T.faint, marginTop: 1 }}>{pct.toFixed(0)}% do aporte</div>
+                  </div>
+                  <button onClick={() => abrirSugestao(node, valorSugerido)}
+                          title="Buscar ticker com IA"
+                          style={{
+                            background: `${T.gold}22`, color: T.gold,
+                            border: `1px solid ${T.gold}55`, padding: "6px 10px",
+                            fontSize: 10.5, fontWeight: 600, borderRadius: 6,
+                            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4,
+                            whiteSpace: "nowrap",
+                          }}>
+                    <Sparkles size={11} /> IA
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Avisos de validação */}
       {validacoes.length > 0 && (
@@ -263,24 +416,48 @@ export default function ObjetivosCarteira({
           </p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {raizes.map(raiz => (
-            <NodeBlock
-              key={raiz.id}
-              node={raiz}
-              tree={tree}
-              valorPorNo={valorPorNo}
-              valorAlvo={valorAlvo}
-              hidden={hidden}
-              onEditar={(n) => setEditando(n)}
-              onExcluir={excluirNo}
-              onAdicionarFilho={(parent) => setEditando({
-                id: null, parentId: parent.id, label: "", percent: 0, classeMatch: null,
-              })}
-              onSugerir={abrirSugestao}
-              nivel={0}
-            />
-          ))}
+        <div style={{
+          background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12,
+          padding: 18, overflowX: "auto",
+        }}>
+          {/* DESKTOP: org-chart visual */}
+          <div className="objetivos-tree-desktop">
+            <div style={{ display: "flex", gap: 18, justifyContent: "center", flexWrap: "wrap" }}>
+              {raizes.map(raiz => (
+                <TreeOrgNode
+                  key={raiz.id}
+                  node={raiz}
+                  tree={tree}
+                  valorPorNo={valorPorNo}
+                  valorAlvo={valorAlvo}
+                  hidden={hidden}
+                  onEditar={(n) => setEditando(n)}
+                  onExcluir={excluirNo}
+                  onAdicionarFilho={(p) => setEditando({ id: null, parentId: p.id, label: "", percent: 0, classeMatch: null })}
+                  onSugerir={(n) => abrirSugestao(n)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* MOBILE: lista vertical indentada */}
+          <div className="objetivos-tree-mobile" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {raizes.map(raiz => (
+              <TreeListNode
+                key={raiz.id}
+                node={raiz}
+                tree={tree}
+                valorPorNo={valorPorNo}
+                valorAlvo={valorAlvo}
+                hidden={hidden}
+                onEditar={(n) => setEditando(n)}
+                onExcluir={excluirNo}
+                onAdicionarFilho={(p) => setEditando({ id: null, parentId: p.id, label: "", percent: 0, classeMatch: null })}
+                onSugerir={(n) => abrirSugestao(n)}
+                nivel={0}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -302,148 +479,110 @@ export default function ObjetivosCarteira({
           ativosCarteira={ativos}
           apiKey={apiKeys.anthropic}
           valorInicial={Math.round(sugestaoBucket.valor)}
-          contextoExtra={`Foco: alocar prioritariamente em **${sugestaoBucket.node.label}** (categoria abaixo do alvo na minha árvore de objetivos).`}
+          contextoExtra={`Foco: aportar prioritariamente em **${sugestaoBucket.node.label}** (categoria abaixo do alvo na minha árvore de objetivos).`}
           onAplicarProjecao={() => { setSugestaoOpen(false); setSugestaoBucket(null); }}
         />
+      )}
+
+      <style>{`
+        .objetivos-resumo { grid-template-columns: 1fr 1fr; }
+        .objetivos-tree-desktop { display: block; }
+        .objetivos-tree-mobile { display: none; }
+        @media (max-width: 768px) {
+          .objetivos-resumo { grid-template-columns: 1fr !important; }
+          .objetivos-tree-desktop { display: none; }
+          .objetivos-tree-mobile { display: flex; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ============================================================
+   TreeOrgNode — visual estilo org-chart (cards conectados por linhas)
+   Usado no desktop. Cada nó renderiza o card + linha + filhos centralizados.
+   ============================================================ */
+function TreeOrgNode({ node, tree, valorPorNo, valorAlvo, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir }) {
+  const filhos = tree.filter(n => n.parentId === node.id);
+  const temFilhos = filhos.length > 0;
+
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      minWidth: 160,
+    }}>
+      <NodeCard
+        node={node}
+        valorPorNo={valorPorNo}
+        valorAlvo={valorAlvo}
+        hidden={hidden}
+        onEditar={onEditar}
+        onExcluir={onExcluir}
+        onAdicionarFilho={onAdicionarFilho}
+        onSugerir={onSugerir}
+        temFilhos={temFilhos}
+        modo="org"
+      />
+      {temFilhos && (
+        <>
+          {/* linha vertical descendo do pai */}
+          <div style={{ width: 2, height: 18, background: T.border }} />
+          {/* container dos filhos com linha horizontal conectora */}
+          <div style={{ position: "relative", display: "flex", gap: 18, paddingTop: 0 }}>
+            {/* Linha horizontal só aparece se 2+ filhos */}
+            {filhos.length >= 2 && (
+              <div style={{
+                position: "absolute", top: -2, left: "10%", right: "10%",
+                height: 2, background: T.border,
+              }} />
+            )}
+            {filhos.map(f => (
+              <div key={f.id} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                {/* Linha vertical curta de cada filho subindo até a horizontal */}
+                <div style={{ width: 2, height: 14, background: T.border }} />
+                <TreeOrgNode
+                  node={f}
+                  tree={tree}
+                  valorPorNo={valorPorNo}
+                  valorAlvo={valorAlvo}
+                  hidden={hidden}
+                  onEditar={onEditar}
+                  onExcluir={onExcluir}
+                  onAdicionarFilho={onAdicionarFilho}
+                  onSugerir={onSugerir}
+                />
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
 }
 
 /* ============================================================
-   NodeBlock — card recursivo de cada nó da árvore
+   TreeListNode — lista vertical indentada (mobile)
    ============================================================ */
-function NodeBlock({ node, tree, valorPorNo, valorAlvo, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir, nivel }) {
+function TreeListNode({ node, tree, valorPorNo, valorAlvo, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir, nivel }) {
   const filhos = tree.filter(n => n.parentId === node.id);
-  const atual = valorPorNo.get(node.id) || 0;
-  const alvo = valorAlvo.get(node.id) || 0;
-  const diff = atual - alvo;
-  const pctAlvo = alvo > 0 ? Math.min(100, (atual / alvo) * 100) : 0;
-  const noAlvo = Math.abs(diff) <= alvo * 0.03; // tolerância 3%
-  const acima = diff > 0;
-  const abaixo = diff < 0;
-
-  const corStatus = noAlvo ? T.green : acima ? "#fbbf24" : T.red;
-  const Icon = filhos.length === 0
-    ? (node.classeMatch?.includes("fii") ? Building2
-      : node.classeMatch?.includes("acao") || node.classeMatch?.includes("stock") ? TrendingUp
-      : node.classeMatch?.includes("cdb") || node.classeMatch?.includes("tesouro") ? Landmark
-      : Target)
-    : Target;
-
-  const indent = nivel * 16;
-
   return (
     <>
-      <div style={{
-        background: T.card,
-        border: `1px solid ${T.border}`,
-        borderLeft: `4px solid ${corStatus}`,
-        borderRadius: 10,
-        padding: 14,
-        marginLeft: indent,
-        display: "grid",
-        gridTemplateColumns: "auto 1fr auto",
-        gap: 12, alignItems: "center",
-      }}>
-        {/* Ícone */}
-        <div style={{
-          width: 36, height: 36, borderRadius: 8,
-          background: `${corStatus}22`, color: corStatus,
-          display: "grid", placeItems: "center", flexShrink: 0,
-        }}>
-          <Icon size={18} />
-        </div>
-
-        {/* Conteúdo */}
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: T.ink }}>
-              {node.label}
-            </span>
-            <span style={{
-              fontSize: 10, padding: "2px 8px", borderRadius: 4,
-              background: `${T.gold}22`, color: T.gold, fontWeight: 700,
-            }}>
-              {Number(node.percent).toFixed(1)}%
-            </span>
-            {node.classeMatch && node.classeMatch.length > 0 && (
-              <span style={{ fontSize: 9.5, color: T.faint, letterSpacing: ".05em", textTransform: "uppercase" }}>
-                {node.classeMatch.join(" · ")}
-              </span>
-            )}
-          </div>
-
-          {/* Linha de progresso */}
-          <div style={{ marginTop: 8 }}>
-            <div style={{ height: 6, background: T.border, borderRadius: 999, overflow: "hidden" }}>
-              <div style={{
-                width: `${pctAlvo}%`, height: "100%",
-                background: corStatus, transition: "width .4s",
-              }} />
-            </div>
-            <div style={{
-              fontSize: 11, color: T.muted, marginTop: 5,
-              display: "flex", flexWrap: "wrap", gap: 14,
-            }}>
-              <span>
-                Atual: <strong className="num" style={{ color: T.ink }}>
-                  {hidden ? "•••" : fmt(atual)}
-                </strong>
-              </span>
-              <span>
-                Alvo: <strong className="num" style={{ color: T.gold }}>
-                  {hidden ? "•••" : fmt(alvo)}
-                </strong>
-              </span>
-              <span style={{ color: corStatus, fontWeight: 600 }}>
-                {noAlvo ? (
-                  <><CheckCircle2 size={11} className="inline mr-1" /> No alvo</>
-                ) : abaixo ? (
-                  <>Falta {hidden ? "•••" : fmt(-diff)}</>
-                ) : (
-                  <>Sobra {hidden ? "•••" : fmt(diff)}</>
-                )}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Ações */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
-          {abaixo && filhos.length === 0 && (
-            <button onClick={() => onSugerir(node)} title="Sugerir aporte com IA"
-                    style={{
-                      background: `${T.gold}22`, color: T.gold,
-                      border: `1px solid ${T.gold}55`, padding: "5px 10px",
-                      fontSize: 10.5, fontWeight: 600, borderRadius: 6,
-                      cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4,
-                      whiteSpace: "nowrap",
-                    }}>
-              <Sparkles size={11} /> IA aporte
-            </button>
-          )}
-          <div style={{ display: "flex", gap: 2 }}>
-            <button onClick={() => onAdicionarFilho(node)} title="Adicionar filho"
-                    style={iconBtnStyle(T.muted)}>
-              <Plus size={13} />
-            </button>
-            <button onClick={() => onEditar(node)} title="Editar"
-                    style={iconBtnStyle(T.muted)}>
-              <Edit3 size={12} />
-            </button>
-            <button onClick={() => onExcluir(node)} title="Excluir"
-                    style={iconBtnStyle(T.red)}
-                    disabled={filhos.length > 0}>
-              <Trash2 size={12} />
-            </button>
-          </div>
-        </div>
+      <div style={{ marginLeft: nivel * 14 }}>
+        <NodeCard
+          node={node}
+          valorPorNo={valorPorNo}
+          valorAlvo={valorAlvo}
+          hidden={hidden}
+          onEditar={onEditar}
+          onExcluir={onExcluir}
+          onAdicionarFilho={onAdicionarFilho}
+          onSugerir={onSugerir}
+          temFilhos={filhos.length > 0}
+          modo="list"
+        />
       </div>
-
-      {/* Filhos */}
       {filhos.map(f => (
-        <NodeBlock
+        <TreeListNode
           key={f.id}
           node={f}
           tree={tree}
@@ -461,11 +600,203 @@ function NodeBlock({ node, tree, valorPorNo, valorAlvo, hidden, onEditar, onExcl
   );
 }
 
+/* ============================================================
+   NodeCard — visual do card (usado tanto no org-chart quanto na lista)
+   ============================================================ */
+function NodeCard({ node, valorPorNo, valorAlvo, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir, temFilhos, modo }) {
+  const atual = valorPorNo.get(node.id) || 0;
+  const alvo = valorAlvo.get(node.id) || 0;
+  const diff = atual - alvo;
+  const pctAlvo = alvo > 0 ? Math.min(100, (atual / alvo) * 100) : 0;
+  const noAlvo = alvo > 0 && Math.abs(diff) <= alvo * 0.03;
+  const acima = diff > 0;
+  const abaixo = diff < 0 && alvo > 0;
+  const corStatus = noAlvo ? T.green : acima ? "#fbbf24" : abaixo ? T.red : T.muted;
+
+  const Icon = iconeDaClasse(node.classeMatch);
+  const corClasse = corDaClasse(node.classeMatch);
+
+  if (modo === "org") {
+    return (
+      <div style={{
+        background: `linear-gradient(135deg, ${corStatus}22, ${T.card})`,
+        border: `2px solid ${corStatus}`,
+        borderRadius: 10,
+        padding: 12, minWidth: 160, maxWidth: 200,
+        position: "relative",
+      }}>
+        {/* Botão editar — canto sup esq */}
+        <button onClick={() => onEditar(node)} title="Editar"
+                style={{
+                  position: "absolute", top: -10, left: -10,
+                  width: 22, height: 22, borderRadius: "50%",
+                  background: T.card, border: `1px solid ${T.border}`,
+                  color: T.muted, cursor: "pointer",
+                  display: "grid", placeItems: "center",
+                }}>
+          <Edit3 size={11} />
+        </button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 6,
+            background: `${corClasse}22`, color: corClasse,
+            display: "grid", placeItems: "center", flexShrink: 0,
+          }}>
+            <Icon size={14} />
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.ink, lineHeight: 1.2 }}>
+              {node.label}
+            </div>
+            <div className="num" style={{ fontSize: 17, color: T.gold, fontWeight: 700, marginTop: 1 }}>
+              {Number(node.percent).toFixed(1)}%
+            </div>
+          </div>
+        </div>
+
+        {alvo > 0 && (
+          <>
+            <div style={{ height: 4, background: T.border, borderRadius: 999, overflow: "hidden", marginTop: 4 }}>
+              <div style={{ width: `${pctAlvo}%`, height: "100%", background: corStatus, transition: "width .4s" }} />
+            </div>
+            <div style={{ fontSize: 10, color: T.muted, marginTop: 5, textAlign: "center" }}>
+              {hidden ? "•••" : fmt(atual)} / {hidden ? "•••" : fmt(alvo)}
+            </div>
+            {!noAlvo && (
+              <div style={{ fontSize: 9.5, color: corStatus, marginTop: 2, textAlign: "center", fontWeight: 600 }}>
+                {abaixo ? `Falta ${hidden ? "•••" : fmt(-diff)}` : `Sobra ${hidden ? "•••" : fmt(diff)}`}
+              </div>
+            )}
+            {noAlvo && (
+              <div style={{ fontSize: 9.5, color: T.green, marginTop: 2, textAlign: "center", fontWeight: 600 }}>
+                <CheckCircle2 size={9} className="inline mr-1" /> No alvo
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Botão IA aporte — só pra folhas abaixo do alvo */}
+        {!temFilhos && abaixo && (
+          <button onClick={() => onSugerir(node)} title="Sugerir aporte com IA"
+                  style={{
+                    marginTop: 8, width: "100%",
+                    background: `${T.gold}22`, color: T.gold,
+                    border: `1px solid ${T.gold}55`, padding: "4px 6px",
+                    fontSize: 10, fontWeight: 700, borderRadius: 5,
+                    cursor: "pointer",
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3,
+                  }}>
+            <Sparkles size={10} /> IA aporte
+          </button>
+        )}
+
+        {/* Ações no rodapé */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 2, marginTop: 6, paddingTop: 6, borderTop: `1px dashed ${T.border}` }}>
+          <button onClick={() => onAdicionarFilho(node)} title="Adicionar filho" style={iconBtnStyle(T.muted)}>
+            <Plus size={11} />
+          </button>
+          <button onClick={() => onExcluir(node)} title="Excluir" disabled={temFilhos}
+                  style={{ ...iconBtnStyle(T.red), opacity: temFilhos ? 0.3 : 1 }}>
+            <Trash2 size={11} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // modo "list" (mobile)
+  return (
+    <div style={{
+      background: T.card,
+      border: `1px solid ${T.border}`,
+      borderLeft: `4px solid ${corStatus}`,
+      borderRadius: 8,
+      padding: 12,
+      display: "grid",
+      gridTemplateColumns: "auto 1fr auto",
+      gap: 10, alignItems: "center",
+    }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: 7,
+        background: `${corClasse}22`, color: corClasse,
+        display: "grid", placeItems: "center", flexShrink: 0,
+      }}>
+        <Icon size={16} />
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>{node.label}</span>
+          <span style={{
+            fontSize: 10, padding: "2px 7px", borderRadius: 4,
+            background: `${T.gold}22`, color: T.gold, fontWeight: 700,
+          }}>
+            {Number(node.percent).toFixed(1)}%
+          </span>
+        </div>
+        {alvo > 0 && (
+          <>
+            <div style={{ height: 5, background: T.border, borderRadius: 999, marginTop: 6, overflow: "hidden" }}>
+              <div style={{ width: `${pctAlvo}%`, height: "100%", background: corStatus, transition: "width .4s" }} />
+            </div>
+            <div style={{ fontSize: 10.5, color: T.muted, marginTop: 4 }}>
+              {hidden ? "•••" : fmt(atual)} / {hidden ? "•••" : fmt(alvo)}
+              {!noAlvo && (
+                <span style={{ color: corStatus, marginLeft: 8, fontWeight: 600 }}>
+                  {abaixo ? `falta ${fmt(-diff)}` : `sobra ${fmt(diff)}`}
+                </span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+      <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+        {!temFilhos && abaixo && (
+          <button onClick={() => onSugerir(node)} title="Sugerir aporte IA"
+                  style={{ ...iconBtnStyle(T.gold), background: `${T.gold}15` }}>
+            <Sparkles size={12} />
+          </button>
+        )}
+        <button onClick={() => onAdicionarFilho(node)} title="Adicionar filho" style={iconBtnStyle(T.muted)}>
+          <Plus size={12} />
+        </button>
+        <button onClick={() => onEditar(node)} title="Editar" style={iconBtnStyle(T.muted)}>
+          <Edit3 size={11} />
+        </button>
+        <button onClick={() => onExcluir(node)} title="Excluir" disabled={temFilhos}
+                style={{ ...iconBtnStyle(T.red), opacity: temFilhos ? 0.3 : 1 }}>
+          <Trash2 size={11} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const iconBtnStyle = (cor) => ({
   background: "transparent", border: "none", color: cor,
   cursor: "pointer", padding: 4, minHeight: 24,
   display: "inline-flex", alignItems: "center", justifyContent: "center",
+  borderRadius: 4,
 });
+
+function corDaClasse(classeMatch) {
+  if (!classeMatch || classeMatch.length === 0) return "#a8a8b0";
+  if (classeMatch.includes("fii")) return "#fbbf24";
+  if (classeMatch.includes("acao") || classeMatch.includes("stock")) return "#f87171";
+  if (classeMatch.includes("reit")) return "#fb7185";
+  if (classeMatch.includes("etf")) return "#a78bfa";
+  if (classeMatch.includes("cdb") || classeMatch.includes("tesouro") || classeMatch.includes("rf")) return "#60a5fa";
+  if (classeMatch.includes("cripto")) return "#34d399";
+  return T.gold;
+}
+
+function iconeDaClasse(classeMatch, size = 14) {
+  if (!classeMatch || classeMatch.length === 0) return (props) => <Target {...props} />;
+  if (classeMatch.includes("fii")) return (props) => <Building2 {...props} />;
+  if (classeMatch.includes("cdb") || classeMatch.includes("tesouro") || classeMatch.includes("rf")) return (props) => <Landmark {...props} />;
+  if (classeMatch.includes("acao") || classeMatch.includes("stock") || classeMatch.includes("reit") || classeMatch.includes("etf")) return (props) => <TrendingUp {...props} />;
+  return (props) => <Target {...props} />;
+}
 
 /* ============================================================
    EditNoModal — criar/editar nó da árvore
