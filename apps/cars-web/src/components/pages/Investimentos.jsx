@@ -12,6 +12,7 @@ import StatCard from "../ui/StatCard.jsx";
 import Modal from "../ui/Modal.jsx";
 import PdfCarteira from "./Invest/PdfCarteira.jsx";
 import CarteiraSaude from "./Invest/CarteiraSaude.jsx";
+import EvolucaoPatrimonio from "./Invest/EvolucaoPatrimonio.jsx";
 
 const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
 
@@ -54,7 +55,7 @@ const SEGMENTOS = {
   ],
 };
 
-export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, onRefresh, refreshing, onAnalisar, onProjetar, hidden }) {
+export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, onRefresh, refreshing, onAnalisar, onProjetar, patrimonioHistorico = [], hidden }) {
   const [form, setForm] = useState(null);
   const [aporteForm, setAporteForm] = useState(null);
   const [vendaForm, setVendaForm] = useState(null);
@@ -378,6 +379,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       />
 
       <CarteiraSaude ativos={ativos} hidden={hidden} />
+      <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6 no-print" style={{ background: T.border }}>
         <StatCard label="Valor Investido" value={hidden ? "•••••" : fmt(totais.custo)} accent={T.muted} icon={DollarSign}
