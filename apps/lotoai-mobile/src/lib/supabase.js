@@ -1,0 +1,88 @@
+/* ============================================================
+   SUPABASE · client para o LOTOAI APP PRO
+   Env vars (Vite injeta no build):
+     VITE_SUPABASE_URL
+     VITE_SUPABASE_ANON_KEY
+   Sem credenciais → modo local (mock no localStorage).
+   ============================================================ */
+
+import { createClient } from "@supabase/supabase-js";
+
+const URL = import.meta.env.VITE_SUPABASE_URL || "";
+const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+
+export const supabaseConfigured = !!(URL && KEY);
+
+export const supabase = supabaseConfigured
+  ? createClient(URL, KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    })
+  : null;
+
+if (!supabaseConfigured && typeof window !== "undefined") {
+  console.warn(
+    "[LOTOAI] Supabase nao configurado. Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY. Rodando em modo local."
+  );
+}
+
+/* ---------------- Concursos ---------------- */
+
+/**
+ * Carrega concursos da Lotofácil. Tenta Supabase, cai para localStorage,
+ * e por último devolve um histórico mock pequeno para o app abrir.
+ */
+export async function listarConcursos({ limite = 200 } = {}) {
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("lf_concursos")
+      .select("numero, data, dezenas")
+      .order("numero", { ascending: true })
+      .limit(limite);
+    if (!error && data?.length) return data;
+  }
+  const local = lerLocal();
+  if (local.length) return local;
+  return MOCK_CONCURSOS;
+}
+
+export function salvarConcursoLocal(c) {
+  const lista = lerLocal();
+  const idx = lista.findIndex(x => x.numero === c.numero);
+  if (idx >= 0) lista[idx] = c;
+  else lista.push(c);
+  lista.sort((a, b) => a.numero - b.numero);
+  localStorage.setItem("lotoai:concursos", JSON.stringify(lista));
+}
+
+function lerLocal() {
+  try { return JSON.parse(localStorage.getItem("lotoai:concursos") || "[]"); }
+  catch { return []; }
+}
+
+/* ---------------- Jogos do usuário ---------------- */
+
+export async function salvarJogos(jogos, meta = {}) {
+  const payload = jogos.map(dezenas => ({ dezenas, ...meta, created_at: new Date().toISOString() }));
+  if (supabase) {
+    const { error } = await supabase.from("lf_jogos").insert(payload);
+    if (!error) return { ok: true, remote: true };
+  }
+  const prev = JSON.parse(localStorage.getItem("lotoai:jogos") || "[]");
+  localStorage.setItem("lotoai:jogos", JSON.stringify([...prev, ...payload]));
+  return { ok: true, remote: false };
+}
+
+/* ---------------- Mock seed (offline / primeiro boot) ---------------- */
+
+const MOCK_CONCURSOS = [
+  { numero: 3000, data: "2025-01-08", dezenas: [1, 3, 4, 5, 7, 8, 10, 12, 14, 15, 17, 19, 20, 23, 25] },
+  { numero: 3001, data: "2025-01-10", dezenas: [2, 3, 5, 6, 7, 9, 11, 13, 14, 16, 18, 20, 21, 24, 25] },
+  { numero: 3002, data: "2025-01-13", dezenas: [1, 2, 4, 6, 8, 9, 10, 13, 15, 16, 19, 21, 22, 23, 24] },
+  { numero: 3003, data: "2025-01-15", dezenas: [1, 3, 5, 7, 8, 11, 12, 13, 14, 17, 18, 20, 22, 24, 25] },
+  { numero: 3004, data: "2025-01-17", dezenas: [2, 4, 6, 7, 9, 10, 11, 14, 15, 16, 18, 19, 21, 23, 25] },
+  { numero: 3005, data: "2025-01-20", dezenas: [1, 2, 3, 5, 8, 10, 12, 13, 15, 17, 18, 20, 22, 23, 24] },
+];

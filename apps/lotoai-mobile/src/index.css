@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+
+html, body, #root {
+  height: 100%;
+  background: #070b14;
+  color: #e8ecf5;
+  font-family: Poppins, system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+
+button { font-family: inherit; }
+
+@layer components {
+  .card {
+    @apply bg-panel border border-line rounded-2xl p-4 shadow-lg shadow-black/30;
+  }
+  .btn-primary {
+    @apply bg-accent text-white font-semibold rounded-xl px-4 py-3 active:scale-[.98] transition;
+  }
+  .btn-gold {
+    @apply bg-gold text-ink font-semibold rounded-xl px-4 py-3 active:scale-[.98] transition;
+  }
+  .btn-ghost {
+    @apply border border-line text-white/80 rounded-xl px-4 py-3 active:scale-[.98] transition;
+  }
+  .chip {
+    @apply text-xs font-medium px-2 py-1 rounded-full border border-line text-white/70;
+  }
+}
