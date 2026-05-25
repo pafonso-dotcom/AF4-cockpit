@@ -8,13 +8,23 @@ Usa `psql` direto (sem `supabase` CLI) — evita problemas de permissão de PAT.
 
 ### 1. Pega a Connection String do Supabase
 
-1. Vai em https://supabase.com/dashboard/project/rffxplwshwfjnedefvqg/settings/database
-2. Procura **"Connection string"** → clica na aba **"URI"**
-3. Copia (já vem com a senha embutida):
+⚠️ **Importante**: o Supabase oferece DUAS connection strings. GitHub Actions só funciona com a **Session pooler** (porque runners não têm IPv6).
+
+1. Vai em https://supabase.com/dashboard/project/maqlnsivmreagpkhbkbn/settings/database
+2. Em **"Connection string"** clica na aba **"Session"** (NÃO "Transaction", NÃO "Direct")
+3. O formato correto deve ser:
    ```
-   postgresql://postgres:[YOUR-PASSWORD]@db.rffxplwshwfjnedefvqg.supabase.co:5432/postgres
+   postgresql://postgres.maqlnsivmreagpkhbkbn:[YOUR-PASSWORD]@aws-1-us-west-1.pooler.supabase.com:5432/postgres
    ```
-4. Se aparecer `[YOUR-PASSWORD]` como placeholder, clica no botão que mostra/copia com senha real
+   - Host: `aws-0-REGION.pooler.supabase.com` (Session pooler — IPv4 OK)
+   - Porta: `5432` (session mode — suporta DDL)
+   - User: `postgres.PROJECT_REF` (note o ponto entre `postgres` e o ref)
+
+❌ **NÃO use** "Direct Connection" — host `db.X.supabase.co` — só responde IPv6, runners GitHub Actions são IPv4-only.
+
+❌ **NÃO use** "Transaction pooler" (porta 6543) — não suporta DDL (`CREATE TABLE`).
+
+4. A senha aparece como `[YOUR-PASSWORD]` no template — substitua pela senha real (sem colchetes). Se a senha tem `@`, `:`, `#`, `?`, `/`, faz URL-encode (`@` vira `%40`, etc.)
 
 ### 2. Adiciona como secret no GitHub
 
@@ -108,8 +118,8 @@ Pra ver o que SERIA aplicado sem aplicar:
 ### `SUPABASE_DB_URL não está configurado`
 → Adiciona o secret no GitHub (ver setup acima)
 
-### `connection refused`
-→ Confere se a URI está correta. O host é `db.rffxplwshwfjnedefvqg.supabase.co` (não `aws-0-*.pooler...` que é o pooler — pra DDL preferir conexão direta na porta 5432)
+### `connection to server on socket "/var/run/postgresql/..."` ou Network unreachable
+→ Você provavelmente copiou a "Direct Connection" (`db.X.supabase.co`) que só responde IPv6. GitHub runners são IPv4-only. **Troca pela Session pooler** (host `aws-0-REGION.pooler.supabase.com:5432`).
 
 ### `password authentication failed`
 → Senha errada na URI. Vai em Database settings, reseta a senha do DB, pega a nova URI
