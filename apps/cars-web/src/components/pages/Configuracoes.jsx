@@ -833,14 +833,19 @@ function MigracaoSupabase() {
         </div>
       )}
 
-      {/* Cobertura V1 */}
+      {/* Cobertura V2 */}
       <div style={{
         padding: 10, marginBottom: 12,
         background: T.bgSoft, border: `1px dashed ${T.border}`, borderRadius: 6,
         fontSize: 11.5, color: T.muted,
       }}>
-        <strong style={{ color: T.ink }}>V1 cobre:</strong> contas + categorias (com self-ref).
-        Próximas iterações: cartoes, parcelamentos, ativos, fixas, transacoes, e demais 20 entidades.
+        <strong style={{ color: T.ink }}>V2 cobre 13 entidades:</strong> contas, categorias (self-ref),
+        cartoes, ativos, metas, agenda, tarefas, compras, ideias, fixas, parcelamentos,
+        compromissos (consolida devedores+dividas), transacoes (com FKs contas+categorias).
+        <br />
+        <strong style={{ color: T.ink }}>Próximo V3:</strong> fixa_ocorrencias, objetivos_carteira,
+        carteiras_modelo, proventos, trade_*, habitos+check_ins, diario, perfis, user_preferences, api_keys.
+        Transações ainda não vinculam ativo/cartao/parcelamento/fixa (V3).
       </div>
 
       {/* Botões */}
