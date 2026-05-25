@@ -50,12 +50,18 @@ export async function signIn(email, password) {
 const redirectURL = () =>
   typeof window !== "undefined" ? window.location.origin : undefined;
 
-export async function signUp(email, password) {
+export async function signUp(email, password, fullName) {
   if (!supabase) throw new Error("Supabase nao configurado");
+  const trimmed = (fullName || "").trim();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: redirectURL() },
+    options: {
+      emailRedirectTo: redirectURL(),
+      // Grava o nome no metadata do user — a Dashboard usa via
+      // user_metadata.full_name pra montar a saudação.
+      data: trimmed ? { full_name: trimmed } : undefined,
+    },
   });
   if (error) throw error;
   return data;
