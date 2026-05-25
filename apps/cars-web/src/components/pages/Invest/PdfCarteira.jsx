@@ -9,11 +9,16 @@ import Modal from "../../ui/Modal.jsx";
  *  - 1 página por ativo (page-break entre)
  *  - Filtro de quais ativos incluir
  */
-export default function PdfCarteira({ ativos = [], proventos = [], operacoes = [], onClose }) {
-  // Inicialmente todos marcados
+export default function PdfCarteira({ ativos = [], proventos = [], operacoes = [], onClose, initialSelectedId = null }) {
+  // Se vier `initialSelectedId`, só esse ativo começa marcado (impressão
+  // individual a partir da página de Investimentos). Senão, todos.
   const [selecionados, setSelecionados] = useState(() => {
     const m = {};
-    ativos.forEach(a => { m[a.id] = true; });
+    if (initialSelectedId) {
+      ativos.forEach(a => { m[a.id] = a.id === initialSelectedId; });
+    } else {
+      ativos.forEach(a => { m[a.id] = true; });
+    }
     return m;
   });
 

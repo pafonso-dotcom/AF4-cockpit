@@ -79,12 +79,19 @@ export default function Proventos({
       destino: "carteira",
       ativoDestinoId: ativos[0]?.id || "",
       dataBaixa: hoje.toISOString().slice(0, 10),
+      // Valor recebido pode ser ajustado pelo usuário (IR retido, valor
+      // que veio diferente do projetado, etc). Default = total calculado.
+      valorAjustado: String(provento.total ?? 0),
     });
   };
 
   const confirmarBaixa = () => {
-    const { provento, destino, ativoDestinoId, dataBaixa } = baixaForm;
-    const valor = provento.total;
+    const { provento, destino, ativoDestinoId, dataBaixa, valorAjustado } = baixaForm;
+    const valor = Number(valorAjustado);
+    if (!Number.isFinite(valor) || valor <= 0) {
+      toast.error("Informe um valor válido.");
+      return;
+    }
     const proventoKey = provento.id;
 
     // Adiciona entrada de RECEBIMENTO no histórico da carteira virtual
@@ -443,10 +450,12 @@ export default function Proventos({
         const p = baixaForm.provento;
         const ativoDestino = ativos.find(a => a.id === baixaForm.ativoDestinoId);
         const precoAtivo = Number(ativoDestino?.preco || 0);
+        const valorAtual = Number(baixaForm.valorAjustado) || 0;
         const qtdCompravel = baixaForm.destino === "reinvestir" && precoAtivo > 0
-          ? p.total / precoAtivo : 0;
+          ? valorAtual / precoAtivo : 0;
+        const valorMudou = Math.abs(valorAtual - (p.total || 0)) > 0.001;
         return (
-          <Modal title={`Baixar ${fmt(p.total)} · ${p.ticker} (${p.tipo})`} onClose={() => setBaixaForm(null)}>
+          <Modal title={`Baixar ${p.ticker} (${p.tipo})`} onClose={() => setBaixaForm(null)}>
             <div style={{
               padding: 12, background: T.bgSoft, borderRadius: 7,
               fontSize: 12, marginBottom: 14,
@@ -455,11 +464,26 @@ export default function Proventos({
                 <span>Data prevista:</span>
                 <span style={{ color: T.ink }}>{p.data.slice(8, 10)}/{p.data.slice(5, 7)}/{p.data.slice(0, 4)}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", color: T.muted, marginBottom: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", color: T.muted }}>
                 <span>{p.qtd} cotas × {fmt(p.valorPorCota)} =</span>
-                <span style={{ color: T.green, fontWeight: 700 }} className="num">{fmt(p.total)}</span>
+                <span style={{ color: T.muted, fontWeight: 600 }} className="num">{fmt(p.total)}</span>
               </div>
             </div>
+
+            <Field label="Valor efetivamente recebido (R$)" required>
+              <input type="number" step="0.01" min="0"
+                     value={baixaForm.valorAjustado}
+                     onChange={e => setBaixaForm({ ...baixaForm, valorAjustado: e.target.value })}
+                     placeholder="0,00" />
+            </Field>
+            {valorMudou && (
+              <div style={{
+                marginTop: -8, marginBottom: 12,
+                fontSize: 11, color: T.muted, fontStyle: "italic",
+              }}>
+                Ajustado em relação ao previsto ({fmt(p.total)}). Útil pra IR retido ou diferenças.
+              </div>
+            )}
 
             <div className="label-eyebrow" style={{ marginBottom: 8 }}>O que fazer com o valor?</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>

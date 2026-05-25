@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart, Calculator } from "lucide-react";
+import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart, Calculator, Printer } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, fmtP, uid, generateHistory, todayISO } from "../../lib/format.js";
@@ -10,6 +10,7 @@ import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import StatCard from "../ui/StatCard.jsx";
 import Modal from "../ui/Modal.jsx";
+import PdfCarteira from "./Invest/PdfCarteira.jsx";
 
 const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
 
@@ -58,6 +59,23 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
   const [vendaForm, setVendaForm] = useState(null);
   const [filter, setFilter] = useState("todos");
   const [selected, setSelected] = useState(null);
+  // Quando setado, abre PdfCarteira com este ativo pré-selecionado.
+  const [pdfAtivoId, setPdfAtivoId] = useState(null);
+
+  // Tick a cada 15s pra recalcular o indicador "ao vivo" sem depender
+  // de re-render externo. Ativo é considerado "ao vivo" se recebeu
+  // cotação nos últimos 60s.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(id);
+  }, []);
+  const isLive = (a) => {
+    if (!a?.ultimaAtt) return false;
+    const t = Date.parse(a.ultimaAtt);
+    if (!Number.isFinite(t)) return false;
+    return (now - t) < 60_000;
+  };
   const [fetchingPrice, setFetchingPrice] = useState(false);
 
   // ★ Atalho rápido global: abre aporte no primeiro ativo ou modal de novo ativo
@@ -422,7 +440,10 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                  style={{ background: T.card, border: `1px solid ${T.border}`, padding: 14, cursor: "pointer" }}>
               <div className="flex justify-between items-start mb-3">
                 <div className="min-w-0">
-                  <div style={{ fontFamily: T.serif, fontSize: 19, color: T.ink }}>{a.ticker}</div>
+                  <div style={{ fontFamily: T.serif, fontSize: 19, color: T.ink, display: "flex", alignItems: "center", gap: 8 }}>
+                    {a.ticker}
+                    {isLive(a) && <span className="af4-live-dot" title="Cotação ao vivo (atualizada nos últimos 60s)" />}
+                  </div>
                   <div style={{ color: T.muted, fontSize: 12, marginTop: 2 }} className="italic truncate">{a.nome}</div>
                   <div style={{ color: T.faint, fontSize: 10, marginTop: 4, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: T.sans }}>
                     {a.tipo} · {fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)} un.
@@ -455,6 +476,14 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                 <div>
                   <div style={{ color: T.muted, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Preço</div>
                   <div className="num" style={{ color: T.gold, marginTop: 2 }}>{hidden ? "•••" : fmt(a.preco)}</div>
+                  {Number.isFinite(Number(a.variacao24h)) && (
+                    <div className="num" style={{
+                      fontSize: 10, marginTop: 2,
+                      color: Number(a.variacao24h) >= 0 ? T.green : T.red,
+                    }}>
+                      {Number(a.variacao24h) >= 0 ? "+" : ""}{Number(a.variacao24h).toFixed(2)}% 24h
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div style={{ color: T.muted, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Valor</div>
@@ -484,6 +513,10 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     <Calculator size={14} />
                   </button>
                 )}
+                <button onClick={() => setPdfAtivoId(a.id)} aria-label={`Imprimir PDF de ${a.ticker}`} title="Imprimir PDF deste ativo"
+                        style={{ color: T.gold, padding: 6, background: "transparent", border: `1px solid ${T.gold}`, cursor: "pointer" }}>
+                  <Printer size={14} />
+                </button>
                 <button onClick={() => setForm(a)} aria-label={`Editar ${a.ticker}`} style={{ color: T.muted, padding: 6, background: "transparent", border: `1px solid ${T.border}`, cursor: "pointer" }}>
                   <Edit3 size={14} />
                 </button>
@@ -582,7 +615,10 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                 <tr key={a.id} className="hover:bg-black/30" style={{ borderBottom: `1px solid ${T.border}`, transition: "background 0.2s", cursor: "pointer" }}
                     onClick={() => setSelected(a)}>
                   <td style={{ padding: "14px 16px" }}>
-                    <div style={{ fontFamily: T.serif, fontSize: 17, color: T.ink }}>{a.ticker}</div>
+                    <div style={{ fontFamily: T.serif, fontSize: 17, color: T.ink, display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      {a.ticker}
+                      {isLive(a) && <span className="af4-live-dot" title="Cotação ao vivo (atualizada nos últimos 60s)" />}
+                    </div>
                     <div style={{ color: T.muted, fontSize: 12 }} className="italic">{a.nome}</div>
                   </td>
                   <td style={{ padding: "14px 16px", color: T.muted, fontSize: 11, fontFamily: T.sans, letterSpacing: "0.1em", textTransform: "uppercase" }}>
@@ -595,7 +631,17 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   </td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.ink }}>{fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)}</td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmt(a.pm)}</td>
-                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.gold }}>{hidden ? "•••" : fmt(a.preco)}</td>
+                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.gold }}>
+                    {hidden ? "•••" : fmt(a.preco)}
+                    {Number.isFinite(Number(a.variacao24h)) && (
+                      <div style={{
+                        fontSize: 10, marginTop: 2,
+                        color: Number(a.variacao24h) >= 0 ? T.green : T.red,
+                      }}>
+                        {Number(a.variacao24h) >= 0 ? "+" : ""}{Number(a.variacao24h).toFixed(2)}% 24h
+                      </div>
+                    )}
+                  </td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmt(investido)}</td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.ink }}>{hidden ? "•••" : fmt(valor)}</td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: ganho >= 0 ? T.green : T.red }}>
@@ -621,6 +667,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                       <button onClick={e => { e.stopPropagation(); onProjetar(a); }} aria-label={`Projetar ${a.ticker}`} title="Projetar evolução deste ativo"
                               style={{ color: T.gold, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Calculator size={12} /></button>
                     )}
+                    <button onClick={e => { e.stopPropagation(); setPdfAtivoId(a.id); }} aria-label={`Imprimir PDF de ${a.ticker}`} title="Imprimir PDF deste ativo"
+                            style={{ color: T.gold, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Printer size={12} /></button>
                     <button onClick={e => { e.stopPropagation(); setForm(a); }} aria-label={`Editar ${a.ticker}`} style={{ color: T.muted, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Edit3 size={12} /></button>
                     <button onClick={async e => {
                               e.stopPropagation();
@@ -654,6 +702,16 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       </div>
 
       {selected && <DetalheAtivo ativo={selected} onClose={() => setSelected(null)} />}
+
+      {pdfAtivoId && (
+        <PdfCarteira
+          ativos={ativos}
+          proventos={[]}
+          operacoes={[]}
+          initialSelectedId={pdfAtivoId}
+          onClose={() => setPdfAtivoId(null)}
+        />
+      )}
 
       {form && (
         <Modal title={form.id ? "Editar Ativo" : "Novo Ativo"} onClose={() => setForm(null)}>
