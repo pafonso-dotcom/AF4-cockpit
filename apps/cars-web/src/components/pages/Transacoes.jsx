@@ -1024,13 +1024,13 @@ function TabelaMensal({ transacoes, hidden, onEdit }) {
         </div>
       ) : (
         <div style={{ overflowX: "auto", padding: 12 }}>
-          <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 640 }}>
+          <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 480 }}>
             <thead>
               <tr style={{ background: T.bgSoft }}>
                 <th style={thMensal}>Descrição</th>
                 <th style={{ ...thMensal, textAlign: "right" }}>Valor</th>
-                <th style={thMensal}>Data</th>
-                <th style={{ ...thMensal, textAlign: "center" }}>Status</th>
+                <th style={thMensal} className="hidden sm:table-cell">Data</th>
+                <th style={{ ...thMensal, textAlign: "center" }} className="hidden md:table-cell">Status</th>
                 <th style={{ ...thMensal, textAlign: "center" }}>Ações</th>
               </tr>
             </thead>
@@ -1050,10 +1050,10 @@ function TabelaMensal({ transacoes, hidden, onEdit }) {
                     }}>
                       {isReceita ? "+ " : "− "}{hidden ? "•••" : fmt(t.valor)}
                     </td>
-                    <td style={{ ...tdMensal, color: T.muted, whiteSpace: "nowrap" }}>
+                    <td className="hidden sm:table-cell" style={{ ...tdMensal, color: T.muted, whiteSpace: "nowrap" }}>
                       {(t.data || "").slice(8, 10)}/{(t.data || "").slice(5, 7)}
                     </td>
-                    <td style={{ ...tdMensal, textAlign: "center" }}>
+                    <td className="hidden md:table-cell" style={{ ...tdMensal, textAlign: "center" }}>
                       <span style={{
                         fontSize: 9.5, padding: "2px 8px", borderRadius: 100,
                         background: `${st.cor}22`, color: st.cor,
