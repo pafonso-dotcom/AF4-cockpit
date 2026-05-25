@@ -36,11 +36,24 @@ export default function Proventos({
   setCarteiraProventos,
   proventosRecebidos = {},
   setProventosRecebidos,
+  proventosIgnorados = {},
+  setProventosIgnorados,
   contas = [], setContas,
   categorias = [],
   transacoes = [], setTransacoes,
 }) {
-  const proventos = useMemo(() => calendarioProventos(ativos), [ativos]);
+  // Calendário recalculado a partir dos ativos. Removemos os que o user
+  // marcou como "Ignorar" — somem da lista até serem reativados (toggle
+  // "Mostrar ignorados" no header).
+  const [mostrarIgnorados, setMostrarIgnorados] = useState(false);
+  const proventos = useMemo(() => {
+    const lista = calendarioProventos(ativos);
+    return mostrarIgnorados ? lista : lista.filter(p => !proventosIgnorados[p.id]);
+  }, [ativos, proventosIgnorados, mostrarIgnorados]);
+  const totalIgnorados = useMemo(
+    () => calendarioProventos(ativos).filter(p => proventosIgnorados[p.id]).length,
+    [ativos, proventosIgnorados]
+  );
 
   const [baixaForm, setBaixaForm] = useState(null);
   const [transferirForm, setTransferirForm] = useState(null);
@@ -187,6 +200,29 @@ export default function Proventos({
     toast.success(`Baixa de ${provento.ticker} estornada.`);
   };
 
+  /* ===== Ação: IGNORAR provento previsto (ainda não baixado) ===== */
+  // O calendário é calculado a partir dos ativos — não dá pra "deletar"
+  // de verdade. Marcamos o id como ignorado e filtramos da lista.
+  // User pode re-ativar via toggle "Mostrar ignorados" no header.
+  const ignorarProvento = async (provento) => {
+    const ok = await confirm({
+      title: `Excluir provento de ${provento.ticker}?`,
+      body: `${provento.tipo} previsto pra ${provento.data.slice(8, 10)}/${provento.data.slice(5, 7)} (${fmt(provento.total)}) some da lista. Você pode reativar depois em "Mostrar ignorados".`,
+      confirmLabel: "Excluir",
+      danger: true,
+    });
+    if (!ok) return;
+    setProventosIgnorados({ ...proventosIgnorados, [provento.id]: true });
+    toast.success(`Provento ${provento.ticker} excluído.`);
+  };
+
+  const reativarProvento = (provento) => {
+    const next = { ...proventosIgnorados };
+    delete next[provento.id];
+    setProventosIgnorados(next);
+    toast.success(`Provento ${provento.ticker} reativado.`);
+  };
+
   /* ===== Ação: TRANSFERIR da carteira pra conta real ===== */
   const confirmarTransferencia = () => {
     const { valor, contaDestino } = transferirForm;
@@ -269,6 +305,14 @@ export default function Proventos({
         eyebrow="Investimentos · Proventos"
         title="Calendário & Carteira"
         sub="Dividendos, JCP e rendimentos previstos + carteira virtual pra acumular ou reinvestir."
+        action={
+          totalIgnorados > 0 && (
+            <button onClick={() => setMostrarIgnorados(v => !v)} className="btn-ghost"
+                    style={{ fontSize: 11 }}>
+              {mostrarIgnorados ? "Esconder" : "Mostrar"} ignorados ({totalIgnorados})
+            </button>
+          )
+        }
       />
 
       {/* CARD CARTEIRA DE PROVENTOS */}
@@ -469,17 +513,50 @@ export default function Proventos({
                               <X size={11} />
                             </button>
                           </span>
+                        ) : proventosIgnorados[p.id] ? (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                            <span style={{
+                              display: "inline-flex", alignItems: "center", gap: 4,
+                              fontSize: 10, color: T.muted, fontWeight: 600,
+                              padding: "3px 7px", background: `${T.muted}22`, borderRadius: 4,
+                              fontStyle: "italic",
+                            }}>
+                              Ignorado
+                            </span>
+                            <button onClick={() => reativarProvento(p)}
+                                    title="Reativar provento"
+                                    aria-label={`Reativar provento ${p.ticker}`}
+                                    style={{
+                                      background: "transparent", border: `1px solid ${T.border}`,
+                                      color: T.gold, padding: "2px 7px", borderRadius: 4,
+                                      cursor: "pointer", fontSize: 10, letterSpacing: ".05em",
+                                    }}>
+                              ↺
+                            </button>
+                          </span>
                         ) : (
-                          <button onClick={() => abrirBaixa(p)}
-                                  style={{
-                                    background: T.gold, color: T.bg,
-                                    border: "none", padding: "5px 11px", borderRadius: 5,
-                                    fontSize: 10.5, fontWeight: 700, cursor: "pointer",
-                                    letterSpacing: ".05em", textTransform: "uppercase",
-                                    display: "inline-flex", alignItems: "center", gap: 4,
-                                  }}>
-                            <ArrowDownToLine size={11} /> Baixar
-                          </button>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                            <button onClick={() => abrirBaixa(p)}
+                                    style={{
+                                      background: T.gold, color: T.bg,
+                                      border: "none", padding: "5px 11px", borderRadius: 5,
+                                      fontSize: 10.5, fontWeight: 700, cursor: "pointer",
+                                      letterSpacing: ".05em", textTransform: "uppercase",
+                                      display: "inline-flex", alignItems: "center", gap: 4,
+                                    }}>
+                              <ArrowDownToLine size={11} /> Baixar
+                            </button>
+                            <button onClick={() => ignorarProvento(p)}
+                                    title="Excluir/ignorar este provento previsto"
+                                    aria-label={`Excluir provento previsto ${p.ticker}`}
+                                    style={{
+                                      background: "transparent", border: `1px solid ${T.border}`,
+                                      color: T.red, padding: "2px 5px", borderRadius: 4,
+                                      cursor: "pointer", display: "inline-flex", alignItems: "center",
+                                    }}>
+                              <X size={11} />
+                            </button>
+                          </span>
                         )}
                       </Td>
                     </tr>
