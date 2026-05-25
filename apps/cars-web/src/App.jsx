@@ -77,6 +77,10 @@ import AReceberEDividas from "./components/pages/AReceberEDividas.jsx";
 import AuditLog from "./components/pages/AuditLog.jsx";
 import PergunteAoClaude from "./components/pages/PergunteAoClaude.jsx";
 import Configuracoes from "./components/pages/Configuracoes.jsx";
+import NegocioPainel from "./components/pages/Negocio/NegocioPainel.jsx";
+import NegocioVeiculos from "./components/pages/Negocio/Veiculos.jsx";
+import NegocioServicos from "./components/pages/Negocio/Servicos.jsx";
+import NegocioClientes from "./components/pages/Negocio/Clientes.jsx";
 
 export default function App() {
   const [modulo, setModulo] = useState(() => {
@@ -135,6 +139,14 @@ export default function App() {
   // Histórico do patrimônio (snapshot diário do total = ativos + contas).
   // Array de { data: "YYYY-MM-DD", totalAtivos, totalContas, total }.
   const [patrimonioHistorico, setPatrimonioHistorico] = useState([]);
+
+  // ===== Módulo NEGÓCIO (revenda de carros + serviços) =====
+  // Estrutura inicial; cada array recebe handlers/UIs em PRs seguintes.
+  const [negocioVeiculos,        setNegocioVeiculos]        = useState([]); // estoque
+  const [negocioVendasVeiculos,  setNegocioVendasVeiculos]  = useState([]); // vendas de carros
+  const [negocioServicos,        setNegocioServicos]        = useState([]); // catálogo de serviços
+  const [negocioVendasServicos,  setNegocioVendasServicos]  = useState([]); // vendas de serviços
+  const [negocioClientes,        setNegocioClientes]        = useState([]); // clientes
 
   // Objetivos da carteira (árvore IdV-style)
   const [objetivosCarteira, setObjetivosCarteira] = useState([]);
@@ -207,6 +219,11 @@ export default function App() {
         setTarefas(data.tarefas || []);
         setSugestoes(data.sugestoes || []);
         setPatrimonioHistorico(data.patrimonioHistorico || []);
+        setNegocioVeiculos(data.negocioVeiculos || []);
+        setNegocioVendasVeiculos(data.negocioVendasVeiculos || []);
+        setNegocioServicos(data.negocioServicos || []);
+        setNegocioVendasServicos(data.negocioVendasServicos || []);
+        setNegocioClientes(data.negocioClientes || []);
         setObjetivosCarteira(data.objetivosCarteira || []);
         setCarteirasModeloCustom(data.carteirasModeloCustom || []);
         if (data.modeloAtivoId) setModeloAtivoId(data.modeloAtivoId);
@@ -252,6 +269,11 @@ export default function App() {
         setTarefas([]);
         setSugestoes([]);
         setPatrimonioHistorico([]);
+        setNegocioVeiculos([]);
+        setNegocioVendasVeiculos([]);
+        setNegocioServicos([]);
+        setNegocioVendasServicos([]);
+        setNegocioClientes([]);
         setObjetivosCarteira([]);
         setCarteirasModeloCustom([]);
         setCarteiraProventos({ saldo: 0, historico: [] });
@@ -276,6 +298,7 @@ export default function App() {
       cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
+      negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioClientes,
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
@@ -284,6 +307,7 @@ export default function App() {
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
+      negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioClientes,
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
@@ -847,6 +871,54 @@ export default function App() {
             )}
             {tab === "compras" && (
               <Compras compras={compras} setCompras={setCompras} />
+            )}
+          </div>
+        )}
+
+        {/* MÓDULO: NEGÓCIO (revenda + serviços) */}
+        {modulo === "negocio" && (
+          <div className="px-6 md:px-10">
+            {(tab === "negocio-painel" || !tab.startsWith("negocio-")) && (
+              <NegocioPainel
+                negocioVeiculos={negocioVeiculos}
+                negocioVendasVeiculos={negocioVendasVeiculos}
+                negocioServicos={negocioServicos}
+                negocioVendasServicos={negocioVendasServicos}
+                negocioClientes={negocioClientes}
+                hidden={hidden}
+                onTabChange={(t) => setTab(t)}
+              />
+            )}
+            {tab === "negocio-veiculos" && (
+              <NegocioVeiculos
+                veiculos={negocioVeiculos} setVeiculos={setNegocioVeiculos}
+                vendas={negocioVendasVeiculos} setVendas={setNegocioVendasVeiculos}
+                clientes={negocioClientes}
+                contas={contas} setContas={setContas}
+                transacoes={transacoes} setTransacoes={setTransacoes}
+                categorias={categorias}
+                hidden={hidden}
+              />
+            )}
+            {tab === "negocio-servicos" && (
+              <NegocioServicos
+                servicos={negocioServicos} setServicos={setNegocioServicos}
+                vendas={negocioVendasServicos} setVendas={setNegocioVendasServicos}
+                clientes={negocioClientes}
+                veiculos={negocioVeiculos}
+                contas={contas} setContas={setContas}
+                transacoes={transacoes} setTransacoes={setTransacoes}
+                categorias={categorias}
+                hidden={hidden}
+              />
+            )}
+            {tab === "negocio-clientes" && (
+              <NegocioClientes
+                clientes={negocioClientes} setClientes={setNegocioClientes}
+                vendasVeiculos={negocioVendasVeiculos}
+                vendasServicos={negocioVendasServicos}
+                hidden={hidden}
+              />
             )}
           </div>
         )}

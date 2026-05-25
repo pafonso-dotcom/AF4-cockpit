@@ -19,6 +19,7 @@ const PERFIL_PADRAO = {
   permissoes: {
     financas: true,
     invest: true,
+    negocio: true,
     config: true,
   },
 };
@@ -27,12 +28,12 @@ const ROLES = {
   admin: {
     label: "Administrador",
     cor: "#c9a961",
-    permissoes: { financas: true, invest: true, config: true },
+    permissoes: { financas: true, invest: true, negocio: true, config: true },
   },
   viewer: {
     label: "Visualizador",
     cor: "#9ca3af",
-    permissoes: { financas: "view", invest: "view", config: false },
+    permissoes: { financas: "view", invest: "view", negocio: "view", config: false },
   },
 };
 

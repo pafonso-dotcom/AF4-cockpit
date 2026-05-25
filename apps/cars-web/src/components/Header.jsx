@@ -8,6 +8,7 @@ import {
   Package, Target, Users, AlertCircle, History, MessageCircle,
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
+  Store, Car, Wrench,
 } from "lucide-react";
 
 /**
@@ -80,6 +81,7 @@ function HeaderHorizontal({
   const TODOS_MODULOS = [
     { id: "financas", label: "Finanças",      icon: Wallet,    desc: "Pessoal" },
     { id: "invest",   label: "Investimentos", icon: Briefcase, desc: "Carteira" },
+    { id: "negocio",  label: "Negócio",       icon: Store,     desc: "Operação" },
     { id: "agenda",   label: "Agenda",        icon: Calendar,  desc: "Vida" },
   ];
   const MODULOS = TODOS_MODULOS.filter(m => perms[m.id] !== false);
@@ -117,6 +119,12 @@ function HeaderHorizontal({
       { id: "mercado",       label: "Mercado",      icon: LineIcon },
       { id: "relatorios-i",  label: "Relatórios",   icon: BarChart3 },
       { id: "simulador",     label: "Simulador",    icon: Calculator },
+    ],
+    negocio: [
+      { id: "negocio-painel",   label: "Painel",   icon: Store },
+      { id: "negocio-veiculos", label: "Veículos", icon: Car },
+      { id: "negocio-servicos", label: "Serviços", icon: Wrench },
+      { id: "negocio-clientes", label: "Clientes", icon: Users },
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência",    icon: Sparkles },
@@ -466,6 +474,12 @@ function HeaderVertical({
       { id: "mercado",       label: "Mercado",      icon: LineIcon },
       { id: "relatorios-i",  label: "Relatórios",   icon: BarChart3 },
       { id: "simulador",     label: "Simulador",    icon: Calculator },
+    ],
+    negocio: [
+      { id: "negocio-painel",   label: "Painel",   icon: Store },
+      { id: "negocio-veiculos", label: "Veículos", icon: Car },
+      { id: "negocio-servicos", label: "Serviços", icon: Wrench },
+      { id: "negocio-clientes", label: "Clientes", icon: Users },
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência", icon: Sparkles },
