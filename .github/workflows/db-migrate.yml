@@ -1,25 +1,29 @@
 name: Supabase DB Migrate
 
-# Aplica migrações SQL no Supabase quando arquivos em supabase/migrations/ mudam.
-# Também pode rodar manualmente via Actions tab (workflow_dispatch).
+# Aplica migrações SQL no Supabase usando psql direto.
+# Mais simples que supabase CLI: não precisa de PAT, só da Connection String do DB.
 #
-# Requer 2 secrets no repo (Settings → Secrets and variables → Actions):
-#   SUPABASE_ACCESS_TOKEN  — Personal Access Token de https://supabase.com/dashboard/account/tokens
-#   SUPABASE_DB_PASSWORD   — senha do banco (Settings → Database → Connection String)
+# Requer 1 secret no repo (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL — Connection String em formato URI, pegue em:
+#     https://supabase.com/dashboard/project/_/settings/database
+#     → "Connection string" → tab "URI" → copia (já vem com senha incluída)
+#     Formato: postgresql://postgres:[YOUR-PASSWORD]@db.[ref].supabase.co:5432/postgres
 #
-# O project ref já está em supabase/config.toml (project_id = "rffxplwshwfjnedefvqg").
+# Como funciona:
+# - Cada arquivo .sql em supabase/migrations/ é aplicado em ordem alfabética
+# - Todas as migrations são IDEMPOTENTES (usam IF NOT EXISTS) — rodar 2x não quebra
+# - Registra qual rodou em tabela _supabase_migrations (criada na 1ª execução)
 
 on:
   push:
     branches: [main]
     paths:
       - 'supabase/migrations/**.sql'
-      - 'supabase/config.toml'
       - '.github/workflows/db-migrate.yml'
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Dry run (só mostra diff, não aplica)'
+        description: 'Dry run (só lista migrations pendentes, não aplica)'
         type: boolean
         default: false
 
@@ -32,74 +36,130 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Validate config + secrets
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      - name: Install psql
         run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
-            echo "::error::SUPABASE_ACCESS_TOKEN não está configurado nos secrets do repo."
-            echo "Crie em: https://supabase.com/dashboard/account/tokens"
-            echo "Adicione em: Settings → Secrets and variables → Actions"
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+          psql --version
+
+      - name: Validate secret
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL não está configurado nos secrets do repo."
+            echo ""
+            echo "Como obter:"
+            echo "1. https://supabase.com/dashboard/project/rffxplwshwfjnedefvqg/settings/database"
+            echo "2. Em 'Connection string' → tab 'URI' → copia (já tem senha)"
+            echo "3. Adiciona em https://github.com/pafonso-dotcom/AF4-cockpit/settings/secrets/actions"
+            echo "   Nome: SUPABASE_DB_URL"
             exit 1
           fi
-          if [ -z "$SUPABASE_DB_PASSWORD" ]; then
-            echo "::error::SUPABASE_DB_PASSWORD não está configurado nos secrets do repo."
-            echo "Pegue em: https://supabase.com/dashboard/project/_/settings/database"
-            exit 1
-          fi
-          PROJECT_ID=$(grep '^project_id' supabase/config.toml | cut -d'"' -f2)
-          if [ -z "$PROJECT_ID" ]; then
-            echo "::error::project_id não encontrado em supabase/config.toml"
-            exit 1
-          fi
-          echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
-          echo "✓ Config OK · project: $PROJECT_ID"
+          echo "✓ Secret configurado"
 
-      - name: Link to Supabase project
+      - name: Test connection
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGSSLMODE: require
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          supabase link --project-ref "$PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+          echo "Testando conexão com o banco…"
+          psql "$DB_URL" -c "SELECT version();" || {
+            echo "::error::Falha ao conectar. Verifica a Connection String."
+            exit 1
+          }
 
-      - name: Show pending migrations (always)
+      - name: Setup migrations tracking table
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGSSLMODE: require
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          echo "### Migrações locais"
-          ls -la supabase/migrations/ || true
+          psql "$DB_URL" <<'SQL'
+            CREATE TABLE IF NOT EXISTS public._supabase_migrations (
+              name TEXT PRIMARY KEY,
+              applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+          SQL
+          echo "✓ Tabela de tracking pronta"
+
+      - name: List pending migrations
+        id: pending
+        env:
+          PGSSLMODE: require
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          echo "### Migrations no repo:"
+          ls -la supabase/migrations/*.sql 2>/dev/null || { echo "Nenhuma migration encontrada."; exit 0; }
           echo ""
-          echo "### Diff vs remoto"
-          supabase db diff --use-migra || true
 
-      - name: Apply migrations
-        if: ${{ github.event.inputs.dry_run != 'true' }}
+          echo "### Já aplicadas no banco:"
+          psql "$DB_URL" -t -c "SELECT name FROM public._supabase_migrations ORDER BY name;" || true
+          echo ""
+
+          PENDING=()
+          for f in supabase/migrations/*.sql; do
+            NOME=$(basename "$f")
+            JA_APLICADA=$(psql "$DB_URL" -t -c "SELECT 1 FROM public._supabase_migrations WHERE name='$NOME';" | tr -d ' \n')
+            if [ -z "$JA_APLICADA" ]; then
+              PENDING+=("$f")
+              echo "📝 PENDENTE: $NOME"
+            else
+              echo "✓ já aplicada: $NOME"
+            fi
+          done
+
+          echo ""
+          echo "Total pendentes: ${#PENDING[@]}"
+
+          # Exporta lista pra próximo step
+          printf '%s\n' "${PENDING[@]}" > /tmp/pending.txt
+          echo "count=${#PENDING[@]}" >> $GITHUB_OUTPUT
+
+      - name: Apply pending migrations
+        if: ${{ github.event.inputs.dry_run != 'true' && steps.pending.outputs.count != '0' }}
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGSSLMODE: require
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          echo "Aplicando migrações no Supabase remoto…"
-          supabase db push --password "$SUPABASE_DB_PASSWORD"
-          echo "✓ Migração concluída"
+          set -e
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            NOME=$(basename "$f")
+            echo ""
+            echo "═══════════════════════════════════════════════"
+            echo "▶ Aplicando: $NOME"
+            echo "═══════════════════════════════════════════════"
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$f"
+            psql "$DB_URL" -c "INSERT INTO public._supabase_migrations (name) VALUES ('$NOME') ON CONFLICT DO NOTHING;"
+            echo "✓ $NOME aplicada e registrada"
+          done < /tmp/pending.txt
+          echo ""
+          echo "🎉 Todas as migrations aplicadas com sucesso"
 
       - name: Dry-run summary
         if: ${{ github.event.inputs.dry_run == 'true' }}
         run: |
-          echo "::warning::Dry-run ativado — nenhuma migração foi aplicada."
+          echo "::warning::Dry-run ativado — nada foi aplicado."
           echo "Pra aplicar de verdade, re-rode sem dry_run ou faça push pra main."
+
+      - name: No pending
+        if: ${{ steps.pending.outputs.count == '0' }}
+        run: |
+          echo "✓ Nenhuma migration pendente. Banco já está atualizado."
 
       - name: Summary
         if: always()
+        env:
+          PGSSLMODE: require
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           echo "## Resumo" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Project: \`$PROJECT_ID\`" >> $GITHUB_STEP_SUMMARY
           echo "Trigger: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "Dry-run: \`${{ github.event.inputs.dry_run || 'false' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Pendentes detectadas: \`${{ steps.pending.outputs.count || 0 }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Migrations aplicadas (todas)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          psql "$DB_URL" -c "SELECT name, applied_at FROM public._supabase_migrations ORDER BY applied_at DESC LIMIT 10;" 2>/dev/null >> $GITHUB_STEP_SUMMARY || echo "(não foi possível ler)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

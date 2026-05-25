@@ -2,29 +2,28 @@
 
 Migrações SQL em `supabase/migrations/*.sql` são aplicadas no banco Supabase **automaticamente** via GitHub Actions sempre que houver push pra main.
 
-## Setup inicial (1x)
+Usa `psql` direto (sem `supabase` CLI) — evita problemas de permissão de PAT.
 
-### 1. Personal Access Token do Supabase
+## Setup inicial (1x, ~2 minutos)
 
-1. Vai em https://supabase.com/dashboard/account/tokens
-2. Clica em **"Generate new token"**
-3. Nome: `AF4 Cockpit · GitHub Actions`
-4. Copia o token (mostrado uma vez só!)
-
-### 2. Senha do banco Postgres
+### 1. Pega a Connection String do Supabase
 
 1. Vai em https://supabase.com/dashboard/project/rffxplwshwfjnedefvqg/settings/database
-2. Em **"Database Password"** copia a senha (se não souber, **"Reset database password"** — gera uma nova)
+2. Procura **"Connection string"** → clica na aba **"URI"**
+3. Copia (já vem com a senha embutida):
+   ```
+   postgresql://postgres:[YOUR-PASSWORD]@db.rffxplwshwfjnedefvqg.supabase.co:5432/postgres
+   ```
+4. Se aparecer `[YOUR-PASSWORD]` como placeholder, clica no botão que mostra/copia com senha real
 
-### 3. Adicionar como secrets no GitHub
+### 2. Adiciona como secret no GitHub
 
 1. Vai em https://github.com/pafonso-dotcom/AF4-cockpit/settings/secrets/actions
-2. Clica em **"New repository secret"** pra cada um:
+2. Clica em **"New repository secret"**:
 
 | Nome | Valor |
 |---|---|
-| `SUPABASE_ACCESS_TOKEN` | Token do passo 1 (formato: `sbp_xxxxx...`) |
-| `SUPABASE_DB_PASSWORD` | Senha do passo 2 |
+| `SUPABASE_DB_URL` | A connection string completa do passo 1 |
 
 Pronto. Toda alteração em `supabase/migrations/*.sql` em main vai aplicar automaticamente.
 
@@ -32,27 +31,47 @@ Pronto. Toda alteração em `supabase/migrations/*.sql` em main vai aplicar auto
 
 ## Como funciona
 
+### Tracking de migrations aplicadas
+
+Na primeira execução, o workflow cria uma tabela `public._supabase_migrations`:
+
+```sql
+CREATE TABLE public._supabase_migrations (
+  name TEXT PRIMARY KEY,
+  applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+Em cada run, o workflow:
+1. Lista arquivos `supabase/migrations/*.sql` ordenados por nome
+2. Pra cada um, checa se já tem entry na tabela
+3. Se NÃO tem: aplica via `psql -f` e insere na tabela
+4. Se já tem: pula
+
+Resultado: você pode rodar quantas vezes quiser, só aplica o que falta.
+
 ### Auto-deploy (push pra main)
 
-Quando você faz push de uma alteração em:
+Quando você faz push de alteração em:
 - `supabase/migrations/*.sql`
-- `supabase/config.toml`
 - `.github/workflows/db-migrate.yml`
 
-O workflow **`Supabase DB Migrate`** roda automaticamente:
-1. Instala a Supabase CLI
-2. Valida secrets
-3. Link com o projeto remoto via PAT
-4. Mostra diff (sempre)
-5. Aplica migrações pendentes via `supabase db push`
+O workflow **`Supabase DB Migrate`** roda automático e:
+1. Instala `psql` (postgresql-client)
+2. Valida secret
+3. Testa conexão (`SELECT version();`)
+4. Cria tabela de tracking (idempotente)
+5. Lista migrations pendentes
+6. Aplica pendentes em ordem alfabética
+7. Registra cada aplicação na tabela
 
 ### Dry-run manual
 
-Pra testar uma migração sem aplicar:
+Pra ver o que SERIA aplicado sem aplicar:
 
 1. Vai em https://github.com/pafonso-dotcom/AF4-cockpit/actions/workflows/db-migrate.yml
-2. Clica em **"Run workflow"** → seleciona branch + marca **"Dry run"**
-3. Workflow só mostra o diff, sem aplicar
+2. Clica em **"Run workflow"** → seleciona branch → marca **"Dry run"**
+3. Workflow lista pendentes sem aplicar
 
 ---
 
@@ -61,11 +80,10 @@ Pra testar uma migração sem aplicar:
 1. Cria arquivo em `supabase/migrations/`
    - Formato do nome: `YYYYMMDDHHMMSS_descricao.sql`
    - Ex.: `20260601100000_add_index_transacoes.sql`
-2. Escreve SQL idempotente (use `IF NOT EXISTS`, `DROP IF EXISTS`, etc.)
-3. Testa local com `supabase db reset` (se rodar o stack local)
-4. Commit + push pra main
-5. Workflow aplica automaticamente
-6. Confere no Supabase dashboard que rodou OK
+2. Escreve SQL **idempotente** (use `IF NOT EXISTS`, `DROP IF EXISTS`, etc.)
+3. Commit + push pra main
+4. Workflow aplica automaticamente
+5. Confere no Actions tab que rodou OK + linha apareceu em `_supabase_migrations`
 
 ### Convenções de naming
 
@@ -78,44 +96,49 @@ Pra testar uma migração sem aplicar:
 
 ### Princípios pra migração segura
 
-- **Idempotência**: a migração deve poder rodar 2x sem quebrar (use `IF NOT EXISTS`)
+- **Idempotência**: a migração deve poder rodar 2x sem quebrar (use `IF NOT EXISTS`, mesmo que o tracking já evite — defesa em profundidade)
 - **Forward-only**: não tem rollback automático — sempre crie uma nova migração pra reverter
-- **Pequena e focada**: 1 migração = 1 mudança lógica (não junte CREATE TABLE + ALTER + INSERT)
-- **Cuidado com `DROP`**: se for dropar coluna/tabela, separa em PR próprio com revisão extra
+- **Pequena e focada**: 1 migração = 1 mudança lógica
+- **Cuidado com `DROP`**: separa em PR próprio com revisão extra
 
 ---
 
 ## Troubleshooting
 
-### `SUPABASE_ACCESS_TOKEN não está configurado`
+### `SUPABASE_DB_URL não está configurado`
 → Adiciona o secret no GitHub (ver setup acima)
 
-### `Permission denied for relation auth.users`
-→ Algumas tabelas do schema `auth` precisam de service role pra acessar. Use SECURITY DEFINER em funções ou ajuste RLS.
+### `connection refused`
+→ Confere se a URI está correta. O host é `db.rffxplwshwfjnedefvqg.supabase.co` (não `aws-0-*.pooler...` que é o pooler — pra DDL preferir conexão direta na porta 5432)
 
-### `relation already exists`
-→ Sua migração não está idempotente. Use `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, etc.
+### `password authentication failed`
+→ Senha errada na URI. Vai em Database settings, reseta a senha do DB, pega a nova URI
 
-### Workflow não disparou após push
-→ Verifica se o arquivo está em `supabase/migrations/` (com S) e termina com `.sql`. O `paths:` no workflow é case-sensitive.
+### `relation X already exists` (mesmo com IF NOT EXISTS)
+→ Algum CREATE TYPE pode não ser idempotente. Usa o pattern:
+```sql
+DO $$ BEGIN
+  CREATE TYPE meu_enum AS ENUM (...);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+```
 
-### Quero rollback de uma migração
-→ Não tem rollback automático. Crie uma nova migração que reverte (`DROP TABLE X CASCADE`, etc.).
+### Quero re-aplicar uma migration (forçar)
+→ Deleta a entry da tabela: `DELETE FROM public._supabase_migrations WHERE name='YYYY...';`
+
+### Quero rollback
+→ Não tem automático. Cria nova migration `YYYY..._rollback_X.sql` com os DROP/ALTER reverso, deixa rodar pelo workflow.
 
 ---
 
-## Aplicar a primeira vez (bootstrap)
+## Status atual da migração inicial
 
-Como o projeto Supabase já existe (com `aurum_state` legado), a primeira migração `20260525000000_initial_schema.sql`:
-
-- **Não conflita** com `aurum_state` (cria 27 tabelas novas paralelamente)
-- **Não destrói nada** existente
-- É 100% idempotente (`IF NOT EXISTS` em tudo)
+`20260525000000_initial_schema.sql` cria 27 tabelas + ENUMs + RLS + triggers + seed dos modelos IdV. Convive com `aurum_state` legado sem conflito.
 
 Pra rodar:
-1. Setup dos secrets (passos 1-3 acima)
-2. Faz push da branch com `supabase/migrations/` pra main
-3. Workflow roda, aplica o SQL, mostra "✓ Migração concluída"
-4. No app: Configurações → Backup → "Migração de dados" mostra ✓ verde
+1. Setup do secret (passos acima)
+2. Faz push da branch com `supabase/migrations/` pra main (ou re-roda manualmente em Actions tab)
+3. Workflow aplica automaticamente
+4. No app: Configurações → Backup → "Migração de dados" mostra ✓ verde + contagens zeradas
+5. Pronto pra rodar dry-run + migração real dos dados
 
 Depois disso, qualquer mudança de schema vira: novo arquivo em `supabase/migrations/` → push → automático.
