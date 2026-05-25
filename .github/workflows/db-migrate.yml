@@ -51,12 +51,39 @@ jobs:
             echo ""
             echo "Como obter:"
             echo "1. https://supabase.com/dashboard/project/rffxplwshwfjnedefvqg/settings/database"
-            echo "2. Em 'Connection string' → tab 'URI' → copia (já tem senha)"
+            echo "2. Em 'Connection string' → tab 'Session' (NÃO 'Direct')"
             echo "3. Adiciona em https://github.com/pafonso-dotcom/AF4-cockpit/settings/secrets/actions"
             echo "   Nome: SUPABASE_DB_URL"
             exit 1
           fi
-          echo "✓ Secret configurado"
+          # Trim de whitespace acidental
+          TRIMMED=$(echo "$SUPABASE_DB_URL" | xargs)
+          if [ -z "$TRIMMED" ]; then
+            echo "::error::SUPABASE_DB_URL contém apenas whitespace."
+            exit 1
+          fi
+          # Debug: tamanho + prefixo mascarado (NÃO mostra a senha)
+          LEN=${#TRIMMED}
+          PREFIX=$(echo "$TRIMMED" | cut -c1-30)
+          echo "✓ Secret presente · tamanho: $LEN chars · prefixo: $PREFIX..."
+
+          # Valida formato
+          if ! echo "$TRIMMED" | grep -qE '^postgres(ql)?://'; then
+            echo "::error::SUPABASE_DB_URL não começa com 'postgres://' ou 'postgresql://'."
+            echo "Formato esperado: postgresql://postgres.REF:SENHA@HOST:PORTA/postgres"
+            exit 1
+          fi
+
+          # Detecta Direct Connection (host db.X.supabase.co) — só IPv6, runner não tem
+          if echo "$TRIMMED" | grep -qE '@db\.[a-z0-9]+\.supabase\.co'; then
+            echo "::error::Você está usando a 'Direct Connection' (host db.X.supabase.co)."
+            echo "::error::GitHub Actions runners NÃO têm IPv6, e esse host só responde em IPv6."
+            echo "::error::Troque pela 'Session pooler':"
+            echo "::error::  1. https://supabase.com/dashboard/project/rffxplwshwfjnedefvqg/settings/database"
+            echo "::error::  2. 'Connection string' → tab 'Session' (porta 5432, host aws-0-...pooler.supabase.com)"
+            echo "::error::  3. Atualiza o secret SUPABASE_DB_URL com a nova URI"
+            exit 1
+          fi
 
       - name: Test connection
         env:
@@ -64,8 +91,20 @@ jobs:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           echo "Testando conexão com o banco…"
-          psql "$DB_URL" -c "SELECT version();" || {
-            echo "::error::Falha ao conectar. Verifica a Connection String."
+          DB_URL_TRIM=$(echo "$DB_URL" | xargs)
+          if [ -z "$DB_URL_TRIM" ]; then
+            echo "::error::DB_URL chegou vazia no test step."
+            exit 1
+          fi
+          # Conecta mostrando erro completo do psql
+          psql "$DB_URL_TRIM" -c "SELECT version();" 2>&1 || {
+            echo ""
+            echo "::error::Falha ao conectar com o banco."
+            echo ""
+            echo "Causas comuns:"
+            echo "1. Você copiou 'Direct Connection' (db.X.supabase.co) — só IPv6. Use 'Session pooler' (porta 5432)"
+            echo "2. Senha errada na URI"
+            echo "3. Caracteres especiais na senha precisam URL-encode (@→%40, :→%3A, etc.)"
             exit 1
           }
 
