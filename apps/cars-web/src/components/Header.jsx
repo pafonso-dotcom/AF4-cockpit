@@ -109,6 +109,7 @@ function HeaderHorizontal({
     invest: [
       { id: "investimentos", label: "Painel",       icon: BarChart3 },
       { id: "carteira",      label: "Carteira",     icon: Briefcase },
+      { id: "objetivos",     label: "Objetivos",    icon: Target },
       { id: "analises",      label: "Análises",     icon: Radar },
       { id: "proventos",     label: "Proventos",    icon: DollarSign },
       { id: "mercado",       label: "Mercado",      icon: LineIcon },
@@ -455,6 +456,7 @@ function HeaderVertical({
     invest: [
       { id: "investimentos", label: "Painel",       icon: BarChart3 },
       { id: "carteira",      label: "Carteira",     icon: Briefcase },
+      { id: "objetivos",     label: "Objetivos",    icon: Target },
       { id: "analises",      label: "Análises",     icon: Radar },
       { id: "proventos",     label: "Proventos",    icon: DollarSign },
       { id: "mercado",       label: "Mercado",      icon: LineIcon },

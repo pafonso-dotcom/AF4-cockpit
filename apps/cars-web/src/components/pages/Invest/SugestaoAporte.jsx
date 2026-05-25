@@ -67,8 +67,10 @@ export default function SugestaoAporte({
   ativosCarteira = [],
   apiKey,
   onAplicarProjecao,
+  valorInicial,       // pré-preenche o campo valor (opcional)
+  contextoExtra,      // string extra adicionada ao prompt (opcional)
 }) {
-  const [valor, setValor] = useState("5000");
+  const [valor, setValor] = useState(valorInicial != null ? String(valorInicial) : "5000");
   const [perfilId, setPerfilId] = useState("moderado");
   const [objetivoId, setObjetivoId] = useState("renda");
   const [taxaCdi, setTaxaCdi] = useState("10.5"); // % a.a.
@@ -141,6 +143,7 @@ Tenho **R$ ${valorN.toFixed(2)}** disponíveis para aportar AGORA.
 Perfil: **${perfil.label}** (alocação alvo: ${perfil.aloc.cdb}% CDB, ${perfil.aloc.fii}% FII, ${perfil.aloc.acao}% Ação).
 Objetivo principal: **${objetivo.label}** — ${objetivo.desc}.
 CDB pós-fixado disponível: 100% do CDI a ${cdiN.toFixed(2)}% a.a. (≈ ${(cdiN / 12).toFixed(2)}% a.m.).
+${contextoExtra ? `\n${contextoExtra}\n` : ""}
 
 ═══ MINHA CARTEIRA ATUAL ═══
 ${carteiraResumo}

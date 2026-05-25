@@ -63,6 +63,7 @@ import Mercado from "./components/pages/Mercado.jsx";
 import Simulador from "./components/pages/Simulador.jsx";
 import Projecao from "./components/pages/Invest/Projecao.jsx";
 import AnalisesUnificada from "./components/pages/Invest/Analises.jsx";
+import ObjetivosCarteira from "./components/pages/Invest/ObjetivosCarteira.jsx";
 import InvestPainel from "./components/pages/Invest/InvestPainel.jsx";
 import Performance from "./components/pages/Invest/Performance.jsx";
 import Proventos from "./components/pages/Invest/Proventos.jsx";
@@ -128,6 +129,9 @@ export default function App() {
   const [ideias, setIdeias] = useState([]);
   const [tarefas, setTarefas] = useState([]);
 
+  // Objetivos da carteira (árvore IdV-style)
+  const [objetivosCarteira, setObjetivosCarteira] = useState([]);
+
   // AF4 Trade
   const [tradeWatchlist, setTradeWatchlist] = useState([]);
   const [tradeHistorico, setTradeHistorico] = useState([]);
@@ -173,6 +177,7 @@ export default function App() {
         setCompras(data.compras || []);
         setIdeias(data.ideias || []);
         setTarefas(data.tarefas || []);
+        setObjetivosCarteira(data.objetivosCarteira || []);
         setTradeWatchlist(data.tradeWatchlist || []);
         setTradeHistorico(data.tradeHistorico || []);
         setTradeAnalisesIdV(data.tradeAnalisesIdV || []);
@@ -209,6 +214,7 @@ export default function App() {
         setCompras([]);
         setIdeias([]);
         setTarefas([]);
+        setObjetivosCarteira([]);
         setTradeWatchlist([]);
         setTradeHistorico([]);
         setTradeAnalisesIdV([]);
@@ -226,13 +232,13 @@ export default function App() {
       contas, categorias, transacoes, ativos, metas, notas,
       cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras, ideias, tarefas,
+      habitos, diario, compras, ideias, tarefas, objetivosCarteira,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId,
     });
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras, ideias, tarefas,
+      habitos, diario, compras, ideias, tarefas, objetivosCarteira,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId, loading]);
 
@@ -772,6 +778,17 @@ export default function App() {
                                onRefresh={refreshMarket} refreshing={refreshing}
                                onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
                                hidden={hidden} />
+              </div>
+            )}
+            {tab === "objetivos" && (
+              <div className="px-6 md:px-10">
+                <ObjetivosCarteira
+                  ativos={ativos}
+                  objetivosCarteira={objetivosCarteira}
+                  setObjetivosCarteira={setObjetivosCarteira}
+                  hidden={hidden}
+                  apiKeys={apiKeys}
+                />
               </div>
             )}
             {tab === "proventos" && <Proventos ativos={ativos} hidden={hidden} />}
