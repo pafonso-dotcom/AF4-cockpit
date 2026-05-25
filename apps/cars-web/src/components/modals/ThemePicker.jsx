@@ -1,7 +1,24 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, ArrowUpRight, Check } from "lucide-react";
-import { T, THEMES } from "../../lib/theme.js";
+import { T, THEMES, applyTheme } from "../../lib/theme.js";
+
+const TEXT_SCALES = [
+  { v: 0.9,  l: "Pequeno" },
+  { v: 1,    l: "Normal" },
+  { v: 1.15, l: "Grande" },
+];
+
+// Cores de texto: nulo = usa a cor do tema. Demais sobrescrevem T.ink.
+const TEXT_COLORS = [
+  { v: null,      l: "Padrão",  preview: "currentColor" },
+  { v: "#ffffff", l: "Branco",  preview: "#ffffff" },
+  { v: "#fbbf24", l: "Âmbar",   preview: "#fbbf24" },
+  { v: "#60a5fa", l: "Azul",    preview: "#60a5fa" },
+  { v: "#4ade80", l: "Verde",   preview: "#4ade80" },
+  { v: "#f87171", l: "Vermelho",preview: "#f87171" },
+  { v: "#a78bfa", l: "Violeta", preview: "#a78bfa" },
+];
 
 export default function ThemePicker({ themeId, setThemeId, onClose }) {
   const ref = useRef();
@@ -17,6 +34,21 @@ export default function ThemePicker({ themeId, setThemeId, onClose }) {
   }, [onClose]);
 
   const themesArr = Object.values(THEMES);
+
+  const [textScale, setTextScale] = useState(() => Number(localStorage.getItem("af4:ui:text-scale")) || 1);
+  const [textColor, setTextColor] = useState(() => localStorage.getItem("af4:ui:text-color") || null);
+
+  const changeScale = (v) => {
+    setTextScale(v);
+    localStorage.setItem("af4:ui:text-scale", String(v));
+    applyTheme(themeId); // re-aplica T e CSS vars (lê os novos overrides)
+  };
+  const changeColor = (v) => {
+    setTextColor(v);
+    if (v) localStorage.setItem("af4:ui:text-color", v);
+    else localStorage.removeItem("af4:ui:text-color");
+    applyTheme(themeId);
+  };
 
   const content = (
     <div onClick={(e) => { if (e.target === ref.current) onClose(); }} ref={ref}
@@ -101,6 +133,64 @@ export default function ThemePicker({ themeId, setThemeId, onClose }) {
               </button>
             );
           })}
+        </div>
+
+        {/* Tamanho do texto */}
+        <div style={{ marginTop: 28, paddingTop: 20, borderTop: `1px solid ${T.border}` }}>
+          <div className="label-eyebrow" style={{ marginBottom: 10 }}>
+            Tamanho do texto
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {TEXT_SCALES.map(s => {
+              const active = Math.abs(textScale - s.v) < 0.01;
+              return (
+                <button key={s.v} onClick={() => changeScale(s.v)}
+                  style={{
+                    padding: "8px 18px",
+                    border: `1px solid ${active ? T.gold : T.border}`,
+                    background: active ? `${T.gold}22` : "transparent",
+                    color: active ? T.gold : T.muted,
+                    fontFamily: T.sans, fontSize: 11,
+                    letterSpacing: "0.1em", textTransform: "uppercase",
+                    cursor: "pointer",
+                  }}>
+                  {s.l}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Cor do texto */}
+        <div style={{ marginTop: 24 }}>
+          <div className="label-eyebrow" style={{ marginBottom: 10 }}>
+            Cor do texto
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {TEXT_COLORS.map(c => {
+              const active = (c.v || null) === (textColor || null);
+              return (
+                <button key={c.l} onClick={() => changeColor(c.v)}
+                  title={c.l}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "6px 12px",
+                    border: `1px solid ${active ? T.gold : T.border}`,
+                    background: active ? `${T.gold}11` : "transparent",
+                    cursor: "pointer",
+                  }}>
+                  <span style={{
+                    width: 14, height: 14, borderRadius: 7,
+                    background: c.preview,
+                    border: c.v === null ? `1px dashed ${T.muted}` : "none",
+                  }} />
+                  <span style={{ color: active ? T.gold : T.muted, fontSize: 11, letterSpacing: "0.05em" }}>
+                    {c.l}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div style={{ color: T.faint, fontSize: 12, fontStyle: "italic", marginTop: 24, textAlign: "center" }}>

@@ -55,11 +55,40 @@ const THEMES = {
   },
 };
 
-const getTheme = (id) => ({ ...(THEMES[id] || THEMES.gold), ...FONTS });
+// Lê overrides de texto do usuário no localStorage (escala + cor do ink).
+// Aplicados em cima do tema escolhido.
+const readTextOverrides = () => {
+  if (typeof localStorage === "undefined") return {};
+  const scale = Number(localStorage.getItem("af4:ui:text-scale"));
+  const color = localStorage.getItem("af4:ui:text-color") || "";
+  return {
+    scale: Number.isFinite(scale) && scale > 0 ? scale : 1,
+    color: color || null,
+  };
+};
+
+const getTheme = (id) => {
+  const base = { ...(THEMES[id] || THEMES.gold), ...FONTS };
+  const { color } = readTextOverrides();
+  // Cor custom de texto sobrescreve T.ink (afeta títulos e textos principais
+  // do app que usam style={{ color: T.ink }}).
+  if (color) base.ink = color;
+  return base;
+};
 
 export { THEMES };
 
 export const T = { ...getTheme("gold") };
+
+// Aplica vars CSS de tamanho/cor de texto no root. Idempotente.
+export const applyTextStyle = () => {
+  if (typeof document === "undefined") return;
+  const { scale, color } = readTextOverrides();
+  const root = document.documentElement;
+  root.style.setProperty("--text-scale", String(scale));
+  if (color) root.style.setProperty("--text-color", color);
+  else root.style.removeProperty("--text-color");
+};
 
 export const applyTheme = (id) => {
   const next = getTheme(id);
@@ -71,4 +100,5 @@ export const applyTheme = (id) => {
     root.style.setProperty("--ac", T.gold);
     root.style.setProperty("--ac2", T.goldHi);
   }
+  applyTextStyle();
 };

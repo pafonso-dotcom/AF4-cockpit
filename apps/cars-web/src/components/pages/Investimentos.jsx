@@ -89,6 +89,37 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
     return { valor, custo, ganho: valor - custo, pct: custo > 0 ? ((valor - custo) / custo) * 100 : 0 };
   }, [filtered]);
 
+  // Agrupa ativos por segmento (ordenado por valor decrescente).
+  // Ativos sem segmento caem num grupo "Sem segmento".
+  const grupos = useMemo(() => {
+    const m = new Map();
+    filtered.forEach(a => {
+      const seg = (a.segmento && String(a.segmento).trim()) || "Sem segmento";
+      if (!m.has(seg)) m.set(seg, []);
+      m.get(seg).push(a);
+    });
+    return [...m.entries()]
+      .map(([segmento, items]) => {
+        const valor = items.reduce((s, a) => s + (Number(a.qtd) || 0) * (Number(a.preco) || 0), 0);
+        return { segmento, ativos: items, valor, count: items.length };
+      })
+      .sort((a, b) => b.valor - a.valor);
+  }, [filtered]);
+
+  // Quais segmentos estão colapsados (persistido em localStorage).
+  const [collapsedSegs, setCollapsedSegs] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("af4:invest:collapsed") || "[]")); }
+    catch { return new Set(); }
+  });
+  const toggleSeg = (seg) => {
+    setCollapsedSegs(prev => {
+      const next = new Set(prev);
+      if (next.has(seg)) next.delete(seg); else next.add(seg);
+      try { localStorage.setItem("af4:invest:collapsed", JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
+
   const formPreview = useMemo(() => {
     if (!form) return null;
     const qtd = parseFloat(form.qtd) || 0;
@@ -351,14 +382,37 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
         ))}
       </div>
 
-      {/* Mobile: cards verticais */}
+      {/* Mobile: cards verticais agrupados por segmento */}
       <div className="md:hidden space-y-3 mb-6">
         {filtered.length === 0 && (
           <div style={{ background: T.card, border: `1px solid ${T.border}`, padding: 32, textAlign: "center", color: T.muted, fontStyle: "italic" }}>
             Nenhum ativo nessa categoria.
           </div>
         )}
-        {filtered.map(a => {
+        {grupos.map(grupo => {
+          const fechado = collapsedSegs.has(grupo.segmento);
+          return (
+            <React.Fragment key={grupo.segmento}>
+              <button onClick={() => toggleSeg(grupo.segmento)}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 14px", background: `${T.gold}10`,
+                  border: `1px solid ${T.gold}33`, cursor: "pointer", textAlign: "left",
+                }}>
+                <span style={{ color: T.gold, fontSize: 11, fontWeight: 600 }}>
+                  {fechado ? "▶" : "▼"}
+                </span>
+                <span style={{ flex: 1, color: T.ink, fontSize: 13, fontWeight: 600 }}>
+                  {grupo.segmento}
+                </span>
+                <span style={{ color: T.muted, fontSize: 11 }}>
+                  {grupo.count} {grupo.count === 1 ? "ativo" : "ativos"}
+                </span>
+                <span style={{ color: T.gold, fontSize: 12, fontWeight: 600 }}>
+                  {hidden ? "•••" : fmt(grupo.valor)}
+                </span>
+              </button>
+              {!fechado && grupo.ativos.map(a => {
           const investido = a.qtd * a.pm;
           const valor = a.qtd * a.preco;
           const ganho = valor - investido;
@@ -453,6 +507,9 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
               </div>
             </div>
           );
+              })}
+            </React.Fragment>
+          );
         })}
       </div>
 
@@ -493,7 +550,30 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                 ))}
               </>
             )}
-            {filtered.map(a => {
+            {grupos.map(grupo => {
+              const fechado = collapsedSegs.has(grupo.segmento);
+              return (
+                <React.Fragment key={grupo.segmento}>
+                  <tr onClick={() => toggleSeg(grupo.segmento)}
+                      style={{ cursor: "pointer", background: `${T.gold}10`, borderTop: `1px solid ${T.gold}33`, borderBottom: `1px solid ${T.gold}33` }}>
+                    <td colSpan={9} style={{ padding: "8px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ color: T.gold, fontSize: 11, fontWeight: 600 }}>
+                          {fechado ? "▶" : "▼"}
+                        </span>
+                        <span style={{ flex: 1, color: T.ink, fontSize: 13, fontWeight: 600 }}>
+                          {grupo.segmento}
+                        </span>
+                        <span style={{ color: T.muted, fontSize: 11 }}>
+                          {grupo.count} {grupo.count === 1 ? "ativo" : "ativos"}
+                        </span>
+                        <span style={{ color: T.gold, fontSize: 12, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                          {hidden ? "•••" : fmt(grupo.valor)}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                  {!fechado && grupo.ativos.map(a => {
               const investido = a.qtd * a.pm;
               const valor = a.qtd * a.preco;
               const ganho = valor - investido;
@@ -559,6 +639,9 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                             style={{ color: T.red, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Trash2 size={12} /></button>
                   </td>
                 </tr>
+              );
+                  })}
+                </React.Fragment>
               );
             })}
             {filtered.length === 0 && (

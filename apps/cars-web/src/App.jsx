@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 
 import { T, applyTheme, THEMES } from "./lib/theme.js";
 import { simulateTick, uid } from "./lib/format.js";
@@ -512,6 +512,37 @@ export default function App() {
       setRefreshing(false);
     }
   };
+
+  // Polling automático de cotações.
+  // Intervalo (em minutos) lido do localStorage; 0 = desligado (padrão).
+  // O SettingsModal salva o valor e dispara `af4:polling-changed` pra
+  // reagendar sem reload. Polling pausa quando a aba não está visível.
+  const refreshRef = useRef(refreshMarket);
+  refreshRef.current = refreshMarket;
+  useEffect(() => {
+    if (loading) return;
+    let timer;
+    const setupTimer = () => {
+      if (timer) { clearTimeout(timer); timer = null; }
+      const min = Number(localStorage.getItem("af4:invest:polling-min")) || 0;
+      if (min <= 0) return;
+      const ms = Math.max(30_000, min * 60_000);
+      const tick = () => {
+        if (typeof document !== "undefined" && document.visibilityState === "visible") {
+          try { refreshRef.current(); } catch {}
+        }
+        timer = setTimeout(tick, ms);
+      };
+      timer = setTimeout(tick, ms);
+    };
+    setupTimer();
+    const onChange = () => setupTimer();
+    window.addEventListener("af4:polling-changed", onChange);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener("af4:polling-changed", onChange);
+    };
+  }, [loading]);
 
   if (loading) {
     return (
