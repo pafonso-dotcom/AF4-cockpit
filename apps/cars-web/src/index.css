@@ -693,8 +693,14 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .print-area * { color: #111 !important; }
   .pdf-page-break { page-break-before: always; break-before: page; }
   .pdf-page-break-after { page-break-after: always; break-after: page; }
-  table { page-break-inside: avoid; break-inside: avoid; }
+  /* Tabelas longas (ex.: carteira) PRECISAM poder quebrar entre linhas. */
+  table { page-break-inside: auto; break-inside: auto; width: 100% !important; min-width: 0 !important; }
+  thead { display: table-header-group; }  /* repete cabeçalho em cada página */
   tr { page-break-inside: avoid; break-inside: avoid; }
+  /* Indicador "ao vivo" não imprime (animação fica zoada no papel). */
+  .af4-live-dot { display: none !important; }
+  /* Containers com scroll horizontal viram normais no print. */
+  .overflow-x-auto { overflow: visible !important; }
 }
 
 /* ============================================================
