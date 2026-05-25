@@ -5,7 +5,6 @@ import { T } from "../../lib/theme.js";
 import { API } from "../../lib/api.js";
 import { exportBackup, importBackup } from "../../lib/backup.js";
 import { listBackups, createBackup, readBackup, deleteBackup, formatBackupDate } from "../../lib/autoBackup.js";
-import { isDemoActive, ativarDemo, desativarDemo } from "../../lib/demoMode.js";
 import { getConfig as getNotifCfg, setConfig as setNotifCfg, requestPermission, getPermission, isSupported } from "../../lib/notifications.js";
 import SincronizacaoModal from "./SincronizacaoModal.jsx";
 import { confirm } from "../../lib/confirm.js";
@@ -154,7 +153,6 @@ export default function SettingsModal({ apiKeys, setApiKeys, onClose }) {
         <BackupRestore />
         <SyncBlock />
         <NotificationsBlock />
-        <DemoModeBlock />
 
         <div className="flex gap-3 mt-6">
           <button className="btn-gold" onClick={save}>Salvar configurações</button>
@@ -303,84 +301,6 @@ function NotificationsBlock() {
   );
 }
 
-
-function DemoModeBlock() {
-  const [active, setActive] = useState(isDemoActive());
-  const [msg, setMsg] = useState(null);
-
-  const ativar = async () => {
-    const ok = await confirm({
-      title: "Ativar modo demonstração?",
-      body: "Seus dados atuais serão guardados num backup automático e substituídos por um cenário fictício rico (5 contas, 30+ transações, 12 veículos, vendas, leads, etc). Você pode voltar aos seus dados a qualquer momento.",
-      confirmLabel: "Sim, ativar",
-    });
-    if (!ok) return;
-    if (ativarDemo()) {
-      setActive(true);
-      setMsg({ tipo: "ok", txt: "Modo demo ativado. Recarregando…" });
-      setTimeout(() => window.location.reload(), 800);
-    } else {
-      setMsg({ tipo: "erro", txt: "Erro ao ativar modo demo." });
-    }
-  };
-
-  const desativar = async () => {
-    const ok = await confirm({
-      title: "Voltar aos seus dados reais?",
-      body: "O modo demo será desativado e seus dados originais retornarão. As alterações feitas durante o modo demo serão descartadas.",
-      confirmLabel: "Sim, voltar",
-      danger: true,
-    });
-    if (!ok) return;
-    if (desativarDemo()) {
-      setActive(false);
-      setMsg({ tipo: "ok", txt: "Dados reais restaurados. Recarregando…" });
-      setTimeout(() => window.location.reload(), 800);
-    } else {
-      setMsg({ tipo: "erro", txt: "Erro ao restaurar." });
-    }
-  };
-
-  return (
-    <div style={{
-      marginTop: 18, padding: 14,
-      border: `1px ${active ? "solid" : "dashed"} ${active ? T.gold : T.border}`,
-      background: active ? `${T.gold}11` : T.bgSoft,
-      borderRadius: 7,
-    }}>
-      <div className="label-eyebrow" style={{ color: active ? T.gold : T.muted, marginBottom: 6 }}>
-        {active ? "⚠ Modo Demonstração ATIVO" : "Modo Demonstração"}
-      </div>
-      <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 10, lineHeight: 1.55 }}>
-        {active
-          ? "Você está vendo dados fictícios da AF4 Motors. Suas informações reais estão guardadas e podem ser restauradas a qualquer momento."
-          : "Carrega um cenário fictício completo (Paulo da AF4 Motors) sem mexer nos seus dados reais. Útil pra mostrar o app pra alguém ou testar funcionalidades sem risco."}
-      </div>
-      {active ? (
-        <button onClick={desativar} className="btn-gold"
-                style={{ background: T.red, color: "#fff" }}>
-          ↩ Voltar aos meus dados reais
-        </button>
-      ) : (
-        <button onClick={ativar} className="btn-gold"
-                style={{ background: T.gold }}>
-          ▶ Ativar modo demo
-        </button>
-      )}
-      {msg && (
-        <div style={{
-          marginTop: 10, padding: 8,
-          background: msg.tipo === "ok" ? `${T.green}22` : `${T.red}22`,
-          color: msg.tipo === "ok" ? T.green : T.red,
-          fontSize: 12, borderRadius: 5,
-        }}>
-          {msg.txt}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function BackupRestore() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -484,10 +404,18 @@ function BackupRestore() {
 }
 
 function AutoBackupsList() {
-  const [backups, setBackups] = useState(() => listBackups());
+  const [backups, setBackups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
 
-  const refresh = () => setBackups(listBackups());
+  const refresh = async () => {
+    setLoading(true);
+    try { setBackups(await listBackups()); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { refresh(); }, []);
 
   const restaurar = async (id) => {
     const ok = await confirm({
@@ -496,14 +424,17 @@ function AutoBackupsList() {
       danger: true, confirmLabel: "Restaurar",
     });
     if (!ok) return;
-    const data = readBackup(id);
-    if (!data) { setMsg({ tipo: "erro", txt: "Não consegui ler o backup." }); return; }
+    setBusy(true);
     try {
+      const data = await readBackup(id);
+      if (!data) { setMsg({ tipo: "erro", txt: "Não consegui ler o backup." }); return; }
       localStorage.setItem("financas:dados:v1", JSON.stringify(data));
       setMsg({ tipo: "ok", txt: "Backup restaurado. Recarregando…" });
       setTimeout(() => window.location.reload(), 1200);
     } catch (e) {
-      setMsg({ tipo: "erro", txt: "Erro ao escrever: " + (e?.message || "") });
+      setMsg({ tipo: "erro", txt: "Erro ao restaurar: " + (e?.message || "") });
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -514,31 +445,47 @@ function AutoBackupsList() {
       danger: true, confirmLabel: "Apagar",
     });
     if (!ok) return;
-    deleteBackup(id);
-    refresh();
+    setBusy(true);
+    try {
+      await deleteBackup(id);
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const criarAgora = () => {
+  const criarAgora = async () => {
     // O snapshot dos dados é gerado pelo App.jsx no useEffect. Aqui só forçamos um manual usando o storage atual.
     const dados = safeParse(localStorage.getItem("financas:dados:v1"), null);
     if (!dados) { setMsg({ tipo: "erro", txt: "Sem dados pra fazer backup ainda." }); return; }
-    const m = createBackup(dados, "manual");
-    if (m) {
-      setMsg({ tipo: "ok", txt: `Backup criado · ${m.sizeKb}KB · ${formatBackupDate(m.ts)}` });
-      refresh();
+    setBusy(true);
+    try {
+      const m = await createBackup(dados, "manual");
+      if (m) {
+        setMsg({ tipo: "ok", txt: `Backup criado · ${m.sizeKb}KB · ${formatBackupDate(m.ts)}` });
+        await refresh();
+      } else {
+        setMsg({ tipo: "erro", txt: "Não consegui criar o backup (sem sessão ou rede indisponível)." });
+      }
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
     <div style={{ marginTop: 16, padding: 12, border: `1px solid ${T.border}`, borderRadius: 7 }}>
-      <div className="label-eyebrow" style={{ marginBottom: 8 }}>Backups automáticos · últimos 5</div>
+      <div className="label-eyebrow" style={{ marginBottom: 8 }}>Backups da sua conta · últimos 5</div>
       <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 10, fontStyle: "italic" }}>
-        A cada 6h o cockpit cria um snapshot do seu cofre no navegador. Pode restaurar qualquer um a qualquer momento.
+        A cada 6h o cockpit envia um snapshot da sua conta pro servidor (isolado dos outros usuários via RLS). Pode restaurar qualquer um a qualquer momento, de qualquer dispositivo.
       </div>
 
-      {backups.length === 0 ? (
+      {loading ? (
         <div style={{ padding: 12, fontSize: 12, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
-          Nenhum backup automático ainda — o primeiro será criado nas próximas horas.
+          Carregando backups…
+        </div>
+      ) : backups.length === 0 ? (
+        <div style={{ padding: 12, fontSize: 12, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
+          Nenhum backup ainda — o primeiro será criado nas próximas horas.
         </div>
       ) : (
         <div>
@@ -555,13 +502,13 @@ function AutoBackupsList() {
               }}>{b.label}</span>
               <span style={{ flex: 1, color: T.ink }}>{formatBackupDate(b.ts)}</span>
               <span style={{ color: T.muted, fontSize: 11 }}>{b.sizeKb}KB</span>
-              <button onClick={() => restaurar(b.id)}
-                style={{ background: "transparent", border: `1px solid ${T.gold}`, color: T.gold, padding: "4px 9px", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", cursor: "pointer", borderRadius: 4 }}>
+              <button onClick={() => restaurar(b.id)} disabled={busy}
+                style={{ background: "transparent", border: `1px solid ${T.gold}`, color: T.gold, padding: "4px 9px", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.5 : 1, borderRadius: 4 }}>
                 Restaurar
               </button>
-              <button onClick={() => apagar(b.id)}
+              <button onClick={() => apagar(b.id)} disabled={busy}
                 aria-label="Apagar backup"
-                style={{ background: "transparent", border: "none", color: T.red, cursor: "pointer", padding: 4 }}>
+                style={{ background: "transparent", border: "none", color: T.red, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.5 : 1, padding: 4 }}>
                 ✕
               </button>
             </div>
@@ -569,9 +516,9 @@ function AutoBackupsList() {
         </div>
       )}
 
-      <button onClick={criarAgora}
-        style={{ marginTop: 10, background: "transparent", color: T.muted, border: `1px solid ${T.border}`, padding: "7px 12px", fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500, cursor: "pointer", borderRadius: 6 }}>
-        + Criar backup agora
+      <button onClick={criarAgora} disabled={busy}
+        style={{ marginTop: 10, background: "transparent", color: T.muted, border: `1px solid ${T.border}`, padding: "7px 12px", fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.5 : 1, borderRadius: 6 }}>
+        {busy ? "Trabalhando…" : "+ Criar backup agora"}
       </button>
 
       {msg && (

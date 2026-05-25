@@ -299,8 +299,8 @@ export default function App() {
   useEffect(() => {
     if (loading) return;
 
-    const fazerBackup = () => {
-      if (!shouldAutoBackup()) return;
+    const fazerBackup = async () => {
+      if (!(await shouldAutoBackup())) return;
       const snapshot = {
         contas, categorias, transacoes, ativos, metas,
         cartoes, parcelamentos, devedores, dividas,
@@ -308,7 +308,7 @@ export default function App() {
         themeId,
         savedAt: new Date().toISOString(),
       };
-      const m = createBackup(snapshot, "auto");
+      const m = await createBackup(snapshot, "auto");
       if (m) console.info(`[AF4] Backup automático criado (${m.sizeKb}KB).`);
     };
 
