@@ -132,6 +132,9 @@ export default function App() {
   const [tarefas, setTarefas] = useState([]);
   // Sugestões de melhorias do próprio app (aba Agenda → Sugestões).
   const [sugestoes, setSugestoes] = useState([]);
+  // Histórico do patrimônio (snapshot diário do total = ativos + contas).
+  // Array de { data: "YYYY-MM-DD", totalAtivos, totalContas, total }.
+  const [patrimonioHistorico, setPatrimonioHistorico] = useState([]);
 
   // Objetivos da carteira (árvore IdV-style)
   const [objetivosCarteira, setObjetivosCarteira] = useState([]);
@@ -200,6 +203,7 @@ export default function App() {
         setIdeias(data.ideias || []);
         setTarefas(data.tarefas || []);
         setSugestoes(data.sugestoes || []);
+        setPatrimonioHistorico(data.patrimonioHistorico || []);
         setObjetivosCarteira(data.objetivosCarteira || []);
         setCarteirasModeloCustom(data.carteirasModeloCustom || []);
         if (data.modeloAtivoId) setModeloAtivoId(data.modeloAtivoId);
@@ -244,6 +248,7 @@ export default function App() {
         setIdeias([]);
         setTarefas([]);
         setSugestoes([]);
+        setPatrimonioHistorico([]);
         setObjetivosCarteira([]);
         setCarteirasModeloCustom([]);
         setCarteiraProventos({ saldo: 0, historico: [] });
@@ -267,7 +272,7 @@ export default function App() {
       contas, categorias, transacoes, ativos, metas, notas,
       cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras, ideias, tarefas, sugestoes, objetivosCarteira,
+      habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
@@ -275,7 +280,7 @@ export default function App() {
     });
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras, ideias, tarefas, sugestoes, objetivosCarteira,
+      habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
@@ -333,6 +338,25 @@ export default function App() {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
+
+  /* ---------- Snapshot diário do patrimônio ---------- */
+  // 1 snapshot por dia (substitui se já tem do mesmo dia — assim o último
+  // do dia "ganha" e reflete preços mais atualizados).
+  useEffect(() => {
+    if (loading) return;
+    const hoje = new Date().toISOString().slice(0, 10);
+    const totalAtivos = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
+    const totalContas = contas.reduce((s, c) => s + Number(c.saldo || 0), 0);
+    const total = totalAtivos + totalContas;
+    // Skip snapshot quando ainda não tem dados (evita gravar 0,00 ao 1º load)
+    if (total <= 0) return;
+    setPatrimonioHistorico(prev => {
+      const semHoje = (prev || []).filter(p => p.data !== hoje);
+      return [...semHoje, { data: hoje, totalAtivos, totalContas, total }]
+        .sort((a, b) => a.data.localeCompare(b.data));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, ativos, contas]);
 
   /* ---------- Notificações de vencimentos: verifica a cada 30min ---------- */
   useEffect(() => {
@@ -853,6 +877,7 @@ export default function App() {
                                onRefresh={refreshMarket} refreshing={refreshing}
                                onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
                                onProjetar={(ativo) => { setProjetarAlvo(ativo); setTab("analises"); }}
+                               patrimonioHistorico={patrimonioHistorico}
                                hidden={hidden} />
               </div>
             )}
