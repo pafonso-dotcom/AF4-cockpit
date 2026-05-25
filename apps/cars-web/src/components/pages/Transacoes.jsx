@@ -918,6 +918,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
 
       {comprovanteVisualizar && (
         <div role="dialog" aria-modal="true" aria-label="Visualizar comprovante"
+             className="comprovante-modal"
              onClick={() => setComprovanteVisualizar(null)}
              style={{
                position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)",
@@ -931,10 +932,13 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                     background: "rgba(255,255,255,0.1)", color: "#fff",
                     border: "1px solid rgba(255,255,255,0.3)",
                     padding: 10, cursor: "pointer", zIndex: 2,
+                    minWidth: 44, minHeight: 44,
+                    display: "grid", placeItems: "center",
                   }}>
             <X size={20} />
           </button>
           <div onClick={e => e.stopPropagation()}
+               className="comprovante-modal-content"
                style={{ maxWidth: "90vw", maxHeight: "90vh", overflow: "auto", background: "#fff", padding: 16, position: "relative" }}>
             {comprovanteVisualizar.type?.startsWith("image/") ? (
               <img src={comprovanteVisualizar.dataUrl} alt={comprovanteVisualizar.name}
@@ -942,6 +946,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
             ) : (
               <iframe src={comprovanteVisualizar.dataUrl}
                       title={comprovanteVisualizar.name}
+                      className="comprovante-modal-iframe"
                       style={{ width: "80vw", height: "80vh", border: "none" }} />
             )}
             <div style={{ marginTop: 10, fontSize: 12, color: "#666", fontFamily: T.sans, letterSpacing: "0.05em" }}>

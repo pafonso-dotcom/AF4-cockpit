@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Modal de comprovante (Transacoes.jsx) vira fullscreen no mobile pra
+   o iframe/imagem aproveitarem toda a tela e o close ficar acessível. */
+@media (max-width: 640px) {
+  .comprovante-modal { padding: 0 !important; }
+  .comprovante-modal-content {
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    padding: 12px !important;
+    padding-top: max(56px, env(safe-area-inset-top, 16px)) !important;
+  }
+  .comprovante-modal-iframe { width: 100% !important; height: 80vh !important; }
+}
+
 /* Indicador "ao vivo" — bolinha verde pulsante usada nos ativos que
    receberam cotação fresca (refreshMarket nos últimos 60s). */
 @keyframes af4LivePulse {
