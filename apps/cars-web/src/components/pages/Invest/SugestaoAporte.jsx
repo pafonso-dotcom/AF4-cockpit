@@ -3,10 +3,10 @@
  *
  * Pega valor disponível + perfil + objetivo → busca preços atuais
  * de um catálogo curado de ações e FIIs, monta contexto pra IA
- * (Claude) e devolve recomendações estruturadas por classe.
+ * e devolve recomendações estruturadas por classe.
  *
- * O usuário pode "aplicar à projeção" pra simular o resultado
- * de longo prazo de cada opção sugerida.
+ * IA: usa Gemini (default, chave em localStorage af4:gemini-key) ou
+ * Claude (fallback se Gemini não estiver configurado).
  */
 import React, { useMemo, useState } from "react";
 import {
@@ -17,6 +17,7 @@ import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
 import { parseValorBR } from "../../../lib/importExport.js";
 import { perguntarAoClaude } from "../../../lib/aiChat.js";
+import { gerarJSONGemini } from "../../../lib/gemini.js";
 import { getQuotes } from "../../../lib/brapi.js";
 import { toast } from "../../../lib/toast.js";
 import Field from "../../ui/Field.jsx";
@@ -83,13 +84,17 @@ export default function SugestaoAporte({
   const valorN = parseValorBR(valor) || 0;
   const cdiN = parseValorBR(taxaCdi) || 10.5;
 
+  // Detecta provedor: prefere Gemini (key em localStorage), fallback Claude (apiKey prop)
+  const geminiKey = (typeof localStorage !== "undefined" && localStorage.getItem("af4:gemini-key")) || "";
+  const provedor = geminiKey ? "gemini" : (apiKey ? "claude" : null);
+
   /* ===== Busca ===== */
   const buscar = async () => {
     setErro(null);
     setResultado(null);
     if (valorN <= 0) { toast.error("Informe um valor maior que zero."); return; }
-    if (!apiKey) {
-      setErro("Configure a chave Anthropic em Configurações → APIs para usar a sugestão por IA.");
+    if (!provedor) {
+      setErro("Configure a chave Gemini (recomendado, grátis) ou Anthropic em Configurações → APIs para usar a sugestão por IA.");
       return;
     }
     setLoading(true);
@@ -182,25 +187,29 @@ REGRAS:
 - Devolva SOMENTE o JSON entre as marcações \`\`\`json ... \`\`\` (sem texto antes nem depois).
       `.trim();
 
-      // 5) Chama IA
-      const contextoMin = `O Paulo Afonso é dono da AF4 Motors em Tatuí-SP. Ele gerencia patrimônio próprio e usa o cockpit AF4 pra simular aportes. Hoje quer uma sugestão concreta de alocação.`;
-      const resposta = await perguntarAoClaude({
-        apiKey,
-        pergunta,
-        contextoDados: contextoMin,
-        historico: [],
-      });
-
-      // 6) Parse do JSON
-      const m = resposta.match(/```json\s*([\s\S]*?)\s*```/);
-      const jsonStr = m ? m[1] : resposta;
+      // 5) Chama IA — Gemini (preferido) ou Claude
       let parsed;
-      try {
-        parsed = JSON.parse(jsonStr);
-      } catch (e) {
-        setErro("A IA respondeu mas o formato não é JSON válido. Resposta bruta abaixo.");
-        setResultado({ raw: resposta });
-        return;
+      if (provedor === "gemini") {
+        // Gemini retorna JSON parseado direto (responseMimeType=application/json)
+        parsed = await gerarJSONGemini(pergunta, { apiKey: geminiKey, temperature: 0.2, maxOutputTokens: 4096 });
+      } else {
+        // Claude: pede texto e extrai o JSON entre ```json...```
+        const contextoMin = `O Paulo Afonso é dono da AF4 Motors em Tatuí-SP. Ele gerencia patrimônio próprio e usa o cockpit AF4 pra simular aportes. Hoje quer uma sugestão concreta de alocação.`;
+        const resposta = await perguntarAoClaude({
+          apiKey,
+          pergunta,
+          contextoDados: contextoMin,
+          historico: [],
+        });
+        const m = resposta.match(/```json\s*([\s\S]*?)\s*```/);
+        const jsonStr = m ? m[1] : resposta;
+        try {
+          parsed = JSON.parse(jsonStr);
+        } catch (e) {
+          setErro("A IA respondeu mas o formato não é JSON válido. Resposta bruta abaixo.");
+          setResultado({ raw: resposta });
+          return;
+        }
       }
       setResultado(parsed);
     } catch (e) {
@@ -276,10 +285,16 @@ REGRAS:
               <><Sparkles size={14} className="inline mr-2" />Buscar melhor opção</>
             )}
           </button>
-          {!apiKey && (
+          {provedor ? (
+            <span style={{ fontSize: 11, color: T.muted, fontStyle: "italic" }}>
+              Usando: <strong style={{ color: T.gold, fontStyle: "normal" }}>
+                {provedor === "gemini" ? "Gemini 2.5 Flash" : "Claude Sonnet"}
+              </strong>
+            </span>
+          ) : (
             <span style={{ fontSize: 11, color: T.gold }}>
               <AlertCircle size={11} className="inline mr-1" />
-              Configure a chave Anthropic em Configurações
+              Configure Gemini ou Anthropic em Configurações
             </span>
           )}
         </div>

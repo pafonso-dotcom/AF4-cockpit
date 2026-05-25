@@ -239,21 +239,6 @@ export default function ObjetivosCarteira({
 
   const raizes = tree.filter(n => n.parentId === null);
 
-  /* ===== Folhas com aporte sugerido (pra "Onde aportar este mês") ===== */
-  const folhasOrdenadasParaAporte = useMemo(() => {
-    if (aporteN <= 0) return [];
-    const folhas = tree.filter(n => !tree.some(c => c.parentId === n.id));
-    return folhas
-      .map(f => ({
-        node: f,
-        valorSugerido: distribuicaoAporte.get(f.id) || 0,
-        atual: valorPorNo.get(f.id) || 0,
-        alvo: valorAlvo.get(f.id) || 0,
-      }))
-      .filter(f => f.valorSugerido > 0.5)
-      .sort((a, b) => b.valorSugerido - a.valorSugerido);
-  }, [tree, distribuicaoAporte, valorPorNo, valorAlvo, aporteN]);
-
   return (
     <div className="fade-up py-8">
       <PageHeader
@@ -323,68 +308,6 @@ export default function ObjetivosCarteira({
         </div>
       </div>
 
-      {/* Onde aportar este mês — só aparece com aporteMensal > 0 */}
-      {folhasOrdenadasParaAporte.length > 0 && (
-        <div style={{
-          background: T.card, border: `1px solid ${T.gold}55`,
-          borderRadius: 12, padding: 14, marginBottom: 14,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-            <Target size={16} style={{ color: T.gold }} />
-            <span style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
-              Onde aportar este mês
-            </span>
-            <span style={{ fontSize: 11, color: T.muted, fontStyle: "italic" }}>
-              Distribuição automática priorizando categorias abaixo do alvo
-            </span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {folhasOrdenadasParaAporte.map(({ node, valorSugerido, atual, alvo }) => {
-              const pct = aporteN > 0 ? (valorSugerido / aporteN) * 100 : 0;
-              const corLeaf = corDaClasse(node.classeMatch);
-              return (
-                <div key={node.id} style={{
-                  display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: 12, alignItems: "center",
-                  padding: "10px 12px", background: T.bgSoft, borderRadius: 8,
-                  borderLeft: `3px solid ${corLeaf}`,
-                }}>
-                  <div style={{
-                    width: 30, height: 30, borderRadius: 6,
-                    background: `${corLeaf}22`, color: corLeaf,
-                    display: "grid", placeItems: "center",
-                  }}>
-                    {iconeDaClasse(node.classeMatch, 14)}
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>{node.label}</div>
-                    <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>
-                      Atual {hidden ? "•••" : fmt(atual)} · Alvo {hidden ? "•••" : fmt(alvo)}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                    <div className="num" style={{ fontSize: 15, fontWeight: 700, color: T.gold }}>
-                      {hidden ? "•••" : fmt(valorSugerido)}
-                    </div>
-                    <div style={{ fontSize: 10, color: T.faint, marginTop: 1 }}>{pct.toFixed(0)}% do aporte</div>
-                  </div>
-                  <button onClick={() => abrirSugestao(node, valorSugerido)}
-                          title="Buscar ticker com IA"
-                          style={{
-                            background: `${T.gold}22`, color: T.gold,
-                            border: `1px solid ${T.gold}55`, padding: "6px 10px",
-                            fontSize: 10.5, fontWeight: 600, borderRadius: 6,
-                            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4,
-                            whiteSpace: "nowrap",
-                          }}>
-                    <Sparkles size={11} /> IA
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Avisos de validação */}
       {validacoes.length > 0 && (
         <div style={{
@@ -430,11 +353,13 @@ export default function ObjetivosCarteira({
                   tree={tree}
                   valorPorNo={valorPorNo}
                   valorAlvo={valorAlvo}
+                  distribuicaoAporte={distribuicaoAporte}
+                  aporteN={aporteN}
                   hidden={hidden}
                   onEditar={(n) => setEditando(n)}
                   onExcluir={excluirNo}
                   onAdicionarFilho={(p) => setEditando({ id: null, parentId: p.id, label: "", percent: 0, classeMatch: null })}
-                  onSugerir={(n) => abrirSugestao(n)}
+                  onSugerir={(n, v) => abrirSugestao(n, v)}
                 />
               ))}
             </div>
@@ -449,11 +374,13 @@ export default function ObjetivosCarteira({
                 tree={tree}
                 valorPorNo={valorPorNo}
                 valorAlvo={valorAlvo}
+                distribuicaoAporte={distribuicaoAporte}
+                aporteN={aporteN}
                 hidden={hidden}
                 onEditar={(n) => setEditando(n)}
                 onExcluir={excluirNo}
                 onAdicionarFilho={(p) => setEditando({ id: null, parentId: p.id, label: "", percent: 0, classeMatch: null })}
-                onSugerir={(n) => abrirSugestao(n)}
+                onSugerir={(n, v) => abrirSugestao(n, v)}
                 nivel={0}
               />
             ))}
@@ -502,7 +429,7 @@ export default function ObjetivosCarteira({
    TreeOrgNode — visual estilo org-chart (cards conectados por linhas)
    Usado no desktop. Cada nó renderiza o card + linha + filhos centralizados.
    ============================================================ */
-function TreeOrgNode({ node, tree, valorPorNo, valorAlvo, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir }) {
+function TreeOrgNode({ node, tree, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir }) {
   const filhos = tree.filter(n => n.parentId === node.id);
   const temFilhos = filhos.length > 0;
 
@@ -515,6 +442,8 @@ function TreeOrgNode({ node, tree, valorPorNo, valorAlvo, hidden, onEditar, onEx
         node={node}
         valorPorNo={valorPorNo}
         valorAlvo={valorAlvo}
+        distribuicaoAporte={distribuicaoAporte}
+        aporteN={aporteN}
         hidden={hidden}
         onEditar={onEditar}
         onExcluir={onExcluir}
@@ -545,6 +474,8 @@ function TreeOrgNode({ node, tree, valorPorNo, valorAlvo, hidden, onEditar, onEx
                   tree={tree}
                   valorPorNo={valorPorNo}
                   valorAlvo={valorAlvo}
+                  distribuicaoAporte={distribuicaoAporte}
+                  aporteN={aporteN}
                   hidden={hidden}
                   onEditar={onEditar}
                   onExcluir={onExcluir}
@@ -563,7 +494,7 @@ function TreeOrgNode({ node, tree, valorPorNo, valorAlvo, hidden, onEditar, onEx
 /* ============================================================
    TreeListNode — lista vertical indentada (mobile)
    ============================================================ */
-function TreeListNode({ node, tree, valorPorNo, valorAlvo, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir, nivel }) {
+function TreeListNode({ node, tree, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir, nivel }) {
   const filhos = tree.filter(n => n.parentId === node.id);
   return (
     <>
@@ -572,6 +503,8 @@ function TreeListNode({ node, tree, valorPorNo, valorAlvo, hidden, onEditar, onE
           node={node}
           valorPorNo={valorPorNo}
           valorAlvo={valorAlvo}
+          distribuicaoAporte={distribuicaoAporte}
+          aporteN={aporteN}
           hidden={hidden}
           onEditar={onEditar}
           onExcluir={onExcluir}
@@ -588,6 +521,8 @@ function TreeListNode({ node, tree, valorPorNo, valorAlvo, hidden, onEditar, onE
           tree={tree}
           valorPorNo={valorPorNo}
           valorAlvo={valorAlvo}
+          distribuicaoAporte={distribuicaoAporte}
+          aporteN={aporteN}
           hidden={hidden}
           onEditar={onEditar}
           onExcluir={onExcluir}
@@ -603,7 +538,7 @@ function TreeListNode({ node, tree, valorPorNo, valorAlvo, hidden, onEditar, onE
 /* ============================================================
    NodeCard — visual do card (usado tanto no org-chart quanto na lista)
    ============================================================ */
-function NodeCard({ node, valorPorNo, valorAlvo, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir, temFilhos, modo }) {
+function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir, temFilhos, modo }) {
   const atual = valorPorNo.get(node.id) || 0;
   const alvo = valorAlvo.get(node.id) || 0;
   const diff = atual - alvo;
@@ -612,6 +547,11 @@ function NodeCard({ node, valorPorNo, valorAlvo, hidden, onEditar, onExcluir, on
   const acima = diff > 0;
   const abaixo = diff < 0 && alvo > 0;
   const corStatus = noAlvo ? T.green : acima ? "#fbbf24" : abaixo ? T.red : T.muted;
+
+  // Aporte sugerido pra esta folha (só relevante quando aporteN > 0 e é folha)
+  const aporteSugerido = !temFilhos && distribuicaoAporte ? (distribuicaoAporte.get(node.id) || 0) : 0;
+  const pctDoAporte = aporteN > 0 ? (aporteSugerido / aporteN) * 100 : 0;
+  const temAporte = aporteSugerido > 0.5;
 
   const Icon = iconeDaClasse(node.classeMatch);
   const corClasse = corDaClasse(node.classeMatch);
@@ -676,8 +616,40 @@ function NodeCard({ node, valorPorNo, valorAlvo, hidden, onEditar, onExcluir, on
           </>
         )}
 
-        {/* Botão IA aporte — só pra folhas abaixo do alvo */}
-        {!temFilhos && abaixo && (
+        {/* Aporte sugerido + botão IA — só pra folhas com aporte > 0 */}
+        {!temFilhos && temAporte && (
+          <div style={{
+            marginTop: 8, padding: "6px 8px",
+            background: `${T.gold}15`, border: `1px solid ${T.gold}55`,
+            borderRadius: 6,
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span style={{ fontSize: 9, color: T.gold, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>
+                Aportar
+              </span>
+              <span style={{ fontSize: 9, color: T.faint }}>
+                {pctDoAporte.toFixed(0)}%
+              </span>
+            </div>
+            <div className="num" style={{ fontSize: 13, fontWeight: 700, color: T.gold, lineHeight: 1.1, marginTop: 1 }}>
+              {hidden ? "•••" : fmt(aporteSugerido)}
+            </div>
+            <button onClick={() => onSugerir(node, aporteSugerido)} title="Sugerir ticker com IA"
+                    style={{
+                      marginTop: 5, width: "100%",
+                      background: T.gold, color: T.bg,
+                      border: "none", padding: "3px 6px",
+                      fontSize: 9.5, fontWeight: 700, borderRadius: 4,
+                      cursor: "pointer", letterSpacing: ".03em",
+                      display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3,
+                    }}>
+              <Sparkles size={9} /> IA
+            </button>
+          </div>
+        )}
+
+        {/* Sem aporte mensal mas abaixo do alvo: botão IA simples */}
+        {!temFilhos && !temAporte && abaixo && (
           <button onClick={() => onSugerir(node)} title="Sugerir aporte com IA"
                   style={{
                     marginTop: 8, width: "100%",
@@ -747,12 +719,30 @@ function NodeCard({ node, valorPorNo, valorAlvo, hidden, onEditar, onExcluir, on
                 </span>
               )}
             </div>
+            {!temFilhos && temAporte && (
+              <div style={{
+                marginTop: 6, padding: "5px 8px", borderRadius: 6,
+                background: `${T.gold}15`, border: `1px solid ${T.gold}55`,
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+              }}>
+                <span style={{ fontSize: 10, color: T.gold, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>
+                  Aportar
+                </span>
+                <span className="num" style={{ fontSize: 12, color: T.gold, fontWeight: 700 }}>
+                  {hidden ? "•••" : fmt(aporteSugerido)}
+                  <span style={{ fontSize: 9.5, color: T.faint, fontWeight: 500, marginLeft: 5 }}>
+                    ({pctDoAporte.toFixed(0)}%)
+                  </span>
+                </span>
+              </div>
+            )}
           </>
         )}
       </div>
       <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
-        {!temFilhos && abaixo && (
-          <button onClick={() => onSugerir(node)} title="Sugerir aporte IA"
+        {!temFilhos && (temAporte || abaixo) && (
+          <button onClick={() => onSugerir(node, temAporte ? aporteSugerido : undefined)}
+                  title="Sugerir ticker IA"
                   style={{ ...iconBtnStyle(T.gold), background: `${T.gold}15` }}>
             <Sparkles size={12} />
           </button>
