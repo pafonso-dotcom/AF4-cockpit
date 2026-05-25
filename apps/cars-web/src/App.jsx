@@ -64,6 +64,7 @@ import Simulador from "./components/pages/Simulador.jsx";
 import Projecao from "./components/pages/Invest/Projecao.jsx";
 import AnalisesUnificada from "./components/pages/Invest/Analises.jsx";
 import ObjetivosCarteira from "./components/pages/Invest/ObjetivosCarteira.jsx";
+import CarteiraModelo from "./components/pages/Invest/CarteiraModelo.jsx";
 import InvestPainel from "./components/pages/Invest/InvestPainel.jsx";
 import Performance from "./components/pages/Invest/Performance.jsx";
 import Proventos from "./components/pages/Invest/Proventos.jsx";
@@ -132,6 +133,10 @@ export default function App() {
   // Objetivos da carteira (árvore IdV-style)
   const [objetivosCarteira, setObjetivosCarteira] = useState([]);
 
+  // Carteiras modelo IdV (custom + builtin) + qual está ativo
+  const [carteirasModeloCustom, setCarteirasModeloCustom] = useState([]);
+  const [modeloAtivoId, setModeloAtivoId] = useState("idv-iniciante");
+
   // AF4 Trade
   const [tradeWatchlist, setTradeWatchlist] = useState([]);
   const [tradeHistorico, setTradeHistorico] = useState([]);
@@ -178,6 +183,8 @@ export default function App() {
         setIdeias(data.ideias || []);
         setTarefas(data.tarefas || []);
         setObjetivosCarteira(data.objetivosCarteira || []);
+        setCarteirasModeloCustom(data.carteirasModeloCustom || []);
+        if (data.modeloAtivoId) setModeloAtivoId(data.modeloAtivoId);
         setTradeWatchlist(data.tradeWatchlist || []);
         setTradeHistorico(data.tradeHistorico || []);
         setTradeAnalisesIdV(data.tradeAnalisesIdV || []);
@@ -215,6 +222,7 @@ export default function App() {
         setIdeias([]);
         setTarefas([]);
         setObjetivosCarteira([]);
+        setCarteirasModeloCustom([]);
         setTradeWatchlist([]);
         setTradeHistorico([]);
         setTradeAnalisesIdV([]);
@@ -233,12 +241,14 @@ export default function App() {
       cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, objetivosCarteira,
+      carteirasModeloCustom, modeloAtivoId,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId,
     });
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, objetivosCarteira,
+      carteirasModeloCustom, modeloAtivoId,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId, loading]);
 
@@ -786,6 +796,19 @@ export default function App() {
                   ativos={ativos}
                   objetivosCarteira={objetivosCarteira}
                   setObjetivosCarteira={setObjetivosCarteira}
+                  hidden={hidden}
+                  apiKeys={apiKeys}
+                />
+              </div>
+            )}
+            {tab === "modelo" && (
+              <div className="px-6 md:px-10">
+                <CarteiraModelo
+                  ativos={ativos}
+                  carteirasModeloCustom={carteirasModeloCustom}
+                  setCarteirasModeloCustom={setCarteirasModeloCustom}
+                  modeloAtivoId={modeloAtivoId}
+                  setModeloAtivoId={setModeloAtivoId}
                   hidden={hidden}
                   apiKeys={apiKeys}
                 />
