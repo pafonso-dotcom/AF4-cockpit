@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart, Calculator } from "lucide-react";
+import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart, Calculator, Printer } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, fmtP, uid, generateHistory, todayISO } from "../../lib/format.js";
@@ -10,6 +10,7 @@ import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import StatCard from "../ui/StatCard.jsx";
 import Modal from "../ui/Modal.jsx";
+import PdfCarteira from "./Invest/PdfCarteira.jsx";
 
 const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
 
@@ -58,6 +59,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
   const [vendaForm, setVendaForm] = useState(null);
   const [filter, setFilter] = useState("todos");
   const [selected, setSelected] = useState(null);
+  // Quando setado, abre PdfCarteira com este ativo pré-selecionado.
+  const [pdfAtivoId, setPdfAtivoId] = useState(null);
   const [fetchingPrice, setFetchingPrice] = useState(false);
 
   // ★ Atalho rápido global: abre aporte no primeiro ativo ou modal de novo ativo
@@ -484,6 +487,10 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     <Calculator size={14} />
                   </button>
                 )}
+                <button onClick={() => setPdfAtivoId(a.id)} aria-label={`Imprimir PDF de ${a.ticker}`} title="Imprimir PDF deste ativo"
+                        style={{ color: T.gold, padding: 6, background: "transparent", border: `1px solid ${T.gold}`, cursor: "pointer" }}>
+                  <Printer size={14} />
+                </button>
                 <button onClick={() => setForm(a)} aria-label={`Editar ${a.ticker}`} style={{ color: T.muted, padding: 6, background: "transparent", border: `1px solid ${T.border}`, cursor: "pointer" }}>
                   <Edit3 size={14} />
                 </button>
@@ -621,6 +628,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                       <button onClick={e => { e.stopPropagation(); onProjetar(a); }} aria-label={`Projetar ${a.ticker}`} title="Projetar evolução deste ativo"
                               style={{ color: T.gold, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Calculator size={12} /></button>
                     )}
+                    <button onClick={e => { e.stopPropagation(); setPdfAtivoId(a.id); }} aria-label={`Imprimir PDF de ${a.ticker}`} title="Imprimir PDF deste ativo"
+                            style={{ color: T.gold, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Printer size={12} /></button>
                     <button onClick={e => { e.stopPropagation(); setForm(a); }} aria-label={`Editar ${a.ticker}`} style={{ color: T.muted, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Edit3 size={12} /></button>
                     <button onClick={async e => {
                               e.stopPropagation();
@@ -654,6 +663,16 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       </div>
 
       {selected && <DetalheAtivo ativo={selected} onClose={() => setSelected(null)} />}
+
+      {pdfAtivoId && (
+        <PdfCarteira
+          ativos={ativos}
+          proventos={[]}
+          operacoes={[]}
+          initialSelectedId={pdfAtivoId}
+          onClose={() => setPdfAtivoId(null)}
+        />
+      )}
 
       {form && (
         <Modal title={form.id ? "Editar Ativo" : "Novo Ativo"} onClose={() => setForm(null)}>
