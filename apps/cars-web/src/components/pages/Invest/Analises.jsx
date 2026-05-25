@@ -19,6 +19,7 @@ export default function AnalisesUnificada({
   ativos, hidden,
   tradeAnalisesIdV, setTradeAnalisesIdV,
   onAnalisarAtivo,
+  apiKeys = {},
 }) {
   const [view, setView] = useState("performance");
 
@@ -58,7 +59,7 @@ export default function AnalisesUnificada({
         {view === "performance"      && <Performance ativos={ativos} hidden={hidden} />}
         {view === "idv"              && <AnaliseIdV analises={tradeAnalisesIdV} setAnalises={setTradeAnalisesIdV} ativos={ativos} />}
         {view === "carteira-analise" && <AnaliseCarteira ativos={ativos} hidden={hidden} onAnalisar={onAnalisarAtivo} />}
-        {view === "projecao"         && <Projecao ativos={ativos} hidden={hidden} />}
+        {view === "projecao"         && <Projecao ativos={ativos} hidden={hidden} apiKeys={apiKeys} />}
       </div>
     </div>
   );

@@ -63,28 +63,37 @@ export default function AReceberEDividas({
     const valor = parseValorBR(form.valor);
     if (isNaN(valor) || valor <= 0) { toast.error("Valor inválido."); return; }
 
+    // Determina N de parcelas: prioriza UI nova (form.parcelar + form.numParcelas),
+    // mas mantém compat com string "1/N" no campo "parcela".
+    const numFromToggle = form.parcelar ? Math.max(1, parseInt(form.numParcelas, 10) || 1) : 1;
+    const matchParc = (form.parcela || "").trim().match(/^(\d+)\s*\/\s*(\d+)$/);
+    const totalParc = numFromToggle > 1 ? numFromToggle : (matchParc ? parseInt(matchParc[2], 10) : 1);
+    const inicioParc = matchParc ? parseInt(matchParc[1], 10) : 1;
+    // Valor que vai pra cada entrada: dividir total OU usar como por-parcela
+    const valorPorParcela = (form.parcelar && form.modoValor === "total" && totalParc > 1)
+      ? +(valor / totalParc).toFixed(2)
+      : valor;
+
     const data = {
       ...form,
-      valor,
+      valor: valorPorParcela,
     };
+    delete data.parcelar;
+    delete data.numParcelas;
+    delete data.modoValor;
 
-    // Edição → comportamento simples: atualiza só esta entrada
+    // Edição → comportamento simples: atualiza só esta entrada (não regenera parcelas)
     if (form.id) {
+      const single = { ...data, valor };
       if (form.tipo === "receber") {
-        setDevedores(devedores.map(d => d.id === form.id ? data : d));
+        setDevedores(devedores.map(d => d.id === form.id ? single : d));
       } else {
-        setDividas(dividas.map(d => d.id === form.id ? data : d));
+        setDividas(dividas.map(d => d.id === form.id ? single : d));
       }
       toast.success("Atualizado.");
       setForm(null);
       return;
     }
-
-    // Criação nova: detecta se é parcelado (campo "parcela" no formato "1/N")
-    // Se for, gera N entradas com vencimento mensal subsequente.
-    const matchParc = (form.parcela || "").trim().match(/^(\d+)\s*\/\s*(\d+)$/);
-    const totalParc = matchParc ? parseInt(matchParc[2], 10) : 1;
-    const inicioParc = matchParc ? parseInt(matchParc[1], 10) : 1;
 
     if (totalParc > 1 && form.vencimento) {
       // Gera entradas restantes a partir da parcela "inicioParc"
@@ -111,7 +120,8 @@ export default function AReceberEDividas({
       }
       if (form.tipo === "receber") setDevedores([...devedores, ...novos]);
       else setDividas([...dividas, ...novos]);
-      toast.success(`${novos.length} parcela${novos.length > 1 ? "s" : ""} de "${form.nome}" cadastrada${novos.length > 1 ? "s" : ""} (até ${totalParc}/${totalParc}).`);
+      const valorLbl = fmt(valorPorParcela);
+      toast.success(`${novos.length} parcela${novos.length > 1 ? "s" : ""} de ${valorLbl} criada${novos.length > 1 ? "s" : ""} (${inicioParc}/${totalParc} → ${totalParc}/${totalParc}).`);
       setForm(null);
       return;
     }
@@ -275,12 +285,14 @@ export default function AReceberEDividas({
             <button className="btn-ghost" onClick={() => setForm({
               id: null, tipo: "receber", nome: "", valor: "", vencimento: "",
               categoria: "Outros", obs: "", parcela: "",
+              parcelar: false, numParcelas: 3, modoValor: "total",
             })}>
               <Plus size={13} className="inline mr-1.5" /> Recebimento
             </button>
             <button className="btn-gold" onClick={() => setForm({
               id: null, tipo: "dividas", nome: "", valor: "", vencimento: "",
               categoria: "Outros", obs: "", parcela: "",
+              parcelar: false, numParcelas: 3, modoValor: "total",
             })}>
               <Plus size={13} className="inline mr-1.5" /> Compromisso
             </button>
@@ -578,19 +590,18 @@ export default function AReceberEDividas({
                      onChange={e => setForm({ ...form, vencimento: e.target.value })} />
             </Field>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Categoria">
-              <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>
-                {categorias.filter(c => c.tipo === (form.tipo === "receber" ? "receita" : "despesa")).map(c => (
-                  <option key={c.id} value={c.nome}>{c.nome}</option>
-                ))}
-                <option value="Outros">Outros</option>
-              </select>
-            </Field>
-            <Field label="Parcela (opcional)" hint="Ex.: 1/3">
-              <input value={form.parcela} onChange={e => setForm({ ...form, parcela: e.target.value })} placeholder="1/3" />
-            </Field>
-          </div>
+          <Field label="Categoria">
+            <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>
+              {categorias.filter(c => c.tipo === (form.tipo === "receber" ? "receita" : "despesa")).map(c => (
+                <option key={c.id} value={c.nome}>{c.nome}</option>
+              ))}
+              <option value="Outros">Outros</option>
+            </select>
+          </Field>
+
+          {!form.id && (
+            <ParcelarBlock form={form} setForm={setForm} />
+          )}
           {form.tipo === "receber" && (
             <Field label="Combinado (opcional)" hint='Ex.: "Me pagar em 20/06", "Dividido em 2x"'>
               <input value={form.combinado || ""} onChange={e => setForm({ ...form, combinado: e.target.value })}
@@ -704,6 +715,159 @@ export default function AReceberEDividas({
           </Modal>
         );
       })()}
+    </div>
+  );
+}
+
+/**
+ * ParcelarBlock — UI explícita pra parcelar Recebimento/Compromisso por mês.
+ *
+ * Quando ativada, gera N entradas com vencimento mensal a partir do
+ * "Vencimento" informado. Cada entrada vira uma linha separada na lista
+ * com sua própria data — assim aparece no mês certo do filtro de tabs.
+ *
+ * Modo "total" (recomendado): valor digitado é dividido em N partes iguais.
+ * Modo "porParcela": valor digitado se repete em cada parcela.
+ */
+function ParcelarBlock({ form, setForm }) {
+  const isReceber = form.tipo === "receber";
+  const ativo = !!form.parcelar;
+  const n = Math.max(1, Math.min(96, parseInt(form.numParcelas, 10) || 1));
+  const valorTotal = parseValorBR(form.valor) || 0;
+  const valorPorPar = form.modoValor === "total" && n > 0 ? valorTotal / n : valorTotal;
+  const totalGerado = form.modoValor === "total" ? valorTotal : valorTotal * n;
+
+  // Preview: lista os N vencimentos com base no Vencimento + 1 mês
+  const preview = (() => {
+    if (!ativo || !form.vencimento || n <= 1) return [];
+    const [y, m, d] = form.vencimento.split("-").map(Number);
+    if (!y || !m || !d) return [];
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const alvoMes = m - 1 + i;
+      const venc = new Date(y, alvoMes, 1);
+      const ultimoDia = new Date(y, alvoMes + 1, 0).getDate();
+      venc.setDate(Math.min(d, ultimoDia));
+      out.push({
+        parcela: `${i + 1}/${n}`,
+        iso: `${venc.getFullYear()}-${String(venc.getMonth() + 1).padStart(2, "0")}-${String(venc.getDate()).padStart(2, "0")}`,
+      });
+    }
+    return out;
+  })();
+
+  const dataLbl = (iso) => {
+    if (!iso) return "—";
+    try {
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+    } catch { return iso; }
+  };
+
+  return (
+    <div style={{
+      background: T.bgSoft,
+      border: `1px solid ${ativo ? T.gold : T.border}`,
+      borderLeft: `3px solid ${ativo ? T.gold : T.border}`,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 14,
+    }}>
+      {/* Toggle */}
+      <label style={{
+        display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
+        userSelect: "none",
+      }}>
+        <input type="checkbox" checked={ativo}
+               onChange={e => setForm({ ...form, parcelar: e.target.checked })}
+               style={{ width: 18, height: 18, accentColor: T.gold, flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, lineHeight: 1.3 }}>
+            Parcelar {isReceber ? "recebimento" : "pagamento"} por mês
+          </div>
+          <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+            Cria uma entrada separada para cada mês a partir do vencimento.
+          </div>
+        </div>
+      </label>
+
+      {ativo && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px dashed ${T.border}` }}>
+          {/* Linha 1: nº parcelas + modo */}
+          <div className="grid grid-cols-2 gap-3" style={{ marginBottom: 10 }}>
+            <Field label="Em quantas parcelas?">
+              <input type="number" min="2" max="96" value={form.numParcelas}
+                     onChange={e => setForm({ ...form, numParcelas: e.target.value })}
+                     placeholder="3" />
+            </Field>
+            <Field label="O valor digitado é…">
+              <select value={form.modoValor || "total"}
+                      onChange={e => setForm({ ...form, modoValor: e.target.value })}>
+                <option value="total">Total — dividir entre as parcelas</option>
+                <option value="porParcela">Por parcela — multiplicar pelo nº</option>
+              </select>
+            </Field>
+          </div>
+
+          {/* Resumo */}
+          {valorTotal > 0 && n > 1 && (
+            <div style={{
+              padding: 10, marginBottom: 10,
+              background: `${T.gold}11`,
+              border: `1px solid ${T.gold}44`,
+              borderRadius: 6, fontSize: 12, color: T.ink,
+              display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6,
+            }}>
+              <span>
+                <strong className="num">{n}×</strong> de{" "}
+                <strong className="num" style={{ color: T.gold }}>{fmt(valorPorPar)}</strong>
+              </span>
+              <span style={{ color: T.muted }}>
+                Total: <strong className="num" style={{ color: T.ink }}>{fmt(totalGerado)}</strong>
+              </span>
+            </div>
+          )}
+
+          {/* Preview de vencimentos */}
+          {preview.length > 0 && (
+            <div>
+              <div style={{
+                fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
+                color: T.muted, fontWeight: 600, marginBottom: 6,
+              }}>
+                Vencimentos previstos
+              </div>
+              <div style={{
+                maxHeight: 180, overflowY: "auto",
+                background: T.card, border: `1px solid ${T.border}`, borderRadius: 6,
+              }}>
+                {preview.map((p, i) => (
+                  <div key={p.parcela} style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "7px 10px",
+                    borderBottom: i < preview.length - 1 ? `1px solid ${T.border}` : "none",
+                    fontSize: 12,
+                  }}>
+                    <span style={{ color: T.muted, fontWeight: 600, minWidth: 42 }}>{p.parcela}</span>
+                    <span style={{ color: T.ink, flex: 1, marginLeft: 8 }}>{dataLbl(p.iso)}</span>
+                    <span className="num" style={{ color: isReceber ? T.green : T.red, fontWeight: 500 }}>
+                      {fmt(valorPorPar)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!form.vencimento && (
+            <div style={{
+              fontSize: 11, color: T.gold, marginTop: 8, fontStyle: "italic",
+            }}>
+              ⚠ Preencha o <strong>Vencimento</strong> acima pra calcular as datas das parcelas.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

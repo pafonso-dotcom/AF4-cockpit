@@ -13,6 +13,45 @@ import Modal from "../ui/Modal.jsx";
 
 const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
 
+// Segmentos/setores sugeridos por tipo de ativo (B3 + padrões de mercado).
+// "Outros" libera input livre de texto.
+const SEGMENTOS = {
+  acao: [
+    "Bancos", "Energia Elétrica", "Petróleo & Gás", "Mineração & Siderurgia",
+    "Varejo", "Tecnologia", "Saúde", "Indústria", "Construção & Imobiliário",
+    "Telecom", "Agronegócio", "Bens de Consumo", "Holding",
+  ],
+  fii: [
+    "Logística", "Shoppings", "Lajes Corporativas", "Recebíveis (CRI)",
+    "Híbrido", "Hospitalar", "Residencial", "Educacional",
+    "Hotel", "Agro", "Fundo de Fundos (FOF)", "Renda Urbana",
+  ],
+  stock: [
+    "Technology", "Financial", "Energy", "Healthcare",
+    "Consumer", "Industrial", "Communication", "Real Estate", "Utilities",
+  ],
+  reit: [
+    "Residential", "Commercial", "Industrial",
+    "Mortgage", "Specialty", "Healthcare", "Retail",
+  ],
+  etf: [
+    "Índice (IBOV/S&P)", "Setorial", "Renda Fixa",
+    "Internacional", "ESG", "Cripto", "Smart Beta",
+  ],
+  cripto: [
+    "Layer 1", "Layer 2", "DeFi",
+    "Stablecoin", "Meme", "Privacy", "RWA", "AI",
+  ],
+  tesouro: [
+    "Selic (pós-fixado)", "Prefixado", "IPCA+",
+    "IPCA+ com juros semestrais", "Renda+", "Educa+",
+  ],
+  cdb: [
+    "Pós-fixado (CDI)", "Prefixado", "IPCA+",
+    "Híbrido", "Liquidez diária",
+  ],
+};
+
 export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, onRefresh, refreshing, onAnalisar, hidden }) {
   const [form, setForm] = useState(null);
   const [aporteForm, setAporteForm] = useState(null);
@@ -28,7 +67,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
         const a = ativos[0];
         setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" });
       } else {
-        setForm({ id: null, ticker: "", nome: "", tipo: "acao", qtd: "", pm: "", preco: "", base: 0 });
+        setForm({ id: null, ticker: "", nome: "", tipo: "acao", segmento: "", qtd: "", pm: "", preco: "", base: 0 });
       }
     };
     window.addEventListener("af4:open-new-aporte", handler);
@@ -281,7 +320,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
               <RefreshCw size={12} className={`inline mr-2 ${refreshing ? "spin" : ""}`} />
               {refreshing ? "Atualizando…" : "Atualizar Mercado"}
             </button>
-            <button className="btn-gold" onClick={() => setForm({ id: null, ticker: "", nome: "", tipo: "acao", qtd: "", pm: "", preco: "", base: 0 })}>
+            <button className="btn-gold" onClick={() => setForm({ id: null, ticker: "", nome: "", tipo: "acao", segmento: "", qtd: "", pm: "", preco: "", base: 0 })}>
               <Plus size={14} className="inline mr-2" />Novo Ativo
             </button>
           </div>
@@ -334,6 +373,16 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   <div style={{ color: T.faint, fontSize: 10, marginTop: 4, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: T.sans }}>
                     {a.tipo} · {fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)} un.
                   </div>
+                  {a.segmento && (
+                    <div style={{
+                      display: "inline-block", marginTop: 6,
+                      padding: "2px 8px", borderRadius: 4,
+                      background: `${T.gold}15`, color: T.gold,
+                      fontSize: 10, fontWeight: 600, letterSpacing: ".03em",
+                    }}>
+                      {a.segmento}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right shrink-0 ml-2">
                   <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 14, fontWeight: 600 }}>
@@ -452,6 +501,11 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   </td>
                   <td style={{ padding: "14px 16px", color: T.muted, fontSize: 11, fontFamily: T.sans, letterSpacing: "0.1em", textTransform: "uppercase" }}>
                     {a.tipo}
+                    {a.segmento && (
+                      <div style={{ color: T.gold, fontSize: 9.5, marginTop: 3, letterSpacing: ".03em", textTransform: "none", fontWeight: 500 }}>
+                        {a.segmento}
+                      </div>
+                    )}
                   </td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.ink }}>{fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)}</td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmt(a.pm)}</td>
@@ -515,11 +569,13 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
               <input value={form.ticker} onChange={e => setForm({ ...form, ticker: e.target.value.toUpperCase() })} placeholder="PETR4 · HGRE11 · BTC" />
             </Field>
             <Field label="Tipo">
-              <select value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>
+              <select value={form.tipo}
+                      onChange={e => setForm({ ...form, tipo: e.target.value, segmento: "" })}>
                 {tipos.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
               </select>
             </Field>
           </div>
+          <SegmentoField form={form} setForm={setForm} />
           <div className="grid grid-cols-3 gap-3">
             <Field label="Quantidade">
               <input type="number" step="0.00000001" value={form.qtd} onChange={e => setForm({ ...form, qtd: e.target.value })} placeholder="8" />
@@ -788,5 +844,46 @@ function DetalheAtivo({ ativo, onClose }) {
         Histórico simulado · 30 dias
       </div>
     </Modal>
+  );
+}
+
+/**
+ * SegmentoField — campo Segmento/Setor que adapta as opções ao tipo do ativo.
+ * Inclui opção "Outros" que libera input de texto livre.
+ */
+function SegmentoField({ form, setForm }) {
+  const opcoes = SEGMENTOS[form.tipo] || [];
+  const valor = form.segmento || "";
+  const isOutros = valor === "__outros__" || (valor && !opcoes.includes(valor) && valor !== "");
+  // Estado interno: se for valor livre (não está nas opções), trata como "Outros"
+  const selectValue = !valor ? "" : (opcoes.includes(valor) ? valor : "__outros__");
+
+  return (
+    <Field
+      label={form.tipo === "cripto" ? "Categoria"
+            : (form.tipo === "tesouro" || form.tipo === "cdb") ? "Indexador / Tipo"
+            : "Segmento / Setor"}
+      hint="Ajuda a classificar nas análises da carteira (diversificação por setor)."
+    >
+      <div style={{ display: "flex", gap: 6 }}>
+        <select value={selectValue}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (v === "__outros__") setForm({ ...form, segmento: "" });
+                  else setForm({ ...form, segmento: v });
+                }}
+                style={{ flex: 1 }}>
+          <option value="">— escolha —</option>
+          {opcoes.map(s => <option key={s} value={s}>{s}</option>)}
+          <option value="__outros__">Outros (digite ao lado)</option>
+        </select>
+        {selectValue === "__outros__" && (
+          <input value={valor === "__outros__" ? "" : valor}
+                 onChange={e => setForm({ ...form, segmento: e.target.value })}
+                 placeholder="Digite o segmento"
+                 style={{ flex: 1 }} />
+        )}
+      </div>
+    </Field>
   );
 }

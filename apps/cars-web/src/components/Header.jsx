@@ -7,7 +7,7 @@ import {
   Briefcase, TrendingUp, LineChart as LineIcon, Calculator, BarChart3,
   Package, Target, Users, AlertCircle, History, MessageCircle,
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
-  Radar, Bookmark, StickyNote,
+  Radar, Bookmark, StickyNote, Home, CheckSquare,
 } from "lucide-react";
 
 /**
@@ -98,17 +98,18 @@ function HeaderHorizontal({
       { id: "audit",        label: "Histórico",    icon: History },
     ],
     agenda: [
+      { id: "inicio",     label: "Início",         icon: Home },
       { id: "notas",      label: "Compromissos",   icon: StickyNote },
       { id: "calendario", label: "Calendário",     icon: Calendar },
+      { id: "tarefas",    label: "Tarefas",        icon: CheckSquare },
       { id: "ideias",     label: "Ideias",         icon: Sparkles },
       { id: "metas",      label: "Metas",          icon: Target },
-      { id: "habitos",    label: "Hábitos",        icon: Sparkles },
-      { id: "diario",     label: "Diário",         icon: Bookmark },
       { id: "compras",    label: "Compras",        icon: Tag },
     ],
     invest: [
       { id: "investimentos", label: "Painel",       icon: BarChart3 },
       { id: "carteira",      label: "Carteira",     icon: Briefcase },
+      { id: "objetivos",     label: "Objetivos",    icon: Target },
       { id: "analises",      label: "Análises",     icon: Radar },
       { id: "proventos",     label: "Proventos",    icon: DollarSign },
       { id: "mercado",       label: "Mercado",      icon: LineIcon },
@@ -444,17 +445,18 @@ function HeaderVertical({
       { id: "audit",        label: "Histórico",    icon: History },
     ],
     agenda: [
+      { id: "inicio",     label: "Início",         icon: Home },
       { id: "notas",      label: "Compromissos",   icon: StickyNote },
       { id: "calendario", label: "Calendário",     icon: Calendar },
+      { id: "tarefas",    label: "Tarefas",        icon: CheckSquare },
       { id: "ideias",     label: "Ideias",         icon: Sparkles },
       { id: "metas",      label: "Metas",          icon: Target },
-      { id: "habitos",    label: "Hábitos",        icon: Sparkles },
-      { id: "diario",     label: "Diário",         icon: Bookmark },
       { id: "compras",    label: "Compras",        icon: Tag },
     ],
     invest: [
       { id: "investimentos", label: "Painel",       icon: BarChart3 },
       { id: "carteira",      label: "Carteira",     icon: Briefcase },
+      { id: "objetivos",     label: "Objetivos",    icon: Target },
       { id: "analises",      label: "Análises",     icon: Radar },
       { id: "proventos",     label: "Proventos",    icon: DollarSign },
       { id: "mercado",       label: "Mercado",      icon: LineIcon },
