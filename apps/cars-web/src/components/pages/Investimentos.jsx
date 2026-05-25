@@ -364,7 +364,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
         title="Investimentos"
         sub="Sua carteira como tese viva. Atualize, acompanhe, repondere."
         action={
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap no-print">
             <button className="btn-ghost" onClick={onRefresh} disabled={refreshing}>
               <RefreshCw size={12} className={`inline mr-2 ${refreshing ? "spin" : ""}`} />
               {refreshing ? "Atualizando…" : "Atualizar Mercado"}
@@ -376,7 +376,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6" style={{ background: T.border }}>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6 no-print" style={{ background: T.border }}>
         <StatCard label="Valor Investido" value={hidden ? "•••••" : fmt(totais.custo)} accent={T.muted} icon={DollarSign}
                   sub={`${filtered.length} ativos`} />
         <StatCard label="Valor de Mercado" value={hidden ? "•••••" : fmt(totais.valor)} accent={T.gold} icon={Briefcase} />
@@ -388,7 +388,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   sub={`${filtered.filter(a => a.preco > a.pm).length} no lucro`} />
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6 no-print">
         {[{ v: "todos", l: "Todos" }, ...tipos].map(t => (
           <button key={t.v} onClick={() => setFilter(t.v)}
             style={{
@@ -490,7 +490,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   <div className="num" style={{ color: T.ink, marginTop: 2 }}>{hidden ? "•••" : fmt(valor)}</div>
                 </div>
               </div>
-              <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+              <div className="flex gap-2 no-print" onClick={e => e.stopPropagation()}>
                 <button onClick={() => setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" })}
                         aria-label={`Aportar em ${a.ticker}`}
                         style={{ flex: 1, background: `${T.green}22`, color: T.green, padding: "6px 8px", border: `1px solid ${T.green}`, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
@@ -552,8 +552,10 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
           <thead>
             <tr style={{ borderBottom: `1px solid ${T.border}` }}>
               {["Ativo", "Tipo", "Qtd", "PM", "Preço Atual", "Investido", "Valor", "Resultado", "Ações"].map((h, i) => (
-                <th key={i} style={{ color: T.muted, padding: "12px 16px", textAlign: i > 1 ? "right" : "left",
-                                     fontFamily: T.sans, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 500 }}>
+                <th key={i}
+                    className={h === "Ações" ? "no-print" : undefined}
+                    style={{ color: T.muted, padding: "12px 16px", textAlign: i > 1 ? "right" : "left",
+                             fontFamily: T.sans, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 500 }}>
                   {h}
                 </th>
               ))}
@@ -648,7 +650,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     {hidden ? "•••" : fmt(ganho)}<br/>
                     <span style={{ fontSize: 11 }}>{fmtP(pct)}</span>
                   </td>
-                  <td style={{ padding: "14px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
+                  <td className="no-print" style={{ padding: "14px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     <button onClick={e => { e.stopPropagation(); setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" }); }}
                             title="Novo Aporte"
                             style={{ background: `${T.green}22`, color: T.green, padding: "4px 8px", border: `1px solid ${T.green}`, marginRight: 4, cursor: "pointer", fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
