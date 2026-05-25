@@ -7,7 +7,7 @@ import {
   Briefcase, TrendingUp, LineChart as LineIcon, Calculator, BarChart3,
   Package, Target, Users, AlertCircle, History, MessageCircle,
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
-  Radar, Bookmark, StickyNote, Home, CheckSquare,
+  Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
 } from "lucide-react";
 
 /**
@@ -103,6 +103,7 @@ function HeaderHorizontal({
       { id: "calendario", label: "Calendário",     icon: Calendar },
       { id: "tarefas",    label: "Tarefas",        icon: CheckSquare },
       { id: "ideias",     label: "Ideias",         icon: Sparkles },
+      { id: "sugestoes",  label: "Sugestões",      icon: Lightbulb },
       { id: "metas",      label: "Metas",          icon: Target },
       { id: "compras",    label: "Compras",        icon: Tag },
     ],
@@ -451,6 +452,7 @@ function HeaderVertical({
       { id: "calendario", label: "Calendário",     icon: Calendar },
       { id: "tarefas",    label: "Tarefas",        icon: CheckSquare },
       { id: "ideias",     label: "Ideias",         icon: Sparkles },
+      { id: "sugestoes",  label: "Sugestões",      icon: Lightbulb },
       { id: "metas",      label: "Metas",          icon: Target },
       { id: "compras",    label: "Compras",        icon: Tag },
     ],
