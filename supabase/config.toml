@@ -2,7 +2,7 @@
 # Docs: https://supabase.com/docs/guides/local-development/cli/config
 
 # Project ID (do dashboard). Usado pelo `supabase link --project-ref <id>`
-project_id = "rffxplwshwfjnedefvqg"
+project_id = "maqlnsivmreagpkhbkbn"
 
 [api]
 enabled = true

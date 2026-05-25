@@ -50,7 +50,7 @@ jobs:
             echo "::error::SUPABASE_DB_URL não está configurado nos secrets do repo."
             echo ""
             echo "Como obter:"
-            echo "1. https://supabase.com/dashboard/project/rffxplwshwfjnedefvqg/settings/database"
+            echo "1. https://supabase.com/dashboard/project/maqlnsivmreagpkhbkbn/settings/database"
             echo "2. Em 'Connection string' → tab 'Session' (NÃO 'Direct')"
             echo "3. Adiciona em https://github.com/pafonso-dotcom/AF4-cockpit/settings/secrets/actions"
             echo "   Nome: SUPABASE_DB_URL"
@@ -79,7 +79,7 @@ jobs:
             echo "::error::Você está usando a 'Direct Connection' (host db.X.supabase.co)."
             echo "::error::GitHub Actions runners NÃO têm IPv6, e esse host só responde em IPv6."
             echo "::error::Troque pela 'Session pooler':"
-            echo "::error::  1. https://supabase.com/dashboard/project/rffxplwshwfjnedefvqg/settings/database"
+            echo "::error::  1. https://supabase.com/dashboard/project/maqlnsivmreagpkhbkbn/settings/database"
             echo "::error::  2. 'Connection string' → tab 'Session' (porta 5432, host aws-0-...pooler.supabase.com)"
             echo "::error::  3. Atualiza o secret SUPABASE_DB_URL com a nova URI"
             exit 1

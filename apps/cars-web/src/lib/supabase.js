@@ -10,8 +10,15 @@ import { createClient } from "@supabase/supabase-js";
 // vai no bundle do cliente de qualquer forma, e a segurança real vem
 // das policies RLS no banco. Ficam aqui como padrão para o app rodar
 // sem depender de variáveis de build; env vars, se definidas, vencem.
+//
+// Projeto atual: maqlnsivmreagpkhbkbn (us-west-1)
+// Migrado em 2026-05-25 do projeto antigo (rffxplwshwfjnedefvqg).
 const URL = import.meta.env.VITE_SUPABASE_URL
-  || "https://rffxplwshwfjnedefvqg.supabase.co";
+  || "https://maqlnsivmreagpkhbkbn.supabase.co";
+// TODO(2026-05-25): atualizar a anon key abaixo com a do novo projeto.
+// Até lá, a chave antiga aponta pro projeto rffx... — auth e cliente vão
+// FALHAR contra o projeto novo. Configurar via VITE_SUPABASE_ANON_KEY no
+// build OU substituir o fallback hardcoded abaixo.
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
   || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmZnhwbHdzaHdmam5lZGVmdnFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NDI0OTAsImV4cCI6MjA5MzUxODQ5MH0.R-ZLZ0vHgbRKu_VbqAnWG_22Nd5ijwR8Fxas8UsQan4";
 

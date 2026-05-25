@@ -10,11 +10,11 @@ Usa `psql` direto (sem `supabase` CLI) — evita problemas de permissão de PAT.
 
 ⚠️ **Importante**: o Supabase oferece DUAS connection strings. GitHub Actions só funciona com a **Session pooler** (porque runners não têm IPv6).
 
-1. Vai em https://supabase.com/dashboard/project/rffxplwshwfjnedefvqg/settings/database
+1. Vai em https://supabase.com/dashboard/project/maqlnsivmreagpkhbkbn/settings/database
 2. Em **"Connection string"** clica na aba **"Session"** (NÃO "Transaction", NÃO "Direct")
 3. O formato correto deve ser:
    ```
-   postgresql://postgres.rffxplwshwfjnedefvqg:[YOUR-PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
+   postgresql://postgres.maqlnsivmreagpkhbkbn:[YOUR-PASSWORD]@aws-1-us-west-1.pooler.supabase.com:5432/postgres
    ```
    - Host: `aws-0-REGION.pooler.supabase.com` (Session pooler — IPv4 OK)
    - Porta: `5432` (session mode — suporta DDL)
