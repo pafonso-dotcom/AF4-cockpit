@@ -23,7 +23,7 @@ import React, { useMemo, useState } from "react";
 import {
   Plus, Trash2, Edit3, Sparkles,
   CheckCircle2, AlertCircle, Target, TrendingUp, Building2, Landmark,
-  Wallet, ArrowRight,
+  Wallet, ArrowRight, Eye,
 } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN, uid } from "../../../lib/format.js";
@@ -72,6 +72,7 @@ export default function ObjetivosCarteira({
   const [sugestaoOpen, setSugestaoOpen] = useState(false);
   const [sugestaoBucket, setSugestaoBucket] = useState(null); // node escolhido para sugestão
   const [aporteMensal, setAporteMensal] = useState("");
+  const [verAtivosNo, setVerAtivosNo] = useState(null); // nó cujos ativos mostrar
 
   const aporteN = parseValorBR(aporteMensal) || 0;
 
@@ -224,6 +225,26 @@ export default function ObjetivosCarteira({
     toast.success("Árvore restaurada.");
   };
 
+  /* ===== Coleta recursiva de ativos que compõem um nó ===== */
+  // Para folhas: ativos cujo tipo está em classeMatch
+  // Para intermediários: une os ativos de todas as folhas descendentes (sem repetir)
+  const ativosDoNo = (nodeId) => {
+    const node = tree.find(n => n.id === nodeId);
+    if (!node) return [];
+    const filhos = tree.filter(n => n.parentId === nodeId);
+    if (filhos.length === 0) {
+      // folha
+      if (!node.classeMatch || node.classeMatch.length === 0) return [];
+      return (ativos || []).filter(a => node.classeMatch.includes(a.tipo) && Number(a.qtd || 0) > 0);
+    }
+    // intermediário: une descendentes (dedupe por id)
+    const set = new Map();
+    filhos.forEach(f => {
+      ativosDoNo(f.id).forEach(a => set.set(a.id, a));
+    });
+    return Array.from(set.values());
+  };
+
   /* ===== Sugestão IA pra um bucket ===== */
   const abrirSugestao = (node, valorPadrao) => {
     const valor = valorPadrao != null
@@ -360,6 +381,7 @@ export default function ObjetivosCarteira({
                   onExcluir={excluirNo}
                   onAdicionarFilho={(p) => setEditando({ id: null, parentId: p.id, label: "", percent: 0, classeMatch: null })}
                   onSugerir={(n, v) => abrirSugestao(n, v)}
+                  onVer={(n) => setVerAtivosNo(n)}
                 />
               ))}
             </div>
@@ -381,6 +403,7 @@ export default function ObjetivosCarteira({
                 onExcluir={excluirNo}
                 onAdicionarFilho={(p) => setEditando({ id: null, parentId: p.id, label: "", percent: 0, classeMatch: null })}
                 onSugerir={(n, v) => abrirSugestao(n, v)}
+                onVer={(n) => setVerAtivosNo(n)}
                 nivel={0}
               />
             ))}
@@ -411,6 +434,17 @@ export default function ObjetivosCarteira({
         />
       )}
 
+      {/* Modal: Ativos que compõem o nó */}
+      {verAtivosNo && (
+        <VerAtivosModal
+          node={verAtivosNo}
+          ativos={ativosDoNo(verAtivosNo.id)}
+          valorTotal={valorPorNo.get(verAtivosNo.id) || 0}
+          hidden={hidden}
+          onClose={() => setVerAtivosNo(null)}
+        />
+      )}
+
       <style>{`
         .objetivos-resumo { grid-template-columns: 1fr 1fr; }
         .objetivos-tree-desktop { display: block; }
@@ -429,7 +463,7 @@ export default function ObjetivosCarteira({
    TreeOrgNode — visual estilo org-chart (cards conectados por linhas)
    Usado no desktop. Cada nó renderiza o card + linha + filhos centralizados.
    ============================================================ */
-function TreeOrgNode({ node, tree, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir }) {
+function TreeOrgNode({ node, tree, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir, onVer }) {
   const filhos = tree.filter(n => n.parentId === node.id);
   const temFilhos = filhos.length > 0;
 
@@ -449,6 +483,7 @@ function TreeOrgNode({ node, tree, valorPorNo, valorAlvo, distribuicaoAporte, ap
         onExcluir={onExcluir}
         onAdicionarFilho={onAdicionarFilho}
         onSugerir={onSugerir}
+        onVer={onVer}
         temFilhos={temFilhos}
         modo="org"
       />
@@ -481,6 +516,7 @@ function TreeOrgNode({ node, tree, valorPorNo, valorAlvo, distribuicaoAporte, ap
                   onExcluir={onExcluir}
                   onAdicionarFilho={onAdicionarFilho}
                   onSugerir={onSugerir}
+        onVer={onVer}
                 />
               </div>
             ))}
@@ -494,7 +530,7 @@ function TreeOrgNode({ node, tree, valorPorNo, valorAlvo, distribuicaoAporte, ap
 /* ============================================================
    TreeListNode — lista vertical indentada (mobile)
    ============================================================ */
-function TreeListNode({ node, tree, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir, nivel }) {
+function TreeListNode({ node, tree, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir, onVer, nivel }) {
   const filhos = tree.filter(n => n.parentId === node.id);
   return (
     <>
@@ -510,6 +546,7 @@ function TreeListNode({ node, tree, valorPorNo, valorAlvo, distribuicaoAporte, a
           onExcluir={onExcluir}
           onAdicionarFilho={onAdicionarFilho}
           onSugerir={onSugerir}
+        onVer={onVer}
           temFilhos={filhos.length > 0}
           modo="list"
         />
@@ -528,6 +565,7 @@ function TreeListNode({ node, tree, valorPorNo, valorAlvo, distribuicaoAporte, a
           onExcluir={onExcluir}
           onAdicionarFilho={onAdicionarFilho}
           onSugerir={onSugerir}
+        onVer={onVer}
           nivel={nivel + 1}
         />
       ))}
@@ -538,7 +576,7 @@ function TreeListNode({ node, tree, valorPorNo, valorAlvo, distribuicaoAporte, a
 /* ============================================================
    NodeCard — visual do card (usado tanto no org-chart quanto na lista)
    ============================================================ */
-function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir, temFilhos, modo }) {
+function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hidden, onEditar, onExcluir, onAdicionarFilho, onSugerir, onVer, temFilhos, modo }) {
   const atual = valorPorNo.get(node.id) || 0;
   const alvo = valorAlvo.get(node.id) || 0;
   const diff = atual - alvo;
@@ -665,6 +703,10 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
 
         {/* Ações no rodapé */}
         <div style={{ display: "flex", justifyContent: "center", gap: 2, marginTop: 6, paddingTop: 6, borderTop: `1px dashed ${T.border}` }}>
+          <button onClick={() => onVer && onVer(node)} title="Ver ativos deste objetivo"
+                  style={iconBtnStyle(T.gold)}>
+            <Eye size={11} />
+          </button>
           <button onClick={() => onAdicionarFilho(node)} title="Adicionar filho" style={iconBtnStyle(T.muted)}>
             <Plus size={11} />
           </button>
@@ -747,6 +789,10 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
             <Sparkles size={12} />
           </button>
         )}
+        <button onClick={() => onVer && onVer(node)} title="Ver ativos deste objetivo"
+                style={iconBtnStyle(T.gold)}>
+          <Eye size={12} />
+        </button>
         <button onClick={() => onAdicionarFilho(node)} title="Adicionar filho" style={iconBtnStyle(T.muted)}>
           <Plus size={12} />
         </button>
@@ -896,4 +942,122 @@ function caminhoNo(node, tree) {
     partes.unshift(cur.label);
   }
   return partes.join(" → ");
+}
+
+/* ============================================================
+   VerAtivosModal — visualização rápida dos ativos de um objetivo
+   ============================================================ */
+function VerAtivosModal({ node, ativos, valorTotal, hidden, onClose }) {
+  const ordenados = [...ativos]
+    .map(a => ({
+      ...a,
+      valor: Number(a.qtd || 0) * Number(a.preco || 0),
+      investido: Number(a.qtd || 0) * Number(a.pm || 0),
+    }))
+    .sort((a, b) => b.valor - a.valor);
+
+  const cor = corDaClasse(node.classeMatch);
+  const Icon = iconeDaClasse(node.classeMatch);
+
+  return (
+    <Modal
+      title={
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <Icon size={16} style={{ color: cor }} />
+          <span>{node.label}</span>
+          <span style={{ fontSize: 11, color: T.muted, fontWeight: 400 }}>
+            · {ativos.length} {ativos.length === 1 ? "ativo" : "ativos"}
+          </span>
+        </span>
+      }
+      onClose={onClose}
+      wide
+    >
+      {/* Resumo total */}
+      <div style={{
+        padding: 12, marginBottom: 12,
+        background: `${cor}11`, border: `1px solid ${cor}44`,
+        borderLeft: `3px solid ${cor}`,
+        borderRadius: 8,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <span style={{ fontSize: 11, color: T.muted, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 600 }}>
+          Valor total no objetivo
+        </span>
+        <span className="num" style={{
+          fontFamily: T.serif, fontSize: 22, color: cor, fontWeight: 600,
+        }}>
+          {hidden ? "•••" : fmt(valorTotal)}
+        </span>
+      </div>
+
+      {/* Lista de ativos */}
+      {ordenados.length === 0 ? (
+        <div style={{
+          textAlign: "center", padding: "40px 24px",
+          background: T.bgSoft, border: `1px dashed ${T.border}`, borderRadius: 10,
+        }}>
+          <Target size={32} style={{ color: T.muted, marginBottom: 10 }} />
+          <div style={{ fontSize: 14, color: T.ink, fontWeight: 600, marginBottom: 4 }}>
+            Nenhum ativo nesta categoria
+          </div>
+          <div style={{ fontSize: 12, color: T.muted }}>
+            {node.classeMatch?.length
+              ? `Adicione ativos do tipo: ${node.classeMatch.join(", ")}`
+              : "Este nó intermediário não tem ativos nos filhos."}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {ordenados.map(a => {
+            const pctNoObj = valorTotal > 0 ? (a.valor / valorTotal) * 100 : 0;
+            const ganho = a.valor - a.investido;
+            const pctGanho = a.investido > 0 ? (ganho / a.investido) * 100 : 0;
+            return (
+              <div key={a.id} style={{
+                background: T.card, border: `1px solid ${T.border}`,
+                borderLeft: `3px solid ${cor}`,
+                borderRadius: 8, padding: "10px 12px",
+                display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center",
+              }}>
+                <div style={{
+                  padding: "4px 8px", background: `${cor}22`, color: cor,
+                  fontSize: 11, fontWeight: 700, borderRadius: 5, letterSpacing: ".03em",
+                  minWidth: 56, textAlign: "center",
+                }}>
+                  {a.ticker}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12, color: T.ink, fontWeight: 500 }}>
+                    {a.nome || a.ticker}
+                    {a.segmento && (
+                      <span style={{ fontSize: 10, color: T.faint, marginLeft: 6, fontStyle: "italic" }}>
+                        · {a.segmento}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>
+                    {Number(a.qtd).toFixed(a.tipo === "cripto" ? 6 : 0)} × {fmt(a.preco)}
+                    {a.investido > 0 && (
+                      <span style={{ color: ganho >= 0 ? T.green : T.red, marginLeft: 8, fontWeight: 600 }}>
+                        {ganho >= 0 ? "+" : ""}{pctGanho.toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                  <div className="num" style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
+                    {hidden ? "•••" : fmt(a.valor)}
+                  </div>
+                  <div style={{ fontSize: 9.5, color: T.faint, marginTop: 1 }}>
+                    {pctNoObj.toFixed(1)}% do objetivo
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Modal>
+  );
 }
