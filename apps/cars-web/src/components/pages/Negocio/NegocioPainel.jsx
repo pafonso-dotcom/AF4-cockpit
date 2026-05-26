@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
-import { Store, Car, Wrench, Users, TrendingUp, Package } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Store, Car, Wrench, Users, TrendingUp, Package, DollarSign } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import PageHeader from "../../ui/PageHeader.jsx";
+import Modal from "../../ui/Modal.jsx";
 
 /**
  * Painel · visão geral do módulo Negócio.
@@ -15,9 +16,11 @@ export default function NegocioPainel({
   negocioVeiculos = [], negocioVendasVeiculos = [],
   negocioServicos = [], negocioVendasServicos = [],
   negocioClientes = [],
+  caixaNegocio = { saldo: 0, historico: [] },
   hidden,
   onTabChange,
 }) {
+  const [caixaModalAberto, setCaixaModalAberto] = useState(false);
   const stats = useMemo(() => {
     const hoje = new Date();
     const mesISO = hoje.toISOString().slice(0, 7);
@@ -46,6 +49,10 @@ export default function NegocioPainel({
     };
   }, [negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioClientes]);
 
+  const saldoCaixa = Number(caixaNegocio?.saldo || 0);
+  const historico = caixaNegocio?.historico || [];
+  const qtdEntradas = historico.length;
+
   return (
     <div className="fade-up py-8 px-6">
       <PageHeader
@@ -53,6 +60,35 @@ export default function NegocioPainel({
         title="Visão geral"
         sub="Resumo do que está rolando hoje no seu negócio: estoque, vendas, lucro e atalhos pras áreas."
       />
+
+      {/* Card destaque: Caixa do Negócio (saldo virtual) */}
+      <button
+        onClick={() => setCaixaModalAberto(true)}
+        style={{
+          width: "100%", textAlign: "left", cursor: "pointer",
+          background: T.card, border: `1px solid ${T.border}`,
+          borderLeft: `3px solid ${T.gold}`, borderRadius: 8, padding: 16,
+          marginBottom: 14, display: "flex", alignItems: "center", gap: 14,
+        }}>
+        <span style={{
+          width: 44, height: 44, borderRadius: 10,
+          background: `${T.gold}22`, color: T.gold,
+          display: "grid", placeItems: "center", flexShrink: 0,
+        }}>
+          <DollarSign size={22} />
+        </span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted }}>
+            Caixa do Negócio
+          </div>
+          <div style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 500, color: T.gold, fontVariantNumeric: "tabular-nums", marginTop: 2 }}>
+            {hidden ? "•••••" : fmt(saldoCaixa)}
+          </div>
+          <div style={{ fontSize: 11.5, color: T.muted, marginTop: 3 }}>
+            {qtdEntradas} {qtdEntradas === 1 ? "movimentação" : "movimentações"} · clique pra ver histórico
+          </div>
+        </div>
+      </button>
 
       {/* Cards de resumo do mês */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6" style={{ background: T.border }}>
@@ -74,6 +110,61 @@ export default function NegocioPainel({
         <Atalho icon={Users} label="Clientes" sub={`${stats.clientes} cadastrados`}
                 onClick={() => onTabChange?.("negocio-clientes")} cor={T.blue || "#60a5fa"} />
       </div>
+
+      {/* Modal: histórico da Caixa do Negócio */}
+      {caixaModalAberto && (
+        <Modal title="Caixa do Negócio · histórico" onClose={() => setCaixaModalAberto(false)}>
+          <div style={{
+            padding: 12, marginBottom: 14, borderRadius: 6,
+            background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+          }}>
+            <div>
+              <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted }}>
+                Saldo atual
+              </div>
+              <div style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 500, color: T.gold, fontVariantNumeric: "tabular-nums" }}>
+                {hidden ? "•••••" : fmt(saldoCaixa)}
+              </div>
+            </div>
+            <DollarSign size={28} style={{ color: T.gold, opacity: 0.55 }} />
+          </div>
+          {historico.length === 0 ? (
+            <div style={{
+              padding: 28, fontSize: 12, color: T.faint, fontStyle: "italic", textAlign: "center",
+              background: T.bgSoft, borderRadius: 6,
+            }}>
+              Nenhuma movimentação ainda. Vendas de veículos, serviços e faturas recorrentes vão aparecer aqui.
+            </div>
+          ) : (
+            <div>
+              <div className="label-eyebrow" style={{ marginBottom: 8 }}>
+                Últimas {Math.min(historico.length, 10)} movimentações
+              </div>
+              <div style={{ display: "grid", gap: 6 }}>
+                {historico.slice(0, 10).map(h => (
+                  <div key={h.id} style={{
+                    display: "grid",
+                    gridTemplateColumns: "auto 1fr auto",
+                    gap: 10, alignItems: "center", padding: "8px 10px",
+                    background: T.bgSoft, borderRadius: 5,
+                  }}>
+                    <span style={{ color: T.faint, fontFamily: T.mono, fontSize: 10.5 }}>
+                      {(h.data || "").split("-").reverse().slice(0, 2).join("/")}
+                    </span>
+                    <span style={{ fontSize: 12, color: T.ink, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {h.descricao}
+                    </span>
+                    <span className="num" style={{ fontSize: 12, color: T.gold, fontWeight: 600 }}>
+                      +{hidden ? "•••" : fmt(h.valor)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
     </div>
   );
 }
