@@ -247,6 +247,8 @@ export default function Servicos({
     nome: "",
     valor: "",
     custo: "",
+    contaPagamento: "",
+    pagarAoFaturar: false,
     recorrencia: "mensal", // mensal | anual
     dataInicio: todayISO(),
     contaDestino: contas[0]?.nome || "",
@@ -254,11 +256,16 @@ export default function Servicos({
     ativo: true,
   });
 
-  const abrirContratoEditar = (c) => setContratoForm({
-    ...c,
-    valor: String(c.valor ?? ""),
-    custo: String(c.custo ?? ""),
-  });
+  const abrirContratoEditar = (c) => {
+    const custoNum = Number(c.custo) || 0;
+    setContratoForm({
+      ...c,
+      valor: String(c.valor ?? ""),
+      custo: String(c.custo ?? ""),
+      contaPagamento: c.contaPagamento || "",
+      pagarAoFaturar: c.pagarAoFaturar !== undefined ? c.pagarAoFaturar : (custoNum > 0),
+    });
+  };
 
   const onContratoTrocarServico = (servicoId) => {
     if (!servicoId) {
@@ -289,6 +296,8 @@ export default function Servicos({
     const dados = {
       ...contratoForm,
       nome, valor, custo,
+      contaPagamento: contratoForm.contaPagamento || "",
+      pagarAoFaturar: !!contratoForm.pagarAoFaturar && !!contratoForm.contaPagamento && custo > 0,
       obs: (contratoForm.obs || "").trim(),
     };
     if (contratoForm.id) {
@@ -346,7 +355,8 @@ export default function Servicos({
     const catServ = categorias.find(cat => cat.tipo === "receita" && /serv|negocio|aluguel|recorr/i.test(cat.nome))?.nome
                  || categorias.find(cat => cat.tipo === "receita")?.nome
                  || "Outros";
-    setTransacoes([{
+
+    const novasTransacoes = [{
       id: uid(),
       tipo: "receita",
       descricao: `${c.nome}${cliente ? ` · ${cliente.nome}` : ""} · ${refLabel}`,
@@ -357,14 +367,52 @@ export default function Servicos({
       compensado: true,
       fixa: false,
       obs: `Fatura recorrente do módulo Negócio (serviço ${novaVenda.id})`,
-    }, ...transacoes]);
+    }];
 
-    setContas(contas.map(co => co.id === conta.id
-      ? { ...co, saldo: (parseFloat(co.saldo) || 0) + Number(c.valor || 0) } : co));
+    // Pagamento ao prestador (despesa automática)
+    const custoNum = Number(c.custo || 0);
+    const deveGerarDespesa = c.pagarAoFaturar && c.contaPagamento && custoNum > 0;
+    const contaPag = deveGerarDespesa ? contas.find(co => co.nome === c.contaPagamento) : null;
+    if (deveGerarDespesa && !contaPag) {
+      toast.error(`Conta de pagamento "${c.contaPagamento}" não existe mais. Despesa não foi criada.`);
+    }
+    if (deveGerarDespesa && contaPag) {
+      const catDesp = categorias.find(cat => cat.tipo === "despesa" && /serv|saas|software|ferramenta|negocio/i.test(cat.nome))?.nome
+                   || categorias.find(cat => cat.tipo === "despesa")?.nome
+                   || "Outros";
+      novasTransacoes.push({
+        id: uid(),
+        tipo: "despesa",
+        descricao: `Pago a prestador · ${c.nome} · ${refLabel}`,
+        categoria: catDesp,
+        conta: c.contaPagamento,
+        data: todayISO(),
+        valor: custoNum,
+        compensado: true,
+        fixa: false,
+        obs: `Pagamento ao prestador · contrato recorrente (serviço ${novaVenda.id})`,
+      });
+    }
+
+    setTransacoes([...novasTransacoes, ...transacoes]);
+
+    // Ajustes de saldo: receita na contaDestino, despesa na contaPagamento
+    setContas(contas.map(co => {
+      let novoSaldo = parseFloat(co.saldo) || 0;
+      if (co.id === conta.id) novoSaldo += Number(c.valor || 0);
+      if (deveGerarDespesa && contaPag && co.id === contaPag.id) novoSaldo -= custoNum;
+      return (co.id === conta.id || (deveGerarDespesa && contaPag && co.id === contaPag.id))
+        ? { ...co, saldo: novoSaldo }
+        : co;
+    }));
 
     setVendas([novaVenda, ...vendas]);
     setContratos((contratos || []).map(x => x.id === c.id ? { ...x, ultimaFaturaRef: ref } : x));
-    toast.success(`Fatura ${refLabel} gerada · ${fmt(c.valor)}`);
+    if (deveGerarDespesa && contaPag) {
+      toast.success(`Fatura ${refLabel} gerada (receita + despesa) · ${fmt(c.valor)}`);
+    } else {
+      toast.success(`Fatura ${refLabel} gerada · ${fmt(c.valor)}`);
+    }
   };
 
   const gerarFaturasPendentes = () => {
@@ -817,9 +865,18 @@ export default function Servicos({
                      onChange={e => setContratoForm({ ...contratoForm, valor: e.target.value })}
                      placeholder="200" />
             </Field>
-            <Field label="Custo (R$)">
+            <Field label="Pago ao prestador (R$)">
               <input type="number" step="0.01" value={contratoForm.custo}
-                     onChange={e => setContratoForm({ ...contratoForm, custo: e.target.value })}
+                     onChange={e => {
+                       const novoCusto = e.target.value;
+                       const custoNum = Number(novoCusto) || 0;
+                       setContratoForm({
+                         ...contratoForm,
+                         custo: novoCusto,
+                         // Se desligou (custo 0), desativa pagarAoFaturar
+                         pagarAoFaturar: custoNum > 0 ? contratoForm.pagarAoFaturar : false,
+                       });
+                     }}
                      placeholder="50" />
             </Field>
             <Field label="Recorrência" required>
@@ -830,6 +887,40 @@ export default function Servicos({
               </select>
             </Field>
           </div>
+          {Number(contratoForm.custo) > 0 && (
+            <div style={{
+              padding: 10, marginTop: 4, borderRadius: 6,
+              background: T.bgSoft, border: `1px solid ${T.border}`,
+            }}>
+              <Field label="Conta pagamento (de onde sai o pagamento ao prestador)">
+                <select value={contratoForm.contaPagamento}
+                        onChange={e => {
+                          const novaConta = e.target.value;
+                          setContratoForm({
+                            ...contratoForm,
+                            contaPagamento: novaConta,
+                            // Se limpou a conta, desliga o auto-pagamento
+                            pagarAoFaturar: novaConta ? contratoForm.pagarAoFaturar : false,
+                          });
+                        }}>
+                  <option value="">— sem pagamento automático —</option>
+                  {contas.map(c => (
+                    <option key={c.id} value={c.nome}>{c.nome} · {fmt(c.saldo || 0)}</option>
+                  ))}
+                </select>
+              </Field>
+              {contratoForm.contaPagamento && (
+                <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, cursor: "pointer" }}>
+                  <input type="checkbox" checked={!!contratoForm.pagarAoFaturar}
+                         onChange={e => setContratoForm({ ...contratoForm, pagarAoFaturar: e.target.checked })}
+                         style={{ width: 16, height: 16, accentColor: T.gold }} />
+                  <span style={{ fontSize: 12.5, color: T.muted }}>
+                    Criar despesa ao faturar (desconta {fmt(Number(contratoForm.custo) || 0)} de {contratoForm.contaPagamento})
+                  </span>
+                </label>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Data de início">
               <input type="date" value={contratoForm.dataInicio}
@@ -859,6 +950,13 @@ export default function Servicos({
               Ativo (entra no "Gerar faturas do período")
             </span>
           </label>
+          <div style={{
+            marginTop: 10, padding: "8px 10px", borderRadius: 6,
+            background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
+            fontSize: 11.5, color: T.muted, lineHeight: 1.5,
+          }}>
+            💡 <strong style={{ color: T.ink }}>Pago ao prestador</strong> + <strong style={{ color: T.ink }}>Criar despesa ao faturar</strong> geram automaticamente a despesa no Finanças junto com a receita.
+          </div>
           <div className="flex gap-3 justify-end mt-6">
             <button className="btn-ghost" onClick={() => setContratoForm(null)}>Cancelar</button>
             <button className="btn-gold" onClick={salvarContrato}>
