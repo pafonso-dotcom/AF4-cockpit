@@ -117,7 +117,7 @@ export default function PergunteAoClaude({
                 Pergunte sobre seus gastos, vendas, investimentos ou peça sugestões.
                 Eu vejo seu cockpit atual e respondo com base nos dados reais.
               </p>
-              <div style={{
+              <div className="pac-suggest-grid" style={{
                 display: "grid", gap: 6, maxWidth: 520, margin: "0 auto",
                 gridTemplateColumns: "1fr 1fr",
               }}>
@@ -213,6 +213,11 @@ export default function PergunteAoClaude({
       <div style={{ fontSize: 10, color: T.faint, marginTop: 12, fontStyle: "italic", textAlign: "center" }}>
         🔒 Privacidade: somente um resumo agregado dos seus dados é enviado à API. Nenhum dado individual deixa sua máquina sem necessidade.
       </div>
+      <style>{`
+        @media (max-width: 480px) {
+          .pac-suggest-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -305,7 +305,7 @@ function FormModal({ form, setForm, onSalvar, onCancelar }) {
                   rows={4}
                   style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} />
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
+        <div className="sug-form-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
           <div>
             <label style={labelStyle}>Prioridade</label>
             <select value={form.prioridade}
@@ -323,6 +323,11 @@ function FormModal({ form, setForm, onSalvar, onCancelar }) {
             </select>
           </div>
         </div>
+        <style>{`
+          @media (max-width: 480px) {
+            .sug-form-2col { grid-template-columns: 1fr !important; }
+          }
+        `}</style>
 
         <div className="flex gap-3 justify-end mt-6">
           <button className="btn-ghost" onClick={onCancelar}>Cancelar</button>

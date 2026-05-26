@@ -170,6 +170,9 @@ export default function InvestPainel({
           .ip-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .ip-mid-grid, .ip-bot-grid, .ip-foot-grid { grid-template-columns: 1fr !important; }
         }
+        @media (max-width: 380px) {
+          .ip-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+        }
       `}</style>
     </div>
   );

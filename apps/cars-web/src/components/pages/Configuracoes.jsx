@@ -80,7 +80,7 @@ function Aparencia({ themeId, setThemeId }) {
   return (
     <>
       <div className="st"><h2>Layout das abas</h2><div className="mt">Como você quer navegar</div></div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+      <div className="cfg-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
         <button onClick={() => mudarLayout("horizontal")}
           style={{
             padding: "14px 16px", textAlign: "left",
@@ -184,6 +184,11 @@ function Aparencia({ themeId, setThemeId }) {
           </label>
         ))}
       </div>
+      <style>{`
+        @media (max-width: 480px) {
+          .cfg-2col { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </>
   );
 }
@@ -652,7 +657,7 @@ function SyncGist() {
           <strong>Outros dispositivos</strong>: cola o mesmo token → "Baixar da nuvem" → recarrega.
         </p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div className="cfg-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <button onClick={upload}
             className="btn-gold"
             disabled={!conectado || busy === "upload"}
