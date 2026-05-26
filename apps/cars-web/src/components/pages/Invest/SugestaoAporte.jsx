@@ -70,7 +70,12 @@ export default function SugestaoAporte({
   onAplicarProjecao,
   valorInicial,       // pré-preenche o campo valor (opcional)
   contextoExtra,      // string extra adicionada ao prompt (opcional)
+  inline = false,     // se true, renderiza sem Modal wrapper
+  alocacaoAlvo = null, // [{ tipo, pct, valor }] — quando passado, esconde perfil/objetivo
 }) {
+  const isInline = !!inline;
+  const temAlocacaoAlvo = Array.isArray(alocacaoAlvo) && alocacaoAlvo.length > 0;
+
   const [valor, setValor] = useState(valorInicial != null ? String(valorInicial) : "5000");
   const [perfilId, setPerfilId] = useState("moderado");
   const [objetivoId, setObjetivoId] = useState("renda");
@@ -81,7 +86,9 @@ export default function SugestaoAporte({
 
   const perfil = PERFIS.find(p => p.id === perfilId) || PERFIS[1];
   const objetivo = OBJETIVOS.find(o => o.id === objetivoId) || OBJETIVOS[0];
-  const valorN = parseValorBR(valor) || 0;
+  const valorN = temAlocacaoAlvo
+    ? alocacaoAlvo.reduce((s, c) => s + (c.valor || 0), 0)
+    : (parseValorBR(valor) || 0);
   const cdiN = parseValorBR(taxaCdi) || 10.5;
 
   // Detecta provedor: prefere Gemini (key em localStorage), fallback Claude (apiKey prop)
@@ -142,13 +149,41 @@ export default function SugestaoAporte({
         .join("\n") || "(carteira vazia)";
 
       // 4) Prompt estruturado pedindo JSON
-      const pergunta = `
+      // Branch: alocação-alvo (modo inline) vs perfil+objetivo (modo modal clássico)
+      let cabecalho;
+      if (temAlocacaoAlvo) {
+        const linhasAloc = alocacaoAlvo
+          .map(c => {
+            const lbl = ({
+              acao: "Ações BR", fii: "FIIs", stock: "Stocks US", reit: "REITs",
+              etf: "ETFs", cripto: "Cripto", rf: "Renda Fixa",
+              tesouro: "Tesouro", cdb: "CDB", outro: "Outros",
+            })[c.tipo] || c.tipo;
+            return `- ${lbl} (${c.tipo}): ${Number(c.pct || 0).toFixed(1)}% (R$ ${Number(c.valor || 0).toFixed(2)})`;
+          })
+          .join("\n");
+        cabecalho = `
+Tenho **R$ ${valorN.toFixed(2)}** disponíveis para aportar AGORA.
+
+Aloque o valor distribuído conforme a seguinte **alocação-alvo por classe** (vinda da minha simulação Monte sua Carteira):
+${linhasAloc}
+
+CDB pós-fixado disponível: 100% do CDI a ${cdiN.toFixed(2)}% a.a. (≈ ${(cdiN / 12).toFixed(2)}% a.m.).
+${contextoExtra ? `\n${contextoExtra}\n` : ""}
+        `.trim();
+      } else {
+        cabecalho = `
 Tenho **R$ ${valorN.toFixed(2)}** disponíveis para aportar AGORA.
 
 Perfil: **${perfil.label}** (alocação alvo: ${perfil.aloc.cdb}% CDB, ${perfil.aloc.fii}% FII, ${perfil.aloc.acao}% Ação).
 Objetivo principal: **${objetivo.label}** — ${objetivo.desc}.
 CDB pós-fixado disponível: 100% do CDI a ${cdiN.toFixed(2)}% a.a. (≈ ${(cdiN / 12).toFixed(2)}% a.m.).
 ${contextoExtra ? `\n${contextoExtra}\n` : ""}
+        `.trim();
+      }
+
+      const pergunta = `
+${cabecalho}
 
 ═══ MINHA CARTEIRA ATUAL ═══
 ${carteiraResumo}
@@ -160,7 +195,9 @@ ${linhasAcoes}
 ${linhasFiis}
 
 ANÁLISE PEDIDA:
-Sugira a **melhor alocação concreta** para esse aporte agora, respeitando o perfil e objetivo.
+${temAlocacaoAlvo
+  ? "Sugira a **melhor alocação concreta** respeitando os percentuais informados acima. Para FIIs e Ações, escolha os melhores tickers do catálogo."
+  : "Sugira a **melhor alocação concreta** para esse aporte agora, respeitando o perfil e objetivo."}
 
 Para cada classe (CDB, FII, AÇÃO), responda em JSON exato no formato:
 
@@ -182,7 +219,7 @@ REGRAS:
 - "qtd" é número INTEIRO de cotas que cabem no orçamento daquela classe.
 - "valor" = qtd × preço atual.
 - Limite cada top3 a no máximo 3 tickers. Pode ser menos se o valor não couber.
-- "razao" em até 12 palavras explicando por que esse ticker faz sentido AGORA para o perfil/objetivo.
+- "razao" em até 12 palavras explicando por que esse ticker faz sentido AGORA${temAlocacaoAlvo ? " para a alocação-alvo" : " para o perfil/objetivo"}.
 - "resumo" em até 50 palavras.
 - Devolva SOMENTE o JSON entre as marcações \`\`\`json ... \`\`\` (sem texto antes nem depois).
       `.trim();
@@ -220,60 +257,98 @@ REGRAS:
     }
   };
 
-  if (!open) return null;
+  // Modo modal: respeita prop `open`. Modo inline: sempre renderiza.
+  if (!isInline && !open) return null;
 
-  return (
-    <Modal title={<><Sparkles size={18} style={{ display: "inline", marginRight: 8, color: T.gold }} />Sugestão de Aporte · IA</>} onClose={onClose} wide>
+  // Resumo da alocação-alvo (modo inline): "FIIs 28% · Ações 16.5% · ..."
+  const resumoAlocacaoAlvo = temAlocacaoAlvo
+    ? alocacaoAlvo
+        .map(c => {
+          const lbl = ({
+            acao: "Ações", fii: "FIIs", stock: "Stocks", reit: "REITs",
+            etf: "ETFs", cripto: "Cripto", rf: "Renda Fixa",
+            tesouro: "Tesouro", cdb: "CDB", outro: "Outros",
+          })[c.tipo] || c.tipo;
+          return `${lbl} ${Number(c.pct || 0).toFixed(1)}%`;
+        })
+        .join(" · ")
+    : "";
+
+  const conteudo = (
+    <>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
-        {/* Inputs principais */}
+        {/* Card de resumo (inline mode): mostra alocação-alvo recebida */}
+        {temAlocacaoAlvo && (
+          <div style={{
+            padding: 10, background: T.bgSoft, border: `1px solid ${T.border}`,
+            borderLeft: `3px solid ${T.gold}`, borderRadius: 8,
+          }}>
+            <div className="label-eyebrow" style={{ marginBottom: 4 }}>
+              Alocação-alvo (Monte sua Carteira)
+            </div>
+            <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.5 }}>
+              Aporte total: <strong className="num" style={{ color: T.ink }}>R$ {valorN.toFixed(2)}</strong>
+              <br />
+              Distribuição: <span style={{ color: T.ink }}>{resumoAlocacaoAlvo}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Inputs principais — esconde campo Valor quando temAlocacaoAlvo */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Field label="Valor a investir (R$)" required>
-            <input type="text" inputMode="decimal"
-                   value={valor}
-                   onChange={e => setValor(e.target.value)}
-                   placeholder="5000"
-                   autoFocus />
-          </Field>
+          {!temAlocacaoAlvo && (
+            <Field label="Valor a investir (R$)" required>
+              <input type="text" inputMode="decimal"
+                     value={valor}
+                     onChange={e => setValor(e.target.value)}
+                     placeholder="5000"
+                     autoFocus />
+            </Field>
+          )}
           <Field label="CDI atual (% a.a.)" hint="Default: Selic ~10,5%">
             <input type="text" inputMode="decimal"
                    value={taxaCdi}
                    onChange={e => setTaxaCdi(e.target.value)} />
           </Field>
-          <Field label="Objetivo">
-            <select value={objetivoId} onChange={e => setObjetivoId(e.target.value)}>
-              {OBJETIVOS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-            </select>
-          </Field>
+          {!temAlocacaoAlvo && (
+            <Field label="Objetivo">
+              <select value={objetivoId} onChange={e => setObjetivoId(e.target.value)}>
+                {OBJETIVOS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </Field>
+          )}
         </div>
 
-        {/* Perfil */}
-        <div>
-          <div className="label-eyebrow" style={{ marginBottom: 8 }}>Perfil de risco</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {PERFIS.map(p => {
-              const ativo = p.id === perfilId;
-              return (
-                <button key={p.id} onClick={() => setPerfilId(p.id)}
-                        style={{
-                          padding: "10px 16px",
-                          background: ativo ? `${p.cor}22` : T.card,
-                          border: `1px solid ${ativo ? p.cor : T.border}`,
-                          color: ativo ? p.cor : T.muted,
-                          fontSize: 12, fontWeight: 600, borderRadius: 8,
-                          cursor: "pointer", letterSpacing: ".03em",
-                          display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3,
-                          minWidth: 120,
-                        }}>
-                  <span>{p.label}</span>
-                  <span style={{ fontSize: 9.5, color: ativo ? p.cor : T.faint, fontWeight: 500 }}>
-                    {p.aloc.cdb}% CDB · {p.aloc.fii}% FII · {p.aloc.acao}% Ação
-                  </span>
-                </button>
-              );
-            })}
+        {/* Perfil — escondido em modo inline (alocacaoAlvo substitui) */}
+        {!temAlocacaoAlvo && (
+          <div>
+            <div className="label-eyebrow" style={{ marginBottom: 8 }}>Perfil de risco</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {PERFIS.map(p => {
+                const ativo = p.id === perfilId;
+                return (
+                  <button key={p.id} onClick={() => setPerfilId(p.id)}
+                          style={{
+                            padding: "10px 16px",
+                            background: ativo ? `${p.cor}22` : T.card,
+                            border: `1px solid ${ativo ? p.cor : T.border}`,
+                            color: ativo ? p.cor : T.muted,
+                            fontSize: 12, fontWeight: 600, borderRadius: 8,
+                            cursor: "pointer", letterSpacing: ".03em",
+                            display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3,
+                            minWidth: 120,
+                          }}>
+                    <span>{p.label}</span>
+                    <span style={{ fontSize: 9.5, color: ativo ? p.cor : T.faint, fontWeight: 500 }}>
+                      {p.aloc.cdb}% CDB · {p.aloc.fii}% FII · {p.aloc.acao}% Ação
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Botão */}
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -282,7 +357,9 @@ REGRAS:
             {loading ? (
               <><Loader2 size={14} className="inline mr-2 spin" />Analisando…</>
             ) : (
-              <><Sparkles size={14} className="inline mr-2" />Buscar melhor opção</>
+              <><Sparkles size={14} className="inline mr-2" />
+                {temAlocacaoAlvo ? "Buscar sugestões" : "Buscar melhor opção"}
+              </>
             )}
           </button>
           {provedor ? (
@@ -327,7 +404,7 @@ REGRAS:
             valorTotal={valorN}
             onAplicar={(opcao) => {
               onAplicarProjecao?.(opcao);
-              onClose?.();
+              if (!isInline) onClose?.();
               toast.success(`${opcao.ticker} carregado na Projeção. Ajuste prazo e taxa se quiser.`);
             }}
           />
@@ -338,6 +415,14 @@ REGRAS:
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
+    </>
+  );
+
+  if (isInline) return conteudo;
+
+  return (
+    <Modal title={<><Sparkles size={18} style={{ display: "inline", marginRight: 8, color: T.gold }} />Sugestão de Aporte · IA</>} onClose={onClose} wide>
+      {conteudo}
     </Modal>
   );
 }

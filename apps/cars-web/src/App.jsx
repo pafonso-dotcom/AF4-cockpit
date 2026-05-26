@@ -992,7 +992,7 @@ export default function App() {
             )}
             {tab === "monte-carteira" && (
               <div className="px-6 md:px-10">
-                <MonteSuaCarteira ativos={ativos} />
+                <MonteSuaCarteira ativos={ativos} apiKey={apiKeys.anthropic} />
               </div>
             )}
             {tab === "proventos" && (

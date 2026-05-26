@@ -119,7 +119,6 @@ function HeaderHorizontal({
       { id: "mercado",        label: "Mercado",             icon: LineIcon },
       { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
       { id: "simulador",      label: "Simulador",           icon: Calculator },
-      { id: "calc-renda",     label: "Renda Mensal",        icon: Calculator },
     ],
     negocio: [
       { id: "negocio-painel",   label: "Painel",   icon: Store },
@@ -475,7 +474,6 @@ function HeaderVertical({
       { id: "mercado",        label: "Mercado",             icon: LineIcon },
       { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
       { id: "simulador",      label: "Simulador",           icon: Calculator },
-      { id: "calc-renda",     label: "Renda Mensal",        icon: Calculator },
     ],
     negocio: [
       { id: "negocio-painel",   label: "Painel",   icon: Store },
