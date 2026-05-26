@@ -43,9 +43,15 @@ export function frias(historico, n = 8) {
     .map(([num]) => +num);
 }
 
-/** Pontuação heurística por dezena: combina frequência e atraso */
-export function scores(historico, { pesoFreq = 0.6, pesoAtraso = 0.4 } = {}) {
-  const f = frequencias(historico);
+/**
+ * Pontuação heurística por dezena: combina frequência e atraso.
+ * Defaults vêm do grid search sobre 500 concursos reais (ver
+ * data/grid-top.json e RELATORIO-EXECUTIVO.md):
+ *   wFreq=0.7, wAtraso=0.0, janela=100 → menor prejuízo no backtest (-29.67%).
+ */
+export function scores(historico, { pesoFreq = 0.7, pesoAtraso = 0.0, janela = 100 } = {}) {
+  const fonte = janela > 0 && historico.length > janela ? historico.slice(-janela) : historico;
+  const f = frequencias(fonte);
   const a = atrasos(historico);
   const maxF = Math.max(...Object.values(f), 1);
   const maxA = Math.max(...Object.values(a), 1);

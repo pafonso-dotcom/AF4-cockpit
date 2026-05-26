@@ -46,6 +46,14 @@ export async function listarConcursos({ limite = 200 } = {}) {
   }
   const local = lerLocal();
   if (local.length) return local;
+  // Histórico oficial empacotado · 3197 concursos (set/2003 → set/2024)
+  try {
+    const res = await fetch("./concursos.json");
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length) return data;
+    }
+  } catch {}
   return MOCK_CONCURSOS;
 }
 

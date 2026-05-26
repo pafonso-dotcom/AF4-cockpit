@@ -57,3 +57,25 @@ export function analisarJogo(jogo) {
   const soma = jogo.reduce((a, b) => a + b, 0);
   return { pares, impares: 15 - pares, primos, fib, moldura, miolo, soma };
 }
+
+/**
+ * Faixas estatisticamente típicas extraídas da análise de 3197 concursos
+ * (ver data/RELATORIO-EXECUTIVO.md). Cobrem ~70-80% dos sorteios reais.
+ */
+export const FAIXAS_TIPICAS = {
+  pares:    { min: 6, max: 9 },   // moda 7 (31%), 7-8 cobre 56%, 6-9 cobre 89%
+  soma:     { min: 170, max: 220 },// 70% dos sorteios caem aqui
+  primos:   { min: 4, max: 7 },   // 5-6 cobre 60%, 4-7 cobre 91%
+  moldura:  { min: 8, max: 11 },  // 9-10 cobre 61%, 8-11 cobre 90%
+};
+
+/** Verifica se um jogo cai dentro das faixas estatisticamente típicas */
+export function dentroDasFaixas(jogo, faixas = FAIXAS_TIPICAS) {
+  const a = analisarJogo(jogo);
+  return (
+    a.pares    >= faixas.pares.min    && a.pares    <= faixas.pares.max &&
+    a.soma     >= faixas.soma.min     && a.soma     <= faixas.soma.max &&
+    a.primos   >= faixas.primos.min   && a.primos   <= faixas.primos.max &&
+    a.moldura  >= faixas.moldura.min  && a.moldura  <= faixas.moldura.max
+  );
+}
