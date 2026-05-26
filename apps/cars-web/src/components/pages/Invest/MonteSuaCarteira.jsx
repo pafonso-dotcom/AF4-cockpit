@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { Wrench, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import AlocacaoPieChart from "../../ui/AlocacaoPieChart.jsx";
 import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS } from "../../../lib/invest-constants.js";
+import { calcAlocacaoPorClasse } from "../../../lib/invest-utils.js";
 import {
   ATALHOS_MIX,
   calcularAlocacaoPorMix,
@@ -53,14 +54,40 @@ const HINT_OBJETIVO = {
   reserva:     "Tesouro · CDB · liquidez",
 };
 
-export default function MonteSuaCarteira() {
+export default function MonteSuaCarteira({ ativos = [] }) {
   const [valor, setValor] = useState(DEFAULT_VALOR);
   const [mix, setMix]     = useState(DEFAULT_MIX);
+  const [modo, setModo]   = useState("manual"); // "manual" | "ia"
 
   const aplicarAtalho = (atalho) => setMix(atalho.mix);
   const onSliderMix   = (key, v) => setMix(prev => ajustarMix(prev, key, v));
 
   const alocacao = useMemo(() => calcularAlocacaoPorMix(mix), [mix]);
+
+  // Carteira atual do usuário agregada por classe (Map { tipo: valor })
+  const carteiraAtual = useMemo(() => {
+    const r = {};
+    for (const a of calcAlocacaoPorClasse(ativos)) r[a.tipo] = a.valor;
+    return r;
+  }, [ativos]);
+
+  // Tickers ativos por classe — ordenado por valor desc (Map { tipo: [{ ticker, valor }] })
+  const ticketsPorClasse = useMemo(() => {
+    const r = {};
+    for (const a of ativos || []) {
+      const qtd = Number(a.qtd || 0);
+      const preco = Number(a.preco || 0);
+      const v = qtd * preco;
+      if (v <= 0 || !a.ticker) continue;
+      const k = a.tipo || "outro";
+      if (!r[k]) r[k] = [];
+      r[k].push({ ticker: a.ticker, valor: v });
+    }
+    for (const k of Object.keys(r)) {
+      r[k].sort((x, y) => y.valor - x.valor);
+    }
+    return r;
+  }, [ativos]);
 
   // Dados pro pie chart — filtra fatias minúsculas pra não poluir
   const pieData = useMemo(() => {
@@ -186,26 +213,55 @@ export default function MonteSuaCarteira() {
         </div>
       </section>
 
-      {/* ============ SEÇÃO 3 · placeholder Manual/IA (PR 2) ============ */}
-      <section className="mc-placeholder" style={{
-        marginBottom: 10,
-        padding: 10,
-        background: T.bgSoft,
-        border: `2px dashed ${T.border}`,
-        borderRadius: 8,
-        minHeight: 56,
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-        color: T.muted,
+      {/* ============ SEÇÃO 3 · Modo Manual / IA ============ */}
+      <section className="mc-card" style={{
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        padding: 12, marginBottom: 10,
       }}>
-        <Wrench size={16} style={{ color: T.gold, flexShrink: 0 }} />
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: T.ink, marginBottom: 1 }}>
-            3 · Modo Manual / IA
-          </div>
-          <div style={{ fontSize: 11, fontStyle: "italic" }}>
-            Escolha de ativos individuais (manual ou sugerido por IA) — vem no PR 2.
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          marginBottom: 10, gap: 10, flexWrap: "wrap",
+        }}>
+          <div className="label-eyebrow">3 · Como preencher</div>
+          <div style={{ display: "inline-flex", gap: 4, background: T.bgSoft, padding: 3, borderRadius: 6, border: `1px solid ${T.border}` }}>
+            {[
+              { id: "manual", label: "Manual" },
+              { id: "ia",     label: "Com IA" },
+            ].map(opt => (
+              <button key={opt.id} onClick={() => setModo(opt.id)}
+                style={{
+                  padding: "5px 12px", borderRadius: 4, cursor: "pointer",
+                  fontSize: 11.5, fontWeight: 600,
+                  background: modo === opt.id ? T.gold : "transparent",
+                  color: modo === opt.id ? T.bg : T.muted,
+                  border: "none",
+                }}>
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
+
+        {modo === "manual" && (
+          <ModoManual
+            alocacao={alocacao}
+            valor={valor}
+            carteiraAtual={carteiraAtual}
+            ticketsPorClasse={ticketsPorClasse}
+          />
+        )}
+
+        {modo === "ia" && (
+          <div style={{
+            padding: 14, background: T.bgSoft, border: `2px dashed ${T.border}`, borderRadius: 8,
+            display: "flex", alignItems: "center", gap: 10, color: T.muted,
+          }}>
+            <Sparkles size={16} style={{ color: T.gold, flexShrink: 0 }} />
+            <div style={{ fontSize: 11.5, fontStyle: "italic" }}>
+              Sugestão automática de tickers por classe via IA — vem no PR 3.
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ============ SEÇÃO 4 · placeholder renda estimada (PR 3) ============ */}
@@ -347,6 +403,114 @@ function LinhaAloc({ label, cor, pct, valor }) {
           {fmtBRL.format(valor)}
         </span>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Modo Manual: pra cada classe da alocação resultante (com pct > 0.5),
+ * mostra target × atual + lista compacta de tickers atuais.
+ */
+function ModoManual({ alocacao, valor, carteiraAtual, ticketsPorClasse }) {
+  const classes = alocacao.filter(a => a.pct >= 0.5);
+  if (classes.length === 0) {
+    return (
+      <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>
+        Configure o mix de objetivos pra ver a alocação por classe.
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      {classes.map(a => (
+        <ClasseBreakdown
+          key={a.tipo}
+          tipo={a.tipo}
+          pct={a.pct}
+          target={valor * (a.pct / 100)}
+          atual={carteiraAtual[a.tipo] || 0}
+          tickers={ticketsPorClasse[a.tipo] || []}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ClasseBreakdown({ tipo, pct, target, atual, tickers }) {
+  const diff = target - atual;
+  const corClasse = ASSET_CLASS_COLORS[tipo] || T.muted;
+  const label = ASSET_CLASS_LABELS[tipo] || tipo;
+  const corDiff = Math.abs(diff) < target * 0.02
+    ? T.gold
+    : (diff > 0 ? T.green : T.red);
+  const labelDiff = Math.abs(diff) < target * 0.02
+    ? "no alvo"
+    : (diff > 0 ? `aportar ${fmtBRL.format(diff)}` : `excesso ${fmtBRL.format(-diff)}`);
+  const top = tickers.slice(0, 5);
+  const restante = tickers.length - top.length;
+
+  return (
+    <div style={{
+      background: T.bgSoft, border: `1px solid ${T.border}`,
+      borderLeft: `3px solid ${corClasse}`, borderRadius: 6, padding: 10,
+    }}>
+      {/* Cabeçalho: classe + target + diff */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>{label}</span>
+          <span className="num" style={{ fontSize: 11, color: corClasse, fontWeight: 600 }}>
+            {pct.toFixed(1)}%
+          </span>
+          <span className="num" style={{ fontSize: 11, color: T.muted }}>
+            · alvo {fmtBRL.format(target)}
+          </span>
+        </div>
+        <span className="num" style={{
+          fontSize: 11, fontWeight: 600, color: corDiff,
+          padding: "2px 8px", borderRadius: 100,
+          background: `${corDiff}11`, border: `1px solid ${corDiff}55`,
+        }}>
+          {labelDiff}
+        </span>
+      </div>
+
+      {/* Linha atual */}
+      <div style={{ fontSize: 11, color: T.muted, marginTop: 3 }}>
+        Você tem hoje: <span className="num" style={{ color: T.ink }}>{fmtBRL.format(atual)}</span>
+        {tickers.length > 0 && (
+          <span style={{ color: T.faint }}>
+            {" "}· {tickers.length} {tickers.length === 1 ? "ativo" : "ativos"}
+          </span>
+        )}
+      </div>
+
+      {/* Lista de tickers (top 5) ou aviso de classe vazia */}
+      {tickers.length === 0 ? (
+        <div style={{ fontSize: 11, color: T.faint, fontStyle: "italic", marginTop: 4 }}>
+          Você ainda não tem ativos nesta classe.
+        </div>
+      ) : (
+        <div style={{
+          display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6,
+          fontSize: 11,
+        }}>
+          {top.map(t => (
+            <span key={t.ticker} style={{
+              background: T.card, border: `1px solid ${T.border}`,
+              padding: "2px 7px", borderRadius: 4, fontFamily: T.serif,
+              display: "inline-flex", alignItems: "center", gap: 5,
+            }}>
+              <span style={{ fontWeight: 600 }}>{t.ticker}</span>
+              <span style={{ color: T.muted, fontSize: 10 }}>{fmtBRL.format(t.valor)}</span>
+            </span>
+          ))}
+          {restante > 0 && (
+            <span style={{ color: T.muted, fontSize: 10.5, alignSelf: "center", fontStyle: "italic" }}>
+              +{restante} mais
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
