@@ -385,7 +385,7 @@ function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaC
               </span>
             )}
             {analise.foraDoModelo.length > 0 && (
-              <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 700, marginLeft: 6, padding: "1px 6px", background: "#fbbf2422", borderRadius: 3 }}>
+              <span style={{ fontSize: 10, color: T.ink, fontWeight: 700, marginLeft: 6, padding: "1px 6px", background: `${T.ink}1a`, borderRadius: 3 }}>
                 {analise.foraDoModelo.length} fora
               </span>
             )}
@@ -490,14 +490,23 @@ function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaC
             );
           })}
 
-          {/* Fora do modelo — lista visual com cards */}
-          {analise.foraDoModelo.length > 0 && (
+          {/* Fora do modelo — lista visual com cards
+              Segmentos que JÁ aparecem nos tickers do modelo ganham um chip verde
+              "✓ mesma categoria" pra sinalizar que é candidato natural a entrar. */}
+          {analise.foraDoModelo.length > 0 && (() => {
+            // Set de segmentos presentes no modelo (pra detectar overlap)
+            const segmentosNoModelo = new Set(
+              (classeConfig.tickers || [])
+                .map(t => (t.segmento || "").trim().toLowerCase())
+                .filter(Boolean)
+            );
+            return (
             <div style={{ marginTop: 14 }}>
               <div style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
-                fontSize: 11, color: "#fbbf24", letterSpacing: ".08em", textTransform: "uppercase",
+                fontSize: 11, color: T.ink, letterSpacing: ".08em", textTransform: "uppercase",
                 fontWeight: 700, marginBottom: 6,
-                paddingBottom: 4, borderBottom: `1px solid #fbbf2455`,
+                paddingBottom: 4, borderBottom: `1px solid ${T.border}`,
               }}>
                 <span>
                   <AlertCircle size={11} className="inline mr-1" />
@@ -508,23 +517,36 @@ function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaC
                 </span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                {analise.foraDoModelo.map(f => (
+                {analise.foraDoModelo.map(f => {
+                  const segNorm = (f.segmento || "").trim().toLowerCase();
+                  const mesmaCategoria = segNorm && segmentosNoModelo.has(segNorm);
+                  const barraCor = mesmaCategoria ? T.green : T.ink;
+                  return (
                   <div key={f.ticker} style={{
                     background: T.bgSoft, border: `1px solid ${T.border}`,
-                    borderLeft: `3px solid #fbbf24`,
+                    borderLeft: `3px solid ${barraCor}`,
                     borderRadius: 8, padding: "9px 12px",
                     display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center",
                   }}>
                     <div style={{
-                      padding: "4px 9px", background: "#fbbf2422", color: "#fbbf24",
+                      padding: "4px 9px", background: `${T.ink}1a`, color: T.ink,
                       fontSize: 11, fontWeight: 700, borderRadius: 5, letterSpacing: ".03em",
                       minWidth: 64, textAlign: "center",
                     }}>
                       {f.ticker}
                     </div>
-                    <div style={{ minWidth: 0, fontSize: 11, color: T.muted }}>
-                      {f.qtd} × {fmt(f.preco)}
-                      {f.segmento && <span style={{ marginLeft: 6, fontStyle: "italic", color: T.faint }}>· {f.segmento}</span>}
+                    <div style={{ minWidth: 0, fontSize: 11, color: T.muted, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                      <span>{f.qtd} × {fmt(f.preco)}</span>
+                      {f.segmento && (
+                        <span style={{
+                          padding: "1px 7px", borderRadius: 100,
+                          background: mesmaCategoria ? `${T.green}22` : `${T.muted}1a`,
+                          color: mesmaCategoria ? T.green : T.muted,
+                          fontSize: 10, fontWeight: 600, letterSpacing: ".02em",
+                        }}>
+                          {mesmaCategoria && "✓ "}{f.segmento}
+                        </span>
+                      )}
                     </div>
                     <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       <div className="num" style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>
@@ -535,13 +557,15 @@ function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaC
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
               <div style={{ fontSize: 10.5, color: T.muted, marginTop: 6, fontStyle: "italic" }}>
-                💡 Esses ativos não estão previstos no modelo. Use o botão abaixo pra adicioná-los (duplica automaticamente se for modelo padrão).
+                💡 Esses ativos não estão previstos no modelo. Os marcados com <strong style={{ color: T.green }}>✓</strong> são da mesma categoria/segmento que algum ticker já no modelo — candidatos naturais.
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Botão Adicionar/editar tickers — auto-duplica se for builtin */}
           <button onClick={onEditar}
