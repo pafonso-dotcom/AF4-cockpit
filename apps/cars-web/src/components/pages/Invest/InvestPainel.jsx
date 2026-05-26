@@ -3,12 +3,10 @@ import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, BarC
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
+import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, PROVENTO_REGEX } from "../../../lib/invest-constants.js";
+import { calcAlocacaoPorClasse, calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
 
-const CLASS_LABEL = { acao: "Ações BR", fii: "FIIs", stock: "Stocks US", reit: "REITs", etf: "ETFs", cripto: "Cripto", rf: "Renda Fixa", tesouro: "Tesouro", cdb: "CDB", outro: "Outros" };
-const CLASS_COR = { acao: "#f5a524", fii: "#10b981", stock: "#3b82f6", reit: "#0ea5e9", cripto: "#8b5cf6", etf: "#fbbf24", tesouro: "#22c55e", cdb: "#14b8a6", outro: "#9ca3af", rf: "#06b6d4" };
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-
-const PROV_RE = /provent|dividend|rendiment|juros sobre|jcp\b/i;
 
 export default function InvestPainel({
   ativos = [], transacoes = [], categorias = [],
@@ -38,34 +36,17 @@ export default function InvestPainel({
   }), [ativos]);
 
   // ===== Alocação por classe (donut) =====
-  const alocacao = useMemo(() => {
-    const m = {};
-    ativos.forEach(a => {
-      const v = Number(a.qtd || 0) * Number(a.preco || 0);
-      if (v <= 0) return;
-      const k = a.tipo || "outro";
-      m[k] = (m[k] || 0) + v;
-    });
-    const tot = Object.values(m).reduce((s,v) => s+v, 0) || 1;
-    return Object.entries(m).sort((a,b) => b[1]-a[1]).map(([k,v]) => ({
-      tipo: k, label: CLASS_LABEL[k] || k, valor: v, pct: (v/tot)*100, cor: CLASS_COR[k] || "#9ca3af",
-    }));
-  }, [ativos]);
+  const alocacao = useMemo(() => calcAlocacaoPorClasse(ativos), [ativos]);
 
   // ===== Top 5 ativos por valor =====
   const topAtivos = useMemo(() => {
     return ativos
       .map(a => {
-        const qtd = Number(a.qtd || 0);
-        const pm = Number(a.pm ?? a.precoMedio ?? 0);
-        const preco = Number(a.preco || 0);
-        const valor = qtd * preco;
-        const custo = qtd * pm;
-        const rentab = custo > 0 ? ((valor - custo) / custo) * 100 : 0;
-        return { ativo: a, valor, custo, rentab };
+        const r = calcRentabilidadeAtivo(a);
+        return { ativo: a, valor: r.valor, custo: r.custo, rentab: r.pctGanho };
       })
       .filter(x => x.valor > 0)
-      .sort((a,b) => b.valor - a.valor)
+      .sort((a, b) => b.valor - a.valor)
       .slice(0, 5);
   }, [ativos]);
 
@@ -73,12 +54,8 @@ export default function InvestPainel({
   const variacoes = useMemo(() => {
     return ativos
       .map(a => {
-        const qtd = Number(a.qtd || 0);
-        const pm = Number(a.pm ?? a.precoMedio ?? 0);
-        const preco = Number(a.preco || 0);
-        const ganho = qtd * (preco - pm);
-        const pct = pm > 0 ? ((preco - pm) / pm) * 100 : 0;
-        return { ativo: a, ganho, pct };
+        const r = calcRentabilidadeAtivo(a);
+        return { ativo: a, ganho: r.ganho, pct: r.pctGanho };
       })
       .filter(x => isFinite(x.pct) && Number(x.ativo.qtd) > 0);
   }, [ativos]);
@@ -86,7 +63,7 @@ export default function InvestPainel({
   const topLoss = useMemo(() => [...variacoes].sort((a,b) => a.pct - b.pct).slice(0, 3), [variacoes]);
 
   // ===== Proventos do mês + série 12m =====
-  const ehProvento = (tx) => tx?.tipo === "receita" && (PROV_RE.test(tx.categoria || "") || PROV_RE.test(tx.descricao || ""));
+  const ehProvento = (tx) => tx?.tipo === "receita" && (PROVENTO_REGEX.test(tx.categoria || "") || PROVENTO_REGEX.test(tx.descricao || ""));
   const proventosMes = useMemo(() => {
     const mesISO = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}`;
     return transacoes
@@ -265,12 +242,12 @@ function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
         ) : items.map(({ ativo, valor, rentab }) => (
           <button key={ativo.id} onClick={() => onAnalisar?.(ativo)}
             style={{ width: "100%", background: "transparent", border: "none", padding: "8px 0", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", textAlign: "left", borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: CLASS_COR[ativo.tipo] || T.gold, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 10, flexShrink: 0 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 6, background: ASSET_CLASS_COLORS[ativo.tipo] || T.gold, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 10, flexShrink: 0 }}>
               {String(ativo.ticker || "?").slice(0, 2).toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12.5, color: T.ink, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ativo.ticker}</div>
-              <div style={{ fontSize: 10, color: T.muted }}>{CLASS_LABEL[ativo.tipo] || ativo.tipo}</div>
+              <div style={{ fontSize: 10, color: T.muted }}>{ASSET_CLASS_LABELS[ativo.tipo] || ativo.tipo}</div>
             </div>
             <div style={{ textAlign: "right" }}>
               <div className="num" style={{ fontSize: 12, color: T.ink, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(valor)}</div>
