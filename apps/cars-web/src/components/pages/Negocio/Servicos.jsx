@@ -16,7 +16,9 @@ import Modal from "../../ui/Modal.jsx";
  *             clienteId?, veiculoId?, contaDestino, obs }
  *
  * Vendas com servicoId nulo = avulsa (nome livre, sem catálogo).
- * Cria receita no Finanças automaticamente; estornar reverte tudo.
+ * Receita entra na Caixa do Negócio virtual (não cria transação em Finanças).
+ * Despesa do prestador em contratos recorrentes CONTINUA hitando Finanças
+ * (dinheiro real sai da conta do usuário).
  */
 export default function Servicos({
   servicos = [], setServicos,
@@ -27,6 +29,7 @@ export default function Servicos({
   contas = [], setContas,
   transacoes = [], setTransacoes,
   categorias = [],
+  caixaNegocio = { saldo: 0, historico: [] }, setCaixaNegocio,
   hidden,
 }) {
   const [servicoForm, setServicoForm] = useState(null);
@@ -127,7 +130,6 @@ export default function Servicos({
     custo: String(ativos[0]?.custoBase ?? ""),
     clienteId: "",
     veiculoId: "",
-    contaDestino: contas[0]?.nome || "",
     obs: "",
   });
 
@@ -155,10 +157,6 @@ export default function Servicos({
     const custo = Number(vendaForm.custo) || 0;
     if (!nome) { toast.error("Informe o nome do serviço."); return; }
     if (!Number.isFinite(valor) || valor <= 0) { toast.error("Valor inválido."); return; }
-    if (!vendaForm.contaDestino) { toast.error("Selecione a conta destino."); return; }
-
-    const conta = contas.find(c => c.nome === vendaForm.contaDestino);
-    if (!conta) { toast.error("Conta não encontrada."); return; }
 
     const cliente = clientes.find(c => c.id === vendaForm.clienteId);
     const veiculo = veiculos.find(x => x.id === vendaForm.veiculoId);
@@ -174,29 +172,26 @@ export default function Servicos({
       valor, custo,
       clienteId: vendaForm.clienteId || null,
       veiculoId: vendaForm.veiculoId || null,
-      contaDestino: vendaForm.contaDestino,
+      contaDestino: "Caixa do Negócio",
       obs: (vendaForm.obs || "").trim(),
     };
 
-    // Cria receita no Finanças
-    const catServ = categorias.find(c => c.tipo === "receita" && /serv|negocio/i.test(c.nome))?.nome
-                 || categorias.find(c => c.tipo === "receita")?.nome
-                 || "Outros";
-    setTransacoes([{
-      id: uid(),
-      tipo: "receita",
-      descricao: `Serviço · ${partes.join(" · ")}`,
-      categoria: catServ,
-      conta: vendaForm.contaDestino,
-      data: vendaForm.data,
-      valor,
-      compensado: true,
-      fixa: false,
-      obs: `Venda automática do módulo Negócio (serviço ${novaVenda.id})`,
-    }, ...transacoes]);
-
-    setContas(contas.map(c => c.id === conta.id
-      ? { ...c, saldo: (parseFloat(c.saldo) || 0) + valor } : c));
+    // Receita vai pra Caixa do Negócio virtual
+    if (typeof setCaixaNegocio === "function") {
+      setCaixaNegocio(prev => ({
+        saldo: (prev?.saldo || 0) + valor,
+        historico: [{
+          id: uid(),
+          tipo: "venda-servico",
+          data: vendaForm.data,
+          descricao: `Serviço · ${partes.join(" · ")}`,
+          valor,
+          custo,
+          vendaId: novaVenda.id,
+          ts: new Date().toISOString(),
+        }, ...((prev?.historico) || [])],
+      }));
+    }
 
     setVendas([novaVenda, ...vendas]);
     setVendaForm(null);
@@ -205,26 +200,40 @@ export default function Servicos({
   };
 
   const estornarVenda = async (v) => {
+    const isCaixaVirtual = v.contaDestino === "Caixa do Negócio";
     const ok = await confirm({
       title: `Estornar venda de ${v.nome}?`,
-      body: `A venda de ${fmt(v.valor)} será removida, o saldo de ${v.contaDestino} ajustado e a transação no Finanças removida.`,
+      body: isCaixaVirtual
+        ? `A venda de ${fmt(v.valor)} será removida da Caixa do Negócio.`
+        : `A venda de ${fmt(v.valor)} será removida, o saldo de ${v.contaDestino} ajustado e a transação no Finanças removida.`,
       danger: true, confirmLabel: "Estornar",
     });
     if (!ok) return;
 
-    setTransacoes(transacoes.filter(t => !(
-      t.conta === v.contaDestino &&
-      t.valor === v.valor &&
-      t.tipo === "receita" &&
-      t.data === v.data &&
-      (t.obs || "").includes(`serviço ${v.id}`)
-    )));
+    if (isCaixaVirtual) {
+      // Venda nova: estorna na Caixa do Negócio virtual
+      if (typeof setCaixaNegocio === "function") {
+        setCaixaNegocio(prev => ({
+          saldo: (prev?.saldo || 0) - Number(v.valor || 0),
+          historico: ((prev?.historico) || []).filter(h => h.vendaId !== v.id),
+        }));
+      }
+    } else {
+      // Venda antiga (legacy, com conta de Finanças): comportamento original
+      setTransacoes(transacoes.filter(t => !(
+        t.conta === v.contaDestino &&
+        t.valor === v.valor &&
+        t.tipo === "receita" &&
+        t.data === v.data &&
+        (t.obs || "").includes(`serviço ${v.id}`)
+      )));
 
-    const conta = contas.find(c => c.nome === v.contaDestino);
-    if (conta) {
-      setContas(contas.map(c => c.id === conta.id
-        ? { ...c, saldo: (parseFloat(c.saldo) || 0) - Number(v.valor || 0) }
-        : c));
+      const conta = contas.find(c => c.nome === v.contaDestino);
+      if (conta) {
+        setContas(contas.map(c => c.id === conta.id
+          ? { ...c, saldo: (parseFloat(c.saldo) || 0) - Number(v.valor || 0) }
+          : c));
+      }
     }
 
     setVendas(vendas.filter(x => x.id !== v.id));
@@ -251,7 +260,6 @@ export default function Servicos({
     pagarAoFaturar: false,
     recorrencia: "mensal", // mensal | anual
     dataInicio: todayISO(),
-    contaDestino: contas[0]?.nome || "",
     obs: "",
     ativo: true,
   });
@@ -325,7 +333,6 @@ export default function Servicos({
     if (!nome) { toast.error("Informe o nome do contrato."); return; }
     if (!contratoForm.clienteId) { toast.error("Selecione um cliente."); return; }
     if (!Number.isFinite(valor) || valor <= 0) { toast.error("Valor inválido."); return; }
-    if (!contratoForm.contaDestino) { toast.error("Selecione a conta destino."); return; }
 
     const dados = {
       ...contratoForm,
@@ -333,6 +340,7 @@ export default function Servicos({
       servicosIds: contratoForm.servicosIds || [],
       contaPagamento: contratoForm.contaPagamento || "",
       pagarAoFaturar: !!contratoForm.pagarAoFaturar && !!contratoForm.contaPagamento && custo > 0,
+      contaDestino: "Caixa do Negócio",
       obs: (contratoForm.obs || "").trim(),
     };
     if (contratoForm.id) {
@@ -361,14 +369,14 @@ export default function Servicos({
   };
 
   // Gera fatura (= venda) referente à competência atual. Skip se já gerou.
+  // Receita entra na Caixa do Negócio virtual; despesa do prestador (se configurada)
+  // continua hitando Finanças porque é dinheiro real saindo.
   const gerarFatura = (c) => {
     const ref = refAtual(c.recorrencia);
     if (c.ultimaFaturaRef === ref) {
       toast.error(`Fatura de ${ref} já foi gerada.`);
       return;
     }
-    const conta = contas.find(co => co.nome === c.contaDestino);
-    if (!conta) { toast.error(`Conta "${c.contaDestino}" não existe mais. Edite o contrato.`); return; }
 
     const cliente = clientes.find(cl => cl.id === c.clienteId);
     const refLabel = c.recorrencia === "anual" ? `Ano ${ref}` : `${ref.slice(5)}/${ref.slice(0, 4)}`;
@@ -376,6 +384,7 @@ export default function Servicos({
     // Retrocompat: contratos antigos usam servicoId; novos usam servicosIds[]
     const servicosVinc = c.servicosIds || (c.servicoId ? [c.servicoId] : []);
     const primaryServicoId = servicosVinc[0] || c.servicoId || null;
+    const valorReceita = Number(c.valor || 0);
 
     const novaVenda = {
       id: uid(),
@@ -384,32 +393,34 @@ export default function Servicos({
       contratoId: c.id,
       nome: `${c.nome} · ${refLabel}`,
       data: todayISO(),
-      valor: Number(c.valor || 0),
+      valor: valorReceita,
       custo: Number(c.custo || 0),
       clienteId: c.clienteId || null,
       veiculoId: null,
-      contaDestino: c.contaDestino,
+      contaDestino: "Caixa do Negócio",
       obs: `Fatura recorrente · ref ${ref}`,
     };
 
-    const catServ = categorias.find(cat => cat.tipo === "receita" && /serv|negocio|aluguel|recorr/i.test(cat.nome))?.nome
-                 || categorias.find(cat => cat.tipo === "receita")?.nome
-                 || "Outros";
+    // Receita: agora vai pra Caixa do Negócio virtual (não toca em Finanças)
+    if (typeof setCaixaNegocio === "function") {
+      setCaixaNegocio(prev => ({
+        saldo: (prev?.saldo || 0) + valorReceita,
+        historico: [{
+          id: uid(),
+          tipo: "fatura-recorrente",
+          data: todayISO(),
+          descricao: `${c.nome}${cliente ? ` · ${cliente.nome}` : ""} · ${refLabel}`,
+          valor: valorReceita,
+          custo: Number(c.custo || 0),
+          vendaId: novaVenda.id,
+          contratoId: c.id,
+          ts: new Date().toISOString(),
+        }, ...((prev?.historico) || [])],
+      }));
+    }
 
-    const novasTransacoes = [{
-      id: uid(),
-      tipo: "receita",
-      descricao: `${c.nome}${cliente ? ` · ${cliente.nome}` : ""} · ${refLabel}`,
-      categoria: catServ,
-      conta: c.contaDestino,
-      data: todayISO(),
-      valor: Number(c.valor || 0),
-      compensado: true,
-      fixa: false,
-      obs: `Fatura recorrente do módulo Negócio (serviço ${novaVenda.id})`,
-    }];
-
-    // Pagamento ao prestador (despesa automática)
+    // Pagamento ao prestador (despesa automática) — continua em Finanças,
+    // porque é dinheiro real saindo da conta do usuário.
     const custoNum = Number(c.custo || 0);
     const deveGerarDespesa = c.pagarAoFaturar && c.contaPagamento && custoNum > 0;
     const contaPag = deveGerarDespesa ? contas.find(co => co.nome === c.contaPagamento) : null;
@@ -420,7 +431,7 @@ export default function Servicos({
       const catDesp = categorias.find(cat => cat.tipo === "despesa" && /serv|saas|software|ferramenta|negocio/i.test(cat.nome))?.nome
                    || categorias.find(cat => cat.tipo === "despesa")?.nome
                    || "Outros";
-      novasTransacoes.push({
+      const despesa = {
         id: uid(),
         tipo: "despesa",
         descricao: `Pago a prestador · ${c.nome} · ${refLabel}`,
@@ -431,25 +442,18 @@ export default function Servicos({
         compensado: true,
         fixa: false,
         obs: `Pagamento ao prestador · contrato recorrente (serviço ${novaVenda.id})`,
-      });
+      };
+      setTransacoes([despesa, ...transacoes]);
+
+      setContas(contas.map(co => co.id === contaPag.id
+        ? { ...co, saldo: (parseFloat(co.saldo) || 0) - custoNum }
+        : co));
     }
-
-    setTransacoes([...novasTransacoes, ...transacoes]);
-
-    // Ajustes de saldo: receita na contaDestino, despesa na contaPagamento
-    setContas(contas.map(co => {
-      let novoSaldo = parseFloat(co.saldo) || 0;
-      if (co.id === conta.id) novoSaldo += Number(c.valor || 0);
-      if (deveGerarDespesa && contaPag && co.id === contaPag.id) novoSaldo -= custoNum;
-      return (co.id === conta.id || (deveGerarDespesa && contaPag && co.id === contaPag.id))
-        ? { ...co, saldo: novoSaldo }
-        : co;
-    }));
 
     setVendas([novaVenda, ...vendas]);
     setContratos((contratos || []).map(x => x.id === c.id ? { ...x, ultimaFaturaRef: ref } : x));
     if (deveGerarDespesa && contaPag) {
-      toast.success(`Fatura ${refLabel} gerada (receita + despesa) · ${fmt(c.valor)}`);
+      toast.success(`Fatura ${refLabel} gerada (Caixa do Negócio + despesa prestador) · ${fmt(c.valor)}`);
     } else {
       toast.success(`Fatura ${refLabel} gerada · ${fmt(c.valor)}`);
     }
@@ -468,7 +472,7 @@ export default function Servicos({
       <PageHeader
         eyebrow="Negócio · Serviços"
         title="Serviços"
-        sub="Catálogo de serviços com preço/custo + histórico de vendas. Cada venda cria receita no Finanças automaticamente."
+        sub="Catálogo de serviços com preço/custo + histórico de vendas. Receita entra na Caixa do Negócio (não toca em Finanças)."
         action={
           <button onClick={abrirVendaNova} className="btn-gold">
             <Plus size={14} className="inline mr-1.5" /> Registrar venda
@@ -847,15 +851,17 @@ export default function Servicos({
                 </select>
               </Field>
             </div>
-            <Field label="Conta que recebe" required>
-              <select value={vendaForm.contaDestino}
-                      onChange={e => setVendaForm({ ...vendaForm, contaDestino: e.target.value })}>
-                <option value="">Selecione…</option>
-                {contas.map(c => (
-                  <option key={c.id} value={c.nome}>{c.nome} · {fmt(c.saldo || 0)}</option>
-                ))}
-              </select>
-            </Field>
+            <div style={{
+              padding: "10px 12px", marginBottom: 4, borderRadius: 6,
+              background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
+              fontSize: 12, color: T.muted,
+            }}>
+              <span style={{ color: T.muted }}>Recebe em:</span>{" "}
+              <strong style={{ color: T.gold }}>→ Caixa do Negócio</strong>
+              <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3, fontStyle: "italic" }}>
+                Valor entra na Caixa virtual do Negócio (não cria transação em Finanças).
+              </div>
+            </div>
             <Field label="Observações">
               <textarea value={vendaForm.obs} rows={2}
                         onChange={e => setVendaForm({ ...vendaForm, obs: e.target.value })}
@@ -890,7 +896,7 @@ export default function Servicos({
         <Modal title={contratoForm.id ? "Editar contrato" : "Novo contrato recorrente"}
                onClose={() => setContratoForm(null)}>
           <div style={{ fontSize: 12, color: T.muted, marginBottom: 12, fontStyle: "italic" }}>
-            Use pra cobrar serviços que se repetem todo mês (CRM, tráfego pago, app, aluguel, mensalidade…). Cada faturamento cria uma receita no Finanças.
+            Use pra cobrar serviços que se repetem todo mês (CRM, tráfego pago, app, aluguel, mensalidade…). Cada faturamento entra na Caixa do Negócio.
           </div>
           <Field label="Cliente" required>
             <select value={contratoForm.clienteId}
@@ -1008,20 +1014,20 @@ export default function Servicos({
               )}
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Data de início">
-              <input type="date" value={contratoForm.dataInicio}
-                     onChange={e => setContratoForm({ ...contratoForm, dataInicio: e.target.value })} />
-            </Field>
-            <Field label="Conta que recebe" required>
-              <select value={contratoForm.contaDestino}
-                      onChange={e => setContratoForm({ ...contratoForm, contaDestino: e.target.value })}>
-                <option value="">Selecione…</option>
-                {contas.map(c => (
-                  <option key={c.id} value={c.nome}>{c.nome}</option>
-                ))}
-              </select>
-            </Field>
+          <Field label="Data de início">
+            <input type="date" value={contratoForm.dataInicio}
+                   onChange={e => setContratoForm({ ...contratoForm, dataInicio: e.target.value })} />
+          </Field>
+          <div style={{
+            padding: "10px 12px", marginTop: 4, borderRadius: 6,
+            background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
+            fontSize: 12, color: T.muted,
+          }}>
+            <span style={{ color: T.muted }}>Recebe em:</span>{" "}
+            <strong style={{ color: T.gold }}>→ Caixa do Negócio</strong>
+            <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3, fontStyle: "italic" }}>
+              Receita entra na Caixa virtual do Negócio (não cria transação em Finanças).
+            </div>
           </div>
           <Field label="Observações">
             <textarea value={contratoForm.obs} rows={2}
@@ -1042,7 +1048,7 @@ export default function Servicos({
             background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
             fontSize: 11.5, color: T.muted, lineHeight: 1.5,
           }}>
-            💡 <strong style={{ color: T.ink }}>Pago ao prestador</strong> + <strong style={{ color: T.ink }}>Criar despesa ao faturar</strong> geram automaticamente a despesa no Finanças junto com a receita.
+            💡 <strong style={{ color: T.ink }}>Pago ao prestador</strong> + <strong style={{ color: T.ink }}>Criar despesa ao faturar</strong> gera a despesa em Finanças (a receita vai pra Caixa do Negócio).
           </div>
           <div className="flex gap-3 justify-end mt-6">
             <button className="btn-ghost" onClick={() => setContratoForm(null)}>Cancelar</button>

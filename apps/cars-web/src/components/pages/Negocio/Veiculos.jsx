@@ -21,7 +21,10 @@ import Modal from "../../ui/Modal.jsx";
  *     clienteId, contaDestino, obs }
  *
  * Integração com Finanças:
- *   - Venda cria transação de receita na conta destino
+ *   - Venda alimenta a "Caixa do Negócio" virtual (saldo + histórico).
+ *     NÃO cria mais transação em Finanças.
+ *   - Vendas antigas (com conta de Finanças) seguem visíveis na lista —
+ *     contaDestino fica salvo como "Caixa do Negócio" pra novas vendas.
  *   - Custos extras NÃO criam transação por padrão (registra só no veículo);
  *     trade-off: simplifica MVP, evita duplicar lançamento se o user já
  *     registrou a despesa em Finanças.
@@ -33,6 +36,7 @@ export default function Veiculos({
   contas = [], setContas,
   transacoes = [], setTransacoes,
   categorias = [],
+  caixaNegocio = { saldo: 0, historico: [] }, setCaixaNegocio,
   hidden,
 }) {
   const [form, setForm] = useState(null);       // novo/edita veículo
@@ -169,7 +173,6 @@ export default function Veiculos({
     dataVenda: todayISO(),
     valorVenda: "",
     clienteId: clientes[0]?.id || "",
-    contaDestino: contas[0]?.nome || "",
     obs: "",
   });
   const confirmarVenda = () => {
@@ -177,10 +180,6 @@ export default function Veiculos({
     if (!v) return;
     const valor = Number(vendaForm.valorVenda);
     if (!Number.isFinite(valor) || valor <= 0) { toast.error("Valor de venda inválido."); return; }
-    if (!vendaForm.contaDestino) { toast.error("Selecione a conta destino."); return; }
-
-    const conta = contas.find(c => c.nome === vendaForm.contaDestino);
-    if (!conta) { toast.error("Conta não encontrada."); return; }
 
     const custoTotal = custoTotalDe(v);
     const clienteNome = clientes.find(c => c.id === vendaForm.clienteId)?.nome || "Cliente não informado";
@@ -192,29 +191,27 @@ export default function Veiculos({
       valorVenda: valor,
       custoTotal,
       clienteId: vendaForm.clienteId || null,
-      contaDestino: vendaForm.contaDestino,
+      contaDestino: "Caixa do Negócio",
       obs: (vendaForm.obs || "").trim(),
     };
 
-    // Cria receita no Finanças
-    const catVenda = categorias.find(c => c.tipo === "receita" && /venda|veiculo|carro|negocio/i.test(c.nome))?.nome
-                  || categorias.find(c => c.tipo === "receita")?.nome
-                  || "Outros";
-    setTransacoes([{
-      id: uid(),
-      tipo: "receita",
-      descricao: `Venda ${v.modelo}${v.placa ? ` (${v.placa})` : ""} · ${clienteNome}`,
-      categoria: catVenda,
-      conta: vendaForm.contaDestino,
-      data: vendaForm.dataVenda,
-      valor,
-      compensado: true,
-      fixa: false,
-      obs: `Venda automática do módulo Negócio (veículo ${v.id})`,
-    }, ...transacoes]);
-
-    setContas(contas.map(c => c.id === conta.id
-      ? { ...c, saldo: (parseFloat(c.saldo) || 0) + valor } : c));
+    // Receita agora vai pra Caixa do Negócio virtual (não toca em Finanças)
+    if (typeof setCaixaNegocio === "function") {
+      setCaixaNegocio(prev => ({
+        saldo: (prev?.saldo || 0) + valor,
+        historico: [{
+          id: uid(),
+          tipo: "venda-veiculo",
+          data: vendaForm.dataVenda,
+          descricao: `Venda ${v.modelo}${v.placa ? ` (${v.placa})` : ""} · ${clienteNome}`,
+          valor,
+          custo: custoTotal,
+          vendaId: novaVenda.id,
+          veiculoId: v.id,
+          ts: new Date().toISOString(),
+        }, ...((prev?.historico) || [])],
+      }));
+    }
 
     setVendas([novaVenda, ...vendas]);
     setVeiculos(veiculos.map(x => x.id === v.id ? { ...x, vendido: true, vendaId: novaVenda.id } : x));
@@ -227,28 +224,42 @@ export default function Veiculos({
   const estornarVenda = async (v) => {
     const vd = vendaPorVeiculoId[v.id];
     if (!vd) return;
+    const isCaixaVirtual = vd.contaDestino === "Caixa do Negócio";
     const ok = await confirm({
       title: `Estornar venda de ${v.modelo}?`,
-      body: `A venda de ${fmt(vd.valorVenda)} será removida, o saldo da conta ${vd.contaDestino} ajustado e o veículo volta pro estoque. A transação criada no Finanças também será removida.`,
+      body: isCaixaVirtual
+        ? `A venda de ${fmt(vd.valorVenda)} será removida da Caixa do Negócio e o veículo volta pro estoque.`
+        : `A venda de ${fmt(vd.valorVenda)} será removida, o saldo da conta ${vd.contaDestino} ajustado e o veículo volta pro estoque. A transação criada no Finanças também será removida.`,
       danger: true, confirmLabel: "Estornar",
     });
     if (!ok) return;
 
-    // Remove transação correspondente
-    setTransacoes(transacoes.filter(t => !(
-      t.conta === vd.contaDestino &&
-      t.valor === vd.valorVenda &&
-      t.tipo === "receita" &&
-      t.data === vd.dataVenda &&
-      (t.obs || "").includes(`veículo ${v.id}`)
-    )));
+    if (isCaixaVirtual) {
+      // Venda nova: estorna na Caixa do Negócio virtual
+      if (typeof setCaixaNegocio === "function") {
+        setCaixaNegocio(prev => ({
+          saldo: (prev?.saldo || 0) - Number(vd.valorVenda || 0),
+          historico: ((prev?.historico) || []).filter(h => h.vendaId !== vd.id),
+        }));
+      }
+    } else {
+      // Venda antiga (com conta de Finanças): mantém comportamento legado
+      // Remove transação correspondente
+      setTransacoes(transacoes.filter(t => !(
+        t.conta === vd.contaDestino &&
+        t.valor === vd.valorVenda &&
+        t.tipo === "receita" &&
+        t.data === vd.dataVenda &&
+        (t.obs || "").includes(`veículo ${v.id}`)
+      )));
 
-    // Ajusta saldo da conta
-    const conta = contas.find(c => c.nome === vd.contaDestino);
-    if (conta) {
-      setContas(contas.map(c => c.id === conta.id
-        ? { ...c, saldo: (parseFloat(c.saldo) || 0) - Number(vd.valorVenda || 0) }
-        : c));
+      // Ajusta saldo da conta
+      const conta = contas.find(c => c.nome === vd.contaDestino);
+      if (conta) {
+        setContas(contas.map(c => c.id === conta.id
+          ? { ...c, saldo: (parseFloat(c.saldo) || 0) - Number(vd.valorVenda || 0) }
+          : c));
+      }
     }
 
     setVendas(vendas.filter(x => x.id !== vd.id));
@@ -261,7 +272,7 @@ export default function Veiculos({
       <PageHeader
         eyebrow="Negócio · Veículos"
         title="Veículos"
-        sub="Entrada e estoque, custos extras (despachante, vistoria, conserto) e registro de venda — cria receita no Finanças automaticamente."
+        sub="Entrada e estoque, custos extras (despachante, vistoria, conserto) e registro de venda — receita entra na Caixa do Negócio."
         action={
           <button onClick={abrirNovo} className="btn-gold">
             <Plus size={14} className="inline mr-1.5" /> Novo veículo
@@ -464,15 +475,17 @@ export default function Veiculos({
                 ))}
               </select>
             </Field>
-            <Field label="Conta que recebe" required>
-              <select value={vendaForm.contaDestino}
-                      onChange={e => setVendaForm({ ...vendaForm, contaDestino: e.target.value })}>
-                <option value="">Selecione…</option>
-                {contas.map(c => (
-                  <option key={c.id} value={c.nome}>{c.nome} · {fmt(c.saldo || 0)}</option>
-                ))}
-              </select>
-            </Field>
+            <div style={{
+              padding: "10px 12px", marginBottom: 4, borderRadius: 6,
+              background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
+              fontSize: 12, color: T.muted,
+            }}>
+              <span style={{ color: T.muted }}>Recebe em:</span>{" "}
+              <strong style={{ color: T.gold }}>→ Caixa do Negócio</strong>
+              <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3, fontStyle: "italic" }}>
+                Valor entra na Caixa virtual do Negócio (não cria transação em Finanças).
+              </div>
+            </div>
             <Field label="Observações">
               <textarea value={vendaForm.obs} rows={2}
                         onChange={e => setVendaForm({ ...vendaForm, obs: e.target.value })}
