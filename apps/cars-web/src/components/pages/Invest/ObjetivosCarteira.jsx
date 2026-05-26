@@ -491,20 +491,20 @@ function TreeOrgNode({ node, tree, valorPorNo, valorAlvo, distribuicaoAporte, ap
       {temFilhos && (
         <>
           {/* linha vertical descendo do pai */}
-          <div style={{ width: 2, height: 12, background: T.border }} />
+          <div style={{ width: 1.5, height: 8, background: T.border }} />
           {/* container dos filhos com linha horizontal conectora */}
-          <div style={{ position: "relative", display: "flex", gap: 10, paddingTop: 0 }}>
+          <div style={{ position: "relative", display: "flex", gap: 6, paddingTop: 0 }}>
             {/* Linha horizontal só aparece se 2+ filhos */}
             {filhos.length >= 2 && (
               <div style={{
                 position: "absolute", top: -2, left: "10%", right: "10%",
-                height: 2, background: T.border,
+                height: 1.5, background: T.border,
               }} />
             )}
             {filhos.map(f => (
               <div key={f.id} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                 {/* Linha vertical curta de cada filho subindo até a horizontal */}
-                <div style={{ width: 2, height: 10, background: T.border }} />
+                <div style={{ width: 1.5, height: 6, background: T.border }} />
                 <TreeOrgNode
                   node={f}
                   tree={tree}
@@ -599,36 +599,36 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
     return (
       <div style={{
         background: `linear-gradient(135deg, ${corStatus}22, ${T.card})`,
-        border: `1.5px solid ${corStatus}`,
-        borderRadius: 8,
-        padding: 8, minWidth: 130, maxWidth: 160,
+        border: `1px solid ${corStatus}`,
+        borderRadius: 6,
+        padding: 6, minWidth: 108, maxWidth: 132,
         position: "relative",
       }}>
         {/* Botão editar — canto sup esq */}
         <button onClick={() => onEditar(node)} title="Editar"
                 style={{
-                  position: "absolute", top: -8, left: -8,
-                  width: 18, height: 18, borderRadius: "50%",
+                  position: "absolute", top: -6, left: -6,
+                  width: 15, height: 15, borderRadius: "50%",
                   background: T.card, border: `1px solid ${T.border}`,
                   color: T.muted, cursor: "pointer",
                   display: "grid", placeItems: "center",
                 }}>
-          <Edit3 size={9} />
+          <Edit3 size={8} />
         </button>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
           <div style={{
-            width: 22, height: 22, borderRadius: 5,
+            width: 18, height: 18, borderRadius: 4,
             background: `${corClasse}22`, color: corClasse,
             display: "grid", placeItems: "center", flexShrink: 0,
           }}>
-            <Icon size={11} />
+            <Icon size={9} />
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: T.ink, lineHeight: 1.15 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: T.ink, lineHeight: 1.15 }}>
               {node.label}
             </div>
-            <div className="num" style={{ fontSize: 13.5, color: T.gold, fontWeight: 700 }}>
+            <div className="num" style={{ fontSize: 12, color: T.gold, fontWeight: 700, lineHeight: 1.1 }}>
               {Number(node.percent).toFixed(1)}%
             </div>
           </div>
@@ -636,19 +636,19 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
 
         {alvo > 0 && (
           <>
-            <div style={{ height: 3, background: T.border, borderRadius: 999, overflow: "hidden", marginTop: 3 }}>
+            <div style={{ height: 2, background: T.border, borderRadius: 999, overflow: "hidden", marginTop: 2 }}>
               <div style={{ width: `${pctAlvo}%`, height: "100%", background: corStatus, transition: "width .4s" }} />
             </div>
-            <div style={{ fontSize: 9, color: T.muted, marginTop: 4, textAlign: "center" }}>
+            <div style={{ fontSize: 8.5, color: T.muted, marginTop: 3, textAlign: "center", lineHeight: 1.2 }}>
               {hidden ? "•••" : fmt(atual)} / {hidden ? "•••" : fmt(alvo)}
             </div>
             {!noAlvo && (
-              <div style={{ fontSize: 9, color: corStatus, marginTop: 1, textAlign: "center", fontWeight: 600 }}>
+              <div style={{ fontSize: 8.5, color: corStatus, marginTop: 1, textAlign: "center", fontWeight: 600 }}>
                 {abaixo ? `Falta ${hidden ? "•••" : fmt(-diff)}` : `Sobra ${hidden ? "•••" : fmt(diff)}`}
               </div>
             )}
             {noAlvo && (
-              <div style={{ fontSize: 9, color: T.green, marginTop: 1, textAlign: "center", fontWeight: 600 }}>
+              <div style={{ fontSize: 8.5, color: T.green, marginTop: 1, textAlign: "center", fontWeight: 600 }}>
                 <CheckCircle2 size={8} className="inline mr-1" /> No alvo
               </div>
             )}
@@ -658,31 +658,31 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
         {/* Aporte sugerido + botão IA — só pra folhas com aporte > 0 */}
         {!temFilhos && temAporte && (
           <div style={{
-            marginTop: 6, padding: "5px 6px",
+            marginTop: 4, padding: "3px 5px",
             background: `${T.gold}15`, border: `1px solid ${T.gold}55`,
-            borderRadius: 5,
+            borderRadius: 4,
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <span style={{ fontSize: 8.5, color: T.gold, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>
+              <span style={{ fontSize: 8, color: T.gold, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>
                 Aportar
               </span>
-              <span style={{ fontSize: 8.5, color: T.faint }}>
+              <span style={{ fontSize: 8, color: T.faint }}>
                 {pctDoAporte.toFixed(0)}%
               </span>
             </div>
-            <div className="num" style={{ fontSize: 11.5, fontWeight: 700, color: T.gold, lineHeight: 1.1, marginTop: 1 }}>
+            <div className="num" style={{ fontSize: 10.5, fontWeight: 700, color: T.gold, lineHeight: 1.1, marginTop: 1 }}>
               {hidden ? "•••" : fmt(aporteSugerido)}
             </div>
             <button onClick={() => onSugerir(node, aporteSugerido)} title="Sugerir ticker com IA"
                     style={{
-                      marginTop: 4, width: "100%",
+                      marginTop: 3, width: "100%",
                       background: T.gold, color: T.bg,
-                      border: "none", padding: "2px 5px",
-                      fontSize: 9, fontWeight: 700, borderRadius: 3,
+                      border: "none", padding: "2px 4px",
+                      fontSize: 8.5, fontWeight: 700, borderRadius: 3,
                       cursor: "pointer", letterSpacing: ".03em",
                       display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3,
                     }}>
-              <Sparkles size={8} /> IA
+              <Sparkles size={7} /> IA
             </button>
           </div>
         )}
@@ -691,19 +691,19 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
         {!temFilhos && !temAporte && abaixo && (
           <button onClick={() => onSugerir(node)} title="Sugerir aporte com IA"
                   style={{
-                    marginTop: 6, width: "100%",
+                    marginTop: 4, width: "100%",
                     background: `${T.gold}22`, color: T.gold,
-                    border: `1px solid ${T.gold}55`, padding: "3px 5px",
-                    fontSize: 9.5, fontWeight: 700, borderRadius: 4,
+                    border: `1px solid ${T.gold}55`, padding: "2px 5px",
+                    fontSize: 9, fontWeight: 700, borderRadius: 4,
                     cursor: "pointer",
                     display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3,
                   }}>
-            <Sparkles size={9} /> IA aporte
+            <Sparkles size={8} /> IA aporte
           </button>
         )}
 
         {/* Ações no rodapé */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 2, marginTop: 5, paddingTop: 4, borderTop: `1px dashed ${T.border}` }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 2, marginTop: 4, paddingTop: 3, borderTop: `1px dashed ${T.border}` }}>
           <button onClick={() => onVer && onVer(node)} title="Ver ativos deste objetivo"
                   style={iconBtnStyle(T.gold)}>
             <Eye size={9} />
@@ -811,7 +811,7 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
 
 const iconBtnStyle = (cor) => ({
   background: "transparent", border: "none", color: cor,
-  cursor: "pointer", padding: 2, minHeight: 18,
+  cursor: "pointer", padding: 1, minHeight: 14,
   display: "inline-flex", alignItems: "center", justifyContent: "center",
   borderRadius: 3,
 });
