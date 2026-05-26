@@ -6,13 +6,16 @@
 
 ## Problema
 
-O app hoje tem 3 ferramentas relacionadas, mas separadas no menu:
+O app hoje tem **4 ferramentas relacionadas**, separadas no menu:
 
-1. **Modelo** (`CarteiraModelo.jsx`) — templates manuais de carteira (Iniciante, Completo, Custom) com % alvo por classe, comparação com a carteira atual e distribuição de aporte mensal.
-2. **Sugestão de Aporte** (`SugestaoAporte.jsx`) — usada hoje só como modal dentro de outras telas. IA (Gemini → Claude fallback) recebe valor + perfil + objetivo e devolve recomendações estruturadas por classe, com preços via Brapi.
-3. **Renda Mensal** (`CalculadoraRenda.jsx`) — simulador de renda fixa: valor + taxa + IR + inflação → projeção de renda mensal nos 3 cenários (bruto/líquido/preserva), com snowball e reserva acumulada.
+1. **Modelo** (`CarteiraModelo.jsx`, 748 linhas) — templates manuais de carteira (Iniciante, Completo, Custom) com % alvo por classe, comparação com a carteira atual e distribuição de aporte mensal.
+2. **Objetivos** (`ObjetivosCarteira.jsx`, 1064 linhas) — árvore livre de objetivos (org-chart estilo IdV) com % alvo por nó, comparação com carteira atual, aporte mensal distribuído pelas folhas. **Funcionalmente sobrepõe Modelo** (mesma tarefa via UX diferente).
+3. **Sugestão de Aporte** (`SugestaoAporte.jsx`, 473 linhas) — usada hoje só como modal dentro de outras telas. IA (Gemini → Claude fallback) recebe valor + perfil + objetivo e devolve recomendações estruturadas por classe, com preços via Brapi.
+4. **Renda Mensal** (`CalculadoraRenda.jsx`, 706 linhas) — simulador de renda fixa: valor + taxa + IR + inflação → projeção de renda mensal nos 3 cenários (bruto/líquido/preserva), com snowball e reserva acumulada.
 
-O usuário precisa pular entre 3 telas pra fazer uma tarefa que deveria ser uma só: **"tenho R$ X, onde aplico pra atingir meu objetivo?"**.
+Além disso, varredura do módulo identificou **duplicação cruzada** entre InvestPainel, CarteiraSaude, Projecao, Proventos, AnaliseCarteira (KPI cards, cálculo de alocação por classe, cálculo de rentabilidade, pie chart de alocação, constantes CLASS_LABEL/CLASS_COR, regex de provento).
+
+O usuário precisa pular entre 4 telas pra fazer uma tarefa que deveria ser uma só: **"tenho R$ X, onde aplico pra atingir meu objetivo?"**.
 
 ## Solução
 
@@ -123,7 +126,27 @@ Soma ponderada pelo valor R$ em cada classe = renda mensal estimada **líquida**
 - Extrair função pura `calcularRendaMensal(carteira, yields)` pra reuso na seção 4.
 - A tela atual continua acessível pra simulações livres de renda fixa (sem carteira) **enquanto a fase 3 não remove a aba do menu**.
 
-## Decomposição em fases (3 PRs)
+## Decomposição em fases (5 PRs)
+
+### PR 0 — Utils compartilhados (preparatório)
+
+Antes de mexer nas telas, extrai duplicações cruzadas pra `lib/`:
+
+- **`lib/invest-constants.js`** (novo)
+  - `ASSET_CLASS_LABELS` ({ acao, fii, stock, reit, etf, cripto, tesouro, cdb, ... })
+  - `ASSET_CLASS_COLORS` (Ações → `#f5a524`, FIIs → `#10b981`, etc.)
+  - `PROVENTO_REGEX` (`/provent|dividend|rendiment|juros|jcp/i`)
+
+- **`lib/invest-utils.js`** (novo)
+  - `calcAlocacaoPorClasse(ativos)` → `[{ classe, valor, pct, cor }]` — usado hoje em InvestPainel e CarteiraSaude com código idêntico.
+  - `calcRentabilidadeAtivo(ativo)` → `{ custo, valor, ganho, pctGanho }` — usado em InvestPainel.
+  - `calcCarteiraSaude(ativos)` → `{ score, herfindahl, pctLucro, ... }` — extrai a lógica de Health hoje em CarteiraSaude.
+
+- **`components/ui/KpiCard.jsx`** (novo) — variantes `hero`, `standard`, `cell`. Substitui 5 implementações inline em InvestPainel, Projecao, AnaliseCarteira, CarteiraSaude, Proventos.
+
+- **`components/ui/AlocacaoPieChart.jsx`** (novo) — props `data, total, hidden`. Substitui PieChart duplicado em InvestPainel e CarteiraSaude.
+
+- Atualiza imports nos 5 callsites; sem mudança visual.
 
 ### PR 1 — Esqueleto da tela
 - Nova aba **"Monte sua Carteira"** no menu Invest (substitui temporariamente "Modelo"; "Renda Mensal" segue separada).
@@ -142,12 +165,22 @@ Soma ponderada pelo valor R$ em cada classe = renda mensal estimada **líquida**
 - Integra como conteúdo da seção 3 quando "Manual" está selecionado.
 - A aba antiga "Modelo" passa a redirecionar pra "Monte sua Carteira" (ou some).
 
-### PR 3 — Modo IA + renda estimada + cleanup
+### PR 3 — Modo IA + renda estimada
 - Refator de `SugestaoAporte.jsx` pra aceitar modo inline + alocação-alvo como input.
 - Integra na seção 3 quando "Com IA" está selecionado.
-- Seção 4: extrai cálculo de renda mensal pra função pura; renderiza card de renda estimada.
+- Seção 4: extrai cálculo de renda mensal pra função pura `calcularRendaCarteira(carteira)`; renderiza card de renda estimada.
 - Remove abas **"Modelo"** e **"Renda Mensal"** do menu (`apps/cars-web/src/components/Header.jsx`).
 - Mantém arquivos antigos por 1 ciclo caso precise rollback; remove em PR de cleanup separada.
+
+### PR 4 — Consolida Objetivos (opcional, separado)
+
+ObjetivosCarteira (1064 linhas) duplica funcionalmente a Carteira Modelo. Decidir nesta fase:
+
+- **Opção A**: remover a aba "Objetivos" e dar redirect pra "Monte sua Carteira" (perde a UX de árvore livre estilo IdV).
+- **Opção B**: manter Objetivos como "modo avançado" pra quem quer árvore hierárquica (mantém UX, deduplica só os utils via PR 0).
+- **Opção C**: incorporar a árvore como uma terceira opção na seção 3 ("Manual / IA / Árvore").
+
+Decisão a ser tomada após PR 3 mergeado (quando se vê na prática se a árvore agrega valor além do mix de 3 objetivos).
 
 ## Decisões / Trade-offs
 
@@ -172,3 +205,5 @@ Soma ponderada pelo valor R$ em cada classe = renda mensal estimada **líquida**
 - Salvar carteiras propostas como template do usuário
 - Comparar 2 mixes lado a lado
 - Exportar PDF da carteira proposta
+- Refator do PdfCarteira.jsx, Performance.jsx, EvolucaoPatrimonio.jsx, RelatoriosInvest.jsx (sem duplicação significativa identificada — auditoria explícita)
+- Outras duplicações cruzadas menores não cobertas pelo PR 0 (table headers em Proventos, formatação de %, etc.)
