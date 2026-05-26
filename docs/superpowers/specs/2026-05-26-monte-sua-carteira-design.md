@@ -172,15 +172,26 @@ Antes de mexer nas telas, extrai duplicações cruzadas pra `lib/`:
 - Remove abas **"Modelo"** e **"Renda Mensal"** do menu (`apps/cars-web/src/components/Header.jsx`).
 - Mantém arquivos antigos por 1 ciclo caso precise rollback; remove em PR de cleanup separada.
 
-### PR 4 — Consolida Objetivos (opcional, separado)
+### PR 4 — Consolida Objetivos (decidido: Opção B, PR #130)
 
-ObjetivosCarteira (1064 linhas) duplica funcionalmente a Carteira Modelo. Decidir nesta fase:
+ObjetivosCarteira (1064 linhas) duplica funcionalmente a Carteira Modelo. Após PR 3, decisão tomada:
 
-- **Opção A**: remover a aba "Objetivos" e dar redirect pra "Monte sua Carteira" (perde a UX de árvore livre estilo IdV).
-- **Opção B**: manter Objetivos como "modo avançado" pra quem quer árvore hierárquica (mantém UX, deduplica só os utils via PR 0).
-- **Opção C**: incorporar a árvore como uma terceira opção na seção 3 ("Manual / IA / Árvore").
+- ~~**Opção A**: remover a aba "Objetivos"~~ — perderia a UX de árvore livre estilo IdV
+- ✅ **Opção B**: mantém Objetivos como **modo avançado** pra quem quer árvore hierárquica (já deduplica utils via PR 0)
+- ~~**Opção C**: incorporar a árvore como terceira opção na seção 3~~ — escopo grande sem ganho claro
 
-Decisão a ser tomada após PR 3 mergeado (quando se vê na prática se a árvore agrega valor além do mix de 3 objetivos).
+**Ação tomada (PR #130)**: renomeia menu entry de "Objetivos" → "Objetivos (árvore)" pra clarificar que é alternativa. Sem alteração funcional.
+
+Decisão revisitável: se uso na prática mostrar que "Monte sua Carteira" cobre 100% dos casos, considerar remover Objetivos em PR futura.
+
+## Status final do refactor
+
+Sequência completa entregue em 5 PRs draft:
+- ✅ **PR 0** (#126) — utils + componentes compartilhados (`invest-constants`, `invest-utils`, `KpiCard`, `AlocacaoPieChart`)
+- ✅ **PR 1** (#127) — esqueleto da tela (slider valor + mix de objetivos + alocação resultante + pie chart)
+- ✅ **PR 2** (#128) — modo Manual (target × atual + tickers atuais por classe)
+- ✅ **PR 3** (#129) — modo IA + renda mensal estimada + remove "Renda Mensal" do menu
+- ✅ **PR 4** (#130) — closeout (Objetivos vira "árvore" avançada)
 
 ## Decisões / Trade-offs
 
