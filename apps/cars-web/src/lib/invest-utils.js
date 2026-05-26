@@ -80,3 +80,77 @@ export function calcRentabilidadeAtivo(ativo) {
   const pctGanho = custo === 0 ? 0 : (ganho / custo) * 100;
   return { custo, valor, ganho, pctGanho };
 }
+
+/**
+ * Calcula o score de saúde da carteira (0-100) e métricas auxiliares.
+ *
+ * Score = 30 (base) + scoreDiversidade (0-30) + scoreLucro (0-25) + scoreQtd (0-15),
+ * limitado em 100.
+ *
+ * - scoreDiversidade: cai de 30 (HHI ≤ 0.10) a 0 (HHI ≥ 0.40).
+ * - scoreLucro: pctLucro / 100 × 25.
+ * - scoreQtd: validos.length × 1.5, cap 15 (10 ativos).
+ *
+ * Ativos com `qtd × preco ≤ 0` (ou valores não-numéricos) são ignorados em
+ * todas as métricas. Quando `tipo` está ausente, cai em "outro". Aceita `pm`
+ * (campo atual nas telas) ou `precoMedio` como alias.
+ *
+ * @param {Array<{ tipo?: string, qtd?: number, preco?: number, pm?: number, precoMedio?: number }>} ativos
+ * @returns {{ score: number, herfindahl: number, totalAtivos: number, noLucro: number, pctLucro: number, total: number }}
+ */
+export function calcCarteiraSaude(ativos) {
+  const zeros = { score: 0, herfindahl: 0, totalAtivos: 0, noLucro: 0, pctLucro: 0, total: 0 };
+  if (!Array.isArray(ativos) || ativos.length === 0) return zeros;
+
+  const validos = [];
+  const porClasse = {};
+  let total = 0;
+  for (const a of ativos) {
+    const qtd = Number(a?.qtd);
+    const preco = Number(a?.preco);
+    if (!Number.isFinite(qtd) || !Number.isFinite(preco)) continue;
+    if (qtd <= 0 || preco <= 0) continue;
+    const valor = qtd * preco;
+    const tipo = a?.tipo || "outro";
+    porClasse[tipo] = (porClasse[tipo] || 0) + valor;
+    total += valor;
+    validos.push(a);
+  }
+
+  if (validos.length === 0 || total <= 0) return zeros;
+
+  const herfindahl = Object.values(porClasse).reduce(
+    (s, v) => s + (v / total) ** 2,
+    0,
+  );
+
+  let noLucro = 0;
+  for (const a of validos) {
+    const preco = Number(a.preco);
+    const pmFonte = a.pm !== undefined && a.pm !== null ? a.pm : a.precoMedio;
+    const pmRaw = Number(pmFonte);
+    const pm = Number.isFinite(pmRaw) ? pmRaw : 0;
+    if (preco > pm) noLucro++;
+  }
+  const pctLucro = (noLucro / validos.length) * 100;
+
+  const scoreDiversidade = Math.max(
+    0,
+    Math.min(30, 30 * (1 - (herfindahl - 0.10) / 0.30)),
+  );
+  const scoreLucro = (pctLucro / 100) * 25;
+  const scoreQtd = Math.min(15, validos.length * 1.5);
+  const score = Math.min(
+    100,
+    Math.round(30 + scoreDiversidade + scoreLucro + scoreQtd),
+  );
+
+  return {
+    score,
+    herfindahl,
+    totalAtivos: validos.length,
+    noLucro,
+    pctLucro,
+    total,
+  };
+}
