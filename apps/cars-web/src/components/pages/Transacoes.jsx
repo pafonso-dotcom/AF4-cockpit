@@ -435,11 +435,11 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
       />
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6" style={{ background: T.card, border: `1px solid ${T.border}`, padding: 16 }}>
-        <div className="flex items-center gap-2 flex-1 min-w-[200px]" style={{ background: T.bg, border: `1px solid ${T.border}`, padding: "0 12px" }}>
-          <Search size={14} style={{ color: T.muted }} />
-          <input style={{ border: "none", background: "transparent", flex: 1 }}
-                 placeholder="Buscar por descrição ou observação…" value={search} onChange={e => setSearch(e.target.value)} />
+      <div className="flex flex-wrap gap-2 mb-4" style={{ background: T.card, border: `1px solid ${T.border}`, padding: 10, borderRadius: 6 }}>
+        <div className="flex items-center gap-2 flex-1 min-w-[180px] max-w-[320px]" style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 5, padding: "0 10px" }}>
+          <Search size={13} style={{ color: T.muted, flexShrink: 0 }} />
+          <input style={{ border: "none", background: "transparent", flex: 1, padding: "6px 0", fontSize: 12.5 }}
+                 placeholder="Buscar descrição/obs…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)} style={{ width: "auto", flex: "0 1 160px" }}>
           <option value="todas">Todos os tipos</option>

@@ -282,23 +282,23 @@ export default function ObjetivosCarteira({
 
       {/* Resumo da carteira + aporte mensal */}
       <div style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14,
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10,
       }} className="objetivos-resumo">
         <div style={{
-          background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
-          padding: 14,
+          background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+          padding: 10,
         }}>
           <div className="label-eyebrow">
-            <Wallet size={11} className="inline mr-1" />
+            <Wallet size={10} className="inline mr-1" />
             Patrimônio total
           </div>
           <div className="num" style={{
-            fontFamily: T.serif, fontSize: 26, color: T.ink, fontWeight: 600, marginTop: 4,
+            fontFamily: T.serif, fontSize: 19, color: T.ink, fontWeight: 600, marginTop: 3,
           }}>
             {hidden ? "•••" : fmt(totalCarteira)}
           </div>
-          <div style={{ fontSize: 11, color: T.faint, marginTop: 4 }}>
-            {(ativos || []).filter(a => Number(a.qtd || 0) > 0).length} ativos na carteira
+          <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3 }}>
+            {(ativos || []).filter(a => Number(a.qtd || 0) > 0).length} ativos
           </div>
         </div>
 
@@ -306,24 +306,25 @@ export default function ObjetivosCarteira({
           background: `linear-gradient(135deg, ${T.gold}11, ${T.card})`,
           border: `1px solid ${T.gold}66`,
           borderLeft: `3px solid ${T.gold}`,
-          borderRadius: 12, padding: 14,
+          borderRadius: 8, padding: 10,
         }}>
           <div className="label-eyebrow" style={{ color: T.gold }}>
-            <ArrowRight size={11} className="inline mr-1" />
-            Quanto vai aportar este mês?
+            <ArrowRight size={10} className="inline mr-1" />
+            Aporte deste mês
           </div>
           <input type="text" inputMode="decimal"
                  value={aporteMensal}
                  onChange={e => setAporteMensal(e.target.value)}
                  placeholder="Ex.: 2.500,00"
                  style={{
-                   marginTop: 6, fontSize: 22,
+                   marginTop: 4, fontSize: 16,
                    fontFamily: T.serif, fontWeight: 600,
+                   padding: "5px 8px",
                    border: `1px solid ${T.border}`, background: T.bg,
                  }} />
           {aporteN > 0 && (
-            <div style={{ fontSize: 11, color: T.gold, marginTop: 6, fontWeight: 600 }}>
-              + {fmt(aporteN)} → Total projetado: {fmt(totalCarteira + aporteN)}
+            <div style={{ fontSize: 10.5, color: T.gold, marginTop: 4, fontWeight: 600 }}>
+              + {fmt(aporteN)} → {fmt(totalCarteira + aporteN)}
             </div>
           )}
         </div>
