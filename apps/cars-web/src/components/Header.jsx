@@ -118,7 +118,7 @@ function HeaderHorizontal({
       { id: "proventos",      label: "Proventos",           icon: DollarSign },
       { id: "mercado",        label: "Mercado",             icon: LineIcon },
       { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
-      { id: "simulador",      label: "Simulador",           icon: Calculator },
+      { id: "calc-renda",     label: "Calculadora",         icon: Calculator },
     ],
     negocio: [
       { id: "negocio-painel",   label: "Painel",   icon: Store },
@@ -473,7 +473,7 @@ function HeaderVertical({
       { id: "proventos",      label: "Proventos",           icon: DollarSign },
       { id: "mercado",        label: "Mercado",             icon: LineIcon },
       { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
-      { id: "simulador",      label: "Simulador",           icon: Calculator },
+      { id: "calc-renda",     label: "Calculadora",         icon: Calculator },
     ],
     negocio: [
       { id: "negocio-painel",   label: "Painel",   icon: Store },
