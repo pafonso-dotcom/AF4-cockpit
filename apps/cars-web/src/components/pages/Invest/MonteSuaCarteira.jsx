@@ -10,6 +10,8 @@ import {
   calcularAlocacaoPorMix,
   ajustarMix,
 } from "../../../lib/monte-carteira-config.js";
+import { calcularRendaMensalCarteira } from "../../../lib/yields-base.js";
+import SugestaoAporte from "./SugestaoAporte.jsx";
 
 /**
  * Monte sua Carteira — PR 1 (esqueleto).
@@ -54,7 +56,7 @@ const HINT_OBJETIVO = {
   reserva:     "Tesouro · CDB · liquidez",
 };
 
-export default function MonteSuaCarteira({ ativos = [] }) {
+export default function MonteSuaCarteira({ ativos = [], apiKey = null }) {
   const [valor, setValor] = useState(DEFAULT_VALOR);
   const [mix, setMix]     = useState(DEFAULT_MIX);
   const [modo, setModo]   = useState("manual"); // "manual" | "ia"
@@ -109,6 +111,21 @@ export default function MonteSuaCarteira({ ativos = [] }) {
       a.mix.reserva     === mix.reserva
     )?.id;
   }, [mix]);
+
+  // Alocação-alvo formatada pra IA (apenas classes com >= 0.5%)
+  const alocacaoAlvoIA = useMemo(() => {
+    return alocacao
+      .filter(a => a.pct >= 0.5)
+      .map(a => ({ tipo: a.tipo, pct: a.pct, valor: valor * (a.pct / 100) }));
+  }, [alocacao, valor]);
+
+  // Renda mensal estimada (líquida) baseada em yields-base por classe
+  const rendaEstimada = useMemo(() => {
+    const carteira = alocacao
+      .filter(a => a.pct >= 0.5)
+      .map(a => ({ tipo: a.tipo, valor: valor * (a.pct / 100) }));
+    return calcularRendaMensalCarteira(carteira);
+  }, [alocacao, valor]);
 
   return (
     <div className="fade-up py-6 px-6 mc-root">
@@ -252,38 +269,58 @@ export default function MonteSuaCarteira({ ativos = [] }) {
         )}
 
         {modo === "ia" && (
-          <div style={{
-            padding: 14, background: T.bgSoft, border: `2px dashed ${T.border}`, borderRadius: 8,
-            display: "flex", alignItems: "center", gap: 10, color: T.muted,
-          }}>
-            <Sparkles size={16} style={{ color: T.gold, flexShrink: 0 }} />
-            <div style={{ fontSize: 11.5, fontStyle: "italic" }}>
-              Sugestão automática de tickers por classe via IA — vem no PR 3.
-            </div>
-          </div>
+          <SugestaoAporte
+            inline
+            ativosCarteira={ativos}
+            alocacaoAlvo={alocacaoAlvoIA}
+            apiKey={apiKey}
+          />
         )}
       </section>
 
-      {/* ============ SEÇÃO 4 · placeholder renda estimada (PR 3) ============ */}
-      <section className="mc-placeholder" style={{
-        marginBottom: 10,
-        padding: 10,
-        background: T.bgSoft,
-        border: `2px dashed ${T.border}`,
-        borderRadius: 8,
-        minHeight: 56,
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-        color: T.muted,
+      {/* ============ SEÇÃO 4 · Renda mensal estimada ============ */}
+      <section className="mc-card" style={{
+        background: T.card,
+        border: `1px solid ${T.green}`,
+        borderLeft: `4px solid ${T.green}`,
+        borderRadius: 8, padding: 12, marginBottom: 10,
       }}>
-        <Sparkles size={16} style={{ color: T.gold, flexShrink: 0 }} />
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: T.ink, marginBottom: 1 }}>
-            4 · Renda mensal estimada
+        <div className="label-eyebrow" style={{ color: T.green, marginBottom: 6 }}>
+          4 · Renda mensal estimada
+        </div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+          <div className="num" style={{
+            fontFamily: T.serif, fontSize: 28, fontWeight: 700, color: T.green, lineHeight: 1,
+          }}>
+            {fmtBRL.format(rendaEstimada.rendaMensal)}
           </div>
-          <div style={{ fontSize: 11, fontStyle: "italic" }}>
-            Projeção de renda mensal (dividendos + juros + saque ideal) — vem no PR 3.
+          <div style={{ fontSize: 11, color: T.muted }}>
+            por mês (líquida estimada · {valor > 0 ? ((rendaEstimada.rendaMensal / valor) * 100).toFixed(2) : "0.00"}% a.m.)
           </div>
         </div>
+        <div style={{ fontSize: 11, color: T.muted, marginTop: 8, lineHeight: 1.5 }}>
+          Estimativa baseada em yields médios históricos (FIIs ~0.80%, Tesouro ~0.85%, ações ~0.45% mensal).
+          Yields reais variam — use como referência inicial, não promessa.
+        </div>
+        <details style={{ marginTop: 8 }}>
+          <summary style={{ fontSize: 11, color: T.gold, cursor: "pointer", userSelect: "none" }}>
+            Quebra por classe
+          </summary>
+          <div style={{ marginTop: 6, display: "grid", gap: 3 }}>
+            {rendaEstimada.breakdown.filter(b => b.valor > 0).map(b => (
+              <div key={b.tipo} style={{
+                display: "flex", justifyContent: "space-between", fontSize: 11,
+                padding: "3px 0",
+              }}>
+                <span style={{ color: T.ink }}>{ASSET_CLASS_LABELS[b.tipo] || b.tipo}</span>
+                <span className="num" style={{ color: T.muted }}>
+                  {fmtBRL.format(b.valor)} × {(b.yield * 100).toFixed(2)}% =
+                  <strong style={{ color: T.green, marginLeft: 4 }}>{fmtBRL.format(b.renda)}</strong>
+                </span>
+              </div>
+            ))}
+          </div>
+        </details>
       </section>
 
       <style>{`
