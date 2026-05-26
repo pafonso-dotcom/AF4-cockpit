@@ -293,6 +293,7 @@ export default function Servicos({
     pagarAoFaturar: false,
     recorrencia: "mensal", // mensal | anual
     dataInicio: todayISO(),
+    duracaoMeses: "", // vazio = indeterminado
     obs: "",
     ativo: true,
   });
@@ -306,6 +307,7 @@ export default function Servicos({
       custo: String(c.custo ?? ""),
       contaPagamento: c.contaPagamento || "",
       pagarAoFaturar: c.pagarAoFaturar !== undefined ? c.pagarAoFaturar : (custoNum > 0),
+      duracaoMeses: c.duracaoMeses ? String(c.duracaoMeses) : "",
     });
   };
 
@@ -367,12 +369,14 @@ export default function Servicos({
     if (!contratoForm.clienteId) { toast.error("Selecione um cliente."); return; }
     if (!Number.isFinite(valor) || valor <= 0) { toast.error("Valor inválido."); return; }
 
+    const duracaoMesesN = parseInt(contratoForm.duracaoMeses, 10);
     const dados = {
       ...contratoForm,
       nome, valor, custo,
       servicosIds: contratoForm.servicosIds || [],
       contaPagamento: contratoForm.contaPagamento || "",
       pagarAoFaturar: !!contratoForm.pagarAoFaturar && !!contratoForm.contaPagamento && custo > 0,
+      duracaoMeses: Number.isFinite(duracaoMesesN) && duracaoMesesN > 0 ? duracaoMesesN : null,
       contaDestino: "Caixa do Negócio",
       obs: (contratoForm.obs || "").trim(),
     };
@@ -409,6 +413,16 @@ export default function Servicos({
     if (c.ultimaFaturaRef === ref) {
       toast.error(`Fatura de ${ref} já foi gerada.`);
       return;
+    }
+    // Contrato com duração fixa — bloqueia faturas após o fim
+    if (c.duracaoMeses && c.dataInicio) {
+      const inicio = new Date(c.dataInicio + "T00:00:00");
+      const fim = new Date(inicio); fim.setMonth(fim.getMonth() + c.duracaoMeses);
+      if (new Date() >= fim) {
+        const fimLabel = `${String(fim.getMonth() + 1).padStart(2, "0")}/${fim.getFullYear()}`;
+        toast.error(`Contrato encerrado em ${fimLabel}.`);
+        return;
+      }
     }
 
     const cliente = clientes.find(cl => cl.id === c.clienteId);
@@ -656,6 +670,18 @@ export default function Servicos({
                 // Retrocompat: contratos antigos só têm servicoId; agora usamos servicosIds[]
                 const servicosVinculados = c.servicosIds || (c.servicoId ? [c.servicoId] : []);
                 const qtdServicos = servicosVinculados.length;
+                // Duração fixa: calcula data fim e status (em curso / encerrado)
+                let duracaoInfo = null;
+                if (c.duracaoMeses && c.dataInicio) {
+                  const inicio = new Date(c.dataInicio + "T00:00:00");
+                  const fim = new Date(inicio); fim.setMonth(fim.getMonth() + c.duracaoMeses);
+                  const agora = new Date();
+                  const encerrado = agora >= fim;
+                  const mesesDecorridos = Math.max(0, Math.floor((agora - inicio) / (1000 * 60 * 60 * 24 * 30.44)));
+                  const restantes = Math.max(0, c.duracaoMeses - mesesDecorridos);
+                  const fimLabel = `${String(fim.getMonth() + 1).padStart(2, "0")}/${fim.getFullYear()}`;
+                  duracaoInfo = { encerrado, restantes, fimLabel, total: c.duracaoMeses };
+                }
                 return (
                   <div key={c.id} style={{
                     display: "grid",
@@ -691,6 +717,18 @@ export default function Servicos({
                           <span style={{ fontSize: 9, padding: "1px 6px", background: T.border,
                                          color: T.muted, borderRadius: 3, letterSpacing: ".1em", textTransform: "uppercase" }}>
                             Pausado
+                          </span>
+                        )}
+                        {duracaoInfo && (
+                          <span style={{
+                            fontSize: 9, padding: "1px 6px", borderRadius: 3,
+                            background: duracaoInfo.encerrado ? `${T.red}22` : `${T.blue || "#60a5fa"}22`,
+                            color: duracaoInfo.encerrado ? T.red : (T.blue || "#60a5fa"),
+                            letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700,
+                          }} title={`${duracaoInfo.total} meses · encerra em ${duracaoInfo.fimLabel}`}>
+                            {duracaoInfo.encerrado
+                              ? `Encerrado ${duracaoInfo.fimLabel}`
+                              : `${duracaoInfo.restantes}/${duracaoInfo.total} meses restantes`}
                           </span>
                         )}
                       </div>
@@ -1079,10 +1117,36 @@ export default function Servicos({
               )}
             </div>
           )}
-          <Field label="Data de início">
-            <input type="date" value={contratoForm.dataInicio}
-                   onChange={e => setContratoForm({ ...contratoForm, dataInicio: e.target.value })} />
-          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Data de início">
+              <input type="date" value={contratoForm.dataInicio}
+                     onChange={e => setContratoForm({ ...contratoForm, dataInicio: e.target.value })} />
+            </Field>
+            <Field label="Duração (meses)" hint="Vazio = sem prazo definido">
+              <input type="number" min="1" step="1" value={contratoForm.duracaoMeses || ""}
+                     onChange={e => setContratoForm({ ...contratoForm, duracaoMeses: e.target.value })}
+                     placeholder="ex.: 12" />
+            </Field>
+          </div>
+          {(() => {
+            const meses = parseInt(contratoForm.duracaoMeses, 10);
+            if (!Number.isFinite(meses) || meses <= 0 || !contratoForm.dataInicio) return null;
+            const inicio = new Date(contratoForm.dataInicio + "T00:00:00");
+            const fim = new Date(inicio); fim.setMonth(fim.getMonth() + meses);
+            const fimLabel = `${String(fim.getMonth() + 1).padStart(2, "0")}/${fim.getFullYear()}`;
+            const valorMensal = Number(contratoForm.valor) || 0;
+            const total = valorMensal * meses;
+            return (
+              <div style={{
+                marginTop: -6, marginBottom: 4, padding: "8px 10px",
+                background: `${T.blue || "#60a5fa"}11`, border: `1px solid ${T.blue || "#60a5fa"}33`,
+                borderRadius: 6, fontSize: 11.5, color: T.muted,
+              }}>
+                📅 Encerra em <strong style={{ color: T.ink }}>{fimLabel}</strong>
+                {" · "}Total previsto: <strong className="num" style={{ color: T.ink }}>{fmt(total)}</strong>
+              </div>
+            );
+          })()}
           <div style={{
             padding: "10px 12px", marginTop: 4, borderRadius: 6,
             background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
