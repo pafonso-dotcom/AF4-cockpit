@@ -48,3 +48,35 @@ export function calcAlocacaoPorClasse(ativos) {
     }))
     .sort((a, b) => b.valor - a.valor);
 }
+
+/**
+ * Calcula a rentabilidade de um ativo a partir de quantidade, preço atual e
+ * preço médio de aquisição.
+ *
+ * Aceita `pm` (campo usado nas telas atuais) ou `precoMedio` como alias.
+ * Quando ambos estão presentes, `pm` tem precedência. Valores ausentes ou
+ * não-numéricos são tratados como zero.
+ *
+ * `pctGanho` é `0` quando `custo` é `0` para evitar divisão por zero.
+ *
+ * @param {{ qtd?: number, preco?: number, pm?: number, precoMedio?: number } | null | undefined} ativo
+ * @returns {{ custo: number, valor: number, ganho: number, pctGanho: number }}
+ */
+export function calcRentabilidadeAtivo(ativo) {
+  const qtdRaw = Number(ativo?.qtd);
+  const precoRaw = Number(ativo?.preco);
+  const pmFonte = ativo?.pm !== undefined && ativo?.pm !== null
+    ? ativo.pm
+    : ativo?.precoMedio;
+  const pmRaw = Number(pmFonte);
+
+  const qtd = Number.isFinite(qtdRaw) ? qtdRaw : 0;
+  const preco = Number.isFinite(precoRaw) ? precoRaw : 0;
+  const pm = Number.isFinite(pmRaw) ? pmRaw : 0;
+
+  const custo = qtd * pm;
+  const valor = qtd * preco;
+  const ganho = valor - custo;
+  const pctGanho = custo === 0 ? 0 : (ganho / custo) * 100;
+  return { custo, valor, ganho, pctGanho };
+}

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   calcAlocacaoPorClasse,
+  calcRentabilidadeAtivo,
 } from "../invest-utils.js";
 
 describe("calcAlocacaoPorClasse", () => {
@@ -77,5 +78,68 @@ describe("calcAlocacaoPorClasse", () => {
     expect(res[0].tipo).toBe("exotic");
     expect(res[0].label).toBe("exotic");
     expect(res[0].cor).toBe("#9ca3af");
+  });
+});
+
+describe("calcRentabilidadeAtivo", () => {
+  it("computes custo, valor, ganho and pctGanho for profit", () => {
+    const r = calcRentabilidadeAtivo({ qtd: 10, preco: 25, pm: 20 });
+    // custo = 10 * 20 = 200, valor = 10 * 25 = 250, ganho = 50, pct = 25%
+    expect(r.custo).toBe(200);
+    expect(r.valor).toBe(250);
+    expect(r.ganho).toBe(50);
+    expect(r.pctGanho).toBeCloseTo(25, 5);
+  });
+
+  it("supports precoMedio as alias of pm", () => {
+    const r = calcRentabilidadeAtivo({ qtd: 10, preco: 25, precoMedio: 20 });
+    expect(r.custo).toBe(200);
+    expect(r.ganho).toBe(50);
+    expect(r.pctGanho).toBeCloseTo(25, 5);
+  });
+
+  it("prefers pm when both pm and precoMedio are present", () => {
+    const r = calcRentabilidadeAtivo({ qtd: 1, preco: 100, pm: 50, precoMedio: 80 });
+    expect(r.custo).toBe(50);
+    expect(r.ganho).toBe(50);
+  });
+
+  it("computes negative ganho for loss", () => {
+    const r = calcRentabilidadeAtivo({ qtd: 4, preco: 10, pm: 15 });
+    // custo = 60, valor = 40, ganho = -20, pct = -33.33...
+    expect(r.custo).toBe(60);
+    expect(r.valor).toBe(40);
+    expect(r.ganho).toBe(-20);
+    expect(r.pctGanho).toBeCloseTo(-33.3333333, 5);
+  });
+
+  it("returns pctGanho 0 when custo is 0", () => {
+    const r = calcRentabilidadeAtivo({ qtd: 10, preco: 25, pm: 0 });
+    expect(r.custo).toBe(0);
+    expect(r.valor).toBe(250);
+    expect(r.ganho).toBe(250);
+    expect(r.pctGanho).toBe(0);
+  });
+
+  it("treats missing pm/precoMedio as 0", () => {
+    const r = calcRentabilidadeAtivo({ qtd: 5, preco: 10 });
+    expect(r.custo).toBe(0);
+    expect(r.valor).toBe(50);
+    expect(r.ganho).toBe(50);
+    expect(r.pctGanho).toBe(0);
+  });
+
+  it("handles null / undefined input gracefully", () => {
+    expect(calcRentabilidadeAtivo(null)).toEqual({ custo: 0, valor: 0, ganho: 0, pctGanho: 0 });
+    expect(calcRentabilidadeAtivo(undefined)).toEqual({ custo: 0, valor: 0, ganho: 0, pctGanho: 0 });
+    expect(calcRentabilidadeAtivo({})).toEqual({ custo: 0, valor: 0, ganho: 0, pctGanho: 0 });
+  });
+
+  it("coerces non-numeric strings to 0", () => {
+    const r = calcRentabilidadeAtivo({ qtd: "abc", preco: "xyz", pm: "nope" });
+    expect(r.custo).toBe(0);
+    expect(r.valor).toBe(0);
+    expect(r.ganho).toBe(0);
+    expect(r.pctGanho).toBe(0);
   });
 });
