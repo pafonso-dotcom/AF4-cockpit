@@ -709,7 +709,6 @@ export default function App() {
                          devedores={devedores} dividas={dividas}
                          fixas={fixas} fixaOcorrencias={fixaOcorrencias}
                          agenda={agenda}
-                         patrimonioHistorico={patrimonioHistorico}
                          escopoAtivo={escopoAtivo}
                          onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
                          onContaClick={(c) => { setTab("contas"); setContaAberta(c); }} />
@@ -805,6 +804,7 @@ export default function App() {
                                   categorias={categorias}
                                   fixas={fixas} fixaOcorrencias={fixaOcorrencias}
                                   parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
+                                  patrimonioHistorico={patrimonioHistorico}
                                   escopoAtivo={escopoAtivo}
                                   hidden={hidden} />
             )}
