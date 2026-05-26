@@ -992,7 +992,7 @@ export default function App() {
             )}
             {tab === "monte-carteira" && (
               <div className="px-6 md:px-10">
-                <MonteSuaCarteira />
+                <MonteSuaCarteira ativos={ativos} />
               </div>
             )}
             {tab === "proventos" && (
