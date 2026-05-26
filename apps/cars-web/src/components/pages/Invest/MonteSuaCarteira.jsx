@@ -84,7 +84,7 @@ export default function MonteSuaCarteira() {
   }, [mix]);
 
   return (
-    <div className="fade-up py-8 px-6 mc-root">
+    <div className="fade-up py-6 px-6 mc-root">
       <PageHeader
         eyebrow="Investimentos · Montagem"
         title="Monte sua Carteira"
@@ -94,9 +94,9 @@ export default function MonteSuaCarteira() {
       {/* ============ SEÇÃO 1 · QUANTO INVESTIR ============ */}
       <section className="mc-card" style={{
         background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
-        padding: 16, marginBottom: 14,
+        padding: 12, marginBottom: 10,
       }}>
-        <div className="label-eyebrow" style={{ marginBottom: 10 }}>
+        <div className="label-eyebrow" style={{ marginBottom: 8 }}>
           1 · Quanto investir
         </div>
         <ValorSlider
@@ -111,21 +111,21 @@ export default function MonteSuaCarteira() {
       {/* ============ SEÇÃO 2 · MIX DE OBJETIVOS ============ */}
       <section className="mc-card" style={{
         background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
-        padding: 16, marginBottom: 14,
+        padding: 12, marginBottom: 10,
       }}>
-        <div className="label-eyebrow" style={{ marginBottom: 10 }}>
+        <div className="label-eyebrow" style={{ marginBottom: 8 }}>
           2 · Mix de objetivos
         </div>
 
         {/* Atalhos rápidos */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
           {ATALHOS_MIX.map(a => {
             const ativo = atalhoAtivo === a.id;
             return (
               <button key={a.id} onClick={() => aplicarAtalho(a)}
                 style={{
-                  padding: "8px 14px", borderRadius: 6, cursor: "pointer",
-                  fontSize: 12, fontWeight: 500,
+                  padding: "5px 11px", borderRadius: 6, cursor: "pointer",
+                  fontSize: 11.5, fontWeight: 500,
                   background: ativo ? `${T.gold}22` : T.bgSoft,
                   color: ativo ? T.gold : T.ink,
                   border: `1px solid ${ativo ? T.gold : T.border}`,
@@ -141,11 +141,11 @@ export default function MonteSuaCarteira() {
         <div className="mc-mix-grid" style={{
           display: "grid",
           gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.1fr)",
-          gap: 14,
+          gap: 12,
           alignItems: "start",
         }}>
           {/* Sliders dos 3 objetivos */}
-          <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ display: "grid", gap: 10 }}>
             {["renda", "crescimento", "reserva"].map(key => (
               <ObjetivoSlider
                 key={key}
@@ -161,15 +161,15 @@ export default function MonteSuaCarteira() {
           {/* Alocação resultante: pie + tabela */}
           <div style={{
             background: T.bgSoft, border: `1px solid ${T.border}`,
-            borderRadius: 8, padding: 12,
+            borderRadius: 8, padding: 10,
           }}>
-            <div className="label-eyebrow" style={{ marginBottom: 8 }}>
+            <div className="label-eyebrow" style={{ marginBottom: 6 }}>
               Alocação resultante
             </div>
 
-            <AlocacaoPieChart data={pieData} hidden={false} height={140} />
+            <AlocacaoPieChart data={pieData} hidden={false} height={120} />
 
-            <div style={{ display: "grid", gap: 4, marginTop: 10 }}>
+            <div style={{ display: "grid", gap: 3, marginTop: 8 }}>
               {alocacao
                 .filter(a => a.pct >= 0.5)
                 .map(a => (
@@ -188,21 +188,21 @@ export default function MonteSuaCarteira() {
 
       {/* ============ SEÇÃO 3 · placeholder Manual/IA (PR 2) ============ */}
       <section className="mc-placeholder" style={{
-        marginBottom: 14,
-        padding: 16,
+        marginBottom: 10,
+        padding: 10,
         background: T.bgSoft,
         border: `2px dashed ${T.border}`,
         borderRadius: 8,
-        minHeight: 100,
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+        minHeight: 56,
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
         color: T.muted,
       }}>
-        <Wrench size={20} style={{ color: T.gold, flexShrink: 0 }} />
+        <Wrench size={16} style={{ color: T.gold, flexShrink: 0 }} />
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, marginBottom: 2 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: T.ink, marginBottom: 1 }}>
             3 · Modo Manual / IA
           </div>
-          <div style={{ fontSize: 11.5, fontStyle: "italic" }}>
+          <div style={{ fontSize: 11, fontStyle: "italic" }}>
             Escolha de ativos individuais (manual ou sugerido por IA) — vem no PR 2.
           </div>
         </div>
@@ -210,21 +210,21 @@ export default function MonteSuaCarteira() {
 
       {/* ============ SEÇÃO 4 · placeholder renda estimada (PR 3) ============ */}
       <section className="mc-placeholder" style={{
-        marginBottom: 14,
-        padding: 16,
+        marginBottom: 10,
+        padding: 10,
         background: T.bgSoft,
         border: `2px dashed ${T.border}`,
         borderRadius: 8,
-        minHeight: 100,
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+        minHeight: 56,
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
         color: T.muted,
       }}>
-        <Sparkles size={20} style={{ color: T.gold, flexShrink: 0 }} />
+        <Sparkles size={16} style={{ color: T.gold, flexShrink: 0 }} />
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, marginBottom: 2 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: T.ink, marginBottom: 1 }}>
             4 · Renda mensal estimada
           </div>
-          <div style={{ fontSize: 11.5, fontStyle: "italic" }}>
+          <div style={{ fontSize: 11, fontStyle: "italic" }}>
             Projeção de renda mensal (dividendos + juros + saque ideal) — vem no PR 3.
           </div>
         </div>
@@ -235,9 +235,9 @@ export default function MonteSuaCarteira() {
           .mc-mix-grid { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 480px) {
-          .mc-root { padding-left: 12px !important; padding-right: 12px !important; }
-          .mc-card { padding: 12px !important; }
-          .mc-placeholder { padding: 12px !important; }
+          .mc-root { padding-left: 10px !important; padding-right: 10px !important; padding-top: 16px !important; }
+          .mc-card { padding: 10px !important; margin-bottom: 8px !important; }
+          .mc-placeholder { padding: 8px !important; min-height: 48px !important; }
         }
       `}</style>
     </div>
@@ -253,13 +253,13 @@ function ValorSlider({ value, min, max, step, onChange }) {
     <div>
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "baseline",
-        marginBottom: 6, gap: 10,
+        marginBottom: 4, gap: 10,
       }}>
         <span style={{ fontSize: 12, color: T.ink, fontWeight: 500 }}>
           Valor a investir
         </span>
         <span className="num" style={{
-          fontFamily: T.serif, fontSize: 22, fontWeight: 600, color: T.gold,
+          fontFamily: T.serif, fontSize: 18, fontWeight: 600, color: T.gold,
         }}>
           {fmtBRL.format(value)}
         </span>
@@ -275,7 +275,7 @@ function ValorSlider({ value, min, max, step, onChange }) {
              }} />
       <div style={{
         display: "flex", justifyContent: "space-between",
-        fontSize: 9.5, color: T.faint, marginTop: 2,
+        fontSize: 9.5, color: T.faint, marginTop: 1,
       }}>
         <span>{fmtBRL.format(min)}</span>
         <span>{fmtBRL.format(max)}</span>
@@ -293,13 +293,13 @@ function ObjetivoSlider({ label, hint, value, cor, onChange }) {
     <div>
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "baseline",
-        marginBottom: 4, gap: 10,
+        marginBottom: 2, gap: 10,
       }}>
-        <span style={{ fontSize: 12, color: cor, fontWeight: 600 }}>
+        <span style={{ fontSize: 11.5, color: cor, fontWeight: 600 }}>
           {label}
         </span>
         <span className="num" style={{
-          fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: cor,
+          fontFamily: T.serif, fontSize: 14, fontWeight: 600, color: cor,
         }}>
           {value}%
         </span>
@@ -313,7 +313,7 @@ function ObjetivoSlider({ label, hint, value, cor, onChange }) {
                accentColor: cor,
                cursor: "pointer",
              }} />
-      <div style={{ fontSize: 10.5, color: T.faint, marginTop: 2, fontStyle: "italic" }}>
+      <div style={{ fontSize: 10, color: T.faint, marginTop: 1, fontStyle: "italic" }}>
         {hint}
       </div>
     </div>
@@ -328,22 +328,22 @@ function LinhaAloc({ label, cor, pct, valor }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      gap: 8, fontSize: 12,
+      gap: 8, fontSize: 11.5,
     }}>
-      <div style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
         <span style={{
-          width: 9, height: 9, borderRadius: 2,
+          width: 8, height: 8, borderRadius: 2,
           background: cor, flexShrink: 0,
         }} />
         <span style={{ color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {label}
         </span>
       </div>
-      <div style={{ display: "inline-flex", gap: 10, alignItems: "baseline", flexShrink: 0 }}>
-        <span className="num" style={{ color: cor, fontWeight: 600, fontSize: 12 }}>
+      <div style={{ display: "inline-flex", gap: 8, alignItems: "baseline", flexShrink: 0 }}>
+        <span className="num" style={{ color: cor, fontWeight: 600, fontSize: 11.5 }}>
           {pct.toFixed(1)}%
         </span>
-        <span className="num" style={{ color: T.muted, fontSize: 11 }}>
+        <span className="num" style={{ color: T.muted, fontSize: 10.5 }}>
           {fmtBRL.format(valor)}
         </span>
       </div>
