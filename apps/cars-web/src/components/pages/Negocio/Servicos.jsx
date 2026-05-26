@@ -193,6 +193,8 @@ export default function Servicos({
     custo: "",
     clienteId: "",
     veiculoId: "",
+    instaladorId: "",
+    valorInstalador: "",
     obs: "",
   });
 
@@ -259,6 +261,11 @@ export default function Servicos({
     const servicosIds = vendaForm.servicosIds || [];
     const primaryServicoId = servicosIds[0] || null;
 
+    // Instalador opcional: só registra saída se setou nome + valor > 0
+    const valorInst = Number(vendaForm.valorInstalador) || 0;
+    const temInstalador = !!vendaForm.instaladorId && valorInst > 0;
+    const inst = temInstalador ? instaladores.find(i => i.id === vendaForm.instaladorId) : null;
+
     const novaVenda = {
       id: uid(),
       servicoId: primaryServicoId, // retrocompat
@@ -268,15 +275,18 @@ export default function Servicos({
       valor, custo,
       clienteId: vendaForm.clienteId || null,
       veiculoId: vendaForm.veiculoId || null,
+      instaladorId: temInstalador ? vendaForm.instaladorId : null,
+      valorInstalador: temInstalador ? valorInst : 0,
       contaDestino: "Caixa do Negócio",
       obs: (vendaForm.obs || "").trim(),
     };
 
-    // Receita vai pra Caixa do Negócio virtual
+    // Receita vai pra Caixa do Negócio virtual; se tem instalador, gera
+    // também uma saída "pago-instalador" no mesmo caixa (sem tocar Finanças).
     if (typeof setCaixaNegocio === "function") {
-      setCaixaNegocio(prev => ({
-        saldo: (prev?.saldo || 0) + valor,
-        historico: [{
+      setCaixaNegocio(prev => {
+        const baseHist = (prev?.historico) || [];
+        const entradaReceita = {
           id: uid(),
           tipo: "venda-servico",
           data: vendaForm.data,
@@ -285,14 +295,30 @@ export default function Servicos({
           custo,
           vendaId: novaVenda.id,
           ts: new Date().toISOString(),
-        }, ...((prev?.historico) || [])],
-      }));
+        };
+        let novoSaldo = (prev?.saldo || 0) + valor;
+        let novoHist = [entradaReceita, ...baseHist];
+        if (temInstalador) {
+          novoSaldo -= valorInst;
+          novoHist = [{
+            id: uid(),
+            tipo: "pago-instalador",
+            data: vendaForm.data,
+            descricao: `Pago a ${inst?.nome || "instalador"} · ${nome}`,
+            valor: -valorInst,
+            vendaId: novaVenda.id,
+            instaladorId: vendaForm.instaladorId,
+            ts: new Date().toISOString(),
+          }, ...novoHist];
+        }
+        return { saldo: novoSaldo, historico: novoHist };
+      });
     }
 
     setVendas([novaVenda, ...vendas]);
     setVendaForm(null);
-    const lucro = valor - custo;
-    toast.success(`Serviço registrado · lucro ${fmt(lucro)}`);
+    const lucro = valor - custo - (temInstalador ? valorInst : 0);
+    toast.success(`Serviço registrado · lucro ${fmt(lucro)}${temInstalador ? " (após pago instalador)" : ""}`);
   };
 
   const estornarVenda = async (v) => {
@@ -433,6 +459,8 @@ export default function Servicos({
     if (!Number.isFinite(valor) || valor <= 0) { toast.error("Valor inválido."); return; }
 
     const duracaoMesesN = parseInt(contratoForm.duracaoMeses, 10);
+    const valorInstN = Number(contratoForm.valorInstalador) || 0;
+    const temInstalador = !!contratoForm.instaladorId && valorInstN > 0;
     const dados = {
       ...contratoForm,
       nome, valor, custo,
@@ -440,6 +468,8 @@ export default function Servicos({
       contaPagamento: contratoForm.contaPagamento || "",
       pagarAoFaturar: !!contratoForm.pagarAoFaturar && !!contratoForm.contaPagamento && custo > 0,
       duracaoMeses: Number.isFinite(duracaoMesesN) && duracaoMesesN > 0 ? duracaoMesesN : null,
+      instaladorId: temInstalador ? contratoForm.instaladorId : null,
+      valorInstalador: temInstalador ? valorInstN : 0,
       contaDestino: "Caixa do Negócio",
       obs: (contratoForm.obs || "").trim(),
     };
@@ -496,6 +526,12 @@ export default function Servicos({
     const primaryServicoId = servicosVinc[0] || c.servicoId || null;
     const valorReceita = Number(c.valor || 0);
 
+    // Instalador no contrato (opcional): copia pra venda gerada pra que
+    // saldoMesPorInstalador, chips e estorno funcionem do mesmo jeito que
+    // venda avulsa.
+    const valorInstContrato = Number(c.valorInstalador || 0);
+    const temInstalador = !!c.instaladorId && valorInstContrato > 0;
+
     const novaVenda = {
       id: uid(),
       servicoId: primaryServicoId,
@@ -507,15 +543,19 @@ export default function Servicos({
       custo: Number(c.custo || 0),
       clienteId: c.clienteId || null,
       veiculoId: null,
+      instaladorId: temInstalador ? c.instaladorId : null,
+      valorInstalador: temInstalador ? valorInstContrato : 0,
       contaDestino: "Caixa do Negócio",
       obs: `Fatura recorrente · ref ${ref}`,
     };
 
-    // Receita: agora vai pra Caixa do Negócio virtual (não toca em Finanças)
+    // Receita: agora vai pra Caixa do Negócio virtual (não toca em Finanças).
+    // Se há instalador no contrato, gera também uma saída "pago-instalador"
+    // no mesmo caixa (vinculada por vendaId, igual ao fluxo da venda avulsa).
     if (typeof setCaixaNegocio === "function") {
-      setCaixaNegocio(prev => ({
-        saldo: (prev?.saldo || 0) + valorReceita,
-        historico: [{
+      const inst = temInstalador ? instaladores.find(i => i.id === c.instaladorId) : null;
+      setCaixaNegocio(prev => {
+        const entradaReceita = {
           id: uid(),
           tipo: "fatura-recorrente",
           data: todayISO(),
@@ -525,8 +565,25 @@ export default function Servicos({
           vendaId: novaVenda.id,
           contratoId: c.id,
           ts: new Date().toISOString(),
-        }, ...((prev?.historico) || [])],
-      }));
+        };
+        let novoHistorico = [entradaReceita, ...((prev?.historico) || [])];
+        let novoSaldo = (prev?.saldo || 0) + valorReceita;
+        if (temInstalador) {
+          novoHistorico = [{
+            id: uid(),
+            tipo: "pago-instalador",
+            data: todayISO(),
+            descricao: `Pago a ${inst?.nome || "instalador"} · ${c.nome} · ${refLabel}`,
+            valor: -valorInstContrato,
+            vendaId: novaVenda.id,
+            contratoId: c.id,
+            instaladorId: c.instaladorId,
+            ts: new Date().toISOString(),
+          }, ...novoHistorico];
+          novoSaldo -= valorInstContrato;
+        }
+        return { saldo: novoSaldo, historico: novoHistorico };
+      });
     }
 
     // Pagamento ao prestador (despesa automática) — continua em Finanças,
@@ -1011,7 +1068,8 @@ export default function Servicos({
       {vendaForm && (() => {
         const valor = Number(vendaForm.valor) || 0;
         const custo = Number(vendaForm.custo) || 0;
-        const lucro = valor - custo;
+        const valorInst = vendaForm.instaladorId ? (Number(vendaForm.valorInstalador) || 0) : 0;
+        const lucro = valor - custo - valorInst;
         return (
           <Modal title="Registrar venda de serviço" onClose={() => setVendaForm(null)}>
             <Field label="Serviços do catálogo (opcional, múltiplos)" hint="Adicione 1 ou mais serviços; valor/custo somam automaticamente.">
@@ -1095,6 +1153,23 @@ export default function Servicos({
                 </select>
               </Field>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Instalador (opcional)" hint="Quem executou o serviço">
+                <select value={vendaForm.instaladorId || ""}
+                        onChange={e => setVendaForm({ ...vendaForm, instaladorId: e.target.value })}>
+                  <option value="">— sem instalador —</option>
+                  {instaladores.filter(i => i.ativo !== false).map(i => (
+                    <option key={i.id} value={i.id}>{i.nome}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Pago ao instalador (R$)" hint="Sai do Caixa do Negócio">
+                <input type="number" step="0.01" value={vendaForm.valorInstalador || ""}
+                       onChange={e => setVendaForm({ ...vendaForm, valorInstalador: e.target.value })}
+                       placeholder="0,00"
+                       disabled={!vendaForm.instaladorId} />
+              </Field>
+            </div>
             <div style={{
               padding: "10px 12px", marginBottom: 4, borderRadius: 6,
               background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
@@ -1104,6 +1179,9 @@ export default function Servicos({
               <strong style={{ color: T.gold }}>→ Caixa do Negócio</strong>
               <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3, fontStyle: "italic" }}>
                 Valor entra na Caixa virtual do Negócio (não cria transação em Finanças).
+                {vendaForm.instaladorId && Number(vendaForm.valorInstalador) > 0 && (
+                  <> Pagamento ao instalador sai do mesmo caixa.</>
+                )}
               </div>
             </div>
             <Field label="Observações">
