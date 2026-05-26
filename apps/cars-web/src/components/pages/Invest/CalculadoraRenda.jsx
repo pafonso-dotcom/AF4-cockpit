@@ -16,16 +16,17 @@ import PageHeader from "../../ui/PageHeader.jsx";
 
 const DEFAULTS = {
   valor: 3_000_000,
-  taxaAnualPct: 14.4,
-  irPct: 15,
+  taxaAnualPct: 13.25,
+  irPct: 0,
   inflacaoPct: 4.5,
   cambio: 5.84,
 };
 
 const ATALHOS = [
-  { id: "selic", label: "Tesouro Selic / CDB", taxa: 14.4, ir: 15 },
-  { id: "lci",   label: "LCI / LCA (isento)", taxa: 13.2, ir: 0 },
-  { id: "fii",   label: "Fundos Imobiliários", taxa: 10.5, ir: 0 },
+  { id: "selic",   label: "Tesouro Selic",      taxa: 14.50, ir: 15 },
+  { id: "cdb100",  label: "CDB 100% CDI",       taxa: 14.40, ir: 15 },
+  { id: "cdb110",  label: "CDB 110% CDI",       taxa: 15.84, ir: 15 },
+  { id: "lci92",   label: "LCI / LCA 92% CDI",  taxa: 13.25, ir: 0  },
 ];
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
@@ -164,9 +165,9 @@ export default function CalculadoraRenda() {
           <Slider
             label="Taxa de juros ao ano"
             value={taxaAnualPct}
-            min={5} max={20} step={0.1}
+            min={5} max={20} step={0.01}
             onChange={setTaxa}
-            display={`${taxaAnualPct.toFixed(1)} %`}
+            display={`${taxaAnualPct.toFixed(2)} %`}
           />
           <Slider
             label="IR sobre o rendimento"
@@ -333,9 +334,11 @@ export default function CalculadoraRenda() {
         background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 6,
         fontSize: 11.5, color: T.muted, lineHeight: 1.55, fontStyle: "italic",
       }}>
-        "Saca tudo" retira todo o rendimento líquido; o patrimônio perde poder de
-        compra com a inflação. "Preserva" retira só o juro real, mantendo o valor
-        de compra. Estimativa educativa, não é recomendação de investimento.
+        Cenários usam CDI a ~14,4% a.a. como base. "Saca tudo" retira todo o
+        rendimento líquido; o patrimônio perde poder de compra com a inflação.
+        "Preserva" retira só o juro real, mantendo o valor de compra. LCI/LCA têm
+        limite de garantia FGC de R$ 250 mil por banco e carência. Estimativa
+        educativa, não é recomendação de investimento.
       </div>
 
       <style>{`
