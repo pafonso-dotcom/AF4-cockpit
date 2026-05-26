@@ -1,0 +1,45 @@
+
+========== COVERINGS · greedy + verificação ==========
+
+  16 dezenas · garantia 14 se 14 das 16 saírem…  ✓ 15 apostas · R$ 52.5 · cobertura 120/120 · 0.01s
+  16 dezenas · garantia 13 se 13 das 16 saírem…  ✓ 14 apostas · R$ 49 · cobertura 560/560 · 0.01s
+  16 dezenas · garantia 12 se 12 das 16 saírem…  ✓ 13 apostas · R$ 45.5 · cobertura 1820/1820 · 0.02s
+  17 dezenas · garantia 14 se 14 das 17 saírem…  ✓ 64 apostas · R$ 224 · cobertura 680/680 · 0.01s
+  17 dezenas · garantia 13 se 13 das 17 saírem…  ✓ 44 apostas · R$ 154 · cobertura 2380/2380 · 0.03s
+  17 dezenas · garantia 12 se 12 das 17 saírem…  ✓ 28 apostas · R$ 98 · cobertura 6188/6188 · 0.10s
+  18 dezenas · garantia 13 se 13 das 18 saírem…  ✓ 227 apostas · R$ 794.5 · cobertura 8568/8568 · 0.28s
+  18 dezenas · garantia 12 se 12 das 18 saírem…  ✓ 139 apostas · R$ 486.5 · cobertura 18564/18564 · 0.69s
+  19 dezenas · garantia 12 se 12 das 19 saírem…  ✓ 358 apostas · R$ 1253 · cobertura 50388/50388 · 8.76s
+  20 dezenas · garantia 12 se 12 das 20 saírem…  ⚠ NÃO COBRIU (117334/125970, 50.30s)
+
+[06] 9 matrizes salvas em data/coverings.json
+[06] copiado para public/coverings.json
+
+┌──── Sumário das matrizes ────┐
+│ K  │ g  │ apostas │   custo   │
+│ 16 │ 14 │     15  │ R$   52.5 │
+│ 16 │ 13 │     14  │ R$     49 │
+│ 16 │ 12 │     13  │ R$   45.5 │
+│ 17 │ 14 │     64  │ R$    224 │
+│ 17 │ 13 │     44  │ R$    154 │
+│ 17 │ 12 │     28  │ R$     98 │
+│ 18 │ 13 │    227  │ R$  794.5 │
+│ 18 │ 12 │    139  │ R$  486.5 │
+│ 19 │ 12 │    358  │ R$   1253 │
+
+========== ROI empírico (últimos 200 concursos) ==========
+  base = top-K mais frequentes do histórico
+
+│ K  │ g  │ apostas │   custo total │     prêmio    │      ROI      │ 11+%  │
+│ 16 │ 14 │     15  │ R$     10500 │ R$      2478 │  -76.40% │ 26.0% │
+│ 16 │ 13 │     14  │ R$      9800 │ R$      2352 │  -76.00% │ 26.0% │
+│ 16 │ 12 │     13  │ R$      9100 │ R$      2172 │  -76.13% │ 26.0% │
+│ 17 │ 14 │     64  │ R$     44800 │ R$      9852 │  -78.01% │ 42.0% │
+│ 17 │ 13 │     44  │ R$     30800 │ R$      6984 │  -77.32% │ 42.0% │
+│ 17 │ 12 │     28  │ R$     19600 │ R$      4194 │  -78.60% │ 42.0% │
+│ 18 │ 13 │    227  │ R$    158900 │ R$     35412 │  -77.71% │ 64.0% │
+│ 18 │ 12 │    139  │ R$     97300 │ R$     21894 │  -77.50% │ 64.0% │
+│ 19 │ 12 │    358  │ R$    250600 │ R$     57984 │  -76.86% │ 85.0% │
+
+========== fim ==========
+

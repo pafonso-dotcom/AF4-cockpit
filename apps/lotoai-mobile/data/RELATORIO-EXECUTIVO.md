@@ -107,6 +107,38 @@ valor      = 0.07
 4. **Não prometer o que a estatística não entrega**: nenhuma configuração
    produziu lucro positivo no backtest. Honestidade é diferencial.
 
+## 5 · Matrizes de cobertura (`06-coverings.mjs`)
+
+Geramos matrizes reduzidas via **greedy set-cover com verificação** (cobertura
+de 100% verificada por enumeração de todos os subconjuntos). Resultados:
+
+| K  | g (pts garantidos) | Apostas | Custo R$ | 11+ em 200 concursos |
+|----|--------------------|---------|----------|-----|
+| 16 | 14 | 15  | 52,50  | 26% |
+| 16 | 13 | 14  | 49,00  | 26% |
+| 16 | 12 | 13  | 45,50  | 26% |
+| 17 | 14 | 64  | 224,00 | 42% |
+| 17 | 13 | 44  | 154,00 | 42% |
+| 17 | 12 | 28  | 98,00  | 42% |
+| 18 | 13 | 227 | 794,50 | 64% |
+| 18 | 12 | 139 | 486,50 | 64% |
+| 19 | 12 | 358 | 1.253  | 85% |
+
+**Achados-chave**:
+- **Matrizes reduzidas funcionam matematicamente** mas o ROI continua negativo
+  (-76% a -78%, contra -29% do gerador ponderado e -75% do completo)
+- A regularidade de prêmios aumenta com K: **K=19 dá premiação em 85% dos
+  concursos**, contra 26% com K=16. Mas o custo cresce mais rápido que o prêmio
+- Comparado às matrizes "famosas" da internet (ex: "18 dezenas em 7 apostas"),
+  o nosso greedy verificado pede MUITO mais (139 ou 227 apostas para K=18).
+  As "famosas" provavelmente são **garantias probabilísticas**, não matemáticas
+- K=20 com g=12 não cobriu nos limites do greedy — o problema é NP-hard e
+  cresce explosivamente
+
+**Conclusão prática**: matrizes têm valor para *regularidade* de prêmios
+pequenos, não para lucro. A app salva todas em `public/coverings.json` e
+oferece toggle "completo vs matriz" na UI.
+
 ## Arquivos gerados em `data/`
 
 - `concursos.json` — 3197 concursos normalizados (272 KB)

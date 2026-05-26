@@ -106,3 +106,36 @@ export function resumoFechamento(K) {
     garantias: tabelaGarantias(K),
   };
 }
+
+/* ============================================================
+   Matrizes de cobertura reduzidas
+   ============================================================ */
+
+let _coveringsCache = null;
+
+/** Carrega as matrizes pré-calculadas (lazy, cacheado) */
+export async function loadCoverings() {
+  if (_coveringsCache) return _coveringsCache;
+  try {
+    const res = await fetch("./coverings.json");
+    if (res.ok) {
+      _coveringsCache = await res.json();
+      return _coveringsCache;
+    }
+  } catch {}
+  _coveringsCache = {};
+  return _coveringsCache;
+}
+
+/** Aplica uma matriz salva (índices 1..K) sobre a base real */
+export function aplicarMatriz(matrizIdx, dezenasBase) {
+  const ord = [...dezenasBase].sort((a, b) => a - b);
+  return matrizIdx.map(linha => linha.map(i => ord[i - 1]).sort((a, b) => a - b));
+}
+
+/** Lista as matrizes disponíveis para uma dada base K */
+export function matrizesPara(coverings, K) {
+  return Object.values(coverings || {})
+    .filter(m => m.K === K)
+    .sort((a, b) => b.g - a.g); // garantia maior primeiro
+}
