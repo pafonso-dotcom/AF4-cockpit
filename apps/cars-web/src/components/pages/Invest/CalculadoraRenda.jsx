@@ -142,6 +142,42 @@ export default function CalculadoraRenda() {
     return { ...proj, rendaExtra30 };
   }, [resultado.taxaRealAnual, resultado.rendaRealMes]);
 
+  // Excedente reaplicado: o usuário saca SÓ o valor ideal (nominal congelado),
+  // e o que sobra do líquido mensal (líquido − ideal) volta pro principal.
+  // Como o principal cresce e o saque é fixo, o próximo mês gera mais líquido
+  // → mais excedente → snowball. Mostra principal nominal + real (descontada
+  // inflação) e o líquido mensal projetado em 10/20/30 anos.
+  const excedenteReaplicado = useMemo(() => {
+    const taxa = taxaAnualPct / 100;
+    const ir = irPct / 100;
+    const inflacao = inflacaoPct / 100;
+    const taxaMensal = Math.pow(1 + taxa, 1 / 12) - 1;
+    const sacaFixo = resultado.rendaRealMes; // nominal congelado em R$ de hoje
+
+    let principal = valor;
+    const proj = {};
+    for (let n = 1; n <= 30; n++) {
+      for (let m = 0; m < 12; m++) {
+        const bruto = principal * taxaMensal;
+        const liquido = bruto * (1 - ir);
+        // saca o ideal (fixo) e o que sobra volta pro principal
+        principal = principal + liquido - sacaFixo;
+      }
+      if (n === 10 || n === 20 || n === 30) {
+        const principalReal = principal / Math.pow(1 + inflacao, n);
+        const liquidoMes = principal * taxaMensal * (1 - ir);
+        const liquidoMesReal = liquidoMes / Math.pow(1 + inflacao, n);
+        proj[n] = {
+          nominal: principal,
+          real: principalReal,
+          liquidoMes,
+          liquidoMesReal,
+        };
+      }
+    }
+    return proj;
+  }, [valor, taxaAnualPct, irPct, inflacaoPct, resultado.rendaRealMes]);
+
   return (
     <div className="fade-up py-8 px-6">
       <PageHeader
@@ -264,6 +300,18 @@ export default function CalculadoraRenda() {
               em30Eur={toEur(reserva[30] || 0)}
               rendaExtra30Eur={toEur(reserva.rendaExtra30 || 0)}
               valorIdeal={resultado.rendaRealMes}
+            />
+          )}
+
+          {/* BÔNUS 2: saca o ideal (fixo) e o excedente líquido volta pro
+              principal → snowball que faz o líquido mensal crescer. */}
+          {resultado.rendaRealMes > 0 && (
+            <ExcedenteReaplicadoCard
+              proj={excedenteReaplicado}
+              toEur={toEur}
+              valorIdeal={resultado.rendaRealMes}
+              liquidoMesHoje={resultado.liquidoMes}
+              principalInicial={valor}
             />
           )}
 
@@ -638,6 +686,102 @@ function ReservaCol({ anos, valor, cor, destaque }) {
         fontWeight: 600, color: destaque ? cor : T.ink,
       }}>
         {fmtBRL.format(valor)}
+      </div>
+    </div>
+  );
+}
+
+function ExcedenteReaplicadoCard({ proj, toEur, valorIdeal, liquidoMesHoje, principalInicial }) {
+  const cor = T.purple || "#a78bfa";
+  const p30 = proj[30] || { nominal: 0, real: 0, liquidoMes: 0, liquidoMesReal: 0 };
+  const p20 = proj[20] || { nominal: 0, real: 0, liquidoMes: 0, liquidoMesReal: 0 };
+  const p10 = proj[10] || { nominal: 0, real: 0, liquidoMes: 0, liquidoMesReal: 0 };
+  const excedenteHoje = Math.max(0, liquidoMesHoje - valorIdeal);
+  const ganhoReal30 = p30.real - principalInicial;
+
+  return (
+    <div style={{
+      background: `linear-gradient(135deg, ${cor}22 0%, ${cor}08 60%, ${T.card} 100%)`,
+      border: `1px solid ${cor}`,
+      borderLeft: `4px solid ${cor}`,
+      borderRadius: 10, padding: 16,
+      position: "relative",
+    }}>
+      <div style={{
+        position: "absolute", top: 12, right: 14,
+        fontSize: 9, padding: "3px 8px", borderRadius: 100,
+        background: cor, color: T.bg,
+        fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase",
+      }}>
+        ❄ Snowball
+      </div>
+
+      <div className="label-eyebrow" style={{ color: cor, marginBottom: 6 }}>
+        Excedente reaplicado no principal
+      </div>
+
+      <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 10, lineHeight: 1.45, fontStyle: "italic" }}>
+        Saca só {fmtBRL.format(valorIdeal)}/mês (valor ideal congelado). O que
+        sobra do líquido ({fmtBRL.format(excedenteHoje)}/mês hoje) volta pro
+        principal — que cresce e passa a gerar mais a cada mês.
+      </div>
+
+      <div style={{
+        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10,
+        marginBottom: 10,
+      }}>
+        <ExcedenteCol anos="10 anos" data={p10} cor={cor} />
+        <ExcedenteCol anos="20 anos" data={p20} cor={cor} />
+        <ExcedenteCol anos="30 anos" data={p30} cor={cor} destaque />
+      </div>
+
+      {ganhoReal30 > 0 && (
+        <div style={{
+          marginTop: 10, padding: 10, background: `${cor}15`,
+          border: `1px solid ${cor}33`, borderRadius: 6,
+          fontSize: 12, color: T.ink, lineHeight: 1.5,
+        }}>
+          💡 <strong>Em 30 anos</strong>, mantendo o saque fixo de{" "}
+          {fmtBRL.format(valorIdeal)}/mês, o principal cresce de{" "}
+          {fmtBRL.format(principalInicial)} para{" "}
+          <strong className="num" style={{ color: cor }}>
+            {fmtBRL.format(p30.real)}
+          </strong>{" "}
+          em poder de compra (+{fmtBRL.format(ganhoReal30)}). O líquido
+          mensal projetado vira{" "}
+          <strong className="num" style={{ color: cor }}>
+            {fmtBRL.format(p30.liquidoMesReal)}/mês
+          </strong>{" "}
+          em R$ de hoje (≈ {fmtEUR.format(toEur(p30.liquidoMesReal))}/mês).
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExcedenteCol({ anos, data, cor, destaque }) {
+  return (
+    <div style={{
+      padding: 8, borderRadius: 6,
+      background: destaque ? `${cor}15` : "transparent",
+      border: destaque ? `1px solid ${cor}33` : "1px solid transparent",
+    }}>
+      <div style={{ fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 3 }}>
+        {anos}
+      </div>
+      <div className="num" style={{
+        fontFamily: T.serif,
+        fontSize: destaque ? 17 : 14,
+        fontWeight: 600, color: destaque ? cor : T.ink,
+        lineHeight: 1.1,
+      }}>
+        {fmtBRL.format(data.real)}
+      </div>
+      <div style={{ fontSize: 10, color: T.faint, marginTop: 2 }}>
+        principal real
+      </div>
+      <div className="num" style={{ fontSize: 11.5, color: T.muted, marginTop: 4 }}>
+        {fmtBRL.format(data.liquidoMesReal)}/mês
       </div>
     </div>
   );
