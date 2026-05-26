@@ -67,6 +67,7 @@ import Projecao from "./components/pages/Invest/Projecao.jsx";
 import AnalisesUnificada from "./components/pages/Invest/Analises.jsx";
 import ObjetivosCarteira from "./components/pages/Invest/ObjetivosCarteira.jsx";
 import CarteiraModelo from "./components/pages/Invest/CarteiraModelo.jsx";
+import MonteSuaCarteira from "./components/pages/Invest/MonteSuaCarteira.jsx";
 import InvestPainel from "./components/pages/Invest/InvestPainel.jsx";
 import Performance from "./components/pages/Invest/Performance.jsx";
 import Proventos from "./components/pages/Invest/Proventos.jsx";
@@ -987,6 +988,11 @@ export default function App() {
                   hidden={hidden}
                   apiKeys={apiKeys}
                 />
+              </div>
+            )}
+            {tab === "monte-carteira" && (
+              <div className="px-6 md:px-10">
+                <MonteSuaCarteira />
               </div>
             )}
             {tab === "proventos" && (
