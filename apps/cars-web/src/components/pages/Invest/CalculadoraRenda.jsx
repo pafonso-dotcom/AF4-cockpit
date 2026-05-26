@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Calculator, RefreshCw } from "lucide-react";
+import { Calculator, RefreshCw, Info } from "lucide-react";
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from "recharts";
 import { T } from "../../../lib/theme.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 
@@ -74,6 +75,35 @@ export default function CalculadoraRenda() {
   }, [valor, taxaAnualPct, irPct, inflacaoPct]);
 
   const toEur = (v) => (cambio > 0 ? v / cambio : 0);
+
+  // ===== Evolução do patrimônio (30 anos) =====
+  // Mostra o PODER DE COMPRA do patrimônio em cada cenário, em R$ de hoje.
+  //   Saca tudo: principal nominal constante, mas valor real cai com inflação.
+  //   Preserva:  retira só o juro real → valor real fica constante.
+  //   Reinveste: não saca nada → valor real cresce na taxa real composta.
+  const evolucao = useMemo(() => {
+    const anos = 30;
+    const inflacao = inflacaoPct / 100;
+    const taxaReal = resultado.taxaRealAnual;
+    const data = [];
+    for (let n = 0; n <= anos; n++) {
+      data.push({
+        ano: n,
+        sacaTudo:  valor / Math.pow(1 + inflacao, n),                                  // valor REAL
+        preserva:  valor,                                                              // mantém
+        reinveste: taxaReal > 0 ? valor * Math.pow(1 + taxaReal, n) : valor,           // cresce real
+      });
+    }
+    return data;
+  }, [valor, inflacaoPct, resultado.taxaRealAnual]);
+
+  // Marca um exemplo notável (em 10 e 30 anos) pra mostrar no insight
+  const insight = useMemo(() => {
+    const inflacao = inflacaoPct / 100;
+    const reduz10 = valor - valor / Math.pow(1 + inflacao, 10);
+    const reduz30 = valor - valor / Math.pow(1 + inflacao, 30);
+    return { reduz10, reduz30 };
+  }, [valor, inflacaoPct]);
 
   return (
     <div className="fade-up py-8 px-6">
@@ -201,9 +231,105 @@ export default function CalculadoraRenda() {
         </div>
       </div>
 
-      {/* Rodapé */}
+      {/* GRÁFICO: evolução do poder de compra (30 anos) */}
       <div style={{
-        marginTop: 16, padding: 12,
+        marginTop: 14, padding: 14,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6, flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <div className="label-eyebrow">Evolução do patrimônio · 30 anos</div>
+            <div style={{ fontSize: 11.5, color: T.muted, marginTop: 3, fontStyle: "italic" }}>
+              Valores em R$ de hoje (descontada a inflação).
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 14, fontSize: 10.5, color: T.muted, flexWrap: "wrap" }}>
+            <LegendDot cor={T.red}   label="Saca tudo" />
+            <LegendDot cor={T.gold}  label="Preserva" />
+            <LegendDot cor={T.green} label="Reinveste tudo" />
+          </div>
+        </div>
+        <div style={{ width: "100%", height: 240 }}>
+          <ResponsiveContainer>
+            <LineChart data={evolucao} margin={{ top: 8, right: 10, left: 10, bottom: 0 }}>
+              <CartesianGrid stroke={T.border} strokeDasharray="2 4" vertical={false} />
+              <XAxis dataKey="ano"
+                     tick={{ fill: T.muted, fontSize: 10 }}
+                     stroke={T.border}
+                     tickFormatter={v => v === 0 ? "Hoje" : `${v}a`}
+                     interval={4} />
+              <YAxis tick={{ fill: T.muted, fontSize: 10 }}
+                     stroke={T.border}
+                     tickFormatter={v => `${(v / 1_000_000).toFixed(1)}M`} />
+              <Tooltip
+                contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11, color: T.ink }}
+                labelStyle={{ color: T.muted, marginBottom: 4 }}
+                labelFormatter={(v) => v === 0 ? "Hoje" : `Em ${v} ano${v > 1 ? "s" : ""}`}
+                formatter={(v, k) => [fmtBRL.format(v), k === "sacaTudo" ? "Saca tudo" : k === "preserva" ? "Preserva" : "Reinveste tudo"]}
+              />
+              <Line type="monotone" dataKey="sacaTudo"  stroke={T.red}   strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="preserva"  stroke={T.gold}  strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="reinveste" stroke={T.green} strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={{
+          marginTop: 8, padding: 10, background: `${T.red}11`,
+          border: `1px solid ${T.red}33`, borderRadius: 6,
+          fontSize: 12, color: T.muted, lineHeight: 1.5,
+        }}>
+          <strong style={{ color: T.red }}>⚠ Se você sacar tudo:</strong> em 10 anos o
+          patrimônio vale <strong className="num" style={{ color: T.ink }}>
+            {fmtBRL.format(insight.reduz10 > 0 ? valor - insight.reduz10 : valor)}
+          </strong> em poder de compra (perdeu {fmtBRL.format(insight.reduz10)} pra inflação).
+          Em 30 anos, vale só <strong className="num" style={{ color: T.ink }}>
+            {fmtBRL.format(valor - insight.reduz30)}
+          </strong> de hoje.
+        </div>
+      </div>
+
+      {/* COMO INTERPRETAR — conselhos sobre os cenários */}
+      <div style={{
+        marginTop: 14, padding: 14,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+      }}>
+        <div className="label-eyebrow" style={{ marginBottom: 10, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Info size={11} style={{ color: T.gold }} />
+          Como interpretar os cenários
+        </div>
+        <div style={{ display: "grid", gap: 10, fontSize: 12.5, color: T.ink, lineHeight: 1.55 }}>
+          <DicaItem cor={T.muted} titulo="Bruto / mês">
+            O rendimento <em>antes do imposto</em>. Útil pra ver o tamanho do
+            rendimento total que o investimento gera; é o teto.
+          </DicaItem>
+          <DicaItem cor={T.gold} titulo="Líquido / mês (saca tudo)">
+            O que efetivamente <em>cai na sua conta</em> se você retirar todo o
+            rendimento. <strong>Cuidado:</strong> nesse cenário o patrimônio nominal
+            fica parado, mas em poder de compra ele <strong>encolhe</strong> ano após
+            ano pela inflação.
+          </DicaItem>
+          <DicaItem cor={T.green} titulo="Renda real / mês (preserva)">
+            Quanto você pode sacar <strong>mantendo o valor de compra</strong> do
+            principal intacto ao longo do tempo. É o cenário sustentável — você nunca
+            "consome" o patrimônio, só os juros reais (acima da inflação).
+          </DicaItem>
+          <div style={{
+            marginTop: 4, padding: 10, background: T.bgSoft, borderRadius: 6,
+            fontSize: 11.5, color: T.muted,
+          }}>
+            <strong style={{ color: T.ink }}>Exemplo</strong> com os defaults
+            (R$ 3 mi, 14,4% a.a., IR 15%, inflação 4,5%): "saca tudo" gira ~R$ 28.700/mês
+            e "preserva" fica perto de R$ 19–20 mil/mês. <strong>A diferença é exatamente
+            o que a inflação está comendo do seu principal</strong> — ela parece pequena
+            no mês, mas no gráfico acima dá pra ver o tamanho real do prejuízo em 10/30
+            anos se você não reinvestir nada.
+          </div>
+        </div>
+      </div>
+
+      {/* Rodapé (disclaimer) */}
+      <div style={{
+        marginTop: 14, padding: 12,
         background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 6,
         fontSize: 11.5, color: T.muted, lineHeight: 1.55, fontStyle: "italic",
       }}>
@@ -297,6 +423,28 @@ function RowSmall({ label, value, cor }) {
     <div style={{ display: "flex", justifyContent: "space-between" }}>
       <span>{label}:</span>
       <span className="num" style={{ color: cor || "var(--tx)", fontWeight: 500 }}>{value}</span>
+    </div>
+  );
+}
+
+function LegendDot({ cor, label }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+      <span style={{ width: 8, height: 8, borderRadius: 2, background: cor, display: "inline-block" }} />
+      {label}
+    </span>
+  );
+}
+
+function DicaItem({ cor, titulo, children }) {
+  return (
+    <div style={{
+      paddingLeft: 12, borderLeft: `3px solid ${cor}`,
+    }}>
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: cor, marginBottom: 3 }}>
+        {titulo}
+      </div>
+      <div>{children}</div>
     </div>
   );
 }
