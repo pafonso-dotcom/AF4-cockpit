@@ -195,34 +195,54 @@ export default function AnaliseCarteira({ ativos = [], hidden, onAnalisar }) {
       </div>
 
       {/* Tabela */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
-        <div style={{
-          display: "grid", gridTemplateColumns: "1.6fr 0.9fr 0.7fr 0.7fr 0.8fr 0.9fr 0.7fr",
-          padding: "9px 12px", borderBottom: `1px solid ${T.border}`,
-          fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 600,
-        }}>
-          <div>Ativo</div>
-          <div className="text-right">Preço</div>
-          <div className="text-right">RSI</div>
-          <div className="text-right">MACD</div>
-          <div className="text-right">Tendência</div>
-          <div className="text-right">Score</div>
-          <div className="text-right">Sinal</div>
-        </div>
-        {linhas.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 13 }}>
-            {ativosAnalisaveis.length === 0
-              ? "Nenhum ativo analisável na carteira. Cadastre ações, FIIs, stocks, REITs, ETFs ou cripto."
-              : "Nenhum ativo bate com os filtros."}
+      <div className="analise-tabela-wrap" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+        <div className="analise-tabela-scroll" style={{ overflowX: "auto" }}>
+          <div className="analise-tabela-inner" style={{ minWidth: 620 }}>
+            <div style={{
+              display: "grid", gridTemplateColumns: "1.6fr 0.9fr 0.7fr 0.7fr 0.8fr 0.9fr 0.7fr",
+              padding: "9px 12px", borderBottom: `1px solid ${T.border}`,
+              fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 600,
+            }}>
+              <div>Ativo</div>
+              <div className="text-right">Preço</div>
+              <div className="text-right">RSI</div>
+              <div className="text-right">MACD</div>
+              <div className="text-right">Tendência</div>
+              <div className="text-right">Score</div>
+              <div className="text-right">Sinal</div>
+            </div>
+            {linhas.length === 0 ? (
+              <div style={{ padding: 32, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 13 }}>
+                {ativosAnalisaveis.length === 0
+                  ? "Nenhum ativo analisável na carteira. Cadastre ações, FIIs, stocks, REITs, ETFs ou cripto."
+                  : "Nenhum ativo bate com os filtros."}
+              </div>
+            ) : linhas.map(({ ativo, r }) => (
+              <LinhaAtivo key={ativo.id} ativo={ativo} r={r} hidden={hidden} onAnalisar={onAnalisar} />
+            ))}
           </div>
-        ) : linhas.map(({ ativo, r }) => (
-          <LinhaAtivo key={ativo.id} ativo={ativo} r={r} hidden={hidden} onAnalisar={onAnalisar} />
-        ))}
+        </div>
       </div>
 
       <div style={{ fontSize: 11, color: T.faint, textAlign: "center", fontStyle: "italic", marginTop: 12 }}>
         ⓘ Apoio à decisão · não é recomendação de investimento.
       </div>
+
+      <style>{`
+        @media (max-width: 640px) {
+          .analise-tabela-scroll { -webkit-overflow-scrolling: touch; }
+          .analise-tabela-scroll::after {
+            content: "↔ deslize para ver mais";
+            display: block;
+            text-align: center;
+            font-size: 10px;
+            color: ${T.faint};
+            font-style: italic;
+            padding: 6px;
+            border-top: 1px dashed ${T.border};
+          }
+        }
+      `}</style>
     </div>
   );
 }
