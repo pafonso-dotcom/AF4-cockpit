@@ -8,6 +8,7 @@ import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { getKPIsMes } from "../../lib/agregador.js";
 import { supabase } from "../../lib/supabase.js";
+import EvolucaoPatrimonio from "./Invest/EvolucaoPatrimonio.jsx";
 
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const CORES_CAT = ["#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#84cc16","#6b7280"];
@@ -51,6 +52,7 @@ export default function Dashboard({
   categorias, metas, cartoes = [], parcelamentos = [], devedores = [], dividas = [],
   fixas = [], fixaOcorrencias = [],
   agenda = [],
+  patrimonioHistorico = [],
   escopoAtivo = "tudo",
   onTabChange, onContaClick,
 }) {
@@ -191,6 +193,9 @@ export default function Dashboard({
 
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
+
+      {/* Evolução do patrimônio (snapshot diário) */}
+      <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} />
 
       {/* KPI row */}
       <section className="dash-kpi-grid" style={{
