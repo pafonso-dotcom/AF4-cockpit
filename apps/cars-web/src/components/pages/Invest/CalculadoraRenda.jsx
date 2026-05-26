@@ -86,17 +86,32 @@ export default function CalculadoraRenda() {
     const anos = 30;
     const inflacao = inflacaoPct / 100;
     const taxaReal = resultado.taxaRealAnual;
+    const taxaRealMensal = taxaReal > 0 ? Math.pow(1 + taxaReal, 1 / 12) - 1 : 0;
     const data = [];
+
+    // Reserva: dinheiro sacado mensalmente acumulado e reinvestido na mesma
+    // taxa real. Em valor de hoje, cresce mês a mês até virar uma segunda
+    // fonte de renda paralela ao principal.
+    let reservaAcumulada = 0;
     for (let n = 0; n <= anos; n++) {
       data.push({
         ano: n,
         sacaTudo:  valor / Math.pow(1 + inflacao, n),                                  // valor REAL
         preserva:  valor,                                                              // mantém
         reinveste: taxaReal > 0 ? valor * Math.pow(1 + taxaReal, n) : valor,           // cresce real
+        // Total = principal preservado + reserva acumulada (em R$ de hoje)
+        comReserva: valor + reservaAcumulada,
+        reservaAno: reservaAcumulada,
       });
+      // Avança 12 meses (cada mês adiciona o saque ideal + rende a taxa real)
+      if (n < anos) {
+        for (let m = 0; m < 12; m++) {
+          reservaAcumulada = reservaAcumulada * (1 + taxaRealMensal) + resultado.rendaRealMes;
+        }
+      }
     }
     return data;
-  }, [valor, inflacaoPct, resultado.taxaRealAnual]);
+  }, [valor, inflacaoPct, resultado.taxaRealAnual, resultado.rendaRealMes]);
 
   // Marca um exemplo notável (em 10 e 30 anos) pra mostrar no insight
   const insight = useMemo(() => {
@@ -105,6 +120,27 @@ export default function CalculadoraRenda() {
     const reduz30 = valor - valor / Math.pow(1 + inflacao, 30);
     return { reduz10, reduz30 };
   }, [valor, inflacaoPct]);
+
+  // Projeção da reserva: se o usuário poupar TODO o saque ideal mês a mês,
+  // o quanto vira (em R$ de hoje) em 10, 20 e 30 anos + renda extra
+  // que essa reserva geraria sozinha (à mesma taxa real).
+  const reserva = useMemo(() => {
+    const taxaReal = resultado.taxaRealAnual;
+    const taxaRealMensal = taxaReal > 0 ? Math.pow(1 + taxaReal, 1 / 12) - 1 : 0;
+    const proj = {};
+    let acumulado = 0;
+    for (let n = 1; n <= 30; n++) {
+      for (let m = 0; m < 12; m++) {
+        acumulado = acumulado * (1 + taxaRealMensal) + resultado.rendaRealMes;
+      }
+      if (n === 10 || n === 20 || n === 30) {
+        proj[n] = acumulado;
+      }
+    }
+    // Renda extra que a reserva em 30 anos geraria (a taxa real mensal)
+    const rendaExtra30 = (proj[30] || 0) * taxaRealMensal;
+    return { ...proj, rendaExtra30 };
+  }, [resultado.taxaRealAnual, resultado.rendaRealMes]);
 
   return (
     <div className="fade-up py-8 px-6">
@@ -216,6 +252,21 @@ export default function CalculadoraRenda() {
             viavel={resultado.rendaRealMes > 0}
           />
 
+          {/* BÔNUS: se você poupar o saque ideal todo mês, ele acumula
+              uma reserva paralela que também rende. */}
+          {resultado.rendaRealMes > 0 && (
+            <ReservaCard
+              em10={reserva[10] || 0}
+              em20={reserva[20] || 0}
+              em30={reserva[30] || 0}
+              rendaExtra30={reserva.rendaExtra30 || 0}
+              em10Eur={toEur(reserva[10] || 0)}
+              em30Eur={toEur(reserva[30] || 0)}
+              rendaExtra30Eur={toEur(reserva.rendaExtra30 || 0)}
+              valorIdeal={resultado.rendaRealMes}
+            />
+          )}
+
           <ResultCard
             titulo="Bruto / mês"
             valor={resultado.brutoMes}
@@ -259,6 +310,7 @@ export default function CalculadoraRenda() {
             <LegendDot cor={T.red}   label="Saca tudo" />
             <LegendDot cor={T.gold}  label="Preserva" />
             <LegendDot cor={T.green} label="Reinveste tudo" />
+            <LegendDot cor={T.blue || "#60a5fa"} label="Preserva + reserva" />
           </div>
         </div>
         <div style={{ width: "100%", height: 240 }}>
@@ -277,10 +329,19 @@ export default function CalculadoraRenda() {
                 contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11, color: T.ink }}
                 labelStyle={{ color: T.muted, marginBottom: 4 }}
                 labelFormatter={(v) => v === 0 ? "Hoje" : `Em ${v} ano${v > 1 ? "s" : ""}`}
-                formatter={(v, k) => [fmtBRL.format(v), k === "sacaTudo" ? "Saca tudo" : k === "preserva" ? "Preserva" : "Reinveste tudo"]}
+                formatter={(v, k) => {
+                  const labels = {
+                    sacaTudo: "Saca tudo",
+                    preserva: "Preserva",
+                    reinveste: "Reinveste tudo",
+                    comReserva: "Preserva + reserva",
+                  };
+                  return [fmtBRL.format(v), labels[k] || k];
+                }}
               />
-              <Line type="monotone" dataKey="sacaTudo"  stroke={T.red}   strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="preserva"  stroke={T.gold}  strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="sacaTudo"   stroke={T.red}   strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="preserva"   stroke={T.gold}  strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="comReserva" stroke={T.blue || "#60a5fa"} strokeWidth={2} strokeDasharray="4 3" dot={false} />
               <Line type="monotone" dataKey="reinveste" stroke={T.green} strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
@@ -497,6 +558,87 @@ function ValorIdealCard({ valor, valorEur, valorAnual, valorAnualEur, liquidoMes
           patrimônio vai encolher em valor real.
         </div>
       )}
+    </div>
+  );
+}
+
+function ReservaCard({ em10, em20, em30, rendaExtra30, em10Eur, em30Eur, rendaExtra30Eur, valorIdeal }) {
+  const cor = T.blue || "#60a5fa";
+  return (
+    <div style={{
+      background: `linear-gradient(135deg, ${cor}22 0%, ${cor}08 60%, ${T.card} 100%)`,
+      border: `1px solid ${cor}`,
+      borderLeft: `4px solid ${cor}`,
+      borderRadius: 10, padding: 16,
+      position: "relative",
+    }}>
+      <div style={{
+        position: "absolute", top: 12, right: 14,
+        fontSize: 9, padding: "3px 8px", borderRadius: 100,
+        background: cor, color: T.bg,
+        fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase",
+      }}>
+        🪙 Bônus
+      </div>
+
+      <div className="label-eyebrow" style={{ color: cor, marginBottom: 6 }}>
+        Reserva acumulada — se você poupar o saque ideal
+      </div>
+
+      <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 10, lineHeight: 1.45, fontStyle: "italic" }}>
+        Sacando {fmtBRL.format(valorIdeal)}/mês mas reinvestindo cada saque (mesma taxa real),
+        você acumula uma segunda fonte de patrimônio em valor de hoje.
+      </div>
+
+      <div style={{
+        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10,
+        marginBottom: 12,
+      }}>
+        <ReservaCol anos="10 anos" valor={em10} cor={cor} />
+        <ReservaCol anos="20 anos" valor={em20} cor={cor} />
+        <ReservaCol anos="30 anos" valor={em30} cor={cor} destaque />
+      </div>
+
+      <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>
+        ≈ {fmtEUR.format(em30Eur)} em 30 anos · começa em {fmtEUR.format(em10Eur)} em 10 anos
+      </div>
+
+      {rendaExtra30 > 0 && (
+        <div style={{
+          marginTop: 12, padding: 10, background: `${cor}15`,
+          border: `1px solid ${cor}33`, borderRadius: 6,
+          fontSize: 12, color: T.ink, lineHeight: 1.5,
+        }}>
+          💡 <strong>Em 30 anos</strong>, essa reserva sozinha geraria mais{" "}
+          <strong className="num" style={{ color: cor }}>{fmtBRL.format(rendaExtra30)}/mês</strong>{" "}
+          de renda (~{fmtEUR.format(rendaExtra30Eur)}/mês) — somando ao saque original,
+          sua renda mensal total no fim do período seria{" "}
+          <strong className="num" style={{ color: cor }}>
+            {fmtBRL.format(valorIdeal + rendaExtra30)}/mês
+          </strong>.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReservaCol({ anos, valor, cor, destaque }) {
+  return (
+    <div style={{
+      padding: 8, borderRadius: 6,
+      background: destaque ? `${cor}15` : "transparent",
+      border: destaque ? `1px solid ${cor}33` : "1px solid transparent",
+    }}>
+      <div style={{ fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 3 }}>
+        {anos}
+      </div>
+      <div className="num" style={{
+        fontFamily: T.serif,
+        fontSize: destaque ? 18 : 15,
+        fontWeight: 600, color: destaque ? cor : T.ink,
+      }}>
+        {fmtBRL.format(valor)}
+      </div>
     </div>
   );
 }
