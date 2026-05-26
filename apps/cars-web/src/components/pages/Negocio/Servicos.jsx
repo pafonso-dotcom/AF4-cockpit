@@ -243,7 +243,7 @@ export default function Servicos({
   const abrirContratoNovo = () => setContratoForm({
     id: null,
     clienteId: clientes[0]?.id || "",
-    servicoId: "",
+    servicosIds: [],
     nome: "",
     valor: "",
     custo: "",
@@ -260,6 +260,7 @@ export default function Servicos({
     const custoNum = Number(c.custo) || 0;
     setContratoForm({
       ...c,
+      servicosIds: c.servicosIds || (c.servicoId ? [c.servicoId] : []),
       valor: String(c.valor ?? ""),
       custo: String(c.custo ?? ""),
       contaPagamento: c.contaPagamento || "",
@@ -267,21 +268,54 @@ export default function Servicos({
     });
   };
 
-  const onContratoTrocarServico = (servicoId) => {
-    if (!servicoId) {
-      setContratoForm({ ...contratoForm, servicoId: "", nome: "" });
-      return;
-    }
-    const s = servicos.find(x => x.id === servicoId);
-    if (s) {
-      setContratoForm({
-        ...contratoForm,
-        servicoId,
-        nome: s.nome,
-        valor: String(s.precoSugerido ?? ""),
-        custo: String(s.custoBase ?? ""),
-      });
-    }
+  // Recalcula valor/custo/nome auto-preenchidos a partir do array de serviços selecionados.
+  // Soma preçoSugerido/custoBase de cada serviço; nome vira "s1, s2, s3" (só se nome estiver vazio).
+  const onContratoAdicionarServico = (servicoId) => {
+    if (!servicoId || !contratoForm) return;
+    if ((contratoForm.servicosIds || []).includes(servicoId)) return;
+    const novosIds = [...(contratoForm.servicosIds || []), servicoId];
+    const escolhidos = novosIds.map(id => servicos.find(s => s.id === id)).filter(Boolean);
+    const somaValor = escolhidos.reduce((s, x) => s + (Number(x.precoSugerido) || 0), 0);
+    const somaCusto = escolhidos.reduce((s, x) => s + (Number(x.custoBase) || 0), 0);
+    const nomesJoined = escolhidos.map(x => x.nome).join(", ");
+    const nomeAtual = (contratoForm.nome || "").trim();
+    // Auto-preenche nome só se vazio ou se já era a versão auto-gerada anterior
+    const nomeAnteriorAuto = (contratoForm.servicosIds || [])
+      .map(id => servicos.find(s => s.id === id))
+      .filter(Boolean)
+      .map(x => x.nome)
+      .join(", ");
+    const novoNome = (!nomeAtual || nomeAtual === nomeAnteriorAuto) ? nomesJoined : nomeAtual;
+    setContratoForm({
+      ...contratoForm,
+      servicosIds: novosIds,
+      nome: novoNome,
+      valor: String(somaValor),
+      custo: String(somaCusto),
+    });
+  };
+
+  const onContratoRemoverServico = (servicoId) => {
+    if (!contratoForm) return;
+    const novosIds = (contratoForm.servicosIds || []).filter(id => id !== servicoId);
+    const escolhidos = novosIds.map(id => servicos.find(s => s.id === id)).filter(Boolean);
+    const somaValor = escolhidos.reduce((s, x) => s + (Number(x.precoSugerido) || 0), 0);
+    const somaCusto = escolhidos.reduce((s, x) => s + (Number(x.custoBase) || 0), 0);
+    const nomesJoined = escolhidos.map(x => x.nome).join(", ");
+    const nomeAtual = (contratoForm.nome || "").trim();
+    const nomeAnteriorAuto = (contratoForm.servicosIds || [])
+      .map(id => servicos.find(s => s.id === id))
+      .filter(Boolean)
+      .map(x => x.nome)
+      .join(", ");
+    const novoNome = (nomeAtual === nomeAnteriorAuto) ? nomesJoined : nomeAtual;
+    setContratoForm({
+      ...contratoForm,
+      servicosIds: novosIds,
+      nome: novoNome,
+      // Se ainda há serviços, recalcula valor/custo; se ficou vazio, mantém valores que estavam (não zera)
+      ...(novosIds.length > 0 ? { valor: String(somaValor), custo: String(somaCusto) } : {}),
+    });
   };
 
   const salvarContrato = () => {
@@ -296,6 +330,7 @@ export default function Servicos({
     const dados = {
       ...contratoForm,
       nome, valor, custo,
+      servicosIds: contratoForm.servicosIds || [],
       contaPagamento: contratoForm.contaPagamento || "",
       pagarAoFaturar: !!contratoForm.pagarAoFaturar && !!contratoForm.contaPagamento && custo > 0,
       obs: (contratoForm.obs || "").trim(),
@@ -338,9 +373,14 @@ export default function Servicos({
     const cliente = clientes.find(cl => cl.id === c.clienteId);
     const refLabel = c.recorrencia === "anual" ? `Ano ${ref}` : `${ref.slice(5)}/${ref.slice(0, 4)}`;
 
+    // Retrocompat: contratos antigos usam servicoId; novos usam servicosIds[]
+    const servicosVinc = c.servicosIds || (c.servicoId ? [c.servicoId] : []);
+    const primaryServicoId = servicosVinc[0] || c.servicoId || null;
+
     const novaVenda = {
       id: uid(),
-      servicoId: c.servicoId || null,
+      servicoId: primaryServicoId,
+      servicosIds: servicosVinc,
       contratoId: c.id,
       nome: `${c.nome} · ${refLabel}`,
       data: todayISO(),
@@ -576,6 +616,9 @@ export default function Servicos({
                 const ref = refAtual(c.recorrencia);
                 const faturadoEsteMes = c.ultimaFaturaRef === ref;
                 const inativo = c.ativo === false;
+                // Retrocompat: contratos antigos só têm servicoId; agora usamos servicosIds[]
+                const servicosVinculados = c.servicosIds || (c.servicoId ? [c.servicoId] : []);
+                const qtdServicos = servicosVinculados.length;
                 return (
                   <div key={c.id} style={{
                     display: "grid",
@@ -594,6 +637,19 @@ export default function Servicos({
                         }}>
                           {c.recorrencia === "anual" ? "Anual" : "Mensal"}
                         </span>
+                        {qtdServicos > 1 && (
+                          <span style={{
+                            fontSize: 9, padding: "1px 6px", borderRadius: 3,
+                            background: T.border, color: T.muted,
+                            letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700,
+                          }}
+                          title={servicosVinculados
+                            .map(id => servicos.find(s => s.id === id)?.nome)
+                            .filter(Boolean)
+                            .join(", ")}>
+                            +{qtdServicos} serviços
+                          </span>
+                        )}
                         {inativo && (
                           <span style={{ fontSize: 9, padding: "1px 6px", background: T.border,
                                          color: T.muted, borderRadius: 3, letterSpacing: ".1em", textTransform: "uppercase" }}>
@@ -845,14 +901,45 @@ export default function Servicos({
               ))}
             </select>
           </Field>
-          <Field label="Serviço do catálogo (opcional)">
-            <select value={contratoForm.servicoId}
-                    onChange={e => onContratoTrocarServico(e.target.value)}>
-              <option value="">— digitar nome livre —</option>
-              {servicos.filter(s => s.ativo !== false).map(s => (
-                <option key={s.id} value={s.id}>{s.nome} · {fmt(s.precoSugerido)}</option>
-              ))}
-            </select>
+          <Field label="Serviços do catálogo (opcional, múltiplos)" hint="Adicione 1 ou mais serviços; valor/custo somam automaticamente.">
+            <div>
+              {(contratoForm.servicosIds || []).length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+                  {(contratoForm.servicosIds || []).map(id => {
+                    const s = servicos.find(x => x.id === id);
+                    const nome = s?.nome || `(serviço removido · ${id.slice(0, 6)})`;
+                    return (
+                      <span key={id} style={{
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        padding: "3px 4px 3px 9px", borderRadius: 12,
+                        background: `${T.gold}22`, border: `1px solid ${T.gold}66`,
+                        fontSize: 11.5, color: T.ink, fontWeight: 500,
+                      }}>
+                        {nome}
+                        <button type="button" onClick={() => onContratoRemoverServico(id)}
+                                title="Remover serviço"
+                                style={{
+                                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                  background: "transparent", border: "none", cursor: "pointer",
+                                  color: T.muted, padding: 0, width: 16, height: 16, borderRadius: 8,
+                                }}>
+                          <X size={11} />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              <select value=""
+                      onChange={e => { onContratoAdicionarServico(e.target.value); }}>
+                <option value="">+ adicionar serviço do catálogo…</option>
+                {servicos
+                  .filter(s => s.ativo !== false && !(contratoForm.servicosIds || []).includes(s.id))
+                  .map(s => (
+                    <option key={s.id} value={s.id}>{s.nome} · {fmt(s.precoSugerido)}</option>
+                  ))}
+              </select>
+            </div>
           </Field>
           <Field label="Nome do serviço/contrato" required>
             <input value={contratoForm.nome}
