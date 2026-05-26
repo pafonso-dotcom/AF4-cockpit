@@ -12,10 +12,10 @@ import Modal from "../../ui/Modal.jsx";
  * Serviços do módulo Negócio.
  *
  * Catálogo: { id, nome, descricao, precoSugerido, custoBase, ativo }
- * Venda:    { id, servicoId?, nome, data, valor, custo,
+ * Venda:    { id, servicoId?, servicosIds?[], nome, data, valor, custo,
  *             clienteId?, veiculoId?, contaDestino, obs }
  *
- * Vendas com servicoId nulo = avulsa (nome livre, sem catálogo).
+ * Vendas com servicoId/servicosIds nulos = avulsa (nome livre).
  * Receita entra na Caixa do Negócio virtual (não cria transação em Finanças).
  * Despesa do prestador em contratos recorrentes CONTINUA hitando Finanças
  * (dinheiro real sai da conta do usuário).
@@ -123,32 +123,61 @@ export default function Servicos({
   /* ---------- Venda ---------- */
   const abrirVendaNova = () => setVendaForm({
     id: null,
-    servicoId: ativos[0]?.id || "",
-    nome: ativos[0]?.nome || "",
+    servicosIds: [],
+    nome: "",
     data: todayISO(),
-    valor: String(ativos[0]?.precoSugerido ?? ""),
-    custo: String(ativos[0]?.custoBase ?? ""),
+    valor: "",
+    custo: "",
     clienteId: "",
     veiculoId: "",
     obs: "",
   });
 
-  // Quando troca o serviço do catálogo, auto-preenche nome/preço/custo
-  const onTrocarServicoCatalogo = (servicoId) => {
-    if (!servicoId) {
-      setVendaForm({ ...vendaForm, servicoId: "", nome: "" });
-      return;
-    }
-    const s = servicos.find(x => x.id === servicoId);
-    if (s) {
-      setVendaForm({
-        ...vendaForm,
-        servicoId,
-        nome: s.nome,
-        valor: String(s.precoSugerido ?? ""),
-        custo: String(s.custoBase ?? ""),
-      });
-    }
+  // Adiciona serviço do catálogo à venda avulsa. Reaproveita padrão do contrato.
+  const onVendaAdicionarServico = (servicoId) => {
+    if (!servicoId || !vendaForm) return;
+    if ((vendaForm.servicosIds || []).includes(servicoId)) return;
+    const novosIds = [...(vendaForm.servicosIds || []), servicoId];
+    const escolhidos = novosIds.map(id => servicos.find(s => s.id === id)).filter(Boolean);
+    const somaValor = escolhidos.reduce((s, x) => s + (Number(x.precoSugerido) || 0), 0);
+    const somaCusto = escolhidos.reduce((s, x) => s + (Number(x.custoBase) || 0), 0);
+    const nomesJoined = escolhidos.map(x => x.nome).join(", ");
+    const nomeAtual = (vendaForm.nome || "").trim();
+    const nomeAnteriorAuto = (vendaForm.servicosIds || [])
+      .map(id => servicos.find(s => s.id === id))
+      .filter(Boolean)
+      .map(x => x.nome)
+      .join(", ");
+    const novoNome = (!nomeAtual || nomeAtual === nomeAnteriorAuto) ? nomesJoined : nomeAtual;
+    setVendaForm({
+      ...vendaForm,
+      servicosIds: novosIds,
+      nome: novoNome,
+      valor: String(somaValor),
+      custo: String(somaCusto),
+    });
+  };
+
+  const onVendaRemoverServico = (servicoId) => {
+    if (!vendaForm) return;
+    const novosIds = (vendaForm.servicosIds || []).filter(id => id !== servicoId);
+    const escolhidos = novosIds.map(id => servicos.find(s => s.id === id)).filter(Boolean);
+    const somaValor = escolhidos.reduce((s, x) => s + (Number(x.precoSugerido) || 0), 0);
+    const somaCusto = escolhidos.reduce((s, x) => s + (Number(x.custoBase) || 0), 0);
+    const nomesJoined = escolhidos.map(x => x.nome).join(", ");
+    const nomeAtual = (vendaForm.nome || "").trim();
+    const nomeAnteriorAuto = (vendaForm.servicosIds || [])
+      .map(id => servicos.find(s => s.id === id))
+      .filter(Boolean)
+      .map(x => x.nome)
+      .join(", ");
+    const novoNome = (nomeAtual === nomeAnteriorAuto) ? nomesJoined : nomeAtual;
+    setVendaForm({
+      ...vendaForm,
+      servicosIds: novosIds,
+      nome: novoNome,
+      ...(novosIds.length > 0 ? { valor: String(somaValor), custo: String(somaCusto) } : {}),
+    });
   };
 
   const confirmarVenda = () => {
@@ -164,9 +193,13 @@ export default function Servicos({
     if (cliente) partes.push(cliente.nome);
     if (veiculo) partes.push(`${veiculo.modelo}${veiculo.placa ? ` ${veiculo.placa}` : ""}`);
 
+    const servicosIds = vendaForm.servicosIds || [];
+    const primaryServicoId = servicosIds[0] || null;
+
     const novaVenda = {
       id: uid(),
-      servicoId: vendaForm.servicoId || null,
+      servicoId: primaryServicoId, // retrocompat
+      servicosIds,
       nome,
       data: vendaForm.data,
       valor, custo,
@@ -743,6 +776,7 @@ export default function Servicos({
             <VendaRow key={v.id} venda={v}
                       cliente={clientes.find(c => c.id === v.clienteId)}
                       veiculo={veiculos.find(x => x.id === v.veiculoId)}
+                      servicos={servicos}
                       hidden={hidden}
                       onEstornar={() => estornarVenda(v)} />
           ))}
@@ -801,14 +835,45 @@ export default function Servicos({
         const lucro = valor - custo;
         return (
           <Modal title="Registrar venda de serviço" onClose={() => setVendaForm(null)}>
-            <Field label="Serviço do catálogo">
-              <select value={vendaForm.servicoId}
-                      onChange={e => onTrocarServicoCatalogo(e.target.value)}>
-                <option value="">— avulso (nome livre) —</option>
-                {ativos.map(s => (
-                  <option key={s.id} value={s.id}>{s.nome} · {fmt(s.precoSugerido)}</option>
-                ))}
-              </select>
+            <Field label="Serviços do catálogo (opcional, múltiplos)" hint="Adicione 1 ou mais serviços; valor/custo somam automaticamente.">
+              <div>
+                {(vendaForm.servicosIds || []).length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+                    {(vendaForm.servicosIds || []).map(id => {
+                      const s = servicos.find(x => x.id === id);
+                      const nome = s?.nome || `(serviço removido · ${id.slice(0, 6)})`;
+                      return (
+                        <span key={id} style={{
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                          padding: "3px 4px 3px 9px", borderRadius: 12,
+                          background: `${T.gold}22`, border: `1px solid ${T.gold}66`,
+                          fontSize: 11.5, color: T.ink, fontWeight: 500,
+                        }}>
+                          {nome}
+                          <button type="button" onClick={() => onVendaRemoverServico(id)}
+                                  title="Remover serviço"
+                                  style={{
+                                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                    background: "transparent", border: "none", cursor: "pointer",
+                                    color: T.muted, padding: 0, width: 16, height: 16, borderRadius: 8,
+                                  }}>
+                            <X size={11} />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+                <select value=""
+                        onChange={e => { onVendaAdicionarServico(e.target.value); }}>
+                  <option value="">+ adicionar serviço do catálogo…</option>
+                  {servicos
+                    .filter(s => s.ativo !== false && !(vendaForm.servicosIds || []).includes(s.id))
+                    .map(s => (
+                      <option key={s.id} value={s.id}>{s.nome} · {fmt(s.precoSugerido)}</option>
+                    ))}
+                </select>
+              </div>
             </Field>
             <Field label="Nome do serviço" required>
               <input value={vendaForm.nome}
@@ -1063,8 +1128,11 @@ export default function Servicos({
   );
 }
 
-function VendaRow({ venda: v, cliente, veiculo, hidden, onEstornar }) {
+function VendaRow({ venda: v, cliente, veiculo, servicos = [], hidden, onEstornar }) {
   const lucro = Number(v.valor || 0) - Number(v.custo || 0);
+  // Retrocompat: vendas antigas com servicoId; vendas novas com servicosIds[]
+  const servicosVinc = v.servicosIds || (v.servicoId ? [v.servicoId] : []);
+  const qtdServicos = servicosVinc.length;
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
@@ -1076,7 +1144,22 @@ function VendaRow({ venda: v, cliente, veiculo, hidden, onEstornar }) {
         {v.data.split("-").reverse().slice(0, 2).join("/")}
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, color: T.ink, fontWeight: 500 }}>{v.nome}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13.5, color: T.ink, fontWeight: 500 }}>{v.nome}</span>
+          {qtdServicos > 1 && (
+            <span style={{
+              fontSize: 9, padding: "1px 6px", borderRadius: 3,
+              background: T.border, color: T.muted,
+              letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700,
+            }}
+            title={servicosVinc
+              .map(id => servicos.find(s => s.id === id)?.nome)
+              .filter(Boolean)
+              .join(", ")}>
+              +{qtdServicos} serviços
+            </span>
+          )}
+        </div>
         <div style={{ fontSize: 11, color: T.muted, marginTop: 2, display: "flex", gap: 10, flexWrap: "wrap" }}>
           {cliente && <span>👤 {cliente.nome}</span>}
           {veiculo && <span>🚗 {veiculo.modelo}{veiculo.placa ? ` (${veiculo.placa})` : ""}</span>}
