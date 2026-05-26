@@ -5,6 +5,7 @@ import { BarChartDouble, BarChart, HorizontalBarList, ReportCard, ReportGrid } f
 import { toPDF, toCSV, toPNG, hasPNGSupport } from "../../lib/exportRelatorio.js";
 import { getKPIsMes } from "../../lib/agregador.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
+import EvolucaoPatrimonio from "./Invest/EvolucaoPatrimonio.jsx";
 
 /**
  * Relatórios de Finanças · análises do período.
@@ -12,6 +13,7 @@ import { filtrarPorEscopo } from "../../lib/escopo.js";
 export default function RelatoriosFinancas({
   transacoes: transacoesRaw = [], contas: contasRaw = [], categorias = [],
   fixas = [], fixaOcorrencias = [], parcelamentos = [], dividas = [], devedores = [],
+  patrimonioHistorico = [],
   escopoAtivo = "tudo",
   hidden,
 }) {
@@ -114,6 +116,11 @@ export default function RelatoriosFinancas({
       <div className="eb">Finanças · Relatórios</div>
       <h1 className="h1">Análises <em>do período.</em></h1>
       <p className="hs">Evolução · top categorias · cashflow previsto · comparativo anual.</p>
+
+      {/* Evolução do patrimônio (snapshot diário) — visão de longo prazo */}
+      <div style={{ marginTop: 16 }}>
+        <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} />
+      </div>
 
       <ReportGrid>
         <ExportableCard
