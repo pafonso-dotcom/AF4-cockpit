@@ -709,6 +709,7 @@ export default function App() {
                          devedores={devedores} dividas={dividas}
                          fixas={fixas} fixaOcorrencias={fixaOcorrencias}
                          agenda={agenda}
+                         patrimonioHistorico={patrimonioHistorico}
                          escopoAtivo={escopoAtivo}
                          onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
                          onContaClick={(c) => { setTab("contas"); setContaAberta(c); }} />
@@ -961,7 +962,6 @@ export default function App() {
                                onRefresh={refreshMarket} refreshing={refreshing}
                                onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
                                onProjetar={(ativo) => { setProjetarAlvo(ativo); setTab("analises"); }}
-                               patrimonioHistorico={patrimonioHistorico}
                                hidden={hidden} />
               </div>
             )}
