@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Activity, AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
+import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS } from "../../../lib/invest-constants.js";
+import { calcCarteiraSaude } from "../../../lib/invest-utils.js";
+import AlocacaoPieChart from "../../ui/AlocacaoPieChart.jsx";
 
 /**
  * Painel de saúde da carteira — bloco de topo na página de Investimentos.
@@ -16,29 +18,26 @@ import { fmt } from "../../../lib/format.js";
  * Tudo computado client-side com dados que já existem (sem API extra).
  */
 
-const CLASS_LABEL = {
-  acao: "Ações", fii: "FIIs", stock: "Stocks (US)", reit: "REITs (US)",
-  etf: "ETFs", cripto: "Cripto", rf: "Renda Fixa", tesouro: "Tesouro",
-  cdb: "CDB", outro: "Outros",
-};
-const CLASS_COR = {
-  acao: "#f5a524", fii: "#10b981", stock: "#3b82f6", reit: "#0ea5e9",
-  cripto: "#8b5cf6", rf: "#06b6d4", etf: "#fbbf24",
-  tesouro: "#22c55e", cdb: "#14b8a6", outro: "#9ca3af",
-};
 const CORES_SEG = ["#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#84cc16","#6b7280","#14b8a6","#fbbf24","#0ea5e9"];
 
 export default function CarteiraSaude({ ativos = [], hidden }) {
   const [agruparPor, setAgruparPor] = useState("classe"); // "classe" | "segmento"
 
   const stats = useMemo(() => {
-    const ativosValidos = ativos.filter(a => Number(a.qtd || 0) > 0);
-    const total = ativosValidos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
-    if (total === 0 || ativosValidos.length === 0) {
+    const ativosValidos = (ativos || []).filter(a => {
+      const v = Number(a.qtd || 0) * Number(a.preco || 0);
+      return v > 0;
+    });
+    if (ativosValidos.length === 0) {
       return { vazia: true };
     }
 
-    // Alocação por chave (classe ou segmento)
+    const base = calcCarteiraSaude(ativosValidos);
+    if (base.total <= 0) {
+      return { vazia: true };
+    }
+
+    // Alocação por chave (classe ou segmento) — agrupamento é apresentação
     const porChave = {};
     ativosValidos.forEach(a => {
       const valor = Number(a.qtd || 0) * Number(a.preco || 0);
@@ -49,41 +48,22 @@ export default function CarteiraSaude({ ativos = [], hidden }) {
     });
     const pieData = Object.entries(porChave)
       .map(([k, v], i) => ({
-        nome: agruparPor === "classe" ? (CLASS_LABEL[k] || k) : k,
+        nome: agruparPor === "classe" ? (ASSET_CLASS_LABELS[k] || k) : k,
         valor: v,
-        pct: (v / total) * 100,
+        pct: (v / base.total) * 100,
         cor: agruparPor === "classe"
-          ? (CLASS_COR[k] || "#9ca3af")
+          ? (ASSET_CLASS_COLORS[k] || "#9ca3af")
           : CORES_SEG[i % CORES_SEG.length],
       }))
       .sort((a, b) => b.valor - a.valor);
 
-    // Herfindahl Index (índice de concentração) — 0 (diversificado) a 1 (monopólio)
-    const herfindahl = pieData.reduce((s, p) => s + (p.pct / 100) ** 2, 0);
     // Maior posição (% do total)
     const maiorPosicao = pieData[0] || { nome: "—", pct: 0 };
-
-    // % de ativos no lucro
-    let noLucro = 0;
-    ativosValidos.forEach(a => {
-      const pm = Number(a.pm || 0);
-      const preco = Number(a.preco || 0);
-      if (preco > pm) noLucro++;
-    });
-    const pctLucro = (noLucro / ativosValidos.length) * 100;
 
     // Ativos com maior queda 24h (pra insight)
     const comQueda = ativosValidos
       .filter(a => Number.isFinite(Number(a.variacao24h)) && Number(a.variacao24h) < -5)
       .sort((a, b) => Number(a.variacao24h) - Number(b.variacao24h));
-
-    // Score 0-100
-    // Base 30 + diversificação (até 30) + % no lucro (até 25) + qtd ativos (até 15)
-    // Diversificação: Herfindahl < 0.10 = ótimo (30 pts), > 0.40 = ruim (0 pts)
-    const scoreDiversidade = Math.max(0, Math.min(30, 30 * (1 - (herfindahl - 0.10) / 0.30)));
-    const scoreLucro = (pctLucro / 100) * 25;
-    const scoreQtd = Math.min(15, ativosValidos.length * 1.5); // 10 ativos = 15 pts
-    const score = Math.round(30 + scoreDiversidade + scoreLucro + scoreQtd);
 
     // Insight prioritário
     let insight = null;
@@ -95,41 +75,47 @@ export default function CarteiraSaude({ ativos = [], hidden }) {
         detalhe: top.map(a => `${a.ticker} ${Number(a.variacao24h).toFixed(1)}%`).join(" · "),
         cor: T.red,
       };
-    } else if (herfindahl > 0.30) {
+    } else if (base.herfindahl > 0.30) {
       insight = {
         tipo: "concentracao",
         titulo: `Carteira concentrada`,
         detalhe: `${maiorPosicao.nome} representa ${maiorPosicao.pct.toFixed(1)}% do patrimônio. Considere diversificar.`,
         cor: T.gold,
       };
-    } else if (pctLucro >= 70) {
+    } else if (base.pctLucro >= 70) {
       insight = {
         tipo: "lucro",
         titulo: `Carteira saudável`,
-        detalhe: `${noLucro} de ${ativosValidos.length} ativos no lucro. Performance positiva.`,
+        detalhe: `${base.noLucro} de ${base.totalAtivos} ativos no lucro. Performance positiva.`,
         cor: T.green,
       };
-    } else if (pctLucro <= 30) {
+    } else if (base.pctLucro <= 30) {
       insight = {
         tipo: "perda",
         titulo: `Maioria no prejuízo`,
-        detalhe: `Só ${noLucro} de ${ativosValidos.length} ativos no lucro. Reveja a tese.`,
+        detalhe: `Só ${base.noLucro} de ${base.totalAtivos} ativos no lucro. Reveja a tese.`,
         cor: T.red,
       };
     } else {
       insight = {
         tipo: "neutro",
         titulo: `Carteira equilibrada`,
-        detalhe: `${noLucro} no lucro · ${ativosValidos.length - noLucro} em prejuízo · diversificação OK.`,
+        detalhe: `${base.noLucro} no lucro · ${base.totalAtivos - base.noLucro} em prejuízo · diversificação OK.`,
         cor: T.muted,
       };
     }
 
     return {
       vazia: false,
-      total, pieData, herfindahl, maiorPosicao,
-      pctLucro, noLucro, totalAtivos: ativosValidos.length,
-      score, insight,
+      total: base.total,
+      pieData,
+      herfindahl: base.herfindahl,
+      maiorPosicao,
+      pctLucro: base.pctLucro,
+      noLucro: base.noLucro,
+      totalAtivos: base.totalAtivos,
+      score: base.score,
+      insight,
     };
   }, [ativos, agruparPor]);
 
@@ -198,23 +184,7 @@ export default function CarteiraSaude({ ativos = [], hidden }) {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 10, alignItems: "center" }}>
           <div style={{ width: 120, height: 120 }}>
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie data={stats.pieData} dataKey="valor" nameKey="nome"
-                     innerRadius={32} outerRadius={56} paddingAngle={2}>
-                  {stats.pieData.map((p, i) => (
-                    <Cell key={i} fill={p.cor} stroke="none" />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11 }}
-                  formatter={(v, _n, ctx) => [
-                    hidden ? "•••••" : fmt(v),
-                    `${ctx.payload.nome} (${ctx.payload.pct.toFixed(1)}%)`,
-                  ]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <AlocacaoPieChart data={stats.pieData} hidden={hidden} innerRadius={32} outerRadius={56} height={120} />
           </div>
           <div style={{ display: "grid", gap: 4, fontSize: 11, overflow: "auto", maxHeight: 130 }}>
             {stats.pieData.slice(0, 6).map((p, i) => (
