@@ -20,6 +20,10 @@ import Field from "../ui/Field.jsx";
 export default function AReceberEDividas({
   devedores = [], setDevedores,
   dividas = [], setDividas,
+  fixas = [],
+  fixaOcorrencias = [], setFixaOcorrencias,
+  parcelamentos = [], setParcelamentos,
+  cartoes = [],
   contas = [], setContas,
   transacoes = [], setTransacoes,
   categorias = [],
@@ -185,10 +189,26 @@ export default function AReceberEDividas({
     const delta = isReceber ? +valor : -valor;
     setContas(contas.map(c => c.id === conta.id ? { ...c, saldo: (parseFloat(c.saldo) || 0) + delta } : c));
 
-    // 3) Marca como recebido/pago
+    // 3) Marca como recebido/pago — dispatch baseado em origem
     if (isReceber) {
       setDevedores(devedores.map(d => d.id === baixaForm.itemId ? { ...d, recebido: true, dataRecebimento: baixaForm.dataBaixa, contaRecebimento: baixaForm.contaDestino } : d));
+    } else if (baixaForm._origem === "fixa" && baixaForm._fixaOccId) {
+      // Marca a ocorrência da fixa como paga (formato compatível com DespesasFixas.jsx)
+      setFixaOcorrencias?.((fixaOcorrencias || []).map(o =>
+        o.id === baixaForm._fixaOccId
+          ? { ...o, status: "paga", dataPagamento: baixaForm.dataBaixa, valorPago: valor, transacaoId: novaTransacao.id }
+          : o
+      ));
+    } else if (baixaForm._origem === "parcela" && baixaForm._parcelamentoId && baixaForm._parcelaN) {
+      // Adiciona N à parcelasPagas do parcelamento
+      setParcelamentos?.((parcelamentos || []).map(p => {
+        if (p.id !== baixaForm._parcelamentoId) return p;
+        const set = new Set(p.parcelasPagas || []);
+        set.add(baixaForm._parcelaN);
+        return { ...p, parcelasPagas: Array.from(set).sort((a, b) => a - b) };
+      }));
     } else {
+      // Dívida tradicional
       setDividas(dividas.map(d => d.id === baixaForm.itemId ? { ...d, pago: true, dataPagamento: baixaForm.dataBaixa, contaPagamento: baixaForm.contaDestino } : d));
     }
 
@@ -202,7 +222,78 @@ export default function AReceberEDividas({
 
   /* ===== Render ===== */
   const devAbertos = devedores.filter(d => !d.recebido);
-  const divAbertas = dividas.filter(d => !d.pago);
+
+  // Dívidas tradicionais (pago=false)
+  const dividasReais = dividas.filter(d => !d.pago);
+
+  // Despesas Fixas pendentes — gera items virtuais "a pagar"
+  // pra cada fixaOcorrencia com status pendente. Inclui o nome da fixa.
+  const fixasComoDivida = useMemo(() => {
+    return (fixaOcorrencias || [])
+      .filter(o => o.status === "pendente")
+      .map(o => {
+        const fixa = (fixas || []).find(f => f.id === o.fixaId);
+        return {
+          id: `fixa:${o.id}`,
+          nome: fixa ? fixa.descricao : "Despesa fixa",
+          valor: Number(o.valor || 0),
+          vencimento: o.dataVencimento,
+          categoria: fixa?.categoria || "Despesas fixas",
+          obs: `Ref. ${o.mes}`,
+          pago: false,
+          credor: fixa?.credor || "",
+          _origem: "fixa",
+          _fixaOccId: o.id,
+        };
+      });
+  }, [fixaOcorrencias, fixas]);
+
+  // Parcelas de cartão pendentes — gera items virtuais pra cada
+  // parcela ainda não marcada como paga.
+  const parcelasComoDivida = useMemo(() => {
+    const lista = [];
+    (parcelamentos || []).forEach(p => {
+      const total = p.totalParcelas || 0;
+      if (total <= 0) return;
+      const valorPorParcela = (p.valorTotal || 0) / total;
+      const pagas = new Set(p.parcelasPagas || []);
+      const base = p.dataPrimeira || p.dataCompra;
+      if (!base) return;
+      const [bY, bM, bD] = base.split("-").map(Number);
+      const startMonth = p.dataPrimeira ? bM : bM + 1;
+      const cartao = (cartoes || []).find(c => c.id === p.cartaoId);
+
+      for (let n = 1; n <= total; n++) {
+        if (pagas.has(n)) continue;
+        const offset = n - 1;
+        const dt = new Date(bY, startMonth - 1 + offset, 1);
+        const ultDia = new Date(bY, startMonth + offset, 0).getDate();
+        dt.setDate(Math.min(bD, ultDia));
+        const vencISO = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+        lista.push({
+          id: `parc:${p.id}:${n}`,
+          nome: p.descricao || "Parcela",
+          valor: valorPorParcela,
+          vencimento: vencISO,
+          categoria: p.categoria || "Cartão",
+          obs: `${n}/${total}${cartao ? ` · ${cartao.nome}` : ""}`,
+          parcela: `${n}/${total}`,
+          pago: false,
+          credor: cartao?.nome || "",
+          _origem: "parcela",
+          _parcelamentoId: p.id,
+          _parcelaN: n,
+        });
+      }
+    });
+    return lista;
+  }, [parcelamentos, cartoes]);
+
+  // Lista unificada (mantém nome legado divAbertas pro resto do componente).
+  const divAbertas = useMemo(
+    () => [...dividasReais, ...fixasComoDivida, ...parcelasComoDivida],
+    [dividas, fixasComoDivida, parcelasComoDivida]
+  );
 
   // Mês corrente como tab default; tabs derivam de todos os vencimentos abertos
   const todosVencimentos = [...devAbertos, ...divAbertas]
@@ -387,6 +478,10 @@ export default function AReceberEDividas({
                   parcela: proximo.parcela || "",
                   contaDestino: contas[0]?.nome || "",
                   dataBaixa: hoje,
+                  _origem: proximo._origem || "divida",
+                  _fixaOccId: proximo._fixaOccId || null,
+                  _parcelamentoId: proximo._parcelamentoId || null,
+                  _parcelaN: proximo._parcelaN || null,
                 });
               },
             },
@@ -548,9 +643,31 @@ export default function AReceberEDividas({
             categoria: item.categoria || "Outros", obs: item.obs || "",
             parcela: item.parcela || "",
             contaDestino: contas[0]?.nome || "", dataBaixa: hoje,
+            // Refs do item virtual (fixa/parcela) — usadas em confirmarBaixa
+            // pra atualizar a fonte original em vez de dividas[].
+            _origem: item._origem || "divida",
+            _fixaOccId: item._fixaOccId || null,
+            _parcelamentoId: item._parcelamentoId || null,
+            _parcelaN: item._parcelaN || null,
           })}
-          onEditar={(item) => setForm({ ...item, tipo: "dividas" })}
-          onExcluir={(item) => excluir(item, "dividas")}
+          onEditar={(item) => {
+            if (item._origem === "fixa") {
+              toast.info("Edite esta fixa em Despesas Fixas.");
+              return;
+            }
+            if (item._origem === "parcela") {
+              toast.info("Edite o parcelamento em Cartões.");
+              return;
+            }
+            setForm({ ...item, tipo: "dividas" });
+          }}
+          onExcluir={(item) => {
+            if (item._origem === "fixa" || item._origem === "parcela") {
+              toast.info("Remova esta entrada na aba original (Despesas Fixas / Cartões).");
+              return;
+            }
+            excluir(item, "dividas");
+          }}
           onWhats={(item) => whatsapp.cobrarDivida(item)}
           dueLabel={dueLabel}
           hidden={hidden}
