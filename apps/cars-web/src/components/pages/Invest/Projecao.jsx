@@ -7,11 +7,7 @@ import { parseValorBR } from "../../../lib/importExport.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import Field from "../../ui/Field.jsx";
 import SugestaoAporte from "./SugestaoAporte.jsx";
-
-const CLASS_LABEL = {
-  acao: "Ações", fii: "FIIs", stock: "Stocks (US)", reit: "REITs (US)", etf: "ETFs",
-  cripto: "Cripto", rf: "Renda Fixa", tesouro: "Tesouro", cdb: "CDB", outro: "Outros",
-};
+import { ASSET_CLASS_LABELS } from "../../../lib/invest-constants.js";
 
 // Taxa mensal sugerida por classe (heurística — usuário pode ajustar)
 const TAXA_SUGERIDA = {
@@ -200,7 +196,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
                     const v = Number(a.qtd || 0) * Number(a.preco || 0);
                     return (
                       <option key={a.id} value={a.id}>
-                        {a.ticker} · {CLASS_LABEL[a.tipo] || a.tipo} · {hidden ? "•••" : fmt(v)}
+                        {a.ticker} · {ASSET_CLASS_LABELS[a.tipo] || a.tipo} · {hidden ? "•••" : fmt(v)}
                       </option>
                     );
                   })}
@@ -250,7 +246,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
             <input type="number" min="1" max="40" value={prazoAnos}
                    onChange={e => setPrazoAnos(Math.max(1, Math.min(40, parseInt(e.target.value, 10) || 1)))} />
           </Field>
-          <Field label={`Taxa esperada (% ao mês) — ${TAXA_SUGERIDA[isManual ? tipoManual : ativo?.tipo] ?? 0.85}% sugerido pra ${CLASS_LABEL[isManual ? tipoManual : ativo?.tipo] || (isManual ? tipoManual : ativo?.tipo)}`}>
+          <Field label={`Taxa esperada (% ao mês) — ${TAXA_SUGERIDA[isManual ? tipoManual : ativo?.tipo] ?? 0.85}% sugerido pra ${ASSET_CLASS_LABELS[isManual ? tipoManual : ativo?.tipo] || (isManual ? tipoManual : ativo?.tipo)}`}>
             <input type="text" inputMode="decimal"
                    value={taxaMensal}
                    onChange={e => setTaxaMensal(e.target.value)}
@@ -304,7 +300,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
           value={hidden ? "•••" : fmt(valorInicial)}
           sub={
             ativo ? `${ativo.qtd} cotas × ${fmt(Number(ativo.preco || 0))}`
-              : isManual ? (tickerManual ? `${tickerManual.toUpperCase()} · ${CLASS_LABEL[tipoManual] || tipoManual}` : `Futuro · ${CLASS_LABEL[tipoManual] || tipoManual}`)
+              : isManual ? (tickerManual ? `${tickerManual.toUpperCase()} · ${ASSET_CLASS_LABELS[tipoManual] || tipoManual}` : `Futuro · ${ASSET_CLASS_LABELS[tipoManual] || tipoManual}`)
               : ""
           }
           icon={DollarSign}

@@ -7,6 +7,7 @@ import { getHistorico, getQuotes } from "../../../lib/brapi.js";
 import { calcRSI, calcMACD, calcTrend, calcVolumeChange, calcEMA } from "../../../lib/indicadores.js";
 import { calcularScore, direcaoSinal, confiancaSinal } from "../../../lib/score.js";
 import { toast } from "../../../lib/toast.js";
+import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS } from "../../../lib/invest-constants.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 
 const INTERVALOS_BINANCE = [
@@ -16,15 +17,6 @@ const INTERVALOS_BINANCE = [
 const BRAPI_TF = { "1d": { range: "3mo", interval: "1d" }, "1w": { range: "3mo", interval: "1wk" } };
 
 const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
-
-const CLASS_LABEL = {
-  acao: "Ações BR", fii: "FIIs", stock: "Stocks US", reit: "REITs", etf: "ETFs",
-  cripto: "Cripto", rf: "Renda Fixa", tesouro: "Tesouro", cdb: "CDB", outro: "Outros",
-};
-const CLASS_COR = {
-  acao: "#f5a524", fii: "#10b981", stock: "#3b82f6", reit: "#0ea5e9",
-  cripto: "#8b5cf6", etf: "#fbbf24", tesouro: "#22c55e", cdb: "#14b8a6", outro: "#9ca3af",
-};
 
 async function analisarAtivo(asset, intervaloUI) {
   // Roteia a fonte de dados pelo tipo do ativo
@@ -177,7 +169,7 @@ export default function AnaliseCarteira({ ativos = [], hidden, onAnalisar }) {
           {["todos", ...classesDisponiveis].map(c => (
             <button key={c} onClick={() => setFilterClasse(c)}
               style={chip(filterClasse === c)}>
-              {c === "todos" ? "Todas" : CLASS_LABEL[c] || c}
+              {c === "todos" ? "Todas" : ASSET_CLASS_LABELS[c] || c}
             </button>
           ))}
         </div>
@@ -241,7 +233,7 @@ function KpiCell({ label, valor, cor }) {
 
 function LinhaAtivo({ ativo, r, hidden, onAnalisar }) {
   const moeda = ativo.tipo === "acao" || ativo.tipo === "fii" ? "R$" : "US$";
-  const corClasse = CLASS_COR[ativo.tipo] || "#9ca3af";
+  const corClasse = ASSET_CLASS_COLORS[ativo.tipo] || "#9ca3af";
   const d = r?.data;
   const dir = d?.direcao || "";
   const sinalCor = d ? (d.score >= 70 ? T.green : d.score <= 30 ? T.red : T.gold) : T.muted;
@@ -258,7 +250,7 @@ function LinhaAtivo({ ativo, r, hidden, onAnalisar }) {
         <div style={{ minWidth: 0 }}>
           <div style={{ fontFamily: T.serif, fontSize: 14, color: T.ink, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ativo.ticker}</div>
           <div style={{ fontSize: 10, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {CLASS_LABEL[ativo.tipo] || ativo.tipo} · {ativo.nome || "—"}
+            {ASSET_CLASS_LABELS[ativo.tipo] || ativo.tipo} · {ativo.nome || "—"}
           </div>
         </div>
       </div>
