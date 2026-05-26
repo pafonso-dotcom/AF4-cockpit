@@ -150,6 +150,7 @@ export default function App() {
   const [negocioVendasServicos,  setNegocioVendasServicos]  = useState([]); // vendas de serviços
   const [negocioContratos,       setNegocioContratos]       = useState([]); // contratos recorrentes (CRM, tráfego, app, etc)
   const [negocioClientes,        setNegocioClientes]        = useState([]); // clientes
+  const [negocioInstaladores,    setNegocioInstaladores]    = useState([]); // instaladores (executam serviços, recebem do caixa)
 
   // Objetivos da carteira (árvore IdV-style)
   const [objetivosCarteira, setObjetivosCarteira] = useState([]);
@@ -233,6 +234,7 @@ export default function App() {
         setNegocioVendasServicos(data.negocioVendasServicos || []);
         setNegocioContratos(data.negocioContratos || []);
         setNegocioClientes(data.negocioClientes || []);
+        setNegocioInstaladores(data.negocioInstaladores || []);
         setObjetivosCarteira(data.objetivosCarteira || []);
         setCarteirasModeloCustom(data.carteirasModeloCustom || []);
         if (data.modeloAtivoId) setModeloAtivoId(data.modeloAtivoId);
@@ -285,6 +287,7 @@ export default function App() {
         setNegocioVendasServicos([]);
         setNegocioContratos([]);
         setNegocioClientes([]);
+        setNegocioInstaladores([]);
         setObjetivosCarteira([]);
         setCarteirasModeloCustom([]);
         setCarteiraProventos({ saldo: 0, historico: [] });
@@ -310,7 +313,7 @@ export default function App() {
       cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
-      negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes,
+      negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes, negocioInstaladores,
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       caixaNegocio,
@@ -320,7 +323,7 @@ export default function App() {
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
-      negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes,
+      negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes, negocioInstaladores,
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       caixaNegocio,
@@ -924,6 +927,7 @@ export default function App() {
                 contratos={negocioContratos} setContratos={setNegocioContratos}
                 clientes={negocioClientes}
                 veiculos={negocioVeiculos}
+                instaladores={negocioInstaladores} setInstaladores={setNegocioInstaladores}
                 contas={contas} setContas={setContas}
                 transacoes={transacoes} setTransacoes={setTransacoes}
                 categorias={categorias}

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Plus, Trash2, Edit3, Check, Wrench, X, ChevronDown, ChevronRight, DollarSign, TrendingUp, Repeat, Pause, Play, Receipt } from "lucide-react";
+import { Plus, Trash2, Edit3, Check, Wrench, X, ChevronDown, ChevronRight, DollarSign, TrendingUp, Repeat, Pause, Play, Receipt, HardHat } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../../lib/format.js";
 import { toast } from "../../../lib/toast.js";
@@ -26,6 +26,7 @@ export default function Servicos({
   contratos = [], setContratos,
   clientes = [],
   veiculos = [],
+  instaladores = [], setInstaladores,
   contas = [], setContas,
   transacoes = [], setTransacoes,
   categorias = [],
@@ -35,9 +36,11 @@ export default function Servicos({
   const [servicoForm, setServicoForm] = useState(null);
   const [vendaForm, setVendaForm] = useState(null);
   const [contratoForm, setContratoForm] = useState(null);
+  const [instaladorForm, setInstaladorForm] = useState(null);
   const [filtroVendas, setFiltroVendas] = useState("mes"); // mes | tudo
   const [catalogoExpandido, setCatalogoExpandido] = useState(true);
   const [contratosExpandido, setContratosExpandido] = useState(true);
+  const [instaladoresExpandido, setInstaladoresExpandido] = useState(true);
 
   const ativos = useMemo(
     () => servicos.filter(s => s.ativo !== false),
@@ -66,6 +69,21 @@ export default function Servicos({
       lucroMes: receita - custo,
     };
   }, [vendas, ativos]);
+
+  // Saldo do mês por instalador: soma de valorInstalador das vendas do mês corrente
+  // onde instaladorId === id. Backward-compat: vendas antigas sem campos seguem em 0.
+  const saldoMesPorInstalador = useMemo(() => {
+    const mesISO = new Date().toISOString().slice(0, 7);
+    const map = {};
+    (vendas || []).forEach(v => {
+      if (!v.instaladorId) return;
+      if (!(v.data || "").startsWith(mesISO)) return;
+      const val = Number(v.valorInstalador || 0);
+      if (!Number.isFinite(val) || val <= 0) return;
+      map[v.instaladorId] = (map[v.instaladorId] || 0) + val;
+    });
+    return map;
+  }, [vendas]);
 
   /* ---------- Catálogo ---------- */
   const abrirServicoNovo = () => setServicoForm({
@@ -118,6 +136,51 @@ export default function Servicos({
 
   const toggleAtivo = (s) => {
     setServicos(servicos.map(x => x.id === s.id ? { ...x, ativo: !(x.ativo !== false) } : x));
+  };
+
+  /* ---------- Instaladores (CRUD) ---------- */
+  // Instalador = pessoa que executa o serviço e recebe um pagamento que sai do
+  // Caixa do Negócio (não toca Finanças). Diferente do Cliente, que paga.
+  const abrirInstaladorNovo = () => setInstaladorForm({
+    id: null, nome: "", telefone: "", obs: "", ativo: true,
+  });
+  const abrirInstaladorEditar = (i) => setInstaladorForm({ ...i });
+
+  const salvarInstalador = () => {
+    const nome = (instaladorForm.nome || "").trim();
+    if (!nome) { toast.error("Informe o nome do instalador."); return; }
+    if (typeof setInstaladores !== "function") { setInstaladorForm(null); return; }
+    const dados = {
+      ...instaladorForm,
+      nome,
+      telefone: (instaladorForm.telefone || "").trim(),
+      obs: (instaladorForm.obs || "").trim(),
+      ativo: instaladorForm.ativo !== false,
+    };
+    if (instaladorForm.id) {
+      setInstaladores(instaladores.map(x => x.id === instaladorForm.id ? dados : x));
+      toast.success(`${nome} atualizado.`);
+    } else {
+      setInstaladores([{ ...dados, id: uid(), criadoEm: new Date().toISOString() }, ...instaladores]);
+      toast.success(`${nome} cadastrado.`);
+    }
+    setInstaladorForm(null);
+  };
+
+  const excluirInstalador = async (i) => {
+    if (typeof setInstaladores !== "function") return;
+    // Quantas vendas/faturas usam esse instalador? Avisa antes de excluir.
+    const usos = (vendas || []).filter(v => v.instaladorId === i.id).length;
+    const ok = await confirm({
+      title: `Excluir ${i.nome}?`,
+      body: usos > 0
+        ? `Esse instalador está vinculado a ${usos} venda(s)/fatura(s). Os registros continuam mas perdem o vínculo. Continuar?`
+        : `O cadastro de ${i.nome} será removido.`,
+      danger: true, confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+    setInstaladores(instaladores.filter(x => x.id !== i.id));
+    toast.success("Instalador removido.");
   };
 
   /* ---------- Venda ---------- */
@@ -777,6 +840,84 @@ export default function Servicos({
         )}
       </div>
 
+      {/* INSTALADORES */}
+      <div style={{
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        padding: 14, marginBottom: 14,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+          <button onClick={() => setInstaladoresExpandido(v => !v)}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0,
+                           display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ color: T.gold }}>
+              {instaladoresExpandido ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+            <HardHat size={14} style={{ color: T.gold }} />
+            <span className="label-eyebrow">
+              Instaladores ({(instaladores || []).filter(i => i.ativo !== false).length} ativos)
+            </span>
+          </button>
+          <button onClick={abrirInstaladorNovo}
+            style={{
+              background: "transparent", border: `1px solid ${T.border}`,
+              color: T.muted, padding: "5px 10px", borderRadius: 5, cursor: "pointer",
+              fontSize: 10, letterSpacing: ".05em", textTransform: "uppercase",
+            }}>
+            <Plus size={11} className="inline mr-1" /> Novo instalador
+          </button>
+        </div>
+
+        {instaladoresExpandido && (
+          (instaladores || []).length === 0 ? (
+            <div style={{ padding: 18, fontSize: 12, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
+              Nenhum instalador cadastrado. Use pra registrar quem executa o serviço e quanto recebe (sai do Caixa do Negócio).
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 6 }}>
+              {(instaladores || []).map(i => {
+                const saldoMes = saldoMesPorInstalador[i.id] || 0;
+                const inativo = i.ativo === false;
+                return (
+                  <div key={i.id} style={{
+                    display: "grid", gridTemplateColumns: "1fr auto auto", gap: 10,
+                    alignItems: "center", padding: "8px 10px", borderRadius: 5,
+                    background: T.bgSoft, opacity: inativo ? 0.55 : 1,
+                  }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>{i.nome}</span>
+                        {inativo && (
+                          <span style={{ fontSize: 9, padding: "1px 6px", background: T.border,
+                                         color: T.muted, borderRadius: 3, letterSpacing: ".1em", textTransform: "uppercase" }}>
+                            Inativo
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: T.muted, marginTop: 2, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        {i.telefone && <span>📞 {i.telefone}</span>}
+                        {i.obs && <span style={{ fontStyle: "italic" }}>{i.obs}</span>}
+                      </div>
+                    </div>
+                    <span className="num" title="Total pago no mês corrente"
+                          style={{ fontSize: 12, color: saldoMes > 0 ? T.gold : T.muted, fontWeight: 600 }}>
+                      {hidden ? "•••" : `${fmt(saldoMes)}/mês`}
+                    </span>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button onClick={() => abrirInstaladorEditar(i)} title="Editar" style={btnIcon()}>
+                        <Edit3 size={12} />
+                      </button>
+                      <button onClick={() => excluirInstalador(i)} title="Excluir" style={btnIcon({ color: T.red })}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        )}
+      </div>
+
       {/* VENDAS */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div className="label-eyebrow">Vendas</div>
@@ -1184,6 +1325,44 @@ export default function Servicos({
             <button className="btn-gold" onClick={salvarContrato}>
               <Check size={13} className="inline mr-1" />
               {contratoForm.id ? "Salvar" : "Criar contrato"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* MODAL: instalador */}
+      {instaladorForm && (
+        <Modal title={instaladorForm.id ? "Editar instalador" : "Novo instalador"}
+               onClose={() => setInstaladorForm(null)}>
+          <Field label="Nome" required>
+            <input value={instaladorForm.nome}
+                   onChange={e => setInstaladorForm({ ...instaladorForm, nome: e.target.value })}
+                   placeholder="Ex.: Paulo" autoFocus />
+          </Field>
+          <Field label="Telefone">
+            <input value={instaladorForm.telefone}
+                   onChange={e => setInstaladorForm({ ...instaladorForm, telefone: e.target.value })}
+                   placeholder="(00) 00000-0000" />
+          </Field>
+          <Field label="Observações">
+            <textarea value={instaladorForm.obs} rows={2}
+                      onChange={e => setInstaladorForm({ ...instaladorForm, obs: e.target.value })}
+                      placeholder="Especialidade, faixa de valor habitual, contexto..."
+                      style={{ resize: "vertical", fontFamily: "inherit" }} />
+          </Field>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, cursor: "pointer" }}>
+            <input type="checkbox" checked={instaladorForm.ativo !== false}
+                   onChange={e => setInstaladorForm({ ...instaladorForm, ativo: e.target.checked })}
+                   style={{ width: 16, height: 16, accentColor: T.gold }} />
+            <span style={{ fontSize: 12.5, color: T.muted }}>
+              Ativo (aparece como opção em novas vendas/contratos)
+            </span>
+          </label>
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => setInstaladorForm(null)}>Cancelar</button>
+            <button className="btn-gold" onClick={salvarInstalador}>
+              <Check size={13} className="inline mr-1" />
+              {instaladorForm.id ? "Salvar" : "Cadastrar"}
             </button>
           </div>
         </Modal>
