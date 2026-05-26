@@ -203,8 +203,19 @@ export default function CalculadoraRenda() {
           </div>
         </div>
 
-        {/* Coluna direita: 3 cartões de saída */}
+        {/* Coluna direita: cartão de destaque (valor ideal) + 3 cartões de saída */}
         <div style={{ display: "grid", gap: 10 }}>
+          {/* DESTAQUE: valor ideal de saque (preserva o principal contra inflação) */}
+          <ValorIdealCard
+            valor={resultado.rendaRealMes}
+            valorEur={toEur(resultado.rendaRealMes)}
+            valorAnual={resultado.rendaRealMes * 12}
+            valorAnualEur={toEur(resultado.rendaRealMes * 12)}
+            liquidoMes={resultado.liquidoMes}
+            taxaRealAnual={resultado.taxaRealAnual}
+            viavel={resultado.rendaRealMes > 0}
+          />
+
           <ResultCard
             titulo="Bruto / mês"
             valor={resultado.brutoMes}
@@ -388,6 +399,106 @@ function formatRange(v, label) {
   if (label === "Valor investido") return fmtBRL.format(v);
   if (label === "Câmbio (R$ por €)") return `R$ ${v.toFixed(2)}`;
   return `${v}%`;
+}
+
+function ValorIdealCard({ valor, valorEur, valorAnual, valorAnualEur, liquidoMes, taxaRealAnual, viavel }) {
+  // Diferença entre "saca tudo" e "valor ideal" = quanto a inflação consumiria
+  const inflacaoConsome = Math.max(0, liquidoMes - valor);
+  const pctIdeal = liquidoMes > 0 ? (valor / liquidoMes) * 100 : 0;
+
+  return (
+    <div style={{
+      background: viavel
+        ? `linear-gradient(135deg, ${T.green}22 0%, ${T.green}08 60%, ${T.card} 100%)`
+        : `linear-gradient(135deg, ${T.red}22 0%, ${T.red}08 60%, ${T.card} 100%)`,
+      border: `1px solid ${viavel ? T.green : T.red}`,
+      borderLeft: `4px solid ${viavel ? T.green : T.red}`,
+      borderRadius: 10, padding: 18,
+      position: "relative",
+    }}>
+      <div style={{
+        position: "absolute", top: 12, right: 14,
+        fontSize: 9, padding: "3px 8px", borderRadius: 100,
+        background: viavel ? T.green : T.red, color: T.bg,
+        fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase",
+      }}>
+        💎 Ideal
+      </div>
+
+      <div className="label-eyebrow" style={{ color: viavel ? T.green : T.red, marginBottom: 6 }}>
+        Valor ideal de saque mensal
+      </div>
+
+      <div className="num" style={{
+        fontFamily: T.serif, fontSize: 38, fontWeight: 700, color: T.ink,
+        letterSpacing: "-0.02em", lineHeight: 1,
+      }}>
+        {fmtBRL.format(valor)}
+      </div>
+      <div className="num" style={{ fontSize: 14, color: T.muted, marginTop: 4 }}>
+        ≈ {fmtEUR.format(valorEur)}
+      </div>
+
+      {viavel ? (
+        <>
+          <div style={{
+            display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10,
+            marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${T.green}55`,
+          }}>
+            <div>
+              <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
+                Por ano
+              </div>
+              <div className="num" style={{ fontSize: 15, color: T.ink, fontWeight: 600 }}>
+                {fmtBRL.format(valorAnual)}
+              </div>
+              <div className="num" style={{ fontSize: 11, color: T.muted }}>
+                ≈ {fmtEUR.format(valorAnualEur)}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
+                Taxa real
+              </div>
+              <div className="num" style={{ fontSize: 15, color: T.green, fontWeight: 600 }}>
+                {(taxaRealAnual * 100).toFixed(2)}% a.a.
+              </div>
+              <div style={{ fontSize: 11, color: T.muted }}>
+                acima da inflação
+              </div>
+            </div>
+          </div>
+          <div style={{
+            marginTop: 12, padding: 10, background: `${T.green}11`,
+            border: `1px solid ${T.green}33`, borderRadius: 6,
+            fontSize: 12, color: T.ink, lineHeight: 1.5,
+          }}>
+            💡 <strong>Sacar até este valor todo mês mantém o poder de
+            compra do seu patrimônio intacto</strong> ao longo do tempo.
+            {inflacaoConsome > 1 && (
+              <span style={{ color: T.muted, display: "block", marginTop: 4 }}>
+                Sacar acima disso ({fmtBRL.format(liquidoMes)} no "saca tudo") faz a
+                inflação corroer ~{fmtBRL.format(inflacaoConsome)}/mês do principal.
+                Este valor ideal é {pctIdeal.toFixed(0)}% do líquido.
+              </span>
+            )}
+          </div>
+        </>
+      ) : (
+        <div style={{
+          marginTop: 12, padding: 10, background: `${T.red}11`,
+          border: `1px solid ${T.red}33`, borderRadius: 6,
+          fontSize: 12, color: T.ink, lineHeight: 1.5,
+        }}>
+          ⚠ <strong>Cenário inviável pra preservar o patrimônio:</strong>{" "}
+          a inflação ({(taxaRealAnual * -100).toFixed(2)}% acima da taxa real) consome
+          todo o rendimento líquido. Qualquer saque vai reduzir o poder de compra do
+          principal. Considere aumentar a taxa (com mais risco) ou aceitar que o
+          patrimônio vai encolher em valor real.
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ResultCard({ titulo, valor, valorEur, descricao, cor, destaque }) {
