@@ -143,7 +143,7 @@ export default function CalculadoraRenda() {
   }, [resultado.taxaRealAnual, resultado.rendaRealMes]);
 
   return (
-    <div className="fade-up py-8 px-6">
+    <div className="fade-up py-8 px-6 calc-root">
       <PageHeader
         eyebrow="Investimentos · Simulador"
         title="Calculadora de Renda Mensal"
@@ -158,11 +158,12 @@ export default function CalculadoraRenda() {
       {/* Atalhos rápidos */}
       <div style={{ marginBottom: 14 }}>
         <div className="label-eyebrow" style={{ marginBottom: 8 }}>Cenários rápidos</div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="calc-atalhos" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {ATALHOS.map(a => {
             const ativo = Math.abs(taxaAnualPct - a.taxa) < 0.05 && Math.abs(irPct - a.ir) < 0.05;
             return (
               <button key={a.id} onClick={() => aplicarAtalho(a)}
+                className="calc-atalho-btn"
                 style={{
                   padding: "8px 14px", borderRadius: 6, cursor: "pointer",
                   fontSize: 12, fontWeight: 500,
@@ -172,7 +173,7 @@ export default function CalculadoraRenda() {
                   display: "inline-flex", alignItems: "center", gap: 8,
                 }}>
                 <span>{a.label}</span>
-                <span style={{ color: T.muted, fontSize: 11 }}>
+                <span className="calc-atalho-meta" style={{ color: T.muted, fontSize: 11 }}>
                   · {a.taxa}% · IR {a.ir}%
                 </span>
               </button>
@@ -187,7 +188,7 @@ export default function CalculadoraRenda() {
         gap: 14,
       }} className="calc-grid">
         {/* Coluna esquerda: sliders */}
-        <div style={{
+        <div className="calc-card" style={{
           background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
           padding: 16, display: "grid", gap: 18,
         }}>
@@ -417,6 +418,25 @@ export default function CalculadoraRenda() {
         @media (max-width: 768px) {
           .calc-grid { grid-template-columns: 1fr !important; }
         }
+        @media (max-width: 480px) {
+          /* Reduz padding lateral da página inteira */
+          .calc-root { padding-left: 14px !important; padding-right: 14px !important; padding-top: 18px !important; padding-bottom: 24px !important; }
+          /* Atalhos: 2x2 grid em vez de 4 linhas */
+          .calc-atalhos { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+          .calc-atalho-btn { padding: 7px 8px !important; font-size: 11px !important; gap: 4px !important; justify-content: center !important; }
+          .calc-atalho-meta { display: none !important; }
+          /* Slider: número menor pra não cortar */
+          .calc-slider-value { font-size: 13.5px !important; white-space: nowrap !important; }
+          .calc-slider-label { font-size: 11.5px !important; }
+          .calc-slider-range { font-size: 9px !important; }
+          /* Card interno: padding menor */
+          .calc-card { padding: 12px !important; gap: 14px !important; }
+          /* Cartões de resultado mais compactos */
+          .calc-result-card { padding: 12px !important; }
+          .calc-result-value { font-size: 22px !important; }
+          .calc-result-value-eur { font-size: 12px !important; }
+          .calc-ideal-value { font-size: 30px !important; }
+        }
       `}</style>
     </div>
   );
@@ -429,8 +449,8 @@ function Slider({ label, value, min, max, step, onChange, display }) {
         display: "flex", justifyContent: "space-between", alignItems: "baseline",
         marginBottom: 6, gap: 10,
       }}>
-        <span style={{ fontSize: 12, color: T.ink, fontWeight: 500 }}>{label}</span>
-        <span className="num" style={{
+        <span className="calc-slider-label" style={{ fontSize: 12, color: T.ink, fontWeight: 500 }}>{label}</span>
+        <span className="num calc-slider-value" style={{
           fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.gold,
         }}>
           {display}
@@ -445,7 +465,7 @@ function Slider({ label, value, min, max, step, onChange, display }) {
                accentColor: T.gold,
                cursor: "pointer",
              }} />
-      <div style={{
+      <div className="calc-slider-range" style={{
         display: "flex", justifyContent: "space-between",
         fontSize: 9.5, color: T.faint, marginTop: 2,
       }}>
@@ -490,7 +510,7 @@ function ValorIdealCard({ valor, valorEur, valorAnual, valorAnualEur, liquidoMes
         Valor ideal de saque mensal
       </div>
 
-      <div className="num" style={{
+      <div className="num calc-ideal-value" style={{
         fontFamily: T.serif, fontSize: 38, fontWeight: 700, color: T.ink,
         letterSpacing: "-0.02em", lineHeight: 1,
       }}>
@@ -645,7 +665,7 @@ function ReservaCol({ anos, valor, cor, destaque }) {
 
 function ResultCard({ titulo, valor, valorEur, descricao, cor, destaque }) {
   return (
-    <div style={{
+    <div className="calc-result-card" style={{
       background: T.card,
       border: `1px solid ${destaque ? cor : T.border}`,
       borderLeft: `3px solid ${cor}`,
@@ -654,13 +674,13 @@ function ResultCard({ titulo, valor, valorEur, descricao, cor, destaque }) {
       <div className="label-eyebrow" style={{ color: cor, marginBottom: 6 }}>
         {titulo}
       </div>
-      <div className="num" style={{
+      <div className="num calc-result-value" style={{
         fontFamily: T.serif, fontSize: 28, fontWeight: 600, color: T.ink,
         letterSpacing: "-0.01em", lineHeight: 1,
       }}>
         {fmtBRL.format(valor)}
       </div>
-      <div className="num" style={{
+      <div className="num calc-result-value-eur" style={{
         fontSize: 13, color: T.muted, marginTop: 4,
       }}>
         ≈ {fmtEUR.format(valorEur)}

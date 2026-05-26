@@ -258,7 +258,7 @@ export default function Notas({ agenda = [], setAgenda, notasLegacy = [], setNot
       />
 
       {/* Stats */}
-      <div style={{
+      <div className="notas-stats" style={{
         display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16,
       }}>
         <StatBox label="Total" value={stats.total} cor={T.muted} />
@@ -266,6 +266,11 @@ export default function Notas({ agenda = [], setAgenda, notasLegacy = [], setNot
         <StatBox label="Próx. 7d" value={stats.proximos7} cor={T.green} />
         <StatBox label="Atrasados" value={stats.atrasados} cor={T.red} destaque={stats.atrasados > 0} />
       </div>
+      <style>{`
+        @media (max-width: 480px) {
+          .notas-stats { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+        }
+      `}</style>
 
       {/* Quick add */}
       <div className="agenda-quick">

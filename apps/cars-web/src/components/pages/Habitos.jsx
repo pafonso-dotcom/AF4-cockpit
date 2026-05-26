@@ -173,13 +173,14 @@ export default function Habitos({ habitos = [], setHabitos }) {
                 </div>
 
                 {/* Grid dos últimos 7 dias */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+                <div className="habitos-dias" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
                   {ultimos7.map(iso => {
                     const lbl = labelDia(iso);
                     const feito = !!h.diasFeitos?.[iso];
                     const hoje = ehHoje(iso);
                     return (
                       <button key={iso} onClick={() => toggleDia(h, iso)}
+                        className="habitos-dia-btn"
                         style={{
                           background: feito ? h.cor : T.bgSoft,
                           color: feito ? "#fff" : T.muted,
@@ -190,10 +191,10 @@ export default function Habitos({ habitos = [], setHabitos }) {
                           display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
                           minHeight: 50,
                         }}>
-                        <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", opacity: 0.8 }}>
+                        <span className="habitos-dia-label" style={{ fontSize: 9, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", opacity: 0.8 }}>
                           {lbl.dia}
                         </span>
-                        <span style={{ fontSize: 14, fontWeight: 600 }}>
+                        <span className="habitos-dia-num" style={{ fontSize: 14, fontWeight: 600 }}>
                           {feito ? <Check size={14} /> : lbl.data}
                         </span>
                       </button>
@@ -205,6 +206,14 @@ export default function Habitos({ habitos = [], setHabitos }) {
           })}
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 480px) {
+          .habitos-dia-btn { padding: 6px 2px !important; min-height: 42px !important; gap: 1px !important; }
+          .habitos-dia-label { font-size: 8px !important; }
+          .habitos-dia-num { font-size: 12px !important; }
+        }
+      `}</style>
 
       {form && (
         <Modal title={form.id ? "Editar hábito" : "Novo hábito"}

@@ -187,6 +187,9 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             .conta-hero { padding: 18px !important; }
             .conta-hero-name { font-size: 20px !important; margin-bottom: 10px !important; }
             .conta-hero-value { font-size: clamp(26px, 8vw, 34px) !important; }
+            .extrato-filtros { grid-template-columns: 1fr 1fr !important; }
+            .extrato-filtros > div[style*="position: relative"] { grid-column: 1 / -1; }
+            .extrato-filtros > button { grid-column: 1 / -1; }
           }
         `}</style>
 
