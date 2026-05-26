@@ -383,6 +383,8 @@ export default function Servicos({
     recorrencia: "mensal", // mensal | anual
     dataInicio: todayISO(),
     duracaoMeses: "", // vazio = indeterminado
+    instaladorId: "",
+    valorInstalador: "",
     obs: "",
     ativo: true,
   });
@@ -397,6 +399,8 @@ export default function Servicos({
       contaPagamento: c.contaPagamento || "",
       pagarAoFaturar: c.pagarAoFaturar !== undefined ? c.pagarAoFaturar : (custoNum > 0),
       duracaoMeses: c.duracaoMeses ? String(c.duracaoMeses) : "",
+      instaladorId: c.instaladorId || "",
+      valorInstalador: c.valorInstalador ? String(c.valorInstalador) : "",
     });
   };
 
@@ -854,6 +858,20 @@ export default function Servicos({
                       </div>
                       <div style={{ fontSize: 11, color: T.muted, marginTop: 3, display: "flex", gap: 10, flexWrap: "wrap" }}>
                         {cliente && <span>👤 {cliente.nome}</span>}
+                        {(() => {
+                          // Chip do instalador do contrato: aparece se há vínculo
+                          // + valor configurado. Cada fatura gerada vai pagar
+                          // esse valor do Caixa do Negócio.
+                          const valorInstContrato = Number(c.valorInstalador || 0);
+                          if (!c.instaladorId || valorInstContrato <= 0) return null;
+                          const inst = (instaladores || []).find(i => i.id === c.instaladorId);
+                          const nomeInst = inst?.nome || "instalador";
+                          return (
+                            <span title={`Pago a ${nomeInst} a cada fatura: ${fmt(valorInstContrato)}`}>
+                              👷 {nomeInst} · {hidden ? "•••" : `${fmt(valorInstContrato)}/fatura`}
+                            </span>
+                          );
+                        })()}
                         <span>→ {c.contaDestino}</span>
                         {c.ultimaFaturaRef && (
                           <span style={{ color: faturadoEsteMes ? T.green : T.muted }}>
@@ -1012,6 +1030,7 @@ export default function Servicos({
             <VendaRow key={v.id} venda={v}
                       cliente={clientes.find(c => c.id === v.clienteId)}
                       veiculo={veiculos.find(x => x.id === v.veiculoId)}
+                      instalador={v.instaladorId ? instaladores.find(i => i.id === v.instaladorId) : null}
                       servicos={servicos}
                       hidden={hidden}
                       onEstornar={() => estornarVenda(v)} />
@@ -1366,6 +1385,23 @@ export default function Servicos({
               </div>
             );
           })()}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Instalador (opcional)" hint="Quem executa o serviço a cada fatura">
+              <select value={contratoForm.instaladorId || ""}
+                      onChange={e => setContratoForm({ ...contratoForm, instaladorId: e.target.value })}>
+                <option value="">— sem instalador —</option>
+                {instaladores.filter(i => i.ativo !== false).map(i => (
+                  <option key={i.id} value={i.id}>{i.nome}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Pago ao instalador (R$/fatura)" hint="Sai do Caixa do Negócio a cada faturamento">
+              <input type="number" step="0.01" value={contratoForm.valorInstalador || ""}
+                     onChange={e => setContratoForm({ ...contratoForm, valorInstalador: e.target.value })}
+                     placeholder="0,00"
+                     disabled={!contratoForm.instaladorId} />
+            </Field>
+          </div>
           <div style={{
             padding: "10px 12px", marginTop: 4, borderRadius: 6,
             background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
@@ -1375,6 +1411,9 @@ export default function Servicos({
             <strong style={{ color: T.gold }}>→ Caixa do Negócio</strong>
             <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3, fontStyle: "italic" }}>
               Receita entra na Caixa virtual do Negócio (não cria transação em Finanças).
+              {contratoForm.instaladorId && Number(contratoForm.valorInstalador) > 0 && (
+                <> Pagamento ao instalador sai do mesmo caixa a cada fatura.</>
+              )}
             </div>
           </div>
           <Field label="Observações">
@@ -1449,11 +1488,18 @@ export default function Servicos({
   );
 }
 
-function VendaRow({ venda: v, cliente, veiculo, servicos = [], hidden, onEstornar }) {
-  const lucro = Number(v.valor || 0) - Number(v.custo || 0);
+function VendaRow({ venda: v, cliente, veiculo, instalador, servicos = [], hidden, onEstornar }) {
+  // Lucro: além de custo, desconta também o valor pago ao instalador (saída
+  // virtual da Caixa). Backward-compat: vendas sem instalador → valorInst 0.
+  const valorInst = Number(v.valorInstalador || 0);
+  const lucro = Number(v.valor || 0) - Number(v.custo || 0) - valorInst;
   // Retrocompat: vendas antigas com servicoId; vendas novas com servicosIds[]
   const servicosVinc = v.servicosIds || (v.servicoId ? [v.servicoId] : []);
   const qtdServicos = servicosVinc.length;
+  // Chip do instalador: só renderiza se a venda tem instaladorId — não
+  // depende de o cadastro ainda existir (fallback pra obscuro "instalador").
+  const temInstalador = !!v.instaladorId && valorInst > 0;
+  const nomeInst = instalador?.nome || (temInstalador ? "instalador" : "");
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
@@ -1484,6 +1530,11 @@ function VendaRow({ venda: v, cliente, veiculo, servicos = [], hidden, onEstorna
         <div style={{ fontSize: 11, color: T.muted, marginTop: 2, display: "flex", gap: 10, flexWrap: "wrap" }}>
           {cliente && <span>👤 {cliente.nome}</span>}
           {veiculo && <span>🚗 {veiculo.modelo}{veiculo.placa ? ` (${veiculo.placa})` : ""}</span>}
+          {temInstalador && (
+            <span title={`Pago a ${nomeInst}: ${fmt(valorInst)} (sai do Caixa do Negócio)`}>
+              👷 {nomeInst} · {hidden ? "•••" : `pago ${fmt(valorInst)}`}
+            </span>
+          )}
           <span>→ {v.contaDestino}</span>
         </div>
       </div>
