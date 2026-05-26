@@ -383,6 +383,8 @@ export default function Servicos({
     recorrencia: "mensal", // mensal | anual
     dataInicio: todayISO(),
     duracaoMeses: "", // vazio = indeterminado
+    instaladorId: "",
+    valorInstalador: "",
     obs: "",
     ativo: true,
   });
@@ -397,6 +399,8 @@ export default function Servicos({
       contaPagamento: c.contaPagamento || "",
       pagarAoFaturar: c.pagarAoFaturar !== undefined ? c.pagarAoFaturar : (custoNum > 0),
       duracaoMeses: c.duracaoMeses ? String(c.duracaoMeses) : "",
+      instaladorId: c.instaladorId || "",
+      valorInstalador: c.valorInstalador ? String(c.valorInstalador) : "",
     });
   };
 
