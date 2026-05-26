@@ -25,6 +25,10 @@ describe("ASSET_CLASS_COLORS", () => {
       expect(ASSET_CLASS_COLORS[k]).toMatch(/^#[0-9a-fA-F]{6}$/);
     }
   });
+  it("rf is cyan (not aligned with tesouro green)", () => {
+    expect(ASSET_CLASS_COLORS.rf).toBe("#06b6d4");
+    expect(ASSET_CLASS_COLORS.rf).not.toBe(ASSET_CLASS_COLORS.tesouro);
+  });
 });
 
 describe("PROVENTO_REGEX", () => {
@@ -38,5 +42,16 @@ describe("PROVENTO_REGEX", () => {
   it("does not match unrelated descriptions", () => {
     expect(PROVENTO_REGEX.test("Compra de ações")).toBe(false);
     expect(PROVENTO_REGEX.test("Pagamento boleto")).toBe(false);
+  });
+  it("does NOT match plain 'juros' without 'sobre'", () => {
+    expect(PROVENTO_REGEX.test("Juros de empréstimo")).toBe(false);
+    expect(PROVENTO_REGEX.test("Pagamento de juros bancários")).toBe(false);
+  });
+  it("does NOT match jcp as part of a larger word", () => {
+    expect(PROVENTO_REGEX.test("Compra jcpenney")).toBe(false);
+  });
+  it("still matches 'juros sobre' variants", () => {
+    expect(PROVENTO_REGEX.test("Juros sobre capital próprio")).toBe(true);
+    expect(PROVENTO_REGEX.test("JCP da Vale")).toBe(true); // jcp at word boundary
   });
 });

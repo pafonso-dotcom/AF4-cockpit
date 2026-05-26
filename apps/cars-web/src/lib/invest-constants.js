@@ -27,10 +27,10 @@ export const ASSET_CLASS_COLORS = {
   reit: "#0ea5e9",
   cripto: "#8b5cf6",
   etf: "#fbbf24",
-  rf: "#22c55e",
+  rf: "#06b6d4",
   tesouro: "#22c55e",
   cdb: "#14b8a6",
   outro: "#9ca3af",
 };
 
-export const PROVENTO_REGEX = /provent|dividend|rendiment|juros|jcp/i;
+export const PROVENTO_REGEX = /provent|dividend|rendiment|juros sobre|jcp\b/i;
