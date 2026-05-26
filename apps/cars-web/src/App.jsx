@@ -62,6 +62,7 @@ import AnaliseIdV from "./components/pages/Trade/AnaliseIdV.jsx";
 import Analise from "./components/pages/Analise.jsx";
 import Mercado from "./components/pages/Mercado.jsx";
 import Simulador from "./components/pages/Simulador.jsx";
+import CalculadoraRenda from "./components/pages/Invest/CalculadoraRenda.jsx";
 import Projecao from "./components/pages/Invest/Projecao.jsx";
 import AnalisesUnificada from "./components/pages/Invest/Analises.jsx";
 import ObjetivosCarteira from "./components/pages/Invest/ObjetivosCarteira.jsx";
@@ -1014,6 +1015,11 @@ export default function App() {
             {tab === "simulador" && (
               <div className="px-6 md:px-10">
                 <Simulador />
+              </div>
+            )}
+            {tab === "calc-renda" && (
+              <div className="px-6 md:px-10">
+                <CalculadoraRenda />
               </div>
             )}
           </>
