@@ -1,8 +1,18 @@
 # LOTOAI APP PRO · Mobile
 
-App mobile premium para Lotofácil com IA, fechamentos inteligentes, simulações
-e geração automática de jogos. Stack: **Vite + React + Tailwind + Capacitor**,
-backend **Supabase**.
+App mobile premium para Lotofácil com IA, fechamentos inteligentes, simulações,
+modo bolão (com link de compartilhamento) e conferência de bilhetes. Stack:
+**Vite + React + Tailwind + Capacitor**, backend **Supabase**, deploy
+**Cloudflare Workers**.
+
+## Módulos (6 tabs mobile)
+
+- **Painel** — último sorteio, mapa de frequência, dezenas quentes/frias
+- **Gerar** — 3 estratégias (Aleatória / IA Ponderada / Balanceada) + dezenas fixas/excluídas
+- **Fechar** — fechamento completo OU matriz reduzida com garantia matemática verificada
+- **Bolão** — grupos dividindo apostas e prêmios, com link `#b/<token>` pra compartilhar
+- **Conferir** — parser permissivo de bilhetes, lista persistente, score automático
+- **Simular** — backtest sobre histórico real (3197 concursos)
 
 ## Estrutura
 
@@ -10,28 +20,30 @@ backend **Supabase**.
 apps/lotoai-mobile/
 ├── capacitor.config.js     · empacotamento iOS/Android
 ├── index.html
-├── public/                 · manifest + ícone PWA
-├── sql/                    · schema Supabase (Lotofácil + jogos + simulações)
+├── data/                   · histórico XLSX + relatórios de análise + matrizes
+├── public/                 · manifest + ícone + concursos.json + coverings.json
+├── scripts/
+│   ├── import-from-caixa.mjs    · backfill incremental do histórico
+│   └── analise/                 · pipeline de 6 scripts (padrões, ML, grid, coverings)
+├── sql/                    · schema Supabase com RLS
 ├── src/
-│   ├── App.jsx             · shell + tab navigation
-│   ├── main.jsx
-│   ├── index.css           · Tailwind + tokens (ink/panel/gold/accent)
+│   ├── App.jsx, main.jsx, index.css
 │   ├── components/
-│   │   ├── Header.jsx
-│   │   ├── BottomTabBar.jsx
-│   │   ├── ui/
-│   │   │   ├── Ball.jsx
-│   │   │   └── ErrorBoundary.jsx
-│   │   └── pages/
-│   │       ├── Dashboard.jsx     · último sorteio + frequência + quentes/frias
-│   │       ├── GerarJogos.jsx    · gerador c/ estratégias, fixos e excluídos
-│   │       └── Simulacoes.jsx    · backtest sobre histórico
+│   │   ├── Header.jsx          · refresh + branding
+│   │   ├── BottomTabBar.jsx    · 6 tabs
+│   │   ├── ui/                 · Ball, ErrorBoundary, Splash
+│   │   └── pages/              · Dashboard, GerarJogos, Fechamentos, Bolao, Conferencia, Simulacoes
 │   └── lib/
-│       ├── lotofacil.js          · regras, custos, validação, análise de jogo
-│       ├── stats.js              · frequência, atrasos, quentes/frias, scores
-│       ├── generator.js          · estratégias (aleatório, ponderado, balanceado)
-│       ├── backtest.js           · simulação de ROI sobre histórico
-│       └── supabase.js           · client + fallback localStorage
+│       ├── lotofacil.js        · regras, custos, conferir, faixas estatísticas
+│       ├── stats.js            · frequência, atrasos, scores (defaults do grid)
+│       ├── generator.js        · estratégias do gerador
+│       ├── backtest.js         · simulação de ROI
+│       ├── fechamentos.js      · fechamento completo + carregamento de matrizes
+│       ├── coverings.js        · greedy set-cover + verificação por enumeração
+│       ├── bolao.js            · modelo + CRUD + cálculo de distribuição
+│       ├── share.js            · encode/decode base64-url pro link de bolão
+│       ├── import.js           · busca incremental no worker proxy
+│       └── supabase.js         · client + fallback localStorage
 ```
 
 ## Como rodar
@@ -75,8 +87,9 @@ npx cap open android   # Android Studio
 Rode `sql/0001_lotoai_schema.sql` no SQL editor do Supabase para criar:
 
 - `lf_concursos` · histórico oficial (público / read-only)
-- `lf_jogos` · jogos gerados pelo usuário (RLS por `user_id`)
+- `lf_jogos` · bilhetes do usuário (RLS por `user_id`)
 - `lf_simulacoes` · snapshots de backtests (RLS por `user_id`)
+- `lf_bolao` · bolões (jogos + participantes + resultado em JSONB; RLS por `user_id`)
 
 ## Deploy (Cloudflare Workers)
 
@@ -138,8 +151,21 @@ O worker invalida e re-aquece `/api/lotofacil/latest` após cada sorteio,
 de forma que o primeiro usuário a abrir o app já recebe o resultado novo
 sem esperar o roundtrip à Caixa.
 
+## Compartilhar bolão por link
+
+Cada bolão pode ser compartilhado por uma URL do tipo
+`https://lotoai-pro.../#b/<base64>`. O bolão inteiro (nome, jogos, participantes,
+cotas) é codificado na própria URL — não passa por servidor, funciona offline e
+quem recebe não precisa de cadastro. Use o botão Share2 no detalhe do bolão pra
+copiar/enviar via WhatsApp/AirDrop. Quem abre o link cai num modo somente-leitura
+com botões "Salvar no meu app" ou "Dispensar".
+
+Tamanho do link: ~350 chars pra bolão pequeno, ~6KB pra fechamento de 100 apostas
+× 5 pessoas — ambos cabem confortavelmente em URL.
+
 ## Próximos passos
 
 - [ ] Autenticação Supabase (gate na entrada)
 - [ ] Notificações push para novos sorteios
+- [ ] QR code no sheet de compartilhar (passar bolão pessoalmente)
 - [ ] Matrizes 14-em-16 publicadas (hoje só temos 12-14 via greedy)
