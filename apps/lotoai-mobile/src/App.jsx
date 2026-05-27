@@ -6,6 +6,7 @@ import Splash from "./components/ui/Splash.jsx";
 import Dashboard from "./components/pages/Dashboard.jsx";
 import GerarJogos from "./components/pages/GerarJogos.jsx";
 import Fechamentos from "./components/pages/Fechamentos.jsx";
+import Bolao from "./components/pages/Bolao.jsx";
 import Conferencia from "./components/pages/Conferencia.jsx";
 import Simulacoes from "./components/pages/Simulacoes.jsx";
 
@@ -40,6 +41,7 @@ export default function App() {
         {tab === "dashboard" && <Dashboard historico={historico} />}
         {tab === "gerar"     && <GerarJogos historico={historico} />}
         {tab === "fechar"    && <Fechamentos historico={historico} />}
+        {tab === "bolao"     && <Bolao historico={historico} />}
         {tab === "conferir"  && <Conferencia historico={historico} />}
         {tab === "simular"   && <Simulacoes historico={historico} />}
       </main>

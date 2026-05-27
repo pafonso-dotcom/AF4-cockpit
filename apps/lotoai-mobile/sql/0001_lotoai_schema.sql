@@ -42,6 +42,22 @@ create table if not exists lf_simulacoes (
   created_at    timestamptz not null default now()
 );
 
+create table if not exists lf_bolao (
+  id             uuid primary key default gen_random_uuid(),
+  user_id        uuid references auth.users(id) on delete cascade,
+  nome           text not null,
+  concurso_alvo  int,
+  jogos          jsonb not null,
+  participantes  jsonb not null,
+  estrategia     text,
+  custo_total    numeric not null default 0,
+  status         text not null default 'ativo',
+  resultado      jsonb,
+  criado_em      timestamptz not null default now()
+);
+
+create index if not exists lf_bolao_user_idx on lf_bolao(user_id, criado_em desc);
+
 -- ============================================================
 -- RLS · cada usuário só enxerga seus próprios jogos/simulações
 -- Concursos são públicos (read-only)
@@ -50,6 +66,7 @@ create table if not exists lf_simulacoes (
 alter table lf_concursos  enable row level security;
 alter table lf_jogos      enable row level security;
 alter table lf_simulacoes enable row level security;
+alter table lf_bolao      enable row level security;
 
 drop policy if exists "concursos públicos" on lf_concursos;
 create policy "concursos públicos"
@@ -65,5 +82,11 @@ create policy "jogos do dono"
 drop policy if exists "simulações do dono" on lf_simulacoes;
 create policy "simulações do dono"
   on lf_simulacoes for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "bolão do dono" on lf_bolao;
+create policy "bolão do dono"
+  on lf_bolao for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
