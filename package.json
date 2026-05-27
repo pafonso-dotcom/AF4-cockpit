@@ -6,7 +6,10 @@
   "scripts": {
     "build": "turbo run build",
     "start": "pnpm --filter @repo/cars-web start",
-    "dev": "pnpm --filter @repo/cars-web dev"
+    "dev": "pnpm --filter @repo/cars-web dev",
+    "deploy:cars": "pnpm --filter @repo/cars-web build && pnpm dlx wrangler@latest deploy",
+    "deploy:lotoai": "pnpm --filter @repo/lotoai-mobile build && pnpm dlx wrangler@latest deploy --config wrangler.lotoai.jsonc",
+    "deploy:lotoai:dry": "pnpm --filter @repo/lotoai-mobile build && pnpm dlx wrangler@latest deploy --config wrangler.lotoai.jsonc --dry-run --outdir=.wrangler-dry"
   },
   "devDependencies": {
     "turbo": "^2.9.8"

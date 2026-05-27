@@ -78,6 +78,31 @@ Rode `sql/0001_lotoai_schema.sql` no SQL editor do Supabase para criar:
 - `lf_jogos` · jogos gerados pelo usuário (RLS por `user_id`)
 - `lf_simulacoes` · snapshots de backtests (RLS por `user_id`)
 
+## Deploy (Cloudflare Workers)
+
+Worker dedicado, configurado em `wrangler.lotoai.jsonc` na raiz do repo.
+Reutiliza `worker/index.js` (mesmo binário do af4cockpit) — só muda o
+`assets.directory` para `apps/lotoai-mobile/dist`.
+
+```bash
+# da raiz do monorepo (precisa estar logado: pnpm dlx wrangler login)
+pnpm deploy:lotoai          # build + deploy
+pnpm deploy:lotoai:dry      # build + dry-run (mostra o bundle sem publicar)
+
+# atalho a partir do app
+pnpm --filter @repo/lotoai-mobile deploy
+```
+
+Primeiro deploy fica em `https://lotoai-pro.<seu-subdomínio>.workers.dev`.
+Para domínio próprio: painel Cloudflare → Workers → lotoai-pro → Settings
+→ Triggers → Routes.
+
+Endpoints servidos pelo worker no mesmo domínio do app:
+- `GET /api/ping` — health check
+- `GET /api/lotofacil/latest` — último concurso (cache 10min)
+- `GET /api/lotofacil/{numero}` — concurso específico (cache 24h)
+- `GET /*` — SPA estática com fallback para `index.html`
+
 ## Importar concursos novos
 
 ### Em produção (browser/app)
