@@ -98,7 +98,7 @@ export default function NegocioPainel({
       </button>
 
       {/* Cards de resumo do mês */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6" style={{ background: T.border }}>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-px mb-6" style={{ background: T.border }}>
         <KpiCard label="Receita do mês" valor={hidden ? "•••••" : fmt(stats.receita)} cor={T.gold} icon={TrendingUp} />
         <KpiCard label="Custo do mês" valor={hidden ? "•••••" : fmt(stats.custo)} cor={T.muted} />
         <KpiCard label="Lucro do mês"
@@ -107,8 +107,11 @@ export default function NegocioPainel({
                  cor={stats.lucro >= 0 ? T.green : T.red} />
         <KpiCard label="Veículos em estoque"
                  valor={String(stats.veiculosEstoque)}
-                 sub={hidden ? "•••" : `${fmt(stats.valorEstoque)} investidos`}
                  cor={T.blue || "#60a5fa"} icon={Package} />
+        <KpiCard label="Valor em estoque"
+                 valor={hidden ? "•••••" : fmt(stats.valorEstoque)}
+                 sub="custo + extras"
+                 cor={T.blue || "#60a5fa"} icon={DollarSign} />
       </div>
 
       {/* Atalhos pras áreas */}
