@@ -79,3 +79,45 @@ export function dentroDasFaixas(jogo, faixas = FAIXAS_TIPICAS) {
     a.moldura  >= faixas.moldura.min  && a.moldura  <= faixas.moldura.max
   );
 }
+
+/**
+ * Parse permissivo de jogo digitado pelo usuário. Aceita:
+ *   "1 2 3 4 5 ... 15"        (espaços)
+ *   "1,2,3,4,5,...,15"        (vírgulas)
+ *   "01-02-03-...-15"         (hífens, zeros à esquerda)
+ *   "1, 2, 03, 04 5  6\n7..." (qualquer mix)
+ * Retorna { ok, jogo, erros }. Não modifica o input.
+ */
+export function parseJogo(input) {
+  const erros = [];
+  const tokens = String(input).split(/[^\d]+/).filter(Boolean);
+  if (!tokens.length) return { ok: false, jogo: [], erros: ["digite as 15 dezenas"] };
+
+  const nums = tokens.map(t => Number(t));
+  if (nums.some(n => !Number.isInteger(n) || n < 1 || n > 25)) {
+    erros.push("dezenas devem ser inteiros entre 1 e 25");
+  }
+  const set = new Set(nums);
+  if (set.size !== nums.length) erros.push("há dezenas repetidas");
+  if (nums.length !== LOTOFACIL.numerosPorJogo) {
+    erros.push(`esperava 15 dezenas, recebeu ${nums.length}`);
+  }
+  if (erros.length) return { ok: false, jogo: [], erros };
+
+  return { ok: true, jogo: [...set].sort((a, b) => a - b), erros: [] };
+}
+
+/**
+ * Confere um jogo contra um sorteio: pontos, dezenas acertadas e erradas.
+ */
+export function conferir(jogo, sorteio) {
+  const setS = new Set(sorteio);
+  const acertadas = jogo.filter(n => setS.has(n));
+  const erradas = jogo.filter(n => !setS.has(n));
+  return {
+    pontos: acertadas.length,
+    acertadas: acertadas.sort((a, b) => a - b),
+    erradas: erradas.sort((a, b) => a - b),
+    premiavel: acertadas.length >= 11,
+  };
+}

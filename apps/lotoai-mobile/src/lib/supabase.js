@@ -74,7 +74,12 @@ function lerLocal() {
 /* ---------------- Jogos do usuário ---------------- */
 
 export async function salvarJogos(jogos, meta = {}) {
-  const payload = jogos.map(dezenas => ({ dezenas, ...meta, created_at: new Date().toISOString() }));
+  const payload = jogos.map(dezenas => ({
+    id: cryptoId(),
+    dezenas,
+    ...meta,
+    created_at: new Date().toISOString(),
+  }));
   if (supabase) {
     const { error } = await supabase.from("lf_jogos").insert(payload);
     if (!error) return { ok: true, remote: true };
@@ -82,6 +87,34 @@ export async function salvarJogos(jogos, meta = {}) {
   const prev = JSON.parse(localStorage.getItem("lotoai:jogos") || "[]");
   localStorage.setItem("lotoai:jogos", JSON.stringify([...prev, ...payload]));
   return { ok: true, remote: false };
+}
+
+export async function listarJogos({ limite = 200 } = {}) {
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("lf_jogos")
+      .select("id, dezenas, estrategia, concurso_alvo, created_at")
+      .order("created_at", { ascending: false })
+      .limit(limite);
+    if (!error && data) return data;
+  }
+  const local = JSON.parse(localStorage.getItem("lotoai:jogos") || "[]");
+  return [...local].reverse().slice(0, limite);
+}
+
+export async function removerJogo(id) {
+  if (supabase) {
+    const { error } = await supabase.from("lf_jogos").delete().eq("id", id);
+    if (!error) return { ok: true, remote: true };
+  }
+  const prev = JSON.parse(localStorage.getItem("lotoai:jogos") || "[]");
+  localStorage.setItem("lotoai:jogos", JSON.stringify(prev.filter(j => j.id !== id)));
+  return { ok: true, remote: false };
+}
+
+function cryptoId() {
+  try { return crypto.randomUUID(); }
+  catch { return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`; }
 }
 
 /* ---------------- Mock seed (offline / primeiro boot) ---------------- */

@@ -5,6 +5,7 @@ import BottomTabBar from "./components/BottomTabBar.jsx";
 import Dashboard from "./components/pages/Dashboard.jsx";
 import GerarJogos from "./components/pages/GerarJogos.jsx";
 import Fechamentos from "./components/pages/Fechamentos.jsx";
+import Conferencia from "./components/pages/Conferencia.jsx";
 import Simulacoes from "./components/pages/Simulacoes.jsx";
 
 import { listarConcursos } from "./lib/supabase.js";
@@ -37,6 +38,7 @@ export default function App() {
           {tab === "dashboard" && <Dashboard historico={historico} />}
           {tab === "gerar"     && <GerarJogos historico={historico} />}
           {tab === "fechar"    && <Fechamentos historico={historico} />}
+          {tab === "conferir"  && <Conferencia historico={historico} />}
           {tab === "simular"   && <Simulacoes historico={historico} />}
         </main>
       )}
