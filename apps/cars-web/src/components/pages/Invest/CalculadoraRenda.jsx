@@ -23,10 +23,34 @@ const DEFAULTS = {
 };
 
 const ATALHOS = [
-  { id: "selic",   label: "Tesouro Selic",      taxa: 14.50, ir: 15 },
-  { id: "cdb100",  label: "CDB 100% CDI",       taxa: 14.40, ir: 15 },
-  { id: "cdb110",  label: "CDB 110% CDI",       taxa: 15.84, ir: 15 },
-  { id: "lci92",   label: "LCI / LCA 92% CDI",  taxa: 13.25, ir: 0  },
+  // Renda fixa básica (CDI ≈ 14,40% a.a.)
+  { id: "selic",      label: "Tesouro Selic",     taxa: 14.50, ir: 15, grupo: "rf" },
+  { id: "cdb100",     label: "CDB 100% CDI",      taxa: 14.40, ir: 15, grupo: "rf" },
+  { id: "cdb110",     label: "CDB 110% CDI",      taxa: 15.84, ir: 15, grupo: "rf" },
+  { id: "cdb120",     label: "CDB 120% CDI",      taxa: 17.28, ir: 15, grupo: "rf" },
+  // Isentos de IR
+  { id: "lci92",      label: "LCI / LCA 92% CDI", taxa: 13.25, ir: 0,  grupo: "isento" },
+  { id: "lci97",      label: "LCI / LCA 97% CDI", taxa: 13.97, ir: 0,  grupo: "isento" },
+  { id: "lca100",     label: "LCA 100% CDI",      taxa: 14.40, ir: 0,  grupo: "isento" },
+  { id: "cri-cra",    label: "CRI / CRA prefix.", taxa: 13.50, ir: 0,  grupo: "isento" },
+  // Tesouro IPCA+ (taxa nominal projetada com IPCA 4,5%)
+  { id: "ipca-curto", label: "Tesouro IPCA+ 2029", taxa: 11.20, ir: 15, grupo: "ipca" },
+  { id: "ipca-longo", label: "Tesouro IPCA+ 2045", taxa: 11.80, ir: 15, grupo: "ipca" },
+  // Cenários históricos / referência
+  { id: "hist-selic-baixa",  label: "Hist · Selic 2% (2020)", taxa: 2.0,  ir: 15, grupo: "hist" },
+  { id: "hist-selic-alta",   label: "Hist · Selic 14% (2024)", taxa: 14.0, ir: 15, grupo: "hist" },
+  // Renda variável (estimativa simplificada — usa taxa nominal só pra simular)
+  { id: "rv-conservador", label: "RV conservador (10%)", taxa: 10.0, ir: 15, grupo: "rv" },
+  { id: "rv-moderado",    label: "RV moderado (15%)",    taxa: 15.0, ir: 15, grupo: "rv" },
+  { id: "rv-agressivo",   label: "RV agressivo (20%)",   taxa: 20.0, ir: 15, grupo: "rv" },
+];
+
+const GRUPOS = [
+  { id: "rf",     label: "Renda fixa",        cor: null }, // gold (default)
+  { id: "isento", label: "Isentos de IR",     cor: "#22c55e" },
+  { id: "ipca",   label: "Tesouro IPCA+",     cor: "#06b6d4" },
+  { id: "hist",   label: "Histórico (ref.)",  cor: "#9ca3af" },
+  { id: "rv",     label: "Renda variável",    cor: "#a78bfa" },
 ];
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
@@ -198,31 +222,46 @@ export default function CalculadoraRenda() {
         }
       />
 
-      {/* Atalhos rápidos */}
+      {/* Atalhos rápidos agrupados */}
       <div style={{ marginBottom: 14 }}>
         <div className="label-eyebrow" style={{ marginBottom: 8 }}>Cenários rápidos</div>
-        <div className="calc-atalhos" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {ATALHOS.map(a => {
-            const ativo = Math.abs(taxaAnualPct - a.taxa) < 0.05 && Math.abs(irPct - a.ir) < 0.05;
-            return (
-              <button key={a.id} onClick={() => aplicarAtalho(a)}
-                className="calc-atalho-btn"
-                style={{
-                  padding: "8px 14px", borderRadius: 6, cursor: "pointer",
-                  fontSize: 12, fontWeight: 500,
-                  background: ativo ? `${T.gold}22` : T.card,
-                  color: ativo ? T.gold : T.ink,
-                  border: `1px solid ${ativo ? T.gold : T.border}`,
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                }}>
-                <span>{a.label}</span>
-                <span className="calc-atalho-meta" style={{ color: T.muted, fontSize: 11 }}>
-                  · {a.taxa}% · IR {a.ir}%
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {GRUPOS.map(g => {
+          const itensDoGrupo = ATALHOS.filter(a => a.grupo === g.id);
+          if (itensDoGrupo.length === 0) return null;
+          const corGrupo = g.cor || T.gold;
+          return (
+            <div key={g.id} style={{ marginBottom: 8 }}>
+              <div style={{
+                fontSize: 9.5, color: corGrupo, fontWeight: 700,
+                letterSpacing: ".12em", textTransform: "uppercase", marginBottom: 4,
+              }}>
+                {g.label}
+              </div>
+              <div className="calc-atalhos" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {itensDoGrupo.map(a => {
+                  const ativo = Math.abs(taxaAnualPct - a.taxa) < 0.05 && Math.abs(irPct - a.ir) < 0.05;
+                  return (
+                    <button key={a.id} onClick={() => aplicarAtalho(a)}
+                      className="calc-atalho-btn"
+                      style={{
+                        padding: "6px 11px", borderRadius: 6, cursor: "pointer",
+                        fontSize: 11.5, fontWeight: 500,
+                        background: ativo ? `${corGrupo}22` : T.card,
+                        color: ativo ? corGrupo : T.ink,
+                        border: `1px solid ${ativo ? corGrupo : T.border}`,
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                      }}>
+                      <span>{a.label}</span>
+                      <span className="calc-atalho-meta" style={{ color: T.muted, fontSize: 10.5 }}>
+                        · {a.taxa}% · IR {a.ir}%
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div style={{
