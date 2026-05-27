@@ -885,7 +885,10 @@ export default function App() {
               <SugestoesMelhorias sugestoes={sugestoes} setSugestoes={setSugestoes} />
             )}
             {tab === "metas" && (
-              <Metas metas={metas} setMetas={setMetas} hidden={hidden} />
+              <Metas metas={metas} setMetas={setMetas} hidden={hidden}
+                     fixas={fixas} setFixas={setFixas}
+                     fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
+                     categorias={categorias} contas={contas} />
             )}
             {tab === "compras" && (
               <Compras compras={compras} setCompras={setCompras} />

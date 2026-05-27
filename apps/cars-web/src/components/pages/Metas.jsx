@@ -1,14 +1,27 @@
 import React, { useState } from "react";
-import { Plus, Trash2, Edit3 } from "lucide-react";
+import { Plus, Trash2, Edit3, Repeat, CheckCircle2 } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, uid } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
+import { gerarOcorrencias } from "../../lib/fixas.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
 
-export default function Metas({ metas, setMetas, hidden }) {
+// Calcula meses entre hoje e uma data alvo (YYYY-MM-DD ou YYYY-MM)
+function mesesAteData(dataAlvoISO) {
+  if (!dataAlvoISO) return 0;
+  const hoje = new Date();
+  const alvo = new Date((dataAlvoISO.length === 7 ? dataAlvoISO + "-01" : dataAlvoISO) + "T00:00:00");
+  return Math.max(0, (alvo.getFullYear() - hoje.getFullYear()) * 12 + (alvo.getMonth() - hoje.getMonth()));
+}
+
+export default function Metas({
+  metas, setMetas, hidden,
+  fixas = [], setFixas, fixaOcorrencias = [], setFixaOcorrencias,
+  categorias = [], contas = [],
+}) {
   const [form, setForm] = useState(null);
 
   const calc = (m) => {
@@ -32,6 +45,66 @@ export default function Metas({ metas, setMetas, hidden }) {
 
   const [formErrors, setFormErrors] = useState({});
 
+  // Cria uma despesa fixa recorrente atrelada à meta — uma "poupança automática".
+  // Funciona como um agendamento mensal até a data alvo. Marca a meta como tendo
+  // fixaId pra evitar duplicação.
+  const criarFixaDaMeta = async (m) => {
+    if (m.fixaId && fixas.find(f => f.id === m.fixaId)) {
+      toast.info(`Meta "${m.nome}" já tem uma poupança automática.`);
+      return;
+    }
+    if (!setFixas || !setFixaOcorrencias) {
+      toast.error("Não foi possível criar a poupança (módulo fixas indisponível).");
+      return;
+    }
+    const meses = m.dataAlvo ? mesesAteData(m.dataAlvo) : m.prazo;
+    if (!meses || meses <= 0) {
+      toast.error("Defina uma data ou prazo válido na meta.");
+      return;
+    }
+    const falta = Math.max(0, (m.alvo || 0) - (m.atual || 0));
+    const valorMensal = Math.ceil(falta / meses);
+    if (valorMensal <= 0) {
+      toast.info("Meta já está alcançada — sem necessidade de poupança automática.");
+      return;
+    }
+    const catReserva = (categorias || []).find(c =>
+      c.tipo === "despesa" && /reserva|meta|poupan/i.test(c.nome || "")
+    );
+    const categoria = catReserva?.nome || (categorias || []).filter(c => c.tipo === "despesa")[0]?.nome || "Outros";
+    const conta = contas[0]?.nome || "";
+    const ok = await confirm({
+      title: `Criar poupança automática?`,
+      body: `Vai criar uma despesa fixa de ${fmt(valorMensal)}/mês durante ${meses} meses pra meta "${m.nome}". Categoria: ${categoria}. Pode cancelar depois em Despesas Fixas.`,
+      confirmLabel: "Criar",
+    });
+    if (!ok) return;
+    const hojeISO = new Date().toISOString().slice(0, 10);
+    const anoAtual = parseInt(hojeISO.slice(0, 4), 10);
+    const mesAtualISO = hojeISO.slice(0, 7);
+    // Calcula terminoEm = mês atual + meses-1
+    const fim = new Date(); fim.setMonth(fim.getMonth() + meses - 1);
+    const terminoEm = `${fim.getFullYear()}-${String(fim.getMonth() + 1).padStart(2, "0")}`;
+    const novaFixa = {
+      id: `fixa-${Date.now()}`,
+      descricao: `Meta: ${m.nome}`,
+      valor: valorMensal,
+      diaVencimento: 5,
+      categoria,
+      contaPadrao: conta,
+      obs: `Poupança automática pra meta "${m.nome}" — encerra em ${terminoEm}.`,
+      inicioEm: mesAtualISO,
+      terminoEm,
+      metaId: m.id,
+      criadoEm: hojeISO,
+    };
+    const ocorrencias = gerarOcorrencias(novaFixa, anoAtual);
+    setFixas([...(fixas || []), novaFixa]);
+    setFixaOcorrencias([...(fixaOcorrencias || []), ...ocorrencias]);
+    setMetas(metas.map(x => x.id === m.id ? { ...x, fixaId: novaFixa.id, aporte: valorMensal, prazo: meses } : x));
+    toast.success(`Poupança de ${fmt(valorMensal)}/mês criada em Despesas Fixas pra "${m.nome}".`);
+  };
+
   const save = () => {
     const errs = {};
     if (!form.nome?.trim()) errs.nome = "Nome é obrigatório";
@@ -50,6 +123,7 @@ export default function Metas({ metas, setMetas, hidden }) {
       prazo: parseInt(form.prazo),
       aporte: parseFloat(form.aporte),
       taxa: parseFloat(form.taxa),
+      dataAlvo: form.dataAlvo || null,
     };
     if (form.id && metas.find(m => m.id === form.id)) {
       setMetas(metas.map(m => m.id === form.id ? data : m));
@@ -68,7 +142,7 @@ export default function Metas({ metas, setMetas, hidden }) {
         eyebrow="Capítulo VII"
         title="Metas"
         sub="Promessas que viram patrimônio. Calcule, projete, persiga."
-        action={<button className="btn-gold" onClick={() => setForm({ id: null, nome: "", alvo: "", atual: 0, prazo: 12, aporte: 500, taxa: 0.85 })}>
+        action={<button className="btn-gold" onClick={() => setForm({ id: null, nome: "", alvo: "", atual: 0, prazo: 12, aporte: 500, taxa: 0.85, dataAlvo: "" })}>
           <Plus size={14} className="inline mr-2" />Nova Meta
         </button>}
       />
@@ -113,6 +187,35 @@ export default function Metas({ metas, setMetas, hidden }) {
               </div>
               <div className="num text-right text-xs mt-1" style={{ color: T.gold }}>{fmtN(pct, 1)}%</div>
 
+              {(() => {
+                const fixaJa = m.fixaId && (fixas || []).find(f => f.id === m.fixaId);
+                if (fixaJa) {
+                  return (
+                    <div style={{
+                      marginTop: 14, padding: 10, background: `${T.green}11`,
+                      border: `1px solid ${T.green}33`, borderRadius: 6,
+                      fontSize: 12, color: T.muted, display: "flex", alignItems: "center", gap: 8,
+                    }}>
+                      <CheckCircle2 size={14} style={{ color: T.green, flexShrink: 0 }} />
+                      Poupança automática ativa em Despesas Fixas — <strong className="num" style={{ color: T.ink }}>{fmt(fixaJa.valor)}/mês</strong>
+                    </div>
+                  );
+                }
+                if (!setFixas) return null;
+                return (
+                  <button onClick={() => criarFixaDaMeta(m)}
+                          style={{
+                            marginTop: 14, width: "100%",
+                            background: T.gold, color: T.bg,
+                            border: "none", padding: "8px 14px", borderRadius: 6,
+                            fontSize: 11.5, fontWeight: 700, cursor: "pointer",
+                            letterSpacing: ".05em", textTransform: "uppercase",
+                            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                          }}>
+                    <Repeat size={12} /> Criar poupança automática
+                  </button>
+                );
+              })()}
               <div className="grid grid-cols-2 gap-4 mt-6 pt-6" style={{ borderTop: `1px solid ${T.border}` }}>
                 <div>
                   <div className="label-eyebrow">Aporte/mês</div>
@@ -151,6 +254,14 @@ export default function Metas({ metas, setMetas, hidden }) {
             </Field>
             <Field label="Valor atual (R$)">
               <input type="number" value={form.atual} onChange={e => setForm({ ...form, atual: e.target.value })} />
+            </Field>
+            <Field label="Data alvo" hint="Quando você quer atingir">
+              <input type="date" value={form.dataAlvo || ""}
+                     onChange={e => {
+                       const dataAlvo = e.target.value;
+                       const meses = mesesAteData(dataAlvo);
+                       setForm({ ...form, dataAlvo, prazo: meses > 0 ? meses : form.prazo });
+                     }} />
             </Field>
             <Field label="Prazo (meses)">
               <input type="number" value={form.prazo} onChange={e => setForm({ ...form, prazo: e.target.value })} />
