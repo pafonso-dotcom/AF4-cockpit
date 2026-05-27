@@ -9,11 +9,12 @@ export default function Dashboard({ historico }) {
 
   const stats = useMemo(() => {
     if (!historico.length) return null;
+    const sorteios = historico.map(c => c.dezenas);
     return {
-      freq: frequencias(historico),
-      atr: atrasos(historico),
-      quentes: quentes(historico, 8),
-      frias: frias(historico, 8),
+      freq: frequencias(sorteios),
+      atr: atrasos(sorteios),
+      quentes: quentes(sorteios, 8),
+      frias: frias(sorteios, 8),
     };
   }, [historico]);
 
