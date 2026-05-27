@@ -68,37 +68,64 @@ export default function NegocioPainel({
         sub="Resumo do que está rolando hoje no seu negócio: estoque, vendas, lucro e atalhos pras áreas."
       />
 
-      {/* Card destaque: Caixa do Negócio (saldo virtual) */}
-      <button
-        onClick={() => setCaixaModalAberto(true)}
-        style={{
-          width: "100%", textAlign: "left", cursor: "pointer",
+      {/* Cards destaque lado a lado: Caixa do Negócio · Valor em estoque */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3" style={{ marginBottom: 14 }}>
+        <button
+          onClick={() => setCaixaModalAberto(true)}
+          style={{
+            width: "100%", textAlign: "left", cursor: "pointer",
+            background: T.card, border: `1px solid ${T.border}`,
+            borderLeft: `3px solid ${T.gold}`, borderRadius: 8, padding: 16,
+            display: "flex", alignItems: "center", gap: 14,
+          }}>
+          <span style={{
+            width: 44, height: 44, borderRadius: 10,
+            background: `${T.gold}22`, color: T.gold,
+            display: "grid", placeItems: "center", flexShrink: 0,
+          }}>
+            <DollarSign size={22} />
+          </span>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted }}>
+              Caixa do Negócio
+            </div>
+            <div style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 500, color: T.gold, fontVariantNumeric: "tabular-nums", marginTop: 2 }}>
+              {hidden ? "•••••" : fmt(saldoCaixa)}
+            </div>
+            <div style={{ fontSize: 11.5, color: T.muted, marginTop: 3 }}>
+              {qtdEntradas} {qtdEntradas === 1 ? "movimentação" : "movimentações"} · clique pra ver histórico
+            </div>
+          </div>
+        </button>
+
+        <div style={{
           background: T.card, border: `1px solid ${T.border}`,
-          borderLeft: `3px solid ${T.gold}`, borderRadius: 8, padding: 16,
-          marginBottom: 14, display: "flex", alignItems: "center", gap: 14,
+          borderLeft: `3px solid ${T.blue || "#60a5fa"}`, borderRadius: 8, padding: 16,
+          display: "flex", alignItems: "center", gap: 14,
         }}>
-        <span style={{
-          width: 44, height: 44, borderRadius: 10,
-          background: `${T.gold}22`, color: T.gold,
-          display: "grid", placeItems: "center", flexShrink: 0,
-        }}>
-          <DollarSign size={22} />
-        </span>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted }}>
-            Caixa do Negócio
-          </div>
-          <div style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 500, color: T.gold, fontVariantNumeric: "tabular-nums", marginTop: 2 }}>
-            {hidden ? "•••••" : fmt(saldoCaixa)}
-          </div>
-          <div style={{ fontSize: 11.5, color: T.muted, marginTop: 3 }}>
-            {qtdEntradas} {qtdEntradas === 1 ? "movimentação" : "movimentações"} · clique pra ver histórico
+          <span style={{
+            width: 44, height: 44, borderRadius: 10,
+            background: `${T.blue || "#60a5fa"}22`, color: T.blue || "#60a5fa",
+            display: "grid", placeItems: "center", flexShrink: 0,
+          }}>
+            <Package size={22} />
+          </span>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted }}>
+              Valor em estoque (carros)
+            </div>
+            <div style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 500, color: T.blue || "#60a5fa", fontVariantNumeric: "tabular-nums", marginTop: 2 }}>
+              {hidden ? "•••••" : fmt(stats.valorEstoque)}
+            </div>
+            <div style={{ fontSize: 11.5, color: T.muted, marginTop: 3 }}>
+              {stats.veiculosEstoque} {stats.veiculosEstoque === 1 ? "veículo" : "veículos"} · custo + extras
+            </div>
           </div>
         </div>
-      </button>
+      </div>
 
       {/* Cards de resumo do mês */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-px mb-6" style={{ background: T.border }}>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6" style={{ background: T.border }}>
         <KpiCard label="Receita do mês" valor={hidden ? "•••••" : fmt(stats.receita)} cor={T.gold} icon={TrendingUp} />
         <KpiCard label="Custo do mês" valor={hidden ? "•••••" : fmt(stats.custo)} cor={T.muted} />
         <KpiCard label="Lucro do mês"
@@ -108,10 +135,6 @@ export default function NegocioPainel({
         <KpiCard label="Veículos em estoque"
                  valor={String(stats.veiculosEstoque)}
                  cor={T.blue || "#60a5fa"} icon={Package} />
-        <KpiCard label="Valor em estoque"
-                 valor={hidden ? "•••••" : fmt(stats.valorEstoque)}
-                 sub="custo + extras"
-                 cor={T.blue || "#60a5fa"} icon={DollarSign} />
       </div>
 
       {/* Atalhos pras áreas */}
