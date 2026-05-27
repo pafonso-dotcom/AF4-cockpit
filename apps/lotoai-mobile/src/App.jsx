@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 
 import Header from "./components/Header.jsx";
 import BottomTabBar from "./components/BottomTabBar.jsx";
+import Splash from "./components/ui/Splash.jsx";
 import Dashboard from "./components/pages/Dashboard.jsx";
 import GerarJogos from "./components/pages/GerarJogos.jsx";
 import Fechamentos from "./components/pages/Fechamentos.jsx";
@@ -17,32 +18,31 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const list = await listarConcursos({ limite: 500 });
+      const t0 = Date.now();
+      const list = await listarConcursos({ limite: 5000 });
       setHistorico(list);
+      // garante splash visível por pelo menos 600ms (sensação de produto, não bug)
+      const min = 600;
+      const elapsed = Date.now() - t0;
+      if (elapsed < min) await new Promise(r => setTimeout(r, min - elapsed));
       setLoading(false);
     })();
   }, []);
+
+  if (loading) return <Splash />;
 
   const ultimo = historico[historico.length - 1];
 
   return (
     <div className="min-h-screen bg-ink text-white">
       <Header ultimoConcurso={ultimo} historico={historico} onHistoricoUpdate={setHistorico} />
-
-      {loading ? (
-        <div className="flex items-center justify-center py-20 text-white/50">
-          Carregando concursos…
-        </div>
-      ) : (
-        <main>
-          {tab === "dashboard" && <Dashboard historico={historico} />}
-          {tab === "gerar"     && <GerarJogos historico={historico} />}
-          {tab === "fechar"    && <Fechamentos historico={historico} />}
-          {tab === "conferir"  && <Conferencia historico={historico} />}
-          {tab === "simular"   && <Simulacoes historico={historico} />}
-        </main>
-      )}
-
+      <main>
+        {tab === "dashboard" && <Dashboard historico={historico} />}
+        {tab === "gerar"     && <GerarJogos historico={historico} />}
+        {tab === "fechar"    && <Fechamentos historico={historico} />}
+        {tab === "conferir"  && <Conferencia historico={historico} />}
+        {tab === "simular"   && <Simulacoes historico={historico} />}
+      </main>
       <BottomTabBar tab={tab} onChange={setTab} />
     </div>
   );

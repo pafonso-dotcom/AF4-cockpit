@@ -124,9 +124,22 @@ Fontes tentadas em ordem: Caixa oficial → mirror público. Idempotente
 (dedupe por número). Atualiza tanto `data/concursos.json` quanto
 `public/concursos.json` (que vai no bundle do app).
 
+## Cron · aquecer cache da Caixa
+
+Configurado em `wrangler.lotoai.jsonc`:
+
+```jsonc
+"triggers": {
+  "crons": ["30 23 * * 1-6"]  // 20:30 BRT seg-sáb, 30min após o sorteio
+}
+```
+
+O worker invalida e re-aquece `/api/lotofacil/latest` após cada sorteio,
+de forma que o primeiro usuário a abrir o app já recebe o resultado novo
+sem esperar o roundtrip à Caixa.
+
 ## Próximos passos
 
-- [ ] Tela de fechamentos com matriz de garantia 14-em-16 publicada (já temos 12-14 via greedy)
 - [ ] Autenticação Supabase (gate na entrada)
 - [ ] Notificações push para novos sorteios
-- [ ] Cron no worker para importar automaticamente todas as segundas/quartas/sextas
+- [ ] Matrizes 14-em-16 publicadas (hoje só temos 12-14 via greedy)

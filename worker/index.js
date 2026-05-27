@@ -7,6 +7,11 @@
  *  - /api/lotofacil/{numero}        → concurso específico
  *  - tudo o mais                    → static assets (SPA)
  *
+ * Cron (configurado no wrangler do LOTOAI):
+ *  - Aquece o cache de /api/lotofacil/latest logo após os horários de
+ *    sorteio (seg/ter/qua/qui/sex/sáb 20:30 BRT = 23:30 UTC) para que o
+ *    primeiro usuário a abrir o app não pague o roundtrip à Caixa.
+ *
  * Sync de dados entre dispositivos é feito via GitHub Gist (lib/gistSync.js
  * no cliente) — o Worker não precisa armazenar nada.
  */
@@ -112,5 +117,25 @@ export default {
       return new Response(res.body, { status: res.status, headers });
     }
     return res;
+  },
+
+  /**
+   * Cron trigger — invalida e re-aquece o cache de /api/lotofacil/latest.
+   * Configurado no wrangler.lotoai.jsonc (apenas no worker do LOTOAI;
+   * o af4cockpit não tem triggers e este handler é no-op pra ele).
+   */
+  async scheduled(event, env, ctx) {
+    try {
+      // Limpa a entrada antiga e força um fetch novo da Caixa
+      const cacheKey = new Request(
+        "https://servicebus2.caixa.gov.br/portaldeloterias/api/lotofacil/",
+        { method: "GET" }
+      );
+      await caches.default.delete(cacheKey);
+      const res = await lotofacilProxy(ctx, "latest");
+      console.log(`[cron ${event.cron}] aqueceu latest → HTTP ${res.status}`);
+    } catch (e) {
+      console.warn(`[cron ${event?.cron}] falhou: ${e.message || e}`);
+    }
   },
 };

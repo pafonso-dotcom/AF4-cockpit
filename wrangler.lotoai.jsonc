@@ -23,5 +23,13 @@
   },
   "observability": {
     "enabled": true
+  },
+  // Cron Triggers: aquece o cache do "latest" logo após os sorteios.
+  // Horário oficial: 20:00 BRT (= 23:00 UTC) seg-sáb · damos 30min de buffer.
+  // Cron format: "minutes hours day-of-month month day-of-week" (UTC).
+  "triggers": {
+    "crons": [
+      "30 23 * * 1-6"
+    ]
   }
 }
