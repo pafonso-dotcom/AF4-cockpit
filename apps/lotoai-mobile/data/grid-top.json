@@ -1,0 +1,124 @@
+[
+  {
+    "cfg": {
+      "wFreq": 0.7,
+      "wAtraso": 0,
+      "janela": 100,
+      "paresAlvo": [
+        7,
+        8
+      ]
+    },
+    "concursos": 500,
+    "totalApostas": 2500,
+    "dist": {
+      "11": 251,
+      "12": 39,
+      "13": 6,
+      "14": 2,
+      "15": 0
+    },
+    "gasto": 8750,
+    "premio": 6154,
+    "lucro": -2596,
+    "roi": -29.67,
+    "p11_15": "11.92%"
+  },
+  {
+    "cfg": {
+      "wFreq": 1,
+      "wAtraso": 0.5,
+      "janela": 100,
+      "paresAlvo": [
+        7,
+        8
+      ]
+    },
+    "concursos": 500,
+    "totalApostas": 2500,
+    "dist": {
+      "11": 261,
+      "12": 45,
+      "13": 4,
+      "14": 1,
+      "15": 0
+    },
+    "gasto": 8750,
+    "premio": 4226,
+    "lucro": -4524,
+    "roi": -51.7,
+    "p11_15": "12.44%"
+  },
+  {
+    "cfg": {
+      "wFreq": 0.5,
+      "wAtraso": 0.7,
+      "janela": 100,
+      "paresAlvo": [
+        7,
+        8
+      ]
+    },
+    "concursos": 500,
+    "totalApostas": 2500,
+    "dist": {
+      "11": 217,
+      "12": 55,
+      "13": 5,
+      "14": 1,
+      "15": 0
+    },
+    "gasto": 8750,
+    "premio": 4112,
+    "lucro": -4638,
+    "roi": -53.01,
+    "p11_15": "11.12%"
+  },
+  {
+    "cfg": {
+      "wFreq": 0.7,
+      "wAtraso": 0,
+      "janela": 100,
+      "paresAlvo": null
+    },
+    "concursos": 500,
+    "totalApostas": 2500,
+    "dist": {
+      "11": 217,
+      "12": 52,
+      "13": 2,
+      "14": 1,
+      "15": 0
+    },
+    "gasto": 8750,
+    "premio": 3986,
+    "lucro": -4764,
+    "roi": -54.45,
+    "p11_15": "10.88%"
+  },
+  {
+    "cfg": {
+      "wFreq": 0,
+      "wAtraso": 0.3,
+      "janela": 30,
+      "paresAlvo": [
+        7,
+        8
+      ]
+    },
+    "concursos": 500,
+    "totalApostas": 2491,
+    "dist": {
+      "11": 216,
+      "12": 47,
+      "13": 3,
+      "14": 1,
+      "15": 0
+    },
+    "gasto": 8718.5,
+    "premio": 3950,
+    "lucro": -4768.5,
+    "roi": -54.69,
+    "p11_15": "10.72%"
+  }
+]

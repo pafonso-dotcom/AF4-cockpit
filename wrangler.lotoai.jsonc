@@ -1,0 +1,35 @@
+{
+  // Cloudflare Worker para o LOTOAI APP PRO.
+  //
+  // Reutiliza ./worker/index.js (mesmo binário compartilhado com af4cockpit):
+  //   - /api/ping                → health check
+  //   - /api/lotofacil/latest    → proxy Caixa (último concurso, CORS, cache 10min)
+  //   - /api/lotofacil/{numero}  → proxy Caixa (concurso específico, cache 24h)
+  //   - tudo o mais              → static assets do lotoai-mobile/dist (SPA fallback)
+  //
+  // Deploy:
+  //   pnpm --filter @repo/lotoai-mobile build
+  //   pnpm dlx wrangler@latest deploy --config wrangler.lotoai.jsonc
+  //
+  // Após o primeiro deploy, a URL fica em https://lotoai-pro.<seu-subdomínio>.workers.dev
+  // ou plugue um domínio próprio via "Settings → Triggers → Routes" no painel.
+  "name": "lotoai-pro",
+  "compatibility_date": "2026-05-22",
+  "main": "./worker/index.js",
+  "assets": {
+    "directory": "./apps/lotoai-mobile/dist",
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  // Cron Triggers: aquece o cache do "latest" logo após os sorteios.
+  // Horário oficial: 20:00 BRT (= 23:00 UTC) seg-sáb · damos 30min de buffer.
+  // Cron format: "minutes hours day-of-month month day-of-week" (UTC).
+  "triggers": {
+    "crons": [
+      "30 23 * * 1-6"
+    ]
+  }
+}

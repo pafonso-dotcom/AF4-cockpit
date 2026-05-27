@@ -1,0 +1,27 @@
+
+========== MODELO PREDITIVO · 3197 concursos ==========
+
+[03] gerando dataset · 3097 concursos × 25 dezenas = 77425 amostras
+[03] treino: 61940 amostras · validação: 15485
+  → epoch 80/80 · loss 0.6735
+
+[03] pesos finais:
+  bias         = 0.1331
+  freq10       = 0.0762
+  freq30       = 0.0784
+  freq100      = 0.0802
+  atraso       = 0.0068
+  ultimoConc   = 0.0599
+  par          = 0.0532
+  valor        = 0.0682
+
+[03] AVALIAÇÃO (620 concursos de validação):
+  Acertos médios no top-15 ranqueado: 9.037
+  Acertos médios no top-18 ranqueado: 10.773 / 15
+  Baseline aleatório (top-15):        9.000
+  → Ganho sobre aleatório:            +0.037 dezenas/concurso
+
+[03] pesos salvos em data/modelo-pesos.json
+
+========== fim ==========
+
