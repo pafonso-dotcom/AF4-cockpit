@@ -11,11 +11,25 @@ import Conferencia from "./components/pages/Conferencia.jsx";
 import Simulacoes from "./components/pages/Simulacoes.jsx";
 
 import { listarConcursos } from "./lib/supabase.js";
+import { tokenDaURL, decodeBolao, limparTokenDaURL } from "./lib/share.js";
 
 export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [historico, setHistorico] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [bolaoCompartilhado, setBolaoCompartilhado] = useState(null);
+
+  useEffect(() => {
+    // Se a URL traz um bolão compartilhado, decodifica antes do splash sair
+    const tok = tokenDaURL();
+    if (tok) {
+      const b = decodeBolao(tok);
+      if (b) {
+        setBolaoCompartilhado(b);
+        setTab("bolao");
+      }
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -30,6 +44,11 @@ export default function App() {
     })();
   }, []);
 
+  function consumirCompartilhado() {
+    limparTokenDaURL();
+    setBolaoCompartilhado(null);
+  }
+
   if (loading) return <Splash />;
 
   const ultimo = historico[historico.length - 1];
@@ -41,7 +60,13 @@ export default function App() {
         {tab === "dashboard" && <Dashboard historico={historico} />}
         {tab === "gerar"     && <GerarJogos historico={historico} />}
         {tab === "fechar"    && <Fechamentos historico={historico} />}
-        {tab === "bolao"     && <Bolao historico={historico} />}
+        {tab === "bolao"     && (
+          <Bolao
+            historico={historico}
+            bolaoCompartilhado={bolaoCompartilhado}
+            onConsumirCompartilhado={consumirCompartilhado}
+          />
+        )}
         {tab === "conferir"  && <Conferencia historico={historico} />}
         {tab === "simular"   && <Simulacoes historico={historico} />}
       </main>

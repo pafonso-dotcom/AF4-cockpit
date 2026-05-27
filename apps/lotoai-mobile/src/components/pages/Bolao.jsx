@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Users, Plus, Trash2, ArrowLeft, Eye, Check, X,
   UserPlus, Wand2, Layers, Receipt, TrendingUp,
+  Share2, Copy, Download,
 } from "lucide-react";
 import Ball from "../ui/Ball.jsx";
 import { gerarJogos } from "../../lib/generator.js";
@@ -11,12 +12,21 @@ import {
   listarBoloes, salvarBolao, removerBolao, montarBolao,
   conferirBolao, calcularCotas, calcularCusto,
 } from "../../lib/bolao.js";
+import { urlDoBolao, limparTokenDaURL } from "../../lib/share.js";
 
-export default function Bolao({ historico }) {
-  const [view, setView] = useState("lista"); // lista | criar | detalhe
+export default function Bolao({ historico, bolaoCompartilhado, onConsumirCompartilhado }) {
+  const [view, setView] = useState("lista"); // lista | criar | detalhe | compartilhado
   const [boloes, setBoloes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selecionado, setSelecionado] = useState(null);
+
+  // Se chegou bolão por link, vai direto pra view de compartilhado
+  useEffect(() => {
+    if (bolaoCompartilhado) {
+      setSelecionado(bolaoCompartilhado);
+      setView("compartilhado");
+    }
+  }, [bolaoCompartilhado]);
 
   useEffect(() => { recarregar(); }, []);
 
@@ -39,8 +49,35 @@ export default function Bolao({ historico }) {
     if (selecionado?.id === id) { setSelecionado(null); setView("lista"); }
   }
 
+  async function onSalvarCompartilhado() {
+    if (!selecionado) return;
+    const novo = montarBolao(selecionado);
+    await salvarBolao(novo);
+    await recarregar();
+    onConsumirCompartilhado?.();
+    setSelecionado(novo);
+    setView("detalhe");
+  }
+
+  function fecharCompartilhado() {
+    onConsumirCompartilhado?.();
+    setSelecionado(null);
+    setView("lista");
+  }
+
   if (view === "criar") {
     return <CriarBolao historico={historico} onCriado={onCriado} onCancelar={() => setView("lista")} />;
+  }
+  if (view === "compartilhado" && selecionado) {
+    return (
+      <DetalheBolao
+        bolao={selecionado}
+        historico={historico}
+        compartilhado
+        onVoltar={fecharCompartilhado}
+        onSalvarCompartilhado={onSalvarCompartilhado}
+      />
+    );
   }
   if (view === "detalhe" && selecionado) {
     return (
@@ -351,7 +388,8 @@ function CriarBolao({ historico, onCriado, onCancelar }) {
    DETALHE DO BOLÃO
    ============================================================ */
 
-function DetalheBolao({ bolao, historico, onVoltar, onRemover, onAtualizar }) {
+function DetalheBolao({ bolao, historico, compartilhado = false, onVoltar, onRemover, onAtualizar, onSalvarCompartilhado }) {
+  const [shareOpen, setShareOpen] = useState(false);
   const concurso = useMemo(() => {
     if (!bolao.concursoAlvo) return null;
     return historico.find(c => c.numero === bolao.concursoAlvo) || null;
@@ -376,6 +414,28 @@ function DetalheBolao({ bolao, historico, onVoltar, onRemover, onAtualizar }) {
         <ArrowLeft size={14} /> Voltar
       </button>
 
+      {compartilhado && (
+        <section className="card border-accent/50 bg-accent/5">
+          <div className="flex items-start gap-2">
+            <Share2 size={16} className="text-accent mt-0.5 flex-none" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-sm">Bolão compartilhado</h3>
+              <p className="text-[11px] text-white/60 mt-0.5">
+                Alguém te mandou esse bolão. Ele ainda não está salvo no seu app.
+              </p>
+              <div className="flex gap-2 mt-2">
+                <button onClick={onSalvarCompartilhado} className="btn-gold !py-1.5 !px-3 text-xs flex items-center gap-1.5">
+                  <Download size={12} /> Salvar no meu app
+                </button>
+                <button onClick={onVoltar} className="btn-ghost !py-1.5 !px-3 text-xs">
+                  Dispensar
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="card space-y-2">
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -384,9 +444,23 @@ function DetalheBolao({ bolao, historico, onVoltar, onRemover, onAtualizar }) {
               {bolao.estrategia} · concurso alvo {bolao.concursoAlvo ? `#${bolao.concursoAlvo}` : "—"}
             </div>
           </div>
-          <button onClick={onRemover} className="text-white/40 active:text-red-400 p-1" aria-label="Remover">
-            <Trash2 size={14} />
-          </button>
+          <div className="flex items-center gap-1">
+            {!compartilhado && (
+              <>
+                <button
+                  onClick={() => setShareOpen(true)}
+                  className="text-white/60 active:text-accent p-1.5 rounded-lg border border-line"
+                  aria-label="Compartilhar"
+                  title="Compartilhar"
+                >
+                  <Share2 size={14} />
+                </button>
+                <button onClick={onRemover} className="text-white/40 active:text-red-400 p-1.5 rounded-lg border border-line" aria-label="Remover">
+                  <Trash2 size={14} />
+                </button>
+              </>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-3 gap-2 pt-1">
           <Stat label="Apostas" value={bolao.jogos.length} />
@@ -394,6 +468,10 @@ function DetalheBolao({ bolao, historico, onVoltar, onRemover, onAtualizar }) {
           <Stat label="Custo total" value={`R$ ${bolao.custoTotal.toFixed(2)}`} tone="gold" />
         </div>
       </section>
+
+      {shareOpen && (
+        <CompartilharSheet bolao={bolao} onClose={() => setShareOpen(false)} />
+      )}
 
       {/* Resultado */}
       {concurso ? (
@@ -528,6 +606,81 @@ function Stat({ label, value, tone = "neutral" }) {
     <div className="bg-ink/60 border border-line rounded-xl py-2 text-center">
       <div className="text-[10px] uppercase tracking-wider text-white/40">{label}</div>
       <div className={`font-bold ${color}`}>{value}</div>
+    </div>
+  );
+}
+
+function CompartilharSheet({ bolao, onClose }) {
+  const url = useMemo(() => urlDoBolao(bolao), [bolao]);
+  const [copiado, setCopiado] = useState(false);
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      // Fallback: seleciona o texto
+      const el = document.getElementById("share-url-input");
+      el?.select();
+    }
+  }
+
+  async function nativeShare() {
+    if (!navigator.share) return copiar();
+    try {
+      await navigator.share({
+        title: `Bolão ${bolao.nome}`,
+        text: `Topa entrar no bolão "${bolao.nome}"? ${bolao.jogos.length} apostas, R$ ${bolao.custoTotal.toFixed(2)} no total.`,
+        url,
+      });
+    } catch (e) {
+      if (e?.name !== "AbortError") copiar();
+    }
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-20 bg-black/70 backdrop-blur-sm flex items-end justify-center"
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="w-full max-w-md bg-panel border-t border-line rounded-t-2xl p-4 space-y-3"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}
+      >
+        <div className="flex items-center gap-2">
+          <Share2 size={18} className="text-gold" />
+          <h3 className="font-semibold">Compartilhar bolão</h3>
+        </div>
+        <p className="text-[11px] text-white/50">
+          Quem abrir esse link vê o bolão direto — funciona sem precisar de cadastro.
+          O bolão fica embutido na URL (não passa por servidor).
+        </p>
+        <div className="flex gap-2">
+          <input
+            id="share-url-input"
+            readOnly
+            value={url}
+            onFocus={e => e.target.select()}
+            className="flex-1 bg-ink/60 border border-line rounded-lg px-3 py-2 text-xs text-white/80 font-mono truncate"
+          />
+          <button onClick={copiar} className="btn-ghost !py-2 !px-3 text-xs flex items-center gap-1.5 whitespace-nowrap">
+            <Copy size={12} /> {copiado ? "Copiado!" : "Copiar"}
+          </button>
+        </div>
+        <div className="text-[10px] text-white/40">
+          {url.length.toLocaleString("pt-BR")} caracteres
+        </div>
+        <div className="flex gap-2 pt-2 border-t border-line">
+          <button onClick={onClose} className="btn-ghost flex-1 text-sm">Fechar</button>
+          <button onClick={nativeShare} className="btn-primary flex-1 text-sm flex items-center justify-center gap-2">
+            <Share2 size={14} /> Enviar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
