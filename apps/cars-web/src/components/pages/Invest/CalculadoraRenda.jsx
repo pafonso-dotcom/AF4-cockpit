@@ -67,6 +67,7 @@ export default function CalculadoraRenda() {
   const [inflacaoPct, setInflacao]    = useState(DEFAULTS.inflacaoPct);
   const [cambio, setCambio]           = useState(DEFAULTS.cambio);
   const [horizonteAnos, setHorizonte] = useState(30);
+  const [cenariosAberto, setCenariosAberto] = useState(false);
 
   // Pontos de snapshot (terços): pra horizonte=30 → 10/20/30; 20 → 7/14/20; etc.
   const snap1 = Math.max(1, Math.round(horizonteAnos / 3));
@@ -222,58 +223,92 @@ export default function CalculadoraRenda() {
         }
       />
 
-      {/* Atalhos: dropdown único com cenários agrupados — 1 linha só */}
-      <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span className="label-eyebrow">Cenário rápido</span>
-        <select
-          value={(() => {
-            const found = ATALHOS.find(a =>
-              Math.abs(taxaAnualPct - a.taxa) < 0.05 && Math.abs(irPct - a.ir) < 0.05
-            );
-            return found?.id || "";
-          })()}
-          onChange={e => {
-            const sel = ATALHOS.find(a => a.id === e.target.value);
-            if (sel) aplicarAtalho(sel);
-          }}
-          style={{
-            padding: "6px 10px", fontSize: 12, borderRadius: 6,
-            background: T.card, border: `1px solid ${T.border}`, color: T.ink,
-            cursor: "pointer", flex: "1 1 240px", maxWidth: 360,
-          }}
-        >
-          <option value="">— escolha um cenário —</option>
-          {GRUPOS.map(g => {
-            const itensDoGrupo = ATALHOS.filter(a => a.grupo === g.id);
-            if (itensDoGrupo.length === 0) return null;
-            return (
-              <optgroup key={g.id} label={g.label}>
-                {itensDoGrupo.map(a => (
-                  <option key={a.id} value={a.id}>
-                    {a.label} · {a.taxa}% · IR {a.ir}%
-                  </option>
-                ))}
-              </optgroup>
-            );
-          })}
-        </select>
+      {/* Botão único de cenários — abre popover com os 5 grupos colapsados */}
+      <div style={{ marginBottom: 10, position: "relative" }}>
         {(() => {
-          const found = ATALHOS.find(a =>
+          const cenarioAtivo = ATALHOS.find(a =>
             Math.abs(taxaAnualPct - a.taxa) < 0.05 && Math.abs(irPct - a.ir) < 0.05
           );
-          if (!found) return null;
-          const corGrupo = GRUPOS.find(g => g.id === found.grupo)?.cor || T.gold;
+          const corAtivo = cenarioAtivo
+            ? (GRUPOS.find(g => g.id === cenarioAtivo.grupo)?.cor || T.gold)
+            : T.gold;
           return (
-            <span style={{
-              fontSize: 9.5, color: corGrupo, fontWeight: 700,
-              letterSpacing: ".12em", textTransform: "uppercase",
-              padding: "3px 8px", borderRadius: 4,
-              background: `${corGrupo}22`, border: `1px solid ${corGrupo}55`,
-            }}>
-              {GRUPOS.find(g => g.id === found.grupo)?.label}
-            </span>
+            <button
+              onClick={() => setCenariosAberto(v => !v)}
+              style={{
+                padding: "6px 12px", borderRadius: 6, cursor: "pointer",
+                fontSize: 11.5, fontWeight: 600,
+                background: cenarioAtivo ? `${corAtivo}22` : T.bgSoft,
+                color: cenarioAtivo ? corAtivo : T.ink,
+                border: `1px solid ${cenarioAtivo ? corAtivo : T.border}`,
+                display: "inline-flex", alignItems: "center", gap: 6,
+              }}>
+              <Calculator size={12} />
+              <span>{cenarioAtivo ? cenarioAtivo.label : "Cenários rápidos"}</span>
+              <span style={{ fontSize: 10, opacity: 0.7 }}>
+                {cenariosAberto ? "▴" : "▾"}
+              </span>
+            </button>
           );
         })()}
+
+        {cenariosAberto && (
+          <>
+            {/* Overlay invisível pra fechar ao clicar fora */}
+            <div
+              onClick={() => setCenariosAberto(false)}
+              style={{
+                position: "fixed", inset: 0, zIndex: 5,
+              }}
+            />
+            <div style={{
+              position: "absolute", top: "100%", left: 0, marginTop: 6, zIndex: 10,
+              background: T.card, border: `1px solid ${T.border}`,
+              borderRadius: 8, padding: 10,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+              maxWidth: 540, width: "max-content",
+              maxHeight: "70vh", overflowY: "auto",
+            }}>
+              {GRUPOS.map(g => {
+                const itensDoGrupo = ATALHOS.filter(a => a.grupo === g.id);
+                if (itensDoGrupo.length === 0) return null;
+                const corGrupo = g.cor || T.gold;
+                return (
+                  <div key={g.id} style={{ marginBottom: 8 }}>
+                    <div style={{
+                      fontSize: 9, color: corGrupo, fontWeight: 700,
+                      letterSpacing: ".12em", textTransform: "uppercase", marginBottom: 4,
+                    }}>
+                      {g.label}
+                    </div>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      {itensDoGrupo.map(a => {
+                        const ativo = Math.abs(taxaAnualPct - a.taxa) < 0.05 && Math.abs(irPct - a.ir) < 0.05;
+                        return (
+                          <button key={a.id} onClick={() => { aplicarAtalho(a); setCenariosAberto(false); }}
+                            style={{
+                              padding: "4px 8px", borderRadius: 5, cursor: "pointer",
+                              fontSize: 11, fontWeight: 500,
+                              background: ativo ? `${corGrupo}22` : T.bgSoft,
+                              color: ativo ? corGrupo : T.ink,
+                              border: `1px solid ${ativo ? corGrupo : T.border}`,
+                              display: "inline-flex", alignItems: "center", gap: 4,
+                              whiteSpace: "nowrap",
+                            }}>
+                            <span>{a.label}</span>
+                            <span style={{ color: T.muted, fontSize: 10 }}>
+                              · {a.taxa}% · IR {a.ir}%
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       <div style={{
