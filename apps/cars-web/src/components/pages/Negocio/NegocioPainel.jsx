@@ -25,7 +25,13 @@ export default function NegocioPainel({
     const hoje = new Date();
     const mesISO = hoje.toISOString().slice(0, 7);
 
-    const veiculosEstoque = negocioVeiculos.filter(v => !v.vendido).length;
+    const veiculosEmEstoque = negocioVeiculos.filter(v => !v.vendido);
+    const veiculosEstoque = veiculosEmEstoque.length;
+    // Valor investido em estoque: custo de entrada + custos extras de cada veículo
+    const valorEstoque = veiculosEmEstoque.reduce((s, v) =>
+      s + Number(v.custoEntrada || 0)
+        + ((v.custosExtra || []).reduce((s2, c) => s2 + Number(c.valor || 0), 0)),
+      0);
     const vendasMes = (negocioVendasVeiculos || []).filter(v => (v.data || "").startsWith(mesISO));
     const servVendasMes = (negocioVendasServicos || []).filter(v => (v.data || "").startsWith(mesISO));
 
@@ -40,6 +46,7 @@ export default function NegocioPainel({
 
     return {
       veiculosEstoque,
+      valorEstoque,
       veiculosVendidosMes: vendasMes.length,
       servicosCatalogo: (negocioServicos || []).length,
       servicosVendidosMes: servVendasMes.length,
@@ -98,7 +105,10 @@ export default function NegocioPainel({
                  valor={hidden ? "•••••" : fmt(stats.lucro)}
                  sub={`${stats.pctMargem.toFixed(1)}% margem`}
                  cor={stats.lucro >= 0 ? T.green : T.red} />
-        <KpiCard label="Veículos em estoque" valor={String(stats.veiculosEstoque)} cor={T.blue || "#60a5fa"} icon={Package} />
+        <KpiCard label="Veículos em estoque"
+                 valor={String(stats.veiculosEstoque)}
+                 sub={hidden ? "•••" : `${fmt(stats.valorEstoque)} investidos`}
+                 cor={T.blue || "#60a5fa"} icon={Package} />
       </div>
 
       {/* Atalhos pras áreas */}
