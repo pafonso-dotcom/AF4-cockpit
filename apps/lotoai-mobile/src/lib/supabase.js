@@ -66,6 +66,32 @@ export function salvarConcursoLocal(c) {
   localStorage.setItem("lotoai:concursos", JSON.stringify(lista));
 }
 
+/**
+ * Merge incremental: pega o histórico atual + novos concursos,
+ * deduplica por numero, salva ordenado em localStorage e (se configurado)
+ * faz upsert no Supabase. Retorna a nova lista completa.
+ */
+export async function mergeConcursos(atual, novos) {
+  if (!novos?.length) return atual;
+  const mapa = new Map(atual.map(c => [c.numero, c]));
+  for (const c of novos) mapa.set(c.numero, c);
+  const final = [...mapa.values()].sort((a, b) => a.numero - b.numero);
+
+  localStorage.setItem("lotoai:concursos", JSON.stringify(final));
+
+  if (supabase) {
+    try {
+      await supabase.from("lf_concursos").upsert(
+        novos.map(c => ({ numero: c.numero, data: c.data, dezenas: c.dezenas })),
+        { onConflict: "numero" }
+      );
+    } catch (e) {
+      console.warn("[LOTOAI] upsert Supabase falhou — usando só local:", e.message);
+    }
+  }
+  return final;
+}
+
 function lerLocal() {
   try { return JSON.parse(localStorage.getItem("lotoai:concursos") || "[]"); }
   catch { return []; }

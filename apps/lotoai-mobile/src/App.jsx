@@ -27,7 +27,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-ink text-white">
-      <Header ultimoConcurso={ultimo} />
+      <Header ultimoConcurso={ultimo} historico={historico} onHistoricoUpdate={setHistorico} />
 
       {loading ? (
         <div className="flex items-center justify-center py-20 text-white/50">

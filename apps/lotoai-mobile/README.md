@@ -78,10 +78,30 @@ Rode `sql/0001_lotoai_schema.sql` no SQL editor do Supabase para criar:
 - `lf_jogos` · jogos gerados pelo usuário (RLS por `user_id`)
 - `lf_simulacoes` · snapshots de backtests (RLS por `user_id`)
 
+## Importar concursos novos
+
+### Em produção (browser/app)
+
+Botão "🔄 Atualizar" no Header chama `/api/lotofacil/latest` no worker
+(`worker/index.js`), que faz proxy pra Caixa com cache na edge (10min) e
+CORS. Salva incremental em `localStorage` + upsert em Supabase (se
+configurado).
+
+### Backfill local (atualizar `data/concursos.json` no repo)
+
+```bash
+cd apps/lotoai-mobile
+node scripts/import-from-caixa.mjs --dry-run        # ver o que faria
+node scripts/import-from-caixa.mjs --max=50         # importa até 50 novos
+```
+
+Fontes tentadas em ordem: Caixa oficial → mirror público. Idempotente
+(dedupe por número). Atualiza tanto `data/concursos.json` quanto
+`public/concursos.json` (que vai no bundle do app).
+
 ## Próximos passos
 
-- [ ] Importar histórico oficial da Lotofácil (Caixa / API pública)
-- [ ] Tela de fechamentos com matriz de garantia (14 em 16, 13 em 17, etc.)
-- [ ] Histórico + conferência de bilhetes
+- [ ] Tela de fechamentos com matriz de garantia 14-em-16 publicada (já temos 12-14 via greedy)
 - [ ] Autenticação Supabase (gate na entrada)
 - [ ] Notificações push para novos sorteios
+- [ ] Cron no worker para importar automaticamente todas as segundas/quartas/sextas
