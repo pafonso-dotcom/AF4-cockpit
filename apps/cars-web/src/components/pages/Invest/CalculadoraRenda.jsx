@@ -210,7 +210,7 @@ export default function CalculadoraRenda() {
   }, [valor, taxaAnualPct, irPct, inflacaoPct, resultado.rendaRealMes, snap1, snap2, snap3]);
 
   return (
-    <div className="fade-up py-8 px-6 calc-root">
+    <div className="fade-up py-6 px-6 calc-root">
       <PageHeader
         eyebrow="Investimentos · Simulador"
         title="Calculadora de Renda Mensal"
@@ -223,7 +223,7 @@ export default function CalculadoraRenda() {
       />
 
       {/* Atalhos rápidos agrupados */}
-      <div style={{ marginBottom: 14 }}>
+      <div style={{ marginBottom: 10 }}>
         <div className="label-eyebrow" style={{ marginBottom: 8 }}>Cenários rápidos</div>
         {GRUPOS.map(g => {
           const itensDoGrupo = ATALHOS.filter(a => a.grupo === g.id);
@@ -267,12 +267,12 @@ export default function CalculadoraRenda() {
       <div style={{
         display: "grid",
         gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.1fr)",
-        gap: 14,
+        gap: 10,
       }} className="calc-grid">
         {/* Coluna esquerda: sliders */}
         <div className="calc-card" style={{
           background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
-          padding: 16, display: "grid", gap: 18,
+          padding: 12, display: "grid", gap: 12,
         }}>
           <Slider
             label="Valor investido"
@@ -421,7 +421,7 @@ export default function CalculadoraRenda() {
             <LegendDot cor={T.blue || "#60a5fa"} label="Preserva + reserva" />
           </div>
         </div>
-        <div style={{ width: "100%", height: 240 }}>
+        <div style={{ width: "100%", height: 200 }}>
           <ResponsiveContainer>
             <LineChart data={evolucao} margin={{ top: 8, right: 10, left: 10, bottom: 0 }}>
               <CartesianGrid stroke={T.border} strokeDasharray="2 4" vertical={false} />
@@ -601,71 +601,71 @@ function ValorIdealCard({ valor, valorEur, valorAnual, valorAnualEur, liquidoMes
         ? `linear-gradient(135deg, ${T.green}22 0%, ${T.green}08 60%, ${T.card} 100%)`
         : `linear-gradient(135deg, ${T.red}22 0%, ${T.red}08 60%, ${T.card} 100%)`,
       border: `1px solid ${viavel ? T.green : T.red}`,
-      borderLeft: `4px solid ${viavel ? T.green : T.red}`,
-      borderRadius: 10, padding: 18,
+      borderLeft: `3px solid ${viavel ? T.green : T.red}`,
+      borderRadius: 8, padding: 12,
       position: "relative",
     }}>
       <div style={{
-        position: "absolute", top: 12, right: 14,
-        fontSize: 9, padding: "3px 8px", borderRadius: 100,
+        position: "absolute", top: 8, right: 10,
+        fontSize: 8.5, padding: "2px 6px", borderRadius: 100,
         background: viavel ? T.green : T.red, color: T.bg,
         fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase",
       }}>
         💎 Ideal
       </div>
 
-      <div className="label-eyebrow" style={{ color: viavel ? T.green : T.red, marginBottom: 6 }}>
+      <div className="label-eyebrow" style={{ color: viavel ? T.green : T.red, marginBottom: 4 }}>
         Valor ideal de saque mensal
       </div>
 
       <div className="num calc-ideal-value" style={{
-        fontFamily: T.serif, fontSize: 38, fontWeight: 700, color: T.ink,
+        fontFamily: T.serif, fontSize: 28, fontWeight: 700, color: T.ink,
         letterSpacing: "-0.02em", lineHeight: 1,
       }}>
         {fmtBRL.format(valor)}
       </div>
-      <div className="num" style={{ fontSize: 14, color: T.muted, marginTop: 4 }}>
+      <div className="num" style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
         ≈ {fmtEUR.format(valorEur)}
       </div>
 
       {viavel ? (
         <>
           <div style={{
-            display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10,
-            marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${T.green}55`,
+            display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8,
+            marginTop: 10, paddingTop: 8, borderTop: `1px dashed ${T.green}55`,
           }}>
             <div>
-              <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
+              <div style={{ fontSize: 9, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 1 }}>
                 Por ano
               </div>
-              <div className="num" style={{ fontSize: 15, color: T.ink, fontWeight: 600 }}>
+              <div className="num" style={{ fontSize: 13, color: T.ink, fontWeight: 600 }}>
                 {fmtBRL.format(valorAnual)}
               </div>
-              <div className="num" style={{ fontSize: 11, color: T.muted }}>
+              <div className="num" style={{ fontSize: 10, color: T.muted }}>
                 ≈ {fmtEUR.format(valorAnualEur)}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
+              <div style={{ fontSize: 9, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 1 }}>
                 Taxa real
               </div>
-              <div className="num" style={{ fontSize: 15, color: T.green, fontWeight: 600 }}>
+              <div className="num" style={{ fontSize: 13, color: T.green, fontWeight: 600 }}>
                 {(taxaRealAnual * 100).toFixed(2)}% a.a.
               </div>
-              <div style={{ fontSize: 11, color: T.muted }}>
+              <div style={{ fontSize: 10, color: T.muted }}>
                 acima da inflação
               </div>
             </div>
           </div>
           <div style={{
-            marginTop: 12, padding: 10, background: `${T.green}11`,
+            marginTop: 8, padding: 8, background: `${T.green}11`,
             border: `1px solid ${T.green}33`, borderRadius: 6,
-            fontSize: 12, color: T.ink, lineHeight: 1.5,
+            fontSize: 11, color: T.ink, lineHeight: 1.4,
           }}>
             💡 <strong>Sacar até este valor todo mês mantém o poder de
             compra do seu patrimônio intacto</strong> ao longo do tempo.
             {inflacaoConsome > 1 && (
-              <span style={{ color: T.muted, display: "block", marginTop: 4 }}>
+              <span style={{ color: T.muted, display: "block", marginTop: 3 }}>
                 Sacar acima disso ({fmtBRL.format(liquidoMes)} no "saca tudo") faz a
                 inflação corroer ~{fmtBRL.format(inflacaoConsome)}/mês do principal.
                 Este valor ideal é {pctIdeal.toFixed(0)}% do líquido.
@@ -675,9 +675,9 @@ function ValorIdealCard({ valor, valorEur, valorAnual, valorAnualEur, liquidoMes
         </>
       ) : (
         <div style={{
-          marginTop: 12, padding: 10, background: `${T.red}11`,
+          marginTop: 8, padding: 8, background: `${T.red}11`,
           border: `1px solid ${T.red}33`, borderRadius: 6,
-          fontSize: 12, color: T.ink, lineHeight: 1.5,
+          fontSize: 11, color: T.ink, lineHeight: 1.4,
         }}>
           ⚠ <strong>Cenário inviável pra preservar o patrimônio:</strong>{" "}
           a inflação ({(taxaRealAnual * -100).toFixed(2)}% acima da taxa real) consome
@@ -696,46 +696,46 @@ function ReservaCard({ snap1Anos, snap2Anos, snap3Anos, em1, em2, em3, rendaExtr
     <div style={{
       background: `linear-gradient(135deg, ${cor}22 0%, ${cor}08 60%, ${T.card} 100%)`,
       border: `1px solid ${cor}`,
-      borderLeft: `4px solid ${cor}`,
-      borderRadius: 10, padding: 16,
+      borderLeft: `3px solid ${cor}`,
+      borderRadius: 8, padding: 12,
       position: "relative",
     }}>
       <div style={{
-        position: "absolute", top: 12, right: 14,
-        fontSize: 9, padding: "3px 8px", borderRadius: 100,
+        position: "absolute", top: 8, right: 10,
+        fontSize: 8.5, padding: "2px 6px", borderRadius: 100,
         background: cor, color: T.bg,
         fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase",
       }}>
         🪙 Bônus
       </div>
 
-      <div className="label-eyebrow" style={{ color: cor, marginBottom: 6 }}>
+      <div className="label-eyebrow" style={{ color: cor, marginBottom: 4 }}>
         Reserva acumulada — se você poupar o saque ideal
       </div>
 
-      <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 10, lineHeight: 1.45, fontStyle: "italic" }}>
+      <div style={{ fontSize: 11, color: T.muted, marginBottom: 8, lineHeight: 1.4, fontStyle: "italic" }}>
         Sacando {fmtBRL.format(valorIdeal)}/mês mas reinvestindo cada saque (mesma taxa real),
         você acumula uma segunda fonte de patrimônio em valor de hoje.
       </div>
 
       <div style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10,
-        marginBottom: 12,
+        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8,
+        marginBottom: 8,
       }}>
         <ReservaCol anos={`${snap1Anos} anos`} valor={em1} cor={cor} />
         <ReservaCol anos={`${snap2Anos} anos`} valor={em2} cor={cor} />
         <ReservaCol anos={`${snap3Anos} anos`} valor={em3} cor={cor} destaque />
       </div>
 
-      <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>
+      <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>
         ≈ {fmtEUR.format(em3Eur)} em {snap3Anos} anos · começa em {fmtEUR.format(em1Eur)} em {snap1Anos} anos
       </div>
 
       {rendaExtraFim > 0 && (
         <div style={{
-          marginTop: 12, padding: 10, background: `${cor}15`,
+          marginTop: 8, padding: 8, background: `${cor}15`,
           border: `1px solid ${cor}33`, borderRadius: 6,
-          fontSize: 12, color: T.ink, lineHeight: 1.5,
+          fontSize: 11, color: T.ink, lineHeight: 1.4,
         }}>
           💡 <strong>Em {snap3Anos} anos</strong>, essa reserva sozinha geraria mais{" "}
           <strong className="num" style={{ color: cor }}>{fmtBRL.format(rendaExtraFim)}/mês</strong>{" "}
@@ -753,16 +753,16 @@ function ReservaCard({ snap1Anos, snap2Anos, snap3Anos, em1, em2, em3, rendaExtr
 function ReservaCol({ anos, valor, cor, destaque }) {
   return (
     <div style={{
-      padding: 8, borderRadius: 6,
+      padding: 6, borderRadius: 5,
       background: destaque ? `${cor}15` : "transparent",
       border: destaque ? `1px solid ${cor}33` : "1px solid transparent",
     }}>
-      <div style={{ fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 3 }}>
+      <div style={{ fontSize: 8.5, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
         {anos}
       </div>
       <div className="num" style={{
         fontFamily: T.serif,
-        fontSize: destaque ? 18 : 15,
+        fontSize: destaque ? 15 : 13,
         fontWeight: 600, color: destaque ? cor : T.ink,
       }}>
         {fmtBRL.format(valor)}
@@ -784,32 +784,32 @@ function ExcedenteReaplicadoCard({ proj, snap1Anos, snap2Anos, snap3Anos, toEur,
     <div style={{
       background: `linear-gradient(135deg, ${cor}22 0%, ${cor}08 60%, ${T.card} 100%)`,
       border: `1px solid ${cor}`,
-      borderLeft: `4px solid ${cor}`,
-      borderRadius: 10, padding: 16,
+      borderLeft: `3px solid ${cor}`,
+      borderRadius: 8, padding: 12,
       position: "relative",
     }}>
       <div style={{
-        position: "absolute", top: 12, right: 14,
-        fontSize: 9, padding: "3px 8px", borderRadius: 100,
+        position: "absolute", top: 8, right: 10,
+        fontSize: 8.5, padding: "2px 6px", borderRadius: 100,
         background: cor, color: T.bg,
         fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase",
       }}>
         ❄ Snowball
       </div>
 
-      <div className="label-eyebrow" style={{ color: cor, marginBottom: 6 }}>
+      <div className="label-eyebrow" style={{ color: cor, marginBottom: 4 }}>
         Excedente reaplicado no principal
       </div>
 
-      <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 10, lineHeight: 1.45, fontStyle: "italic" }}>
+      <div style={{ fontSize: 11, color: T.muted, marginBottom: 8, lineHeight: 1.4, fontStyle: "italic" }}>
         Saca só {fmtBRL.format(valorIdeal)}/mês (valor ideal congelado). O que
         sobra do líquido ({fmtBRL.format(excedenteHoje)}/mês hoje) volta pro
         principal — que cresce e passa a gerar mais a cada mês.
       </div>
 
       <div style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10,
-        marginBottom: 10,
+        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8,
+        marginBottom: 8,
       }}>
         <ExcedenteCol anos={`${snap1Anos} anos`} data={p1} cor={cor} />
         <ExcedenteCol anos={`${snap2Anos} anos`} data={p2} cor={cor} />
@@ -818,9 +818,9 @@ function ExcedenteReaplicadoCard({ proj, snap1Anos, snap2Anos, snap3Anos, toEur,
 
       {ganhoRealFim > 0 && (
         <div style={{
-          marginTop: 10, padding: 10, background: `${cor}15`,
+          marginTop: 8, padding: 8, background: `${cor}15`,
           border: `1px solid ${cor}33`, borderRadius: 6,
-          fontSize: 12, color: T.ink, lineHeight: 1.5,
+          fontSize: 11, color: T.ink, lineHeight: 1.4,
         }}>
           💡 <strong>Em {snap3Anos} anos</strong>, mantendo o saque fixo de{" "}
           {fmtBRL.format(valorIdeal)}/mês, o principal cresce de{" "}
@@ -843,25 +843,25 @@ function ExcedenteReaplicadoCard({ proj, snap1Anos, snap2Anos, snap3Anos, toEur,
 function ExcedenteCol({ anos, data, cor, destaque }) {
   return (
     <div style={{
-      padding: 8, borderRadius: 6,
+      padding: 6, borderRadius: 5,
       background: destaque ? `${cor}15` : "transparent",
       border: destaque ? `1px solid ${cor}33` : "1px solid transparent",
     }}>
-      <div style={{ fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 3 }}>
+      <div style={{ fontSize: 8.5, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
         {anos}
       </div>
       <div className="num" style={{
         fontFamily: T.serif,
-        fontSize: destaque ? 17 : 14,
+        fontSize: destaque ? 14 : 12,
         fontWeight: 600, color: destaque ? cor : T.ink,
         lineHeight: 1.1,
       }}>
         {fmtBRL.format(data.real)}
       </div>
-      <div style={{ fontSize: 10, color: T.faint, marginTop: 2 }}>
+      <div style={{ fontSize: 9.5, color: T.faint, marginTop: 1 }}>
         principal real
       </div>
-      <div className="num" style={{ fontSize: 11.5, color: T.muted, marginTop: 4 }}>
+      <div className="num" style={{ fontSize: 10.5, color: T.muted, marginTop: 3 }}>
         {fmtBRL.format(data.liquidoMesReal)}/mês
       </div>
     </div>
@@ -874,24 +874,24 @@ function ResultCard({ titulo, valor, valorEur, descricao, cor, destaque }) {
       background: T.card,
       border: `1px solid ${destaque ? cor : T.border}`,
       borderLeft: `3px solid ${cor}`,
-      borderRadius: 8, padding: 16,
+      borderRadius: 8, padding: 10,
     }}>
-      <div className="label-eyebrow" style={{ color: cor, marginBottom: 6 }}>
+      <div className="label-eyebrow" style={{ color: cor, marginBottom: 3 }}>
         {titulo}
       </div>
       <div className="num calc-result-value" style={{
-        fontFamily: T.serif, fontSize: 28, fontWeight: 600, color: T.ink,
+        fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: T.ink,
         letterSpacing: "-0.01em", lineHeight: 1,
       }}>
         {fmtBRL.format(valor)}
       </div>
       <div className="num calc-result-value-eur" style={{
-        fontSize: 13, color: T.muted, marginTop: 4,
+        fontSize: 11, color: T.muted, marginTop: 2,
       }}>
         ≈ {fmtEUR.format(valorEur)}
       </div>
       <div style={{
-        fontSize: 11.5, color: T.faint, marginTop: 8, lineHeight: 1.45,
+        fontSize: 10.5, color: T.faint, marginTop: 5, lineHeight: 1.4,
       }}>
         {descricao}
       </div>
