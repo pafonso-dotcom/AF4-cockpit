@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { TrendingUp, Sparkles, Radar, Calculator } from "lucide-react";
+import { TrendingUp, Sparkles, Radar } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 
 import Performance from "./Performance.jsx";
 import AnaliseIdV from "../Trade/AnaliseIdV.jsx";
 import AnaliseCarteira from "./AnaliseCarteira.jsx";
-import Projecao from "./Projecao.jsx";
 
 const VIEWS = [
   { id: "performance",      label: "Performance",          icon: TrendingUp },
   { id: "idv",              label: "Análise IdV",          icon: Sparkles },
   { id: "carteira-analise", label: "Análise da Carteira",  icon: Radar },
-  { id: "projecao",         label: "Projeção",             icon: Calculator },
 ];
 
 export default function AnalisesUnificada({
@@ -20,17 +18,10 @@ export default function AnalisesUnificada({
   tradeAnalisesIdV, setTradeAnalisesIdV,
   onAnalisarAtivo,
   apiKeys = {},
-  projetarAlvo,
-  onConsumirProjetarAlvo,
   viewInicial,
   onConsumirViewInicial,
 }) {
   const [view, setView] = useState("performance");
-
-  // Quando chega um alvo de fora (botão "Projetar" da Carteira), pula direto pra view projeção
-  useEffect(() => {
-    if (projetarAlvo) setView("projecao");
-  }, [projetarAlvo]);
 
   // Quando alguém pede pra abrir numa view específica (ex: InvestPainel
   // → "Análise da Carteira" / "Análise IdV"), troca a view e limpa o
@@ -79,13 +70,6 @@ export default function AnalisesUnificada({
         {view === "performance"      && <Performance ativos={ativos} hidden={hidden} />}
         {view === "idv"              && <AnaliseIdV analises={tradeAnalisesIdV} setAnalises={setTradeAnalisesIdV} ativos={ativos} />}
         {view === "carteira-analise" && <AnaliseCarteira ativos={ativos} hidden={hidden} onAnalisar={onAnalisarAtivo} />}
-        {view === "projecao"         && (
-          <Projecao
-            ativos={ativos} hidden={hidden} apiKeys={apiKeys}
-            alvoInicial={projetarAlvo}
-            onConsumirAlvo={onConsumirProjetarAlvo}
-          />
-        )}
       </div>
     </div>
   );
