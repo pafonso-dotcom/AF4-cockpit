@@ -150,6 +150,9 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
     return { entradas, saidas, pendReceitas, pendDespesas, saldoPrev };
   }, [transacoesDaConta, conta, mesAtual]);
 
+  // Gradiente estilo cartão, por banco/instituição (mesma identidade visual dos Cartões).
+  const gradient = gradByName(conta.instituicao || conta.nome, conta.cor);
+
   return (
     <div className="fade-up py-8 px-6">
       {/* Voltar — escondido no modo embutido (lista fica ao lado) */}
@@ -166,76 +169,93 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         </button>
       )}
 
-      {/* Header com saldo grande */}
+      {/* Banner estilo cartão: gradiente por banco + nome + saldo */}
       <div className="conta-hero" style={{
-        background: `linear-gradient(135deg, ${T.card}, ${T.cardHi || T.card})`,
-        border: `1px solid ${T.border}`,
-        borderRadius: 14, padding: 24, marginBottom: 16,
-        borderTop: `3px solid ${conta.cor || T.gold}`,
+        display: "flex", alignItems: "center", gap: 18, padding: 24,
+        background: gradient, borderRadius: 14, marginBottom: 14,
+        color: "#fff", flexWrap: "wrap",
+        boxShadow: `0 6px 20px ${T.bg}66`,
       }}>
-        <div className="label-eyebrow">Extrato · {conta.instituicao} · {conta.tipo}</div>
-        <h2 className="conta-hero-name" style={{ fontFamily: T.serif, color: T.ink, marginTop: 6, marginBottom: 16, letterSpacing: "-0.02em" }}>
-          {conta.nome}
-        </h2>
-        <div className="num conta-hero-value" style={{ fontFamily: T.serif, color: T.gold, fontWeight: 300, lineHeight: 1, wordBreak: "break-word" }}>
-          {hidden ? "R$ •••••" : fmt(conta.saldo)}
+        <div className="conta-hero-icon" style={{
+          width: 56, height: 56, borderRadius: 12,
+          display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0,
+          background: "rgba(0,0,0,.2)",
+        }}>🏦</div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "rgba(255,255,255,.8)", fontWeight: 600 }}>
+            Extrato · {conta.instituicao}{conta.tipo ? ` · ${conta.tipo}` : ""}
+          </div>
+          <div className="conta-hero-name" style={{ fontFamily: T.serif, fontWeight: 500, marginTop: 5, letterSpacing: "-0.02em", wordBreak: "break-word" }}>
+            {conta.nome}
+          </div>
+        </div>
+        <div className="conta-hero-fatura" style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,.7)", letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 4 }}>
+            Saldo atual
+          </div>
+          <div className="num conta-hero-valor" style={{ fontFamily: T.serif, fontWeight: 300, lineHeight: 1, fontVariantNumeric: "tabular-nums", wordBreak: "break-word" }}>
+            {hidden ? "R$ •••••" : fmt(conta.saldo)}
+          </div>
         </div>
         <style>{`
-          .conta-hero-name { font-size: 26px; }
-          .conta-hero-value { font-size: 42px; }
-          @media (max-width: 480px) {
-            .conta-hero { padding: 18px !important; }
-            .conta-hero-name { font-size: 20px !important; margin-bottom: 10px !important; }
-            .conta-hero-value { font-size: clamp(26px, 8vw, 34px) !important; }
+          .conta-hero-name { font-size: 23px; }
+          .conta-hero-valor { font-size: 32px; }
+          @media (max-width: 560px) {
+            .conta-hero { padding: 18px !important; gap: 14px !important; }
+            .conta-hero-icon { width: 46px !important; height: 46px !important; font-size: 22px !important; }
+            .conta-hero-name { font-size: 19px !important; }
+            .conta-hero-fatura { text-align: left !important; width: 100%; }
+            .conta-hero-valor { font-size: clamp(26px, 8vw, 32px) !important; }
             .extrato-filtros { grid-template-columns: 1fr 1fr !important; }
             .extrato-filtros > div[style*="position: relative"] { grid-column: 1 / -1; }
             .extrato-filtros > button { grid-column: 1 / -1; }
           }
         `}</style>
+      </div>
 
-        <div style={{
-          display: "flex", gap: 18, flexWrap: "wrap",
-          marginTop: 18, paddingTop: 18, borderTop: `1px solid ${T.border}`,
-        }}>
-          <KPI l="Entradas (mês)" v={hidden ? "•••" : `+ ${fmt(kpisMes.entradas)}`} c={T.green} />
-          <KPI l="Saídas (mês)"   v={hidden ? "•••" : `− ${fmt(kpisMes.saidas)}`}   c={T.red} />
-          <KPI l="Saldo previsto fim do mês" v={hidden ? "•••" : fmt(kpisMes.saldoPrev)} c={T.gold} />
+      {/* KPIs do mês + ações */}
+      <div style={{
+        display: "flex", gap: 18, flexWrap: "wrap", alignItems: "flex-end",
+        marginBottom: 16, padding: "0 2px",
+      }}>
+        <KPI l="Entradas (mês)" v={hidden ? "•••" : `+ ${fmt(kpisMes.entradas)}`} c={T.green} />
+        <KPI l="Saídas (mês)"   v={hidden ? "•••" : `− ${fmt(kpisMes.saidas)}`}   c={T.red} />
+        <KPI l="Saldo previsto fim do mês" v={hidden ? "•••" : fmt(kpisMes.saldoPrev)} c={T.gold} />
 
-          <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <button onClick={() => setTxModal({ modo: "novo" })}
+        <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <button onClick={() => setTxModal({ modo: "novo" })}
+                  style={{
+                    background: `${conta.cor || T.gold}22`, color: conta.cor || T.gold,
+                    border: `1px solid ${conta.cor || T.gold}`, padding: "8px 12px",
+                    fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
+                    fontWeight: 600, cursor: "pointer", borderRadius: 7,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>
+            <Plus size={11} /> Nova transação
+          </button>
+          {onTransferir && (
+            <button onClick={onTransferir}
                     style={{
-                      background: `${conta.cor || T.gold}22`, color: conta.cor || T.gold,
-                      border: `1px solid ${conta.cor || T.gold}`, padding: "8px 12px",
+                      background: "transparent", color: T.gold,
+                      border: `1px solid ${T.gold}`, padding: "8px 12px",
                       fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
                       fontWeight: 600, cursor: "pointer", borderRadius: 7,
                       display: "inline-flex", alignItems: "center", gap: 6,
                     }}>
-              <Plus size={11} /> Nova transação
+              <ArrowRightLeft size={11} /> Transferir
             </button>
-            {onTransferir && (
-              <button onClick={onTransferir}
-                      style={{
-                        background: "transparent", color: T.gold,
-                        border: `1px solid ${T.gold}`, padding: "8px 12px",
-                        fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                        fontWeight: 600, cursor: "pointer", borderRadius: 7,
-                        display: "inline-flex", alignItems: "center", gap: 6,
-                      }}>
-                <ArrowRightLeft size={11} /> Transferir
-              </button>
-            )}
-            <button onClick={() => window.print()}
-                    title="Imprimir ou salvar como PDF"
-                    style={{
-                      background: "transparent", color: T.muted,
-                      border: `1px solid ${T.border}`, padding: "8px 12px",
-                      fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                      fontWeight: 600, cursor: "pointer", borderRadius: 7,
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                    }}>
-              <Printer size={11} /> PDF
-            </button>
-          </div>
+          )}
+          <button onClick={() => window.print()}
+                  title="Imprimir ou salvar como PDF"
+                  style={{
+                    background: "transparent", color: T.muted,
+                    border: `1px solid ${T.border}`, padding: "8px 12px",
+                    fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
+                    fontWeight: 600, cursor: "pointer", borderRadius: 7,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>
+            <Printer size={11} /> PDF
+          </button>
         </div>
       </div>
 
@@ -467,6 +487,22 @@ function KPI({ l, v, c }) {
       <div className="num" style={{ fontSize: 14, color: c, fontWeight: 500 }}>{v}</div>
     </div>
   );
+}
+
+// Gradiente do banner por banco/instituição — mesma identidade visual dos Cartões.
+function gradByName(nome, fallbackCor) {
+  const n = (nome || "").toLowerCase();
+  if (n.includes("nubank") || n.includes("nu ")) return "linear-gradient(135deg, #8b5cf6, #06b6d4)";
+  if (n.includes("itau") || n.includes("itaú")) return "linear-gradient(135deg, #c9a961, #54545c)";
+  if (n.includes("c6"))                          return "linear-gradient(135deg, #f43f5e, #fbbf24)";
+  if (n.includes("inter"))                       return "linear-gradient(135deg, #f59e0b, #ea580c)";
+  if (n.includes("santander"))                   return "linear-gradient(135deg, #dc2626, #991b1b)";
+  if (n.includes("bradesco"))                    return "linear-gradient(135deg, #cc092f, #7a0a1e)";
+  if (n.includes("sicred") || n.includes("sicoob")) return "linear-gradient(135deg, #00935f, #3fae6b)";
+  if (n.includes("caixa"))                       return "linear-gradient(135deg, #0070b8, #f39200)";
+  if (n.includes("banco do brasil") || n.includes(" bb")) return "linear-gradient(135deg, #fae128, #0038a8)";
+  if (fallbackCor)                               return `linear-gradient(135deg, ${fallbackCor}, ${fallbackCor})`;
+  return `linear-gradient(135deg, ${T.gold}, ${T.goldHi || T.gold})`;
 }
 
 // Agrupa a lista (já ordenada) em blocos por dia, preservando a ordem.
