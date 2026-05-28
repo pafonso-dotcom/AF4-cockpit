@@ -306,7 +306,14 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           Nenhum lançamento {busca ? `para "${busca}"` : "no período selecionado"}.
         </div>
       ) : (
-        <div className="tbl-extrato-wrap" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "auto" }}>
+        <div className="tbl-extrato-wrap" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden", boxShadow: `0 1px 3px ${T.bg}55` }}>
+          <style>{`
+            .tbl-extrato tbody tr { transition: background .12s ease; }
+            .tbl-extrato tbody tr:nth-child(even) { background: ${T.ink}06; }
+            .tbl-extrato tbody tr:hover { background: ${T.gold}14; }
+            .tbl-extrato tbody tr:last-child td { border-bottom: none !important; }
+            .tbl-extrato thead th { background: ${T.bgSoft}; }
+          `}</style>
           <table className="tbl tbl-extrato" style={{ width: "100%", minWidth: 580, borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: T.bgSoft }}>
@@ -331,7 +338,16 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                     opacity: t.compensado ? 1 : 0.7,
                   }}>
                     <td style={tdSty}>
-                      <span className="num" style={{ color: T.faint, fontSize: 12 }}>{t.data}</span>
+                      {(() => {
+                        const dt = fmtDataCurta(t.data);
+                        return (
+                          <span style={{ display: "inline-flex", alignItems: "baseline", gap: 5 }}>
+                            <span className="num" style={{ color: T.ink, fontSize: 14, fontWeight: 600 }}>{dt.dia}</span>
+                            <span style={{ color: T.muted, fontSize: 11 }}>{dt.mes}</span>
+                            <span className="num" style={{ color: T.faint, fontSize: 10 }}>'{dt.ano}</span>
+                          </span>
+                        );
+                      })()}
                       {!t.compensado && (
                         <div style={{ fontSize: 9, color: T.gold, fontStyle: "italic", marginTop: 2 }}>Pendente</div>
                       )}
@@ -453,8 +469,16 @@ function KPI({ l, v, c }) {
   );
 }
 
+const MESES_ABBR = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+function fmtDataCurta(iso) {
+  if (!iso || iso.length < 10) return { dia: iso || "—", mes: "", ano: "" };
+  // Trunca para YYYY-MM-DD caso venha com hora (ex.: "2026-05-28T10:00:00").
+  const [ano, mes, dia] = iso.slice(0, 10).split("-");
+  return { dia, mes: MESES_ABBR[parseInt(mes, 10) - 1] || mes, ano: (ano || "").slice(2) };
+}
+
 const tdSty = {
-  padding: "7px 10px",
+  padding: "10px 12px",
   verticalAlign: "middle",
 };
 
@@ -471,11 +495,11 @@ const iconBtn = {
 function Th({ children, align, style, onClick, clickable, className }) {
   return (
     <th onClick={onClick} className={className} style={{
-      padding: "8px 10px",
+      padding: "11px 12px",
       textAlign: align || "left",
       fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
-      color: T.muted, fontWeight: 500,
-      borderBottom: `1px solid ${T.border}`,
+      color: T.muted, fontWeight: 600,
+      borderBottom: `1px solid ${T.borderHi || T.border}`,
       cursor: clickable ? "pointer" : "default",
       userSelect: "none",
       ...style,
