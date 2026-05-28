@@ -219,22 +219,55 @@ export default function Servicos({
     toast.success("Colaborador removido.");
   };
 
-  // Marca/desmarca o repasse do mês corrente como efetivamente pago ao
-  // instalador. NÃO mexe no Caixa do Negócio — o valorInstalador já saiu por
-  // venda; isto é só um controle de quitação ("já repassei o acumulado?").
+  // Marca/desmarca o repasse do mês corrente como pago ao colaborador.
+  // Pagar = SAÍDA real do Caixa do Negócio (debita o acumulado do mês e registra
+  // no histórico). Desmarcar devolve ao Caixa o valor exato que havia saído.
   const togglePagarInstalador = (inst) => {
     if (typeof setInstaladores !== "function") return;
     const pagos = inst.repassesPagos || [];
     const jaPago = pagos.includes(mesCorrente);
+    const totalMes = saldoMesPorInstalador[inst.id] || 0;
     const novos = jaPago
       ? pagos.filter(m => m !== mesCorrente)
       : [...pagos, mesCorrente];
     setInstaladores(instaladores.map(i =>
       i.id === inst.id ? { ...i, repassesPagos: novos } : i
     ));
+
+    // Movimenta o Caixa do Negócio: ao pagar, debita o acumulado do mês; ao
+    // desmarcar, devolve exatamente o que havia sido debitado pra este mês.
+    if (typeof setCaixaNegocio === "function") {
+      setCaixaNegocio(prev => {
+        const hist = (prev?.historico) || [];
+        if (jaPago) {
+          const debitado = hist
+            .filter(h => h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente)
+            .reduce((s, h) => s + Math.abs(Number(h.valor) || 0), 0);
+          return {
+            saldo: (prev?.saldo || 0) + debitado,
+            historico: hist.filter(h => !(h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente)),
+          };
+        }
+        if (totalMes <= 0) return prev;
+        return {
+          saldo: (prev?.saldo || 0) - totalMes,
+          historico: [{
+            id: uid(),
+            tipo: "pago-instalador",
+            data: todayISO(),
+            descricao: `Repasse a ${inst.nome} · ${mesCorrente}`,
+            valor: -totalMes,
+            instaladorId: inst.id,
+            repasseMes: mesCorrente,
+            ts: new Date().toISOString(),
+          }, ...hist],
+        };
+      });
+    }
+
     toast.success(jaPago
-      ? `Repasse de ${inst.nome} (${mesCorrente}) desmarcado.`
-      : `Repasse de ${fmt(saldoMesPorInstalador[inst.id] || 0)} a ${inst.nome} marcado como pago.`);
+      ? `Repasse de ${inst.nome} (${mesCorrente}) desmarcado — valor devolvido ao Caixa.`
+      : `Repasse de ${fmt(totalMes)} a ${inst.nome} pago — debitado do Caixa do Negócio.`);
   };
 
   /* ---------- Venda ---------- */
@@ -312,10 +345,10 @@ export default function Servicos({
     const servicosIds = vendaForm.servicosIds || [];
     const primaryServicoId = servicosIds[0] || null;
 
-    // Colaborador opcional: só registra saída se setou nome + valor > 0
+    // Colaborador opcional: guarda o vínculo + valor a repassar. O repasse NÃO
+    // sai do Caixa agora — fica pendente e só sai quando você clicar em "Pagar".
     const valorInst = Number(vendaForm.valorInstalador) || 0;
     const temInstalador = !!vendaForm.instaladorId && valorInst > 0;
-    const inst = temInstalador ? instaladores.find(i => i.id === vendaForm.instaladorId) : null;
 
     const novaVenda = {
       id: uid(),
@@ -332,11 +365,11 @@ export default function Servicos({
       obs: (vendaForm.obs || "").trim(),
     };
 
-    // Receita vai pra Caixa do Negócio virtual; se tem instalador, gera
-    // também uma saída "pago-instalador" no mesmo caixa (sem tocar Finanças).
+    // Receita entra na Caixa do Negócio virtual (não toca Finanças). O repasse
+    // ao colaborador NÃO é debitado aqui — ele acumula como "a pagar" e só sai
+    // do Caixa quando o repasse do mês é marcado como pago.
     if (typeof setCaixaNegocio === "function") {
       setCaixaNegocio(prev => {
-        const baseHist = (prev?.historico) || [];
         const entradaReceita = {
           id: uid(),
           tipo: "venda-servico",
@@ -347,54 +380,47 @@ export default function Servicos({
           vendaId: novaVenda.id,
           ts: new Date().toISOString(),
         };
-        let novoSaldo = (prev?.saldo || 0) + valor;
-        let novoHist = [entradaReceita, ...baseHist];
-        if (temInstalador) {
-          novoSaldo -= valorInst;
-          novoHist = [{
-            id: uid(),
-            tipo: "pago-instalador",
-            data: vendaForm.data,
-            descricao: `Pago a ${inst?.nome || "colaborador"} · ${nome}`,
-            valor: -valorInst,
-            vendaId: novaVenda.id,
-            instaladorId: vendaForm.instaladorId,
-            ts: new Date().toISOString(),
-          }, ...novoHist];
-        }
-        return { saldo: novoSaldo, historico: novoHist };
+        return {
+          saldo: (prev?.saldo || 0) + valor,
+          historico: [entradaReceita, ...((prev?.historico) || [])],
+        };
       });
     }
 
     setVendas([novaVenda, ...vendas]);
     setVendaForm(null);
     const lucro = valor - custo - (temInstalador ? valorInst : 0);
-    toast.success(`Serviço registrado · lucro ${fmt(lucro)}${temInstalador ? " (após repasse ao colaborador)" : ""}`);
+    toast.success(`Serviço registrado · lucro ${fmt(lucro)}${temInstalador ? " (repasse ao colaborador fica pendente)" : ""}`);
   };
 
   const estornarVenda = async (v) => {
     const isCaixaVirtual = v.contaDestino === "Caixa do Negócio";
-    const valorInst = Number(v.valorInstalador || 0);
-    const temInst = !!v.instaladorId && valorInst > 0;
-    const ehDeContrato = !!v.contratoId && !!v.faturaRef;
+    // Contrato: basta ter contratoId (faturaRef pode faltar em registros legados).
+    const ehDeContrato = !!v.contratoId;
     const ok = await confirm({
       title: `Estornar venda de ${v.nome}?`,
       body: isCaixaVirtual
-        ? `A venda de ${fmt(v.valor)} será removida da Caixa do Negócio${temInst ? " (incluindo o repasse ao colaborador)" : ""}${ehDeContrato ? " e o contrato volta a permitir gerar a fatura desse mês" : ""}.`
+        ? `A venda de ${fmt(v.valor)} será removida da Caixa do Negócio${ehDeContrato ? " e o contrato volta a permitir gerar a fatura desse mês" : ""}.`
         : `A venda de ${fmt(v.valor)} será removida, o saldo de ${v.contaDestino} ajustado e a transação no Finanças removida.`,
       danger: true, confirmLabel: "Estornar",
     });
     if (!ok) return;
 
     if (isCaixaVirtual) {
-      // Venda nova: estorna na Caixa do Negócio virtual.
-      // Reverte tanto a receita quanto o pago-instalador (se houve).
+      // Estorna na Caixa do Negócio virtual: remove a receita desta venda.
       if (typeof setCaixaNegocio === "function") {
-        setCaixaNegocio(prev => ({
-          // +valorInst porque o pago-instalador foi uma SAÍDA (negativa); estornar devolve.
-          saldo: (prev?.saldo || 0) - Number(v.valor || 0) + valorInst,
-          historico: ((prev?.historico) || []).filter(h => h.vendaId !== v.id),
-        }));
+        setCaixaNegocio(prev => {
+          const hist = (prev?.historico) || [];
+          // Repasses por-venda já debitados no Caixa pra ESTA venda (modelo antigo).
+          // No modelo atual o repasse não sai por venda, então isto será 0.
+          const repasseDaVenda = hist
+            .filter(h => h.vendaId === v.id && h.tipo === "pago-instalador")
+            .reduce((s, h) => s + Math.abs(Number(h.valor) || 0), 0);
+          return {
+            saldo: (prev?.saldo || 0) - Number(v.valor || 0) + repasseDaVenda,
+            historico: hist.filter(h => h.vendaId !== v.id),
+          };
+        });
       }
     } else {
       // Venda antiga (legacy, com conta de Finanças): comportamento original
@@ -431,13 +457,18 @@ export default function Servicos({
     }
 
     // Se a venda veio de um contrato recorrente, reabilita o "Gerar fatura"
-    // desse mês — reseta ultimaFaturaRef se ainda aponta pra esta fatura.
+    // desse mês — limpa ultimaFaturaRef. Robusto: limpa se bate com a fatura
+    // estornada OU com a competência atual OU se a venda não tinha faturaRef
+    // (registros legados) — assim o botão "Gerar fatura" sempre reabilita.
     if (ehDeContrato && typeof setContratos === "function") {
-      setContratos((contratos || []).map(c =>
-        (c.id === v.contratoId && c.ultimaFaturaRef === v.faturaRef)
-          ? { ...c, ultimaFaturaRef: null }
-          : c
-      ));
+      setContratos((contratos || []).map(c => {
+        if (c.id !== v.contratoId) return c;
+        const refHoje = refAtual(c.recorrencia);
+        const deveLimpar = !v.faturaRef
+          || c.ultimaFaturaRef === v.faturaRef
+          || c.ultimaFaturaRef === refHoje;
+        return deveLimpar ? { ...c, ultimaFaturaRef: null } : c;
+      }));
     }
 
     setVendas(vendas.filter(x => x.id !== v.id));
@@ -638,11 +669,10 @@ export default function Servicos({
       obs: `Fatura recorrente · ref ${ref}`,
     };
 
-    // Receita: agora vai pra Caixa do Negócio virtual (não toca em Finanças).
-    // Se há instalador no contrato, gera também uma saída "pago-instalador"
-    // no mesmo caixa (vinculada por vendaId, igual ao fluxo da venda avulsa).
+    // Receita vai pra Caixa do Negócio virtual (não toca em Finanças). O repasse
+    // ao colaborador (se houver) NÃO é debitado aqui — acumula como "a pagar" e
+    // só sai do Caixa quando o repasse do mês é marcado como pago.
     if (typeof setCaixaNegocio === "function") {
-      const inst = temInstalador ? instaladores.find(i => i.id === c.instaladorId) : null;
       setCaixaNegocio(prev => {
         const entradaReceita = {
           id: uid(),
@@ -655,23 +685,10 @@ export default function Servicos({
           contratoId: c.id,
           ts: new Date().toISOString(),
         };
-        let novoHistorico = [entradaReceita, ...((prev?.historico) || [])];
-        let novoSaldo = (prev?.saldo || 0) + valorReceita;
-        if (temInstalador) {
-          novoHistorico = [{
-            id: uid(),
-            tipo: "pago-instalador",
-            data: todayISO(),
-            descricao: `Pago a ${inst?.nome || "colaborador"} · ${c.nome} · ${refLabel}`,
-            valor: -valorInstContrato,
-            vendaId: novaVenda.id,
-            contratoId: c.id,
-            instaladorId: c.instaladorId,
-            ts: new Date().toISOString(),
-          }, ...novoHistorico];
-          novoSaldo -= valorInstContrato;
-        }
-        return { saldo: novoSaldo, historico: novoHistorico };
+        return {
+          saldo: (prev?.saldo || 0) + valorReceita,
+          historico: [entradaReceita, ...((prev?.historico) || [])],
+        };
       });
     }
 
@@ -1331,7 +1348,7 @@ export default function Servicos({
               <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3, fontStyle: "italic" }}>
                 Valor entra na Caixa virtual do Negócio (não cria transação em Finanças).
                 {vendaForm.instaladorId && Number(vendaForm.valorInstalador) > 0 && (
-                  <> Repasse ao colaborador sai do mesmo caixa.</>
+                  <> Repasse ao colaborador fica pendente e só sai do Caixa quando você clicar em "Pagar".</>
                 )}
               </div>
             </div>
@@ -1544,7 +1561,7 @@ export default function Servicos({
             <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3, fontStyle: "italic" }}>
               Receita entra na Caixa virtual do Negócio (não cria transação em Finanças).
               {contratoForm.instaladorId && Number(contratoForm.valorInstalador) > 0 && (
-                <> Repasse ao colaborador sai do mesmo caixa a cada fatura.</>
+                <> Repasse ao colaborador acumula como "a pagar" e só sai do Caixa quando você clicar em "Pagar" no mês.</>
               )}
             </div>
           </div>
