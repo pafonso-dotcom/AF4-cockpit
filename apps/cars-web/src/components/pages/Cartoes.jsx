@@ -9,6 +9,7 @@ import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import StatCard from "../ui/StatCard.jsx";
 import Modal from "../ui/Modal.jsx";
+import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
 
 export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, categorias, hidden, onCartaoClick, cartaoAtivo }) {
   const [form, setForm] = useState(null);
@@ -276,6 +277,8 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   accent={T.blue} icon={Repeat} />
       </div>
 
+      {/* Lista de cartões — recolhida por padrão */}
+      <SecaoColapsavel idKey="cartoes-lista" titulo="Meus cartões" count={cartoes.length} defaultAberto={false}>
       {/* Visual cards · empilhados verticalmente (lista) */}
       <div style={{
         display: "grid",
@@ -397,6 +400,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           </div>
         )}
       </div>
+      </SecaoColapsavel>
 
       {/* Parcelamentos table */}
       <section style={{ background: T.card, border: `1px solid ${T.border}`, padding: 24 }}>

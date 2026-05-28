@@ -10,6 +10,7 @@ import { filtrarPorEscopo } from "../../lib/escopo.js";
 import Field from "../ui/Field.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
 import Modal from "../ui/Modal.jsx";
+import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
 import TransferenciaModal from "../modals/TransferenciaModal.jsx";
 
 export default function Contas({ contas, setContas, hidden, onCreateTransacao, onContaClick, contaAtiva, transacoes, setTransacoes, categorias, escopoAtivo = "tudo" }) {
@@ -212,6 +213,8 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
         </button>
       </div>
 
+      {/* Lista de contas — recolhida por padrão */}
+      <SecaoColapsavel idKey="contas-lista" titulo="Minhas contas" count={contasVisiveis.length} defaultAberto={false}>
       {/* Grid denso · auto-fill 200px+ */}
       <div style={{
         display: "flex", flexDirection: "column", gap: 4,
@@ -308,6 +311,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           );
         })}
       </div>
+      </SecaoColapsavel>
 
       {form && (
         <Modal title={form.id ? "Editar Conta" : "Abrir Nova Conta"} onClose={() => setForm(null)}>
