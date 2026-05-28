@@ -239,7 +239,12 @@ export default function Servicos({
     if (typeof setCaixaNegocio === "function") {
       setCaixaNegocio(prev => {
         const hist = (prev?.historico) || [];
+        const ehDoMes = (h) => h.tipo === "pago-instalador" && h.instaladorId === inst.id
+          && (h.repasseMes === mesCorrente || (!!h.vendaId && (h.data || "").startsWith(mesCorrente)));
         if (jaPago) {
+          // Desmarcar: só estorna o que ESTE controle de quitação debitou
+          // (entradas com repasseMes). Entradas legadas (por venda, com vendaId)
+          // foram debitadas na venda e seguem o estorno da venda, não daqui.
           const debitado = hist
             .filter(h => h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente)
             .reduce((s, h) => s + Math.abs(Number(h.valor) || 0), 0);
@@ -248,15 +253,22 @@ export default function Servicos({
             historico: hist.filter(h => !(h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente)),
           };
         }
-        if (totalMes <= 0) return prev;
+        // Pagar: debita só o que AINDA não saiu do Caixa. Vendas do modelo antigo
+        // já debitaram o repasse na venda (entradas com vendaId no mês) — abate
+        // esse valor pra não cobrar em dobro.
+        const jaDebitado = hist
+          .filter(ehDoMes)
+          .reduce((s, h) => s + Math.abs(Number(h.valor) || 0), 0);
+        const aDebitar = Math.max(0, totalMes - jaDebitado);
+        if (aDebitar <= 0) return prev;
         return {
-          saldo: (prev?.saldo || 0) - totalMes,
+          saldo: (prev?.saldo || 0) - aDebitar,
           historico: [{
             id: uid(),
             tipo: "pago-instalador",
             data: todayISO(),
             descricao: `Repasse a ${inst.nome} · ${mesCorrente}`,
-            valor: -totalMes,
+            valor: -aDebitar,
             instaladorId: inst.id,
             repasseMes: mesCorrente,
             ts: new Date().toISOString(),
@@ -423,8 +435,10 @@ export default function Servicos({
         });
       }
     } else {
-      // Venda antiga (legacy, com conta de Finanças): comportamento original
-      setTransacoes(transacoes.filter(t => !(
+      // Venda antiga (legacy, com conta de Finanças): comportamento original.
+      // Updaters funcionais pra compor com a reversão da despesa do prestador
+      // abaixo (dois setTransacoes/setContas no mesmo handler não se sobrescrevem).
+      setTransacoes(prev => prev.filter(t => !(
         t.conta === v.contaDestino &&
         t.valor === v.valor &&
         t.tipo === "receita" &&
@@ -432,12 +446,9 @@ export default function Servicos({
         (t.obs || "").includes(`serviço ${v.id}`)
       )));
 
-      const conta = contas.find(c => c.nome === v.contaDestino);
-      if (conta) {
-        setContas(contas.map(c => c.id === conta.id
-          ? { ...c, saldo: (parseFloat(c.saldo) || 0) - Number(v.valor || 0) }
-          : c));
-      }
+      setContas(prev => prev.map(c => c.nome === v.contaDestino
+        ? { ...c, saldo: (parseFloat(c.saldo) || 0) - Number(v.valor || 0) }
+        : c));
     }
 
     // Reverte a despesa do prestador no Finanças, se foi gerada pra esta venda.
@@ -446,10 +457,9 @@ export default function Servicos({
         t.tipo === "despesa" && (t.obs || "").includes(`serviço ${v.id}`)
       );
       if (despPrestador) {
-        setTransacoes(transacoes.filter(t => t.id !== despPrestador.id));
-        const contaDesp = contas.find(co => co.nome === despPrestador.conta);
-        if (contaDesp && typeof setContas === "function") {
-          setContas(contas.map(co => co.id === contaDesp.id
+        setTransacoes(prev => prev.filter(t => t.id !== despPrestador.id));
+        if (typeof setContas === "function") {
+          setContas(prev => prev.map(co => co.nome === despPrestador.conta
             ? { ...co, saldo: (parseFloat(co.saldo) || 0) + Number(despPrestador.valor || 0) }
             : co));
         }

@@ -472,7 +472,8 @@ function KPI({ l, v, c }) {
 const MESES_ABBR = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 function fmtDataCurta(iso) {
   if (!iso || iso.length < 10) return { dia: iso || "—", mes: "", ano: "" };
-  const [ano, mes, dia] = iso.split("-");
+  // Trunca para YYYY-MM-DD caso venha com hora (ex.: "2026-05-28T10:00:00").
+  const [ano, mes, dia] = iso.slice(0, 10).split("-");
   return { dia, mes: MESES_ABBR[parseInt(mes, 10) - 1] || mes, ano: (ano || "").slice(2) };
 }
 
