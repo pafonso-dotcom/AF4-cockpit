@@ -421,7 +421,7 @@ export default function PreviewImportarFaturaModal({
                 {iconePorTipo[item.tipo]}
               </div>
 
-              <div style={{ flex: 1, minWidth: 120 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ color: T.ink, fontSize: 12.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {item.descricao}
                   {item.tipo === "parcela" && item.parcela_atual && (
@@ -430,7 +430,7 @@ export default function PreviewImportarFaturaModal({
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2, display: "flex", gap: 6, alignItems: "center", flexWrap: "nowrap", overflow: "hidden", whiteSpace: "nowrap" }}>
                   <span style={{
                     padding: "1px 6px", background: `${cor}22`, color: cor,
                     borderRadius: 3, fontWeight: 600, letterSpacing: ".05em",
@@ -464,6 +464,7 @@ export default function PreviewImportarFaturaModal({
                       style={{
                         padding: "3px 6px", fontSize: 10, borderRadius: 4,
                         background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`,
+                        flexShrink: 0,
                       }}
                       title="Mudar tipo">
                 <option value="vista">À vista</option>
@@ -473,7 +474,7 @@ export default function PreviewImportarFaturaModal({
 
               <div className="num" style={{
                 color: T.red, fontFamily: T.serif, fontSize: 14, fontWeight: 600,
-                minWidth: 90, textAlign: "right",
+                minWidth: 90, textAlign: "right", flexShrink: 0,
               }}>
                 {fmt(item.valor)}
               </div>
