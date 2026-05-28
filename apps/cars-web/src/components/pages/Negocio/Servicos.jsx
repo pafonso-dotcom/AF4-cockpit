@@ -42,6 +42,9 @@ export default function Servicos({
   const [contratosExpandido, setContratosExpandido] = useState(true);
   const [instaladoresExpandido, setInstaladoresExpandido] = useState(true);
 
+  // Mês corrente YYYY-MM — usado pra controle de repasse e relatório.
+  const mesCorrente = new Date().toISOString().slice(0, 7);
+
   const ativos = useMemo(
     () => servicos.filter(s => s.ativo !== false),
     [servicos]
@@ -181,6 +184,24 @@ export default function Servicos({
     if (!ok) return;
     setInstaladores(instaladores.filter(x => x.id !== i.id));
     toast.success("Instalador removido.");
+  };
+
+  // Marca/desmarca o repasse do mês corrente como efetivamente pago ao
+  // instalador. NÃO mexe no Caixa do Negócio — o valorInstalador já saiu por
+  // venda; isto é só um controle de quitação ("já repassei o acumulado?").
+  const togglePagarInstalador = (inst) => {
+    if (typeof setInstaladores !== "function") return;
+    const pagos = inst.repassesPagos || [];
+    const jaPago = pagos.includes(mesCorrente);
+    const novos = jaPago
+      ? pagos.filter(m => m !== mesCorrente)
+      : [...pagos, mesCorrente];
+    setInstaladores(instaladores.map(i =>
+      i.id === inst.id ? { ...i, repassesPagos: novos } : i
+    ));
+    toast.success(jaPago
+      ? `Repasse de ${inst.nome} (${mesCorrente}) desmarcado.`
+      : `Repasse de ${fmt(saldoMesPorInstalador[inst.id] || 0)} a ${inst.nome} marcado como pago.`);
   };
 
   /* ---------- Venda ---------- */
@@ -986,9 +1007,12 @@ export default function Servicos({
               {(instaladores || []).map(i => {
                 const saldoMes = saldoMesPorInstalador[i.id] || 0;
                 const inativo = i.ativo === false;
+                // Repasse do mês: já marcado como pago? (backward-compat: sem
+                // repassesPagos => pendente). Só faz sentido se há saldo > 0.
+                const repassePago = (i.repassesPagos || []).includes(mesCorrente);
                 return (
                   <div key={i.id} style={{
-                    display: "grid", gridTemplateColumns: "1fr auto auto", gap: 10,
+                    display: "grid", gridTemplateColumns: "1fr auto auto auto", gap: 10,
                     alignItems: "center", padding: "8px 10px", borderRadius: 5,
                     background: T.bgSoft, opacity: inativo ? 0.55 : 1,
                   }}>
@@ -1006,11 +1030,49 @@ export default function Servicos({
                         {i.telefone && <span>📞 {i.telefone}</span>}
                         {i.obs && <span style={{ fontStyle: "italic" }}>{i.obs}</span>}
                       </div>
+                      {saldoMes > 0 && (
+                        <div style={{
+                          fontSize: 10.5, marginTop: 3, fontWeight: 600,
+                          color: repassePago ? T.green : T.gold,
+                        }}>
+                          {repassePago
+                            ? `Repasse de ${mesCorrente} quitado`
+                            : `Repasse de ${mesCorrente} pendente`}
+                        </div>
+                      )}
                     </div>
                     <span className="num" title="Total pago no mês corrente"
                           style={{ fontSize: 12, color: saldoMes > 0 ? T.gold : T.muted, fontWeight: 600 }}>
                       {hidden ? "•••" : `${fmt(saldoMes)}/mês`}
                     </span>
+                    {/* Controle de quitação do repasse do mês (não toca o caixa) */}
+                    {saldoMes > 0 ? (
+                      repassePago ? (
+                        <button onClick={() => togglePagarInstalador(i)}
+                                title="Repasse do mês marcado como pago — clique pra desmarcar"
+                                style={{
+                                  display: "inline-flex", alignItems: "center", gap: 4,
+                                  background: `${T.green}22`, border: `1px solid ${T.green}66`,
+                                  color: T.green, padding: "4px 10px", borderRadius: 5, cursor: "pointer",
+                                  fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
+                                }}>
+                          <Check size={11} /> Pago
+                        </button>
+                      ) : (
+                        <button onClick={() => togglePagarInstalador(i)}
+                                title="Marcar repasse do mês como pago ao instalador"
+                                style={{
+                                  display: "inline-flex", alignItems: "center", gap: 4,
+                                  background: T.gold, border: "none",
+                                  color: T.bg, padding: "4px 10px", borderRadius: 5, cursor: "pointer",
+                                  fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
+                                }}>
+                          <Check size={11} /> Pagar
+                        </button>
+                      )
+                    ) : (
+                      <span />
+                    )}
                     <div style={{ display: "flex", gap: 4 }}>
                       <button onClick={() => abrirInstaladorEditar(i)} title="Editar" style={btnIcon()}>
                         <Edit3 size={12} />
