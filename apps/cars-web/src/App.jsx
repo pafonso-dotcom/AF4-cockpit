@@ -33,6 +33,7 @@ import { atualizarCarteira } from "./lib/cotacoes.js";
 import { useKeyboardShortcuts } from "./lib/keyboardShortcuts.js";
 import { useLayout } from "./lib/useLayout.js";
 import AtalhosOverlay from "./components/modals/AtalhosOverlay.jsx";
+import CommandPalette from "./components/ui/CommandPalette.jsx";
 import OnboardingTradeModal from "./components/modals/OnboardingTradeModal.jsx";
 import AnaliseTrade from "./components/pages/Trade/Analise.jsx";
 import AnaliseCarteira from "./components/pages/Invest/AnaliseCarteira.jsx";
@@ -95,6 +96,7 @@ export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [pendingTransacao, setPendingTransacao] = useState(null);
   const [atalhosVisivel, setAtalhosVisivel] = useState(false);
+  const [paletaAberta, setPaletaAberta] = useState(false);
   const { isVertical } = useLayout();
   const [hidden, setHidden] = useState(false);
   const [perfisOpen, setPerfisOpen] = useState(false);
@@ -334,6 +336,18 @@ export default function App() {
     if (loading) return;
     saveKeys(apiKeys);
   }, [apiKeys, loading]);
+
+  /* ---------- Command Palette: Ctrl/Cmd+K abre busca rápida de abas ---------- */
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletaAberta(v => !v);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   /* ---------- Auto-geração de ocorrências de fixas para o ano atual ---------- */
   // Se virou o ano, garante que cada fixa cadastrada tem 12 ocorrências do novo ano.
@@ -652,6 +666,7 @@ export default function App() {
         hidden={hidden} setHidden={setHidden}
         escopoAtivo={escopoAtivo}
         onEscopoChange={(novo) => { setEscopoAtivo(novo); salvarEscopo(novo); }}
+        onOpenPalette={() => setPaletaAberta(true)}
         onRefresh={refreshMarket} refreshing={refreshing}
         onOpenSettings={(kind, value) => {
           if (kind === "paleta" && value) {
@@ -1098,6 +1113,15 @@ export default function App() {
       <InstallPWA />
       <ConfirmDialog />
       {atalhosVisivel && <AtalhosOverlay onClose={() => setAtalhosVisivel(false)} />}
+      <CommandPalette
+        open={paletaAberta}
+        onClose={() => setPaletaAberta(false)}
+        onNavigate={({ modulo: m, tab: t }) => {
+          setModulo(m);
+          setCartaoAberto(null); setContaAberta(null);
+          setTab(t);
+        }}
+      />
       {["analise-carteira", "trade-ativo"].includes(tab) && !tradeOnboardingVisto && (
         <OnboardingTradeModal onClose={() => setTradeOnboardingVisto(true)} />
       )}

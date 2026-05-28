@@ -8,7 +8,7 @@ import {
   Package, Target, Users, AlertCircle, History, MessageCircle,
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
-  Store, Car, Wrench,
+  Store, Car, Wrench, Search,
 } from "lucide-react";
 
 /**
@@ -68,6 +68,7 @@ function HeaderHorizontal({
   escopoAtivo, onEscopoChange,
   onRefresh, refreshing,
   onOpenSettings,
+  onOpenPalette,
   onQuickAction,
   pendingCounts = {},
   contas = [], cartoes = [],
@@ -199,6 +200,11 @@ function HeaderHorizontal({
 
         {/* UTILITY · 40x40 cada */}
         <div className="hide-mobile" style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+          <button onClick={() => onOpenPalette?.()}
+                  title="Busca rápida de abas (Ctrl/Cmd+K)"
+                  className="hdr-util" style={utilBtn}>
+            <Search size={18} />
+          </button>
           <EscopoToggle escopoAtivo={escopoAtivo} onEscopoChange={onEscopoChange} />
           <button onClick={() => setHidden(!hidden)}
                   title={hidden ? "Mostrar valores" : "Ocultar valores"}
@@ -426,6 +432,7 @@ function HeaderVertical({
   escopoAtivo, onEscopoChange,
   onRefresh, refreshing,
   onOpenSettings,
+  onOpenPalette,
   pendingCounts = {},
   contas = [], cartoes = [],
   contaAberta, setContaAberta,
@@ -651,6 +658,11 @@ function HeaderVertical({
           )}
         </div>
         <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+          <button onClick={() => onOpenPalette?.()}
+            title="Busca rápida de abas (Ctrl/Cmd+K)"
+            style={vertUtilBtn}>
+            <Search size={16} />
+          </button>
           <EscopoToggle escopoAtivo={escopoAtivo} onEscopoChange={onEscopoChange} compact />
           <button onClick={() => setHidden(!hidden)}
             title={hidden ? "Mostrar valores" : "Ocultar valores"}
