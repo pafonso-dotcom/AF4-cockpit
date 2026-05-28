@@ -150,6 +150,30 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
     return { entradas, saidas, pendReceitas, pendDespesas, saldoPrev };
   }, [transacoesDaConta, conta, mesAtual]);
 
+  // Nº de lançamentos da conta no mês corrente (subtítulo do banner)
+  const lancamentosNoMes = useMemo(
+    () => transacoesDaConta.filter(t => (t.data || "").startsWith(mesAtual)).length,
+    [transacoesDaConta, mesAtual]
+  );
+
+  // Gradiente por instituição (mesma ideia do gradByName do CartaoExtrato)
+  const gradByName = (nome) => {
+    const n = (nome || "").toLowerCase();
+    if (n.includes("nubank") || n.includes("nu "))  return "linear-gradient(135deg, #8b5cf6, #06b6d4)";
+    if (n.includes("itau") || n.includes("itaú"))   return "linear-gradient(135deg, #c9a961, #54545c)";
+    if (n.includes("c6"))                           return "linear-gradient(135deg, #f43f5e, #fbbf24)";
+    if (n.includes("inter"))                        return "linear-gradient(135deg, #f59e0b, #ea580c)";
+    if (n.includes("santander"))                    return "linear-gradient(135deg, #dc2626, #991b1b)";
+    if (n.includes("bradesco"))                     return "linear-gradient(135deg, #dc2626, #7c2d12)";
+    if (n.includes("caixa"))                        return "linear-gradient(135deg, #2563eb, #1d4ed8)";
+    if (n.includes("bb") || n.includes("brasil"))   return "linear-gradient(135deg, #facc15, #1d4ed8)";
+    return `linear-gradient(135deg, ${conta.cor || T.gold}, ${T.goldHi})`;
+  };
+
+  // Gradiente busca primeiro por instituição, depois pelo nome da conta
+  const gradient = gradByName(`${conta.instituicao || ""} ${conta.nome || ""}`);
+  const bannerPad = embutido ? 18 : 24;
+
   return (
     <div className="fade-up py-8 px-6">
       {/* Voltar — escondido no modo embutido (lista fica ao lado) */}
@@ -166,76 +190,89 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         </button>
       )}
 
-      {/* Header com saldo grande */}
+      {/* Banner — mesmo estilo do extrato de cartão: ícone · nome+sub · saldo */}
       <div className="conta-hero" style={{
-        background: `linear-gradient(135deg, ${T.card}, ${T.cardHi || T.card})`,
-        border: `1px solid ${T.border}`,
-        borderRadius: 14, padding: 24, marginBottom: 16,
-        borderTop: `3px solid ${conta.cor || T.gold}`,
+        display: "flex", alignItems: "center", gap: 18, padding: bannerPad,
+        background: gradient, borderRadius: 12, marginBottom: 16,
+        color: "#fff", flexWrap: "wrap",
       }}>
-        <div className="label-eyebrow">Extrato · {conta.instituicao} · {conta.tipo}</div>
-        <h2 className="conta-hero-name" style={{ fontFamily: T.serif, color: T.ink, marginTop: 6, marginBottom: 16, letterSpacing: "-0.02em" }}>
-          {conta.nome}
-        </h2>
-        <div className="num conta-hero-value" style={{ fontFamily: T.serif, color: T.gold, fontWeight: 300, lineHeight: 1, wordBreak: "break-word" }}>
-          {hidden ? "R$ •••••" : fmt(conta.saldo)}
+        <div className="conta-hero-icon" style={{
+          width: 60, height: 60, borderRadius: 12,
+          display: "grid", placeItems: "center",
+          fontSize: 32, flexShrink: 0,
+          background: "rgba(0,0,0,.2)",
+        }}>🏦</div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div className="conta-hero-name" style={{ fontSize: 18, fontWeight: 500, wordBreak: "break-word" }}>{conta.nome}</div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,.85)", marginTop: 4 }}>
+            {conta.instituicao}{conta.tipo ? ` · ${conta.tipo}` : ""}
+            {` · ${lancamentosNoMes} ${lancamentosNoMes === 1 ? "lançamento" : "lançamentos"} no mês`}
+          </div>
+        </div>
+        <div className="conta-hero-saldo" style={{ textAlign: "right" }}>
+          <div style={{
+            fontSize: 10, color: "rgba(255,255,255,.7)",
+            letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 4,
+          }}>Saldo atual</div>
+          <div className="conta-hero-value num" style={{ fontSize: 28, fontWeight: 300, fontVariantNumeric: "tabular-nums", wordBreak: "break-word" }}>
+            {hidden ? "R$ •••••" : fmt(conta.saldo)}
+          </div>
         </div>
         <style>{`
-          .conta-hero-name { font-size: 26px; }
-          .conta-hero-value { font-size: 42px; }
           @media (max-width: 480px) {
             .conta-hero { padding: 18px !important; }
-            .conta-hero-name { font-size: 20px !important; margin-bottom: 10px !important; }
-            .conta-hero-value { font-size: clamp(26px, 8vw, 34px) !important; }
+            .conta-hero-saldo { text-align: left !important; }
             .extrato-filtros { grid-template-columns: 1fr 1fr !important; }
             .extrato-filtros > div[style*="position: relative"] { grid-column: 1 / -1; }
             .extrato-filtros > button { grid-column: 1 / -1; }
           }
         `}</style>
+      </div>
 
-        <div style={{
-          display: "flex", gap: 18, flexWrap: "wrap",
-          marginTop: 18, paddingTop: 18, borderTop: `1px solid ${T.border}`,
-        }}>
-          <KPI l="Entradas (mês)" v={hidden ? "•••" : `+ ${fmt(kpisMes.entradas)}`} c={T.green} />
-          <KPI l="Saídas (mês)"   v={hidden ? "•••" : `− ${fmt(kpisMes.saidas)}`}   c={T.red} />
-          <KPI l="Saldo previsto fim do mês" v={hidden ? "•••" : fmt(kpisMes.saldoPrev)} c={T.gold} />
+      {/* KPIs do mês — agora fora do banner, em bloco próprio */}
+      <div style={{
+        display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center",
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
+        padding: "14px 18px", marginBottom: 12,
+      }}>
+        <KPI l="Entradas (mês)" v={hidden ? "•••" : `+ ${fmt(kpisMes.entradas)}`} c={T.green} />
+        <KPI l="Saídas (mês)"   v={hidden ? "•••" : `− ${fmt(kpisMes.saidas)}`}   c={T.red} />
+        <KPI l="Saldo previsto fim do mês" v={hidden ? "•••" : fmt(kpisMes.saldoPrev)} c={T.gold} />
 
-          <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <button onClick={() => setTxModal({ modo: "novo" })}
+        <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <button onClick={() => setTxModal({ modo: "novo" })}
+                  style={{
+                    background: `${conta.cor || T.gold}22`, color: conta.cor || T.gold,
+                    border: `1px solid ${conta.cor || T.gold}`, padding: "8px 12px",
+                    fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
+                    fontWeight: 600, cursor: "pointer", borderRadius: 7,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>
+            <Plus size={11} /> Nova transação
+          </button>
+          {onTransferir && (
+            <button onClick={onTransferir}
                     style={{
-                      background: `${conta.cor || T.gold}22`, color: conta.cor || T.gold,
-                      border: `1px solid ${conta.cor || T.gold}`, padding: "8px 12px",
+                      background: "transparent", color: T.gold,
+                      border: `1px solid ${T.gold}`, padding: "8px 12px",
                       fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
                       fontWeight: 600, cursor: "pointer", borderRadius: 7,
                       display: "inline-flex", alignItems: "center", gap: 6,
                     }}>
-              <Plus size={11} /> Nova transação
+              <ArrowRightLeft size={11} /> Transferir
             </button>
-            {onTransferir && (
-              <button onClick={onTransferir}
-                      style={{
-                        background: "transparent", color: T.gold,
-                        border: `1px solid ${T.gold}`, padding: "8px 12px",
-                        fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                        fontWeight: 600, cursor: "pointer", borderRadius: 7,
-                        display: "inline-flex", alignItems: "center", gap: 6,
-                      }}>
-                <ArrowRightLeft size={11} /> Transferir
-              </button>
-            )}
-            <button onClick={() => window.print()}
-                    title="Imprimir ou salvar como PDF"
-                    style={{
-                      background: "transparent", color: T.muted,
-                      border: `1px solid ${T.border}`, padding: "8px 12px",
-                      fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                      fontWeight: 600, cursor: "pointer", borderRadius: 7,
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                    }}>
-              <Printer size={11} /> PDF
-            </button>
-          </div>
+          )}
+          <button onClick={() => window.print()}
+                  title="Imprimir ou salvar como PDF"
+                  style={{
+                    background: "transparent", color: T.muted,
+                    border: `1px solid ${T.border}`, padding: "8px 12px",
+                    fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
+                    fontWeight: 600, cursor: "pointer", borderRadius: 7,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>
+            <Printer size={11} /> PDF
+          </button>
         </div>
       </div>
 

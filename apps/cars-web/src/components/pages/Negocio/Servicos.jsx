@@ -722,6 +722,93 @@ export default function Servicos({
     pendentes.forEach(gerarFatura);
   };
 
+  // Faturas recorrentes geradas pra competência atual (uma por contrato cuja
+  // ultimaFaturaRef === refAtual). Usado pra habilitar/contar o estorno em massa.
+  const faturasDoPeriodo = useMemo(() => {
+    return (vendas || []).filter(v => {
+      if (!v.contratoId || !v.faturaRef) return false;
+      const c = (contratos || []).find(x => x.id === v.contratoId);
+      if (!c) return false;
+      return v.faturaRef === refAtual(c.recorrencia);
+    });
+  }, [vendas, contratos]);
+
+  // Estorna TODAS as faturas do período corrente em batch (um único confirm,
+  // updates de estado agregados pra evitar problemas de setState em loop).
+  const estornarFaturasDoPeriodo = async () => {
+    const faturasPeriodo = faturasDoPeriodo;
+    if (faturasPeriodo.length === 0) {
+      toast.error("Nenhuma fatura do período pra estornar.");
+      return;
+    }
+
+    const n = faturasPeriodo.length;
+    const ok = await confirm({
+      title: `Estornar ${n} ${n === 1 ? "fatura" : "faturas"} do período?`,
+      body: "Reverte as receitas (e pagos a instalador) da Caixa do Negócio, remove despesas de prestador no Finanças e reabilita gerar as faturas desse mês.",
+      danger: true, confirmLabel: "Estornar todas",
+    });
+    if (!ok) return;
+
+    const idsEstornados = new Set(faturasPeriodo.map(v => v.id));
+
+    // 1) Caixa do Negócio — soma todas as reversões num único update.
+    //    Pra cada fatura: -valor (receita) e +valorInstalador (devolve o pago).
+    if (typeof setCaixaNegocio === "function") {
+      setCaixaNegocio(prev => {
+        let saldo = prev?.saldo || 0;
+        for (const v of faturasPeriodo) {
+          saldo -= Number(v.valor || 0);
+          saldo += Number(v.valorInstalador || 0);
+        }
+        return {
+          saldo,
+          historico: ((prev?.historico) || []).filter(h => !idsEstornados.has(h.vendaId)),
+        };
+      });
+    }
+
+    // 2) Finanças — remove as despesas de prestador (obs inclui "serviço {id}")
+    //    e devolve os valores às contas, agregando por conta num único update.
+    if (typeof setTransacoes === "function") {
+      const despesasEstornadas = (transacoes || []).filter(t =>
+        t.tipo === "despesa" &&
+        faturasPeriodo.some(v => (t.obs || "").includes(`serviço ${v.id}`))
+      );
+      if (despesasEstornadas.length > 0) {
+        const idsDesp = new Set(despesasEstornadas.map(t => t.id));
+        setTransacoes((transacoes || []).filter(t => !idsDesp.has(t.id)));
+
+        // Soma o que voltar pra cada conta (por nome) e aplica de uma vez.
+        const reembolsoPorConta = {};
+        for (const t of despesasEstornadas) {
+          reembolsoPorConta[t.conta] = (reembolsoPorConta[t.conta] || 0) + Number(t.valor || 0);
+        }
+        if (typeof setContas === "function") {
+          setContas((contas || []).map(co =>
+            reembolsoPorConta[co.nome]
+              ? { ...co, saldo: (parseFloat(co.saldo) || 0) + reembolsoPorConta[co.nome] }
+              : co
+          ));
+        }
+      }
+    }
+
+    // 3) Contratos — reabilita "Gerar fatura" desse mês (reset ultimaFaturaRef).
+    if (typeof setContratos === "function") {
+      setContratos((contratos || []).map(c =>
+        faturasPeriodo.some(f => f.contratoId === c.id && c.ultimaFaturaRef === f.faturaRef)
+          ? { ...c, ultimaFaturaRef: null }
+          : c
+      ));
+    }
+
+    // 4) Vendas — remove as faturas estornadas.
+    setVendas((vendas || []).filter(v => !idsEstornados.has(v.id)));
+
+    toast.success(`Estornadas ${n} ${n === 1 ? "fatura" : "faturas"} do período. Você já pode gerar de novo.`);
+  };
+
   return (
     <div className="fade-up py-8 px-6">
       <PageHeader
@@ -856,6 +943,18 @@ export default function Servicos({
                   display: "inline-flex", alignItems: "center", gap: 5,
                 }}>
                 <Receipt size={11} /> Gerar faturas do período
+              </button>
+            )}
+            {faturasDoPeriodo.length > 0 && (
+              <button onClick={estornarFaturasDoPeriodo}
+                title="Reverte todas as faturas geradas neste período"
+                style={{
+                  background: `${T.red}1a`, color: T.red, border: `1px solid ${T.red}55`,
+                  padding: "5px 12px", borderRadius: 5, cursor: "pointer",
+                  fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                }}>
+                <X size={11} /> Estornar faturas do período ({faturasDoPeriodo.length})
               </button>
             )}
             <button onClick={abrirContratoNovo}
