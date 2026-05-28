@@ -41,6 +41,11 @@ export default function Servicos({
   const [catalogoExpandido, setCatalogoExpandido] = useState(true);
   const [contratosExpandido, setContratosExpandido] = useState(true);
   const [instaladoresExpandido, setInstaladoresExpandido] = useState(true);
+  const [relatorioAberto, setRelatorioAberto] = useState(false);
+  const [relatorioAba, setRelatorioAba] = useState("clientes");
+
+  // Mês corrente YYYY-MM — usado pra controle de repasse e relatório.
+  const mesCorrente = new Date().toISOString().slice(0, 7);
 
   const ativos = useMemo(
     () => servicos.filter(s => s.ativo !== false),
@@ -83,6 +88,33 @@ export default function Servicos({
       map[v.instaladorId] = (map[v.instaladorId] || 0) + val;
     });
     return map;
+  }, [vendas]);
+
+  // Relatório do mês corrente. `vendas` já agrega vendas avulsas + faturas de
+  // contratos (gerarFatura insere a fatura em `vendas` com contratoId), então
+  // somar `vendas` cobre toda a receita do período sem perder nada.
+  const relatorioMes = useMemo(() => {
+    const mesISO = new Date().toISOString().slice(0, 7);
+    const doMes = (vendas || []).filter(v => (v.data || "").startsWith(mesISO));
+    // Por cliente: receita gerada no mês (vendas avulsas + faturas de contrato).
+    const porCliente = {};
+    doMes.forEach(v => {
+      if (!v.clienteId) return;
+      const c = (porCliente[v.clienteId] = porCliente[v.clienteId] || { qtd: 0, total: 0 });
+      c.qtd++;
+      c.total += Number(v.valor || 0);
+    });
+    // Por instalador: nº de serviços + valor a receber no mês.
+    const porInstalador = {};
+    doMes.forEach(v => {
+      if (!v.instaladorId) return;
+      const val = Number(v.valorInstalador || 0);
+      if (!(val > 0)) return;
+      const i = (porInstalador[v.instaladorId] = porInstalador[v.instaladorId] || { qtd: 0, total: 0 });
+      i.qtd++;
+      i.total += val;
+    });
+    return { porCliente, porInstalador, mesISO };
   }, [vendas]);
 
   /* ---------- Catálogo ---------- */
@@ -181,6 +213,24 @@ export default function Servicos({
     if (!ok) return;
     setInstaladores(instaladores.filter(x => x.id !== i.id));
     toast.success("Instalador removido.");
+  };
+
+  // Marca/desmarca o repasse do mês corrente como efetivamente pago ao
+  // instalador. NÃO mexe no Caixa do Negócio — o valorInstalador já saiu por
+  // venda; isto é só um controle de quitação ("já repassei o acumulado?").
+  const togglePagarInstalador = (inst) => {
+    if (typeof setInstaladores !== "function") return;
+    const pagos = inst.repassesPagos || [];
+    const jaPago = pagos.includes(mesCorrente);
+    const novos = jaPago
+      ? pagos.filter(m => m !== mesCorrente)
+      : [...pagos, mesCorrente];
+    setInstaladores(instaladores.map(i =>
+      i.id === inst.id ? { ...i, repassesPagos: novos } : i
+    ));
+    toast.success(jaPago
+      ? `Repasse de ${inst.nome} (${mesCorrente}) desmarcado.`
+      : `Repasse de ${fmt(saldoMesPorInstalador[inst.id] || 0)} a ${inst.nome} marcado como pago.`);
   };
 
   /* ---------- Venda ---------- */
@@ -679,9 +729,15 @@ export default function Servicos({
         title="Serviços"
         sub="Catálogo de serviços com preço/custo + histórico de vendas. Receita entra na Caixa do Negócio (não toca em Finanças)."
         action={
-          <button onClick={abrirVendaNova} className="btn-gold">
-            <Plus size={14} className="inline mr-1.5" /> Registrar venda
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={() => { setRelatorioAba("clientes"); setRelatorioAberto(true); }}
+                    className="btn-ghost">
+              <Receipt size={14} className="inline mr-1.5" /> Relatório do mês
+            </button>
+            <button onClick={abrirVendaNova} className="btn-gold">
+              <Plus size={14} className="inline mr-1.5" /> Registrar venda
+            </button>
+          </div>
         }
       />
 
@@ -986,9 +1042,12 @@ export default function Servicos({
               {(instaladores || []).map(i => {
                 const saldoMes = saldoMesPorInstalador[i.id] || 0;
                 const inativo = i.ativo === false;
+                // Repasse do mês: já marcado como pago? (backward-compat: sem
+                // repassesPagos => pendente). Só faz sentido se há saldo > 0.
+                const repassePago = (i.repassesPagos || []).includes(mesCorrente);
                 return (
                   <div key={i.id} style={{
-                    display: "grid", gridTemplateColumns: "1fr auto auto", gap: 10,
+                    display: "grid", gridTemplateColumns: "1fr auto auto auto", gap: 10,
                     alignItems: "center", padding: "8px 10px", borderRadius: 5,
                     background: T.bgSoft, opacity: inativo ? 0.55 : 1,
                   }}>
@@ -1006,11 +1065,49 @@ export default function Servicos({
                         {i.telefone && <span>📞 {i.telefone}</span>}
                         {i.obs && <span style={{ fontStyle: "italic" }}>{i.obs}</span>}
                       </div>
+                      {saldoMes > 0 && (
+                        <div style={{
+                          fontSize: 10.5, marginTop: 3, fontWeight: 600,
+                          color: repassePago ? T.green : T.gold,
+                        }}>
+                          {repassePago
+                            ? `Repasse de ${mesCorrente} quitado`
+                            : `Repasse de ${mesCorrente} pendente`}
+                        </div>
+                      )}
                     </div>
                     <span className="num" title="Total pago no mês corrente"
                           style={{ fontSize: 12, color: saldoMes > 0 ? T.gold : T.muted, fontWeight: 600 }}>
                       {hidden ? "•••" : `${fmt(saldoMes)}/mês`}
                     </span>
+                    {/* Controle de quitação do repasse do mês (não toca o caixa) */}
+                    {saldoMes > 0 ? (
+                      repassePago ? (
+                        <button onClick={() => togglePagarInstalador(i)}
+                                title="Repasse do mês marcado como pago — clique pra desmarcar"
+                                style={{
+                                  display: "inline-flex", alignItems: "center", gap: 4,
+                                  background: `${T.green}22`, border: `1px solid ${T.green}66`,
+                                  color: T.green, padding: "4px 10px", borderRadius: 5, cursor: "pointer",
+                                  fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
+                                }}>
+                          <Check size={11} /> Pago
+                        </button>
+                      ) : (
+                        <button onClick={() => togglePagarInstalador(i)}
+                                title="Marcar repasse do mês como pago ao instalador"
+                                style={{
+                                  display: "inline-flex", alignItems: "center", gap: 4,
+                                  background: T.gold, border: "none",
+                                  color: T.bg, padding: "4px 10px", borderRadius: 5, cursor: "pointer",
+                                  fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
+                                }}>
+                          <Check size={11} /> Pagar
+                        </button>
+                      )
+                    ) : (
+                      <span />
+                    )}
                     <div style={{ display: "flex", gap: 4 }}>
                       <button onClick={() => abrirInstaladorEditar(i)} title="Editar" style={btnIcon()}>
                         <Edit3 size={12} />
@@ -1518,6 +1615,155 @@ export default function Servicos({
           </div>
         </Modal>
       )}
+
+      {/* MODAL: relatório do mês (clientes + instaladores) */}
+      {relatorioAberto && (() => {
+        const refLabel = `${relatorioMes.mesISO.slice(5)}/${relatorioMes.mesISO.slice(0, 4)}`;
+        // Clientes ordenados por receita desc
+        const linhasClientes = Object.entries(relatorioMes.porCliente)
+          .map(([clienteId, d]) => ({
+            id: clienteId,
+            nome: clientes.find(c => c.id === clienteId)?.nome || "(cliente removido)",
+            qtd: d.qtd,
+            total: d.total,
+          }))
+          .sort((a, b) => b.total - a.total);
+        const totalClientesQtd = linhasClientes.reduce((s, l) => s + l.qtd, 0);
+        const totalClientesValor = linhasClientes.reduce((s, l) => s + l.total, 0);
+        // Instaladores ordenados por total desc
+        const linhasInstaladores = Object.entries(relatorioMes.porInstalador)
+          .map(([instId, d]) => {
+            const inst = (instaladores || []).find(i => i.id === instId);
+            return {
+              id: instId,
+              nome: inst?.nome || "(instalador removido)",
+              qtd: d.qtd,
+              total: saldoMesPorInstalador[instId] || d.total,
+              pago: (inst?.repassesPagos || []).includes(mesCorrente),
+            };
+          })
+          .sort((a, b) => b.total - a.total);
+        const totalInstQtd = linhasInstaladores.reduce((s, l) => s + l.qtd, 0);
+        const totalInstValor = linhasInstaladores.reduce((s, l) => s + l.total, 0);
+
+        const thStyle = {
+          textAlign: "left", padding: "7px 8px", fontSize: 10,
+          letterSpacing: ".08em", textTransform: "uppercase", color: T.muted,
+          borderBottom: `1px solid ${T.border}`, fontWeight: 700,
+        };
+        const tdStyle = { padding: "7px 8px", fontSize: 12.5, color: T.ink, borderBottom: `1px solid ${T.border}` };
+        const numTd = { ...tdStyle, textAlign: "right", fontVariantNumeric: "tabular-nums" };
+
+        return (
+          <Modal title={`Relatório de ${refLabel}`} onClose={() => setRelatorioAberto(false)}>
+            {/* Abas */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+              {[{ id: "clientes", l: "Clientes" }, { id: "instaladores", l: "Instaladores" }].map(o => (
+                <button key={o.id} onClick={() => setRelatorioAba(o.id)}
+                  style={{
+                    padding: "6px 16px", fontSize: 11, letterSpacing: ".05em", textTransform: "uppercase",
+                    borderRadius: 6, cursor: "pointer", fontWeight: 700,
+                    background: relatorioAba === o.id ? `${T.gold}22` : "transparent",
+                    border: `1px solid ${relatorioAba === o.id ? T.gold : T.border}`,
+                    color: relatorioAba === o.id ? T.gold : T.muted,
+                  }}>
+                  {o.l}
+                </button>
+              ))}
+            </div>
+
+            {relatorioAba === "clientes" ? (
+              linhasClientes.length === 0 ? (
+                <div style={{ padding: 28, fontSize: 12.5, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
+                  Nenhuma venda/fatura com cliente vinculado em {refLabel}.
+                </div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={thStyle}>Cliente</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Vendas/faturas</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Receita</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {linhasClientes.map(l => (
+                      <tr key={l.id}>
+                        <td style={tdStyle}>{l.nome}</td>
+                        <td style={numTd} className="num">{l.qtd}</td>
+                        <td style={{ ...numTd, color: T.gold, fontWeight: 600 }} className="num">
+                          {hidden ? "•••" : fmt(l.total)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td style={{ ...tdStyle, fontWeight: 700, borderBottom: "none" }}>Total geral</td>
+                      <td style={{ ...numTd, fontWeight: 700, borderBottom: "none" }} className="num">{totalClientesQtd}</td>
+                      <td style={{ ...numTd, fontWeight: 700, color: T.gold, borderBottom: "none" }} className="num">
+                        {hidden ? "•••" : fmt(totalClientesValor)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )
+            ) : (
+              linhasInstaladores.length === 0 ? (
+                <div style={{ padding: 28, fontSize: 12.5, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
+                  Nenhum serviço com instalador em {refLabel}.
+                </div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={thStyle}>Instalador</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Serviços</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>A receber</th>
+                      <th style={{ ...thStyle, textAlign: "center" }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {linhasInstaladores.map(l => (
+                      <tr key={l.id}>
+                        <td style={tdStyle}>{l.nome}</td>
+                        <td style={numTd} className="num">{l.qtd}</td>
+                        <td style={{ ...numTd, color: T.gold, fontWeight: 600 }} className="num">
+                          {hidden ? "•••" : fmt(l.total)}
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "center" }}>
+                          <span style={{
+                            fontSize: 9.5, padding: "2px 8px", borderRadius: 4, fontWeight: 700,
+                            letterSpacing: ".05em", textTransform: "uppercase",
+                            background: l.pago ? `${T.green}22` : `${T.gold}22`,
+                            color: l.pago ? T.green : T.gold,
+                          }}>
+                            {l.pago ? "Pago" : "Pendente"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td style={{ ...tdStyle, fontWeight: 700, borderBottom: "none" }}>Total</td>
+                      <td style={{ ...numTd, fontWeight: 700, borderBottom: "none" }} className="num">{totalInstQtd}</td>
+                      <td style={{ ...numTd, fontWeight: 700, color: T.gold, borderBottom: "none" }} className="num">
+                        {hidden ? "•••" : fmt(totalInstValor)}
+                      </td>
+                      <td style={{ ...tdStyle, borderBottom: "none" }} />
+                    </tr>
+                  </tfoot>
+                </table>
+              )
+            )}
+
+            <div className="flex gap-3 justify-end mt-6">
+              <button className="btn-ghost" onClick={() => setRelatorioAberto(false)}>Fechar</button>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }
