@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, ArrowRightLeft, Search, Printer, ArrowUp, ArrowDown, Edit3, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, ArrowRightLeft, Search, Printer, ArrowUp, ArrowDown, Edit3, Trash2, TrendingUp, TrendingDown, Wallet, Building2 } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt } from "../../lib/format.js";
 import { confirm } from "../../lib/confirm.js";
@@ -150,6 +150,18 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
     return { entradas, saidas, pendReceitas, pendDespesas, saldoPrev };
   }, [transacoesDaConta, conta, mesAtual]);
 
+  // Saldo líquido (receitas − despesas) de cada dia, dentro do filtro atual.
+  // Usado nos cabeçalhos de agrupamento por data.
+  const netPorDia = useMemo(() => {
+    const m = new Map();
+    for (const t of filtradas) {
+      const v = parseFloat(t.valor) || 0;
+      const impacto = t.tipo === "receita" ? v : -v;
+      m.set(t.data, (m.get(t.data) || 0) + impacto);
+    }
+    return m;
+  }, [filtradas]);
+
   return (
     <div className="fade-up py-8 px-6">
       {/* Voltar — escondido no modo embutido (lista fica ao lado) */}
@@ -168,21 +180,65 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
 
       {/* Header com saldo grande */}
       <div className="conta-hero" style={{
+        position: "relative", overflow: "hidden",
         background: `linear-gradient(135deg, ${T.card}, ${T.cardHi || T.card})`,
         border: `1px solid ${T.border}`,
         borderRadius: 14, padding: 24, marginBottom: 16,
         borderTop: `3px solid ${conta.cor || T.gold}`,
       }}>
-        <div className="label-eyebrow">Extrato · {conta.instituicao} · {conta.tipo}</div>
-        <h2 className="conta-hero-name" style={{ fontFamily: T.serif, color: T.ink, marginTop: 6, marginBottom: 16, letterSpacing: "-0.02em" }}>
-          {conta.nome}
-        </h2>
-        <div className="num conta-hero-value" style={{ fontFamily: T.serif, color: T.gold, fontWeight: 300, lineHeight: 1, wordBreak: "break-word" }}>
-          {hidden ? "R$ •••••" : fmt(conta.saldo)}
+        {/* glow decorativo na cor da conta */}
+        <div aria-hidden style={{
+          position: "absolute", top: -80, right: -60, width: 240, height: 240,
+          borderRadius: "50%", pointerEvents: "none",
+          background: `radial-gradient(circle, ${conta.cor || T.gold}1f, transparent 70%)`,
+        }} />
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+            background: `${conta.cor || T.gold}1f`, color: conta.cor || T.gold,
+            display: "grid", placeItems: "center", border: `1px solid ${conta.cor || T.gold}40`,
+          }}>
+            <Building2 size={19} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div className="label-eyebrow">Extrato · {conta.instituicao} · {conta.tipo}</div>
+            <h2 className="conta-hero-name" style={{ fontFamily: T.serif, color: T.ink, marginTop: 2, letterSpacing: "-0.02em" }}>
+              {conta.nome}
+            </h2>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 14, flexWrap: "wrap", marginTop: 14, position: "relative" }}>
+          <div>
+            <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, marginBottom: 4 }}>Saldo atual</div>
+            <div className="num conta-hero-value" style={{ fontFamily: T.serif, color: T.gold, fontWeight: 300, lineHeight: 1, wordBreak: "break-word" }}>
+              {hidden ? "R$ •••••" : fmt(conta.saldo)}
+            </div>
+          </div>
+          {!hidden && (() => {
+            const net = kpisMes.entradas - kpisMes.saidas;
+            const pos = net >= 0;
+            return (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: "5px 10px", borderRadius: 100, marginBottom: 4,
+                fontSize: 12, fontWeight: 600,
+                background: pos ? `${T.green}1a` : `${T.red}1a`,
+                color: pos ? T.green : T.red,
+                border: `1px solid ${pos ? T.green : T.red}33`,
+              }}>
+                {pos ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+                {pos ? "+ " : "− "}{fmt(Math.abs(net))} <span style={{ color: T.muted, fontWeight: 500 }}>no mês</span>
+              </span>
+            );
+          })()}
         </div>
         <style>{`
           .conta-hero-name { font-size: 26px; }
           .conta-hero-value { font-size: 42px; }
+          .extrato-row { transition: background .12s; }
+          .extrato-row:hover { background: ${T.bgSoft}; }
           @media (max-width: 480px) {
             .conta-hero { padding: 18px !important; }
             .conta-hero-name { font-size: 20px !important; margin-bottom: 10px !important; }
@@ -194,14 +250,14 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         `}</style>
 
         <div style={{
-          display: "flex", gap: 18, flexWrap: "wrap",
+          display: "flex", gap: 10, flexWrap: "wrap", alignItems: "stretch",
           marginTop: 18, paddingTop: 18, borderTop: `1px solid ${T.border}`,
         }}>
-          <KPI l="Entradas (mês)" v={hidden ? "•••" : `+ ${fmt(kpisMes.entradas)}`} c={T.green} />
-          <KPI l="Saídas (mês)"   v={hidden ? "•••" : `− ${fmt(kpisMes.saidas)}`}   c={T.red} />
-          <KPI l="Saldo previsto fim do mês" v={hidden ? "•••" : fmt(kpisMes.saldoPrev)} c={T.gold} />
+          <KPI l="Entradas (mês)" v={hidden ? "•••" : `+ ${fmt(kpisMes.entradas)}`} c={T.green} icon={ArrowUpRight} />
+          <KPI l="Saídas (mês)"   v={hidden ? "•••" : `− ${fmt(kpisMes.saidas)}`}   c={T.red}   icon={ArrowDownRight} />
+          <KPI l="Saldo previsto fim do mês" v={hidden ? "•••" : fmt(kpisMes.saldoPrev)} c={T.gold} icon={Wallet} />
 
-          <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             <button onClick={() => setTxModal({ modo: "novo" })}
                     style={{
                       background: `${conta.cor || T.gold}22`, color: conta.cor || T.gold,
@@ -322,16 +378,48 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
               </tr>
             </thead>
             <tbody>
-              {filtradas.map(t => {
+              {filtradas.flatMap((t, i) => {
                 const cat = categorias.find(c => c.nome === t.categoria);
                 const saldoApos = saldoPorTransacao.get(t.id);
-                return (
-                  <tr key={t.id} style={{
+                const novoDia = i === 0 || filtradas[i - 1].data !== t.data;
+                const rows = [];
+
+                if (novoDia) {
+                  const net = netPorDia.get(t.data) || 0;
+                  const pos = net >= 0;
+                  rows.push(
+                    <tr key={`g-${t.data}`}>
+                      <td colSpan={7} style={{
+                        padding: "10px 12px 6px",
+                        background: T.bgSoft,
+                        borderTop: i === 0 ? "none" : `1px solid ${T.border}`,
+                        borderBottom: `1px solid ${T.border}`,
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                          <span style={{
+                            fontSize: 11, fontWeight: 600, letterSpacing: ".04em",
+                            color: T.muted, textTransform: "capitalize",
+                          }}>
+                            {fmtDiaGrupo(t.data)}
+                          </span>
+                          {!hidden && (
+                            <span className="num" style={{ fontSize: 11.5, fontWeight: 600, color: pos ? T.green : T.red }}>
+                              {pos ? "+ " : "− "}{fmt(Math.abs(net))}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
+                rows.push(
+                  <tr key={t.id} className="extrato-row" style={{
                     borderBottom: `1px solid ${T.border}`,
-                    opacity: t.compensado ? 1 : 0.7,
+                    opacity: t.compensado ? 1 : 0.65,
                   }}>
                     <td style={tdSty}>
-                      <span className="num" style={{ color: T.faint, fontSize: 12 }}>{t.data}</span>
+                      <span className="num" style={{ color: T.muted, fontSize: 12, fontWeight: 500 }}>{fmtDiaCurto(t.data)}</span>
                       {!t.compensado && (
                         <div style={{ fontSize: 9, color: T.gold, fontStyle: "italic", marginTop: 2 }}>Pendente</div>
                       )}
@@ -340,14 +428,14 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                       )}
                     </td>
                     <td style={tdSty}>
-                      <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
                         <span style={{
-                          width: 22, height: 22, borderRadius: "50%",
-                          background: t.tipo === "receita" ? `${T.green}22` : `${T.red}22`,
+                          width: 28, height: 28, borderRadius: "50%",
+                          background: t.tipo === "receita" ? `${T.green}1a` : `${T.red}1a`,
                           color: t.tipo === "receita" ? T.green : T.red,
                           display: "inline-grid", placeItems: "center", flexShrink: 0,
                         }}>
-                          {t.tipo === "receita" ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+                          {t.tipo === "receita" ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
                         </span>
                         <span style={{ color: T.ink, fontWeight: 500 }}>{t.descricao}</span>
                       </div>
@@ -377,14 +465,15 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                           onClick={() => setEditCatId(t.id)}
                           title="Clique para mudar a categoria"
                           style={{
-                            background: "transparent", border: "1px dashed transparent",
-                            padding: "3px 6px", borderRadius: 4, cursor: "pointer",
-                            display: "inline-flex", alignItems: "center", gap: 5,
-                            fontSize: 11.5, color: cat ? T.muted : T.faint,
-                            transition: "border-color .15s",
+                            background: cat ? `${cat.cor}14` : "transparent",
+                            border: `1px ${cat ? "solid" : "dashed"} ${cat ? `${cat.cor}40` : T.border}`,
+                            padding: "3px 9px", borderRadius: 100, cursor: "pointer",
+                            display: "inline-flex", alignItems: "center", gap: 6,
+                            fontSize: 11.5, fontWeight: 500, color: cat ? T.ink : T.faint,
+                            transition: "all .15s", whiteSpace: "nowrap",
                           }}
-                          onMouseEnter={e => { e.currentTarget.style.borderColor = T.border; }}
-                          onMouseLeave={e => { e.currentTarget.style.borderColor = "transparent"; }}>
+                          onMouseEnter={e => { e.currentTarget.style.filter = "brightness(1.15)"; }}
+                          onMouseLeave={e => { e.currentTarget.style.filter = "none"; }}>
                           {cat ? (
                             <>
                               <span style={{ width: 7, height: 7, background: cat.cor, borderRadius: "50%" }} />
@@ -422,6 +511,8 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                     </td>
                   </tr>
                 );
+
+                return rows;
               })}
             </tbody>
           </table>
@@ -444,19 +535,51 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
   );
 }
 
-function KPI({ l, v, c }) {
+function KPI({ l, v, c, icon: Icon }) {
   return (
-    <div>
-      <div style={{ fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, marginBottom: 3 }}>{l}</div>
-      <div className="num" style={{ fontSize: 14, color: c, fontWeight: 500 }}>{v}</div>
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "10px 14px", borderRadius: 10,
+      background: T.bgSoft, border: `1px solid ${T.border}`,
+    }}>
+      {Icon && (
+        <span style={{
+          width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+          background: `${c}1a`, color: c, display: "grid", placeItems: "center",
+        }}>
+          <Icon size={15} />
+        </span>
+      )}
+      <div>
+        <div style={{ fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, marginBottom: 3 }}>{l}</div>
+        <div className="num" style={{ fontSize: 15, color: c, fontWeight: 600 }}>{v}</div>
+      </div>
     </div>
   );
 }
 
 const tdSty = {
-  padding: "7px 10px",
+  padding: "9px 12px",
   verticalAlign: "middle",
 };
+
+const DIAS_SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+// "qua, 28 mai 2026" — cabeçalho de grupo por dia
+function fmtDiaGrupo(iso) {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  return `${DIAS_SEMANA[dt.getDay()]}, ${String(d).padStart(2, "0")} ${MESES_CURTOS[(m || 1) - 1]} ${y}`;
+}
+
+// "28 mai" — célula da coluna Data
+function fmtDiaCurto(iso) {
+  if (!iso) return "—";
+  const [, m, d] = iso.split("-").map(Number);
+  return `${String(d).padStart(2, "0")} ${MESES_CURTOS[(m || 1) - 1]}`;
+}
 
 const iconBtn = {
   background: "transparent",
