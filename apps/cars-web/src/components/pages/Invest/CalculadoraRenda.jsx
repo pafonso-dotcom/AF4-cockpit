@@ -311,15 +311,13 @@ export default function CalculadoraRenda() {
         )}
       </div>
 
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.1fr)",
-        gap: 10,
-      }} className="calc-grid">
-        {/* Coluna esquerda: sliders */}
-        <div className="calc-card" style={{
-          background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
-          padding: 12, display: "grid", gap: 12,
+      {/* SLIDERS em linha (grid responsivo) */}
+      <div className="calc-card" style={{
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        padding: 12, marginBottom: 10,
+      }}>
+        <div className="calc-sliders-grid" style={{
+          display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16,
         }}>
           <Slider
             label="Valor investido"
@@ -363,90 +361,98 @@ export default function CalculadoraRenda() {
             onChange={setHorizonte}
             display={`${horizonteAnos} anos`}
           />
-
-          {/* Mini-resumo das taxas derivadas */}
-          <div style={{
-            paddingTop: 12, borderTop: `1px dashed ${T.border}`,
-            display: "grid", gap: 4, fontSize: 11, color: T.muted,
-          }}>
-            <RowSmall label="Taxa líquida ao ano" value={`${(resultado.taxaLiquidaAnual * 100).toFixed(2)} %`} />
-            <RowSmall label="Taxa real ao ano (após inflação)"
-                      value={`${(resultado.taxaRealAnual * 100).toFixed(2)} %`}
-                      cor={resultado.taxaRealAnual >= 0 ? T.green : T.red} />
-          </div>
         </div>
 
-        {/* Coluna direita: cartão de destaque (valor ideal) + 3 cartões de saída */}
-        <div style={{ display: "grid", gap: 10 }}>
-          {/* DESTAQUE: valor ideal de saque (preserva o principal contra inflação) */}
-          <ValorIdealCard
-            valor={resultado.rendaRealMes}
-            valorEur={toEur(resultado.rendaRealMes)}
-            valorAnual={resultado.rendaRealMes * 12}
-            valorAnualEur={toEur(resultado.rendaRealMes * 12)}
-            liquidoMes={resultado.liquidoMes}
-            taxaRealAnual={resultado.taxaRealAnual}
-            viavel={resultado.rendaRealMes > 0}
-          />
-
-          {/* BÔNUS: se você poupar o saque ideal todo mês, ele acumula
-              uma reserva paralela que também rende. */}
-          {resultado.rendaRealMes > 0 && (
-            <ReservaCard
-              snap1Anos={snap1}
-              snap2Anos={snap2}
-              snap3Anos={snap3}
-              em1={reserva[snap1] || 0}
-              em2={reserva[snap2] || 0}
-              em3={reserva[snap3] || 0}
-              rendaExtraFim={reserva.rendaExtraFim || 0}
-              em1Eur={toEur(reserva[snap1] || 0)}
-              em3Eur={toEur(reserva[snap3] || 0)}
-              rendaExtraFimEur={toEur(reserva.rendaExtraFim || 0)}
-              valorIdeal={resultado.rendaRealMes}
-            />
-          )}
-
-          {/* BÔNUS 2: saca o ideal (fixo) e o excedente líquido volta pro
-              principal → snowball que faz o líquido mensal crescer. */}
-          {resultado.rendaRealMes > 0 && (
-            <ExcedenteReaplicadoCard
-              proj={excedenteReaplicado}
-              snap1Anos={snap1}
-              snap2Anos={snap2}
-              snap3Anos={snap3}
-              toEur={toEur}
-              valorIdeal={resultado.rendaRealMes}
-              liquidoMesHoje={resultado.liquidoMes}
-              principalInicial={valor}
-            />
-          )}
-
-          <ResultCard
-            titulo="Bruto / mês"
-            valor={resultado.brutoMes}
-            valorEur={toEur(resultado.brutoMes)}
-            descricao="Rendimento mensal sem desconto de IR."
-            cor={T.muted}
-          />
-          <ResultCard
-            titulo="Líquido / mês (saca tudo)"
-            valor={resultado.liquidoMes}
-            valorEur={toEur(resultado.liquidoMes)}
-            descricao="Quanto você pode retirar todo mês, descontado o IR."
-            cor={T.gold}
-            destaque
-          />
-          <ResultCard
-            titulo="Renda real / mês (preserva)"
-            valor={resultado.rendaRealMes}
-            valorEur={toEur(resultado.rendaRealMes)}
-            descricao={resultado.rendaRealMes > 0
-              ? "Quanto retirar mantendo o poder de compra do principal."
-              : "A inflação consome todo o rendimento líquido — preservação inviável neste cenário."}
-            cor={resultado.rendaRealMes > 0 ? T.green : T.red}
-          />
+        {/* Mini-resumo das taxas derivadas */}
+        <div style={{
+          marginTop: 12, paddingTop: 12, borderTop: `1px dashed ${T.border}`,
+          display: "flex", gap: 24, fontSize: 11, color: T.muted, flexWrap: "wrap",
+        }}>
+          <RowSmall label="Taxa líquida ao ano" value={`${(resultado.taxaLiquidaAnual * 100).toFixed(2)} %`} />
+          <RowSmall label="Taxa real ao ano (após inflação)"
+                    value={`${(resultado.taxaRealAnual * 100).toFixed(2)} %`}
+                    cor={resultado.taxaRealAnual >= 0 ? T.green : T.red} />
         </div>
+      </div>
+
+      {/* CARDS de destaque em linha */}
+      <div className="calc-cards-grid" style={{
+        display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: 10,
+        alignItems: "start",
+      }}>
+        {/* DESTAQUE: valor ideal de saque (preserva o principal contra inflação) */}
+        <ValorIdealCard
+          valor={resultado.rendaRealMes}
+          valorEur={toEur(resultado.rendaRealMes)}
+          valorAnual={resultado.rendaRealMes * 12}
+          valorAnualEur={toEur(resultado.rendaRealMes * 12)}
+          liquidoMes={resultado.liquidoMes}
+          taxaRealAnual={resultado.taxaRealAnual}
+          viavel={resultado.rendaRealMes > 0}
+        />
+
+        {/* BÔNUS: se você poupar o saque ideal todo mês, ele acumula
+            uma reserva paralela que também rende. */}
+        {resultado.rendaRealMes > 0 && (
+          <ReservaCard
+            snap1Anos={snap1}
+            snap2Anos={snap2}
+            snap3Anos={snap3}
+            em1={reserva[snap1] || 0}
+            em2={reserva[snap2] || 0}
+            em3={reserva[snap3] || 0}
+            rendaExtraFim={reserva.rendaExtraFim || 0}
+            em1Eur={toEur(reserva[snap1] || 0)}
+            em3Eur={toEur(reserva[snap3] || 0)}
+            rendaExtraFimEur={toEur(reserva.rendaExtraFim || 0)}
+            valorIdeal={resultado.rendaRealMes}
+          />
+        )}
+
+        {/* BÔNUS 2: saca o ideal (fixo) e o excedente líquido volta pro
+            principal → snowball que faz o líquido mensal crescer. */}
+        {resultado.rendaRealMes > 0 && (
+          <ExcedenteReaplicadoCard
+            proj={excedenteReaplicado}
+            snap1Anos={snap1}
+            snap2Anos={snap2}
+            snap3Anos={snap3}
+            toEur={toEur}
+            valorIdeal={resultado.rendaRealMes}
+            liquidoMesHoje={resultado.liquidoMes}
+            principalInicial={valor}
+          />
+        )}
+      </div>
+
+      {/* CARTÕES de saída (bruto / líquido / renda real) em linha */}
+      <div className="calc-cards-grid" style={{
+        display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: 10,
+      }}>
+        <ResultCard
+          titulo="Bruto / mês"
+          valor={resultado.brutoMes}
+          valorEur={toEur(resultado.brutoMes)}
+          descricao="Rendimento mensal sem desconto de IR."
+          cor={T.muted}
+        />
+        <ResultCard
+          titulo="Líquido / mês (saca tudo)"
+          valor={resultado.liquidoMes}
+          valorEur={toEur(resultado.liquidoMes)}
+          descricao="Quanto você pode retirar todo mês, descontado o IR."
+          cor={T.gold}
+          destaque
+        />
+        <ResultCard
+          titulo="Renda real / mês (preserva)"
+          valor={resultado.rendaRealMes}
+          valorEur={toEur(resultado.rendaRealMes)}
+          descricao={resultado.rendaRealMes > 0
+            ? "Quanto retirar mantendo o poder de compra do principal."
+            : "A inflação consome todo o rendimento líquido — preservação inviável neste cenário."}
+          cor={resultado.rendaRealMes > 0 ? T.green : T.red}
+        />
       </div>
 
       {/* GRÁFICO: evolução do poder de compra (30 anos) */}
@@ -569,10 +575,15 @@ export default function CalculadoraRenda() {
       </div>
 
       <style>{`
+        @media (max-width: 980px) {
+          .calc-sliders-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .calc-cards-grid { grid-template-columns: 1fr !important; }
+        }
         @media (max-width: 768px) {
           .calc-grid { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 480px) {
+          .calc-sliders-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
           /* Reduz padding lateral da página inteira */
           .calc-root { padding-left: 14px !important; padding-right: 14px !important; padding-top: 18px !important; padding-bottom: 24px !important; }
           /* Atalhos: 2x2 grid em vez de 4 linhas */
