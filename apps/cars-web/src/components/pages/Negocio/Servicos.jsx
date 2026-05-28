@@ -323,20 +323,25 @@ export default function Servicos({
 
   const estornarVenda = async (v) => {
     const isCaixaVirtual = v.contaDestino === "Caixa do Negócio";
+    const valorInst = Number(v.valorInstalador || 0);
+    const temInst = !!v.instaladorId && valorInst > 0;
+    const ehDeContrato = !!v.contratoId && !!v.faturaRef;
     const ok = await confirm({
       title: `Estornar venda de ${v.nome}?`,
       body: isCaixaVirtual
-        ? `A venda de ${fmt(v.valor)} será removida da Caixa do Negócio.`
+        ? `A venda de ${fmt(v.valor)} será removida da Caixa do Negócio${temInst ? " (incluindo o pago ao instalador)" : ""}${ehDeContrato ? " e o contrato volta a permitir gerar a fatura desse mês" : ""}.`
         : `A venda de ${fmt(v.valor)} será removida, o saldo de ${v.contaDestino} ajustado e a transação no Finanças removida.`,
       danger: true, confirmLabel: "Estornar",
     });
     if (!ok) return;
 
     if (isCaixaVirtual) {
-      // Venda nova: estorna na Caixa do Negócio virtual
+      // Venda nova: estorna na Caixa do Negócio virtual.
+      // Reverte tanto a receita quanto o pago-instalador (se houve).
       if (typeof setCaixaNegocio === "function") {
         setCaixaNegocio(prev => ({
-          saldo: (prev?.saldo || 0) - Number(v.valor || 0),
+          // +valorInst porque o pago-instalador foi uma SAÍDA (negativa); estornar devolve.
+          saldo: (prev?.saldo || 0) - Number(v.valor || 0) + valorInst,
           historico: ((prev?.historico) || []).filter(h => h.vendaId !== v.id),
         }));
       }
@@ -358,8 +363,36 @@ export default function Servicos({
       }
     }
 
+    // Reverte a despesa do prestador no Finanças, se foi gerada pra esta venda.
+    if (typeof setTransacoes === "function") {
+      const despPrestador = (transacoes || []).find(t =>
+        t.tipo === "despesa" && (t.obs || "").includes(`serviço ${v.id}`)
+      );
+      if (despPrestador) {
+        setTransacoes(transacoes.filter(t => t.id !== despPrestador.id));
+        const contaDesp = contas.find(co => co.nome === despPrestador.conta);
+        if (contaDesp && typeof setContas === "function") {
+          setContas(contas.map(co => co.id === contaDesp.id
+            ? { ...co, saldo: (parseFloat(co.saldo) || 0) + Number(despPrestador.valor || 0) }
+            : co));
+        }
+      }
+    }
+
+    // Se a venda veio de um contrato recorrente, reabilita o "Gerar fatura"
+    // desse mês — reseta ultimaFaturaRef se ainda aponta pra esta fatura.
+    if (ehDeContrato && typeof setContratos === "function") {
+      setContratos((contratos || []).map(c =>
+        (c.id === v.contratoId && c.ultimaFaturaRef === v.faturaRef)
+          ? { ...c, ultimaFaturaRef: null }
+          : c
+      ));
+    }
+
     setVendas(vendas.filter(x => x.id !== v.id));
-    toast.success("Venda estornada.");
+    toast.success(ehDeContrato
+      ? "Venda estornada — você já pode gerar a fatura desse mês de novo."
+      : "Venda estornada.");
   };
 
   /* ---------- Contratos recorrentes (CRM, tráfego, app, etc) ---------- */
@@ -541,6 +574,7 @@ export default function Servicos({
       servicoId: primaryServicoId,
       servicosIds: servicosVinc,
       contratoId: c.id,
+      faturaRef: ref,
       nome: `${c.nome} · ${refLabel}`,
       data: todayISO(),
       valor: valorReceita,
