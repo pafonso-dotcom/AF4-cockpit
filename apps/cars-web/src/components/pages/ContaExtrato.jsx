@@ -150,6 +150,9 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
     return { entradas, saidas, pendReceitas, pendDespesas, saldoPrev };
   }, [transacoesDaConta, conta, mesAtual]);
 
+  // Gradiente estilo cartão, por banco/instituição (mesma identidade visual dos Cartões).
+  const gradient = gradByName(conta.instituicao || conta.nome, conta.cor);
+
   return (
     <div className="fade-up py-8 px-6">
       {/* Voltar — escondido no modo embutido (lista fica ao lado) */}
@@ -166,76 +169,93 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         </button>
       )}
 
-      {/* Header com saldo grande */}
+      {/* Banner estilo cartão: gradiente por banco + nome + saldo */}
       <div className="conta-hero" style={{
-        background: `linear-gradient(135deg, ${T.card}, ${T.cardHi || T.card})`,
-        border: `1px solid ${T.border}`,
-        borderRadius: 14, padding: 24, marginBottom: 16,
-        borderTop: `3px solid ${conta.cor || T.gold}`,
+        display: "flex", alignItems: "center", gap: 18, padding: 24,
+        background: gradient, borderRadius: 14, marginBottom: 14,
+        color: "#fff", flexWrap: "wrap",
+        boxShadow: `0 6px 20px ${T.bg}66`,
       }}>
-        <div className="label-eyebrow">Extrato · {conta.instituicao} · {conta.tipo}</div>
-        <h2 className="conta-hero-name" style={{ fontFamily: T.serif, color: T.ink, marginTop: 6, marginBottom: 16, letterSpacing: "-0.02em" }}>
-          {conta.nome}
-        </h2>
-        <div className="num conta-hero-value" style={{ fontFamily: T.serif, color: T.gold, fontWeight: 300, lineHeight: 1, wordBreak: "break-word" }}>
-          {hidden ? "R$ •••••" : fmt(conta.saldo)}
+        <div className="conta-hero-icon" style={{
+          width: 56, height: 56, borderRadius: 12,
+          display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0,
+          background: "rgba(0,0,0,.2)",
+        }}>🏦</div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "rgba(255,255,255,.8)", fontWeight: 600 }}>
+            Extrato · {conta.instituicao}{conta.tipo ? ` · ${conta.tipo}` : ""}
+          </div>
+          <div className="conta-hero-name" style={{ fontFamily: T.serif, fontWeight: 500, marginTop: 5, letterSpacing: "-0.02em", wordBreak: "break-word" }}>
+            {conta.nome}
+          </div>
+        </div>
+        <div className="conta-hero-fatura" style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,.7)", letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 4 }}>
+            Saldo atual
+          </div>
+          <div className="num conta-hero-valor" style={{ fontFamily: T.serif, fontWeight: 300, lineHeight: 1, fontVariantNumeric: "tabular-nums", wordBreak: "break-word" }}>
+            {hidden ? "R$ •••••" : fmt(conta.saldo)}
+          </div>
         </div>
         <style>{`
-          .conta-hero-name { font-size: 26px; }
-          .conta-hero-value { font-size: 42px; }
-          @media (max-width: 480px) {
-            .conta-hero { padding: 18px !important; }
-            .conta-hero-name { font-size: 20px !important; margin-bottom: 10px !important; }
-            .conta-hero-value { font-size: clamp(26px, 8vw, 34px) !important; }
+          .conta-hero-name { font-size: 23px; }
+          .conta-hero-valor { font-size: 32px; }
+          @media (max-width: 560px) {
+            .conta-hero { padding: 18px !important; gap: 14px !important; }
+            .conta-hero-icon { width: 46px !important; height: 46px !important; font-size: 22px !important; }
+            .conta-hero-name { font-size: 19px !important; }
+            .conta-hero-fatura { text-align: left !important; width: 100%; }
+            .conta-hero-valor { font-size: clamp(26px, 8vw, 32px) !important; }
             .extrato-filtros { grid-template-columns: 1fr 1fr !important; }
             .extrato-filtros > div[style*="position: relative"] { grid-column: 1 / -1; }
             .extrato-filtros > button { grid-column: 1 / -1; }
           }
         `}</style>
+      </div>
 
-        <div style={{
-          display: "flex", gap: 18, flexWrap: "wrap",
-          marginTop: 18, paddingTop: 18, borderTop: `1px solid ${T.border}`,
-        }}>
-          <KPI l="Entradas (mês)" v={hidden ? "•••" : `+ ${fmt(kpisMes.entradas)}`} c={T.green} />
-          <KPI l="Saídas (mês)"   v={hidden ? "•••" : `− ${fmt(kpisMes.saidas)}`}   c={T.red} />
-          <KPI l="Saldo previsto fim do mês" v={hidden ? "•••" : fmt(kpisMes.saldoPrev)} c={T.gold} />
+      {/* KPIs do mês + ações */}
+      <div style={{
+        display: "flex", gap: 18, flexWrap: "wrap", alignItems: "flex-end",
+        marginBottom: 16, padding: "0 2px",
+      }}>
+        <KPI l="Entradas (mês)" v={hidden ? "•••" : `+ ${fmt(kpisMes.entradas)}`} c={T.green} />
+        <KPI l="Saídas (mês)"   v={hidden ? "•••" : `− ${fmt(kpisMes.saidas)}`}   c={T.red} />
+        <KPI l="Saldo previsto fim do mês" v={hidden ? "•••" : fmt(kpisMes.saldoPrev)} c={T.gold} />
 
-          <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <button onClick={() => setTxModal({ modo: "novo" })}
+        <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <button onClick={() => setTxModal({ modo: "novo" })}
+                  style={{
+                    background: `${conta.cor || T.gold}22`, color: conta.cor || T.gold,
+                    border: `1px solid ${conta.cor || T.gold}`, padding: "8px 12px",
+                    fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
+                    fontWeight: 600, cursor: "pointer", borderRadius: 7,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>
+            <Plus size={11} /> Nova transação
+          </button>
+          {onTransferir && (
+            <button onClick={onTransferir}
                     style={{
-                      background: `${conta.cor || T.gold}22`, color: conta.cor || T.gold,
-                      border: `1px solid ${conta.cor || T.gold}`, padding: "8px 12px",
+                      background: "transparent", color: T.gold,
+                      border: `1px solid ${T.gold}`, padding: "8px 12px",
                       fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
                       fontWeight: 600, cursor: "pointer", borderRadius: 7,
                       display: "inline-flex", alignItems: "center", gap: 6,
                     }}>
-              <Plus size={11} /> Nova transação
+              <ArrowRightLeft size={11} /> Transferir
             </button>
-            {onTransferir && (
-              <button onClick={onTransferir}
-                      style={{
-                        background: "transparent", color: T.gold,
-                        border: `1px solid ${T.gold}`, padding: "8px 12px",
-                        fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                        fontWeight: 600, cursor: "pointer", borderRadius: 7,
-                        display: "inline-flex", alignItems: "center", gap: 6,
-                      }}>
-                <ArrowRightLeft size={11} /> Transferir
-              </button>
-            )}
-            <button onClick={() => window.print()}
-                    title="Imprimir ou salvar como PDF"
-                    style={{
-                      background: "transparent", color: T.muted,
-                      border: `1px solid ${T.border}`, padding: "8px 12px",
-                      fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                      fontWeight: 600, cursor: "pointer", borderRadius: 7,
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                    }}>
-              <Printer size={11} /> PDF
-            </button>
-          </div>
+          )}
+          <button onClick={() => window.print()}
+                  title="Imprimir ou salvar como PDF"
+                  style={{
+                    background: "transparent", color: T.muted,
+                    border: `1px solid ${T.border}`, padding: "8px 12px",
+                    fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
+                    fontWeight: 600, cursor: "pointer", borderRadius: 7,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>
+            <Printer size={11} /> PDF
+          </button>
         </div>
       </div>
 
@@ -295,9 +315,19 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             </button>
           );
         })}
+        <button onClick={() => setSortDir(sortDir === "desc" ? "asc" : "desc")}
+                title="Alternar ordem por data"
+                style={{
+                  marginLeft: "auto", padding: "5px 11px", borderRadius: 100, fontSize: 11,
+                  background: T.bgSoft, color: T.muted, border: `1px solid ${T.border}`,
+                  cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
+                }}>
+          {sortDir === "desc" ? <ArrowDown size={11} /> : <ArrowUp size={11} />}
+          {sortDir === "desc" ? "Mais recentes" : "Mais antigos"}
+        </button>
       </div>
 
-      {/* Lista de transações */}
+      {/* Lista de transações — agrupada por dia, formato lista (responsivo) */}
       {filtradas.length === 0 ? (
         <div style={{
           padding: 60, textAlign: "center", color: T.muted, fontStyle: "italic",
@@ -306,141 +336,131 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           Nenhum lançamento {busca ? `para "${busca}"` : "no período selecionado"}.
         </div>
       ) : (
-        <div className="tbl-extrato-wrap" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden", boxShadow: `0 1px 3px ${T.bg}55` }}>
+        <div className="extrato-lista" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden", boxShadow: `0 1px 3px ${T.bg}55` }}>
           <style>{`
-            .tbl-extrato tbody tr { transition: background .12s ease; }
-            .tbl-extrato tbody tr:nth-child(even) { background: ${T.ink}06; }
-            .tbl-extrato tbody tr:hover { background: ${T.gold}14; }
-            .tbl-extrato tbody tr:last-child td { border-bottom: none !important; }
-            .tbl-extrato thead th { background: ${T.bgSoft}; }
+            .extrato-row { transition: background .12s ease; }
+            .extrato-row:hover { background: ${T.gold}10; }
+            .extrato-row .acoes { opacity: 0; transition: opacity .12s ease; }
+            .extrato-row:hover .acoes { opacity: 1; }
+            @media (hover: none) { .extrato-row .acoes { opacity: 1; } }
           `}</style>
-          <table className="tbl tbl-extrato" style={{ width: "100%", minWidth: 580, borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: T.bgSoft }}>
-                <Th onClick={() => setSortDir(sortDir === "desc" ? "asc" : "desc")} clickable>
-                  Data {sortDir === "desc" ? <ArrowDown size={11} /> : <ArrowUp size={11} />}
-                </Th>
-                <Th>Descrição</Th>
-                <Th className="hidden md:table-cell">Obs</Th>
-                <Th className="hidden sm:table-cell">Categoria</Th>
-                <Th align="right">Valor</Th>
-                <Th align="right" className="hidden md:table-cell">Saldo</Th>
-                <Th align="right">Ações</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtradas.map(t => {
-                const cat = categorias.find(c => c.nome === t.categoria);
-                const saldoApos = saldoPorTransacao.get(t.id);
-                return (
-                  <tr key={t.id} style={{
-                    borderBottom: `1px solid ${T.border}`,
-                    opacity: t.compensado ? 1 : 0.7,
-                  }}>
-                    <td style={tdSty}>
-                      {(() => {
-                        const dt = fmtDataCurta(t.data);
-                        return (
-                          <span style={{ display: "inline-flex", alignItems: "baseline", gap: 5 }}>
-                            <span className="num" style={{ color: T.ink, fontSize: 14, fontWeight: 600 }}>{dt.dia}</span>
-                            <span style={{ color: T.muted, fontSize: 11 }}>{dt.mes}</span>
-                            <span className="num" style={{ color: T.faint, fontSize: 10 }}>'{dt.ano}</span>
-                          </span>
-                        );
-                      })()}
-                      {!t.compensado && (
-                        <div style={{ fontSize: 9, color: T.gold, fontStyle: "italic", marginTop: 2 }}>Pendente</div>
-                      )}
-                      {t.fixa && t.compensado && (
-                        <div style={{ fontSize: 9, color: T.blue || "#60a5fa", fontStyle: "italic", marginTop: 2 }}>Fixa</div>
-                      )}
-                    </td>
-                    <td style={tdSty}>
-                      <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                        <span style={{
-                          width: 22, height: 22, borderRadius: "50%",
-                          background: t.tipo === "receita" ? `${T.green}22` : `${T.red}22`,
-                          color: t.tipo === "receita" ? T.green : T.red,
-                          display: "inline-grid", placeItems: "center", flexShrink: 0,
-                        }}>
-                          {t.tipo === "receita" ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-                        </span>
-                        <span style={{ color: T.ink, fontWeight: 500 }}>{t.descricao}</span>
-                      </div>
-                    </td>
-                    <td className="hidden md:table-cell" style={{ ...tdSty, color: T.muted, fontSize: 11.5, fontStyle: t.obs ? "normal" : "italic" }}>
-                      {t.obs || <span style={{ color: T.faint }}>—</span>}
-                    </td>
-                    <td className="hidden sm:table-cell" style={tdSty}>
-                      {editCatId === t.id ? (
-                        <select
-                          autoFocus
-                          value={t.categoria || ""}
-                          onChange={e => trocarCategoria(t, e.target.value)}
-                          onBlur={() => setEditCatId(null)}
-                          style={{
-                            background: T.bgSoft, border: `1px solid ${T.gold}`,
-                            color: T.ink, fontSize: 11.5, padding: "4px 8px",
-                            borderRadius: 4, maxWidth: 180,
-                          }}>
-                          <option value="">— sem categoria —</option>
-                          {categorias.filter(c => c.tipo === t.tipo).map(c => (
-                            <option key={c.id} value={c.nome}>{c.nome}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <button
-                          onClick={() => setEditCatId(t.id)}
-                          title="Clique para mudar a categoria"
-                          style={{
-                            background: "transparent", border: "1px dashed transparent",
-                            padding: "3px 6px", borderRadius: 4, cursor: "pointer",
-                            display: "inline-flex", alignItems: "center", gap: 5,
-                            fontSize: 11.5, color: cat ? T.muted : T.faint,
-                            transition: "border-color .15s",
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.borderColor = T.border; }}
-                          onMouseLeave={e => { e.currentTarget.style.borderColor = "transparent"; }}>
-                          {cat ? (
-                            <>
-                              <span style={{ width: 7, height: 7, background: cat.cor, borderRadius: "50%" }} />
-                              {cat.nome}
-                            </>
-                          ) : "— escolher —"}
-                        </button>
-                      )}
-                    </td>
-                    <td className="num" style={{
-                      ...tdSty, textAlign: "right",
-                      color: t.tipo === "receita" ? T.green : T.red,
-                      fontWeight: 600,
+          {agruparPorDia(filtradas).map(grupo => {
+            const net = grupo.itens.reduce((s, t) => s + (t.tipo === "receita" ? 1 : -1) * (parseFloat(t.valor) || 0), 0);
+            const dl = fmtDataLonga(grupo.dia);
+            return (
+              <div key={grupo.dia}>
+                {/* Cabeçalho do dia */}
+                <div style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "baseline",
+                  padding: "8px 14px", background: T.bgSoft, borderBottom: `1px solid ${T.border}`,
+                }}>
+                  <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}>
+                    <span className="num" style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{dl.dia}</span>
+                    <span style={{ fontSize: 11, color: T.muted }}>{dl.mes} '{dl.ano}</span>
+                    <span style={{ fontSize: 10.5, color: T.faint, textTransform: "capitalize" }}>· {dl.semana}</span>
+                  </span>
+                  <span className="num" style={{ fontSize: 11, fontWeight: 600, color: net >= 0 ? T.green : T.red }}>
+                    {hidden ? "•••" : `${net >= 0 ? "+ " : "− "}${fmt(Math.abs(net))}`}
+                  </span>
+                </div>
+
+                {/* Lançamentos do dia */}
+                {grupo.itens.map(t => {
+                  const cat = categorias.find(c => c.nome === t.categoria);
+                  const saldoApos = saldoPorTransacao.get(t.id);
+                  const corTipo = t.tipo === "receita" ? T.green : T.red;
+                  return (
+                    <div key={t.id} className="extrato-row" style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 14px", borderBottom: `1px solid ${T.border}`,
+                      opacity: t.compensado ? 1 : 0.7,
                     }}>
-                      {t.tipo === "receita" ? "+ " : "− "}{hidden ? "•••" : fmt(t.valor)}
-                    </td>
-                    <td className="num hidden md:table-cell" style={{
-                      ...tdSty, textAlign: "right",
-                      color: t.compensado ? (saldoApos != null && saldoApos < 0 ? T.red : T.ink) : T.faint,
-                      fontStyle: t.compensado ? "normal" : "italic",
-                    }} title={t.compensado ? "Saldo após esta transação" : "Pendentes não afetam o saldo"}>
-                      {!t.compensado ? "—" : hidden ? "•••" : fmt(saldoApos ?? 0)}
-                    </td>
-                    <td style={{ ...tdSty, textAlign: "right" }}>
-                      <button onClick={() => editarTransacao(t)}
-                              title="Editar"
-                              style={iconBtn}>
-                        <Edit3 size={14} />
-                      </button>
-                      <button onClick={() => removerTransacao(t)}
-                              title="Excluir"
-                              style={{ ...iconBtn, color: T.red }}>
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      {/* Ícone entrada/saída */}
+                      <span style={{
+                        width: 30, height: 30, borderRadius: "50%",
+                        background: `${corTipo}1c`, color: corTipo,
+                        display: "grid", placeItems: "center", flexShrink: 0,
+                      }}>
+                        {t.tipo === "receita" ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}
+                      </span>
+
+                      {/* Descrição + obs + categoria */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span style={{ color: T.ink, fontWeight: 600, fontSize: 13 }}>{t.descricao}</span>
+                          {!t.compensado && (
+                            <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 3, background: `${T.gold}22`, color: T.gold, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>Pendente</span>
+                          )}
+                          {t.fixa && t.compensado && (
+                            <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 3, background: `${T.blue || "#60a5fa"}22`, color: T.blue || "#60a5fa", fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>Fixa</span>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3, flexWrap: "wrap" }}>
+                          {/* Chip de categoria (clicável pra editar) */}
+                          {editCatId === t.id ? (
+                            <select
+                              autoFocus
+                              value={t.categoria || ""}
+                              onChange={e => trocarCategoria(t, e.target.value)}
+                              onBlur={() => setEditCatId(null)}
+                              style={{
+                                background: T.bgSoft, border: `1px solid ${T.gold}`,
+                                color: T.ink, fontSize: 11, padding: "3px 7px", borderRadius: 5, maxWidth: 180,
+                              }}>
+                              <option value="">— sem categoria —</option>
+                              {categorias.filter(c => c.tipo === t.tipo).map(c => (
+                                <option key={c.id} value={c.nome}>{c.nome}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <button
+                              onClick={() => setEditCatId(t.id)}
+                              title="Clique para mudar a categoria"
+                              style={{
+                                background: cat ? `${cat.cor || T.muted}1a` : "transparent",
+                                border: cat ? `1px solid ${cat.cor || T.border}55` : `1px dashed ${T.border}`,
+                                padding: "2px 8px", borderRadius: 100, cursor: "pointer",
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                                fontSize: 10.5, fontWeight: 600, color: cat ? (cat.cor || T.muted) : T.faint,
+                              }}>
+                              {cat && <span style={{ width: 7, height: 7, background: cat.cor || T.muted, borderRadius: "50%" }} />}
+                              {cat ? cat.nome : "+ categoria"}
+                            </button>
+                          )}
+                          {t.obs && (
+                            <span style={{ fontSize: 11, color: T.faint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+                              {t.obs}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Valor + saldo */}
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <div className="num" style={{ color: corTipo, fontWeight: 700, fontSize: 14.5 }}>
+                          {t.tipo === "receita" ? "+ " : "− "}{hidden ? "•••" : fmt(t.valor)}
+                        </div>
+                        <div className="num" style={{ fontSize: 10.5, color: T.faint, marginTop: 1 }}
+                             title={t.compensado ? "Saldo após esta transação" : "Pendentes não afetam o saldo"}>
+                          {!t.compensado ? "pendente" : `saldo ${hidden ? "•••" : fmt(saldoApos ?? 0)}`}
+                        </div>
+                      </div>
+
+                      {/* Ações */}
+                      <div className="acoes" style={{ display: "flex", flexShrink: 0 }}>
+                        <button onClick={() => editarTransacao(t)} title="Editar" style={iconBtn}>
+                          <Edit3 size={14} />
+                        </button>
+                        <button onClick={() => removerTransacao(t)} title="Excluir" style={{ ...iconBtn, color: T.red }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -469,18 +489,44 @@ function KPI({ l, v, c }) {
   );
 }
 
-const MESES_ABBR = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-function fmtDataCurta(iso) {
-  if (!iso || iso.length < 10) return { dia: iso || "—", mes: "", ano: "" };
-  // Trunca para YYYY-MM-DD caso venha com hora (ex.: "2026-05-28T10:00:00").
-  const [ano, mes, dia] = iso.slice(0, 10).split("-");
-  return { dia, mes: MESES_ABBR[parseInt(mes, 10) - 1] || mes, ano: (ano || "").slice(2) };
+// Gradiente do banner por banco/instituição — mesma identidade visual dos Cartões.
+function gradByName(nome, fallbackCor) {
+  const n = (nome || "").toLowerCase();
+  if (n.includes("nubank") || n.includes("nu ")) return "linear-gradient(135deg, #8b5cf6, #06b6d4)";
+  if (n.includes("itau") || n.includes("itaú")) return "linear-gradient(135deg, #c9a961, #54545c)";
+  if (n.includes("c6"))                          return "linear-gradient(135deg, #f43f5e, #fbbf24)";
+  if (n.includes("inter"))                       return "linear-gradient(135deg, #f59e0b, #ea580c)";
+  if (n.includes("santander"))                   return "linear-gradient(135deg, #dc2626, #991b1b)";
+  if (n.includes("bradesco"))                    return "linear-gradient(135deg, #cc092f, #7a0a1e)";
+  if (n.includes("sicred") || n.includes("sicoob")) return "linear-gradient(135deg, #00935f, #3fae6b)";
+  if (n.includes("caixa"))                       return "linear-gradient(135deg, #0070b8, #f39200)";
+  if (n.includes("banco do brasil") || n.includes(" bb")) return "linear-gradient(135deg, #fae128, #0038a8)";
+  if (fallbackCor)                               return `linear-gradient(135deg, ${fallbackCor}, ${fallbackCor})`;
+  return `linear-gradient(135deg, ${T.gold}, ${T.goldHi || T.gold})`;
 }
 
-const tdSty = {
-  padding: "10px 12px",
-  verticalAlign: "middle",
-};
+// Agrupa a lista (já ordenada) em blocos por dia, preservando a ordem.
+function agruparPorDia(lista) {
+  const grupos = [];
+  let atual = null;
+  lista.forEach(t => {
+    const dia = (t.data || "").slice(0, 10);
+    if (!atual || atual.dia !== dia) { atual = { dia, itens: [] }; grupos.push(atual); }
+    atual.itens.push(t);
+  });
+  return grupos;
+}
+
+const MESES_ABBR = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+function fmtDataLonga(iso) {
+  if (!iso || iso.length < 10) return { dia: iso || "—", mes: "", ano: "", semana: "" };
+  // Trunca para YYYY-MM-DD caso venha com hora (ex.: "2026-05-28T10:00:00").
+  const [ano, mes, dia] = iso.slice(0, 10).split("-");
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00`);
+  const semana = isNaN(d.getTime()) ? "" : SEMANA[d.getDay()];
+  return { dia, mes: MESES_ABBR[parseInt(mes, 10) - 1] || mes, ano: (ano || "").slice(2), semana };
+}
 
 const iconBtn = {
   background: "transparent",
@@ -491,22 +537,3 @@ const iconBtn = {
   borderRadius: 6,
   marginLeft: 4,
 };
-
-function Th({ children, align, style, onClick, clickable, className }) {
-  return (
-    <th onClick={onClick} className={className} style={{
-      padding: "11px 12px",
-      textAlign: align || "left",
-      fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
-      color: T.muted, fontWeight: 600,
-      borderBottom: `1px solid ${T.borderHi || T.border}`,
-      cursor: clickable ? "pointer" : "default",
-      userSelect: "none",
-      ...style,
-    }}>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-        {children}
-      </span>
-    </th>
-  );
-}
