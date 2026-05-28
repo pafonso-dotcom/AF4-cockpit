@@ -210,7 +210,10 @@ function ClienteCard({ cliente: c, stats, hidden, onEditar, onExcluir }) {
             {c.email && <span style={ChipStyle}><Mail size={11} /> {c.email}</span>}
           </div>
           {c.obs && (
-            <div style={{ marginTop: 8, fontSize: 12, color: T.muted, fontStyle: "italic", lineHeight: 1.45 }}>
+            <div style={{
+              marginTop: 6, fontSize: 11.5, color: T.faint, fontStyle: "italic",
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%",
+            }} title={c.obs}>
               {c.obs}
             </div>
           )}
