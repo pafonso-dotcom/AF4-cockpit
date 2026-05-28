@@ -165,8 +165,28 @@ export default function AReceberEDividas({
     const conta = contas.find(c => c.nome === baixaForm.contaDestino);
     if (!conta) { toast.error("Conta não encontrada."); return; }
 
-    const valor = parseFloat(baixaForm.valor) || 0;
     const isReceber = baixaForm.tipoOriginal === "receber";
+
+    // ===== Recebimento parcial (só A Receber) =====
+    // Saldo em aberto = total original − já recebido (backward-compat: undefined → 0)
+    const saldoAberto = isReceber
+      ? Math.max(0, (parseFloat(baixaForm.valorTotalOriginal) || parseFloat(baixaForm.valor) || 0) - (parseFloat(baixaForm.jaRecebido) || 0))
+      : 0;
+    const ehParcial = isReceber && baixaForm.parcial;
+
+    // Valor da baixa: no parcial usa valorParcial; senão o saldo em aberto/valor do form
+    let valor = ehParcial
+      ? parseFloat((baixaForm.valorParcial || "").toString().replace(",", "."))
+      : (parseFloat(baixaForm.valor) || 0);
+
+    if (ehParcial) {
+      if (!(valor > 0)) { toast.error("Informe um valor parcial válido."); return; }
+      if (valor > saldoAberto + 0.005) { toast.error(`Valor maior que o saldo em aberto (${fmt(saldoAberto)}).`); return; }
+      valor = +valor.toFixed(2);
+    }
+
+    // Quita o restante? (parcial que cobre tudo é tratado como baixa total)
+    const quitaTudo = !isReceber || !ehParcial || valor >= saldoAberto - 0.005;
 
     // 1) Cria transação
     const novaTransacao = {
@@ -181,7 +201,7 @@ export default function AReceberEDividas({
       valor,
       compensado: true,
       fixa: false,
-      obs: baixaForm.obs || `Baixa automática${baixaForm.parcela ? ` (${baixaForm.parcela})` : ""}`,
+      obs: baixaForm.obs || `Baixa automática${baixaForm.parcela ? ` (${baixaForm.parcela})` : ""}${(isReceber && ehParcial && !quitaTudo) ? " · parcial" : ""}`,
     };
     setTransacoes([novaTransacao, ...transacoes]);
 
@@ -190,8 +210,38 @@ export default function AReceberEDividas({
     setContas(contas.map(c => c.id === conta.id ? { ...c, saldo: (parseFloat(c.saldo) || 0) + delta } : c));
 
     // 3) Marca como recebido/pago — dispatch baseado em origem
-    if (isReceber) {
-      setDevedores(devedores.map(d => d.id === baixaForm.itemId ? { ...d, recebido: true, dataRecebimento: baixaForm.dataBaixa, contaRecebimento: baixaForm.contaDestino } : d));
+    if (isReceber && ehParcial && !quitaTudo) {
+      // Recebimento parcial: acumula valorRecebido, registra no histórico, mantém aberto
+      setDevedores(devedores.map(d => {
+        if (d.id !== baixaForm.itemId) return d;
+        const acumulado = +(((parseFloat(d.valorRecebido) || 0) + valor)).toFixed(2);
+        const recebimentos = [
+          ...(Array.isArray(d.recebimentos) ? d.recebimentos : []),
+          { id: uid(), valor, data: baixaForm.dataBaixa, conta: baixaForm.contaDestino, ts: Date.now() },
+        ];
+        return { ...d, valorRecebido: acumulado, recebimentos };
+      }));
+    } else if (isReceber) {
+      // Baixa total (inclui parcial que quita o resto): fecha o item e zera o saldo em aberto
+      setDevedores(devedores.map(d => {
+        if (d.id !== baixaForm.itemId) return d;
+        const recebimentos = ehParcial
+          ? [
+              ...(Array.isArray(d.recebimentos) ? d.recebimentos : []),
+              { id: uid(), valor, data: baixaForm.dataBaixa, conta: baixaForm.contaDestino, ts: Date.now() },
+            ]
+          : d.recebimentos;
+        const valorRecebido = ehParcial
+          ? +(((parseFloat(d.valorRecebido) || 0) + valor)).toFixed(2)
+          : d.valorRecebido;
+        return {
+          ...d, recebido: true,
+          dataRecebimento: baixaForm.dataBaixa,
+          contaRecebimento: baixaForm.contaDestino,
+          ...(recebimentos ? { recebimentos } : {}),
+          ...(valorRecebido != null ? { valorRecebido } : {}),
+        };
+      }));
     } else if (baixaForm._origem === "fixa" && baixaForm._fixaOccId) {
       // Marca a ocorrência da fixa como paga (formato compatível com DespesasFixas.jsx)
       setFixaOcorrencias?.((fixaOcorrencias || []).map(o =>
@@ -212,11 +262,16 @@ export default function AReceberEDividas({
       setDividas(dividas.map(d => d.id === baixaForm.itemId ? { ...d, pago: true, dataPagamento: baixaForm.dataBaixa, contaPagamento: baixaForm.contaDestino } : d));
     }
 
-    toast.success(
-      isReceber
-        ? `Recebido ${fmt(valor)} em ${baixaForm.contaDestino}. Saldo atualizado.`
-        : `Pago ${fmt(valor)} de ${baixaForm.contaDestino}. Saldo atualizado.`
-    );
+    if (isReceber && ehParcial && !quitaTudo) {
+      const falta = +(saldoAberto - valor).toFixed(2);
+      toast.success(`Recebido ${fmt(valor)} · falta ${fmt(falta)} de ${baixaForm.nome}.`);
+    } else {
+      toast.success(
+        isReceber
+          ? `Recebido ${fmt(valor)} em ${baixaForm.contaDestino}. Saldo atualizado.`
+          : `Pago ${fmt(valor)} de ${baixaForm.contaDestino}. Saldo atualizado.`
+      );
+    }
     setBaixaForm(null);
   };
 
@@ -614,13 +669,23 @@ export default function AReceberEDividas({
             <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12 }}>
               {receberMes.map(d => (
                 <DevedorCard key={d.id} d={d} hidden={hidden} dueLabel={dueLabel}
-                  onBaixa={() => setBaixaForm({
-                    itemId: d.id, tipoOriginal: "receber",
-                    nome: d.nome, valor: d.valor,
-                    categoria: d.categoria || "Outros", obs: d.obs || "",
-                    parcela: d.parcela || "",
-                    contaDestino: contas[0]?.nome || "", dataBaixa: hoje,
-                  })}
+                  onBaixa={() => {
+                    const jaRecebido = parseFloat(d.valorRecebido) || 0;
+                    const saldoAberto = Math.max(0, (parseFloat(d.valor) || 0) - jaRecebido);
+                    setBaixaForm({
+                      itemId: d.id, tipoOriginal: "receber",
+                      nome: d.nome, valor: saldoAberto,
+                      categoria: d.categoria || "Outros", obs: d.obs || "",
+                      parcela: d.parcela || "",
+                      contaDestino: contas[0]?.nome || "", dataBaixa: hoje,
+                      // recebimento parcial — só p/ A Receber
+                      saldoAberto,
+                      jaRecebido,
+                      valorTotalOriginal: parseFloat(d.valor) || 0,
+                      parcial: false,
+                      valorParcial: String(saldoAberto),
+                    });
+                  }}
                   onEditar={() => setForm({ ...d, tipo: "receber" })}
                   onExcluir={() => excluir(d, "receber")}
                   onWhats={() => whatsapp.cobrarDevedor(d)}
@@ -743,28 +808,101 @@ export default function AReceberEDividas({
       {/* Modal Baixa */}
       {baixaForm && (() => {
         const conta = contas.find(c => c.nome === baixaForm.contaDestino);
-        const valor = parseFloat(baixaForm.valor) || 0;
-        const saldoAtual = parseFloat(conta?.saldo) || 0;
         const isReceber = baixaForm.tipoOriginal === "receber";
+        const saldoAberto = parseFloat(baixaForm.saldoAberto) || (parseFloat(baixaForm.valor) || 0);
+        const jaRecebido = parseFloat(baixaForm.jaRecebido) || 0;
+        const ehParcial = isReceber && baixaForm.parcial;
+        const valorParcialNum = parseFloat((baixaForm.valorParcial || "").toString().replace(",", ".")) || 0;
+        // Valor efetivo da baixa exibido no resumo
+        const valor = ehParcial ? valorParcialNum : (parseFloat(baixaForm.valor) || 0);
+        const parcialInvalido = ehParcial && (!(valorParcialNum > 0) || valorParcialNum > saldoAberto + 0.005);
+        const faltaApos = +(saldoAberto - valorParcialNum).toFixed(2);
+        const saldoAtual = parseFloat(conta?.saldo) || 0;
         const saldoFinal = saldoAtual + (isReceber ? valor : -valor);
         return (
           <Modal
             title={isReceber ? `Receber de ${baixaForm.nome}` : `Pagar para ${baixaForm.nome}`}
             onClose={() => setBaixaForm(null)}
           >
-            <div style={{ padding: 12, background: T.bgSoft, borderRadius: 7, fontSize: 12.5, marginBottom: 18 }}>
+            <div style={{ padding: 12, background: T.bgSoft, borderRadius: 7, fontSize: 12.5, marginBottom: ehParcial || (isReceber && jaRecebido > 0) ? 12 : 18 }}>
               <div style={{ display: "flex", justifyContent: "space-between", color: T.muted }}>
-                <span>Valor:</span>
+                <span>{ehParcial ? "Valor desta baixa:" : "Valor:"}</span>
                 <span className="num" style={{ color: isReceber ? T.green : T.red, fontWeight: 600, fontSize: 16 }}>
                   {isReceber ? "+ " : "− "}{fmt(valor)}
                 </span>
               </div>
+              {isReceber && jaRecebido > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 11, color: T.muted }}>
+                  <span>Já recebido:</span>
+                  <span className="num">{fmt(jaRecebido)} de {fmt(parseFloat(baixaForm.valorTotalOriginal) || saldoAberto)}</span>
+                </div>
+              )}
+              {isReceber && jaRecebido > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2, fontSize: 11, color: T.muted }}>
+                  <span>Saldo em aberto:</span>
+                  <span className="num" style={{ fontWeight: 600 }}>{fmt(saldoAberto)}</span>
+                </div>
+              )}
               {baixaForm.parcela && (
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 11, color: T.faint }}>
                   <span>Parcela:</span><span>{baixaForm.parcela}</span>
                 </div>
               )}
             </div>
+
+            {/* Recebimento parcial — só A Receber */}
+            {isReceber && (
+              <div style={{
+                background: T.bgSoft,
+                border: `1px solid ${ehParcial ? T.green : T.border}`,
+                borderLeft: `3px solid ${ehParcial ? T.green : T.border}`,
+                borderRadius: 8, padding: 12, marginBottom: 14,
+              }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}>
+                  <input type="checkbox" checked={!!baixaForm.parcial}
+                         onChange={e => setBaixaForm({
+                           ...baixaForm,
+                           parcial: e.target.checked,
+                           valorParcial: e.target.checked ? String(saldoAberto) : baixaForm.valorParcial,
+                         })}
+                         style={{ width: 18, height: 18, accentColor: T.green, flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, lineHeight: 1.3 }}>
+                      Recebimento parcial
+                    </div>
+                    <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+                      Recebe parte agora e abate do saldo; o restante continua em aberto.
+                    </div>
+                  </div>
+                </label>
+
+                {ehParcial && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px dashed ${T.border}` }}>
+                    <Field label="Valor a receber agora (R$)" required hint={`Máx. ${fmt(saldoAberto)} (saldo em aberto)`}>
+                      <input type="text" inputMode="decimal" value={baixaForm.valorParcial}
+                             onChange={e => setBaixaForm({ ...baixaForm, valorParcial: e.target.value })}
+                             placeholder={String(saldoAberto)} />
+                    </Field>
+                    {parcialInvalido ? (
+                      <div style={{ fontSize: 11, color: T.red, marginTop: 4 }}>
+                        ⚠ Informe um valor entre {fmt(0.01)} e {fmt(saldoAberto)}.
+                      </div>
+                    ) : (
+                      <div style={{
+                        padding: 8, marginTop: 8, borderRadius: 6, fontSize: 11.5,
+                        background: `${T.green}11`, border: `1px solid ${T.green}33`, color: T.muted,
+                        display: "flex", justifyContent: "space-between",
+                      }}>
+                        <span>Após esta baixa:</span>
+                        <span className="num" style={{ fontWeight: 600, color: faltaApos <= 0.005 ? T.green : T.ink }}>
+                          {faltaApos <= 0.005 ? "Quitado ✓" : `falta ${fmt(faltaApos)}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <Field label={isReceber ? "Receber em qual conta?" : "Pagar de qual conta?"} required>
               <select value={baixaForm.contaDestino}
@@ -812,21 +950,25 @@ export default function AReceberEDividas({
             }}>
               ✓ Cria transação "{isReceber ? "Recebimento" : "Pagamento"} de {baixaForm.nome}" em {baixaForm.contaDestino || "—"}<br />
               ✓ {isReceber ? "Aumenta" : "Diminui"} saldo em {hidden ? "•••" : fmt(valor)}<br />
-              ✓ Marca como {isReceber ? "recebido" : "pago"}
+              ✓ {ehParcial && faltaApos > 0.005
+                ? `Abate do saldo — falta ${fmt(faltaApos)} em aberto`
+                : `Marca como ${isReceber ? "recebido" : "pago"}`}
             </div>
 
             <div className="flex gap-3 justify-end mt-5">
               <button className="btn-ghost" onClick={() => setBaixaForm(null)}>Cancelar</button>
               <button
+                disabled={parcialInvalido}
                 style={{
                   background: isReceber ? T.green : T.red, color: isReceber ? T.bg : "#fff",
                   border: "none", padding: "10px 18px",
                   fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase",
-                  fontWeight: 600, cursor: "pointer", borderRadius: 7,
+                  fontWeight: 600, cursor: parcialInvalido ? "not-allowed" : "pointer", borderRadius: 7,
+                  opacity: parcialInvalido ? 0.5 : 1,
                 }}
                 onClick={confirmarBaixa}
               >
-                {isReceber ? "✓ Confirmar recebimento" : "✓ Confirmar pagamento"}
+                {ehParcial && faltaApos > 0.005 ? "✓ Confirmar recebimento parcial" : (isReceber ? "✓ Confirmar recebimento" : "✓ Confirmar pagamento")}
               </button>
             </div>
           </Modal>
@@ -1240,6 +1382,12 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
   const isWarn = due?.status === "warn";
   const inicial = (d.nome || "?").trim().charAt(0).toUpperCase();
   const borderL = isOver ? `3px solid ${T.red}` : isWarn ? `3px solid ${T.gold}` : `1px solid ${T.border}`;
+  // Recebimento parcial (backward-compat: valorRecebido undefined → 0)
+  const valorTotal = parseFloat(d.valor) || 0;
+  const jaRecebido = parseFloat(d.valorRecebido) || 0;
+  const temParcial = jaRecebido > 0 && jaRecebido < valorTotal;
+  const faltaReceber = Math.max(0, valorTotal - jaRecebido);
+  const pctRecebido = valorTotal > 0 ? Math.min(100, (jaRecebido / valorTotal) * 100) : 0;
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 10,
@@ -1321,6 +1469,30 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
           <Trash2 size={12} />
         </button>
       </div>
+
+      {/* Recebimento parcial — barra de progresso + falta (ocupa linha própria) */}
+      {temParcial && (
+        <div style={{ flexBasis: "100%", marginTop: 2 }}>
+          <div style={{
+            height: 5, borderRadius: 100, overflow: "hidden",
+            background: `${T.green}22`, border: `1px solid ${T.green}33`,
+          }}>
+            <div style={{
+              width: `${pctRecebido}%`, height: "100%",
+              background: T.green, borderRadius: 100,
+              transition: "width .25s ease",
+            }} />
+          </div>
+          <div style={{ fontSize: 9.5, color: T.muted, marginTop: 3, display: "flex", justifyContent: "space-between", gap: 6 }}>
+            <span className="num">
+              Recebido {hidden ? "•••" : fmt(jaRecebido)} de {hidden ? "•••" : fmt(valorTotal)}
+            </span>
+            <span className="num" style={{ color: T.green, fontWeight: 600 }}>
+              falta {hidden ? "•••" : fmt(faltaReceber)}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
