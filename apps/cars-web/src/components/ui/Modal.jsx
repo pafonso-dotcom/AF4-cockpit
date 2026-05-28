@@ -15,15 +15,24 @@ export default function Modal({ title, children, onClose, wide, isDirty = false 
   const ref = useRef();
   const isDirtyRef = useRef(isDirty);
   isDirtyRef.current = isDirty;
+  // Detecta automaticamente edição em qualquer input/textarea/select dentro do
+  // modal. Como o botão "Salvar" chama onClose() direto (não passa por
+  // safeClose), o aviso de "sair sem salvar" só dispara no X / ESC / clicar fora.
+  const touchedRef = useRef(false);
+  // Guarda onde o mousedown começou — pra não fechar quando o usuário seleciona
+  // texto dentro do modal e solta o clique em cima do overlay (drag-select).
+  const mouseDownOnOverlayRef = useRef(false);
+
+  const precisaConfirmar = () => isDirtyRef.current || touchedRef.current;
 
   // Wrapper que pergunta antes de fechar se houver mudanças
   const safeClose = async () => {
-    if (isDirtyRef.current) {
+    if (precisaConfirmar()) {
       const ok = await confirm({
-        title: "Descartar mudanças?",
-        body: "Você tem dados não salvos neste formulário. Se sair agora, eles serão perdidos.",
+        title: "Sair sem salvar?",
+        body: "Você não salvou as alterações deste formulário. Se sair agora, as informações digitadas serão perdidas.",
         danger: true,
-        confirmLabel: "Sim, descartar",
+        confirmLabel: "Sair sem salvar",
         cancelLabel: "Continuar editando",
       });
       if (!ok) return;
@@ -39,7 +48,7 @@ export default function Modal({ title, children, onClose, wide, isDirty = false 
 
     // Avisa antes de fechar a aba/recarregar
     const beforeUnload = (e) => {
-      if (isDirtyRef.current) {
+      if (precisaConfirmar()) {
         e.preventDefault();
         e.returnValue = "";
         return "";
@@ -55,7 +64,14 @@ export default function Modal({ title, children, onClose, wide, isDirty = false 
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const content = (
-    <div onClick={(e) => { if (e.target === ref.current) safeClose(); }} ref={ref}
+    <div onMouseDown={(e) => { mouseDownOnOverlayRef.current = e.target === ref.current; }}
+         onClick={(e) => {
+           // Só fecha se o clique COMEÇOU e TERMINOU no overlay (não um
+           // drag-select que começou dentro do modal e soltou aqui).
+           if (e.target === ref.current && mouseDownOnOverlayRef.current) safeClose();
+           mouseDownOnOverlayRef.current = false;
+         }}
+         ref={ref}
          className="modal-overlay-bg"
          style={{
            position: "fixed", inset: 0,
@@ -66,7 +82,10 @@ export default function Modal({ title, children, onClose, wide, isDirty = false 
            overflowY: "auto",
            WebkitOverflowScrolling: "touch",
          }}>
-      <div className="modal-content" style={{
+      <div className="modal-content"
+        onInput={() => { touchedRef.current = true; }}
+        onChange={() => { touchedRef.current = true; }}
+        style={{
         background: T.card,
         border: `1px solid ${T.borderHi}`,
         maxWidth: wide ? 800 : 520,
