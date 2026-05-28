@@ -5,6 +5,7 @@ import { fmt, uid, todayISO } from "../../../lib/format.js";
 import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import PageHeader from "../../ui/PageHeader.jsx";
+import ControleAnualServicos from "./ControleAnualServicos.jsx";
 import Field from "../../ui/Field.jsx";
 import Modal from "../../ui/Modal.jsx";
 
@@ -42,6 +43,7 @@ export default function Servicos({
   const [instaladoresExpandido, setInstaladoresExpandido] = useState(true);
   const [relatorioAberto, setRelatorioAberto] = useState(false);
   const [relatorioAba, setRelatorioAba] = useState("clientes");
+  const [anualExpandido, setAnualExpandido] = useState(false);
 
   // Mês corrente YYYY-MM — usado pra controle de repasse e relatório.
   const mesCorrente = new Date().toISOString().slice(0, 7);
@@ -778,6 +780,31 @@ export default function Servicos({
              valor={hidden ? "•••••" : fmt(kpi.lucroMes)}
              cor={kpi.lucroMes >= 0 ? T.green : T.red}
              icon={TrendingUp} />
+      </div>
+
+      {/* CONTROLE ANUAL · A RECEBER E A PAGAR */}
+      <div style={{
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        padding: 14, marginBottom: 14,
+      }}>
+        <button onClick={() => setAnualExpandido(v => !v)}
+                style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0,
+                         display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span style={{ color: T.gold }}>
+            {anualExpandido ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </span>
+          <span className="label-eyebrow">📅 Controle anual · a receber e a pagar</span>
+        </button>
+        {anualExpandido && (
+          <div style={{ marginTop: 12 }}>
+            <ControleAnualServicos
+              vendas={vendas}
+              contratos={contratos}
+              instaladores={instaladores}
+              hidden={hidden}
+            />
+          </div>
+        )}
       </div>
 
       {/* CATÁLOGO */}
