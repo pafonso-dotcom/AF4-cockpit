@@ -404,25 +404,25 @@ export default function PreviewImportarFaturaModal({
           const novaParcela = item.tipo === "parcela" && !item._match;
           return (
             <div key={item._idx} style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "10px 12px", marginBottom: 6,
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "6px 10px", marginBottom: 4,
               background: T.card, border: `1px solid ${matchBanner ? (T.blue || "#60a5fa") + "66" : T.border}`,
               borderLeft: `3px solid ${cor}`,
-              borderRadius: 8, opacity: opacidade,
+              borderRadius: 6, opacity: opacidade,
             }}>
               <input type="checkbox" checked={item._incluir}
                      onChange={() => toggleItem(item._idx)}
-                     style={{ accentColor: T.gold }} />
+                     style={{ accentColor: T.gold, flexShrink: 0 }} />
 
               <div style={{
-                width: 28, height: 28, borderRadius: 6,
+                width: 22, height: 22, borderRadius: 5,
                 background: `${cor}22`, display: "grid", placeItems: "center", flexShrink: 0,
               }}>
                 {iconePorTipo[item.tipo]}
               </div>
 
-              <div style={{ flex: 1, minWidth: 140 }}>
-                <div style={{ color: T.ink, fontSize: 13, fontWeight: 500 }}>
+              <div style={{ flex: 1, minWidth: 120 }}>
+                <div style={{ color: T.ink, fontSize: 12.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {item.descricao}
                   {item.tipo === "parcela" && item.parcela_atual && (
                     <span style={{ color: T.muted, fontWeight: 400, marginLeft: 6, fontSize: 11 }}>
