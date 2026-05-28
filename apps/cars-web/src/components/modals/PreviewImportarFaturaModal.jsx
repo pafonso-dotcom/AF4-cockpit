@@ -405,7 +405,7 @@ export default function PreviewImportarFaturaModal({
           return (
             <div key={item._idx} style={{
               display: "flex", alignItems: "center", gap: 8,
-              padding: "6px 10px", marginBottom: 4,
+              padding: "0 10px", marginBottom: 4, minHeight: 44, boxSizing: "border-box",
               background: T.card, border: `1px solid ${matchBanner ? (T.blue || "#60a5fa") + "66" : T.border}`,
               borderLeft: `3px solid ${cor}`,
               borderRadius: 6, opacity: opacidade,
