@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Plus, Trash2, Edit3, Check, Wrench, X, ChevronDown, ChevronRight, DollarSign, TrendingUp, Repeat, Pause, Play, Receipt, HardHat } from "lucide-react";
+import { Plus, Trash2, Edit3, Check, Wrench, X, ChevronDown, ChevronRight, DollarSign, TrendingUp, Repeat, Pause, Play, Receipt, Users } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../../lib/format.js";
 import { toast } from "../../../lib/toast.js";
@@ -25,7 +25,6 @@ export default function Servicos({
   vendas = [], setVendas,
   contratos = [], setContratos,
   clientes = [],
-  veiculos = [],
   instaladores = [], setInstaladores,
   contas = [], setContas,
   transacoes = [], setTransacoes,
@@ -127,6 +126,11 @@ export default function Servicos({
     precoSugerido: String(s.precoSugerido ?? ""),
     custoBase: String(s.custoBase ?? ""),
   });
+  // Atalho: abre o form de novo serviço já com o nome pré-preenchido (presets CRM/Tráfego/App).
+  const abrirServicoComNome = (nome) => setServicoForm({
+    id: null, nome, descricao: "",
+    precoSugerido: "", custoBase: "", ativo: true,
+  });
 
   const salvarServico = () => {
     const nome = (servicoForm.nome || "").trim();
@@ -170,9 +174,9 @@ export default function Servicos({
     setServicos(servicos.map(x => x.id === s.id ? { ...x, ativo: !(x.ativo !== false) } : x));
   };
 
-  /* ---------- Instaladores (CRUD) ---------- */
-  // Instalador = pessoa que executa o serviço e recebe um pagamento que sai do
-  // Caixa do Negócio (não toca Finanças). Diferente do Cliente, que paga.
+  /* ---------- Colaboradores (CRUD) ---------- */
+  // Colaborador = quem executa o serviço (CRM, tráfego, app) e recebe um repasse
+  // que sai do Caixa do Negócio (não toca Finanças). Diferente do Cliente, que paga.
   const abrirInstaladorNovo = () => setInstaladorForm({
     id: null, nome: "", telefone: "", obs: "", ativo: true,
   });
@@ -180,7 +184,7 @@ export default function Servicos({
 
   const salvarInstalador = () => {
     const nome = (instaladorForm.nome || "").trim();
-    if (!nome) { toast.error("Informe o nome do instalador."); return; }
+    if (!nome) { toast.error("Informe o nome do colaborador."); return; }
     if (typeof setInstaladores !== "function") { setInstaladorForm(null); return; }
     const dados = {
       ...instaladorForm,
@@ -201,18 +205,18 @@ export default function Servicos({
 
   const excluirInstalador = async (i) => {
     if (typeof setInstaladores !== "function") return;
-    // Quantas vendas/faturas usam esse instalador? Avisa antes de excluir.
+    // Quantas vendas/faturas usam esse colaborador? Avisa antes de excluir.
     const usos = (vendas || []).filter(v => v.instaladorId === i.id).length;
     const ok = await confirm({
       title: `Excluir ${i.nome}?`,
       body: usos > 0
-        ? `Esse instalador está vinculado a ${usos} venda(s)/fatura(s). Os registros continuam mas perdem o vínculo. Continuar?`
+        ? `Esse colaborador está vinculado a ${usos} venda(s)/fatura(s). Os registros continuam mas perdem o vínculo. Continuar?`
         : `O cadastro de ${i.nome} será removido.`,
       danger: true, confirmLabel: "Excluir",
     });
     if (!ok) return;
     setInstaladores(instaladores.filter(x => x.id !== i.id));
-    toast.success("Instalador removido.");
+    toast.success("Colaborador removido.");
   };
 
   // Marca/desmarca o repasse do mês corrente como efetivamente pago ao
@@ -242,7 +246,6 @@ export default function Servicos({
     valor: "",
     custo: "",
     clienteId: "",
-    veiculoId: "",
     instaladorId: "",
     valorInstalador: "",
     obs: "",
@@ -303,15 +306,13 @@ export default function Servicos({
     if (!Number.isFinite(valor) || valor <= 0) { toast.error("Valor inválido."); return; }
 
     const cliente = clientes.find(c => c.id === vendaForm.clienteId);
-    const veiculo = veiculos.find(x => x.id === vendaForm.veiculoId);
     const partes = [nome];
     if (cliente) partes.push(cliente.nome);
-    if (veiculo) partes.push(`${veiculo.modelo}${veiculo.placa ? ` ${veiculo.placa}` : ""}`);
 
     const servicosIds = vendaForm.servicosIds || [];
     const primaryServicoId = servicosIds[0] || null;
 
-    // Instalador opcional: só registra saída se setou nome + valor > 0
+    // Colaborador opcional: só registra saída se setou nome + valor > 0
     const valorInst = Number(vendaForm.valorInstalador) || 0;
     const temInstalador = !!vendaForm.instaladorId && valorInst > 0;
     const inst = temInstalador ? instaladores.find(i => i.id === vendaForm.instaladorId) : null;
@@ -324,7 +325,7 @@ export default function Servicos({
       data: vendaForm.data,
       valor, custo,
       clienteId: vendaForm.clienteId || null,
-      veiculoId: vendaForm.veiculoId || null,
+      veiculoId: null,
       instaladorId: temInstalador ? vendaForm.instaladorId : null,
       valorInstalador: temInstalador ? valorInst : 0,
       contaDestino: "Caixa do Negócio",
@@ -354,7 +355,7 @@ export default function Servicos({
             id: uid(),
             tipo: "pago-instalador",
             data: vendaForm.data,
-            descricao: `Pago a ${inst?.nome || "instalador"} · ${nome}`,
+            descricao: `Pago a ${inst?.nome || "colaborador"} · ${nome}`,
             valor: -valorInst,
             vendaId: novaVenda.id,
             instaladorId: vendaForm.instaladorId,
@@ -368,7 +369,7 @@ export default function Servicos({
     setVendas([novaVenda, ...vendas]);
     setVendaForm(null);
     const lucro = valor - custo - (temInstalador ? valorInst : 0);
-    toast.success(`Serviço registrado · lucro ${fmt(lucro)}${temInstalador ? " (após pago instalador)" : ""}`);
+    toast.success(`Serviço registrado · lucro ${fmt(lucro)}${temInstalador ? " (após repasse ao colaborador)" : ""}`);
   };
 
   const estornarVenda = async (v) => {
@@ -379,7 +380,7 @@ export default function Servicos({
     const ok = await confirm({
       title: `Estornar venda de ${v.nome}?`,
       body: isCaixaVirtual
-        ? `A venda de ${fmt(v.valor)} será removida da Caixa do Negócio${temInst ? " (incluindo o pago ao instalador)" : ""}${ehDeContrato ? " e o contrato volta a permitir gerar a fatura desse mês" : ""}.`
+        ? `A venda de ${fmt(v.valor)} será removida da Caixa do Negócio${temInst ? " (incluindo o repasse ao colaborador)" : ""}${ehDeContrato ? " e o contrato volta a permitir gerar a fatura desse mês" : ""}.`
         : `A venda de ${fmt(v.valor)} será removida, o saldo de ${v.contaDestino} ajustado e a transação no Finanças removida.`,
       danger: true, confirmLabel: "Estornar",
     });
@@ -661,7 +662,7 @@ export default function Servicos({
             id: uid(),
             tipo: "pago-instalador",
             data: todayISO(),
-            descricao: `Pago a ${inst?.nome || "instalador"} · ${c.nome} · ${refLabel}`,
+            descricao: `Pago a ${inst?.nome || "colaborador"} · ${c.nome} · ${refLabel}`,
             valor: -valorInstContrato,
             vendaId: novaVenda.id,
             contratoId: c.id,
@@ -778,8 +779,22 @@ export default function Servicos({
 
         {catalogoExpandido && (
           servicos.length === 0 ? (
-            <div style={{ padding: 18, fontSize: 12, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
-              Catálogo vazio. Crie serviços (lavagem, mecânica, polimento, etc) pra acelerar o cadastro de vendas.
+            <div style={{ padding: 18, textAlign: "center" }}>
+              <div style={{ fontSize: 12, color: T.faint, fontStyle: "italic", marginBottom: 12 }}>
+                Catálogo vazio. Crie seus serviços (CRM, Tráfego Pago, App…) pra acelerar contratos e vendas.
+              </div>
+              <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                {["CRM", "Tráfego Pago", "App"].map(nome => (
+                  <button key={nome} onClick={() => abrirServicoComNome(nome)}
+                    style={{
+                      background: `${T.gold}22`, border: `1px solid ${T.gold}66`,
+                      color: T.gold, padding: "6px 14px", borderRadius: 100, cursor: "pointer",
+                      fontSize: 11.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5,
+                    }}>
+                    <Plus size={12} /> {nome}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
             <div style={{ display: "grid", gap: 6 }}>
@@ -955,10 +970,10 @@ export default function Servicos({
                           const valorInstContrato = Number(c.valorInstalador || 0);
                           if (!c.instaladorId || valorInstContrato <= 0) return null;
                           const inst = (instaladores || []).find(i => i.id === c.instaladorId);
-                          const nomeInst = inst?.nome || "instalador";
+                          const nomeInst = inst?.nome || "colaborador";
                           return (
                             <span title={`Pago a ${nomeInst} a cada fatura: ${fmt(valorInstContrato)}`}>
-                              👷 {nomeInst} · {hidden ? "•••" : `${fmt(valorInstContrato)}/fatura`}
+                              🧑‍💻 {nomeInst} · {hidden ? "•••" : `${fmt(valorInstContrato)}/fatura`}
                             </span>
                           );
                         })()}
@@ -1005,7 +1020,7 @@ export default function Servicos({
         )}
       </div>
 
-      {/* INSTALADORES */}
+      {/* COLABORADORES */}
       <div style={{
         background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
         padding: 14, marginBottom: 14,
@@ -1017,9 +1032,9 @@ export default function Servicos({
             <span style={{ color: T.gold }}>
               {instaladoresExpandido ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </span>
-            <HardHat size={14} style={{ color: T.gold }} />
+            <Users size={14} style={{ color: T.gold }} />
             <span className="label-eyebrow">
-              Instaladores ({(instaladores || []).filter(i => i.ativo !== false).length} ativos)
+              Colaboradores ({(instaladores || []).filter(i => i.ativo !== false).length} ativos)
             </span>
           </button>
           <button onClick={abrirInstaladorNovo}
@@ -1028,14 +1043,14 @@ export default function Servicos({
               color: T.muted, padding: "5px 10px", borderRadius: 5, cursor: "pointer",
               fontSize: 10, letterSpacing: ".05em", textTransform: "uppercase",
             }}>
-            <Plus size={11} className="inline mr-1" /> Novo instalador
+            <Plus size={11} className="inline mr-1" /> Novo colaborador
           </button>
         </div>
 
         {instaladoresExpandido && (
           (instaladores || []).length === 0 ? (
             <div style={{ padding: 18, fontSize: 12, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
-              Nenhum instalador cadastrado. Use pra registrar quem executa o serviço e quanto recebe (sai do Caixa do Negócio).
+              Nenhum colaborador cadastrado. Use pra registrar quem executa o serviço (CRM, tráfego, app) e quanto recebe (sai do Caixa do Negócio).
             </div>
           ) : (
             <div style={{ display: "grid", gap: 6 }}>
@@ -1095,7 +1110,7 @@ export default function Servicos({
                         </button>
                       ) : (
                         <button onClick={() => togglePagarInstalador(i)}
-                                title="Marcar repasse do mês como pago ao instalador"
+                                title="Marcar repasse do mês como pago ao colaborador"
                                 style={{
                                   display: "inline-flex", alignItems: "center", gap: 4,
                                   background: T.gold, border: "none",
@@ -1160,7 +1175,6 @@ export default function Servicos({
           {vendasFiltradas.map(v => (
             <VendaRow key={v.id} venda={v}
                       cliente={clientes.find(c => c.id === v.clienteId)}
-                      veiculo={veiculos.find(x => x.id === v.veiculoId)}
                       instalador={v.instaladorId ? instaladores.find(i => i.id === v.instaladorId) : null}
                       servicos={servicos}
                       hidden={hidden}
@@ -1265,7 +1279,7 @@ export default function Servicos({
             <Field label="Nome do serviço" required>
               <input value={vendaForm.nome}
                      onChange={e => setVendaForm({ ...vendaForm, nome: e.target.value })}
-                     placeholder="Ex.: Lavagem completa" />
+                     placeholder="Ex.: Gestão de tráfego" />
             </Field>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Field label="Valor (R$)" required>
@@ -1281,39 +1295,26 @@ export default function Servicos({
                        onChange={e => setVendaForm({ ...vendaForm, data: e.target.value })} />
               </Field>
             </div>
+            <Field label="Cliente">
+              <select value={vendaForm.clienteId}
+                      onChange={e => setVendaForm({ ...vendaForm, clienteId: e.target.value })}>
+                <option value="">— sem cliente vinculado —</option>
+                {clientes.map(c => (
+                  <option key={c.id} value={c.id}>{c.nome}</option>
+                ))}
+              </select>
+            </Field>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Cliente">
-                <select value={vendaForm.clienteId}
-                        onChange={e => setVendaForm({ ...vendaForm, clienteId: e.target.value })}>
-                  <option value="">— sem cliente vinculado —</option>
-                  {clientes.map(c => (
-                    <option key={c.id} value={c.id}>{c.nome}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Veículo (opcional)">
-                <select value={vendaForm.veiculoId}
-                        onChange={e => setVendaForm({ ...vendaForm, veiculoId: e.target.value })}>
-                  <option value="">— nenhum —</option>
-                  {veiculos.filter(x => !x.vendido).map(x => (
-                    <option key={x.id} value={x.id}>
-                      {x.modelo}{x.placa ? ` (${x.placa})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Instalador (opcional)" hint="Quem executou o serviço">
+              <Field label="Colaborador (opcional)" hint="Quem executou o serviço">
                 <select value={vendaForm.instaladorId || ""}
                         onChange={e => setVendaForm({ ...vendaForm, instaladorId: e.target.value })}>
-                  <option value="">— sem instalador —</option>
+                  <option value="">— sem colaborador —</option>
                   {instaladores.filter(i => i.ativo !== false).map(i => (
                     <option key={i.id} value={i.id}>{i.nome}</option>
                   ))}
                 </select>
               </Field>
-              <Field label="Pago ao instalador (R$)" hint="Sai do Caixa do Negócio">
+              <Field label="Repasse ao colaborador (R$)" hint="Sai do Caixa do Negócio">
                 <input type="number" step="0.01" value={vendaForm.valorInstalador || ""}
                        onChange={e => setVendaForm({ ...vendaForm, valorInstalador: e.target.value })}
                        placeholder="0,00"
@@ -1330,7 +1331,7 @@ export default function Servicos({
               <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3, fontStyle: "italic" }}>
                 Valor entra na Caixa virtual do Negócio (não cria transação em Finanças).
                 {vendaForm.instaladorId && Number(vendaForm.valorInstalador) > 0 && (
-                  <> Pagamento ao instalador sai do mesmo caixa.</>
+                  <> Repasse ao colaborador sai do mesmo caixa.</>
                 )}
               </div>
             </div>
@@ -1517,16 +1518,16 @@ export default function Servicos({
             );
           })()}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Instalador (opcional)" hint="Quem executa o serviço a cada fatura">
+            <Field label="Colaborador (opcional)" hint="Quem executa o serviço a cada fatura">
               <select value={contratoForm.instaladorId || ""}
                       onChange={e => setContratoForm({ ...contratoForm, instaladorId: e.target.value })}>
-                <option value="">— sem instalador —</option>
+                <option value="">— sem colaborador —</option>
                 {instaladores.filter(i => i.ativo !== false).map(i => (
                   <option key={i.id} value={i.id}>{i.nome}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Pago ao instalador (R$/fatura)" hint="Sai do Caixa do Negócio a cada faturamento">
+            <Field label="Repasse ao colaborador (R$/fatura)" hint="Sai do Caixa do Negócio a cada faturamento">
               <input type="number" step="0.01" value={contratoForm.valorInstalador || ""}
                      onChange={e => setContratoForm({ ...contratoForm, valorInstalador: e.target.value })}
                      placeholder="0,00"
@@ -1543,7 +1544,7 @@ export default function Servicos({
             <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3, fontStyle: "italic" }}>
               Receita entra na Caixa virtual do Negócio (não cria transação em Finanças).
               {contratoForm.instaladorId && Number(contratoForm.valorInstalador) > 0 && (
-                <> Pagamento ao instalador sai do mesmo caixa a cada fatura.</>
+                <> Repasse ao colaborador sai do mesmo caixa a cada fatura.</>
               )}
             </div>
           </div>
@@ -1578,14 +1579,14 @@ export default function Servicos({
         </Modal>
       )}
 
-      {/* MODAL: instalador */}
+      {/* MODAL: colaborador */}
       {instaladorForm && (
-        <Modal title={instaladorForm.id ? "Editar instalador" : "Novo instalador"}
+        <Modal title={instaladorForm.id ? "Editar colaborador" : "Novo colaborador"}
                onClose={() => setInstaladorForm(null)}>
           <Field label="Nome" required>
             <input value={instaladorForm.nome}
                    onChange={e => setInstaladorForm({ ...instaladorForm, nome: e.target.value })}
-                   placeholder="Ex.: Paulo" autoFocus />
+                   placeholder="Ex.: Gabriel" autoFocus />
           </Field>
           <Field label="Telefone">
             <input value={instaladorForm.telefone}
@@ -1595,7 +1596,7 @@ export default function Servicos({
           <Field label="Observações">
             <textarea value={instaladorForm.obs} rows={2}
                       onChange={e => setInstaladorForm({ ...instaladorForm, obs: e.target.value })}
-                      placeholder="Especialidade, faixa de valor habitual, contexto..."
+                      placeholder="Função (tráfego, CRM, dev), faixa de valor, contexto..."
                       style={{ resize: "vertical", fontFamily: "inherit" }} />
           </Field>
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, cursor: "pointer" }}>
@@ -1636,7 +1637,7 @@ export default function Servicos({
             const inst = (instaladores || []).find(i => i.id === instId);
             return {
               id: instId,
-              nome: inst?.nome || "(instalador removido)",
+              nome: inst?.nome || "(colaborador removido)",
               qtd: d.qtd,
               total: saldoMesPorInstalador[instId] || d.total,
               pago: (inst?.repassesPagos || []).includes(mesCorrente),
@@ -1658,7 +1659,7 @@ export default function Servicos({
           <Modal title={`Relatório de ${refLabel}`} onClose={() => setRelatorioAberto(false)}>
             {/* Abas */}
             <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-              {[{ id: "clientes", l: "Clientes" }, { id: "instaladores", l: "Instaladores" }].map(o => (
+              {[{ id: "clientes", l: "Clientes" }, { id: "instaladores", l: "Colaboradores" }].map(o => (
                 <button key={o.id} onClick={() => setRelatorioAba(o.id)}
                   style={{
                     padding: "6px 16px", fontSize: 11, letterSpacing: ".05em", textTransform: "uppercase",
@@ -1711,13 +1712,13 @@ export default function Servicos({
             ) : (
               linhasInstaladores.length === 0 ? (
                 <div style={{ padding: 28, fontSize: 12.5, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
-                  Nenhum serviço com instalador em {refLabel}.
+                  Nenhum serviço com colaborador em {refLabel}.
                 </div>
               ) : (
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
-                      <th style={thStyle}>Instalador</th>
+                      <th style={thStyle}>Colaborador</th>
                       <th style={{ ...thStyle, textAlign: "right" }}>Serviços</th>
                       <th style={{ ...thStyle, textAlign: "right" }}>A receber</th>
                       <th style={{ ...thStyle, textAlign: "center" }}>Status</th>
@@ -1768,18 +1769,18 @@ export default function Servicos({
   );
 }
 
-function VendaRow({ venda: v, cliente, veiculo, instalador, servicos = [], hidden, onEstornar }) {
-  // Lucro: além de custo, desconta também o valor pago ao instalador (saída
-  // virtual da Caixa). Backward-compat: vendas sem instalador → valorInst 0.
+function VendaRow({ venda: v, cliente, instalador, servicos = [], hidden, onEstornar }) {
+  // Lucro: além de custo, desconta também o repasse ao colaborador (saída
+  // virtual da Caixa). Backward-compat: vendas sem colaborador → valorInst 0.
   const valorInst = Number(v.valorInstalador || 0);
   const lucro = Number(v.valor || 0) - Number(v.custo || 0) - valorInst;
   // Retrocompat: vendas antigas com servicoId; vendas novas com servicosIds[]
   const servicosVinc = v.servicosIds || (v.servicoId ? [v.servicoId] : []);
   const qtdServicos = servicosVinc.length;
-  // Chip do instalador: só renderiza se a venda tem instaladorId — não
-  // depende de o cadastro ainda existir (fallback pra obscuro "instalador").
+  // Chip do colaborador: só renderiza se a venda tem instaladorId — não
+  // depende de o cadastro ainda existir (fallback pra "colaborador").
   const temInstalador = !!v.instaladorId && valorInst > 0;
-  const nomeInst = instalador?.nome || (temInstalador ? "instalador" : "");
+  const nomeInst = instalador?.nome || (temInstalador ? "colaborador" : "");
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
@@ -1809,10 +1810,9 @@ function VendaRow({ venda: v, cliente, veiculo, instalador, servicos = [], hidde
         </div>
         <div style={{ fontSize: 11, color: T.muted, marginTop: 2, display: "flex", gap: 10, flexWrap: "wrap" }}>
           {cliente && <span>👤 {cliente.nome}</span>}
-          {veiculo && <span>🚗 {veiculo.modelo}{veiculo.placa ? ` (${veiculo.placa})` : ""}</span>}
           {temInstalador && (
-            <span title={`Pago a ${nomeInst}: ${fmt(valorInst)} (sai do Caixa do Negócio)`}>
-              👷 {nomeInst} · {hidden ? "•••" : `pago ${fmt(valorInst)}`}
+            <span title={`Repasse a ${nomeInst}: ${fmt(valorInst)} (sai do Caixa do Negócio)`}>
+              🧑‍💻 {nomeInst} · {hidden ? "•••" : `repasse ${fmt(valorInst)}`}
             </span>
           )}
           <span>→ {v.contaDestino}</span>
