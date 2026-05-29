@@ -52,6 +52,8 @@ export default function Servicos({
   const [servicoForm, setServicoForm] = useState(null);
   const [bancoForm, setBancoForm] = useState(null);
   const [lancamentoForm, setLancamentoForm] = useState(null);
+  const [receberForm, setReceberForm] = useState(null); // { venda, data, bancoId }
+  const [pagarForm, setPagarForm] = useState(null);      // { inst, data }
   const [bancoExpandido, setBancoExpandido] = useState(true);
   const [vendaForm, setVendaForm] = useState(null);
   const [contratoForm, setContratoForm] = useState(null);
@@ -379,48 +381,53 @@ export default function Servicos({
     toast.success("Colaborador removido.");
   };
 
-  // Marca/desmarca o repasse do mês corrente como pago ao colaborador.
-  // Pagar = SAÍDA do Banco do Serviço (debita o acumulado do mês da conta padrão).
-  // Desmarcar devolve à conta o valor exato que havia saído.
+  // Repasse ao colaborador (INDEPENDENTE do recebimento do cliente).
+  // Pagar = abre modal pra escolher a DATA DO PAGAMENTO; debita do Banco do Serviço.
+  // Desmarcar = devolve à conta o valor exato que havia saído.
   const togglePagarInstalador = (inst) => {
     if (typeof setInstaladores !== "function") return;
-    const pagos = inst.repassesPagos || [];
-    const jaPago = pagos.includes(mesCorrente);
-    const totalMes = saldoMesPorInstalador[inst.id] || 0;
-    const novos = jaPago
-      ? pagos.filter(m => m !== mesCorrente)
-      : [...pagos, mesCorrente];
-    setInstaladores(instaladores.map(i =>
-      i.id === inst.id ? { ...i, repassesPagos: novos } : i
-    ));
+    const jaPago = (inst.repassesPagos || []).includes(mesCorrente);
+    if (jaPago) { desmarcarRepasse(inst); }
+    else { setPagarForm({ inst, data: todayISO() }); }
+  };
 
-    if (jaPago) {
-      // Desmarcar: devolve ao(s) banco(s) o que saiu p/ este colaborador no mês.
-      const hist = (caixaNegocio?.historico) || [];
-      const doMes = hist.filter(h => h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente);
-      if (doMes.length) {
-        const net = doMes.reduce((s, h) => s + Number(h.valor || 0), 0); // negativo
-        const porBanco = {};
-        doMes.forEach(h => { if (h.bancoId) porBanco[h.bancoId] = (porBanco[h.bancoId] || 0) + Number(h.valor || 0); });
-        if (typeof setBancos === "function") {
-          setBancos(prev => prev.map(b => porBanco[b.id] ? { ...b, saldo: (Number(b.saldo) || 0) - porBanco[b.id] } : b));
-        }
-        if (typeof setCaixaNegocio === "function") {
-          setCaixaNegocio(prev => ({
-            saldo: (prev?.saldo || 0) - net,
-            historico: ((prev?.historico) || []).filter(h => !(h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente)),
-          }));
-        }
+  const desmarcarRepasse = (inst) => {
+    setInstaladores(instaladores.map(i =>
+      i.id === inst.id ? { ...i, repassesPagos: (i.repassesPagos || []).filter(m => m !== mesCorrente) } : i
+    ));
+    const hist = (caixaNegocio?.historico) || [];
+    const doMes = hist.filter(h => h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente);
+    if (doMes.length) {
+      const net = doMes.reduce((s, h) => s + Number(h.valor || 0), 0); // negativo
+      const porBanco = {};
+      doMes.forEach(h => { if (h.bancoId) porBanco[h.bancoId] = (porBanco[h.bancoId] || 0) + Number(h.valor || 0); });
+      if (typeof setBancos === "function") {
+        setBancos(prev => prev.map(b => porBanco[b.id] ? { ...b, saldo: (Number(b.saldo) || 0) - porBanco[b.id] } : b));
       }
-      toast.success(`Repasse de ${inst.nome} (${mesCorrente}) desmarcado — devolvido ao Banco do Serviço.`);
-    } else {
-      if (totalMes > 0) {
-        lancar({ bancoId: bancoPadraoId, tipo: "pago-instalador", data: todayISO(),
-                 descricao: `Repasse a ${inst.nome} · ${mesCorrente}`, valor: -totalMes,
-                 instaladorId: inst.id, repasseMes: mesCorrente });
+      if (typeof setCaixaNegocio === "function") {
+        setCaixaNegocio(prev => ({
+          saldo: (prev?.saldo || 0) - net,
+          historico: ((prev?.historico) || []).filter(h => !(h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente)),
+        }));
       }
-      toast.success(`Repasse de ${fmt(totalMes)} a ${inst.nome} pago — debitado do Banco do Serviço.`);
     }
+    toast.success(`Repasse de ${inst.nome} (${mesCorrente}) desmarcado — devolvido ao Banco do Serviço.`);
+  };
+
+  // Confirma o pagamento do repasse com a DATA escolhida no modal.
+  const confirmarPagamentoRepasse = () => {
+    const inst = pagarForm.inst;
+    const totalMes = saldoMesPorInstalador[inst.id] || 0;
+    setInstaladores(instaladores.map(i =>
+      i.id === inst.id ? { ...i, repassesPagos: [...(i.repassesPagos || []), mesCorrente] } : i
+    ));
+    if (totalMes > 0) {
+      lancar({ bancoId: bancoPadraoId, tipo: "pago-instalador", data: pagarForm.data,
+               descricao: `Repasse a ${inst.nome} · ${mesCorrente}`, valor: -totalMes,
+               instaladorId: inst.id, repasseMes: mesCorrente });
+    }
+    toast.success(`Repasse de ${fmt(totalMes)} a ${inst.nome} pago — debitado do Banco do Serviço.`);
+    setPagarForm(null);
   };
 
   /* ---------- Venda ---------- */
@@ -550,7 +557,23 @@ export default function Servicos({
     }
   };
 
-  // Marcar fatura como PAGA: receita (e custo) entram/saem do Banco do Serviço.
+  // Receber: abre modal pra escolher a DATA DO RECEBIMENTO e a conta.
+  // O recebimento é INDEPENDENTE do repasse ao colaborador (não baixa o repasse).
+  const abrirReceber = (v) => setReceberForm({
+    venda: v, data: todayISO(), bancoId: v.bancoRecebimento || bancoPadraoId,
+  });
+
+  const confirmarRecebimento = () => {
+    const v = receberForm.venda;
+    const cliente = clientes.find(c => c.id === v.clienteId);
+    const vPago = { ...v, pago: true, pagoEm: receberForm.data, bancoRecebimento: receberForm.bancoId };
+    setVendas((vendas || []).map(x => x.id === v.id ? vPago : x));
+    aplicarReceitaCaixa(vPago, `${v.nome}${cliente ? ` · ${cliente.nome}` : ""}`);
+    toast.success(`Recebido ${fmt(v.valor)} · ${v.nome}`);
+    setReceberForm(null);
+  };
+
+  // Marca fatura como PAGA com data de hoje (usado em ações em lote).
   const marcarFaturaPaga = (v) => {
     const cliente = clientes.find(c => c.id === v.clienteId);
     const vPago = { ...v, pago: true, pagoEm: todayISO() };
@@ -665,6 +688,19 @@ export default function Servicos({
     setLancamentoForm(null);
   };
 
+  // Limpa o Banco do Serviço: zera o saldo de todas as contas e apaga o extrato.
+  const limparBanco = async () => {
+    const ok = await confirm({
+      title: "Limpar o Banco do Serviço?",
+      body: "Zera o saldo de TODAS as contas e apaga TODO o extrato (movimentações). As vendas/contratos continuam cadastrados, mas o histórico financeiro do banco é reiniciado. Não dá pra desfazer.",
+      danger: true, confirmLabel: "Limpar banco",
+    });
+    if (!ok) return;
+    if (typeof setBancos === "function") setBancos(prev => (prev || []).map(b => ({ ...b, saldo: 0 })));
+    if (typeof setCaixaNegocio === "function") setCaixaNegocio({ saldo: 0, historico: [] });
+    toast.success("Banco do Serviço zerado.");
+  };
+
   // Estorna um lançamento do extrato. Se for de uma venda/fatura, desfaz o
   // recebimento inteiro (cobrança volta a pendente). Se for repasse, devolve e
   // reabre o repasse do mês. Se for manual, só remove e ajusta o saldo da conta.
@@ -720,10 +756,11 @@ export default function Servicos({
     const servicosIds = vendaForm.servicosIds || [];
     const primaryServicoId = servicosIds[0] || null;
 
-    // Colaborador opcional: guarda o vínculo + valor a repassar. O repasse NÃO
-    // sai do Caixa agora — fica pendente e só sai quando você clicar em "Pagar".
+    // Colaborador: guarda o vínculo SEMPRE que selecionado (mesmo com repasse 0).
+    // O repasse é INDEPENDENTE do recebimento — só sai quando você clicar em
+    // "Pagar" o repasse do mês na seção Colaboradores.
     const valorInst = Number(vendaForm.valorInstalador) || 0;
-    const temInstalador = !!vendaForm.instaladorId && valorInst > 0;
+    const temInstalador = !!vendaForm.instaladorId;
 
     const bancoRecebimento = vendaForm.bancoRecebimento || bancoPadraoId;
     const novaVenda = {
@@ -735,8 +772,8 @@ export default function Servicos({
       valor, custo,
       clienteId: vendaForm.clienteId || null,
       veiculoId: null,
-      instaladorId: temInstalador ? vendaForm.instaladorId : null,
-      valorInstalador: temInstalador ? valorInst : 0,
+      instaladorId: vendaForm.instaladorId || null,
+      valorInstalador: valorInst,
       contaDestino: "Caixa do Negócio",
       bancoRecebimento,
       pago: true,             // venda avulsa = recebida na hora
@@ -750,8 +787,8 @@ export default function Servicos({
 
     setVendas([novaVenda, ...vendas]);
     setVendaForm(null);
-    const lucro = valor - custo - (temInstalador ? valorInst : 0);
-    toast.success(`Serviço registrado · lucro ${fmt(lucro)}${temInstalador ? " (repasse ao colaborador fica pendente)" : ""}`);
+    const lucro = valor - custo - valorInst;
+    toast.success(`Serviço registrado · lucro ${fmt(lucro)}${valorInst > 0 ? " (repasse ao colaborador fica pendente)" : ""}`);
   };
 
   const estornarVenda = async (v) => {
@@ -893,7 +930,6 @@ export default function Servicos({
 
     const duracaoMesesN = parseInt(contratoForm.duracaoMeses, 10);
     const valorInstN = Number(contratoForm.valorInstalador) || 0;
-    const temInstalador = !!contratoForm.instaladorId && valorInstN > 0;
     const dados = {
       ...contratoForm,
       // O custo do contrato agora é só o repasse ao colaborador (campo único).
@@ -901,8 +937,9 @@ export default function Servicos({
       servicosIds: contratoForm.servicosIds || [],
       bancoRecebimento: contratoForm.bancoRecebimento || bancoPadraoId,
       duracaoMeses: Number.isFinite(duracaoMesesN) && duracaoMesesN > 0 ? duracaoMesesN : null,
-      instaladorId: temInstalador ? contratoForm.instaladorId : null,
-      valorInstalador: temInstalador ? valorInstN : 0,
+      // Salva o colaborador sempre que selecionado (mesmo com repasse 0).
+      instaladorId: contratoForm.instaladorId || null,
+      valorInstalador: valorInstN,
       contaDestino: "Caixa do Negócio",
       obs: (contratoForm.obs || "").trim(),
     };
@@ -962,7 +999,7 @@ export default function Servicos({
     // saldoMesPorInstalador, chips e estorno funcionem do mesmo jeito que
     // venda avulsa.
     const valorInstContrato = Number(c.valorInstalador || 0);
-    const temInstalador = !!c.instaladorId && valorInstContrato > 0;
+    const temInstalador = !!c.instaladorId;
 
     // A fatura nasce como COBRANÇA PENDENTE (pago:false). Nada de dinheiro se
     // move agora — receita (e custo) só entram no Banco do Serviço quando você
@@ -1108,6 +1145,11 @@ export default function Servicos({
               </button>
               <button onClick={() => abrirLancamento("saida")} className="btn-ghost" style={{ fontSize: 11, color: T.red, borderColor: T.red }}>
                 − Saída
+              </button>
+              <button onClick={limparBanco} className="btn-ghost"
+                      title="Zera os saldos e apaga o extrato do Banco do Serviço"
+                      style={{ fontSize: 11, color: T.muted, marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <Trash2 size={12} /> Limpar banco
               </button>
             </div>
             <div style={{ display: "grid", gap: 6 }}>
@@ -1697,7 +1739,7 @@ export default function Servicos({
                       instalador={v.instaladorId ? instaladores.find(i => i.id === v.instaladorId) : null}
                       servicos={servicos}
                       hidden={hidden}
-                      onMarcarPago={() => marcarFaturaPaga(v)}
+                      onMarcarPago={() => abrirReceber(v)}
                       onMarcarNaoPago={() => marcarFaturaNaoPaga(v)}
                       onCobrar={() => enviarCobrancaWhatsApp(v)}
                       onPDF={() => setFaturaDoc(v)}
@@ -2329,6 +2371,62 @@ export default function Servicos({
             <button className="btn-ghost" onClick={() => setLancamentoForm(null)}>Cancelar</button>
             <button className="btn-gold" onClick={salvarLancamento}>
               <Check size={13} className="inline mr-1" /> Lançar
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* MODAL: receber (data do recebimento + conta) */}
+      {receberForm && (
+        <Modal title="Receber pagamento" onClose={() => setReceberForm(null)}>
+          <div style={{ fontSize: 13, color: T.muted, marginBottom: 12 }}>
+            <strong style={{ color: T.ink }}>{receberForm.venda.nome}</strong> ·{" "}
+            <span className="num" style={{ color: T.gold, fontWeight: 600 }}>{fmt(receberForm.venda.valor)}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Data do recebimento" required>
+              <input type="date" value={receberForm.data} autoFocus
+                     onChange={e => setReceberForm({ ...receberForm, data: e.target.value })} />
+            </Field>
+            <Field label="Conta de recebimento">
+              <select value={receberForm.bancoId || ""}
+                      onChange={e => setReceberForm({ ...receberForm, bancoId: e.target.value })}>
+                {(bancos || []).map(b => (
+                  <option key={b.id} value={b.id}>{b.nome} · {fmt(b.saldo || 0)}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <div style={{ fontSize: 11.5, color: T.faint, marginTop: 8, fontStyle: "italic" }}>
+            O recebimento é independente: não baixa o repasse ao colaborador (esse é pago à parte).
+          </div>
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => setReceberForm(null)}>Cancelar</button>
+            <button className="btn-gold" onClick={confirmarRecebimento}>
+              <Check size={13} className="inline mr-1" /> Confirmar recebimento
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* MODAL: pagar repasse ao colaborador (data do pagamento) */}
+      {pagarForm && (
+        <Modal title="Pagar repasse" onClose={() => setPagarForm(null)}>
+          <div style={{ fontSize: 13, color: T.muted, marginBottom: 12 }}>
+            Repasse a <strong style={{ color: T.ink }}>{pagarForm.inst.nome}</strong> ({mesCorrente}) ·{" "}
+            <span className="num" style={{ color: T.gold, fontWeight: 600 }}>{fmt(saldoMesPorInstalador[pagarForm.inst.id] || 0)}</span>
+          </div>
+          <Field label="Data do pagamento" required>
+            <input type="date" value={pagarForm.data} autoFocus
+                   onChange={e => setPagarForm({ ...pagarForm, data: e.target.value })} />
+          </Field>
+          <div style={{ fontSize: 11.5, color: T.faint, marginTop: 8, fontStyle: "italic" }}>
+            Sai do Banco do Serviço (conta padrão).
+          </div>
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => setPagarForm(null)}>Cancelar</button>
+            <button className="btn-gold" onClick={confirmarPagamentoRepasse}>
+              <Check size={13} className="inline mr-1" /> Confirmar pagamento
             </button>
           </div>
         </Modal>
