@@ -231,12 +231,12 @@ export default function App() {
       <GlobalStyles />
       <style>{`.invest-nav::-webkit-scrollbar{display:none}.invest-nav{scrollbar-width:none}`}</style>
 
-      {/* Cabeçalho */}
+      {/* Cabeçalho — barra de marca, sempre escura (independente da paleta) */}
       <header style={{
         display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
-        padding: "14px 20px", borderBottom: `1px solid ${T.border}`, background: T.card,
+        padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,.08)", background: "#0c0b0a",
       }}>
-        <div style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: T.gold, letterSpacing: "-0.02em" }}>
+        <div style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em" }}>
           <Logo size={26} />
         </div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
@@ -409,9 +409,11 @@ export default function App() {
   );
 }
 
+// Botões da barra de marca (fundo escuro fixo) — cores fixas, legíveis no dark.
 const btn = (busy) => ({
   display: "inline-flex", alignItems: "center", gap: 6,
   padding: "7px 12px", borderRadius: 7, fontSize: 12, fontWeight: 500,
-  background: "transparent", border: `1px solid ${T.border}`, color: T.muted,
+  background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.16)",
+  color: "rgba(240,235,225,.82)",
   cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1,
 });
