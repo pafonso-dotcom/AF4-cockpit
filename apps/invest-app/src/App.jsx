@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { RefreshCw, Eye, EyeOff } from "lucide-react";
+import { RefreshCw, Eye, EyeOff, LogOut } from "lucide-react";
 
 import { T, applyTheme } from "./lib/theme.js";
 import { simulateTick } from "./lib/format.js";
 import { atualizarCarteira } from "./lib/cotacoes.js";
 import { seedAtivos } from "./lib/seeds.js";
+import { loadInvestState, saveInvestState } from "./lib/cloudStore.js";
+import { supabaseConfigured, signOut } from "./lib/supabase.js";
 
 import GlobalStyles from "./components/ui/GlobalStyles.jsx";
 import ToastContainer from "./components/ui/ToastContainer.jsx";
@@ -24,10 +26,10 @@ import Projecao from "./components/pages/Invest/Projecao.jsx";
 import AnaliseTrade from "./components/pages/Trade/Analise.jsx";
 
 /* ============================================================
-   Persistência local própria (independente do AF4 Cockpit).
-   Fase 2 do cronograma troca isto por backend multi-tenant.
+   Persistência: dados de Investimentos vão pro cloudStore (nuvem por
+   usuário + cache local). As chaves de API ficam no localStorage do
+   dispositivo (Fase 3 troca por proxy no servidor).
    ============================================================ */
-const STORE_KEY = "invest:dados:v1";
 const KEYS_KEY = "invest:apikeys:v1";
 const lget = (k, fb) => { try { const v = localStorage.getItem(k); return v != null ? JSON.parse(v) : fb; } catch { return fb; } };
 const lset = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
@@ -80,9 +82,10 @@ export default function App() {
 
   applyTheme("gold");
 
-  /* ---------- Load on mount ---------- */
+  /* ---------- Load on mount (nuvem por usuário + cache local) ---------- */
   useEffect(() => {
-    const data = lget(STORE_KEY, null);
+    (async () => {
+    const data = await loadInvestState();
     if (data) {
       setAtivos(data.ativos || seedAtivos);
       setObjetivosCarteira(data.objetivosCarteira || []);
@@ -102,19 +105,17 @@ export default function App() {
     }
     setApiKeys(lget(KEYS_KEY, { brapi: "", alphavantage: "", anthropic: "", useRealMarket: true }));
     setLoading(false);
+    })();
   }, []);
 
-  /* ---------- Save (debounced) ---------- */
+  /* ---------- Save (nuvem por usuário + cache local) ---------- */
   useEffect(() => {
     if (loading) return;
-    const t = setTimeout(() => {
-      lset(STORE_KEY, {
-        ativos, objetivosCarteira, carteirasModeloCustom, modeloAtivoId,
-        carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
-        tradeAnalisesIdV, tradeWatchlist, contas, categorias, transacoes,
-      });
-    }, 600);
-    return () => clearTimeout(t);
+    saveInvestState({
+      ativos, objetivosCarteira, carteirasModeloCustom, modeloAtivoId,
+      carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
+      tradeAnalisesIdV, tradeWatchlist, contas, categorias, transacoes,
+    });
   }, [loading, ativos, objetivosCarteira, carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       tradeAnalisesIdV, tradeWatchlist, contas, categorias, transacoes]);
@@ -221,6 +222,11 @@ export default function App() {
             <RefreshCw size={14} className={refreshing ? "spin" : ""} />
             {marketStatus.mode === "real" ? `Real · ${marketStatus.okCount}/${marketStatus.total}` : "Atualizar"}
           </button>
+          {supabaseConfigured && (
+            <button onClick={() => signOut()} title="Sair da conta" style={btn()}>
+              <LogOut size={14} /> Sair
+            </button>
+          )}
         </div>
       </header>
 

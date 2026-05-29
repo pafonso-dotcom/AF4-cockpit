@@ -1,15 +1,18 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
+import AuthGate from "./AuthGate.jsx";
 import ErrorBoundary from "./components/ui/ErrorBoundary.jsx";
 import "./index.css";
 
-// App standalone de Investimentos. Fase 1: roda local (sem AuthGate).
-// Login/multi-tenant entram na Fase 2 do cronograma.
+// AuthGate: com Supabase configurado, exige login (multi-tenant).
+// Sem configuração, roda em modo local (dev).
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <AuthGate>
+        <App />
+      </AuthGate>
     </ErrorBoundary>
   </React.StrictMode>
 );
