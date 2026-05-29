@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { RefreshCw, Eye, EyeOff, LogOut } from "lucide-react";
+import { RefreshCw, Eye, EyeOff, LogOut, Palette } from "lucide-react";
 
-import { T, applyTheme } from "./lib/theme.js";
+import { T, applyTheme, THEMES } from "./lib/theme.js";
 import { simulateTick } from "./lib/format.js";
 import { atualizarCarteira } from "./lib/cotacoes.js";
-import { seedAtivos } from "./lib/seeds.js";
 import { loadInvestState, saveInvestState } from "./lib/cloudStore.js";
 import { supabaseConfigured, signOut } from "./lib/supabase.js";
 
@@ -53,6 +52,10 @@ export default function App() {
   const [tab, setTab] = useState("investimentos");
   const [refreshing, setRefreshing] = useState(false);
   const [marketStatus, setMarketStatus] = useState({ at: null, mode: "sim", okCount: 0, total: 0 });
+  // Paleta de cores escolhida (preferência do dispositivo).
+  const [themeId, setThemeId] = useState(() => { try { return localStorage.getItem("invest:theme") || "gold"; } catch { return "gold"; } });
+  const [paletaAberta, setPaletaAberta] = useState(false);
+  const trocarTema = (id) => { setThemeId(id); try { localStorage.setItem("invest:theme", id); } catch {} };
 
   const [apiKeys, setApiKeys] = useState({ brapi: "", alphavantage: "", anthropic: "", useRealMarket: true });
 
@@ -80,14 +83,14 @@ export default function App() {
   const [projetarAlvo, setProjetarAlvo] = useState(null);
   const [analiseViewInicial, setAnaliseViewInicial] = useState(null);
 
-  applyTheme("gold");
+  applyTheme(themeId);
 
   /* ---------- Load on mount (nuvem por usuário + cache local) ---------- */
   useEffect(() => {
     (async () => {
     const data = await loadInvestState();
     if (data) {
-      setAtivos(data.ativos || seedAtivos);
+      setAtivos(data.ativos || []);
       setObjetivosCarteira(data.objetivosCarteira || []);
       setCarteirasModeloCustom(data.carteirasModeloCustom || []);
       setModeloAtivoId(data.modeloAtivoId || "idv-iniciante");
@@ -100,9 +103,8 @@ export default function App() {
       setContas(data.contas || []);
       setCategorias(data.categorias || []);
       setTransacoes(data.transacoes || []);
-    } else {
-      setAtivos(seedAtivos);
     }
+    // Sem dados salvos = carteira começa vazia (R$ 0,00). O cliente adiciona os próprios.
     setApiKeys(lget(KEYS_KEY, { brapi: "", alphavantage: "", anthropic: "", useRealMarket: true }));
     setLoading(false);
     })();
@@ -222,6 +224,51 @@ export default function App() {
             <RefreshCw size={14} className={refreshing ? "spin" : ""} />
             {marketStatus.mode === "real" ? `Real · ${marketStatus.okCount}/${marketStatus.total}` : "Atualizar"}
           </button>
+          {/* Paleta de cores */}
+          <div style={{ position: "relative" }}>
+            <button onClick={() => setPaletaAberta(v => !v)} title="Mudar paleta de cores" style={btn()}>
+              <Palette size={14} /> Cores
+            </button>
+            {paletaAberta && (
+              <>
+                <div onClick={() => setPaletaAberta(false)}
+                     style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+                <div style={{
+                  position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 41,
+                  background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
+                  padding: 10, width: 230, boxShadow: `0 8px 24px ${T.bg}99`,
+                }}>
+                  <div style={{ fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, marginBottom: 8, fontWeight: 600 }}>
+                    Paleta de cores
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}>
+                    {Object.values(THEMES).map(tema => {
+                      const ativo = tema.id === themeId;
+                      return (
+                        <button key={tema.id} onClick={() => { trocarTema(tema.id); setPaletaAberta(false); }}
+                                title={tema.subtitulo || tema.nome}
+                                style={{
+                                  display: "flex", alignItems: "center", gap: 7, padding: "6px 8px",
+                                  borderRadius: 7, cursor: "pointer", textAlign: "left",
+                                  border: `1px solid ${ativo ? tema.gold : T.border}`,
+                                  background: ativo ? `${tema.gold}22` : "transparent",
+                                }}>
+                          <span style={{
+                            width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
+                            background: `linear-gradient(135deg, ${tema.gold}, ${tema.goldHi})`,
+                            border: `1px solid ${T.border}`,
+                          }} />
+                          <span style={{ fontSize: 11.5, color: ativo ? tema.gold : T.ink, fontWeight: ativo ? 600 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {tema.nome}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           {supabaseConfigured && (
             <button onClick={() => signOut()} title="Sair da conta" style={btn()}>
               <LogOut size={14} /> Sair
