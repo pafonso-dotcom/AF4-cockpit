@@ -6,6 +6,9 @@ import { simulateTick } from "./lib/format.js";
 import { atualizarCarteira } from "./lib/cotacoes.js";
 import { loadInvestState, saveInvestState } from "./lib/cloudStore.js";
 import { supabaseConfigured, signOut } from "./lib/supabase.js";
+import { billingEnabled, getSubscription, acessoLiberado } from "./lib/subscription.js";
+import { toast } from "./lib/toast.js";
+import Paywall from "./components/billing/Paywall.jsx";
 
 import GlobalStyles from "./components/ui/GlobalStyles.jsx";
 import ToastContainer from "./components/ui/ToastContainer.jsx";
@@ -50,6 +53,9 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [hidden, setHidden] = useState(false);
   const [tab, setTab] = useState("investimentos");
+  // Assinatura (Fase 4). Só trava o acesso quando a cobrança está ligada.
+  const [sub, setSub] = useState(null);
+  const [subLoading, setSubLoading] = useState(billingEnabled);
   const [refreshing, setRefreshing] = useState(false);
   const [marketStatus, setMarketStatus] = useState({ at: null, mode: "sim", okCount: 0, total: 0 });
   // Paleta de cores escolhida (preferência do dispositivo).
@@ -124,6 +130,12 @@ export default function App() {
 
   useEffect(() => { if (!loading) lset(KEYS_KEY, apiKeys); }, [loading, apiKeys]);
 
+  // Carrega o status da assinatura (só quando a cobrança está ligada).
+  useEffect(() => {
+    if (!billingEnabled) return;
+    getSubscription().then(s => { setSub(s); setSubLoading(false); });
+  }, []);
+
   /* ---------- Refresh de mercado ---------- */
   const refreshMarket = async () => {
     setRefreshing(true);
@@ -194,11 +206,22 @@ export default function App() {
 
   const irParaTab = useCallback((t) => { setTab(t); }, []);
 
-  if (loading) {
+  if (loading || (billingEnabled && subLoading)) {
     return (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: T.bg, color: T.muted }}>
         Carregando…
       </div>
+    );
+  }
+
+  // Trava de assinatura (só quando a cobrança está ligada).
+  if (billingEnabled && !acessoLiberado(sub)) {
+    return (
+      <Paywall
+        motivo={sub && sub.status !== "none" ? "expirada" : ""}
+        onSair={() => signOut()}
+        onAssinar={() => toast.success("Pagamento via Mercado Pago será ativado em breve.")}
+      />
     );
   }
 

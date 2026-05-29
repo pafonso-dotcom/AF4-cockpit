@@ -81,4 +81,21 @@ o proxy passar a usar as chaves. Sem `BRAPI_TOKEN`, as cotações BR caem no mod
 simulado; sem `ANTHROPIC_KEY`, os recursos de IA ficam indisponíveis (o resto
 do app funciona normalmente).
 
-> Próxima fase: **Fase 4** — cobrança/assinatura.
+---
+
+## Parte 5 · Assinatura/cobrança (Fase 4 — estrutura)
+
+A base já está pronta: tabela `subscriptions` (rode `sql/002_subscriptions.sql`
+no Supabase), tela de planos (Paywall) e a "trava" de acesso.
+
+A trava começa **desligada** — todo mundo que loga usa o app normalmente.
+Pra ativar a cobrança (quando o Mercado Pago estiver configurado):
+
+1. Crie a tabela: SQL Editor → cole `sql/002_subscriptions.sql` → Run.
+2. Quando quiser **ligar a trava**, adicione a env var no Cloudflare Pages:
+   `VITE_BILLING_ENABLED = true` → aí quem não tiver assinatura ativa vê a tela
+   de planos em vez do app.
+
+> Falta ligar (próximo passo, com sua conta Mercado Pago): o **checkout** (criar
+> assinatura) e o **webhook** que atualiza o status no `subscriptions`. Eu te
+> guio quando você tiver as credenciais do Mercado Pago.
