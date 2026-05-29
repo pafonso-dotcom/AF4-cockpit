@@ -422,7 +422,18 @@ export default function AReceberEDividas({
   };
 
   return (
-    <div className="fade-up py-8 px-6">
+    <div className={somenteReceber ? "" : "fade-up py-8 px-6"}>
+      {somenteReceber ? (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+          <button className="btn-ghost" onClick={() => setForm({
+            id: null, tipo: "receber", nome: "", valor: "", vencimento: "",
+            categoria: "Outros", obs: "", parcela: "",
+            parcelar: false, numParcelas: 3, modoValor: "total",
+          })}>
+            <Plus size={13} className="inline mr-1.5" /> Recebimento
+          </button>
+        </div>
+      ) : (
       <PageHeader
         eyebrow="Finanças · Compromissos"
         title={<>A Receber & <em>Dívidas.</em></>}
@@ -446,6 +457,7 @@ export default function AReceberEDividas({
           </div>
         }
       />
+      )}
 
       {/* ===== Visão geral · todos os meses ===== */}
       {(() => {

@@ -47,8 +47,7 @@ export default function Planejamento(props) {
         >
           <ArrowLeft size={14} /> Voltar ao Planejamento
         </button>
-        <View {...props} onAbrirCard={setCardAberto}
-              ladoInicial={cardAberto === "recebiveis" ? "receber" : "pagar"} />
+        <View {...props} onAbrirCard={setCardAberto} />
       </div>
     );
   }
