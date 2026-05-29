@@ -62,6 +62,7 @@ export default function Servicos({
   const [relatorioAba, setRelatorioAba] = useState("clientes");
   const [anualExpandido, setAnualExpandido] = useState(false);
   const [faturaDoc, setFaturaDoc] = useState(null); // venda/fatura aberta no modal de PDF
+  const [cobrancasAberto, setCobrancasAberto] = useState(false); // painel de cobrança em massa
 
   // Mês corrente YYYY-MM — usado pra controle de repasse e relatório.
   const mesCorrente = new Date().toISOString().slice(0, 7);
@@ -113,6 +114,27 @@ export default function Servicos({
     });
     return map;
   }, [vendas]);
+
+  // Cobranças em aberto agrupadas por CLIENTE — alimenta o painel de cobrança
+  // em massa. Quem não tem cliente vinculado cai em um grupo "Sem cliente".
+  const cobrancasPorCliente = useMemo(() => {
+    const pend = (vendas || []).filter(v => v.pago === false);
+    const map = {};
+    pend.forEach(v => {
+      const key = v.clienteId || "__sem__";
+      const g = (map[key] = map[key] || { clienteId: v.clienteId || null, itens: [], total: 0 });
+      g.itens.push(v);
+      g.total += Number(v.valor || 0);
+    });
+    const grupos = Object.values(map).map(g => ({
+      ...g,
+      cliente: clientes.find(c => c.id === g.clienteId) || null,
+      itens: g.itens.sort((a, b) => (a.data || "").localeCompare(b.data || "")),
+    })).sort((a, b) => b.total - a.total);
+    const totalGeral = grupos.reduce((s, g) => s + g.total, 0);
+    const qtdGeral = pend.length;
+    return { grupos, totalGeral, qtdGeral };
+  }, [vendas, clientes]);
 
   // Saldo do mês por instalador: soma de valorInstalador das vendas do mês corrente
   // onde instaladorId === id. Backward-compat: vendas antigas sem campos seguem em 0.
@@ -521,6 +543,41 @@ export default function Servicos({
     abrirWhatsApp(cliente.telefone, msg);
   };
 
+  // Cobrança consolidada por cliente (mensagem única com todos os itens em aberto).
+  const cobrarClienteWhatsApp = (grupo) => {
+    if (!grupo.cliente) { toast.error("Cliente sem cadastro — vincule um cliente para cobrar."); return; }
+    const linhas = grupo.itens.map(v => {
+      const ref = v.faturaRef
+        ? (v.faturaRef.length === 4 ? `Ano ${v.faturaRef}` : `${v.faturaRef.slice(5)}/${v.faturaRef.slice(0, 4)}`)
+        : (v.data ? v.data.split("-").reverse().join("/") : "");
+      return `• ${v.nome}${ref ? ` (${ref})` : ""} — ${fmt(v.valor)}`;
+    }).join("\n");
+    const msg = grupo.itens.length === 1
+      ? `Olá ${grupo.cliente.nome}! 👋\n\nSegue a cobrança em aberto:\n${linhas}\n\nPode confirmar o pagamento? Obrigado!`
+      : `Olá ${grupo.cliente.nome}! 👋\n\nSegue o resumo das suas cobranças em aberto:\n${linhas}\n\n*Total: ${fmt(grupo.total)}*\n\nPode confirmar o pagamento? Obrigado!`;
+    abrirWhatsApp(grupo.cliente.telefone, msg);
+  };
+
+  // Marca TODAS as cobranças de um cliente como pagas de uma vez.
+  const receberTudoCliente = async (grupo) => {
+    const ok = await confirm({
+      title: `Receber ${fmt(grupo.total)} de ${grupo.cliente?.nome || "cliente"}?`,
+      body: `${grupo.itens.length} cobrança(s) serão marcadas como pagas e a receita entra na Caixa do Negócio.`,
+      confirmLabel: "Receber tudo",
+    });
+    if (!ok) return;
+    const ids = new Set(grupo.itens.map(i => i.id));
+    const pagoEm = todayISO();
+    // Um único setVendas em lote; os efeitos de caixa usam updaters funcionais.
+    setVendas((vendas || []).map(x => ids.has(x.id) ? { ...x, pago: true, pagoEm } : x));
+    grupo.itens.forEach(v => {
+      const vPago = { ...v, pago: true, pagoEm };
+      aplicarReceitaCaixa(vPago, `${v.nome}${grupo.cliente ? ` · ${grupo.cliente.nome}` : ""}`);
+      aplicarDespesaPrestador(vPago);
+    });
+    toast.success(`${fmt(grupo.total)} recebido de ${grupo.cliente?.nome || "cliente"}.`);
+  };
+
   const confirmarVenda = () => {
     const nome = (vendaForm.nome || "").trim();
     const valor = Number(vendaForm.valor);
@@ -864,6 +921,18 @@ export default function Servicos({
         sub="Catálogo de serviços com preço/custo + histórico de vendas. Receita entra na Caixa do Negócio (não toca em Finanças)."
         action={
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {cobrancasPorCliente.qtdGeral > 0 && (
+              <button onClick={() => setCobrancasAberto(true)}
+                      title="Ver e cobrar todas as faturas em aberto"
+                      style={{
+                        background: `${T.red}18`, border: `1px solid ${T.red}`, color: T.red,
+                        padding: "8px 14px", borderRadius: 6, cursor: "pointer",
+                        fontFamily: T.sans, fontSize: 12, fontWeight: 600,
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                      }}>
+                <AlertTriangle size={14} /> Cobranças ({cobrancasPorCliente.qtdGeral})
+              </button>
+            )}
             <button onClick={() => { setRelatorioAba("clientes"); setRelatorioAberto(true); }}
                     className="btn-ghost">
               <Receipt size={14} className="inline mr-1.5" /> Relatório do mês
@@ -1963,6 +2032,99 @@ export default function Servicos({
           servicos={servicos}
           onClose={() => setFaturaDoc(null)}
         />
+      )}
+
+      {/* MODAL: cobrança em massa (cobranças em aberto por cliente) */}
+      {cobrancasAberto && (
+        <Modal title={`Cobranças em aberto · ${fmt(cobrancasPorCliente.totalGeral)}`}
+               onClose={() => setCobrancasAberto(false)} wide>
+          {cobrancasPorCliente.grupos.length === 0 ? (
+            <div style={{ padding: 28, fontSize: 13, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
+              🎉 Nenhuma cobrança em aberto — tudo recebido!
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, color: T.muted, marginBottom: 12 }}>
+                {cobrancasPorCliente.qtdGeral} cobrança{cobrancasPorCliente.qtdGeral !== 1 ? "s" : ""} pendente{cobrancasPorCliente.qtdGeral !== 1 ? "s" : ""},
+                totalizando <strong style={{ color: T.red }}>{hidden ? "•••" : fmt(cobrancasPorCliente.totalGeral)}</strong> a receber.
+              </div>
+              <div style={{ display: "grid", gap: 10, maxHeight: "60vh", overflowY: "auto" }}>
+                {cobrancasPorCliente.grupos.map((g, gi) => (
+                  <div key={g.clienteId || `sem-${gi}`} style={{
+                    background: T.bgSoft, border: `1px solid ${T.border}`,
+                    borderLeft: `3px solid ${T.red}`, borderRadius: 8, padding: 12,
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
+                          {g.cliente?.nome || "Sem cliente vinculado"}
+                        </div>
+                        <div style={{ fontSize: 11, color: T.muted }}>
+                          {g.itens.length} cobrança{g.itens.length !== 1 ? "s" : ""} · {g.cliente?.telefone || "sem telefone"}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                        <span className="num" style={{ fontSize: 15, fontWeight: 700, color: T.red }}>
+                          {hidden ? "•••" : fmt(g.total)}
+                        </span>
+                        <button onClick={() => cobrarClienteWhatsApp(g)}
+                                disabled={!g.cliente}
+                                title={g.cliente ? "Cobrar no WhatsApp (mensagem com todos os itens)" : "Cliente sem cadastro"}
+                                style={{
+                                  display: "inline-flex", alignItems: "center", gap: 4,
+                                  background: g.cliente ? "#25D366" : T.border, border: "none",
+                                  color: "#fff", padding: "0 10px", height: 30, borderRadius: 5,
+                                  cursor: g.cliente ? "pointer" : "not-allowed",
+                                  fontSize: 10.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase",
+                                  opacity: g.cliente ? 1 : 0.5,
+                                }}>
+                          <MessageCircle size={12} /> Cobrar
+                        </button>
+                        <button onClick={() => receberTudoCliente(g)}
+                                title="Marcar todas as cobranças deste cliente como pagas"
+                                style={{
+                                  display: "inline-flex", alignItems: "center", gap: 4,
+                                  background: T.green, border: "none", color: "#fff",
+                                  padding: "0 10px", height: 30, borderRadius: 5, cursor: "pointer",
+                                  fontSize: 10.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase",
+                                }}>
+                          <Check size={12} /> Receber tudo
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      {g.itens.map(v => {
+                        const ref = v.faturaRef
+                          ? (v.faturaRef.length === 4 ? `Ano ${v.faturaRef}` : `${v.faturaRef.slice(5)}/${v.faturaRef.slice(0, 4)}`)
+                          : (v.data ? v.data.split("-").reverse().slice(0, 2).join("/") : "");
+                        return (
+                          <div key={v.id} style={{
+                            display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+                            fontSize: 12, color: T.muted, paddingTop: 4, borderTop: `1px dashed ${T.border}`,
+                          }}>
+                            <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {v.nome}{ref ? ` · ${ref}` : ""}
+                            </span>
+                            <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+                              <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(v.valor)}</span>
+                              <button onClick={() => marcarFaturaPaga(v)} title="Marcar esta como paga"
+                                      style={btnIcon({ color: T.green, minWidth: 26, minHeight: 26, padding: 3 })}>
+                                <Check size={12} />
+                              </button>
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => setCobrancasAberto(false)}>Fechar</button>
+          </div>
+        </Modal>
       )}
     </div>
   );
