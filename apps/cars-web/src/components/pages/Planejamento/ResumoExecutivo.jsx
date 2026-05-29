@@ -14,6 +14,7 @@ export default function ResumoExecutivo({
   fixaOcorrencias = [],
   parcelamentos = [],
   hidden,
+  onAbrir,
 }) {
   const [mes, setMes] = useState(() => mesAtual());
 
@@ -74,11 +75,11 @@ export default function ResumoExecutivo({
   const mesLabel = `${MES_NOMES_LONGOS[m - 1]} ${y}`;
 
   const kpisCards = [
-    { lbl: "A Receber",         val: fmt(aReceber.total),      sub: `${aReceber.qtd} ${aReceber.qtd === 1 ? "item" : "itens"}`, cor: T.green },
-    { lbl: "A Pagar",           val: fmt(kpis.totalPrevisto),  sub: `${kpis.qtdDespesas} ${kpis.qtdDespesas === 1 ? "item" : "itens"}`, cor: T.red },
-    { lbl: "Parcelas",          val: fmt(parcelasInfo.total),  sub: `${parcelasInfo.qtd} no mês`, cor: T.blue || "#60a5fa" },
-    { lbl: "Balanço previsto",  val: (balanco >= 0 ? "+ " : "− ") + fmt(Math.abs(balanco)), sub: "após pagar tudo", cor: T.gold, valCor: balanco >= 0 ? T.green : T.red },
-    { lbl: "⚠ Atenção",         val: `${atencao} ${atencao === 1 ? "item" : "itens"}`, sub: "vencem em 3 dias", cor: T.gold, valCor: atencao > 0 ? T.red : T.muted },
+    { lbl: "A Receber",         val: fmt(aReceber.total),      sub: `${aReceber.qtd} ${aReceber.qtd === 1 ? "item" : "itens"}`, cor: T.green, destino: "recebiveis:receber" },
+    { lbl: "A Pagar",           val: fmt(kpis.totalPrevisto),  sub: `${kpis.qtdDespesas} ${kpis.qtdDespesas === 1 ? "item" : "itens"}`, cor: T.red, destino: "recebiveis:pagar" },
+    { lbl: "Parcelas",          val: fmt(parcelasInfo.total),  sub: `${parcelasInfo.qtd} no mês`, cor: T.blue || "#60a5fa", destino: "parcelas" },
+    { lbl: "Balanço previsto",  val: (balanco >= 0 ? "+ " : "− ") + fmt(Math.abs(balanco)), sub: "após pagar tudo", cor: T.gold, valCor: balanco >= 0 ? T.green : T.red, destino: "anual" },
+    { lbl: "⚠ Atenção",         val: `${atencao} ${atencao === 1 ? "item" : "itens"}`, sub: "vencem em 3 dias", cor: T.gold, valCor: atencao > 0 ? T.red : T.muted, destino: "atencao" },
   ];
 
   return (
@@ -133,16 +134,26 @@ export default function ResumoExecutivo({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {kpisCards.map((k, i) => (
-          <div key={i} style={{
-            background: T.bgSoft, padding: "12px 14px",
-            borderRadius: 8, borderLeft: `3px solid ${k.cor}`,
-          }}>
+        {kpisCards.map((k, i) => {
+          const clicavel = !!(onAbrir && k.destino);
+          return (
+          <div key={i}
+            onClick={clicavel ? () => onAbrir(k.destino) : undefined}
+            className={clicavel ? "card-hover" : undefined}
+            title={clicavel ? `Abrir ${k.lbl}` : undefined}
+            style={{
+              background: T.bgSoft, padding: "12px 14px",
+              borderRadius: 8, borderLeft: `3px solid ${k.cor}`,
+              cursor: clicavel ? "pointer" : "default",
+              transition: "all .15s",
+            }}>
             <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6,
               fontSize: 8.5, letterSpacing: ".15em", color: T.muted,
               textTransform: "uppercase", fontWeight: 700,
             }}>
-              {k.lbl}
+              <span>{k.lbl}</span>
+              {clicavel && <ChevronRight size={11} style={{ color: T.faint }} />}
             </div>
             <div className="num" style={{
               fontFamily: T.serif, fontSize: 18,
@@ -153,7 +164,8 @@ export default function ResumoExecutivo({
             </div>
             <div style={{ fontSize: 9.5, color: T.faint, marginTop: 3 }}>{k.sub}</div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
