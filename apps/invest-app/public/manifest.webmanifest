@@ -1,0 +1,19 @@
+{
+  "name": "AF4 Cockpit · Painel de Comando",
+  "short_name": "AF4",
+  "description": "Painel de Comando — finanças pessoais, investimentos, cartões e operação da loja AF4.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "browser",
+  "orientation": "portrait",
+  "background_color": "#0a0908",
+  "theme_color": "#0a0908",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ]
+}
