@@ -65,6 +65,7 @@ export default function Servicos({
   const [anualExpandido, setAnualExpandido] = useState(false);
   const [faturaDoc, setFaturaDoc] = useState(null); // venda/fatura aberta no modal de PDF
   const [cobrancasAberto, setCobrancasAberto] = useState(false); // painel de cobrança em massa
+  const [pagarForm, setPagarForm] = useState(null); // modal de recebimento c/ data de pagamento manual
   const [financeiroExpandido, setFinanceiroExpandido] = useState(false);
   const [finPeriodo, setFinPeriodo] = useState("ano"); // mes | 3m | ano | tudo
   const [finBusca, setFinBusca] = useState("");
@@ -551,12 +552,29 @@ export default function Servicos({
   };
 
   // Marcar fatura como PAGA: receita (e custo) entram/saem do Banco do Serviço.
-  const marcarFaturaPaga = (v) => {
+  // A data do pagamento é livre (default = hoje); cai na Caixa nessa data.
+  const marcarFaturaPaga = (v, pagoEm = todayISO()) => {
     const cliente = clientes.find(c => c.id === v.clienteId);
-    const vPago = { ...v, pago: true, pagoEm: todayISO() };
+    const vPago = { ...v, pago: true, pagoEm };
     setVendas((vendas || []).map(x => x.id === v.id ? vPago : x));
     aplicarReceitaCaixa(vPago, `${v.nome}${cliente ? ` · ${cliente.nome}` : ""}`);
     toast.success(`Pagamento de ${fmt(v.valor)} recebido · ${v.nome}`);
+  };
+
+  // Abre o modal de recebimento para escolher a data do pagamento (default hoje).
+  const abrirPagarVenda = (v) => setPagarForm({ tipo: "single", venda: v, data: todayISO() });
+  const abrirReceberTudo = (grupo) => setPagarForm({ tipo: "grupo", grupo, data: todayISO() });
+
+  // Confirma o recebimento usando a data informada manualmente no modal.
+  const confirmarPagamento = () => {
+    if (!pagarForm) return;
+    const pagoEm = pagarForm.data || todayISO();
+    if (pagarForm.tipo === "grupo") {
+      aplicarReceberTudo(pagarForm.grupo, pagoEm);
+    } else {
+      marcarFaturaPaga(pagarForm.venda, pagoEm);
+    }
+    setPagarForm(null);
   };
 
   // Voltar para PENDENTE: tira a receita (e custo) do Banco do Serviço.
@@ -600,16 +618,10 @@ export default function Servicos({
     abrirWhatsApp(grupo.cliente.telefone, msg);
   };
 
-  // Marca TODAS as cobranças de um cliente como pagas de uma vez.
-  const receberTudoCliente = async (grupo) => {
-    const ok = await confirm({
-      title: `Receber ${fmt(grupo.total)} de ${grupo.cliente?.nome || "cliente"}?`,
-      body: `${grupo.itens.length} cobrança(s) serão marcadas como pagas e a receita entra na Caixa do Negócio.`,
-      confirmLabel: "Receber tudo",
-    });
-    if (!ok) return;
+  // Marca TODAS as cobranças de um cliente como pagas de uma vez, na data
+  // de pagamento informada manualmente (default = hoje, vinda do modal).
+  const aplicarReceberTudo = (grupo, pagoEm = todayISO()) => {
     const ids = new Set(grupo.itens.map(i => i.id));
-    const pagoEm = todayISO();
     // Um único setVendas em lote; os efeitos de caixa usam updaters funcionais.
     setVendas((vendas || []).map(x => ids.has(x.id) ? { ...x, pago: true, pagoEm } : x));
     grupo.itens.forEach(v => {
@@ -1697,7 +1709,7 @@ export default function Servicos({
                       instalador={v.instaladorId ? instaladores.find(i => i.id === v.instaladorId) : null}
                       servicos={servicos}
                       hidden={hidden}
-                      onMarcarPago={() => marcarFaturaPaga(v)}
+                      onMarcarPago={() => abrirPagarVenda(v)}
                       onMarcarNaoPago={() => marcarFaturaNaoPaga(v)}
                       onCobrar={() => enviarCobrancaWhatsApp(v)}
                       onPDF={() => setFaturaDoc(v)}
@@ -2380,7 +2392,7 @@ export default function Servicos({
                                 }}>
                           <MessageCircle size={12} /> Cobrar
                         </button>
-                        <button onClick={() => receberTudoCliente(g)}
+                        <button onClick={() => abrirReceberTudo(g)}
                                 title="Marcar todas as cobranças deste cliente como pagas"
                                 style={{
                                   display: "inline-flex", alignItems: "center", gap: 4,
@@ -2407,7 +2419,7 @@ export default function Servicos({
                             </span>
                             <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
                               <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(v.valor)}</span>
-                              <button onClick={() => marcarFaturaPaga(v)} title="Marcar esta como paga"
+                              <button onClick={() => abrirPagarVenda(v)} title="Marcar esta como paga"
                                       style={btnIcon({ color: T.green, minWidth: 26, minHeight: 26, padding: 3 })}>
                                 <Check size={12} />
                               </button>
@@ -2426,6 +2438,36 @@ export default function Servicos({
           </div>
         </Modal>
       )}
+
+      {/* MODAL: receber pagamento — data do pagamento livre p/ digitar manualmente */}
+      {pagarForm && (() => {
+        const ehGrupo = pagarForm.tipo === "grupo";
+        const total = ehGrupo
+          ? Number(pagarForm.grupo?.total || 0)
+          : Number(pagarForm.venda?.valor || 0);
+        const titulo = ehGrupo
+          ? `Receber ${fmt(total)} de ${pagarForm.grupo?.cliente?.nome || "cliente"}`
+          : `Receber ${fmt(total)} · ${pagarForm.venda?.nome || ""}`;
+        const descricao = ehGrupo
+          ? `${pagarForm.grupo?.itens?.length || 0} cobrança(s) serão marcadas como pagas e a receita entra na Caixa do Negócio na data informada.`
+          : "A receita entra na Caixa do Negócio na data informada abaixo.";
+        return (
+          <Modal title="Receber pagamento" onClose={() => setPagarForm(null)}>
+            <div style={{ fontSize: 13, color: T.ink, fontWeight: 600, marginBottom: 4 }}>{titulo}</div>
+            <div style={{ fontSize: 12, color: T.muted, marginBottom: 14 }}>{descricao}</div>
+            <Field label="Data do pagamento" required hint="Pode ser anterior ou posterior a hoje.">
+              <input type="date" value={pagarForm.data} autoFocus
+                     onChange={e => setPagarForm({ ...pagarForm, data: e.target.value })} />
+            </Field>
+            <div className="flex gap-3 justify-end mt-6">
+              <button className="btn-ghost" onClick={() => setPagarForm(null)}>Cancelar</button>
+              <button className="btn-gold" onClick={confirmarPagamento} disabled={!pagarForm.data}>
+                <Check size={13} className="inline mr-1" /> {ehGrupo ? "Receber tudo" : "Receber"}
+              </button>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }
