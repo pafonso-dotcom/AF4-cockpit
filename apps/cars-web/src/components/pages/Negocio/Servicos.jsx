@@ -665,6 +665,46 @@ export default function Servicos({
     setLancamentoForm(null);
   };
 
+  // Estorna um lançamento do extrato. Se for de uma venda/fatura, desfaz o
+  // recebimento inteiro (cobrança volta a pendente). Se for repasse, devolve e
+  // reabre o repasse do mês. Se for manual, só remove e ajusta o saldo da conta.
+  const estornarMovimento = async (h) => {
+    const venda = h.vendaId ? (vendas || []).find(v => v.id === h.vendaId) : null;
+    const ok = await confirm({
+      title: "Estornar lançamento?",
+      body: venda
+        ? `Este lançamento faz parte da venda "${venda.nome}". Estornar desfaz o recebimento inteiro — a cobrança volta a ficar pendente.`
+        : `O lançamento de ${fmt(Math.abs(Number(h.valor || 0)))} será removido e o saldo da conta ajustado.`,
+      danger: true, confirmLabel: "Estornar",
+    });
+    if (!ok) return;
+
+    if (venda) {
+      reverterReceitaCaixa(venda);
+      setVendas((vendas || []).map(v => v.id === venda.id ? { ...v, pago: false, pagoEm: null } : v));
+      toast.success("Recebimento estornado — a cobrança voltou a pendente.");
+      return;
+    }
+
+    // Repasse a colaborador: reabre o repasse do mês ao remover.
+    if (h.tipo === "pago-instalador" && h.instaladorId && h.repasseMes && typeof setInstaladores === "function") {
+      setInstaladores(prev => prev.map(i => i.id === h.instaladorId
+        ? { ...i, repassesPagos: (i.repassesPagos || []).filter(m => m !== h.repasseMes) }
+        : i));
+    }
+    // Remove o movimento e ajusta saldo da conta + total.
+    if (h.bancoId && typeof setBancos === "function") {
+      setBancos(prev => prev.map(b => b.id === h.bancoId ? { ...b, saldo: (Number(b.saldo) || 0) - Number(h.valor || 0) } : b));
+    }
+    if (typeof setCaixaNegocio === "function") {
+      setCaixaNegocio(prev => ({
+        saldo: (prev?.saldo || 0) - Number(h.valor || 0),
+        historico: ((prev?.historico) || []).filter(x => x.id !== h.id),
+      }));
+    }
+    toast.success("Lançamento estornado.");
+  };
+
   const confirmarVenda = () => {
     const nome = (vendaForm.nome || "").trim();
     const valor = Number(vendaForm.valor);
@@ -1180,7 +1220,7 @@ export default function Servicos({
                   const entrada = v >= 0;
                   return (
                     <div key={h.id || i} style={{
-                      display: "grid", gridTemplateColumns: "58px 1fr auto", gap: 10, alignItems: "center",
+                      display: "grid", gridTemplateColumns: "58px 1fr auto 28px", gap: 10, alignItems: "center",
                       padding: "7px 10px", borderTop: i === 0 ? "none" : `1px solid ${T.border}`,
                       background: i % 2 ? T.bgSoft : "transparent",
                     }}>
@@ -1193,6 +1233,14 @@ export default function Servicos({
                       <span className="num" style={{ fontSize: 12.5, fontWeight: 600, color: entrada ? T.green : T.red }}>
                         {entrada ? "+" : "−"} {hidden ? "•••" : fmt(Math.abs(v))}
                       </span>
+                      <button onClick={() => estornarMovimento(h)} title="Estornar lançamento"
+                              style={{
+                                background: "transparent", border: "none", cursor: "pointer",
+                                color: T.muted, padding: 2, display: "grid", placeItems: "center",
+                                fontSize: 13, lineHeight: 1,
+                              }}>
+                        ↩
+                      </button>
                     </div>
                   );
                 })}
