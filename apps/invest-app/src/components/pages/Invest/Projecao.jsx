@@ -41,7 +41,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
   const [aporteModo, setAporteModo] = useState("mensal"); // "mensal" | "total"
   const [prazoAnos, setPrazoAnos] = useState(10);
   const [taxaMensal, setTaxaMensal] = useState("0.85");
-  const [valorInicialManual, setValorInicialManual] = useState("10000");
+  const [valorInicialManual, setValorInicialManual] = useState("0");
   // Ativo futuro (Personalizado): nome + classe
   const [tickerManual, setTickerManual] = useState("");
   const [tipoManual, setTipoManual] = useState("fii");
