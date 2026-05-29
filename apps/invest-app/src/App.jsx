@@ -14,6 +14,7 @@ import GlobalStyles from "./components/ui/GlobalStyles.jsx";
 import ToastContainer from "./components/ui/ToastContainer.jsx";
 import ConfirmDialog from "./components/ui/ConfirmDialog.jsx";
 import Footer from "./components/ui/Footer.jsx";
+import Logo from "./components/ui/Logo.jsx";
 
 import InvestPainel from "./components/pages/Invest/InvestPainel.jsx";
 import Investimentos from "./components/pages/Investimentos.jsx";
@@ -236,7 +237,7 @@ export default function App() {
         padding: "14px 20px", borderBottom: `1px solid ${T.border}`, background: T.card,
       }}>
         <div style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: T.gold, letterSpacing: "-0.02em" }}>
-          Investimentos
+          <Logo size={26} />
         </div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <button onClick={() => setHidden(h => !h)} title={hidden ? "Mostrar valores" : "Ocultar valores"}

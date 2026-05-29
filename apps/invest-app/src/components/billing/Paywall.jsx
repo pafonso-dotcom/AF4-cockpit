@@ -1,6 +1,7 @@
 import React from "react";
 import { Check, LogOut } from "lucide-react";
 import { T } from "../../lib/theme.js";
+import Logo from "../ui/Logo.jsx";
 
 /**
  * Tela de planos / paywall (Fase 4 — estrutura).
@@ -18,8 +19,8 @@ export default function Paywall({ onAssinar, onSair, motivo }) {
     <div style={{ minHeight: "100vh", background: T.bg, color: T.ink, display: "grid", placeItems: "center", padding: 20 }}>
       <div style={{ width: "100%", maxWidth: 420 }}>
         <div style={{ textAlign: "center", marginBottom: 18 }}>
-          <div style={{ fontFamily: T.serif, fontSize: 26, fontWeight: 600, color: T.gold, letterSpacing: "-0.02em" }}>
-            Investimentos
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <Logo size={32} />
           </div>
           <div style={{ fontSize: 13, color: T.muted, marginTop: 6 }}>
             {motivo === "expirada" ? "Sua assinatura expirou — renove pra continuar." : "Assine pra acessar sua carteira."}

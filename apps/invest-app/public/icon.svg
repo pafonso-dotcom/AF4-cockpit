@@ -1,4 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#0a0908" rx="64"/>
-  <text x="256" y="320" font-family="Georgia,serif" font-size="180" font-weight="700" font-style="italic" text-anchor="middle" fill="#c9a96b" letter-spacing="-8">AF4</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Aurum">
+  <defs>
+    <linearGradient id="aurumGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c9a961"/>
+      <stop offset="1" stop-color="#e6cd8f"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0c0b0a"/>
+  <g fill="none" stroke="url(#aurumGrad)" stroke-width="46" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M150 372 L256 132 L362 372"/>
+    <path d="M196 288 H316"/>
+  </g>
 </svg>
