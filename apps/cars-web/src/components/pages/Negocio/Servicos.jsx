@@ -573,15 +573,6 @@ export default function Servicos({
     setReceberForm(null);
   };
 
-  // Marca fatura como PAGA com data de hoje (usado em ações em lote).
-  const marcarFaturaPaga = (v) => {
-    const cliente = clientes.find(c => c.id === v.clienteId);
-    const vPago = { ...v, pago: true, pagoEm: todayISO() };
-    setVendas((vendas || []).map(x => x.id === v.id ? vPago : x));
-    aplicarReceitaCaixa(vPago, `${v.nome}${cliente ? ` · ${cliente.nome}` : ""}`);
-    toast.success(`Pagamento de ${fmt(v.valor)} recebido · ${v.nome}`);
-  };
-
   // Voltar para PENDENTE: tira a receita (e custo) do Banco do Serviço.
   const marcarFaturaNaoPaga = async (v) => {
     const ok = await confirm({
@@ -2505,7 +2496,7 @@ export default function Servicos({
                             </span>
                             <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
                               <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(v.valor)}</span>
-                              <button onClick={() => marcarFaturaPaga(v)} title="Marcar esta como paga"
+                              <button onClick={() => { setCobrancasAberto(false); abrirReceber(v); }} title="Receber (escolher data)"
                                       style={btnIcon({ color: T.green, minWidth: 26, minHeight: 26, padding: 3 })}>
                                 <Check size={12} />
                               </button>
