@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { Upload, AlertCircle, Loader2 } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid } from "../../lib/format.js";
-import { parseExtrato } from "../../lib/extratoParser.js";
+import { parseExtrato, marcarDuplicadas } from "../../lib/extratoParser.js";
 import { gerarJSONGeminiComPDF, fileToBase64 } from "../../lib/gemini.js";
 import { toast } from "../../lib/toast.js";
 import { audit } from "../../lib/auditLog.js";
@@ -90,8 +90,12 @@ export default function ImportarExtrato({
         setErro("Nenhuma transação encontrada no arquivo.");
         return;
       }
-      setParsed(result);
-      setSelecionadas(new Set(result.transacoes.map(t => t._id)));
+      // Identifica lançamentos que já existem (mesma data/valor/tipo/descrição)
+      // ou repetidos dentro do próprio arquivo, para não duplicar.
+      const transMarcadas = marcarDuplicadas(result.transacoes, transacoes);
+      setParsed({ ...result, transacoes: transMarcadas });
+      // Por padrão, marca só as que NÃO são duplicadas.
+      setSelecionadas(new Set(transMarcadas.filter(t => !t._duplicada).map(t => t._id)));
       setStep("preview");
     } catch (err) {
       setErro(`Erro ao ler arquivo: ${err.message}`);
@@ -237,6 +241,7 @@ export default function ImportarExtrato({
   const total = parsed.transacoes
     .filter(t => selecionadas.has(t._id))
     .reduce((s, t) => s + (t.tipo === "receita" ? t.valor : -t.valor), 0);
+  const qtdDuplicadas = parsed.transacoes.filter(t => t._duplicada).length;
 
   return (
     <Modal title={`Revisar · ${parsed.transacoes.length} transações encontradas (${parsed.banco})`} onClose={onClose} wide>
@@ -287,6 +292,19 @@ export default function ImportarExtrato({
                 {t.data.slice(8, 10) + "/" + t.data.slice(5, 7)}
               </div>
               <div style={{ minWidth: 0 }}>
+                {t._duplicada && (
+                  <div style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    fontSize: 9, fontWeight: 700, letterSpacing: ".08em",
+                    textTransform: "uppercase",
+                    color: T.yellow || "#f59e0b",
+                    background: `${T.yellow || "#f59e0b"}22`,
+                    border: `1px solid ${T.yellow || "#f59e0b"}`,
+                    borderRadius: 4, padding: "1px 5px", marginBottom: 3,
+                  }}>
+                    ⚠ Já lançada
+                  </div>
+                )}
                 <input type="text" value={edits.descricao ?? t.descricao}
                        onChange={e => updateLinha(t._id, "descricao", e.target.value)}
                        style={{ width: "100%", background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 4, fontSize: 12.5, padding: "4px 6px", outline: "none", minHeight: 26, WebkitAppearance: "none" }} />
@@ -315,6 +333,11 @@ export default function ImportarExtrato({
 
       <div style={{ marginTop: 14, padding: 10, background: T.bgSoft, borderRadius: 6, fontSize: 11, color: T.muted }}>
         <strong style={{ color: T.gold }}>{selecionadas.size}</strong> de {parsed.transacoes.length} marcadas para importar.
+        {qtdDuplicadas > 0 && (
+          <span style={{ color: T.yellow || "#f59e0b", marginLeft: 8 }}>
+            ⚠ {qtdDuplicadas} {qtdDuplicadas === 1 ? "possível duplicata desmarcada" : "possíveis duplicatas desmarcadas"} (já existem nos lançamentos).
+          </span>
+        )}
       </div>
 
       <div className="flex gap-3 mt-6">
