@@ -230,6 +230,18 @@ export default function Servicos({
     return map;
   }, [vendas]);
 
+  // Já PAGO do repasse do mês por colaborador (soma dos lançamentos
+  // "pago-instalador" do mês na Caixa). Permite pagamento parcial.
+  const pagoMesPorInstalador = useMemo(() => {
+    const map = {};
+    ((caixaNegocio?.historico) || []).forEach(h => {
+      if (h.tipo !== "pago-instalador" || !h.instaladorId) return;
+      if (h.repasseMes !== mesCorrente) return;
+      map[h.instaladorId] = (map[h.instaladorId] || 0) + Math.abs(Number(h.valor || 0));
+    });
+    return map;
+  }, [caixaNegocio, mesCorrente]);
+
   // Relatório do mês corrente. `vendas` já agrega vendas avulsas + faturas de
   // contratos (gerarFatura insere a fatura em `vendas` com contratoId), então
   // somar `vendas` cobre toda a receita do período sem perder nada.
@@ -382,13 +394,16 @@ export default function Servicos({
   };
 
   // Repasse ao colaborador (INDEPENDENTE do recebimento do cliente).
-  // Pagar = abre modal pra escolher a DATA DO PAGAMENTO; debita do Banco do Serviço.
-  // Desmarcar = devolve à conta o valor exato que havia saído.
+  // Suporta pagamento PARCIAL: paga um valor (default = saldo restante do mês)
+  // e debita do Banco do Serviço. Quitação total = acumulado cobre o total.
   const togglePagarInstalador = (inst) => {
     if (typeof setInstaladores !== "function") return;
     const jaPago = (inst.repassesPagos || []).includes(mesCorrente);
-    if (jaPago) { desmarcarRepasse(inst); }
-    else { setPagarForm({ inst, data: todayISO() }); }
+    if (jaPago) { desmarcarRepasse(inst); return; }
+    const total = saldoMesPorInstalador[inst.id] || 0;
+    const pago = pagoMesPorInstalador[inst.id] || 0;
+    const restante = Math.max(0, +(total - pago).toFixed(2));
+    setPagarForm({ inst, data: todayISO(), valor: restante > 0 ? String(restante) : "" });
   };
 
   const desmarcarRepasse = (inst) => {
@@ -411,22 +426,35 @@ export default function Servicos({
         }));
       }
     }
-    toast.success(`Repasse de ${inst.nome} (${mesCorrente}) desmarcado — devolvido ao Banco do Serviço.`);
+    toast.success(`Repasses de ${inst.nome} (${mesCorrente}) desfeitos — devolvidos ao Banco do Serviço.`);
   };
 
-  // Confirma o pagamento do repasse com a DATA escolhida no modal.
+  // Confirma o pagamento do repasse (total ou parcial) com a DATA escolhida.
   const confirmarPagamentoRepasse = () => {
     const inst = pagarForm.inst;
-    const totalMes = saldoMesPorInstalador[inst.id] || 0;
-    setInstaladores(instaladores.map(i =>
-      i.id === inst.id ? { ...i, repassesPagos: [...(i.repassesPagos || []), mesCorrente] } : i
-    ));
-    if (totalMes > 0) {
-      lancar({ bancoId: bancoPadraoId, tipo: "pago-instalador", data: pagarForm.data,
-               descricao: `Repasse a ${inst.nome} · ${mesCorrente}`, valor: -totalMes,
-               instaladorId: inst.id, repasseMes: mesCorrente });
+    const total = saldoMesPorInstalador[inst.id] || 0;
+    const pago = pagoMesPorInstalador[inst.id] || 0;
+    const restante = Math.max(0, +(total - pago).toFixed(2));
+    let valor = parseFloat((pagarForm.valor || "").toString().replace(",", "."));
+    if (!(valor > 0)) { toast.error("Informe um valor válido."); return; }
+    if (valor > restante + 0.005) { toast.error(`Valor maior que o restante (${fmt(restante)}).`); return; }
+    valor = +valor.toFixed(2);
+
+    lancar({ bancoId: bancoPadraoId, tipo: "pago-instalador", data: pagarForm.data,
+             descricao: `Repasse a ${inst.nome} · ${mesCorrente}`, valor: -valor,
+             instaladorId: inst.id, repasseMes: mesCorrente });
+
+    // Quita o mês só quando o acumulado cobre o total.
+    const quitou = (pago + valor) >= restante + pago - 0.005; // = pago+valor >= total
+    if (quitou) {
+      setInstaladores(instaladores.map(i =>
+        i.id === inst.id ? { ...i, repassesPagos: [...new Set([...(i.repassesPagos || []), mesCorrente])] } : i
+      ));
+      toast.success(`Repasse de ${inst.nome} quitado (${fmt(total)}).`);
+    } else {
+      const novoRestante = +(restante - valor).toFixed(2);
+      toast.success(`Pago ${fmt(valor)} a ${inst.nome} · falta ${fmt(novoRestante)}.`);
     }
-    toast.success(`Repasse de ${fmt(totalMes)} a ${inst.nome} pago — debitado do Banco do Serviço.`);
     setPagarForm(null);
   };
 
@@ -1608,10 +1636,12 @@ export default function Servicos({
             <div style={{ display: "grid", gap: 6 }}>
               {(instaladores || []).map(i => {
                 const saldoMes = saldoMesPorInstalador[i.id] || 0;
+                const pagoMes = pagoMesPorInstalador[i.id] || 0;
+                const restanteMes = Math.max(0, +(saldoMes - pagoMes).toFixed(2));
                 const inativo = i.ativo === false;
-                // Repasse do mês: já marcado como pago? (backward-compat: sem
-                // repassesPagos => pendente). Só faz sentido se há saldo > 0.
+                // Repasse do mês: quitado, parcial ou pendente.
                 const repassePago = (i.repassesPagos || []).includes(mesCorrente);
+                const parcial = !repassePago && pagoMes > 0;
                 return (
                   <div key={i.id} style={{
                     display: "grid", gridTemplateColumns: "1fr auto auto auto", gap: 10,
@@ -1635,11 +1665,13 @@ export default function Servicos({
                       {saldoMes > 0 && (
                         <div style={{
                           fontSize: 10.5, marginTop: 3, fontWeight: 600,
-                          color: repassePago ? T.green : T.gold,
+                          color: repassePago ? T.green : (parcial ? (T.blue || "#60a5fa") : T.gold),
                         }}>
                           {repassePago
                             ? `Repasse de ${mesCorrente} quitado`
-                            : `Repasse de ${mesCorrente} pendente`}
+                            : parcial
+                              ? `Parcial · pago ${fmt(pagoMes)} · falta ${fmt(restanteMes)}`
+                              : `Repasse de ${mesCorrente} pendente`}
                         </div>
                       )}
                     </div>
@@ -1662,14 +1694,14 @@ export default function Servicos({
                         </button>
                       ) : (
                         <button onClick={() => togglePagarInstalador(i)}
-                                title="Marcar repasse do mês como pago ao colaborador"
+                                title={parcial ? "Pagar o restante (ou outro valor parcial)" : "Pagar repasse do mês (total ou parcial)"}
                                 style={{
                                   display: "inline-flex", alignItems: "center", gap: 4,
                                   background: T.gold, border: "none",
                                   color: T.bg, padding: "4px 10px", borderRadius: 5, cursor: "pointer",
                                   fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
                                 }}>
-                          <Check size={11} /> Pagar
+                          <Check size={11} /> {parcial ? "Pagar restante" : "Pagar"}
                         </button>
                       )
                     ) : (
@@ -2400,19 +2432,34 @@ export default function Servicos({
         </Modal>
       )}
 
-      {/* MODAL: pagar repasse ao colaborador (data do pagamento) */}
-      {pagarForm && (
+      {/* MODAL: pagar repasse ao colaborador (valor parcial/total + data) */}
+      {pagarForm && (() => {
+        const total = saldoMesPorInstalador[pagarForm.inst.id] || 0;
+        const pago = pagoMesPorInstalador[pagarForm.inst.id] || 0;
+        const restante = Math.max(0, +(total - pago).toFixed(2));
+        return (
         <Modal title="Pagar repasse" onClose={() => setPagarForm(null)}>
           <div style={{ fontSize: 13, color: T.muted, marginBottom: 12 }}>
-            Repasse a <strong style={{ color: T.ink }}>{pagarForm.inst.nome}</strong> ({mesCorrente}) ·{" "}
-            <span className="num" style={{ color: T.gold, fontWeight: 600 }}>{fmt(saldoMesPorInstalador[pagarForm.inst.id] || 0)}</span>
+            Repasse a <strong style={{ color: T.ink }}>{pagarForm.inst.nome}</strong> ({mesCorrente})
+            <div style={{ display: "flex", gap: 16, marginTop: 6, flexWrap: "wrap", fontSize: 12 }}>
+              <span>Total: <strong className="num" style={{ color: T.ink }}>{fmt(total)}</strong></span>
+              {pago > 0 && <span style={{ color: T.green }}>Já pago: <strong className="num">{fmt(pago)}</strong></span>}
+              <span style={{ color: T.gold }}>Restante: <strong className="num">{fmt(restante)}</strong></span>
+            </div>
           </div>
-          <Field label="Data do pagamento" required>
-            <input type="date" value={pagarForm.data} autoFocus
-                   onChange={e => setPagarForm({ ...pagarForm, data: e.target.value })} />
-          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Valor a pagar (R$)" hint={`Parcial permitido · restante ${fmt(restante)}`}>
+              <input type="number" step="0.01" value={pagarForm.valor} autoFocus
+                     onChange={e => setPagarForm({ ...pagarForm, valor: e.target.value })}
+                     placeholder="0,00" />
+            </Field>
+            <Field label="Data do pagamento" required>
+              <input type="date" value={pagarForm.data}
+                     onChange={e => setPagarForm({ ...pagarForm, data: e.target.value })} />
+            </Field>
+          </div>
           <div style={{ fontSize: 11.5, color: T.faint, marginTop: 8, fontStyle: "italic" }}>
-            Sai do Banco do Serviço (conta padrão).
+            Sai do Banco do Serviço (conta padrão). Pode pagar em partes — só fica "quitado" quando o total for atingido.
           </div>
           <div className="flex gap-3 justify-end mt-6">
             <button className="btn-ghost" onClick={() => setPagarForm(null)}>Cancelar</button>
@@ -2421,7 +2468,8 @@ export default function Servicos({
             </button>
           </div>
         </Modal>
-      )}
+        );
+      })()}
 
       {/* MODAL: cobrança em massa (cobranças em aberto por cliente) */}
       {cobrancasAberto && (
