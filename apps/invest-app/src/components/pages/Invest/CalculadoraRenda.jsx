@@ -322,7 +322,7 @@ export default function CalculadoraRenda() {
           <Slider
             label="Valor investido"
             value={valor}
-            min={100_000} max={10_000_000} step={100_000}
+            min={0} max={10_000_000} step={10_000}
             onChange={setValor}
             display={fmtBRL.format(valor)}
           />
