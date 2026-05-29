@@ -15,7 +15,7 @@ import PageHeader from "../../ui/PageHeader.jsx";
  */
 
 const DEFAULTS = {
-  valor: 3_000_000,
+  valor: 0,
   taxaAnualPct: 13.25,
   irPct: 0,
   inflacaoPct: 4.5,
