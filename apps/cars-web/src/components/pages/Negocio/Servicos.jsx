@@ -668,7 +668,8 @@ export default function Servicos({
   const confirmarVenda = () => {
     const nome = (vendaForm.nome || "").trim();
     const valor = Number(vendaForm.valor);
-    const custo = Number(vendaForm.custo) || 0;
+    // Custo único = repasse ao colaborador; venda avulsa não tem campo de custo.
+    const custo = 0;
     if (!nome) { toast.error("Informe o nome do serviço."); return; }
     if (!Number.isFinite(valor) || valor <= 0) { toast.error("Valor inválido."); return; }
 
@@ -1755,14 +1756,10 @@ export default function Servicos({
                      onChange={e => setVendaForm({ ...vendaForm, nome: e.target.value })}
                      placeholder="Ex.: Gestão de tráfego" />
             </Field>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Valor (R$)" required>
                 <input type="number" step="0.01" value={vendaForm.valor}
                        onChange={e => setVendaForm({ ...vendaForm, valor: e.target.value })} />
-              </Field>
-              <Field label="Custo (R$)">
-                <input type="number" step="0.01" value={vendaForm.custo}
-                       onChange={e => setVendaForm({ ...vendaForm, custo: e.target.value })} />
               </Field>
               <Field label="Data" required>
                 <input type="date" value={vendaForm.data}
