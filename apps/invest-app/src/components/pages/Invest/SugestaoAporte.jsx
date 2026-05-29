@@ -231,7 +231,7 @@ REGRAS:
         parsed = await gerarJSONGemini(pergunta, { apiKey: geminiKey, temperature: 0.2, maxOutputTokens: 4096 });
       } else {
         // Claude: pede texto e extrai o JSON entre ```json...```
-        const contextoMin = `O Paulo Afonso é dono da AF4 Motors em Tatuí-SP. Ele gerencia patrimônio próprio e usa o cockpit AF4 pra simular aportes. Hoje quer uma sugestão concreta de alocação.`;
+        const contextoMin = `O usuário gerencia a própria carteira de investimentos e quer uma sugestão concreta de alocação para o aporte.`;
         const resposta = await perguntarAoClaude({
           apiKey,
           pergunta,
