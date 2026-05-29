@@ -26,6 +26,8 @@ export function LogoMark({ size = 28 }) {
 
 /**
  * Marca completa: símbolo + "Aurum" + sufixo ".investi".
+ * Cores FIXAS da marca (dourado) — não mudam com a paleta, pra manter
+ * identidade consistente (o logo vive numa barra de fundo escuro).
  */
 export default function Logo({ size = 28, sufixo = true }) {
   return (
@@ -34,12 +36,12 @@ export default function Logo({ size = 28, sufixo = true }) {
       <span style={{ display: "inline-flex", alignItems: "baseline", gap: 1 }}>
         <span style={{
           fontFamily: T.serif, fontWeight: 600, fontSize: Math.round(size * 0.72),
-          color: T.gold, letterSpacing: "-0.01em", lineHeight: 1,
+          color: "#d4b87a", letterSpacing: "-0.01em", lineHeight: 1,
         }}>Aurum</span>
         {sufixo && (
           <span style={{
             fontFamily: T.serif, fontWeight: 500, fontSize: Math.round(size * 0.42),
-            color: T.muted, lineHeight: 1,
+            color: "rgba(232,224,205,.5)", lineHeight: 1,
           }}>.investi</span>
         )}
       </span>
