@@ -7,7 +7,6 @@ import {
   matchParcelamento,
   detectarDuplicidadeFatura,
   gerarOcorrenciasFixa,
-  parcelasPagasIniciais,
   brDateToISO,
   brDateToMonthISO,
 } from "../../lib/importarFatura.js";
@@ -137,10 +136,10 @@ export default function PreviewImportarFaturaModal({
 
     incluidos.forEach(item => {
       const valor = Number(item.valor) || 0;
-      totalDebitado += valor;
       const cat = item.categoria_sugerida || "Outros";
 
       if (item.tipo === "vista") {
+        totalDebitado += valor;
         novasTransacoes.push({
           id: uid(),
           tipo: "despesa",
@@ -159,6 +158,7 @@ export default function PreviewImportarFaturaModal({
       }
 
       if (item.tipo === "fixa") {
+        totalDebitado += valor;
         // Cria template + 12 ocorrências (1ª já paga)
         const fixaId = `fixa-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
         const dia = (() => {
@@ -212,20 +212,11 @@ export default function PreviewImportarFaturaModal({
         const valorParc = Number(item.valor_parcela) || valor;
 
         if (item._match) {
-          // Marca a parcela atual como paga no parcelamento existente
-          const idx = parcelamentosAtualizados.findIndex(p => p.id === item._match.id);
-          if (idx >= 0) {
-            const p = parcelamentosAtualizados[idx];
-            const set = new Set(p.parcelasPagas || []);
-            set.add(atual);
-            parcelamentosAtualizados[idx] = {
-              ...p,
-              parcelasPagas: [...set].sort((a, b) => a - b),
-            };
-          }
+          // Parcelamento já existe — NÃO marca a parcela do mês como paga aqui.
+          // Ela fica pendente e é baixada quando você "Pagar fatura" (pagamento único).
         } else {
-          // Cria parcelamento novo, marcando 1..atual como pagas (assume que as anteriores
-          // já foram em faturas anteriores)
+          // Cria parcelamento novo. Marca como pagas só as ANTERIORES (1..atual-1);
+          // a parcela atual fica pendente para o pagamento da fatura.
           const cartaoMatch = cartoes.find(c => c.id === cartaoSelecionado)
                             || cartoes.find(c => normalize(c.nome) === normalize(banco));
           novosParcelamentos.push({
@@ -243,28 +234,14 @@ export default function PreviewImportarFaturaModal({
             valorTotal: valorParc * total,
             valorParcela: valorParc,
             totalParcelas: total,
-            parcelasPagas: parcelasPagasIniciais(item),
+            parcelasPagas: Array.from({ length: Math.max(0, atual - 1) }, (_, i) => i + 1),
             categoria: cat,
             origem: origemTag,
             criadoEm: todayISO(),
           });
         }
-
-        // Lança a parcela atual como transação despesa
-        novasTransacoes.push({
-          id: uid(),
-          tipo: "despesa",
-          descricao: `${item.descricao} ${atual}/${total} (fatura ${banco})`,
-          valor: valorParc,
-          data: dataPagto,
-          cartaoId: cartaoSelecionado || null,
-          categoria: cat,
-          conta: contaNome,
-          compensado: true,
-          fixa: false,
-          obs: `Parcela ${atual}/${total} · ${item._match ? "match" : "novo parcelamento"}`,
-          origem: origemTag,
-        });
+        // Parcela NÃO vira transação: ela vive no parcelamento (Planejamento) e é
+        // debitada do banco uma única vez no "Pagar fatura". Assim não duplica.
       }
     });
 
