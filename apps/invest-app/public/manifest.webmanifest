@@ -1,13 +1,13 @@
 {
-  "name": "AF4 Cockpit · Painel de Comando",
-  "short_name": "AF4",
-  "description": "Painel de Comando — finanças pessoais, investimentos, cartões e operação da loja AF4.",
+  "name": "Aurum · Investimentos",
+  "short_name": "Aurum",
+  "description": "Organize e acompanhe seus investimentos com clareza.",
   "start_url": ".",
   "scope": ".",
-  "display": "browser",
+  "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0a0908",
-  "theme_color": "#0a0908",
+  "background_color": "#0c0b0a",
+  "theme_color": "#0c0b0a",
   "icons": [
     {
       "src": "./icon.svg",

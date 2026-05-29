@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { T } from "../../lib/theme.js";
 import { updatePassword } from "../../lib/supabase.js";
+import Logo from "../ui/Logo.jsx";
 
 /**
  * Tela de redefinição de senha (fluxo "Esqueci a senha").
@@ -35,8 +36,8 @@ export default function NovaSenha({ onPronto }) {
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: T.bg, padding: 20 }}>
       <div style={{ width: "100%", maxWidth: 380 }}>
         <div style={{ textAlign: "center", marginBottom: 22 }}>
-          <div style={{ fontFamily: T.serif, fontSize: 30, fontWeight: 600, color: T.gold, letterSpacing: "-0.02em" }}>
-            Investimentos
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
+            <Logo size={34} />
           </div>
           <div style={{ fontSize: 12.5, color: T.muted, marginTop: 4 }}>Defina sua nova senha</div>
         </div>
