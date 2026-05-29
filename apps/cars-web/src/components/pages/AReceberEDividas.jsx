@@ -189,6 +189,18 @@ export default function AReceberEDividas({
     // Quita o restante? (parcial que cobre tudo é tratado como baixa total)
     const quitaTudo = !isReceber || !ehParcial || valor >= saldoAberto - 0.005;
 
+    // Caso ESPECIAL: despesa avulsa já É uma transação — não cria outra.
+    // Apenas marca a transação existente como compensada e debita a conta.
+    if (!isReceber && baixaForm._origem === "transacao" && baixaForm._transacaoId) {
+      setTransacoes(transacoes.map(t => t.id === baixaForm._transacaoId
+        ? { ...t, compensado: true, conta: baixaForm.contaDestino, data: baixaForm.dataBaixa, obs: baixaForm.obs || t.obs }
+        : t));
+      setContas(contas.map(c => c.id === conta.id ? { ...c, saldo: (parseFloat(c.saldo) || 0) - valor } : c));
+      toast.success(`Pago ${fmt(valor)} de ${baixaForm.contaDestino}. Saldo atualizado.`);
+      setBaixaForm(null);
+      return;
+    }
+
     // 1) Cria transação
     const novaTransacao = {
       id: uid(),
@@ -345,10 +357,32 @@ export default function AReceberEDividas({
     return lista;
   }, [parcelamentos, cartoes]);
 
+  // Despesas avulsas (transações de despesa ainda NÃO compensadas) — itens
+  // virtuais "a pagar". Ao baixar, a própria transação é marcada como paga
+  // (não cria outra). Ignora transações de origem fixa/parcela (já cobertas
+  // acima) pra não duplicar.
+  const despesasAvulsas = useMemo(() => {
+    return (transacoes || [])
+      .filter(t => t.tipo === "despesa" && !t.compensado
+        && !t.origemFixaOcorrenciaId && !t.origemParcelamentoId)
+      .map(t => ({
+        id: `tx:${t.id}`,
+        nome: t.descricao || "Despesa",
+        valor: Number(t.valor || 0),
+        vencimento: t.vencimento || t.data,
+        categoria: t.categoria || "Outros",
+        obs: t.obs || "",
+        pago: false,
+        credor: "",
+        _origem: "transacao",
+        _transacaoId: t.id,
+      }));
+  }, [transacoes]);
+
   // Lista unificada (mantém nome legado divAbertas pro resto do componente).
   const divAbertas = useMemo(
-    () => [...dividasReais, ...fixasComoDivida, ...parcelasComoDivida],
-    [dividas, fixasComoDivida, parcelasComoDivida]
+    () => [...dividasReais, ...fixasComoDivida, ...parcelasComoDivida, ...despesasAvulsas],
+    [dividas, fixasComoDivida, parcelasComoDivida, despesasAvulsas]
   );
 
   // Mês corrente como tab default; tabs derivam de todos os vencimentos abertos
@@ -550,6 +584,7 @@ export default function AReceberEDividas({
                   _fixaOccId: proximo._fixaOccId || null,
                   _parcelamentoId: proximo._parcelamentoId || null,
                   _parcelaN: proximo._parcelaN || null,
+                  _transacaoId: proximo._transacaoId || null,
                 });
               },
             },
@@ -729,6 +764,7 @@ export default function AReceberEDividas({
             _fixaOccId: item._fixaOccId || null,
             _parcelamentoId: item._parcelamentoId || null,
             _parcelaN: item._parcelaN || null,
+            _transacaoId: item._transacaoId || null,
           })}
           onEditar={(item) => {
             if (item._origem === "fixa") {
@@ -739,11 +775,19 @@ export default function AReceberEDividas({
               toast.info("Edite o parcelamento em Cartões.");
               return;
             }
+            if (item._origem === "transacao") {
+              toast.info("Edite esta despesa em Transações.");
+              return;
+            }
             setForm({ ...item, tipo: "dividas" });
           }}
           onExcluir={(item) => {
             if (item._origem === "fixa" || item._origem === "parcela") {
               toast.info("Remova esta entrada na aba original (Despesas Fixas / Cartões).");
+              return;
+            }
+            if (item._origem === "transacao") {
+              toast.info("Remova esta despesa em Transações.");
               return;
             }
             excluir(item, "dividas");
