@@ -1,12 +1,29 @@
 import React, { useMemo, useState } from "react";
-import { Plus, Trash2, Edit3, Check, Wrench, X, ChevronDown, ChevronRight, DollarSign, TrendingUp, Repeat, Pause, Play, Receipt, HardHat } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Plus, Trash2, Edit3, Check, Wrench, X, ChevronDown, ChevronRight, DollarSign, TrendingUp, Repeat, Pause, Play, Receipt, HardHat, FileText, MessageCircle, AlertTriangle, Sparkles } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../../lib/format.js";
 import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
+import { abrirWhatsApp } from "../../../lib/whatsapp.js";
+import { toPDF } from "../../../lib/exportRelatorio.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import Field from "../../ui/Field.jsx";
 import Modal from "../../ui/Modal.jsx";
+
+// Catálogo pronto de serviços típicos de agência (CRM, tráfego pago, etc).
+// Usado pelo botão "Serviços de agência" pra pré-popular o catálogo.
+const SERVICOS_AGENCIA = [
+  { nome: "Gestão de CRM", descricao: "Implantação e gestão mensal de CRM", precoSugerido: 1500, custoBase: 0 },
+  { nome: "Tráfego Pago (Gestão)", descricao: "Gestão de campanhas (Meta/Google Ads) — fee mensal", precoSugerido: 1500, custoBase: 0 },
+  { nome: "Social Media", descricao: "Planejamento e gestão de redes sociais", precoSugerido: 1200, custoBase: 0 },
+  { nome: "Criação de Conteúdo", descricao: "Pacote mensal de posts/criativos", precoSugerido: 900, custoBase: 0 },
+  { nome: "Landing Page", descricao: "Criação de página de captura/venda", precoSugerido: 1800, custoBase: 0 },
+  { nome: "Criação de Site", descricao: "Site institucional ou e-commerce", precoSugerido: 3500, custoBase: 0 },
+  { nome: "SEO", descricao: "Otimização para buscadores — fee mensal", precoSugerido: 1200, custoBase: 0 },
+  { nome: "Automação / Funil", descricao: "Automação de marketing e funil de vendas", precoSugerido: 1500, custoBase: 0 },
+  { nome: "Consultoria de Marketing", descricao: "Consultoria estratégica (hora/mês)", precoSugerido: 800, custoBase: 0 },
+];
 
 /**
  * Serviços do módulo Negócio.
@@ -43,6 +60,7 @@ export default function Servicos({
   const [instaladoresExpandido, setInstaladoresExpandido] = useState(true);
   const [relatorioAberto, setRelatorioAberto] = useState(false);
   const [relatorioAba, setRelatorioAba] = useState("clientes");
+  const [faturaDoc, setFaturaDoc] = useState(null); // venda/fatura aberta no modal de PDF
 
   // Mês corrente YYYY-MM — usado pra controle de repasse e relatório.
   const mesCorrente = new Date().toISOString().slice(0, 7);
@@ -64,16 +82,36 @@ export default function Servicos({
 
   const kpi = useMemo(() => {
     const mesISO = new Date().toISOString().slice(0, 7);
+    // Receita do mês = só o que foi efetivamente PAGO (recebido) no período.
     const vMes = (vendas || []).filter(v => (v.data || "").startsWith(mesISO));
-    const receita = vMes.reduce((s, v) => s + Number(v.valor || 0), 0);
-    const custo = vMes.reduce((s, v) => s + Number(v.custo || 0), 0);
+    const recebidasMes = vMes.filter(v => v.pago !== false);
+    const receita = recebidasMes.reduce((s, v) => s + Number(v.valor || 0), 0);
+    const custo = recebidasMes.reduce((s, v) => s + Number(v.custo || 0), 0);
+    // A receber = faturas pendentes (não pagas), de qualquer período.
+    const aReceber = (vendas || [])
+      .filter(v => v.pago === false)
+      .reduce((s, v) => s + Number(v.valor || 0), 0);
     return {
       catalogo: ativos.length,
       vendidosMes: vMes.length,
       receitaMes: receita,
       lucroMes: receita - custo,
+      aReceber,
     };
   }, [vendas, ativos]);
+
+  // Faturas pendentes (cobranças em aberto) agrupadas por contrato — alimenta
+  // o selo "Inadimplente" e o total a receber de cada contrato.
+  const pendentesPorContrato = useMemo(() => {
+    const map = {};
+    (vendas || []).forEach(v => {
+      if (!v.contratoId || v.pago !== false) return;
+      const e = (map[v.contratoId] = map[v.contratoId] || { qtd: 0, total: 0 });
+      e.qtd++;
+      e.total += Number(v.valor || 0);
+    });
+    return map;
+  }, [vendas]);
 
   // Saldo do mês por instalador: soma de valorInstalador das vendas do mês corrente
   // onde instaladorId === id. Backward-compat: vendas antigas sem campos seguem em 0.
@@ -168,6 +206,27 @@ export default function Servicos({
 
   const toggleAtivo = (s) => {
     setServicos(servicos.map(x => x.id === s.id ? { ...x, ativo: !(x.ativo !== false) } : x));
+  };
+
+  // Pré-popula o catálogo com serviços típicos de agência (CRM, tráfego, etc).
+  // Só adiciona os que ainda não existem (compara por nome, sem acento/caixa).
+  const seedServicosAgencia = async () => {
+    const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+    const existentes = new Set((servicos || []).map(s => norm(s.nome)));
+    const novos = SERVICOS_AGENCIA.filter(s => !existentes.has(norm(s.nome)));
+    if (novos.length === 0) {
+      toast.info("Todos os serviços de agência já estão no catálogo.");
+      return;
+    }
+    const ok = await confirm({
+      title: `Adicionar ${novos.length} serviço${novos.length !== 1 ? "s" : ""} de agência?`,
+      body: `Vou incluir no catálogo: ${novos.map(s => s.nome).join(", ")}. Você pode editar preço/custo depois.`,
+      confirmLabel: "Adicionar",
+    });
+    if (!ok) return;
+    const criados = novos.map(s => ({ ...s, id: uid(), ativo: true }));
+    setServicos([...criados, ...servicos]);
+    toast.success(`${criados.length} serviço${criados.length !== 1 ? "s" : ""} de agência adicionado${criados.length !== 1 ? "s" : ""}.`);
   };
 
   /* ---------- Instaladores (CRUD) ---------- */
@@ -295,6 +354,146 @@ export default function Servicos({
     });
   };
 
+  /* ---------- Helpers de caixa (receita + prestador) ---------- */
+  // Centralizam os efeitos financeiros de uma venda/fatura, pra que tanto a
+  // venda avulsa quanto o "marcar fatura como paga" usem o mesmo caminho.
+
+  // Receita entra na Caixa do Negócio; se há instalador, paga do mesmo caixa.
+  const aplicarReceitaCaixa = (v, descricaoReceita) => {
+    if (typeof setCaixaNegocio !== "function") return;
+    const valorInst = Number(v.valorInstalador || 0);
+    const temInst = !!v.instaladorId && valorInst > 0;
+    const inst = temInst ? instaladores.find(i => i.id === v.instaladorId) : null;
+    const dataMov = v.pagoEm || v.data || todayISO();
+    setCaixaNegocio(prev => {
+      const entradaReceita = {
+        id: uid(),
+        tipo: v.contratoId ? "fatura-recorrente" : "venda-servico",
+        data: dataMov,
+        descricao: descricaoReceita,
+        valor: Number(v.valor || 0),
+        custo: Number(v.custo || 0),
+        vendaId: v.id,
+        ...(v.contratoId ? { contratoId: v.contratoId } : {}),
+        ts: new Date().toISOString(),
+      };
+      let novoSaldo = (prev?.saldo || 0) + Number(v.valor || 0);
+      let novoHist = [entradaReceita, ...((prev?.historico) || [])];
+      if (temInst) {
+        novoSaldo -= valorInst;
+        novoHist = [{
+          id: uid(), tipo: "pago-instalador", data: dataMov,
+          descricao: `Pago a ${inst?.nome || "instalador"} · ${v.nome}`,
+          valor: -valorInst, vendaId: v.id,
+          ...(v.contratoId ? { contratoId: v.contratoId } : {}),
+          instaladorId: v.instaladorId, ts: new Date().toISOString(),
+        }, ...novoHist];
+      }
+      return { saldo: novoSaldo, historico: novoHist };
+    });
+  };
+
+  // Desfaz o que aplicarReceitaCaixa fez (remove lançamentos da venda do caixa).
+  const reverterReceitaCaixa = (v) => {
+    if (typeof setCaixaNegocio !== "function") return;
+    const valorInst = Number(v.valorInstalador || 0);
+    setCaixaNegocio(prev => ({
+      // +valorInst porque o pago-instalador foi saída negativa; estornar devolve.
+      saldo: (prev?.saldo || 0) - Number(v.valor || 0) + valorInst,
+      historico: ((prev?.historico) || []).filter(h => h.vendaId !== v.id),
+    }));
+  };
+
+  // Despesa do prestador em Finanças (dinheiro real saindo). Só faturas com
+  // pagarAoFaturar + conta + custo > 0. Os dados ficam gravados na própria
+  // fatura (snapshot) pra funcionar mesmo se o contrato mudar depois.
+  const aplicarDespesaPrestador = (v) => {
+    const custoNum = Number(v.custo || 0);
+    if (!(v.pagarAoFaturar && v.contaPagamento && custoNum > 0)) return;
+    if (typeof setTransacoes !== "function") return;
+    const contaPag = contas.find(co => co.nome === v.contaPagamento);
+    if (!contaPag) {
+      toast.error(`Conta "${v.contaPagamento}" não existe mais. Despesa do prestador não criada.`);
+      return;
+    }
+    const catDesp = categorias.find(cat => cat.tipo === "despesa" && /serv|saas|software|ferramenta|negocio/i.test(cat.nome))?.nome
+                 || categorias.find(cat => cat.tipo === "despesa")?.nome
+                 || "Outros";
+    const despesa = {
+      id: uid(), tipo: "despesa",
+      descricao: `Pago a prestador · ${v.nome}`,
+      categoria: catDesp, conta: v.contaPagamento,
+      data: v.pagoEm || todayISO(), valor: custoNum,
+      compensado: true, fixa: false,
+      obs: `Pagamento ao prestador · contrato recorrente (serviço ${v.id})`,
+    };
+    setTransacoes([despesa, ...transacoes]);
+    if (typeof setContas === "function") {
+      setContas(contas.map(co => co.id === contaPag.id
+        ? { ...co, saldo: (parseFloat(co.saldo) || 0) - custoNum }
+        : co));
+    }
+  };
+
+  // Desfaz a despesa do prestador (remove transação + devolve saldo).
+  const reverterDespesaPrestador = (v) => {
+    if (typeof setTransacoes !== "function") return;
+    const desp = (transacoes || []).find(t =>
+      t.tipo === "despesa" && (t.obs || "").includes(`serviço ${v.id}`));
+    if (!desp) return;
+    setTransacoes(transacoes.filter(t => t.id !== desp.id));
+    const contaDesp = contas.find(co => co.nome === desp.conta);
+    if (contaDesp && typeof setContas === "function") {
+      setContas(contas.map(co => co.id === contaDesp.id
+        ? { ...co, saldo: (parseFloat(co.saldo) || 0) + Number(desp.valor || 0) }
+        : co));
+    }
+  };
+
+  /* ---------- Marcar fatura paga / não paga ---------- */
+  // Marcar PAGO: registra a data, joga a receita na Caixa do Negócio e (se
+  // configurado) gera a despesa do prestador. Marcar NÃO PAGO desfaz tudo.
+  const marcarFaturaPaga = (v) => {
+    const cliente = clientes.find(c => c.id === v.clienteId);
+    const pagoEm = todayISO();
+    const vPago = { ...v, pago: true, pagoEm };
+    setVendas((vendas || []).map(x => x.id === v.id ? vPago : x));
+    aplicarReceitaCaixa(vPago, `${v.nome}${cliente ? ` · ${cliente.nome}` : ""}`);
+    aplicarDespesaPrestador(vPago);
+    toast.success(`Pagamento de ${fmt(v.valor)} recebido · ${v.nome}`);
+  };
+
+  const marcarFaturaNaoPaga = async (v) => {
+    const ok = await confirm({
+      title: `Marcar "${v.nome}" como não paga?`,
+      body: `A receita de ${fmt(v.valor)} sai da Caixa do Negócio${v.pagarAoFaturar ? " e a despesa do prestador é desfeita" : ""}. A cobrança volta a ficar pendente.`,
+      confirmLabel: "Marcar pendente",
+    });
+    if (!ok) return;
+    reverterReceitaCaixa(v);
+    reverterDespesaPrestador(v);
+    setVendas((vendas || []).map(x => x.id === v.id ? { ...x, pago: false, pagoEm: null } : x));
+    toast.success("Cobrança marcada como pendente.");
+  };
+
+  /* ---------- Cobrança / recibo por WhatsApp ---------- */
+  const refLabelVenda = (v) => {
+    if (v.faturaRef) {
+      return v.faturaRef.length === 4 ? `Ano ${v.faturaRef}` : `${v.faturaRef.slice(5)}/${v.faturaRef.slice(0, 4)}`;
+    }
+    return v.data ? v.data.split("-").reverse().join("/") : "";
+  };
+
+  const enviarCobrancaWhatsApp = (v) => {
+    const cliente = clientes.find(c => c.id === v.clienteId);
+    if (!cliente) { toast.error("Vincule um cliente à venda para enviar a cobrança."); return; }
+    const ref = refLabelVenda(v);
+    const msg = v.pago
+      ? `Olá ${cliente.nome}! ✅\n\nRecibo do serviço *${v.nome}*${ref ? ` (${ref})` : ""}.\nValor: *${fmt(v.valor)}* — PAGO${v.pagoEm ? ` em ${v.pagoEm.split("-").reverse().join("/")}` : ""}.\n\nObrigado pela parceria!`
+      : `Olá ${cliente.nome}! 👋\n\nSegue a cobrança do serviço *${v.nome}*${ref ? ` referente a ${ref}` : ""}.\nValor: *${fmt(v.valor)}*.\n\nPode confirmar o pagamento? Qualquer dúvida estou à disposição. Obrigado!`;
+    abrirWhatsApp(cliente.telefone, msg);
+  };
+
   const confirmarVenda = () => {
     const nome = (vendaForm.nome || "").trim();
     const valor = Number(vendaForm.valor);
@@ -314,7 +513,6 @@ export default function Servicos({
     // Instalador opcional: só registra saída se setou nome + valor > 0
     const valorInst = Number(vendaForm.valorInstalador) || 0;
     const temInstalador = !!vendaForm.instaladorId && valorInst > 0;
-    const inst = temInstalador ? instaladores.find(i => i.id === vendaForm.instaladorId) : null;
 
     const novaVenda = {
       id: uid(),
@@ -328,42 +526,13 @@ export default function Servicos({
       instaladorId: temInstalador ? vendaForm.instaladorId : null,
       valorInstalador: temInstalador ? valorInst : 0,
       contaDestino: "Caixa do Negócio",
+      pago: true,            // venda avulsa = recebida na hora
+      pagoEm: vendaForm.data,
       obs: (vendaForm.obs || "").trim(),
     };
 
-    // Receita vai pra Caixa do Negócio virtual; se tem instalador, gera
-    // também uma saída "pago-instalador" no mesmo caixa (sem tocar Finanças).
-    if (typeof setCaixaNegocio === "function") {
-      setCaixaNegocio(prev => {
-        const baseHist = (prev?.historico) || [];
-        const entradaReceita = {
-          id: uid(),
-          tipo: "venda-servico",
-          data: vendaForm.data,
-          descricao: `Serviço · ${partes.join(" · ")}`,
-          valor,
-          custo,
-          vendaId: novaVenda.id,
-          ts: new Date().toISOString(),
-        };
-        let novoSaldo = (prev?.saldo || 0) + valor;
-        let novoHist = [entradaReceita, ...baseHist];
-        if (temInstalador) {
-          novoSaldo -= valorInst;
-          novoHist = [{
-            id: uid(),
-            tipo: "pago-instalador",
-            data: vendaForm.data,
-            descricao: `Pago a ${inst?.nome || "instalador"} · ${nome}`,
-            valor: -valorInst,
-            vendaId: novaVenda.id,
-            instaladorId: vendaForm.instaladorId,
-            ts: new Date().toISOString(),
-          }, ...novoHist];
-        }
-        return { saldo: novoSaldo, historico: novoHist };
-      });
-    }
+    // Venda avulsa entra paga: receita (e pago-instalador) vão pra Caixa agora.
+    aplicarReceitaCaixa(novaVenda, `Serviço · ${partes.join(" · ")}`);
 
     setVendas([novaVenda, ...vendas]);
     setVendaForm(null);
@@ -376,57 +545,40 @@ export default function Servicos({
     const valorInst = Number(v.valorInstalador || 0);
     const temInst = !!v.instaladorId && valorInst > 0;
     const ehDeContrato = !!v.contratoId && !!v.faturaRef;
+    const foiPago = v.pago !== false; // legacy/avulsa sem campo = considerado pago
     const ok = await confirm({
-      title: `Estornar venda de ${v.nome}?`,
-      body: isCaixaVirtual
-        ? `A venda de ${fmt(v.valor)} será removida da Caixa do Negócio${temInst ? " (incluindo o pago ao instalador)" : ""}${ehDeContrato ? " e o contrato volta a permitir gerar a fatura desse mês" : ""}.`
-        : `A venda de ${fmt(v.valor)} será removida, o saldo de ${v.contaDestino} ajustado e a transação no Finanças removida.`,
+      title: `Estornar ${ehDeContrato ? "fatura" : "venda"} de ${v.nome}?`,
+      body: !foiPago
+        ? `A cobrança pendente de ${fmt(v.valor)} será removida${ehDeContrato ? " e o contrato volta a permitir gerar a fatura desse mês" : ""}.`
+        : isCaixaVirtual
+          ? `A venda de ${fmt(v.valor)} será removida da Caixa do Negócio${temInst ? " (incluindo o pago ao instalador)" : ""}${ehDeContrato ? " e o contrato volta a permitir gerar a fatura desse mês" : ""}.`
+          : `A venda de ${fmt(v.valor)} será removida, o saldo de ${v.contaDestino} ajustado e a transação no Finanças removida.`,
       danger: true, confirmLabel: "Estornar",
     });
     if (!ok) return;
 
-    if (isCaixaVirtual) {
-      // Venda nova: estorna na Caixa do Negócio virtual.
-      // Reverte tanto a receita quanto o pago-instalador (se houve).
-      if (typeof setCaixaNegocio === "function") {
-        setCaixaNegocio(prev => ({
-          // +valorInst porque o pago-instalador foi uma SAÍDA (negativa); estornar devolve.
-          saldo: (prev?.saldo || 0) - Number(v.valor || 0) + valorInst,
-          historico: ((prev?.historico) || []).filter(h => h.vendaId !== v.id),
-        }));
-      }
-    } else {
-      // Venda antiga (legacy, com conta de Finanças): comportamento original
-      setTransacoes(transacoes.filter(t => !(
-        t.conta === v.contaDestino &&
-        t.valor === v.valor &&
-        t.tipo === "receita" &&
-        t.data === v.data &&
-        (t.obs || "").includes(`serviço ${v.id}`)
-      )));
-
-      const conta = contas.find(c => c.nome === v.contaDestino);
-      if (conta) {
-        setContas(contas.map(c => c.id === conta.id
-          ? { ...c, saldo: (parseFloat(c.saldo) || 0) - Number(v.valor || 0) }
-          : c));
-      }
-    }
-
-    // Reverte a despesa do prestador no Finanças, se foi gerada pra esta venda.
-    if (typeof setTransacoes === "function") {
-      const despPrestador = (transacoes || []).find(t =>
-        t.tipo === "despesa" && (t.obs || "").includes(`serviço ${v.id}`)
-      );
-      if (despPrestador) {
-        setTransacoes(transacoes.filter(t => t.id !== despPrestador.id));
-        const contaDesp = contas.find(co => co.nome === despPrestador.conta);
-        if (contaDesp && typeof setContas === "function") {
-          setContas(contas.map(co => co.id === contaDesp.id
-            ? { ...co, saldo: (parseFloat(co.saldo) || 0) + Number(despPrestador.valor || 0) }
-            : co));
+    // Só reverte dinheiro se a venda/fatura tinha sido efetivamente paga.
+    if (foiPago) {
+      if (isCaixaVirtual) {
+        reverterReceitaCaixa(v);
+      } else {
+        // Venda antiga (legacy, com conta de Finanças): comportamento original
+        setTransacoes(transacoes.filter(t => !(
+          t.conta === v.contaDestino &&
+          t.valor === v.valor &&
+          t.tipo === "receita" &&
+          t.data === v.data &&
+          (t.obs || "").includes(`serviço ${v.id}`)
+        )));
+        const conta = contas.find(c => c.nome === v.contaDestino);
+        if (conta) {
+          setContas(contas.map(c => c.id === conta.id
+            ? { ...c, saldo: (parseFloat(c.saldo) || 0) - Number(v.valor || 0) }
+            : c));
         }
       }
+      // Reverte a despesa do prestador no Finanças, se foi gerada pra esta venda.
+      reverterDespesaPrestador(v);
     }
 
     // Se a venda veio de um contrato recorrente, reabilita o "Gerar fatura"
@@ -441,7 +593,7 @@ export default function Servicos({
 
     setVendas(vendas.filter(x => x.id !== v.id));
     toast.success(ehDeContrato
-      ? "Venda estornada — você já pode gerar a fatura desse mês de novo."
+      ? "Estornada — você já pode gerar a fatura desse mês de novo."
       : "Venda estornada.");
   };
 
@@ -605,7 +757,6 @@ export default function Servicos({
       }
     }
 
-    const cliente = clientes.find(cl => cl.id === c.clienteId);
     const refLabel = c.recorrencia === "anual" ? `Ano ${ref}` : `${ref.slice(5)}/${ref.slice(0, 4)}`;
 
     // Retrocompat: contratos antigos usam servicoId; novos usam servicosIds[]
@@ -619,6 +770,10 @@ export default function Servicos({
     const valorInstContrato = Number(c.valorInstalador || 0);
     const temInstalador = !!c.instaladorId && valorInstContrato > 0;
 
+    // A fatura nasce como COBRANÇA PENDENTE (pago:false). Nada de dinheiro se
+    // move agora — receita na Caixa e despesa do prestador só acontecem quando
+    // você marcar como paga. Snapshot de contaPagamento/pagarAoFaturar pra que
+    // o "marcar pago" funcione mesmo se o contrato mudar depois.
     const novaVenda = {
       id: uid(),
       servicoId: primaryServicoId,
@@ -634,84 +789,16 @@ export default function Servicos({
       instaladorId: temInstalador ? c.instaladorId : null,
       valorInstalador: temInstalador ? valorInstContrato : 0,
       contaDestino: "Caixa do Negócio",
+      contaPagamento: c.contaPagamento || "",
+      pagarAoFaturar: !!c.pagarAoFaturar && !!c.contaPagamento && Number(c.custo || 0) > 0,
+      pago: false,
+      pagoEm: null,
       obs: `Fatura recorrente · ref ${ref}`,
     };
 
-    // Receita: agora vai pra Caixa do Negócio virtual (não toca em Finanças).
-    // Se há instalador no contrato, gera também uma saída "pago-instalador"
-    // no mesmo caixa (vinculada por vendaId, igual ao fluxo da venda avulsa).
-    if (typeof setCaixaNegocio === "function") {
-      const inst = temInstalador ? instaladores.find(i => i.id === c.instaladorId) : null;
-      setCaixaNegocio(prev => {
-        const entradaReceita = {
-          id: uid(),
-          tipo: "fatura-recorrente",
-          data: todayISO(),
-          descricao: `${c.nome}${cliente ? ` · ${cliente.nome}` : ""} · ${refLabel}`,
-          valor: valorReceita,
-          custo: Number(c.custo || 0),
-          vendaId: novaVenda.id,
-          contratoId: c.id,
-          ts: new Date().toISOString(),
-        };
-        let novoHistorico = [entradaReceita, ...((prev?.historico) || [])];
-        let novoSaldo = (prev?.saldo || 0) + valorReceita;
-        if (temInstalador) {
-          novoHistorico = [{
-            id: uid(),
-            tipo: "pago-instalador",
-            data: todayISO(),
-            descricao: `Pago a ${inst?.nome || "instalador"} · ${c.nome} · ${refLabel}`,
-            valor: -valorInstContrato,
-            vendaId: novaVenda.id,
-            contratoId: c.id,
-            instaladorId: c.instaladorId,
-            ts: new Date().toISOString(),
-          }, ...novoHistorico];
-          novoSaldo -= valorInstContrato;
-        }
-        return { saldo: novoSaldo, historico: novoHistorico };
-      });
-    }
-
-    // Pagamento ao prestador (despesa automática) — continua em Finanças,
-    // porque é dinheiro real saindo da conta do usuário.
-    const custoNum = Number(c.custo || 0);
-    const deveGerarDespesa = c.pagarAoFaturar && c.contaPagamento && custoNum > 0;
-    const contaPag = deveGerarDespesa ? contas.find(co => co.nome === c.contaPagamento) : null;
-    if (deveGerarDespesa && !contaPag) {
-      toast.error(`Conta de pagamento "${c.contaPagamento}" não existe mais. Despesa não foi criada.`);
-    }
-    if (deveGerarDespesa && contaPag) {
-      const catDesp = categorias.find(cat => cat.tipo === "despesa" && /serv|saas|software|ferramenta|negocio/i.test(cat.nome))?.nome
-                   || categorias.find(cat => cat.tipo === "despesa")?.nome
-                   || "Outros";
-      const despesa = {
-        id: uid(),
-        tipo: "despesa",
-        descricao: `Pago a prestador · ${c.nome} · ${refLabel}`,
-        categoria: catDesp,
-        conta: c.contaPagamento,
-        data: todayISO(),
-        valor: custoNum,
-        compensado: true,
-        fixa: false,
-        obs: `Pagamento ao prestador · contrato recorrente (serviço ${novaVenda.id})`,
-      };
-      setTransacoes([despesa, ...transacoes]);
-
-      setContas(contas.map(co => co.id === contaPag.id
-        ? { ...co, saldo: (parseFloat(co.saldo) || 0) - custoNum }
-        : co));
-    }
-
     setVendas([novaVenda, ...vendas]);
     setContratos((contratos || []).map(x => x.id === c.id ? { ...x, ultimaFaturaRef: ref } : x));
-    if (deveGerarDespesa && contaPag) {
-      toast.success(`Fatura ${refLabel} gerada (Caixa do Negócio + despesa prestador) · ${fmt(c.valor)}`);
-    } else {
-      toast.success(`Fatura ${refLabel} gerada · ${fmt(c.valor)}`);
-    }
+    toast.success(`Fatura ${refLabel} gerada · cobrança pendente de ${fmt(c.valor)}`);
   };
 
   const gerarFaturasPendentes = () => {
@@ -742,14 +829,19 @@ export default function Servicos({
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-4" style={{ background: T.border }}>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-px mb-4" style={{ background: T.border }}>
         <Kpi label="Catálogo" valor={String(kpi.catalogo)} sub="ativos" cor={T.ink} icon={Wrench} />
         <Kpi label="Vendidos no mês" valor={String(kpi.vendidosMes)} cor={T.gold} />
-        <Kpi label="Receita do mês" valor={hidden ? "•••••" : fmt(kpi.receitaMes)} cor={T.gold} icon={DollarSign} />
+        <Kpi label="Recebido no mês" valor={hidden ? "•••••" : fmt(kpi.receitaMes)} cor={T.gold} icon={DollarSign} />
         <Kpi label="Lucro do mês"
              valor={hidden ? "•••••" : fmt(kpi.lucroMes)}
              cor={kpi.lucroMes >= 0 ? T.green : T.red}
              icon={TrendingUp} />
+        <Kpi label="A receber"
+             valor={hidden ? "•••••" : fmt(kpi.aReceber)}
+             sub={kpi.aReceber > 0 ? "cobranças em aberto" : "tudo em dia"}
+             cor={kpi.aReceber > 0 ? T.red : T.green}
+             icon={AlertTriangle} />
       </div>
 
       {/* CATÁLOGO */}
@@ -766,14 +858,26 @@ export default function Servicos({
             </span>
             <span className="label-eyebrow">Catálogo de serviços ({servicos.length})</span>
           </button>
-          <button onClick={abrirServicoNovo}
-            style={{
-              background: "transparent", border: `1px solid ${T.border}`,
-              color: T.muted, padding: "5px 10px", borderRadius: 5, cursor: "pointer",
-              fontSize: 10, letterSpacing: ".05em", textTransform: "uppercase",
-            }}>
-            <Plus size={11} className="inline mr-1" /> Novo serviço
-          </button>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={seedServicosAgencia}
+              title="Adicionar serviços típicos de agência (CRM, tráfego pago, social media...)"
+              style={{
+                background: `${T.gold}18`, border: `1px solid ${T.gold}66`,
+                color: T.gold, padding: "5px 10px", borderRadius: 5, cursor: "pointer",
+                fontSize: 10, letterSpacing: ".05em", textTransform: "uppercase",
+                display: "inline-flex", alignItems: "center", gap: 4,
+              }}>
+              <Sparkles size={11} /> Serviços de agência
+            </button>
+            <button onClick={abrirServicoNovo}
+              style={{
+                background: "transparent", border: `1px solid ${T.border}`,
+                color: T.muted, padding: "5px 10px", borderRadius: 5, cursor: "pointer",
+                fontSize: 10, letterSpacing: ".05em", textTransform: "uppercase",
+              }}>
+              <Plus size={11} className="inline mr-1" /> Novo serviço
+            </button>
+          </div>
         </div>
 
         {catalogoExpandido && (
@@ -881,6 +985,7 @@ export default function Servicos({
                 const ref = refAtual(c.recorrencia);
                 const faturadoEsteMes = c.ultimaFaturaRef === ref;
                 const inativo = c.ativo === false;
+                const pend = pendentesPorContrato[c.id] || null; // cobranças em aberto
                 // Retrocompat: contratos antigos só têm servicoId; agora usamos servicosIds[]
                 const servicosVinculados = c.servicosIds || (c.servicoId ? [c.servicoId] : []);
                 const qtdServicos = servicosVinculados.length;
@@ -943,6 +1048,15 @@ export default function Servicos({
                             {duracaoInfo.encerrado
                               ? `Encerrado ${duracaoInfo.fimLabel}`
                               : `${duracaoInfo.restantes}/${duracaoInfo.total} meses restantes`}
+                          </span>
+                        )}
+                        {pend && (
+                          <span style={{
+                            fontSize: 9, padding: "1px 6px", borderRadius: 3,
+                            background: `${T.red}22`, color: T.red,
+                            letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700,
+                          }} title={`${pend.qtd} cobrança(s) em aberto · ${fmt(pend.total)} a receber`}>
+                            ● Inadimplente · {hidden ? "•••" : fmt(pend.total)}
                           </span>
                         )}
                       </div>
@@ -1164,6 +1278,10 @@ export default function Servicos({
                       instalador={v.instaladorId ? instaladores.find(i => i.id === v.instaladorId) : null}
                       servicos={servicos}
                       hidden={hidden}
+                      onMarcarPago={() => marcarFaturaPaga(v)}
+                      onMarcarNaoPago={() => marcarFaturaNaoPaga(v)}
+                      onCobrar={() => enviarCobrancaWhatsApp(v)}
+                      onPDF={() => setFaturaDoc(v)}
                       onEstornar={() => estornarVenda(v)} />
           ))}
         </div>
@@ -1764,11 +1882,124 @@ export default function Servicos({
           </Modal>
         );
       })()}
+
+      {/* MODAL: fatura / recibo em PDF */}
+      {faturaDoc && (
+        <FaturaDocModal
+          venda={faturaDoc}
+          cliente={clientes.find(c => c.id === faturaDoc.clienteId)}
+          servicos={servicos}
+          onClose={() => setFaturaDoc(null)}
+        />
+      )}
     </div>
   );
 }
 
-function VendaRow({ venda: v, cliente, veiculo, instalador, servicos = [], hidden, onEstornar }) {
+// Documento imprimível de fatura/recibo. Renderiza via portal direto no body
+// pra que o helper toPDF (print-only-this) isole só este card na impressão.
+function FaturaDocModal({ venda: v, cliente, servicos = [], onClose }) {
+  const empresa = (() => {
+    try { return localStorage.getItem("af4:empresa-nome") || "AF4 · Negócio"; }
+    catch { return "AF4 · Negócio"; }
+  })();
+  const pendente = v.pago === false;
+  const numero = String(v.id || "").replace(/[^a-z0-9]/gi, "").slice(0, 8).toUpperCase();
+  const refLabel = v.faturaRef
+    ? (v.faturaRef.length === 4 ? `Ano ${v.faturaRef}` : `${v.faturaRef.slice(5)}/${v.faturaRef.slice(0, 4)}`)
+    : (v.data ? v.data.split("-").reverse().join("/") : "—");
+  const servicosVinc = v.servicosIds || (v.servicoId ? [v.servicoId] : []);
+  const itens = servicosVinc.map(id => servicos.find(s => s.id === id)?.nome).filter(Boolean);
+  const dataEmissao = (v.data || todayISO()).split("-").reverse().join("/");
+
+  const linha = (label, valor) => (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 13, color: "#222" }}>
+      <span style={{ color: "#666" }}>{label}</span>
+      <span style={{ fontWeight: 600 }}>{valor}</span>
+    </div>
+  );
+
+  const content = (
+    <div className="modal-overlay-bg" onClick={onClose}
+         style={{
+           position: "fixed", inset: 0, zIndex: 1000,
+           background: "rgba(0,0,0,.6)", display: "grid", placeItems: "center",
+           padding: 20, overflowY: "auto",
+         }}>
+      <div onClick={e => e.stopPropagation()}
+           style={{ width: "min(560px, 100%)", maxHeight: "92vh", overflowY: "auto",
+                    background: "#fff", borderRadius: 10 }}>
+        {/* Documento (isolado na impressão) */}
+        <div id="fatura-doc-print" style={{ padding: 28, color: "#111", background: "#fff", fontFamily: "Georgia, serif" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #111", paddingBottom: 12, marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>{empresa}</div>
+              <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>Prestação de serviços</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>
+                {pendente ? "Fatura" : "Recibo"}
+              </div>
+              <div style={{ fontSize: 11, color: "#666" }}>Nº {numero}</div>
+              <div style={{ fontSize: 11, color: "#666" }}>Emissão: {dataEmissao}</div>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div style={{
+            display: "inline-block", marginBottom: 16, padding: "4px 12px", borderRadius: 4,
+            fontSize: 12, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase",
+            background: pendente ? "#fde2e2" : "#dcf5e3", color: pendente ? "#b42318" : "#137a3b",
+            border: `1px solid ${pendente ? "#f0a9a3" : "#9ad9b3"}`,
+          }}>
+            {pendente ? "● Pagamento pendente" : `✓ Pago${v.pagoEm ? ` em ${v.pagoEm.split("-").reverse().join("/")}` : ""}`}
+          </div>
+
+          {/* Cliente */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Cobrar de</div>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>{cliente?.nome || "Cliente não informado"}</div>
+            {cliente?.doc && <div style={{ fontSize: 12, color: "#555" }}>{cliente.doc}</div>}
+            {cliente?.email && <div style={{ fontSize: 12, color: "#555" }}>{cliente.email}</div>}
+            {cliente?.telefone && <div style={{ fontSize: 12, color: "#555" }}>{cliente.telefone}</div>}
+          </div>
+
+          {/* Detalhes */}
+          <div style={{ border: "1px solid #ddd", borderRadius: 6, padding: 14, marginBottom: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{v.nome}</div>
+            {itens.length > 0 && (
+              <ul style={{ margin: "0 0 8px 18px", padding: 0, fontSize: 12.5, color: "#444" }}>
+                {itens.map((nome, i) => <li key={i}>{nome}</li>)}
+              </ul>
+            )}
+            {v.obs && <div style={{ fontSize: 11.5, color: "#777", fontStyle: "italic", marginBottom: 8 }}>{v.obs}</div>}
+            {linha("Competência", refLabel)}
+            <div style={{ borderTop: "1px solid #eee", marginTop: 8, paddingTop: 8, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>Total</span>
+              <span style={{ fontSize: 22, fontWeight: 700 }}>{fmt(v.valor)}</span>
+            </div>
+          </div>
+
+          <div style={{ fontSize: 11, color: "#999", textAlign: "center", borderTop: "1px solid #eee", paddingTop: 10 }}>
+            Documento gerado por {empresa} · {dataEmissao}
+          </div>
+        </div>
+
+        {/* Ações (não imprimem) */}
+        <div className="no-print" style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "14px 28px 22px" }}>
+          <button className="btn-ghost" onClick={onClose}>Fechar</button>
+          <button className="btn-gold" onClick={() => toPDF("fatura-doc-print")}>
+            <FileText size={13} className="inline mr-1" /> Imprimir / PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+  return createPortal(content, document.body);
+}
+
+function VendaRow({ venda: v, cliente, veiculo, instalador, servicos = [], hidden,
+                   onMarcarPago, onMarcarNaoPago, onCobrar, onPDF, onEstornar }) {
   // Lucro: além de custo, desconta também o valor pago ao instalador (saída
   // virtual da Caixa). Backward-compat: vendas sem instalador → valorInst 0.
   const valorInst = Number(v.valorInstalador || 0);
@@ -1780,12 +2011,14 @@ function VendaRow({ venda: v, cliente, veiculo, instalador, servicos = [], hidde
   // depende de o cadastro ainda existir (fallback pra obscuro "instalador").
   const temInstalador = !!v.instaladorId && valorInst > 0;
   const nomeInst = instalador?.nome || (temInstalador ? "instalador" : "");
+  const pendente = v.pago === false; // cobrança em aberto
+  const corBorda = pendente ? T.red : T.green;
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${T.green}`,
+      borderLeft: `3px solid ${corBorda}`,
       borderRadius: 8, padding: 12,
-      display: "grid", gridTemplateColumns: "auto 1fr auto auto auto", gap: 12, alignItems: "center",
+      display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: 12, alignItems: "center",
     }}>
       <div style={{ color: T.faint, fontFamily: T.mono, fontSize: 11 }}>
         {v.data.split("-").reverse().slice(0, 2).join("/")}
@@ -1793,6 +2026,15 @@ function VendaRow({ venda: v, cliente, veiculo, instalador, servicos = [], hidde
       <div style={{ minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13.5, color: T.ink, fontWeight: 500 }}>{v.nome}</span>
+          {/* Selo de status de pagamento (cobrança) */}
+          <span style={{
+            fontSize: 9, padding: "1px 7px", borderRadius: 3, fontWeight: 700,
+            letterSpacing: ".08em", textTransform: "uppercase",
+            background: pendente ? `${T.red}22` : `${T.green}22`,
+            color: pendente ? T.red : T.green,
+          }}>
+            {pendente ? "Pendente" : "Pago"}
+          </span>
           {qtdServicos > 1 && (
             <span style={{
               fontSize: 9, padding: "1px 6px", borderRadius: 3,
@@ -1815,6 +2057,9 @@ function VendaRow({ venda: v, cliente, veiculo, instalador, servicos = [], hidde
               👷 {nomeInst} · {hidden ? "•••" : `pago ${fmt(valorInst)}`}
             </span>
           )}
+          {!pendente && v.pagoEm && (
+            <span style={{ color: T.green }}>✓ pago em {v.pagoEm.split("-").reverse().join("/")}</span>
+          )}
           <span>→ {v.contaDestino}</span>
         </div>
       </div>
@@ -1824,10 +2069,34 @@ function VendaRow({ venda: v, cliente, veiculo, instalador, servicos = [], hidde
           lucro {lucro >= 0 ? "+" : ""}{hidden ? "•••" : fmt(lucro)}
         </div>
       </div>
-      <button onClick={onEstornar} title="Estornar"
-              style={btnIcon({ color: T.red })}>
-        ↩
-      </button>
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        {pendente ? (
+          <button onClick={onMarcarPago} title="Marcar como pago (entra na Caixa do Negócio)"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    background: T.green, border: "none", color: "#fff",
+                    padding: "0 10px", height: 32, borderRadius: 5, cursor: "pointer",
+                    fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
+                  }}>
+            <Check size={12} /> Receber
+          </button>
+        ) : (
+          <button onClick={onMarcarNaoPago} title="Desfazer recebimento (sai da Caixa)"
+                  style={btnIcon({ color: T.green })}>
+            <Check size={13} />
+          </button>
+        )}
+        <button onClick={onCobrar} title={pendente ? "Enviar cobrança no WhatsApp" : "Enviar recibo no WhatsApp"}
+                style={btnIcon({ color: "#25D366" })}>
+          <MessageCircle size={13} />
+        </button>
+        <button onClick={onPDF} title="Gerar fatura/recibo em PDF" style={btnIcon()}>
+          <FileText size={13} />
+        </button>
+        <button onClick={onEstornar} title="Estornar" style={btnIcon({ color: T.red })}>
+          ↩
+        </button>
+      </div>
     </div>
   );
 }
