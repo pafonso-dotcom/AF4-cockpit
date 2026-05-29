@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { T, THEMES } from "../lib/theme.js";
 import { getPerfilAtivo } from "../lib/perfis.js";
 import { useLayout } from "../lib/useLayout.js";
@@ -8,7 +8,7 @@ import {
   Package, Target, Users, AlertCircle, History, MessageCircle,
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
-  Store, Car, Wrench, Search,
+  Store, Car, Wrench, Search, ChevronDown, ChevronRight,
 } from "lucide-react";
 
 /**
@@ -507,6 +507,21 @@ function HeaderVertical({
   const NAV_MUTED = "#a8a8b0";
   const NAV_BORDER = "rgba(255,255,255,0.08)";
 
+  // Acordeão: só o módulo aberto mostra as sub-abas. Por padrão, o módulo ativo.
+  const [expandido, setExpandido] = useState(modulo);
+  useEffect(() => { setExpandido(modulo); }, [modulo]);
+  const abrirModulo = (m) => {
+    if (m.id !== modulo) {
+      setModulo(m.id);
+      const first = SUBTABS[m.id]?.[0]?.id;
+      if (first) setTab(first);
+      setExpandido(m.id);
+    } else {
+      // Clicar no módulo já ativo abre/fecha as sub-abas.
+      setExpandido(prev => (prev === m.id ? null : m.id));
+    }
+  };
+
   return (
     <>
       <aside className="hdr-vertical-aside" style={{
@@ -537,92 +552,99 @@ function HeaderVertical({
             {MODULOS.map(m => {
               const Icon = m.icon;
               const ativo = m.id === modulo;
+              const aberto = expandido === m.id;
+              const Chevron = aberto ? ChevronDown : ChevronRight;
+              const mSubtabs = SUBTABS[m.id] || [];
+              // Soma de pendências das abas do módulo (mostra no master quando fechado)
+              const pendModulo = mSubtabs.reduce((s, st) => s + (pendingCounts[st.id] || 0), 0);
               return (
-                <button key={m.id}
-                  onClick={() => {
-                    setModulo(m.id);
-                    const first = SUBTABS[m.id]?.[0]?.id;
-                    if (first) setTab(first);
-                      }}
-                  style={{
-                    padding: "8px 10px", borderRadius: 7,
-                    background: ativo ? "rgba(255,255,255,0.08)" : "transparent",
-                    color: ativo ? T.gold : NAV_INK,
-                    fontWeight: ativo ? 600 : 400, fontSize: 12,
-                    border: "none", cursor: "pointer", textAlign: "left",
-                    display: "flex", alignItems: "center", gap: 9,
-                  }}>
-                  {Icon && <Icon size={14} />}
-                  {m.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: 9, color: NAV_MUTED, letterSpacing: ".2em", marginBottom: 6, paddingLeft: 4 }}>
-            {(moduloAtivo.label || "").toUpperCase()}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {subtabs.map(s => {
-              const Icon = s.icon;
-              const ativo = s.id === tab;
-              const pending = pendingCounts[s.id] || 0;
-              // Filhos da árvore: Contas → bancos, Cartões → cartões.
-              let filhos = null;
-              if (s.id === "contas" && contas.length > 0 && setContaAberta) {
-                filhos = contas.map(c => ({
-                  id: `conta:${c.id}`, label: c.nome, cor: c.cor,
-                  ativo: contaAberta?.id === c.id,
-                  onClick: () => { setTab("contas"); setContaAberta(c); },
-                }));
-              } else if (s.id === "cartoes" && cartoes.length > 0 && setCartaoAberto) {
-                filhos = cartoes.map(c => ({
-                  id: `cartao:${c.id}`, label: c.nome, cor: null,
-                  ativo: cartaoAberto?.id === c.id,
-                  onClick: () => { setTab("cartoes"); setCartaoAberto(c); },
-                }));
-              }
-              return (
-                <React.Fragment key={s.id}>
-                  <button onClick={() => setTab(s.id)}
+                <React.Fragment key={m.id}>
+                  <button onClick={() => abrirModulo(m)}
                     style={{
-                      padding: "7px 10px 7px 12px", borderRadius: 5, fontSize: 13,
+                      padding: "8px 10px", borderRadius: 7,
                       background: ativo ? "rgba(255,255,255,0.08)" : "transparent",
-                      color: ativo ? NAV_INK : NAV_MUTED,
-                      fontWeight: ativo ? 600 : 400,
-                      borderLeft: `2px solid ${ativo ? T.gold : "transparent"}`,
-                      border: "none", borderLeftWidth: 2, cursor: "pointer", textAlign: "left",
-                      display: "flex", alignItems: "center", gap: 8,
+                      color: ativo ? T.gold : NAV_INK,
+                      fontWeight: ativo ? 600 : 400, fontSize: 12,
+                      border: "none", cursor: "pointer", textAlign: "left",
+                      display: "flex", alignItems: "center", gap: 9,
                     }}>
-                    {Icon && <Icon size={12} />}
-                    {s.label}
-                    {pending > 0 && (
+                    {Icon && <Icon size={14} />}
+                    <span style={{ flex: 1 }}>{m.label}</span>
+                    {!aberto && pendModulo > 0 && (
                       <span style={{
-                        marginLeft: "auto",
-                        background: T.red, color: "#fff",
-                        fontSize: 9, padding: "1px 6px", borderRadius: 100,
-                        fontWeight: 700,
-                      }}>{pending}</span>
+                        background: T.red, color: "#fff", fontSize: 9,
+                        padding: "1px 6px", borderRadius: 100, fontWeight: 700,
+                      }}>{pendModulo}</span>
                     )}
+                    <Chevron size={13} style={{ opacity: 0.6 }} />
                   </button>
-                  {filhos && filhos.map(f => (
-                    <button key={f.id} onClick={f.onClick}
-                      style={{
-                        padding: "5px 10px 5px 30px", borderRadius: 5, fontSize: 12,
-                        background: f.ativo ? "rgba(255,255,255,0.12)" : "transparent",
-                        color: f.ativo ? NAV_INK : NAV_MUTED,
-                        fontWeight: f.ativo ? 600 : 400,
-                        borderLeft: `2px solid ${f.ativo ? T.gold : "transparent"}`,
-                        border: "none", borderLeftWidth: 2, cursor: "pointer", textAlign: "left",
-                        display: "flex", alignItems: "center", gap: 7,
-                        whiteSpace: "nowrap", overflow: "hidden",
-                      }}>
-                      {f.cor && <span style={{ width: 8, height: 8, borderRadius: 2, background: f.cor, flexShrink: 0 }} />}
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{f.label}</span>
-                    </button>
-                  ))}
+
+                  {/* Sub-abas (aparecem só quando o módulo está aberto) */}
+                  {aberto && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 1, margin: "2px 0 6px" }}>
+                      {mSubtabs.map(s => {
+                        const SIcon = s.icon;
+                        const sAtivo = s.id === tab;
+                        const pending = pendingCounts[s.id] || 0;
+                        // Filhos da árvore: Contas → bancos, Cartões → cartões.
+                        let filhos = null;
+                        if (s.id === "contas" && contas.length > 0 && setContaAberta) {
+                          filhos = contas.map(c => ({
+                            id: `conta:${c.id}`, label: c.nome, cor: c.cor,
+                            ativo: contaAberta?.id === c.id,
+                            onClick: () => { setTab("contas"); setContaAberta(c); },
+                          }));
+                        } else if (s.id === "cartoes" && cartoes.length > 0 && setCartaoAberto) {
+                          filhos = cartoes.map(c => ({
+                            id: `cartao:${c.id}`, label: c.nome, cor: null,
+                            ativo: cartaoAberto?.id === c.id,
+                            onClick: () => { setTab("cartoes"); setCartaoAberto(c); },
+                          }));
+                        }
+                        return (
+                          <React.Fragment key={s.id}>
+                            <button onClick={() => setTab(s.id)}
+                              style={{
+                                padding: "7px 10px 7px 26px", borderRadius: 5, fontSize: 12.5,
+                                background: sAtivo ? "rgba(255,255,255,0.08)" : "transparent",
+                                color: sAtivo ? NAV_INK : NAV_MUTED,
+                                fontWeight: sAtivo ? 600 : 400,
+                                borderLeft: `2px solid ${sAtivo ? T.gold : "transparent"}`,
+                                border: "none", borderLeftWidth: 2, cursor: "pointer", textAlign: "left",
+                                display: "flex", alignItems: "center", gap: 8,
+                              }}>
+                              {SIcon && <SIcon size={12} />}
+                              {s.label}
+                              {pending > 0 && (
+                                <span style={{
+                                  marginLeft: "auto",
+                                  background: T.red, color: "#fff",
+                                  fontSize: 9, padding: "1px 6px", borderRadius: 100,
+                                  fontWeight: 700,
+                                }}>{pending}</span>
+                              )}
+                            </button>
+                            {filhos && filhos.map(f => (
+                              <button key={f.id} onClick={f.onClick}
+                                style={{
+                                  padding: "5px 10px 5px 44px", borderRadius: 5, fontSize: 12,
+                                  background: f.ativo ? "rgba(255,255,255,0.12)" : "transparent",
+                                  color: f.ativo ? NAV_INK : NAV_MUTED,
+                                  fontWeight: f.ativo ? 600 : 400,
+                                  borderLeft: `2px solid ${f.ativo ? T.gold : "transparent"}`,
+                                  border: "none", borderLeftWidth: 2, cursor: "pointer", textAlign: "left",
+                                  display: "flex", alignItems: "center", gap: 7,
+                                  whiteSpace: "nowrap", overflow: "hidden",
+                                }}>
+                                {f.cor && <span style={{ width: 8, height: 8, borderRadius: 2, background: f.cor, flexShrink: 0 }} />}
+                                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{f.label}</span>
+                              </button>
+                            ))}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  )}
                 </React.Fragment>
               );
             })}
