@@ -138,71 +138,26 @@ export default function PreviewImportarFaturaModal({
       const valor = Number(item.valor) || 0;
       const cat = item.categoria_sugerida || "Outros";
 
-      if (item.tipo === "vista") {
-        totalDebitado += valor;
-        novasTransacoes.push({
+      // À vista e fixa viram um item de 1 parcela no parcelamento (NÃO criam
+      // transação). Tudo da fatura só vira transação quando o cartão é PAGO.
+      if (item.tipo === "vista" || item.tipo === "fixa") {
+        const cartaoMatch = cartoes.find(c => c.id === cartaoSelecionado)
+                          || cartoes.find(c => normalize(c.nome) === normalize(banco));
+        novosParcelamentos.push({
           id: uid(),
-          tipo: "despesa",
-          descricao: `${item.descricao} (fatura ${banco})`,
-          valor,
-          data: dataPagto,
-          categoria: cat,
-          conta: contaNome,
-          cartaoId: cartaoSelecionado || null,
-          compensado: true,
-          fixa: false,
-          obs: `Importado da fatura ${banco}`,
-          origem: origemTag,
-        });
-        return;
-      }
-
-      if (item.tipo === "fixa") {
-        totalDebitado += valor;
-        // Cria template + 12 ocorrências (1ª já paga)
-        const fixaId = `fixa-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-        const dia = (() => {
-          if (item.data_compra && /^\d{1,2}\//.test(item.data_compra)) {
-            return Math.min(parseInt(item.data_compra.split("/")[0], 10) || 1, 28);
-          }
-          return Math.min(parseInt((dataPagto || "01").slice(8, 10), 10) || 1, 28);
-        })();
-
-        novasFixas.push({
-          id: fixaId,
           descricao: item.descricao,
-          valor,
-          diaVencimento: dia,
+          cartaoId: cartaoMatch?.id || cartaoSelecionado || null,
+          cartaoNome: cartaoMatch?.nome || banco,
+          dataCompra: brDateToISO(item.data_compra) || dataPagto,
+          dataPrimeira: dataPagto, // cai na competência da fatura
+          valorTotal: valor,
+          valorParcela: valor,
+          totalParcelas: 1,
+          parcelasPagas: [],
           categoria: cat,
-          contaPadrao: contaNome,
-          inicioEm: mesFatura,
-          terminoEm: null,
-          obs: `Importado da fatura ${banco}`,
+          origem: origemTag,
           criadoEm: todayISO(),
         });
-
-        const ocorr = gerarOcorrenciasFixa(item, mesFatura, dataPagto)
-          .map(o => ({ ...o, fixaId }));
-        novasFixaOcorrencias.push(...ocorr);
-
-        // Lança SÓ a primeira como transação no banco
-        const tx = {
-          id: uid(),
-          tipo: "despesa",
-          descricao: `${item.descricao} (fatura ${banco})`,
-          valor,
-          data: dataPagto,
-          categoria: cat,
-          conta: contaNome,
-          compensado: true,
-          fixa: false,
-          obs: `1ª parcela de fixa recém-importada`,
-          origem: origemTag,
-          origemFixaOcorrenciaId: ocorr[0].id,
-        };
-        novasTransacoes.push(tx);
-        // Vincula a ocorrência à transação criada
-        ocorr[0].transacaoId = tx.id;
         return;
       }
 
