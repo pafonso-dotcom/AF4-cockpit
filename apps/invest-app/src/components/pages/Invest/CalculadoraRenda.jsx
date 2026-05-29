@@ -319,13 +319,7 @@ export default function CalculadoraRenda() {
         <div className="calc-sliders-grid" style={{
           display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16,
         }}>
-          <Slider
-            label="Valor investido"
-            value={valor}
-            min={0} max={10_000_000} step={10_000}
-            onChange={setValor}
-            display={fmtBRL.format(valor)}
-          />
+          <ValorInvestidoInput valor={valor} onChange={setValor} />
           <Slider
             label="Taxa de juros ao ano"
             value={taxaAnualPct}
@@ -603,6 +597,34 @@ export default function CalculadoraRenda() {
           .calc-ideal-value { font-size: 30px !important; }
         }
       `}</style>
+    </div>
+  );
+}
+
+// Campo digitável para o valor investido (substitui a régua/slider).
+function ValorInvestidoInput({ valor, onChange }) {
+  return (
+    <div>
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "baseline",
+        marginBottom: 6, gap: 10,
+      }}>
+        <span style={{ fontSize: 12, color: T.ink, fontWeight: 500 }}>Valor investido</span>
+        <span className="num" style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.gold }}>
+          {fmtBRL.format(valor || 0)}
+        </span>
+      </div>
+      <input
+        type="number" inputMode="numeric" min={0} step={1000}
+        value={valor || ""}
+        onChange={e => onChange(Math.max(0, Number(e.target.value) || 0))}
+        placeholder="Digite o valor (ex.: 50000)"
+        style={{
+          width: "100%", padding: "10px 12px", borderRadius: 8,
+          border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink,
+          fontSize: 15, fontFamily: T.serif,
+        }}
+      />
     </div>
   );
 }
