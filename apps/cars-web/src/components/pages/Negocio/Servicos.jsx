@@ -2545,8 +2545,11 @@ function VendaRow({ venda: v, cliente, instalador, servicos = [], hidden,
         {v.data.split("-").reverse().slice(0, 2).join("/")}
       </div>
       <div style={{ minWidth: 0 }}>
+        {/* Linha 1: NOME DA EMPRESA/CLIENTE em destaque + status */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13.5, color: T.ink, fontWeight: 500 }}>{v.nome}</span>
+          <span style={{ fontSize: 15, color: T.ink, fontWeight: 700 }}>
+            {cliente?.nome || v.nome}
+          </span>
           <span style={{
             fontSize: 9, padding: "1px 7px", borderRadius: 3, fontWeight: 700,
             letterSpacing: ".08em", textTransform: "uppercase",
@@ -2569,8 +2572,12 @@ function VendaRow({ venda: v, cliente, instalador, servicos = [], hidden,
             </span>
           )}
         </div>
+        {/* Linha 2: PLANO/serviço (abaixo) */}
+        <div style={{ fontSize: 12, color: T.muted, marginTop: 1, fontWeight: 500 }}>
+          {v.nome}
+        </div>
+        {/* Linha 3: detalhes (colaborador, repasse, pago em, conta) */}
         <div style={{ fontSize: 11, color: T.muted, marginTop: 2, display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {cliente && <span>👤 {cliente.nome}</span>}
           {temInstalador && (
             <span title={`Repasse a ${nomeInst}: ${fmt(valorInst)} (sai do Caixa do Negócio)`}>
               🧑‍💻 {nomeInst} · {hidden ? "•••" : `repasse ${fmt(valorInst)}`}
