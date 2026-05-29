@@ -207,6 +207,45 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
     });
   };
 
+  // Remove lançamentos duplicados já existentes na lista. Conservador: só
+  // considera duplicata o que for IDÊNTICO (mesma data, valor, tipo, conta e
+  // descrição) e mantém sempre a 1ª ocorrência. Tem desfazer.
+  const removerDuplicados = async () => {
+    const chave = (t) => [
+      String(t.data || "").slice(0, 10),
+      Math.abs(Number(t.valor) || 0).toFixed(2),
+      t.tipo || "",
+      String(t.conta || "").trim().toLowerCase(),
+      String(t.descricao || "").trim().toLowerCase().replace(/\s+/g, " "),
+    ].join("|");
+
+    const vistas = new Set();
+    const idsDuplicados = new Set();
+    for (const t of transacoes) {
+      const k = chave(t);
+      if (vistas.has(k)) idsDuplicados.add(t.id);
+      else vistas.add(k);
+    }
+
+    if (idsDuplicados.size === 0) {
+      toast.success("Nenhum lançamento duplicado encontrado.");
+      return;
+    }
+    const count = idsDuplicados.size;
+    const ok = await confirm({
+      title: `Remover ${count} lançamento${count !== 1 ? "s" : ""} duplicado${count !== 1 ? "s" : ""}?`,
+      body: "Mantém a 1ª ocorrência de cada lançamento e remove as cópias idênticas (mesma data, valor, tipo, conta e descrição).",
+      danger: true, confirmLabel: "Remover duplicados",
+    });
+    if (!ok) return;
+    const backup = transacoes;
+    setTransacoes(transacoes.filter(t => !idsDuplicados.has(t.id)));
+    setSelectedIds(new Set());
+    toast.success(`${count} duplicado${count !== 1 ? "s removidos" : " removido"}.`, {
+      action: { label: "Desfazer", onClick: () => setTransacoes(backup) },
+    });
+  };
+
   const bulkCategorizar = (categoriaNome) => {
     if (!categoriaNome) return;
     const count = selectedIds.size;
@@ -577,7 +616,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
 
       <div style={{ background: T.card, border: `1px solid ${T.border}` }}>
         {filtered.length > 0 && (
-          <div className="px-6 py-2" style={{ borderBottom: `1px solid ${T.border}`, background: T.bgSoft }}>
+          <div className="px-6 py-2" style={{ borderBottom: `1px solid ${T.border}`, background: T.bgSoft, display: "flex", alignItems: "center", gap: 8 }}>
             <button onClick={selectAll}
                     style={{
                       background: "transparent", border: "none", color: T.muted,
@@ -589,6 +628,17 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                 : <Square size={14} />}
               {selectedIds.size === filtered.length ? "Desmarcar todas" : "Selecionar todas"}
               <span style={{ color: T.faint, fontSize: 10 }}>({filtered.length})</span>
+            </button>
+            <button onClick={removerDuplicados}
+                    title="Encontra e remove lançamentos idênticos repetidos, mantendo a 1ª ocorrência"
+                    style={{
+                      marginLeft: "auto",
+                      background: "transparent", border: `1px solid ${T.border}`, color: T.muted,
+                      cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                      fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase",
+                      padding: "4px 10px", borderRadius: 5,
+                    }}>
+              <Trash2 size={12} /> Remover duplicados
             </button>
           </div>
         )}

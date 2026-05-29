@@ -3,6 +3,7 @@ import { RefreshCw, AlertCircle, Upload } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid } from "../../lib/format.js";
 import { parseOFX, parseDataBR, parseValorBR, autoMapCSV, norm } from "../../lib/importExport.js";
+import { marcarDuplicadas } from "../../lib/extratoParser.js";
 import Papa from "papaparse";
 import Field from "../ui/Field.jsx";
 
@@ -13,6 +14,7 @@ export default function ImportPanel({ transacoes, setTransacoes, contas, setCont
   const [defaultConta, setDefaultConta] = useState(contas[0]?.nome || "");
   const [defaultCategoria, setDefaultCategoria] = useState("");
   const [updateBalances, setUpdateBalances] = useState(true);
+  const [pularDuplicados, setPularDuplicados] = useState(true);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -98,7 +100,14 @@ export default function ImportPanel({ transacoes, setTransacoes, contas, setCont
   const importNow = () => {
     const rows = buildFinalRows();
     if (rows.length === 0) { setError("Nenhuma linha válida para importar."); return; }
-    const newTrans = rows.map(r => ({ ...r, id: uid() }));
+    const marcadas = marcarDuplicadas(rows, transacoes);
+    const finais = pularDuplicados ? marcadas.filter(r => !r._duplicada) : marcadas;
+    if (finais.length === 0) {
+      setError("Todas as linhas já existem nos lançamentos — nada a importar.");
+      return;
+    }
+    // Remove o marcador interno antes de salvar.
+    const newTrans = finais.map(({ _duplicada, ...r }) => ({ ...r, id: uid() }));
     setTransacoes([...transacoes, ...newTrans]);
 
     if (updateBalances) {
@@ -112,6 +121,11 @@ export default function ImportPanel({ transacoes, setTransacoes, contas, setCont
     }
     onDone();
   };
+
+  // Contagens de duplicidade (para resumo e botão).
+  const rowsMarcadas = parsed ? marcarDuplicadas(buildFinalRows(), transacoes) : [];
+  const qtdDuplicados = rowsMarcadas.filter(r => r._duplicada).length;
+  const qtdImportar = pularDuplicados ? rowsMarcadas.length - qtdDuplicados : rowsMarcadas.length;
 
   return (
     <div>
@@ -189,11 +203,19 @@ export default function ImportPanel({ transacoes, setTransacoes, contas, setCont
             </Field>
           </div>
 
-          <label className="flex items-center gap-2 mb-4 cursor-pointer">
+          <label className="flex items-center gap-2 mb-3 cursor-pointer">
             <input type="checkbox" checked={updateBalances} onChange={e => setUpdateBalances(e.target.checked)}
                    style={{ width: 16, height: 16, accentColor: T.gold }} />
             <span style={{ color: T.ink, fontSize: 14 }}>
               Atualizar saldo da conta com base nas transações importadas
+            </span>
+          </label>
+
+          <label className="flex items-center gap-2 mb-4 cursor-pointer">
+            <input type="checkbox" checked={pularDuplicados} onChange={e => setPularDuplicados(e.target.checked)}
+                   style={{ width: 16, height: 16, accentColor: T.gold }} />
+            <span style={{ color: T.ink, fontSize: 14 }}>
+              Pular lançamentos duplicados (que já existem nos lançamentos)
             </span>
           </label>
 
@@ -232,11 +254,17 @@ export default function ImportPanel({ transacoes, setTransacoes, contas, setCont
           <div style={{ color: T.muted, fontSize: 12, fontStyle: "italic", marginBottom: 16 }}>
             Total de linhas detectadas: <strong style={{ color: T.gold }}>{parsed.rows.length}</strong>
             {" · "}fonte: <strong style={{ color: T.gold }}>{parsed.type.toUpperCase()}</strong>
+            {qtdDuplicados > 0 && (
+              <span style={{ color: T.yellow || "#f59e0b", fontStyle: "normal" }}>
+                {" · "}⚠ {qtdDuplicados} {qtdDuplicados === 1 ? "duplicado" : "duplicados"}{" "}
+                {pularDuplicados ? "serão ignorados" : "serão importados mesmo assim"}
+              </span>
+            )}
           </div>
 
           <div className="flex gap-3">
             <button className="btn-gold" onClick={importNow}>
-              Importar {buildFinalRows().length} transações
+              Importar {qtdImportar} {qtdImportar === 1 ? "transação" : "transações"}
             </button>
             <button className="btn-ghost" onClick={() => { setParsed(null); setFile(null); setError(null); }}>
               Cancelar

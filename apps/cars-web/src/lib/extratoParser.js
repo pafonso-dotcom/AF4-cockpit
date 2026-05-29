@@ -221,6 +221,42 @@ export function parseCSV(text) {
   return { transacoes, banco };
 }
 
+/* ============================================================
+   DETECÇÃO DE DUPLICIDADE
+   ============================================================ */
+
+/**
+ * Gera uma chave normalizada de um lançamento para comparar duplicatas.
+ *
+ * Usa só DATA + VALOR (absoluto) + TIPO — que é o que de fato identifica o
+ * "mesmo lançamento". A descrição NÃO entra na chave de propósito: o mesmo
+ * lançamento costuma ter descrições diferentes (extrato do banco vs. registro
+ * manual, ou OFX vs. CSV vs. PDF), e exigir descrição igual fazia a duplicata
+ * passar despercebida.
+ */
+export function chaveTransacao(t) {
+  const data = String(t?.data || "").slice(0, 10);
+  const valor = Math.abs(Number(t?.valor) || 0).toFixed(2);
+  const tipo = t?.tipo || "";
+  return `${data}|${valor}|${tipo}`;
+}
+
+/**
+ * Marca como `_duplicada` cada transação nova que já existe na lista de
+ * lançamentos existentes OU que se repete dentro do próprio lote importado.
+ * Não remove nada — só sinaliza, para a UI desmarcar por padrão.
+ */
+export function marcarDuplicadas(novas, existentes) {
+  const existSet = new Set((existentes || []).map(chaveTransacao));
+  const vistasNoLote = new Set();
+  return (novas || []).map((t) => {
+    const k = chaveTransacao(t);
+    const duplicada = existSet.has(k) || vistasNoLote.has(k);
+    vistasNoLote.add(k);
+    return { ...t, _duplicada: duplicada };
+  });
+}
+
 /** Dispatcher universal: detecta formato e parseia. */
 export function parseExtrato(text, filename = "") {
   const lower = (text || "").trim().toLowerCase();
