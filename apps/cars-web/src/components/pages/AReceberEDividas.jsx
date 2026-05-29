@@ -28,6 +28,7 @@ export default function AReceberEDividas({
   transacoes = [], setTransacoes,
   categorias = [],
   hidden,
+  somenteReceber = false, // quando true, esconde o lado "A Pagar" (usado na tela unificada)
 }) {
   const [form, setForm] = useState(null);        // {tipo, ...} novo/editar
   const [baixaForm, setBaixaForm] = useState(null); // baixa de um item
@@ -421,7 +422,18 @@ export default function AReceberEDividas({
   };
 
   return (
-    <div className="fade-up py-8 px-6">
+    <div className={somenteReceber ? "" : "fade-up py-8 px-6"}>
+      {somenteReceber ? (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+          <button className="btn-ghost" onClick={() => setForm({
+            id: null, tipo: "receber", nome: "", valor: "", vencimento: "",
+            categoria: "Outros", obs: "", parcela: "",
+            parcelar: false, numParcelas: 3, modoValor: "total",
+          })}>
+            <Plus size={13} className="inline mr-1.5" /> Recebimento
+          </button>
+        </div>
+      ) : (
       <PageHeader
         eyebrow="Finanças · Compromissos"
         title={<>A Receber & <em>Dívidas.</em></>}
@@ -445,6 +457,7 @@ export default function AReceberEDividas({
           </div>
         }
       />
+      )}
 
       {/* ===== Visão geral · todos os meses ===== */}
       {(() => {
@@ -612,7 +625,8 @@ export default function AReceberEDividas({
         })}
       </div>
 
-      {/* Toggle: A Receber | A Pagar */}
+      {/* Toggle: A Receber | A Pagar (escondido quando embutido na tela unificada) */}
+      {!somenteReceber && (
       <div style={{ display: "inline-flex", gap: 0, marginBottom: 12, background: T.bgSoft, padding: 3, borderRadius: 8, border: `1px solid ${T.border}` }}>
         {[
           { id: "receber", label: `💰 A Receber (${receberMes.length})`, cor: T.green },
@@ -634,6 +648,7 @@ export default function AReceberEDividas({
           );
         })}
       </div>
+      )}
 
       {/* A Receber em CARDS, A Pagar em tabela */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

@@ -116,17 +116,18 @@ export default function CardsGrid({
             <Calendar size={22} color={T.gold} />
           </div>
           <div style={{ flex: 1 }}>
-            <h4 style={{ fontSize: 15, fontWeight: 600, color: T.ink }}>Despesas do mês</h4>
+            <h4 style={{ fontSize: 15, fontWeight: 600, color: T.ink }}>A Pagar &amp; Receber</h4>
             <div style={{ fontSize: 11.5, color: T.muted, marginTop: 2 }}>
-              {stats.despesasTotal} lançamentos · {stats.despesasFixas} fixas + {stats.despesasVar} variáveis
+              {stats.despesasTotal} a pagar no mês · {stats.qtdReceber} a receber
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3" style={{ marginTop: 14, fontSize: 11, color: T.muted }}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3" style={{ marginTop: 14, fontSize: 11, color: T.muted }}>
           <Mini lbl="já pago"    val={hidden ? "•••" : fmt(stats.totalPago)}     cor={T.green} />
           <Mini lbl="a pagar"    val={hidden ? "•••" : fmt(stats.totalPendente)} cor={T.gold} />
           <Mini lbl="atrasado"   val={hidden ? "•••" : fmt(stats.totalAtrasado)} cor={T.red} />
+          <Mini lbl="a receber"  val={hidden ? "•••" : fmt(stats.totalReceber)}  cor={T.green} />
         </div>
 
         <FooterCard />
@@ -142,15 +143,7 @@ export default function CardsGrid({
         valorCor={stats.balancoAno >= 0 ? T.green : T.red}
       />
 
-      {/* RECEBÍVEIS */}
-      <CardMenor
-        onClick={() => onAbrir("recebiveis")}
-        icon={<Wallet size={20} color={T.gold} />}
-        titulo="Recebíveis"
-        sub={`${stats.qtdReceber} ${stats.qtdReceber === 1 ? "item em aberto" : "itens em aberto"}`}
-        valor={hidden ? "•••" : fmt(stats.totalReceber)}
-        valorCor={T.green}
-      />
+      {/* (Recebíveis foi unido ao card "A Pagar & Receber" acima) */}
 
       {/* PARCELAS */}
       <CardMenor

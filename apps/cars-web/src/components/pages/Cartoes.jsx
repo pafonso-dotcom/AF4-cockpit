@@ -142,30 +142,31 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
   // Pagamento de fatura
   // ============================
   // Pré-preenche o modal com a soma das parcelas do mês corrente que AINDA não estão marcadas como pagas.
-  const openPagamento = (cartao) => {
-    const now = new Date();
-    const curY = now.getFullYear();
-    const curM = now.getMonth() + 1;
-    const monthKey = `${curY}-${String(curM).padStart(2, "0")}`;
-
+  // Calcula as parcelas (não pagas) de um cartão que vencem na competência (YYYY-MM).
+  const parcelasDaCompetencia = (cartaoId, monthKey) => {
+    const [cy, cm] = monthKey.split("-").map(Number);
     let valorSugerido = 0;
     const parcelasDoMes = [];
-
-    parcelamentos.filter(p => p.cartaoId === cartao.id).forEach(p => {
+    parcelamentos.filter(p => p.cartaoId === cartaoId).forEach(p => {
       const valorParcela = p.valorTotal / p.totalParcelas;
       for (let n = 1; n <= p.totalParcelas; n++) {
         const dt = dataDaParcela(p, n);
         if (!dt) continue;
-        if (dt.getFullYear() === curY && dt.getMonth() + 1 === curM) {
-          const paga = (p.parcelasPagas || []).includes(n);
-          if (!paga) {
+        if (dt.getFullYear() === cy && dt.getMonth() + 1 === cm) {
+          if (!(p.parcelasPagas || []).includes(n)) {
             valorSugerido += valorParcela;
             parcelasDoMes.push({ parcId: p.id, parcDescricao: p.descricao, parcN: n, valor: valorParcela });
           }
         }
       }
     });
+    return { valorSugerido, parcelasDoMes };
+  };
 
+  const openPagamento = (cartao) => {
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const { valorSugerido, parcelasDoMes } = parcelasDaCompetencia(cartao.id, monthKey);
     setPagFatura({
       cartaoId: cartao.id,
       cartaoNome: cartao.nome,
@@ -176,6 +177,41 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
       parcelasDoMes,
     });
     setPagErrors({});
+  };
+
+  // Troca a competência (mês) da fatura e recalcula valor + parcelas cobertas.
+  const mudarCompetenciaPagamento = (monthKey) => {
+    setPagFatura(prev => {
+      if (!prev) return prev;
+      const { valorSugerido, parcelasDoMes } = parcelasDaCompetencia(prev.cartaoId, monthKey);
+      return { ...prev, monthKey, parcelasDoMes, valor: valorSugerido > 0 ? valorSugerido.toFixed(2) : prev.valor };
+    });
+  };
+
+  // Limpa lançamentos de fatura criados pelo modelo antigo: cópias de parcela
+  // (que agora vivem no parcelamento) e pagamentos que cobriram 0 parcelas.
+  const limparDuplicadosFatura = async () => {
+    const ehParcelaImportada = (t) => (t.origem || "").startsWith("fatura-") && /^Parcela\s/.test(t.obs || "");
+    const ehPagamentoVazio = (t) => /Pagamento de fatura — 0 parcela/.test(t.obs || "");
+    const alvos = (transacoes || []).filter(t => ehParcelaImportada(t) || ehPagamentoVazio(t));
+    if (alvos.length === 0) { toast.info("Nenhum lançamento de fatura duplicado encontrado."); return; }
+    const ok = await confirm({
+      title: `Limpar ${alvos.length} lançamento(s) de fatura?`,
+      body: "Remove as cópias de parcela criadas por importações antigas (as parcelas continuam no parcelamento) e pagamentos de fatura que cobriram 0 parcelas. Os saldos das contas afetadas são ajustados.",
+      danger: true, confirmLabel: "Limpar",
+    });
+    if (!ok) return;
+    const ajustes = {};
+    alvos.forEach(t => { if (t.conta) ajustes[t.conta] = (ajustes[t.conta] || 0) + Number(t.valor || 0); });
+    const ids = new Set(alvos.map(t => t.id));
+    const backup = transacoes;
+    setTransacoes((transacoes || []).filter(t => !ids.has(t.id)));
+    if (Object.keys(ajustes).length && typeof setContas === "function") {
+      setContas((contas || []).map(c => ajustes[c.nome] ? { ...c, saldo: (Number(c.saldo) || 0) + ajustes[c.nome] } : c));
+    }
+    toast.success(`${alvos.length} lançamento(s) de fatura removido(s).`, {
+      action: { label: "Desfazer", onClick: () => setTransacoes(backup) },
+    });
   };
 
   const executarPagamento = () => {
@@ -257,6 +293,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         sub="Limites, fechamentos e parcelamentos sob controle."
         action={
           <div className="flex gap-2 flex-wrap">
+            <button className="btn-ghost" onClick={limparDuplicadosFatura}
+                    title="Remove cópias de parcela e pagamentos vazios criados por importações antigas">
+              <Trash2 size={12} className="inline mr-2" />Limpar duplicados
+            </button>
             <button className="btn-ghost" onClick={() => setParcForm({ id: null, descricao: "", dataCompra: todayISO(), dataPrimeira: todayISO(), cartaoId: cartoes[0]?.id || "", valorTotal: "", totalParcelas: "", categoria: "", parcelasPagas: [] })}>
               <Plus size={12} className="inline mr-2" />Parcelamento
             </button>
@@ -703,7 +743,12 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
               background: T.bgSoft, border: `1px solid ${T.border}`,
               padding: 14, marginBottom: 16,
             }}>
-              <div className="label-eyebrow mb-2">Resumo da fatura corrente</div>
+              <div className="flex justify-between items-center mb-2" style={{ gap: 8 }}>
+                <span className="label-eyebrow">Competência da fatura</span>
+                <input type="month" value={pagFatura.monthKey}
+                       onChange={e => mudarCompetenciaPagamento(e.target.value)}
+                       style={{ background: T.bg, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 5, padding: "3px 8px", fontSize: 12 }} />
+              </div>
               {pagFatura.parcelasDoMes.length === 0 ? (
                 <div style={{ color: T.muted, fontSize: 13, fontStyle: "italic" }}>
                   Nenhuma parcela em aberto neste mês — você pode pagar um valor livre.
