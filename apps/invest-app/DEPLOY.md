@@ -60,5 +60,25 @@ de ambiente não foram lidas — revise a Parte 2, passo 4, e refaça o deploy.
 - **Preview antes de publicar** → o Pages cria uma URL de preview por branch
   automaticamente; dá pra revisar antes de mesclar na `main`.
 
-> Próximas fases (quando voltar a desenvolver): **Fase 3** esconde as chaves de
-> cotação/IA num proxy no servidor; **Fase 4** adiciona cobrança/assinatura.
+---
+
+## Parte 4 · Chaves de cotação/IA no servidor (Fase 3)
+
+O app tem um **proxy** (`/api/...`) que guarda as chaves no Cloudflare, pra
+cotações e IA funcionarem pra todos os clientes **sem expor chave nenhuma**.
+
+No Cloudflare Pages → projeto → **Settings → Environment variables (Production)**,
+adicione as que quiser usar (todas opcionais):
+
+| Variável | Pra quê | Onde pegar |
+|---|---|---|
+| `BRAPI_TOKEN` | Cotações de ações/FIIs **BR** (recomendado) | brapi.dev (cadastro grátis, 1.000 req/mês) |
+| `ANTHROPIC_KEY` | IA — "Monte sua carteira" e análises | console.anthropic.com (pago por uso) |
+| `ALPHAVANTAGE_KEY` | Ações dos **EUA** | alphavantage.co (chave grátis) |
+
+Depois de adicionar, clique em **Retry deployment** (ou faça um novo push) pra
+o proxy passar a usar as chaves. Sem `BRAPI_TOKEN`, as cotações BR caem no modo
+simulado; sem `ANTHROPIC_KEY`, os recursos de IA ficam indisponíveis (o resto
+do app funciona normalmente).
+
+> Próxima fase: **Fase 4** — cobrança/assinatura.
