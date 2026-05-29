@@ -6,7 +6,8 @@ import { fmt, uid, todayISO } from "../../../lib/format.js";
 import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import { abrirWhatsApp } from "../../../lib/whatsapp.js";
-import { toPDF } from "../../../lib/exportRelatorio.js";
+import { toPDF, toCSV } from "../../../lib/exportRelatorio.js";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
 import PageHeader from "../../ui/PageHeader.jsx";
 import ControleAnualServicos from "./ControleAnualServicos.jsx";
 import Field from "../../ui/Field.jsx";
@@ -63,6 +64,10 @@ export default function Servicos({
   const [anualExpandido, setAnualExpandido] = useState(false);
   const [faturaDoc, setFaturaDoc] = useState(null); // venda/fatura aberta no modal de PDF
   const [cobrancasAberto, setCobrancasAberto] = useState(false); // painel de cobrança em massa
+  const [financeiroExpandido, setFinanceiroExpandido] = useState(false);
+  const [finPeriodo, setFinPeriodo] = useState("ano"); // mes | 3m | ano | tudo
+  const [finBusca, setFinBusca] = useState("");
+  const [finPdfAberto, setFinPdfAberto] = useState(false);
 
   // Mês corrente YYYY-MM — usado pra controle de repasse e relatório.
   const mesCorrente = new Date().toISOString().slice(0, 7);
@@ -135,6 +140,62 @@ export default function Servicos({
     const qtdGeral = pend.length;
     return { grupos, totalGeral, qtdGeral };
   }, [vendas, clientes]);
+
+  // Financeiro: movimentações da Caixa do Negócio (entradas de receita +
+  // saídas de repasse), filtradas por período/busca, com totais e série mensal.
+  const financeiro = useMemo(() => {
+    const hist = (caixaNegocio?.historico) || [];
+    const hoje = new Date();
+    const limite = (() => {
+      if (finPeriodo === "tudo") return null;
+      const d = new Date(hoje);
+      if (finPeriodo === "mes") d.setDate(1);
+      else if (finPeriodo === "3m") d.setMonth(d.getMonth() - 2, 1);
+      else if (finPeriodo === "ano") d.setMonth(0, 1); // início do ano
+      return d.toISOString().slice(0, 10);
+    })();
+    const q = finBusca.trim().toLowerCase();
+
+    const movs = hist
+      .filter(h => !limite || (h.data || "") >= limite)
+      .filter(h => !q || (h.descricao || "").toLowerCase().includes(q))
+      .sort((a, b) => (b.data || "").localeCompare(a.data || "") || (b.ts || "").localeCompare(a.ts || ""));
+
+    let entradas = 0, saidas = 0;
+    const porMes = {};
+    movs.forEach(h => {
+      const v = Number(h.valor || 0);
+      const mes = (h.data || "").slice(0, 7);
+      if (!mes) return;
+      const m = (porMes[mes] = porMes[mes] || { mes, receita: 0, despesa: 0 });
+      if (v >= 0) { entradas += v; m.receita += v; }
+      else { saidas += -v; m.despesa += -v; }
+    });
+    const serie = Object.values(porMes)
+      .sort((a, b) => a.mes.localeCompare(b.mes))
+      .map(m => ({ ...m, label: `${m.mes.slice(5)}/${m.mes.slice(2, 4)}`, lucro: m.receita - m.despesa }));
+
+    return { movs, entradas, saidas, resultado: entradas - saidas, serie, saldoAtual: Number(caixaNegocio?.saldo || 0) };
+  }, [caixaNegocio, finPeriodo, finBusca]);
+
+  const periodoLabel = { mes: "Este mês", "3m": "Últimos 3 meses", ano: "Este ano", tudo: "Tudo" }[finPeriodo] || "";
+
+  const exportarFinanceiroCSV = () => {
+    if (financeiro.movs.length === 0) { toast.error("Sem movimentações no período."); return; }
+    const tipoLabel = (t) => ({
+      "venda-servico": "Receita · venda", "fatura-recorrente": "Receita · fatura",
+      "pago-instalador": "Repasse colaborador",
+    }[t] || t);
+    const rows = financeiro.movs.map(h => ({
+      Data: (h.data || "").split("-").reverse().join("/"),
+      Tipo: tipoLabel(h.tipo),
+      Descrição: h.descricao || "",
+      Entrada: Number(h.valor || 0) > 0 ? Number(h.valor).toFixed(2).replace(".", ",") : "",
+      Saída: Number(h.valor || 0) < 0 ? (-Number(h.valor)).toFixed(2).replace(".", ",") : "",
+    }));
+    toCSV(rows, `financeiro-servicos-${finPeriodo}.csv`);
+    toast.success("CSV exportado.");
+  };
 
   // Saldo do mês por instalador: soma de valorInstalador das vendas do mês corrente
   // onde instaladorId === id. Backward-compat: vendas antigas sem campos seguem em 0.
@@ -981,6 +1042,117 @@ export default function Servicos({
               instaladores={instaladores}
               hidden={hidden}
             />
+          </div>
+        )}
+      </div>
+
+      {/* FINANCEIRO · CAIXA DO NEGÓCIO */}
+      <div style={{
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        padding: 14, marginBottom: 14,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <button onClick={() => setFinanceiroExpandido(v => !v)}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0,
+                           display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ color: T.gold }}>
+              {financeiroExpandido ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+            <DollarSign size={14} style={{ color: T.gold }} />
+            <span className="label-eyebrow">Financeiro · Caixa do Negócio</span>
+          </button>
+          <span className="num" style={{ fontSize: 13, color: T.gold, fontWeight: 600 }}>
+            Saldo: {hidden ? "•••" : fmt(financeiro.saldoAtual)}
+          </span>
+        </div>
+
+        {financeiroExpandido && (
+          <div style={{ marginTop: 12 }}>
+            {/* Controles */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ display: "flex", gap: 4 }}>
+                {[{ id: "mes", l: "Mês" }, { id: "3m", l: "3 meses" }, { id: "ano", l: "Ano" }, { id: "tudo", l: "Tudo" }].map(o => (
+                  <button key={o.id} onClick={() => setFinPeriodo(o.id)}
+                    style={{
+                      padding: "5px 12px", fontSize: 10.5, letterSpacing: ".04em", textTransform: "uppercase",
+                      borderRadius: 5, cursor: "pointer", fontWeight: 600,
+                      background: finPeriodo === o.id ? `${T.gold}22` : "transparent",
+                      border: `1px solid ${finPeriodo === o.id ? T.gold : T.border}`,
+                      color: finPeriodo === o.id ? T.gold : T.muted,
+                    }}>
+                    {o.l}
+                  </button>
+                ))}
+              </div>
+              <input value={finBusca} onChange={e => setFinBusca(e.target.value)}
+                     placeholder="Buscar na descrição…"
+                     style={{ flex: 1, minWidth: 140, padding: "6px 10px", fontSize: 12,
+                              background: T.bg, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 5 }} />
+              <button onClick={exportarFinanceiroCSV} className="btn-ghost" style={{ fontSize: 11 }}>
+                <FileText size={12} className="inline mr-1" /> CSV
+              </button>
+              <button onClick={() => setFinPdfAberto(true)} className="btn-ghost" style={{ fontSize: 11 }}>
+                <FileText size={12} className="inline mr-1" /> PDF
+              </button>
+            </div>
+
+            {/* Totais do período */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
+              <FinTotal label="Entradas" valor={financeiro.entradas} cor={T.green} hidden={hidden} />
+              <FinTotal label="Saídas (repasses)" valor={financeiro.saidas} cor={T.red} hidden={hidden} />
+              <FinTotal label="Resultado" valor={financeiro.resultado} cor={financeiro.resultado >= 0 ? T.green : T.red} hidden={hidden} />
+            </div>
+
+            {/* Gráfico mensal receita x despesa */}
+            {financeiro.serie.length > 0 ? (
+              <div style={{ width: "100%", height: 200, marginBottom: 12 }}>
+                <ResponsiveContainer>
+                  <BarChart data={financeiro.serie} margin={{ top: 6, right: 8, left: 4, bottom: 0 }}>
+                    <CartesianGrid stroke={T.border} strokeDasharray="2 4" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fill: T.muted, fontSize: 10 }} stroke={T.border} />
+                    <YAxis tick={{ fill: T.muted, fontSize: 10 }} stroke={T.border}
+                           tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                    <Tooltip
+                      contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11, color: T.ink }}
+                      formatter={(v, k) => [fmt(v), k === "receita" ? "Receita" : "Despesa"]} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} formatter={(k) => k === "receita" ? "Receita" : "Despesa"} />
+                    <Bar dataKey="receita" fill={T.green} radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="despesa" fill={T.red} radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div style={{ padding: 18, fontSize: 12, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
+                Sem movimentações no período.
+              </div>
+            )}
+
+            {/* Extrato */}
+            {financeiro.movs.length > 0 && (
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 6, overflow: "hidden" }}>
+                {financeiro.movs.slice(0, 200).map((h, i) => {
+                  const v = Number(h.valor || 0);
+                  const entrada = v >= 0;
+                  return (
+                    <div key={h.id || i} style={{
+                      display: "grid", gridTemplateColumns: "58px 1fr auto", gap: 10, alignItems: "center",
+                      padding: "7px 10px", borderTop: i === 0 ? "none" : `1px solid ${T.border}`,
+                      background: i % 2 ? T.bgSoft : "transparent",
+                    }}>
+                      <span style={{ fontFamily: T.mono, fontSize: 10.5, color: T.faint }}>
+                        {(h.data || "").split("-").reverse().slice(0, 2).join("/")}
+                      </span>
+                      <span style={{ fontSize: 12, color: T.ink, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {h.descricao || (entrada ? "Receita" : "Repasse")}
+                      </span>
+                      <span className="num" style={{ fontSize: 12.5, fontWeight: 600, color: entrada ? T.green : T.red }}>
+                        {entrada ? "+" : "−"} {hidden ? "•••" : fmt(Math.abs(v))}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -2034,6 +2206,15 @@ export default function Servicos({
         />
       )}
 
+      {/* MODAL: financeiro em PDF */}
+      {finPdfAberto && (
+        <FinanceiroDocModal
+          financeiro={financeiro}
+          periodoLabel={periodoLabel}
+          onClose={() => setFinPdfAberto(false)}
+        />
+      )}
+
       {/* MODAL: cobrança em massa (cobranças em aberto por cliente) */}
       {cobrancasAberto && (
         <Modal title={`Cobranças em aberto · ${fmt(cobrancasPorCliente.totalGeral)}`}
@@ -2341,6 +2522,124 @@ function FaturaDocModal({ venda: v, cliente, servicos = [], onClose }) {
         <div className="no-print" style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "14px 28px 22px" }}>
           <button className="btn-ghost" onClick={onClose}>Fechar</button>
           <button className="btn-gold" onClick={() => toPDF("fatura-doc-print")}>
+            <FileText size={13} className="inline mr-1" /> Imprimir / PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+  return createPortal(content, document.body);
+}
+
+function FinTotal({ label, valor, cor, hidden }) {
+  return (
+    <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 6, padding: "8px 10px" }}>
+      <div style={{ fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, marginBottom: 3 }}>
+        {label}
+      </div>
+      <div className="num" style={{ fontSize: 16, fontWeight: 700, color: cor }}>
+        {hidden ? "•••" : fmt(valor)}
+      </div>
+    </div>
+  );
+}
+
+// Documento imprimível do financeiro (resumo + série mensal + extrato).
+// Portal direto no body pra que o toPDF (print-only-this) isole só este card.
+function FinanceiroDocModal({ financeiro, periodoLabel, onClose }) {
+  const empresa = (() => {
+    try { return localStorage.getItem("af4:empresa-nome") || "Âncora"; }
+    catch { return "Âncora"; }
+  })();
+  const tipoLabel = (t) => ({
+    "venda-servico": "Receita · venda", "fatura-recorrente": "Receita · fatura",
+    "pago-instalador": "Repasse colaborador",
+  }[t] || t);
+  const emissao = new Date().toLocaleDateString("pt-BR");
+
+  const content = (
+    <div className="modal-overlay-bg" onClick={onClose}
+         style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,.6)",
+                  display: "grid", placeItems: "center", padding: 20, overflowY: "auto" }}>
+      <div onClick={e => e.stopPropagation()}
+           style={{ width: "min(680px, 100%)", maxHeight: "92vh", overflowY: "auto", background: "#fff", borderRadius: 10 }}>
+        <div id="financeiro-doc-print" style={{ padding: 28, color: "#111", background: "#fff", fontFamily: "Georgia, serif" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #111", paddingBottom: 12, marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>{empresa}</div>
+              <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>Financeiro · Caixa do Negócio</div>
+            </div>
+            <div style={{ textAlign: "right", fontSize: 11, color: "#666" }}>
+              <div>Período: {periodoLabel}</div>
+              <div>Emissão: {emissao}</div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 24, marginBottom: 16, fontSize: 13 }}>
+            <div><span style={{ color: "#666" }}>Entradas:</span> <strong style={{ color: "#137a3b" }}>{fmt(financeiro.entradas)}</strong></div>
+            <div><span style={{ color: "#666" }}>Saídas:</span> <strong style={{ color: "#b42318" }}>{fmt(financeiro.saidas)}</strong></div>
+            <div><span style={{ color: "#666" }}>Resultado:</span> <strong>{fmt(financeiro.resultado)}</strong></div>
+            <div><span style={{ color: "#666" }}>Saldo Caixa:</span> <strong>{fmt(financeiro.saldoAtual)}</strong></div>
+          </div>
+
+          {financeiro.serie.length > 0 && (
+            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16, fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <th style={{ textAlign: "left", padding: "5px 6px", color: "#666" }}>Mês</th>
+                  <th style={{ textAlign: "right", padding: "5px 6px", color: "#666" }}>Receita</th>
+                  <th style={{ textAlign: "right", padding: "5px 6px", color: "#666" }}>Despesa</th>
+                  <th style={{ textAlign: "right", padding: "5px 6px", color: "#666" }}>Resultado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {financeiro.serie.map(m => (
+                  <tr key={m.mes} style={{ borderBottom: "1px solid #eee" }}>
+                    <td style={{ padding: "5px 6px" }}>{m.label}</td>
+                    <td style={{ padding: "5px 6px", textAlign: "right", color: "#137a3b" }}>{fmt(m.receita)}</td>
+                    <td style={{ padding: "5px 6px", textAlign: "right", color: "#b42318" }}>{fmt(m.despesa)}</td>
+                    <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 600 }}>{fmt(m.lucro)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          <div style={{ fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "#888", marginBottom: 6 }}>Extrato</div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5 }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid #ccc" }}>
+                <th style={{ textAlign: "left", padding: "4px 6px", color: "#666" }}>Data</th>
+                <th style={{ textAlign: "left", padding: "4px 6px", color: "#666" }}>Tipo</th>
+                <th style={{ textAlign: "left", padding: "4px 6px", color: "#666" }}>Descrição</th>
+                <th style={{ textAlign: "right", padding: "4px 6px", color: "#666" }}>Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {financeiro.movs.map((h, i) => {
+                const v = Number(h.valor || 0);
+                return (
+                  <tr key={h.id || i} style={{ borderBottom: "1px solid #eee" }}>
+                    <td style={{ padding: "4px 6px" }}>{(h.data || "").split("-").reverse().join("/")}</td>
+                    <td style={{ padding: "4px 6px" }}>{tipoLabel(h.tipo)}</td>
+                    <td style={{ padding: "4px 6px" }}>{h.descricao || ""}</td>
+                    <td style={{ padding: "4px 6px", textAlign: "right", color: v >= 0 ? "#137a3b" : "#b42318" }}>
+                      {v >= 0 ? "+" : "−"} {fmt(Math.abs(v))}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <div style={{ fontSize: 11, color: "#999", textAlign: "center", borderTop: "1px solid #eee", marginTop: 12, paddingTop: 10 }}>
+            {empresa} · Financeiro do Caixa do Negócio · {emissao}
+          </div>
+        </div>
+
+        <div className="no-print" style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "14px 28px 22px" }}>
+          <button className="btn-ghost" onClick={onClose}>Fechar</button>
+          <button className="btn-gold" onClick={() => toPDF("financeiro-doc-print")}>
             <FileText size={13} className="inline mr-1" /> Imprimir / PDF
           </button>
         </div>
