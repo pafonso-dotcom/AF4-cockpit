@@ -2,16 +2,16 @@ import { describe, it, expect } from "vitest";
 import { chaveTransacao, marcarDuplicadas } from "../extratoParser.js";
 
 describe("chaveTransacao", () => {
-  it("normaliza data, valor, tipo e descrição", () => {
-    const a = { data: "2024-01-15", valor: 150.5, tipo: "despesa", descricao: "Mercado  XYZ" };
+  it("usa valor absoluto (sinal não importa)", () => {
+    const a = { data: "2024-01-15", valor: 150.5, tipo: "despesa", descricao: "Mercado XYZ" };
     const b = { data: "2024-01-15", valor: -150.5, tipo: "despesa", descricao: "mercado xyz" };
-    // valor absoluto + descrição normalizada (espaços/maiúsculas) → mesma chave
     expect(chaveTransacao(a)).toBe(chaveTransacao(b));
   });
 
-  it("ignora acentos na descrição", () => {
-    const a = { data: "2024-02-01", valor: 10, tipo: "despesa", descricao: "Farmácia São João" };
-    const b = { data: "2024-02-01", valor: 10, tipo: "despesa", descricao: "Farmacia Sao Joao" };
+  it("ignora a descrição (mesma data/valor/tipo → mesma chave)", () => {
+    // O mesmo lançamento pode ter descrições bem diferentes em fontes distintas.
+    const a = { data: "2024-02-01", valor: 10, tipo: "despesa", descricao: "PIX João" };
+    const b = { data: "2024-02-01", valor: 10, tipo: "despesa", descricao: "TRANSF ENVIADA 0001" };
     expect(chaveTransacao(a)).toBe(chaveTransacao(b));
   });
 

@@ -227,19 +227,18 @@ export function parseCSV(text) {
 
 /**
  * Gera uma chave normalizada de um lançamento para comparar duplicatas.
- * Considera data, valor (absoluto), tipo e descrição (sem acentos, espaços
- * colapsados e em minúsculas) — robusto a pequenas variações de formatação.
+ *
+ * Usa só DATA + VALOR (absoluto) + TIPO — que é o que de fato identifica o
+ * "mesmo lançamento". A descrição NÃO entra na chave de propósito: o mesmo
+ * lançamento costuma ter descrições diferentes (extrato do banco vs. registro
+ * manual, ou OFX vs. CSV vs. PDF), e exigir descrição igual fazia a duplicata
+ * passar despercebida.
  */
 export function chaveTransacao(t) {
   const data = String(t?.data || "").slice(0, 10);
   const valor = Math.abs(Number(t?.valor) || 0).toFixed(2);
   const tipo = t?.tipo || "";
-  const desc = String(t?.descricao || "")
-    .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove acentos
-    .replace(/\s+/g, " ")
-    .trim();
-  return `${data}|${valor}|${tipo}|${desc}`;
+  return `${data}|${valor}|${tipo}`;
 }
 
 /**
