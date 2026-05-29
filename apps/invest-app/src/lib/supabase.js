@@ -38,8 +38,16 @@ export async function getUser() {
 
 export function onAuthChange(cb) {
   if (!supabase) return () => {};
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => cb(session));
+  const { data } = supabase.auth.onAuthStateChange((event, session) => cb(event, session));
   return () => data?.subscription?.unsubscribe?.();
+}
+
+// Define uma nova senha (usado no fluxo de recuperação, com a sessão temporária
+// criada pelo link do e-mail).
+export async function updatePassword(novaSenha) {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  const { error } = await supabase.auth.updateUser({ password: novaSenha });
+  if (error) throw error;
 }
 
 /* ---------- Ações de auth ---------- */

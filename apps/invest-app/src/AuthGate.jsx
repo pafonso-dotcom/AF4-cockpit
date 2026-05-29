@@ -2,6 +2,11 @@ import React, { useEffect, useState } from "react";
 import { T } from "./lib/theme.js";
 import { supabaseConfigured, getSession, onAuthChange } from "./lib/supabase.js";
 import Login from "./components/auth/Login.jsx";
+import NovaSenha from "./components/auth/NovaSenha.jsx";
+
+// Link de recuperação de senha chega com "#type=recovery&..." na URL.
+const hashRecovery = () =>
+  typeof window !== "undefined" && /type=recovery/.test(window.location.hash || "");
 
 /**
  * Porta de entrada do produto.
@@ -12,12 +17,16 @@ import Login from "./components/auth/Login.jsx";
 export default function AuthGate({ children }) {
   const [carregando, setCarregando] = useState(true);
   const [sessao, setSessao] = useState(null);
+  const [recuperando, setRecuperando] = useState(hashRecovery());
 
   useEffect(() => {
     if (!supabaseConfigured) { setCarregando(false); return; }
     let vivo = true;
     getSession().then(s => { if (vivo) { setSessao(s); setCarregando(false); } });
-    const off = onAuthChange((s) => setSessao(s));
+    const off = onAuthChange((event, s) => {
+      if (event === "PASSWORD_RECOVERY") setRecuperando(true);
+      setSessao(s);
+    });
     return () => { vivo = false; off(); };
   }, []);
 
@@ -44,6 +53,9 @@ export default function AuthGate({ children }) {
       </div>
     );
   }
+
+  // Fluxo de recuperação de senha (chegou pelo link do e-mail).
+  if (recuperando) return <NovaSenha onPronto={() => setRecuperando(false)} />;
 
   if (!sessao) return <Login />;
 
