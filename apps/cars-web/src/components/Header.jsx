@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { T, THEMES } from "../lib/theme.js";
 import { getPerfilAtivo } from "../lib/perfis.js";
 import { useLayout } from "../lib/useLayout.js";
@@ -507,9 +507,8 @@ function HeaderVertical({
   const NAV_MUTED = "#a8a8b0";
   const NAV_BORDER = "rgba(255,255,255,0.08)";
 
-  // Acordeão: só o módulo aberto mostra as sub-abas. Por padrão, o módulo ativo.
-  const [expandido, setExpandido] = useState(modulo);
-  useEffect(() => { setExpandido(modulo); }, [modulo]);
+  // Acordeão: começa com TODOS fechados; abre um por vez ao clicar no módulo.
+  const [expandido, setExpandido] = useState(null);
   const abrirModulo = (m) => {
     if (m.id !== modulo) {
       setModulo(m.id);
