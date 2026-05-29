@@ -1900,8 +1900,8 @@ export default function Servicos({
 // pra que o helper toPDF (print-only-this) isole só este card na impressão.
 function FaturaDocModal({ venda: v, cliente, servicos = [], onClose }) {
   const empresa = (() => {
-    try { return localStorage.getItem("af4:empresa-nome") || "AF4 · Negócio"; }
-    catch { return "AF4 · Negócio"; }
+    try { return localStorage.getItem("af4:empresa-nome") || "Âncora"; }
+    catch { return "Âncora"; }
   })();
   const pendente = v.pago === false;
   const numero = String(v.id || "").replace(/[^a-z0-9]/gi, "").slice(0, 8).toUpperCase();
