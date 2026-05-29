@@ -28,8 +28,10 @@ export default function Planejamento(props) {
     reserva: ReservaEmergenciaView,
   };
 
-  if (cardAberto && views[cardAberto]) {
-    const View = views[cardAberto];
+  // cardAberto pode trazer um parâmetro após ":" (ex.: "recebiveis:pagar")
+  const [cardId, cardParam] = (cardAberto || "").split(":");
+  if (cardId && views[cardId]) {
+    const View = views[cardId];
     return (
       <div className="fade-up py-8 px-6">
         <button
@@ -47,7 +49,7 @@ export default function Planejamento(props) {
         >
           <ArrowLeft size={14} /> Voltar ao Planejamento
         </button>
-        <View {...props} onAbrirCard={setCardAberto} />
+        <View {...props} onAbrirCard={setCardAberto} vistaInicial={cardParam || "receber"} />
       </div>
     );
   }
@@ -72,7 +74,7 @@ export default function Planejamento(props) {
         </p>
       </div>
 
-      <ResumoExecutivo {...props} />
+      <ResumoExecutivo {...props} onAbrir={setCardAberto} />
       <CardsGrid {...props} onAbrir={setCardAberto} />
     </div>
   );

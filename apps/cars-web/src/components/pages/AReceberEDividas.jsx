@@ -29,6 +29,7 @@ export default function AReceberEDividas({
   categorias = [],
   hidden,
   somenteReceber = false, // quando true, esconde o lado "A Pagar" (usado na tela unificada)
+  vistaInicial = "receber", // "receber" | "pagar" — qual lado abre por padrão
 }) {
   const [form, setForm] = useState(null);        // {tipo, ...} novo/editar
   const [baixaForm, setBaixaForm] = useState(null); // baixa de um item
@@ -395,7 +396,7 @@ export default function AReceberEDividas({
     return [...set].sort();
   }, [todosVencimentos.join(","), hoje]);
   const [mesAtivo, setMesAtivo] = useState(""); // "" = Geral (todos os meses)
-  const [vista, setVista] = useState("receber"); // "receber" | "pagar"
+  const [vista, setVista] = useState(vistaInicial === "pagar" ? "pagar" : "receber"); // "receber" | "pagar"
 
   const filtroMes = (item) => {
     if (!mesAtivo) return true;
