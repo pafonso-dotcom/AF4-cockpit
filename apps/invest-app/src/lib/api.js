@@ -15,7 +15,10 @@ const COIN_MAP = {
 const API = {
   async brapiQuotes(tickers, token) {
     if (!tickers.length) return null;
-    const url = `https://brapi.dev/api/quote/${tickers.join(",")}${token ? `?token=${token}` : ""}`;
+    // Sem token local → proxy do servidor (/api/brapi); com token → direto (dev).
+    const url = token
+      ? `https://brapi.dev/api/quote/${tickers.join(",")}?token=${token}`
+      : `/api/brapi/quote/${tickers.join(",")}`;
     try {
       const r = await fetch(url);
       if (!r.ok) throw new Error(`Brapi ${r.status}`);
@@ -41,7 +44,9 @@ const API = {
     } catch { return null; }
   },
   async indices(token) {
-    const url = `https://brapi.dev/api/quote/^BVSP,^GSPC,^IXIC${token ? `?token=${token}` : ""}`;
+    const url = token
+      ? `https://brapi.dev/api/quote/^BVSP,^GSPC,^IXIC?token=${token}`
+      : `/api/brapi/quote/^BVSP,^GSPC,^IXIC`;
     try {
       const r = await fetch(url);
       if (!r.ok) throw new Error(`Indices ${r.status}`);

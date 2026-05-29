@@ -6,7 +6,9 @@
  * relevante para a pergunta é enviado para a API.
  */
 
-const ENDPOINT = "https://api.anthropic.com/v1/messages";
+// Sem chave local → usa o proxy do servidor (chave no Cloudflare, Fase 3).
+const ENDPOINT_DIRECT = "https://api.anthropic.com/v1/messages";
+const ENDPOINT_PROXY = "/api/anthropic";
 const MODEL = "claude-sonnet-4-5";
 
 /** Monta resumo compacto dos dados do cockpit pra dar contexto à IA. */
@@ -84,7 +86,8 @@ ${topCat.map(([c, v], i) => `${i + 1}. ${c}: R$ ${v.toFixed(2)}`).join("\n")}
  * Retorna a resposta em texto.
  */
 export async function perguntarAoClaude({ apiKey, pergunta, historico = [], contextoDados, model = MODEL }) {
-  if (!apiKey) throw new Error("Configure a chave Anthropic em Configurações → API Keys.");
+  // Sem chave local → roteia pelo proxy do servidor (chave fica no Cloudflare).
+  const usarProxy = !apiKey;
 
   const systemPrompt = `Você é um assistente financeiro pessoal do Paulo Afonso, dono da AF4 Motors em Tatuí-SP.
 Sua função é analisar os dados do cockpit financeiro dele e responder perguntas com clareza e em PT-BR.
@@ -107,14 +110,16 @@ ${contextoDados}`;
   ];
 
   try {
-    const res = await fetch(ENDPOINT, {
+    const res = await fetch(usarProxy ? ENDPOINT_PROXY : ENDPOINT_DIRECT, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
+      headers: usarProxy
+        ? { "Content-Type": "application/json" }
+        : {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true",
+          },
       body: JSON.stringify({
         model,
         max_tokens: 1024,

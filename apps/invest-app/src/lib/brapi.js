@@ -1,6 +1,8 @@
-// Cliente BRAPI (cotações de ações/FIIs/ETFs/BDRs da B3)
-// 1.000 req/mês na camada free. Token em localStorage("af4:brapi-token").
-const BRAPI_BASE = "https://brapi.dev/api";
+// Cliente BRAPI (cotações de ações/FIIs/ETFs/BDRs da B3).
+// Produção: chama o proxy /api/brapi (token fica no servidor — Fase 3).
+// Dev/local: se houver token em localStorage, chama a BRAPI direto.
+const BRAPI_DIRECT = "https://brapi.dev/api";
+const BRAPI_PROXY = "/api/brapi";
 
 function getToken() {
   try { return localStorage.getItem("af4:brapi-token") || ""; } catch { return ""; }
@@ -8,9 +10,10 @@ function getToken() {
 
 async function brapiFetch(path) {
   const token = getToken();
-  if (!token) throw new Error("Token BRAPI não configurado. Vá em ⚙ Configurações → BRAPI.");
-  const sep = path.includes("?") ? "&" : "?";
-  const r = await fetch(`${BRAPI_BASE}${path}${sep}token=${encodeURIComponent(token)}`);
+  const url = token
+    ? `${BRAPI_DIRECT}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`
+    : `${BRAPI_PROXY}${path}`;
+  const r = await fetch(url);
   if (!r.ok) {
     const err = await r.text();
     if (r.status === 401 || r.status === 403) throw new Error("Token BRAPI inválido. Verifique em ⚙ Configurações.");
