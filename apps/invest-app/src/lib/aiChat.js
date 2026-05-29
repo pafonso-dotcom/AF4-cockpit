@@ -55,7 +55,7 @@ export function buildContext({ transacoes = [], contas = [], ativos = [], vendas
   const chequesAguardando = cheques.filter(c => c.status === "aguardando").length;
 
   return `
-DADOS DO COCKPIT FINANCEIRO (Paulo Afonso · AF4 Motors · ${hoje})
+DADOS DA CARTEIRA DE INVESTIMENTOS (${hoje})
 
 ═══ FINANÇAS PESSOAIS · MÊS ATUAL (${mesAtual}) ═══
 • Receitas: R$ ${rec.toFixed(2)} (mês anterior: R$ ${recAnt.toFixed(2)})
@@ -70,7 +70,7 @@ ${topCat.map(([c, v], i) => `${i + 1}. ${c}: R$ ${v.toFixed(2)}`).join("\n")}
 • Carteira de ativos: R$ ${valorCarteira.toFixed(2)} (investido R$ ${investido.toFixed(2)})
 • Resultado da carteira: R$ ${(valorCarteira - investido).toFixed(2)}
 
-═══ LOJA AF4 MOTORS ═══
+═══ NEGÓCIO (se houver) ═══
 • Vendas no mês: ${vendasMes.length} (faturamento R$ ${fatMes.toFixed(2)} · lucro líquido R$ ${lucroMes.toFixed(2)})
 • Veículos em estoque: ${estoque}
 
@@ -89,8 +89,8 @@ export async function perguntarAoClaude({ apiKey, pergunta, historico = [], cont
   // Sem chave local → roteia pelo proxy do servidor (chave fica no Cloudflare).
   const usarProxy = !apiKey;
 
-  const systemPrompt = `Você é um assistente financeiro pessoal do Paulo Afonso, dono da AF4 Motors em Tatuí-SP.
-Sua função é analisar os dados do cockpit financeiro dele e responder perguntas com clareza e em PT-BR.
+  const systemPrompt = `Você é um assistente de investimentos.
+Sua função é analisar os dados da carteira do usuário e responder perguntas com clareza e em PT-BR.
 
 Princípios:
 - Seja direto e objetivo · evite preâmbulo
