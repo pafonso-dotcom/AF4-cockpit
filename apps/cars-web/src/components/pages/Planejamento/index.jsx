@@ -3,9 +3,8 @@ import { ArrowLeft } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import ResumoExecutivo from "./ResumoExecutivo.jsx";
 import CardsGrid from "./CardsGrid.jsx";
-import DespesasView from "./DespesasView.jsx";
+import PagarReceber from "./PagarReceber.jsx";
 import AnualView from "./AnualView.jsx";
-import RecebiveisView from "./RecebiveisView.jsx";
 import ParcelasView from "./ParcelasView.jsx";
 import AtencaoView from "./AtencaoView.jsx";
 import ReservaEmergenciaView from "./ReservaEmergenciaView.jsx";
@@ -19,10 +18,11 @@ export default function Planejamento(props) {
   const { hidden } = props;
   const [cardAberto, setCardAberto] = useState(null);
 
+  // "despesas" e "recebiveis" agora abrem a MESMA tela unificada (toggle A Pagar/Receber).
   const views = {
-    despesas: DespesasView,
+    despesas: PagarReceber,
     anual: AnualView,
-    recebiveis: RecebiveisView,
+    recebiveis: PagarReceber,
     parcelas: ParcelasView,
     atencao: AtencaoView,
     reserva: ReservaEmergenciaView,
@@ -47,7 +47,8 @@ export default function Planejamento(props) {
         >
           <ArrowLeft size={14} /> Voltar ao Planejamento
         </button>
-        <View {...props} onAbrirCard={setCardAberto} />
+        <View {...props} onAbrirCard={setCardAberto}
+              ladoInicial={cardAberto === "recebiveis" ? "receber" : "pagar"} />
       </div>
     );
   }
