@@ -846,7 +846,6 @@ export default function Servicos({
   const salvarContrato = () => {
     const nome = (contratoForm.nome || "").trim();
     const valor = Number(contratoForm.valor);
-    const custo = Number(contratoForm.custo) || 0;
     if (!nome) { toast.error("Informe o nome do contrato."); return; }
     if (!contratoForm.clienteId) { toast.error("Selecione um cliente."); return; }
     if (!Number.isFinite(valor) || valor <= 0) { toast.error("Valor inválido."); return; }
@@ -856,7 +855,8 @@ export default function Servicos({
     const temInstalador = !!contratoForm.instaladorId && valorInstN > 0;
     const dados = {
       ...contratoForm,
-      nome, valor, custo,
+      // O custo do contrato agora é só o repasse ao colaborador (campo único).
+      nome, valor, custo: 0,
       servicosIds: contratoForm.servicosIds || [],
       bancoRecebimento: contratoForm.bancoRecebimento || bancoPadraoId,
       duracaoMeses: Number.isFinite(duracaoMesesN) && duracaoMesesN > 0 ? duracaoMesesN : null,
@@ -1908,16 +1908,11 @@ export default function Servicos({
                    onChange={e => setContratoForm({ ...contratoForm, nome: e.target.value })}
                    placeholder="Ex.: CRM mensal · Tráfego pago · App XYZ" />
           </Field>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Valor (R$)" required>
               <input type="number" step="0.01" value={contratoForm.valor}
                      onChange={e => setContratoForm({ ...contratoForm, valor: e.target.value })}
                      placeholder="200" />
-            </Field>
-            <Field label="Pago ao prestador (R$)" hint="Sai do banco ao receber a fatura">
-              <input type="number" step="0.01" value={contratoForm.custo}
-                     onChange={e => setContratoForm({ ...contratoForm, custo: e.target.value })}
-                     placeholder="50" />
             </Field>
             <Field label="Recorrência" required>
               <select value={contratoForm.recorrencia}
