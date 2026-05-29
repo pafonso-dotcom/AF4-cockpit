@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Plus, Trash2, Edit3, Check, Wrench, X, ChevronDown, ChevronRight, DollarSign, TrendingUp, Repeat, Pause, Play, Receipt, Users, FileText, MessageCircle, AlertTriangle, Sparkles } from "lucide-react";
 import { T } from "../../../lib/theme.js";
@@ -45,13 +45,14 @@ export default function Servicos({
   contratos = [], setContratos,
   clientes = [],
   instaladores = [], setInstaladores,
-  contas = [], setContas,
-  transacoes = [], setTransacoes,
-  categorias = [],
+  bancos = [], setBancos,
   caixaNegocio = { saldo: 0, historico: [] }, setCaixaNegocio,
   hidden,
 }) {
   const [servicoForm, setServicoForm] = useState(null);
+  const [bancoForm, setBancoForm] = useState(null);
+  const [lancamentoForm, setLancamentoForm] = useState(null);
+  const [bancoExpandido, setBancoExpandido] = useState(true);
   const [vendaForm, setVendaForm] = useState(null);
   const [contratoForm, setContratoForm] = useState(null);
   const [instaladorForm, setInstaladorForm] = useState(null);
@@ -71,6 +72,20 @@ export default function Servicos({
 
   // Mês corrente YYYY-MM — usado pra controle de repasse e relatório.
   const mesCorrente = new Date().toISOString().slice(0, 7);
+
+  // Migração/seed: o Banco do Serviço precisa de ao menos uma conta. Se estiver
+  // vazio, cria a "Caixa" já com o saldo que existia na Caixa do Negócio antiga
+  // (preserva o dinheiro de quem já usava o módulo).
+  useEffect(() => {
+    if (typeof setBancos !== "function") return;
+    if ((bancos || []).length > 0) return;
+    setBancos([{ id: uid(), nome: "Caixa", saldo: Number(caixaNegocio?.saldo || 0) }]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bancos]);
+
+  // Conta padrão (recebimento/saída quando nenhuma é escolhida) = a primeira.
+  const bancoPadraoId = (bancos || [])[0]?.id || null;
+  const nomeBanco = (id) => (bancos || []).find(b => b.id === id)?.nome || "—";
 
   const ativos = useMemo(
     () => servicos.filter(s => s.ativo !== false),
@@ -184,7 +199,8 @@ export default function Servicos({
     if (financeiro.movs.length === 0) { toast.error("Sem movimentações no período."); return; }
     const tipoLabel = (t) => ({
       "venda-servico": "Receita · venda", "fatura-recorrente": "Receita · fatura",
-      "pago-instalador": "Repasse colaborador",
+      "pago-instalador": "Repasse colaborador", "custo-servico": "Custo/prestador",
+      "ajuste-entrada": "Entrada manual", "ajuste-saida": "Saída manual",
     }[t] || t);
     const rows = financeiro.movs.map(h => ({
       Data: (h.data || "").split("-").reverse().join("/"),
@@ -364,8 +380,8 @@ export default function Servicos({
   };
 
   // Marca/desmarca o repasse do mês corrente como pago ao colaborador.
-  // Pagar = SAÍDA real do Caixa do Negócio (debita o acumulado do mês e registra
-  // no histórico). Desmarcar devolve ao Caixa o valor exato que havia saído.
+  // Pagar = SAÍDA do Banco do Serviço (debita o acumulado do mês da conta padrão).
+  // Desmarcar devolve à conta o valor exato que havia saído.
   const togglePagarInstalador = (inst) => {
     if (typeof setInstaladores !== "function") return;
     const pagos = inst.repassesPagos || [];
@@ -378,52 +394,33 @@ export default function Servicos({
       i.id === inst.id ? { ...i, repassesPagos: novos } : i
     ));
 
-    // Movimenta o Caixa do Negócio: ao pagar, debita o acumulado do mês; ao
-    // desmarcar, devolve exatamente o que havia sido debitado pra este mês.
-    if (typeof setCaixaNegocio === "function") {
-      setCaixaNegocio(prev => {
-        const hist = (prev?.historico) || [];
-        const ehDoMes = (h) => h.tipo === "pago-instalador" && h.instaladorId === inst.id
-          && (h.repasseMes === mesCorrente || (!!h.vendaId && (h.data || "").startsWith(mesCorrente)));
-        if (jaPago) {
-          // Desmarcar: só estorna o que ESTE controle de quitação debitou
-          // (entradas com repasseMes). Entradas legadas (por venda, com vendaId)
-          // foram debitadas na venda e seguem o estorno da venda, não daqui.
-          const debitado = hist
-            .filter(h => h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente)
-            .reduce((s, h) => s + Math.abs(Number(h.valor) || 0), 0);
-          return {
-            saldo: (prev?.saldo || 0) + debitado,
-            historico: hist.filter(h => !(h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente)),
-          };
+    if (jaPago) {
+      // Desmarcar: devolve ao(s) banco(s) o que saiu p/ este colaborador no mês.
+      const hist = (caixaNegocio?.historico) || [];
+      const doMes = hist.filter(h => h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente);
+      if (doMes.length) {
+        const net = doMes.reduce((s, h) => s + Number(h.valor || 0), 0); // negativo
+        const porBanco = {};
+        doMes.forEach(h => { if (h.bancoId) porBanco[h.bancoId] = (porBanco[h.bancoId] || 0) + Number(h.valor || 0); });
+        if (typeof setBancos === "function") {
+          setBancos(prev => prev.map(b => porBanco[b.id] ? { ...b, saldo: (Number(b.saldo) || 0) - porBanco[b.id] } : b));
         }
-        // Pagar: debita só o que AINDA não saiu do Caixa. Vendas do modelo antigo
-        // já debitaram o repasse na venda (entradas com vendaId no mês) — abate
-        // esse valor pra não cobrar em dobro.
-        const jaDebitado = hist
-          .filter(ehDoMes)
-          .reduce((s, h) => s + Math.abs(Number(h.valor) || 0), 0);
-        const aDebitar = Math.max(0, totalMes - jaDebitado);
-        if (aDebitar <= 0) return prev;
-        return {
-          saldo: (prev?.saldo || 0) - aDebitar,
-          historico: [{
-            id: uid(),
-            tipo: "pago-instalador",
-            data: todayISO(),
-            descricao: `Repasse a ${inst.nome} · ${mesCorrente}`,
-            valor: -aDebitar,
-            instaladorId: inst.id,
-            repasseMes: mesCorrente,
-            ts: new Date().toISOString(),
-          }, ...hist],
-        };
-      });
+        if (typeof setCaixaNegocio === "function") {
+          setCaixaNegocio(prev => ({
+            saldo: (prev?.saldo || 0) - net,
+            historico: ((prev?.historico) || []).filter(h => !(h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente)),
+          }));
+        }
+      }
+      toast.success(`Repasse de ${inst.nome} (${mesCorrente}) desmarcado — devolvido ao Banco do Serviço.`);
+    } else {
+      if (totalMes > 0) {
+        lancar({ bancoId: bancoPadraoId, tipo: "pago-instalador", data: todayISO(),
+                 descricao: `Repasse a ${inst.nome} · ${mesCorrente}`, valor: -totalMes,
+                 instaladorId: inst.id, repasseMes: mesCorrente });
+      }
+      toast.success(`Repasse de ${fmt(totalMes)} a ${inst.nome} pago — debitado do Banco do Serviço.`);
     }
-
-    toast.success(jaPago
-      ? `Repasse de ${inst.nome} (${mesCorrente}) desmarcado — valor devolvido ao Caixa.`
-      : `Repasse de ${fmt(totalMes)} a ${inst.nome} pago — debitado do Caixa do Negócio.`);
   };
 
   /* ---------- Venda ---------- */
@@ -437,6 +434,7 @@ export default function Servicos({
     clienteId: "",
     instaladorId: "",
     valorInstalador: "",
+    bancoRecebimento: bancoPadraoId,
     obs: "",
   });
 
@@ -487,106 +485,89 @@ export default function Servicos({
     });
   };
 
-  /* ---------- Helpers de caixa / cobrança ---------- */
-  // Receita de uma venda/fatura entra na Caixa do Negócio. (O repasse ao
-  // colaborador é tratado à parte — não sai por venda.)
+  /* ---------- Helpers do Banco do Serviço ---------- */
+  // Lança 1 movimento numa conta do Banco do Serviço: ajusta o saldo da conta,
+  // o total (caixaNegocio.saldo) e registra no histórico (extrato do Financeiro).
+  // valor: + entrada / − saída. Tudo independente das Finanças do cockpit.
+  const lancar = (mov) => {
+    const valor = Number(mov.valor || 0);
+    const bancoId = mov.bancoId || bancoPadraoId;
+    if (bancoId && typeof setBancos === "function") {
+      setBancos(prev => prev.map(b => b.id === bancoId ? { ...b, saldo: (Number(b.saldo) || 0) + valor } : b));
+    }
+    if (typeof setCaixaNegocio === "function") {
+      setCaixaNegocio(prev => ({
+        saldo: (prev?.saldo || 0) + valor,
+        historico: [{
+          id: uid(),
+          tipo: mov.tipo,
+          data: mov.data || todayISO(),
+          descricao: mov.descricao || "",
+          valor,
+          bancoId: bancoId || null,
+          ...(mov.vendaId ? { vendaId: mov.vendaId } : {}),
+          ...(mov.contratoId ? { contratoId: mov.contratoId } : {}),
+          ...(mov.instaladorId ? { instaladorId: mov.instaladorId } : {}),
+          ...(mov.repasseMes ? { repasseMes: mov.repasseMes } : {}),
+          ts: new Date().toISOString(),
+        }, ...((prev?.historico) || [])],
+      }));
+    }
+  };
+
+  // Venda/fatura PAGA: a receita entra na conta de recebimento e, se houver
+  // custo (pago ao prestador), sai do mesmo banco. Nada toca Finanças/Contas.
   const aplicarReceitaCaixa = (v, descricaoReceita) => {
-    if (typeof setCaixaNegocio !== "function") return;
-    setCaixaNegocio(prev => {
-      const entrada = {
-        id: uid(),
-        tipo: v.contratoId ? "fatura-recorrente" : "venda-servico",
-        data: v.pagoEm || v.data || todayISO(),
-        descricao: descricaoReceita,
-        valor: Number(v.valor || 0),
-        custo: Number(v.custo || 0),
-        vendaId: v.id,
-        ...(v.contratoId ? { contratoId: v.contratoId } : {}),
-        ts: new Date().toISOString(),
-      };
-      return {
-        saldo: (prev?.saldo || 0) + Number(v.valor || 0),
-        historico: [entrada, ...((prev?.historico) || [])],
-      };
-    });
+    const bancoId = v.bancoRecebimento || bancoPadraoId;
+    lancar({ bancoId, tipo: v.contratoId ? "fatura-recorrente" : "venda-servico",
+             data: v.pagoEm || v.data, descricao: descricaoReceita,
+             valor: Number(v.valor || 0), vendaId: v.id, contratoId: v.contratoId });
+    const custo = Number(v.custo || 0);
+    if (custo > 0) {
+      lancar({ bancoId, tipo: "custo-servico",
+               data: v.pagoEm || v.data, descricao: `Custo/prestador · ${v.nome}`,
+               valor: -custo, vendaId: v.id, contratoId: v.contratoId });
+    }
   };
 
-  // Remove da Caixa os lançamentos de receita desta venda/fatura.
+  // Desfaz TODOS os lançamentos de uma venda/fatura (receita + custo), repondo
+  // o saldo de cada conta afetada. Lê o histórico atual p/ saber os bancos.
   const reverterReceitaCaixa = (v) => {
-    if (typeof setCaixaNegocio !== "function") return;
-    setCaixaNegocio(prev => {
-      const hist = (prev?.historico) || [];
-      const repasseDaVenda = hist
-        .filter(h => h.vendaId === v.id && h.tipo === "pago-instalador")
-        .reduce((s, h) => s + Math.abs(Number(h.valor) || 0), 0);
-      return {
-        saldo: (prev?.saldo || 0) - Number(v.valor || 0) + repasseDaVenda,
-        historico: hist.filter(h => h.vendaId !== v.id),
-      };
-    });
-  };
-
-  // Despesa do prestador em Finanças (dinheiro real). Só faturas com
-  // pagarAoFaturar + conta + custo > 0 (snapshot gravado na fatura).
-  const aplicarDespesaPrestador = (v) => {
-    const custoNum = Number(v.custo || 0);
-    if (!(v.pagarAoFaturar && v.contaPagamento && custoNum > 0)) return;
-    if (typeof setTransacoes !== "function") return;
-    const contaPag = contas.find(co => co.nome === v.contaPagamento);
-    if (!contaPag) {
-      toast.error(`Conta "${v.contaPagamento}" não existe mais. Despesa do prestador não criada.`);
-      return;
+    const hist = (caixaNegocio?.historico) || [];
+    const daVenda = hist.filter(h => h.vendaId === v.id);
+    if (daVenda.length === 0) return;
+    const net = daVenda.reduce((s, h) => s + Number(h.valor || 0), 0);
+    const porBanco = {};
+    daVenda.forEach(h => { if (h.bancoId) porBanco[h.bancoId] = (porBanco[h.bancoId] || 0) + Number(h.valor || 0); });
+    if (typeof setBancos === "function") {
+      setBancos(prev => prev.map(b => porBanco[b.id] ? { ...b, saldo: (Number(b.saldo) || 0) - porBanco[b.id] } : b));
     }
-    const catDesp = categorias.find(cat => cat.tipo === "despesa" && /serv|saas|software|ferramenta|negocio/i.test(cat.nome))?.nome
-                 || categorias.find(cat => cat.tipo === "despesa")?.nome
-                 || "Outros";
-    const despesa = {
-      id: uid(), tipo: "despesa",
-      descricao: `Pago a prestador · ${v.nome}`,
-      categoria: catDesp, conta: v.contaPagamento,
-      data: v.pagoEm || todayISO(), valor: custoNum,
-      compensado: true, fixa: false,
-      obs: `Pagamento ao prestador · contrato recorrente (serviço ${v.id})`,
-    };
-    setTransacoes(prev => [despesa, ...prev]);
-    if (typeof setContas === "function") {
-      setContas(prev => prev.map(co => co.nome === v.contaPagamento
-        ? { ...co, saldo: (parseFloat(co.saldo) || 0) - custoNum } : co));
+    if (typeof setCaixaNegocio === "function") {
+      setCaixaNegocio(prev => ({
+        saldo: (prev?.saldo || 0) - net,
+        historico: ((prev?.historico) || []).filter(h => h.vendaId !== v.id),
+      }));
     }
   };
 
-  const reverterDespesaPrestador = (v) => {
-    if (typeof setTransacoes !== "function") return;
-    const desp = (transacoes || []).find(t =>
-      t.tipo === "despesa" && (t.obs || "").includes(`serviço ${v.id}`));
-    if (!desp) return;
-    setTransacoes(prev => prev.filter(t => t.id !== desp.id));
-    if (typeof setContas === "function") {
-      setContas(prev => prev.map(co => co.nome === desp.conta
-        ? { ...co, saldo: (parseFloat(co.saldo) || 0) + Number(desp.valor || 0) } : co));
-    }
-  };
-
-  // Marcar fatura como PAGA: receita entra na Caixa + despesa do prestador.
+  // Marcar fatura como PAGA: receita (e custo) entram/saem do Banco do Serviço.
   const marcarFaturaPaga = (v) => {
     const cliente = clientes.find(c => c.id === v.clienteId);
     const vPago = { ...v, pago: true, pagoEm: todayISO() };
     setVendas((vendas || []).map(x => x.id === v.id ? vPago : x));
     aplicarReceitaCaixa(vPago, `${v.nome}${cliente ? ` · ${cliente.nome}` : ""}`);
-    aplicarDespesaPrestador(vPago);
     toast.success(`Pagamento de ${fmt(v.valor)} recebido · ${v.nome}`);
   };
 
-  // Voltar para PENDENTE: tira a receita da Caixa e desfaz a despesa.
+  // Voltar para PENDENTE: tira a receita (e custo) do Banco do Serviço.
   const marcarFaturaNaoPaga = async (v) => {
     const ok = await confirm({
       title: `Marcar "${v.nome}" como não paga?`,
-      body: `A receita de ${fmt(v.valor)} sai da Caixa do Negócio${v.pagarAoFaturar ? " e a despesa do prestador é desfeita" : ""}. A cobrança volta a ficar pendente.`,
+      body: `A receita de ${fmt(v.valor)} sai do Banco do Serviço${Number(v.custo || 0) > 0 ? " (e o custo do prestador é desfeito)" : ""}. A cobrança volta a ficar pendente.`,
       confirmLabel: "Marcar pendente",
     });
     if (!ok) return;
     reverterReceitaCaixa(v);
-    reverterDespesaPrestador(v);
     setVendas((vendas || []).map(x => x.id === v.id ? { ...x, pago: false, pagoEm: null } : x));
     toast.success("Cobrança marcada como pendente.");
   };
@@ -634,9 +615,54 @@ export default function Servicos({
     grupo.itens.forEach(v => {
       const vPago = { ...v, pago: true, pagoEm };
       aplicarReceitaCaixa(vPago, `${v.nome}${grupo.cliente ? ` · ${grupo.cliente.nome}` : ""}`);
-      aplicarDespesaPrestador(vPago);
     });
     toast.success(`${fmt(grupo.total)} recebido de ${grupo.cliente?.nome || "cliente"}.`);
+  };
+
+  /* ---------- Banco do Serviço (contas próprias) ---------- */
+  const abrirBancoNovo = () => setBancoForm({ id: null, nome: "", saldo: "" });
+  const abrirBancoEditar = (b) => setBancoForm({ ...b, saldo: String(b.saldo ?? "") });
+  const salvarBanco = () => {
+    const nome = (bancoForm.nome || "").trim();
+    if (!nome) { toast.error("Informe o nome da conta."); return; }
+    const saldo = Number(bancoForm.saldo) || 0;
+    if (bancoForm.id) {
+      setBancos((bancos || []).map(b => b.id === bancoForm.id ? { ...b, nome, saldo } : b));
+      toast.success("Conta atualizada.");
+    } else {
+      setBancos([...(bancos || []), { id: uid(), nome, saldo }]);
+      toast.success(`Conta ${nome} criada.`);
+    }
+    setBancoForm(null);
+  };
+  const excluirBanco = async (b) => {
+    if ((bancos || []).length <= 1) { toast.error("Mantenha ao menos uma conta no Banco do Serviço."); return; }
+    const ok = await confirm({
+      title: `Excluir a conta "${b.nome}"?`,
+      body: `Saldo atual: ${fmt(b.saldo || 0)}. As movimentações antigas continuam no extrato. Continuar?`,
+      danger: true, confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+    setBancos((bancos || []).filter(x => x.id !== b.id));
+    toast.success("Conta removida.");
+  };
+
+  // Lançamento manual de entrada/saída numa conta (aporte, despesa avulsa, etc).
+  const abrirLancamento = (tipo) => setLancamentoForm({ tipo, bancoId: bancoPadraoId, valor: "", descricao: "", data: todayISO() });
+  const salvarLancamento = () => {
+    const valorNum = Number(lancamentoForm.valor) || 0;
+    if (valorNum <= 0) { toast.error("Informe um valor positivo."); return; }
+    if (!lancamentoForm.bancoId) { toast.error("Selecione a conta."); return; }
+    const ent = lancamentoForm.tipo === "entrada";
+    lancar({
+      bancoId: lancamentoForm.bancoId,
+      tipo: ent ? "ajuste-entrada" : "ajuste-saida",
+      data: lancamentoForm.data,
+      descricao: (lancamentoForm.descricao || "").trim() || (ent ? "Entrada manual" : "Saída manual"),
+      valor: ent ? valorNum : -valorNum,
+    });
+    toast.success(ent ? "Entrada lançada no Banco do Serviço." : "Saída lançada no Banco do Serviço.");
+    setLancamentoForm(null);
   };
 
   const confirmarVenda = () => {
@@ -658,6 +684,7 @@ export default function Servicos({
     const valorInst = Number(vendaForm.valorInstalador) || 0;
     const temInstalador = !!vendaForm.instaladorId && valorInst > 0;
 
+    const bancoRecebimento = vendaForm.bancoRecebimento || bancoPadraoId;
     const novaVenda = {
       id: uid(),
       servicoId: primaryServicoId, // retrocompat
@@ -670,32 +697,15 @@ export default function Servicos({
       instaladorId: temInstalador ? vendaForm.instaladorId : null,
       valorInstalador: temInstalador ? valorInst : 0,
       contaDestino: "Caixa do Negócio",
+      bancoRecebimento,
       pago: true,             // venda avulsa = recebida na hora
       pagoEm: vendaForm.data,
       obs: (vendaForm.obs || "").trim(),
     };
 
-    // Receita entra na Caixa do Negócio virtual (não toca Finanças). O repasse
-    // ao colaborador NÃO é debitado aqui — ele acumula como "a pagar" e só sai
-    // do Caixa quando o repasse do mês é marcado como pago.
-    if (typeof setCaixaNegocio === "function") {
-      setCaixaNegocio(prev => {
-        const entradaReceita = {
-          id: uid(),
-          tipo: "venda-servico",
-          data: vendaForm.data,
-          descricao: `Serviço · ${partes.join(" · ")}`,
-          valor,
-          custo,
-          vendaId: novaVenda.id,
-          ts: new Date().toISOString(),
-        };
-        return {
-          saldo: (prev?.saldo || 0) + valor,
-          historico: [entradaReceita, ...((prev?.historico) || [])],
-        };
-      });
-    }
+    // Venda avulsa entra paga: receita (e custo, se houver) movimentam o Banco
+    // do Serviço na conta de recebimento. Nada toca Finanças/Contas do cockpit.
+    aplicarReceitaCaixa(novaVenda, `Serviço · ${partes.join(" · ")}`);
 
     setVendas([novaVenda, ...vendas]);
     setVendaForm(null);
@@ -720,26 +730,8 @@ export default function Servicos({
     if (!ok) return;
 
     // Só reverte dinheiro se a venda/fatura tinha sido efetivamente paga.
-    if (foiPago) {
-      if (isCaixaVirtual) {
-        // Estorna na Caixa do Negócio virtual: remove a receita desta venda.
-        reverterReceitaCaixa(v);
-      } else {
-        // Venda antiga (legacy, com conta de Finanças): comportamento original.
-        setTransacoes(prev => prev.filter(t => !(
-          t.conta === v.contaDestino &&
-          t.valor === v.valor &&
-          t.tipo === "receita" &&
-          t.data === v.data &&
-          (t.obs || "").includes(`serviço ${v.id}`)
-        )));
-        setContas(prev => prev.map(c => c.nome === v.contaDestino
-          ? { ...c, saldo: (parseFloat(c.saldo) || 0) - Number(v.valor || 0) }
-          : c));
-      }
-      // Reverte a despesa do prestador no Finanças, se foi gerada pra esta venda.
-      reverterDespesaPrestador(v);
-    }
+    // Tudo no Banco do Serviço (receita + custo), nada toca Finanças.
+    if (foiPago) reverterReceitaCaixa(v);
 
     // Se a venda veio de um contrato recorrente, reabilita o "Gerar fatura"
     // desse mês — limpa ultimaFaturaRef. Robusto: limpa se bate com a fatura
@@ -778,8 +770,7 @@ export default function Servicos({
     nome: "",
     valor: "",
     custo: "",
-    contaPagamento: "",
-    pagarAoFaturar: false,
+    bancoRecebimento: bancoPadraoId,
     recorrencia: "mensal", // mensal | anual
     dataInicio: todayISO(),
     duracaoMeses: "", // vazio = indeterminado
@@ -790,14 +781,12 @@ export default function Servicos({
   });
 
   const abrirContratoEditar = (c) => {
-    const custoNum = Number(c.custo) || 0;
     setContratoForm({
       ...c,
       servicosIds: c.servicosIds || (c.servicoId ? [c.servicoId] : []),
       valor: String(c.valor ?? ""),
       custo: String(c.custo ?? ""),
-      contaPagamento: c.contaPagamento || "",
-      pagarAoFaturar: c.pagarAoFaturar !== undefined ? c.pagarAoFaturar : (custoNum > 0),
+      bancoRecebimento: c.bancoRecebimento || bancoPadraoId,
       duracaoMeses: c.duracaoMeses ? String(c.duracaoMeses) : "",
       instaladorId: c.instaladorId || "",
       valorInstalador: c.valorInstalador ? String(c.valorInstalador) : "",
@@ -869,8 +858,7 @@ export default function Servicos({
       ...contratoForm,
       nome, valor, custo,
       servicosIds: contratoForm.servicosIds || [],
-      contaPagamento: contratoForm.contaPagamento || "",
-      pagarAoFaturar: !!contratoForm.pagarAoFaturar && !!contratoForm.contaPagamento && custo > 0,
+      bancoRecebimento: contratoForm.bancoRecebimento || bancoPadraoId,
       duracaoMeses: Number.isFinite(duracaoMesesN) && duracaoMesesN > 0 ? duracaoMesesN : null,
       instaladorId: temInstalador ? contratoForm.instaladorId : null,
       valorInstalador: temInstalador ? valorInstN : 0,
@@ -936,9 +924,8 @@ export default function Servicos({
     const temInstalador = !!c.instaladorId && valorInstContrato > 0;
 
     // A fatura nasce como COBRANÇA PENDENTE (pago:false). Nada de dinheiro se
-    // move agora — receita na Caixa e despesa do prestador só acontecem quando
-    // você marcar como paga. Snapshot de contaPagamento/pagarAoFaturar pra que
-    // o "marcar pago" funcione mesmo se o contrato mudar depois.
+    // move agora — receita (e custo) só entram no Banco do Serviço quando você
+    // marcar como paga. Snapshot do banco de recebimento e do custo.
     const novaVenda = {
       id: uid(),
       servicoId: primaryServicoId,
@@ -954,8 +941,7 @@ export default function Servicos({
       instaladorId: temInstalador ? c.instaladorId : null,
       valorInstalador: temInstalador ? valorInstContrato : 0,
       contaDestino: "Caixa do Negócio",
-      contaPagamento: c.contaPagamento || "",
-      pagarAoFaturar: !!c.pagarAoFaturar && !!c.contaPagamento && Number(c.custo || 0) > 0,
+      bancoRecebimento: c.bancoRecebimento || bancoPadraoId,
       pago: false,
       pagoEm: null,
       obs: `Fatura recorrente · ref ${ref}`,
@@ -1042,6 +1028,64 @@ export default function Servicos({
               instaladores={instaladores}
               hidden={hidden}
             />
+          </div>
+        )}
+      </div>
+
+      {/* BANCO DO SERVIÇO · contas próprias */}
+      <div style={{
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        padding: 14, marginBottom: 14,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <button onClick={() => setBancoExpandido(v => !v)}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0,
+                           display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ color: T.gold }}>
+              {bancoExpandido ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+            <span className="label-eyebrow">🏦 Banco do Serviço ({(bancos || []).length} conta{(bancos || []).length !== 1 ? "s" : ""})</span>
+          </button>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <span className="num" style={{ fontSize: 13, color: T.gold, fontWeight: 600 }}>
+              Total: {hidden ? "•••" : fmt((bancos || []).reduce((s, b) => s + Number(b.saldo || 0), 0))}
+            </span>
+            <button onClick={abrirBancoNovo}
+              style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted,
+                       padding: "5px 10px", borderRadius: 5, cursor: "pointer", fontSize: 10,
+                       letterSpacing: ".05em", textTransform: "uppercase" }}>
+              <Plus size={11} className="inline mr-1" /> Conta
+            </button>
+          </div>
+        </div>
+
+        {bancoExpandido && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+              <button onClick={() => abrirLancamento("entrada")} className="btn-ghost" style={{ fontSize: 11, color: T.green, borderColor: T.green }}>
+                + Entrada
+              </button>
+              <button onClick={() => abrirLancamento("saida")} className="btn-ghost" style={{ fontSize: 11, color: T.red, borderColor: T.red }}>
+                − Saída
+              </button>
+            </div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {(bancos || []).map(b => (
+                <div key={b.id} style={{
+                  display: "grid", gridTemplateColumns: "1fr auto auto", gap: 10, alignItems: "center",
+                  padding: "8px 10px", borderRadius: 5, background: T.bgSoft,
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>{b.nome}</span>
+                  <span className="num" style={{ fontSize: 13, fontWeight: 600, color: Number(b.saldo || 0) >= 0 ? T.gold : T.red }}>
+                    {hidden ? "•••" : fmt(b.saldo || 0)}
+                  </span>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => abrirBancoEditar(b)} title="Editar" style={btnIcon()}><Edit3 size={12} /></button>
+                    <button onClick={() => excluirBanco(b)} title="Excluir" style={btnIcon({ color: T.red })}><Trash2 size={12} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -1744,24 +1788,33 @@ export default function Servicos({
                   ))}
                 </select>
               </Field>
-              <Field label="Repasse ao colaborador (R$)" hint="Sai do Caixa do Negócio">
+              <Field label="Repasse ao colaborador (R$)" hint="Sai do Banco do Serviço (ao pagar o repasse)">
                 <input type="number" step="0.01" value={vendaForm.valorInstalador || ""}
                        onChange={e => setVendaForm({ ...vendaForm, valorInstalador: e.target.value })}
                        placeholder="0,00"
                        disabled={!vendaForm.instaladorId} />
               </Field>
             </div>
+            <Field label="Conta de recebimento (Banco do Serviço)">
+              <select value={vendaForm.bancoRecebimento || ""}
+                      onChange={e => setVendaForm({ ...vendaForm, bancoRecebimento: e.target.value })}>
+                {(bancos || []).length === 0 && <option value="">Caixa</option>}
+                {(bancos || []).map(b => (
+                  <option key={b.id} value={b.id}>{b.nome} · {fmt(b.saldo || 0)}</option>
+                ))}
+              </select>
+            </Field>
             <div style={{
               padding: "10px 12px", marginBottom: 4, borderRadius: 6,
               background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
               fontSize: 12, color: T.muted,
             }}>
               <span style={{ color: T.muted }}>Recebe em:</span>{" "}
-              <strong style={{ color: T.gold }}>→ Caixa do Negócio</strong>
+              <strong style={{ color: T.gold }}>→ {nomeBanco(vendaForm.bancoRecebimento || bancoPadraoId)} (Banco do Serviço)</strong>
               <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3, fontStyle: "italic" }}>
-                Valor entra na Caixa virtual do Negócio (não cria transação em Finanças).
+                Tudo no Banco do Serviço, independente das Finanças do cockpit.
                 {vendaForm.instaladorId && Number(vendaForm.valorInstalador) > 0 && (
-                  <> Repasse ao colaborador fica pendente e só sai do Caixa quando você clicar em "Pagar".</>
+                  <> Repasse ao colaborador fica pendente e só sai quando você clicar em "Pagar".</>
                 )}
               </div>
             </div>
@@ -1861,18 +1914,9 @@ export default function Servicos({
                      onChange={e => setContratoForm({ ...contratoForm, valor: e.target.value })}
                      placeholder="200" />
             </Field>
-            <Field label="Pago ao prestador (R$)">
+            <Field label="Pago ao prestador (R$)" hint="Sai do banco ao receber a fatura">
               <input type="number" step="0.01" value={contratoForm.custo}
-                     onChange={e => {
-                       const novoCusto = e.target.value;
-                       const custoNum = Number(novoCusto) || 0;
-                       setContratoForm({
-                         ...contratoForm,
-                         custo: novoCusto,
-                         // Se desligou (custo 0), desativa pagarAoFaturar
-                         pagarAoFaturar: custoNum > 0 ? contratoForm.pagarAoFaturar : false,
-                       });
-                     }}
+                     onChange={e => setContratoForm({ ...contratoForm, custo: e.target.value })}
                      placeholder="50" />
             </Field>
             <Field label="Recorrência" required>
@@ -1883,40 +1927,15 @@ export default function Servicos({
               </select>
             </Field>
           </div>
-          {Number(contratoForm.custo) > 0 && (
-            <div style={{
-              padding: 10, marginTop: 4, borderRadius: 6,
-              background: T.bgSoft, border: `1px solid ${T.border}`,
-            }}>
-              <Field label="Conta pagamento (de onde sai o pagamento ao prestador)">
-                <select value={contratoForm.contaPagamento}
-                        onChange={e => {
-                          const novaConta = e.target.value;
-                          setContratoForm({
-                            ...contratoForm,
-                            contaPagamento: novaConta,
-                            // Se limpou a conta, desliga o auto-pagamento
-                            pagarAoFaturar: novaConta ? contratoForm.pagarAoFaturar : false,
-                          });
-                        }}>
-                  <option value="">— sem pagamento automático —</option>
-                  {contas.map(c => (
-                    <option key={c.id} value={c.nome}>{c.nome} · {fmt(c.saldo || 0)}</option>
-                  ))}
-                </select>
-              </Field>
-              {contratoForm.contaPagamento && (
-                <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, cursor: "pointer" }}>
-                  <input type="checkbox" checked={!!contratoForm.pagarAoFaturar}
-                         onChange={e => setContratoForm({ ...contratoForm, pagarAoFaturar: e.target.checked })}
-                         style={{ width: 16, height: 16, accentColor: T.gold }} />
-                  <span style={{ fontSize: 12.5, color: T.muted }}>
-                    Criar despesa ao faturar (desconta {fmt(Number(contratoForm.custo) || 0)} de {contratoForm.contaPagamento})
-                  </span>
-                </label>
-              )}
-            </div>
-          )}
+          <Field label="Conta de recebimento (Banco do Serviço)">
+            <select value={contratoForm.bancoRecebimento || ""}
+                    onChange={e => setContratoForm({ ...contratoForm, bancoRecebimento: e.target.value })}>
+              {(bancos || []).length === 0 && <option value="">Caixa</option>}
+              {(bancos || []).map(b => (
+                <option key={b.id} value={b.id}>{b.nome}</option>
+              ))}
+            </select>
+          </Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Data de início">
               <input type="date" value={contratoForm.dataInicio}
@@ -1997,7 +2016,7 @@ export default function Servicos({
             background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
             fontSize: 11.5, color: T.muted, lineHeight: 1.5,
           }}>
-            💡 <strong style={{ color: T.ink }}>Pago ao prestador</strong> + <strong style={{ color: T.ink }}>Criar despesa ao faturar</strong> gera a despesa em Finanças (a receita vai pra Caixa do Negócio).
+            💡 Ao <strong style={{ color: T.ink }}>receber</strong> a fatura, a receita entra na conta escolhida do <strong style={{ color: T.ink }}>Banco do Serviço</strong> e o <strong style={{ color: T.ink }}>pago ao prestador</strong> sai da mesma conta. Nada toca as Finanças do cockpit.
           </div>
           <div className="flex gap-3 justify-end mt-6">
             <button className="btn-ghost" onClick={() => setContratoForm(null)}>Cancelar</button>
@@ -2213,6 +2232,66 @@ export default function Servicos({
           periodoLabel={periodoLabel}
           onClose={() => setFinPdfAberto(false)}
         />
+      )}
+
+      {/* MODAL: conta do Banco do Serviço */}
+      {bancoForm && (
+        <Modal title={bancoForm.id ? "Editar conta" : "Nova conta do Banco do Serviço"}
+               onClose={() => setBancoForm(null)}>
+          <Field label="Nome da conta" required>
+            <input value={bancoForm.nome} autoFocus
+                   onChange={e => setBancoForm({ ...bancoForm, nome: e.target.value })}
+                   placeholder="Ex.: Caixa · Conta PIX · Banco Inter" />
+          </Field>
+          <Field label="Saldo atual (R$)" hint="Saldo inicial / atual desta conta">
+            <input type="number" step="0.01" value={bancoForm.saldo}
+                   onChange={e => setBancoForm({ ...bancoForm, saldo: e.target.value })}
+                   placeholder="0,00" />
+          </Field>
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => setBancoForm(null)}>Cancelar</button>
+            <button className="btn-gold" onClick={salvarBanco}>
+              <Check size={13} className="inline mr-1" /> {bancoForm.id ? "Salvar" : "Criar conta"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* MODAL: lançamento manual (entrada/saída) */}
+      {lancamentoForm && (
+        <Modal title={lancamentoForm.tipo === "entrada" ? "Nova entrada" : "Nova saída"}
+               onClose={() => setLancamentoForm(null)}>
+          <Field label="Conta" required>
+            <select value={lancamentoForm.bancoId || ""}
+                    onChange={e => setLancamentoForm({ ...lancamentoForm, bancoId: e.target.value })}>
+              {(bancos || []).map(b => (
+                <option key={b.id} value={b.id}>{b.nome} · {fmt(b.saldo || 0)}</option>
+              ))}
+            </select>
+          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Valor (R$)" required>
+              <input type="number" step="0.01" value={lancamentoForm.valor} autoFocus
+                     onChange={e => setLancamentoForm({ ...lancamentoForm, valor: e.target.value })}
+                     placeholder="0,00" />
+            </Field>
+            <Field label="Data" required>
+              <input type="date" value={lancamentoForm.data}
+                     onChange={e => setLancamentoForm({ ...lancamentoForm, data: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Descrição">
+            <input value={lancamentoForm.descricao}
+                   onChange={e => setLancamentoForm({ ...lancamentoForm, descricao: e.target.value })}
+                   placeholder={lancamentoForm.tipo === "entrada" ? "Ex.: Aporte, reembolso…" : "Ex.: Despesa, ferramenta, taxa…"} />
+          </Field>
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => setLancamentoForm(null)}>Cancelar</button>
+            <button className="btn-gold" onClick={salvarLancamento}>
+              <Check size={13} className="inline mr-1" /> Lançar
+            </button>
+          </div>
+        </Modal>
       )}
 
       {/* MODAL: cobrança em massa (cobranças em aberto por cliente) */}
@@ -2553,7 +2632,8 @@ function FinanceiroDocModal({ financeiro, periodoLabel, onClose }) {
   })();
   const tipoLabel = (t) => ({
     "venda-servico": "Receita · venda", "fatura-recorrente": "Receita · fatura",
-    "pago-instalador": "Repasse colaborador",
+    "pago-instalador": "Repasse colaborador", "custo-servico": "Custo/prestador",
+    "ajuste-entrada": "Entrada manual", "ajuste-saida": "Saída manual",
   }[t] || t);
   const emissao = new Date().toLocaleDateString("pt-BR");
 
