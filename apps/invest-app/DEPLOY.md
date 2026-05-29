@@ -99,3 +99,24 @@ Pra ativar a cobrança (quando o Mercado Pago estiver configurado):
 > Falta ligar (próximo passo, com sua conta Mercado Pago): o **checkout** (criar
 > assinatura) e o **webhook** que atualiza o status no `subscriptions`. Eu te
 > guio quando você tiver as credenciais do Mercado Pago.
+
+---
+
+## Parte 6 · Painel gerencial (admin)
+
+Uma aba **Gerencial** (visível só pra você) mostra os clientes cadastrados e o
+resumo de assinaturas. Pra ativar, adicione no Cloudflare Pages → Settings →
+Environment variables:
+
+| Variável | Onde | Pra quê |
+|---|---|---|
+| `SUPABASE_URL` | Production | URL do projeto Supabase (mesma do app) |
+| `SUPABASE_SERVICE_ROLE` | Production (secret) | Supabase → Project Settings → API → **service_role** (⚠️ secreta, só no servidor) |
+| `ADMIN_EMAIL` | Production | seu e-mail de administrador |
+| `VITE_ADMIN_EMAIL` | Production | o **mesmo** e-mail (só pra mostrar a aba no app) |
+
+Depois, **Retry deployment**. Faça login com esse e-mail → a aba **Gerencial** aparece.
+
+> ⚠️ A `service_role` dá acesso total ao banco — por isso fica **só no servidor**
+> (no endpoint protegido `/api/admin`), nunca no navegador. O painel só responde
+> pro e-mail definido em `ADMIN_EMAIL`.

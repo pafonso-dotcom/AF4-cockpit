@@ -5,10 +5,12 @@ import { T, applyTheme, THEMES } from "./lib/theme.js";
 import { simulateTick } from "./lib/format.js";
 import { atualizarCarteira } from "./lib/cotacoes.js";
 import { loadInvestState, saveInvestState } from "./lib/cloudStore.js";
-import { supabaseConfigured, signOut } from "./lib/supabase.js";
+import { supabaseConfigured, signOut, getUser } from "./lib/supabase.js";
 import { billingEnabled, getSubscription, acessoLiberado } from "./lib/subscription.js";
+import { ehAdmin } from "./lib/admin.js";
 import { toast } from "./lib/toast.js";
 import Paywall from "./components/billing/Paywall.jsx";
+import Admin from "./components/admin/Admin.jsx";
 
 import GlobalStyles from "./components/ui/GlobalStyles.jsx";
 import ToastContainer from "./components/ui/ToastContainer.jsx";
@@ -57,6 +59,8 @@ export default function App() {
   // Assinatura (Fase 4). Só trava o acesso quando a cobrança está ligada.
   const [sub, setSub] = useState(null);
   const [subLoading, setSubLoading] = useState(billingEnabled);
+  // Usuário logado (pra liberar o painel Gerencial só pro admin).
+  const [usuario, setUsuario] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [marketStatus, setMarketStatus] = useState({ at: null, mode: "sim", okCount: 0, total: 0 });
   // Paleta de cores escolhida (preferência do dispositivo).
@@ -136,6 +140,14 @@ export default function App() {
     if (!billingEnabled) return;
     getSubscription().then(s => { setSub(s); setSubLoading(false); });
   }, []);
+
+  // Carrega o usuário logado (pra mostrar a aba Gerencial só pro admin).
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    getUser().then(setUsuario).catch(() => {});
+  }, []);
+
+  const tabsVisiveis = ehAdmin(usuario) ? [...TABS, { id: "gerencial", label: "Gerencial" }] : TABS;
 
   /* ---------- Refresh de mercado ---------- */
   const refreshMarket = async () => {
@@ -310,7 +322,7 @@ export default function App() {
         // várias linhas e ocupar meia tela).
         flexWrap: "nowrap", overflowX: "auto", WebkitOverflowScrolling: "touch",
       }}>
-        {TABS.map(t => (
+        {tabsVisiveis.map(t => (
           <button key={t.id} onClick={() => irParaTab(t.id)}
                   style={{
                     padding: "6px 14px", borderRadius: 100, fontSize: 12, cursor: "pointer",
@@ -394,6 +406,7 @@ export default function App() {
         {tab === "relatorios-i" && (
           <RelatoriosInvest ativos={ativos} proventos={[]} operacoes={[]} hidden={hidden} />
         )}
+        {tab === "gerencial" && ehAdmin(usuario) && <Admin />}
         {tab === "trade-ativo" && (
           <div className="px-6 md:px-10">
             <AnaliseTrade tradeWatchlist={tradeWatchlist} ativos={ativos} alvoInicial={analiseAlvo}
