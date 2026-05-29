@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Plus, Trash2, Edit3, Building2, Receipt, ArrowRightLeft, ChevronRight, RefreshCw, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid } from "../../lib/format.js";
@@ -120,6 +120,25 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
         mudancas.map(m => `${m.nome} (${m.delta > 0 ? "+" : ""}${fmt(m.delta)})`).join(", "));
     }
   };
+
+  // Correção automática: ao detectar conta(s) dessincronizada(s), reconcilia
+  // sozinho (sem precisar clicar em "Corrigir agora"). Roda uma vez por sessão
+  // da página e avisa com toast + opção de Desfazer (para respeitar o undo).
+  const autoReconciliado = useRef(false);
+  useEffect(() => {
+    if (autoReconciliado.current) return;
+    if (dessincronizadas.length === 0) return;
+    autoReconciliado.current = true;
+    const backup = contas;
+    const { contas: novaLista, mudancas } = reconciliarContas(contas, transacoes || []);
+    if (mudancas.length === 0) return;
+    setContas(novaLista);
+    toast.success(
+      `Saldo corrigido automaticamente: ` +
+      mudancas.map(m => `${m.nome} (${m.delta > 0 ? "+" : ""}${fmt(m.delta)})`).join(", "),
+      { action: { label: "Desfazer", onClick: () => setContas(backup) } }
+    );
+  }, [dessincronizadas, contas, transacoes, setContas]);
 
   const btnSec = {
     background: "transparent", border: `1px solid ${T.border}`,
