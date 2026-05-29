@@ -981,8 +981,6 @@ export default function App() {
                   tradeAnalisesIdV={tradeAnalisesIdV} setTradeAnalisesIdV={setTradeAnalisesIdV}
                   onAnalisarAtivo={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
                   apiKeys={apiKeys}
-                  projetarAlvo={projetarAlvo}
-                  onConsumirProjetarAlvo={() => setProjetarAlvo(null)}
                   viewInicial={analiseViewInicial}
                   onConsumirViewInicial={() => setAnaliseViewInicial(null)}
                 />
@@ -996,7 +994,7 @@ export default function App() {
                                transacoes={transacoes} setTransacoes={setTransacoes}
                                onRefresh={refreshMarket} refreshing={refreshing}
                                onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
-                               onProjetar={(ativo) => { setProjetarAlvo(ativo); setTab("analises"); }}
+                               onProjetar={(ativo) => { setProjetarAlvo(ativo); setTab("projecao"); }}
                                hidden={hidden} />
               </div>
             )}
@@ -1060,6 +1058,15 @@ export default function App() {
             {tab === "calc-renda" && (
               <div className="px-6 md:px-10">
                 <CalculadoraRenda />
+              </div>
+            )}
+            {tab === "projecao" && (
+              <div className="px-6 md:px-10">
+                <Projecao
+                  ativos={ativos} hidden={hidden} apiKeys={apiKeys}
+                  alvoInicial={projetarAlvo}
+                  onConsumirAlvo={() => setProjetarAlvo(null)}
+                />
               </div>
             )}
           </>

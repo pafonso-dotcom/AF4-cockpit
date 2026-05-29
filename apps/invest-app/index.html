@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <meta name="theme-color" content="#0c0b0a" />
+    <meta name="description" content="Aurum — organize e acompanhe seus investimentos com clareza." />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <meta name="apple-mobile-web-app-title" content="Aurum" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Aurum" />
+    <meta property="og:description" content="Organize e acompanhe seus investimentos com clareza." />
+    <meta property="og:type" content="website" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap" rel="stylesheet" />
+
+    <title>Aurum</title>
+  </head>
+  <body data-c="gold">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Kill-switch: adicione ?nosw=1 ao final da URL pra forçar
+      // desregistro do SW e limpar caches (útil em iPad com versão
+      // antiga travada).
+      (function () {
+        var params = new URLSearchParams(location.search);
+        if (params.has("nosw") && "serviceWorker" in navigator) {
+          Promise.all([
+            navigator.serviceWorker.getRegistrations().then(function (regs) {
+              return Promise.all(regs.map(function (r) { return r.unregister(); }));
+            }),
+            (typeof caches !== "undefined" && caches.keys)
+              ? caches.keys().then(function (ks) {
+                  return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+                })
+              : Promise.resolve(),
+          ]).then(function () {
+            location.replace(location.origin + location.pathname);
+          });
+          return;
+        }
+
+        // Registro normal do SW (só em produção)
+        if ("serviceWorker" in navigator && location.hostname !== "localhost") {
+          window.addEventListener("load", function () {
+            navigator.serviceWorker.register("./sw.js").catch(function () {});
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

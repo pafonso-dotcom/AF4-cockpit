@@ -1,0 +1,19 @@
+{
+  "name": "Aurum · Investimentos",
+  "short_name": "Aurum",
+  "description": "Organize e acompanhe seus investimentos com clareza.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c0b0a",
+  "theme_color": "#0c0b0a",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ]
+}

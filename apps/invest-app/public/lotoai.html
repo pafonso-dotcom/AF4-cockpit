@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+<meta name="theme-color" content="#0a0908" />
+<meta name="description" content="LotoAI Engine Pro — frequência, atrasos e geração ponderada Lotofácil." />
+<title>LotoAI Engine Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0908; --bg2: #100e0b; --card: #16130e; --cardHi: #1c1813;
+    --bd: #2a2419; --gold: #c9a961; --goldHi: #e6cf91;
+    --ink: #f5f1e6; --muted: #a39c87; --faint: #6e6857;
+    --green: #6fae5a; --red: #c0584a; --blue: #6fa8d6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(1200px 600px at 50% -10%, #1a1610, var(--bg));
+    color: var(--ink); font-family: "Poppins", sans-serif;
+    min-height: 100vh; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 18px 60px; }
+
+  header { text-align: center; margin-bottom: 24px; }
+  .eyebrow { font-size: 10px; letter-spacing: .32em; text-transform: uppercase;
+    color: var(--gold); font-weight: 600; }
+  h1 { font-family: "Playfair Display", serif; font-size: clamp(30px, 7vw, 46px);
+    font-weight: 600; letter-spacing: -.02em; margin-top: 6px; line-height: 1; }
+  h1 em { color: var(--gold); font-style: italic; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 8px; font-style: italic; }
+
+  .card { background: var(--card); border: 1px solid var(--bd); border-radius: 12px;
+    padding: 18px; margin-bottom: 16px; }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between;
+    gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .card-title { font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700; }
+  .card-note { font-size: 11px; color: var(--faint); font-style: italic; }
+
+  .params { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px; margin-bottom: 14px; }
+  .field label { display: block; font-size: 9.5px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 5px; }
+  .field input {
+    width: 100%; padding: 9px 11px; background: var(--bg2); color: var(--ink);
+    border: 1px solid var(--bd); border-radius: 7px; font-size: 13px;
+    font-family: "Poppins", sans-serif;
+  }
+  .field input:focus { outline: none; border-color: var(--gold); }
+
+  .btn { padding: 10px 16px; border-radius: 8px; font-size: 11.5px; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase; cursor: pointer;
+    border: 1px solid transparent; transition: filter .15s, opacity .15s;
+    font-family: "Poppins", sans-serif; }
+  .btn:active { filter: brightness(.9); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-gold { background: linear-gradient(135deg, var(--gold), var(--goldHi)); color: #1a1407; }
+  .btn-ghost { background: transparent; border-color: var(--bd); color: var(--muted); }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .toggle { display: inline-flex; gap: 2px; background: var(--bg2); padding: 3px;
+    border-radius: 7px; border: 1px solid var(--bd); }
+  .toggle button { padding: 5px 12px; font-size: 10px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase; border: none; cursor: pointer;
+    border-radius: 5px; background: transparent; color: var(--muted);
+    font-family: "Poppins", sans-serif; }
+  .toggle button.on { background: var(--cardHi); color: var(--gold); }
+
+  .volante { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-width: 380px; }
+  .cell { aspect-ratio: 1; border-radius: 9px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1px; border: 1px solid var(--bd); }
+  .cell .n { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cell .f { font-size: 9px; font-weight: 600; opacity: .85; }
+  .legenda { display: flex; align-items: center; gap: 8px; margin-top: 12px;
+    font-size: 10px; color: var(--muted); }
+  .legenda .bar { flex: 1; height: 8px; border-radius: 4px;
+    background: linear-gradient(90deg, #25211a, var(--gold)); max-width: 200px; }
+
+  .balls { display: flex; flex-wrap: wrap; gap: 5px; }
+  .ball { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+    background: radial-gradient(circle at 35% 30%, var(--goldHi), var(--gold));
+    color: #1a1407; box-shadow: 0 2px 4px rgba(0,0,0,.5); }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .stat { background: var(--bg2); border: 1px solid var(--bd); border-radius: 8px;
+    padding: 11px 13px; border-left: 3px solid var(--gold); }
+  .stat .lbl { font-size: 8.5px; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700; }
+  .stat .val { font-family: "Playfair Display", serif; font-size: 22px; margin-top: 3px; line-height: 1; }
+  .stat .val.gold { color: var(--gold); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { text-align: left; padding: 8px 10px; font-size: 9px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--muted); font-weight: 700;
+    border-bottom: 1px solid var(--bd); background: var(--bg2); }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--bd); font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  .rank { color: var(--gold); font-weight: 700; width: 44px; }
+  .jogo-chip { display: inline-grid; place-items: center; width: 24px; height: 24px;
+    border-radius: 50%; font-size: 10.5px; font-weight: 700; margin: 1px;
+    background: radial-gradient(circle at 35% 30%, var(--goldHi), var(--gold));
+    color: #1a1407; vertical-align: middle; }
+
+  .progress { height: 6px; background: var(--bg2); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+  .progress > div { height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--gold), var(--goldHi)); transition: width .12s linear; }
+
+  .hidden { display: none; }
+  .scroll-x { overflow-x: auto; }
+  .console-line { font-size: 11px; color: var(--blue); margin-top: 8px;
+    font-variant-numeric: tabular-nums; min-height: 15px; }
+  .disclaimer { font-size: 11px; color: var(--faint); font-style: italic; line-height: 1.6;
+    margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--bd); }
+  .salvo-item { display: flex; align-items: center; gap: 10px; padding: 9px 11px;
+    background: var(--bg2); border: 1px solid var(--bd); border-radius: 8px; margin-bottom: 6px; }
+  .salvo-item .meta { flex: 1; min-width: 0; }
+  .salvo-item .t1 { font-size: 12.5px; font-weight: 600; }
+  .salvo-item .t2 { font-size: 10.5px; color: var(--muted); }
+  footer { text-align: center; color: var(--faint); font-size: 11px; margin-top: 28px; }
+  footer a { color: var(--muted); }
+
+  @media print {
+    body { background: #fff; color: #000; }
+    .no-print { display: none !important; }
+    .card { border: 1px solid #ccc; background: #fff; }
+    .jogo-chip { background: #eee; color: #000; box-shadow: none; }
+    .card-title, .rank { color: #555; }
+    th { background: #f0f0f0; color: #333; }
+    td, th { border-color: #ccc; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">AF4 · Engine</div>
+    <h1>LotoAI <em>Engine Pro</em></h1>
+    <div class="sub">Frequência · atrasos · geração ponderada · Lotofácil</div>
+  </header>
+
+  <!-- 1 · FREQUÊNCIA / ATRASO -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">Engine estatística · volante 5×5</div>
+      <div class="btn-row no-print">
+        <div class="toggle" id="metricToggle">
+          <button data-m="freq" class="on">Frequência</button>
+          <button data-m="atraso">Atraso</button>
+        </div>
+        <button class="btn btn-ghost" id="btnHistorico">↻ Novo histórico</button>
+      </div>
+    </div>
+    <div class="card-note" id="histNote" style="margin-bottom:12px"></div>
+    <div class="volante" id="volante"></div>
+    <div class="legenda">
+      <span id="legA">frio</span><div class="bar"></div><span id="legB">quente</span>
+      <span style="margin-left:auto;color:var(--faint)" id="freqRange"></span>
+    </div>
+    <div class="stats" id="histStats" style="margin-top:14px"></div>
+  </div>
+
+  <!-- 2 · GERAR JOGOS -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">Gerador ponderado · jogos validados</div>
+      <div class="card-note">peso = frequência · filtros: pares 6-9 · soma 170-230 · seq ≤5</div>
+    </div>
+    <div class="params no-print">
+      <div class="field">
+        <label>Quantidade de jogos</label>
+        <input id="qtdJogos" type="number" min="1" max="100" value="10" />
+      </div>
+    </div>
+    <div class="btn-row no-print">
+      <button class="btn btn-gold" id="btnJogos">⚡ Gerar jogos</button>
+      <button class="btn btn-ghost" id="btnSalvar" disabled>★ Salvar jogos</button>
+      <button class="btn btn-ghost" id="btnExportar" disabled>⬇ CSV</button>
+      <button class="btn btn-ghost" id="btnPDF" disabled>🖨 PDF</button>
+    </div>
+    <div class="console-line" id="lineJogos"></div>
+    <div class="scroll-x hidden" id="boxJogos" style="margin-top:12px">
+      <table id="tblJogos"><thead><tr>
+        <th>Rank</th><th>Jogo</th><th style="text-align:right">Score freq.</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <!-- 3 · JOGOS SALVOS -->
+  <div class="card no-print" id="cardSalvos">
+    <div class="card-head">
+      <div class="card-title">Jogos salvos · neste navegador</div>
+      <div class="card-note">guardado no localStorage · só neste aparelho</div>
+    </div>
+    <div id="listaSalvos"></div>
+  </div>
+
+  <!-- 4 · FECHAMENTO -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">Fechamento · combinações de 15</div>
+      <div class="card-note">base aleatória de N dezenas → C(N,15)</div>
+    </div>
+    <div class="params no-print">
+      <div class="field">
+        <label>Dezenas na base</label>
+        <input id="baseFech" type="number" min="16" max="20" value="18" />
+      </div>
+    </div>
+    <button class="btn btn-gold no-print" id="btnFechamento">🎯 Gerar fechamento</button>
+    <div class="console-line" id="lineFech"></div>
+    <div class="hidden" id="boxFech" style="margin-top:12px">
+      <div class="balls" id="fechBase" style="margin-bottom:10px"></div>
+      <div class="stats" id="fechStats"></div>
+    </div>
+  </div>
+
+  <!-- 5 · SIMULAÇÃO -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">Simulação · cobertura de acertos</div>
+      <div class="card-note">sorteios aleatórios × jogos gerados</div>
+    </div>
+    <div class="params no-print">
+      <div class="field">
+        <label>Rodadas</label>
+        <input id="rodadas" type="number" min="100" max="500000" step="100" value="1000" />
+      </div>
+    </div>
+    <button class="btn btn-gold no-print" id="btnSimular">🎲 Simular</button>
+    <div class="progress no-print" id="simProgress"><div></div></div>
+    <div class="console-line" id="lineSim"></div>
+    <div class="hidden" id="boxSim" style="margin-top:12px">
+      <div class="scroll-x">
+        <table id="tblSim"><thead><tr>
+          <th>Acertos</th><th>Ocorrências</th><th style="text-align:right">Percentual</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <div class="disclaimer">
+      ⚠ A Lotofácil é um sorteio <strong>aleatório</strong>. Frequência, atrasos, geração
+      ponderada e fechamentos <strong>não alteram a probabilidade matemática</strong> de acerto —
+      cada sorteio é independente. Use como ferramenta de estudo e diversão, com responsabilidade.
+    </div>
+  </div>
+
+  <footer>
+    LotoAI Engine Pro · client-side · <a href="/">voltar ao AF4 Cockpit</a>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var NUMEROS = [];
+  for (var i = 1; i <= 25; i++) NUMEROS.push(i);
+
+  var LS_KEY = "lotoai:jogos-salvos";
+  var estado = { historico: [], freq: {}, atraso: {}, jogos: [], metric: "freq" };
+
+  // ===== Util =====
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function sampleK(arr, k) {
+    var a = arr.slice();
+    for (var i = 0; i < k; i++) {
+      var j = i + Math.floor(Math.random() * (a.length - i));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a.slice(0, k);
+  }
+  function maskOf(jogo) { var m = 0; for (var i = 0; i < jogo.length; i++) m |= (1 << (jogo[i] - 1)); return m; }
+  function popcount(x) {
+    x = x - ((x >> 1) & 0x55555555);
+    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+    x = (x + (x >> 4)) & 0x0f0f0f0f;
+    return (x * 0x01010101) >> 24;
+  }
+
+  // ===== Histórico / frequência / atraso =====
+  function gerarHistoricoFake(qtd) {
+    var hist = [];
+    for (var r = 0; r < qtd; r++) hist.push(sampleK(NUMEROS, 15).sort(function (a, b) { return a - b; }));
+    return hist;
+  }
+  function calcularFrequencia(hist) {
+    var f = {};
+    for (var n = 1; n <= 25; n++) f[n] = 0;
+    for (var r = 0; r < hist.length; r++)
+      for (var k = 0; k < hist[r].length; k++) f[hist[r][k]]++;
+    return f;
+  }
+  // Atraso: nº de sorteios desde a última aparição (0 = saiu no sorteio mais recente)
+  function calcularAtraso(hist) {
+    var a = {};
+    for (var n = 1; n <= 25; n++) a[n] = hist.length;
+    for (var i = hist.length - 1; i >= 0; i--) {
+      var draw = hist[i], gap = (hist.length - 1) - i;
+      for (var k = 0; k < draw.length; k++) {
+        if (a[draw[k]] === hist.length) a[draw[k]] = gap;
+      }
+    }
+    return a;
+  }
+  function score(n) { return estado.freq[n] || 0; }
+
+  // ===== Filtros =====
+  function filtroParImpar(jogo) {
+    var p = 0; for (var i = 0; i < jogo.length; i++) if (jogo[i] % 2 === 0) p++;
+    return p >= 6 && p <= 9;
+  }
+  function filtroSoma(jogo) {
+    var s = 0; for (var i = 0; i < jogo.length; i++) s += jogo[i];
+    return s >= 170 && s <= 230;
+  }
+  function filtroSequencia(jogo) {
+    var seq = 0; for (var i = 0; i < jogo.length - 1; i++) if (jogo[i] + 1 === jogo[i + 1]) seq++;
+    return seq <= 5;
+  }
+  function validarJogo(j) { return filtroParImpar(j) && filtroSoma(j) && filtroSequencia(j); }
+
+  // ===== Geração ponderada =====
+  function escolhaPonderada(pesos) {
+    var total = 0, i;
+    for (i = 0; i < pesos.length; i++) total += pesos[i];
+    var r = Math.random() * total;
+    for (i = 0; i < pesos.length; i++) { r -= pesos[i]; if (r <= 0) return NUMEROS[i]; }
+    return NUMEROS[NUMEROS.length - 1];
+  }
+  function gerarJogo() {
+    var pesos = NUMEROS.map(score), jogo = [], i;
+    for (i = 0; i < 15; i++) jogo.push(escolhaPonderada(pesos));
+    var uniq = [];
+    for (i = 0; i < jogo.length; i++) if (uniq.indexOf(jogo[i]) < 0) uniq.push(jogo[i]);
+    while (uniq.length < 15) {
+      var n = NUMEROS[Math.floor(Math.random() * 25)];
+      if (uniq.indexOf(n) < 0) uniq.push(n);
+    }
+    return uniq.sort(function (a, b) { return a - b; });
+  }
+  function gerarJogos(qtd) {
+    var jogos = [], tentativas = 0, limite = qtd * 4000;
+    while (jogos.length < qtd && tentativas < limite) {
+      tentativas++;
+      var j = gerarJogo();
+      if (validarJogo(j)) {
+        var sc = 0; for (var i = 0; i < j.length; i++) sc += score(j[i]);
+        jogos.push({ jogo: j, score: Math.round(sc * 100) / 100, mask: maskOf(j) });
+      }
+    }
+    jogos.sort(function (a, b) { return b.score - a.score; });
+    return jogos;
+  }
+
+  // ===== Fechamento =====
+  function gerarFechamento(base) {
+    var dezenas = sampleK(NUMEROS, base).sort(function (a, b) { return a - b; });
+    var combos = [], rem = base - 15;
+    if (rem === 0) { combos.push(dezenas.slice()); return { dezenas: dezenas, combos: combos }; }
+    var idx = [];
+    for (var i = 0; i < rem; i++) idx.push(i);
+    while (true) {
+      var jogo = [], skip = {};
+      for (var s = 0; s < idx.length; s++) skip[idx[s]] = true;
+      for (var x = 0; x < base; x++) if (!skip[x]) jogo.push(dezenas[x]);
+      combos.push(jogo);
+      var p = rem - 1;
+      while (p >= 0 && idx[p] === base - rem + p) p--;
+      if (p < 0) break;
+      idx[p]++;
+      for (var q = p + 1; q < rem; q++) idx[q] = idx[q - 1] + 1;
+    }
+    return { dezenas: dezenas, combos: combos };
+  }
+
+  // ===== Render: volante (freq ou atraso) =====
+  function renderVolante() {
+    var metric = estado.metric;
+    var vals = NUMEROS.map(function (n) {
+      return metric === "freq" ? score(n) : (estado.atraso[n] || 0);
+    });
+    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+    var span = (max - min) || 1, html = "";
+    for (var n = 1; n <= 25; n++) {
+      var v = metric === "freq" ? score(n) : (estado.atraso[n] || 0);
+      var heat = (v - min) / span;
+      var bg = "rgba(201,169,97," + (0.07 + heat * 0.85).toFixed(3) + ")";
+      var ink = heat > 0.55 ? "#1a1407" : "var(--ink)";
+      var suf = metric === "freq" ? "x" : "s";
+      html += '<div class="cell" style="background:' + bg + '">' +
+        '<div class="n" style="color:' + ink + '">' + pad2(n) + '</div>' +
+        '<div class="f" style="color:' + ink + '">' + v + suf + '</div></div>';
+    }
+    document.getElementById("volante").innerHTML = html;
+    if (metric === "freq") {
+      document.getElementById("legA").textContent = "frio (sai pouco)";
+      document.getElementById("legB").textContent = "quente (sai muito)";
+      document.getElementById("freqRange").textContent = "frequência: " + min + "x – " + max + "x";
+    } else {
+      document.getElementById("legA").textContent = "saiu recente";
+      document.getElementById("legB").textContent = "atrasado (seca)";
+      document.getElementById("freqRange").textContent = "atraso: " + min + " – " + max + " sorteios";
+    }
+  }
+
+  // ===== Estatísticas do histórico =====
+  function renderHistStats() {
+    var hist = estado.historico;
+    var totPares = 0, totSoma = 0;
+    for (var r = 0; r < hist.length; r++) {
+      var d = hist[r], p = 0, s = 0;
+      for (var k = 0; k < d.length; k++) { if (d[k] % 2 === 0) p++; s += d[k]; }
+      totPares += p; totSoma += s;
+    }
+    var n = hist.length || 1;
+    var atrasoMax = Math.max.apply(null, NUMEROS.map(function (x) { return estado.atraso[x] || 0; }));
+    document.getElementById("histStats").innerHTML =
+      statHTML("Média de pares", (totPares / n).toFixed(1) + " / 15") +
+      statHTML("Soma média", Math.round(totSoma / n), true) +
+      statHTML("Maior atraso atual", atrasoMax + " sorteios");
+  }
+  function statHTML(lbl, val, gold) {
+    return '<div class="stat"><div class="lbl">' + lbl + '</div>' +
+      '<div class="val ' + (gold ? "gold" : "") + '">' + val + '</div></div>';
+  }
+
+  // ===== Novo histórico =====
+  function novoHistorico() {
+    estado.historico = gerarHistoricoFake(1000);
+    estado.freq = calcularFrequencia(estado.historico);
+    estado.atraso = calcularAtraso(estado.historico);
+    renderVolante();
+    renderHistStats();
+    document.getElementById("histNote").textContent =
+      "Base: " + estado.historico.length + " sorteios simulados · " +
+      "frequência = vezes que cada dezena saiu · atraso = sorteios desde a última aparição.";
+  }
+
+  // ===== Gerar jogos =====
+  function acaoGerarJogos() {
+    var qtd = parseInt(document.getElementById("qtdJogos").value, 10);
+    if (isNaN(qtd) || qtd < 1) qtd = 10;
+    if (qtd > 100) qtd = 100;
+    var t0 = performance.now();
+    var jogos = gerarJogos(qtd);
+    var ms = Math.round(performance.now() - t0);
+    estado.jogos = jogos;
+    renderTabelaJogos(jogos);
+    document.getElementById("boxJogos").classList.remove("hidden");
+    var on = jogos.length > 0;
+    document.getElementById("btnExportar").disabled = !on;
+    document.getElementById("btnPDF").disabled = !on;
+    document.getElementById("btnSalvar").disabled = !on;
+    document.getElementById("lineJogos").textContent =
+      jogos.length + " jogos válidos em " + ms + "ms · ordenados por score de frequência.";
+  }
+  function renderTabelaJogos(jogos) {
+    document.querySelector("#tblJogos tbody").innerHTML = jogos.map(function (item, idx) {
+      var chips = item.jogo.map(function (n) {
+        return '<span class="jogo-chip">' + pad2(n) + '</span>';
+      }).join("");
+      return '<tr><td class="rank">#' + (idx + 1) + '</td><td>' + chips + '</td>' +
+        '<td style="text-align:right;color:var(--gold);font-weight:700">' + item.score + '</td></tr>';
+    }).join("");
+  }
+
+  // ===== Fechamento =====
+  function acaoFechamento() {
+    var base = parseInt(document.getElementById("baseFech").value, 10);
+    if (isNaN(base) || base < 16) base = 16;
+    if (base > 20) base = 20;
+    var res = gerarFechamento(base);
+    document.getElementById("fechBase").innerHTML = res.dezenas.map(function (n) {
+      return '<div class="ball">' + pad2(n) + '</div>';
+    }).join("");
+    document.getElementById("fechStats").innerHTML =
+      statHTML("Base", base + " dezenas") +
+      statHTML("Combinações C(" + base + ",15)", res.combos.length.toLocaleString("pt-BR"), true) +
+      statHTML("Custo aprox.", "R$ " + (res.combos.length * 3).toLocaleString("pt-BR"));
+    document.getElementById("boxFech").classList.remove("hidden");
+    document.getElementById("lineFech").textContent =
+      res.combos.length.toLocaleString("pt-BR") + " jogos de 15 dezenas gerados.";
+  }
+
+  // ===== Simulação =====
+  function acaoSimular() {
+    var jogos = estado.jogos.length ? estado.jogos : gerarJogos(20);
+    estado.jogos = jogos;
+    if (!jogos.length) { document.getElementById("lineSim").textContent = "Gere jogos primeiro."; return; }
+    var rodadas = parseInt(document.getElementById("rodadas").value, 10);
+    if (isNaN(rodadas) || rodadas < 1) rodadas = 1000;
+    var barra = document.getElementById("simProgress").querySelector("div");
+    barra.style.width = "0%";
+    document.getElementById("btnSimular").disabled = true;
+    document.getElementById("boxSim").classList.add("hidden");
+    var masks = jogos.map(function (j) { return j.mask; });
+    var res = {}; for (var p = 0; p <= 15; p++) res[p] = 0;
+    var rodada = 0, CHUNK = 800;
+    function passo() {
+      var fim = Math.min(rodada + CHUNK, rodadas);
+      for (; rodada < fim; rodada++) {
+        var sMask = maskOf(sampleK(NUMEROS, 15));
+        for (var k = 0; k < masks.length; k++) res[popcount(masks[k] & sMask)]++;
+      }
+      barra.style.width = ((rodada / rodadas) * 100).toFixed(1) + "%";
+      document.getElementById("lineSim").textContent = "Simulando " + rodada + "/" + rodadas + "…";
+      if (rodada < rodadas) setTimeout(passo, 0);
+      else { renderSim(res, rodadas, jogos.length); document.getElementById("btnSimular").disabled = false; }
+    }
+    setTimeout(passo, 30);
+  }
+  function renderSim(res, rodadas, nJogos) {
+    var total = rodadas * nJogos, linhas = "";
+    for (var p = 15; p >= 8; p--) {
+      var qtd = res[p] || 0, perc = total ? (qtd / total) * 100 : 0;
+      var cor = p >= 14 ? "color:var(--green);font-weight:700"
+              : p >= 11 ? "color:var(--gold)" : "color:var(--muted)";
+      linhas += '<tr><td style="' + cor + '">' + p + ' acertos</td>' +
+        '<td>' + qtd.toLocaleString("pt-BR") + '</td>' +
+        '<td style="text-align:right;' + cor + '">' + perc.toFixed(4) + '%</td></tr>';
+    }
+    document.querySelector("#tblSim tbody").innerHTML = linhas;
+    document.getElementById("boxSim").classList.remove("hidden");
+    document.getElementById("lineSim").textContent =
+      "Concluído · " + rodadas.toLocaleString("pt-BR") + " rodadas × " + nJogos +
+      " jogos = " + total.toLocaleString("pt-BR") + " conferências.";
+  }
+
+  // ===== Exportar CSV =====
+  function acaoExportar() {
+    if (!estado.jogos.length) return;
+    var linhas = ["jogo,score"];
+    estado.jogos.forEach(function (item) {
+      linhas.push('"' + item.jogo.map(pad2).join(" ") + '",' + item.score);
+    });
+    baixar(new Blob([linhas.join("\n") + "\n"], { type: "text/csv;charset=utf-8" }), "jogos_exportados.csv");
+    document.getElementById("lineJogos").textContent = "jogos_exportados.csv baixado.";
+  }
+  function baixar(blob, nome) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = nome; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ===== Salvar jogos (localStorage) =====
+  function lerSalvos() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }
+    catch (e) { return []; }
+  }
+  function gravarSalvos(arr) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); } catch (e) {}
+  }
+  function acaoSalvar() {
+    if (!estado.jogos.length) return;
+    var salvos = lerSalvos();
+    salvos.unshift({
+      id: "s" + Date.now(),
+      data: new Date().toLocaleString("pt-BR"),
+      jogos: estado.jogos.map(function (j) { return { jogo: j.jogo, score: j.score }; }),
+    });
+    if (salvos.length > 30) salvos = salvos.slice(0, 30);
+    gravarSalvos(salvos);
+    renderSalvos();
+    document.getElementById("lineJogos").textContent =
+      estado.jogos.length + " jogos salvos neste navegador.";
+  }
+  function renderSalvos() {
+    var salvos = lerSalvos();
+    var box = document.getElementById("listaSalvos");
+    if (!salvos.length) {
+      box.innerHTML = '<div style="color:var(--faint);font-size:12px;font-style:italic">' +
+        'Nenhum lote salvo ainda. Gere jogos e clique em "Salvar jogos".</div>';
+      return;
+    }
+    box.innerHTML = salvos.map(function (s) {
+      return '<div class="salvo-item">' +
+        '<div class="meta"><div class="t1">' + s.jogos.length + ' jogos</div>' +
+        '<div class="t2">' + s.data + '</div></div>' +
+        '<button class="btn btn-ghost" data-load="' + s.id + '">Carregar</button>' +
+        '<button class="btn btn-ghost" data-del="' + s.id + '" ' +
+          'style="color:var(--red);border-color:var(--red)">Excluir</button>' +
+        '</div>';
+    }).join("");
+    box.querySelectorAll("[data-load]").forEach(function (b) {
+      b.addEventListener("click", function () { carregarSalvo(b.getAttribute("data-load")); });
+    });
+    box.querySelectorAll("[data-del]").forEach(function (b) {
+      b.addEventListener("click", function () { excluirSalvo(b.getAttribute("data-del")); });
+    });
+  }
+  function carregarSalvo(id) {
+    var s = lerSalvos().find(function (x) { return x.id === id; });
+    if (!s) return;
+    estado.jogos = s.jogos.map(function (j) {
+      return { jogo: j.jogo, score: j.score, mask: maskOf(j.jogo) };
+    });
+    renderTabelaJogos(estado.jogos);
+    document.getElementById("boxJogos").classList.remove("hidden");
+    document.getElementById("btnExportar").disabled = false;
+    document.getElementById("btnPDF").disabled = false;
+    document.getElementById("btnSalvar").disabled = false;
+    document.getElementById("lineJogos").textContent =
+      "Lote de " + s.data + " carregado (" + estado.jogos.length + " jogos).";
+    window.scrollTo({ top: document.getElementById("boxJogos").offsetTop - 80, behavior: "smooth" });
+  }
+  function excluirSalvo(id) {
+    gravarSalvos(lerSalvos().filter(function (x) { return x.id !== id; }));
+    renderSalvos();
+  }
+
+  // ===== Wire =====
+  document.getElementById("btnHistorico").addEventListener("click", novoHistorico);
+  document.getElementById("btnJogos").addEventListener("click", acaoGerarJogos);
+  document.getElementById("btnFechamento").addEventListener("click", acaoFechamento);
+  document.getElementById("btnSimular").addEventListener("click", acaoSimular);
+  document.getElementById("btnExportar").addEventListener("click", acaoExportar);
+  document.getElementById("btnSalvar").addEventListener("click", acaoSalvar);
+  document.getElementById("btnPDF").addEventListener("click", function () { window.print(); });
+  document.getElementById("metricToggle").querySelectorAll("button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      estado.metric = b.getAttribute("data-m");
+      document.getElementById("metricToggle").querySelectorAll("button").forEach(function (x) {
+        x.classList.toggle("on", x === b);
+      });
+      renderVolante();
+    });
+  });
+
+  // ===== Init =====
+  novoHistorico();
+  renderSalvos();
+})();
+</script>
+</body>
+</html>
