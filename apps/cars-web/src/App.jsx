@@ -169,6 +169,9 @@ export default function App() {
   // aqui em vez de criar transação em Finanças.
   // Modelo: { saldo: number, historico: [{id, data, tipo, valor, descricao, vendaId?, contratoId?, ts}] }
   const [caixaNegocio, setCaixaNegocio] = useState({ saldo: 0, historico: [] });
+  // Banco do Serviço: contas próprias do negócio de serviços, totalmente
+  // independentes das Contas/Finanças do cockpit. Modelo: [{ id, nome, saldo }].
+  const [negocioBancos, setNegocioBancos] = useState([]);
   // Proventos marcados como recebidos: { [proventoKey]: { dataBaixa, destino, valor } }
   const [proventosRecebidos, setProventosRecebidos] = useState({});
   // Proventos que o user marcou como "Ignorados" (não interessam, foram
@@ -242,6 +245,7 @@ export default function App() {
         if (data.modeloAtivoId) setModeloAtivoId(data.modeloAtivoId);
         setCarteiraProventos(data.carteiraProventos || { saldo: 0, historico: [] });
         setCaixaNegocio(data.caixaNegocio || { saldo: 0, historico: [] });
+        setNegocioBancos(data.negocioBancos || []);
         setProventosRecebidos(data.proventosRecebidos || {});
         setProventosIgnorados(data.proventosIgnorados || {});
         setProventosManuais(data.proventosManuais || []);
@@ -294,6 +298,7 @@ export default function App() {
         setCarteirasModeloCustom([]);
         setCarteiraProventos({ saldo: 0, historico: [] });
         setCaixaNegocio({ saldo: 0, historico: [] });
+        setNegocioBancos([]);
         setProventosRecebidos({});
         setProventosIgnorados({});
         setProventosManuais([]);
@@ -318,7 +323,7 @@ export default function App() {
       negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes, negocioInstaladores,
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
-      caixaNegocio,
+      caixaNegocio, negocioBancos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId,
     });
@@ -328,7 +333,7 @@ export default function App() {
       negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes, negocioInstaladores,
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
-      caixaNegocio,
+      caixaNegocio, negocioBancos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       themeId, loading]);
 
@@ -946,9 +951,7 @@ export default function App() {
                 clientes={negocioClientes}
                 veiculos={negocioVeiculos}
                 instaladores={negocioInstaladores} setInstaladores={setNegocioInstaladores}
-                contas={contas} setContas={setContas}
-                transacoes={transacoes} setTransacoes={setTransacoes}
-                categorias={categorias}
+                bancos={negocioBancos} setBancos={setNegocioBancos}
                 caixaNegocio={caixaNegocio} setCaixaNegocio={setCaixaNegocio}
                 hidden={hidden}
               />

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Plus, Trash2, Edit3, Check, Wrench, X, ChevronDown, ChevronRight, DollarSign, TrendingUp, Repeat, Pause, Play, Receipt, Users, FileText, MessageCircle, AlertTriangle, Sparkles } from "lucide-react";
 import { T } from "../../../lib/theme.js";
@@ -6,7 +6,8 @@ import { fmt, uid, todayISO } from "../../../lib/format.js";
 import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import { abrirWhatsApp } from "../../../lib/whatsapp.js";
-import { toPDF } from "../../../lib/exportRelatorio.js";
+import { toPDF, toCSV } from "../../../lib/exportRelatorio.js";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
 import PageHeader from "../../ui/PageHeader.jsx";
 import ControleAnualServicos from "./ControleAnualServicos.jsx";
 import Field from "../../ui/Field.jsx";
@@ -44,13 +45,14 @@ export default function Servicos({
   contratos = [], setContratos,
   clientes = [],
   instaladores = [], setInstaladores,
-  contas = [], setContas,
-  transacoes = [], setTransacoes,
-  categorias = [],
+  bancos = [], setBancos,
   caixaNegocio = { saldo: 0, historico: [] }, setCaixaNegocio,
   hidden,
 }) {
   const [servicoForm, setServicoForm] = useState(null);
+  const [bancoForm, setBancoForm] = useState(null);
+  const [lancamentoForm, setLancamentoForm] = useState(null);
+  const [bancoExpandido, setBancoExpandido] = useState(true);
   const [vendaForm, setVendaForm] = useState(null);
   const [contratoForm, setContratoForm] = useState(null);
   const [instaladorForm, setInstaladorForm] = useState(null);
@@ -62,9 +64,28 @@ export default function Servicos({
   const [relatorioAba, setRelatorioAba] = useState("clientes");
   const [anualExpandido, setAnualExpandido] = useState(false);
   const [faturaDoc, setFaturaDoc] = useState(null); // venda/fatura aberta no modal de PDF
+  const [cobrancasAberto, setCobrancasAberto] = useState(false); // painel de cobrança em massa
+  const [financeiroExpandido, setFinanceiroExpandido] = useState(false);
+  const [finPeriodo, setFinPeriodo] = useState("ano"); // mes | 3m | ano | tudo
+  const [finBusca, setFinBusca] = useState("");
+  const [finPdfAberto, setFinPdfAberto] = useState(false);
 
   // Mês corrente YYYY-MM — usado pra controle de repasse e relatório.
   const mesCorrente = new Date().toISOString().slice(0, 7);
+
+  // Migração/seed: o Banco do Serviço precisa de ao menos uma conta. Se estiver
+  // vazio, cria a "Caixa" já com o saldo que existia na Caixa do Negócio antiga
+  // (preserva o dinheiro de quem já usava o módulo).
+  useEffect(() => {
+    if (typeof setBancos !== "function") return;
+    if ((bancos || []).length > 0) return;
+    setBancos([{ id: uid(), nome: "Caixa", saldo: Number(caixaNegocio?.saldo || 0) }]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bancos]);
+
+  // Conta padrão (recebimento/saída quando nenhuma é escolhida) = a primeira.
+  const bancoPadraoId = (bancos || [])[0]?.id || null;
+  const nomeBanco = (id) => (bancos || []).find(b => b.id === id)?.nome || "—";
 
   const ativos = useMemo(
     () => servicos.filter(s => s.ativo !== false),
@@ -113,6 +134,84 @@ export default function Servicos({
     });
     return map;
   }, [vendas]);
+
+  // Cobranças em aberto agrupadas por CLIENTE — alimenta o painel de cobrança
+  // em massa. Quem não tem cliente vinculado cai em um grupo "Sem cliente".
+  const cobrancasPorCliente = useMemo(() => {
+    const pend = (vendas || []).filter(v => v.pago === false);
+    const map = {};
+    pend.forEach(v => {
+      const key = v.clienteId || "__sem__";
+      const g = (map[key] = map[key] || { clienteId: v.clienteId || null, itens: [], total: 0 });
+      g.itens.push(v);
+      g.total += Number(v.valor || 0);
+    });
+    const grupos = Object.values(map).map(g => ({
+      ...g,
+      cliente: clientes.find(c => c.id === g.clienteId) || null,
+      itens: g.itens.sort((a, b) => (a.data || "").localeCompare(b.data || "")),
+    })).sort((a, b) => b.total - a.total);
+    const totalGeral = grupos.reduce((s, g) => s + g.total, 0);
+    const qtdGeral = pend.length;
+    return { grupos, totalGeral, qtdGeral };
+  }, [vendas, clientes]);
+
+  // Financeiro: movimentações da Caixa do Negócio (entradas de receita +
+  // saídas de repasse), filtradas por período/busca, com totais e série mensal.
+  const financeiro = useMemo(() => {
+    const hist = (caixaNegocio?.historico) || [];
+    const hoje = new Date();
+    const limite = (() => {
+      if (finPeriodo === "tudo") return null;
+      const d = new Date(hoje);
+      if (finPeriodo === "mes") d.setDate(1);
+      else if (finPeriodo === "3m") d.setMonth(d.getMonth() - 2, 1);
+      else if (finPeriodo === "ano") d.setMonth(0, 1); // início do ano
+      return d.toISOString().slice(0, 10);
+    })();
+    const q = finBusca.trim().toLowerCase();
+
+    const movs = hist
+      .filter(h => !limite || (h.data || "") >= limite)
+      .filter(h => !q || (h.descricao || "").toLowerCase().includes(q))
+      .sort((a, b) => (b.data || "").localeCompare(a.data || "") || (b.ts || "").localeCompare(a.ts || ""));
+
+    let entradas = 0, saidas = 0;
+    const porMes = {};
+    movs.forEach(h => {
+      const v = Number(h.valor || 0);
+      const mes = (h.data || "").slice(0, 7);
+      if (!mes) return;
+      const m = (porMes[mes] = porMes[mes] || { mes, receita: 0, despesa: 0 });
+      if (v >= 0) { entradas += v; m.receita += v; }
+      else { saidas += -v; m.despesa += -v; }
+    });
+    const serie = Object.values(porMes)
+      .sort((a, b) => a.mes.localeCompare(b.mes))
+      .map(m => ({ ...m, label: `${m.mes.slice(5)}/${m.mes.slice(2, 4)}`, lucro: m.receita - m.despesa }));
+
+    return { movs, entradas, saidas, resultado: entradas - saidas, serie, saldoAtual: Number(caixaNegocio?.saldo || 0) };
+  }, [caixaNegocio, finPeriodo, finBusca]);
+
+  const periodoLabel = { mes: "Este mês", "3m": "Últimos 3 meses", ano: "Este ano", tudo: "Tudo" }[finPeriodo] || "";
+
+  const exportarFinanceiroCSV = () => {
+    if (financeiro.movs.length === 0) { toast.error("Sem movimentações no período."); return; }
+    const tipoLabel = (t) => ({
+      "venda-servico": "Receita · venda", "fatura-recorrente": "Receita · fatura",
+      "pago-instalador": "Repasse colaborador", "custo-servico": "Custo/prestador",
+      "ajuste-entrada": "Entrada manual", "ajuste-saida": "Saída manual",
+    }[t] || t);
+    const rows = financeiro.movs.map(h => ({
+      Data: (h.data || "").split("-").reverse().join("/"),
+      Tipo: tipoLabel(h.tipo),
+      Descrição: h.descricao || "",
+      Entrada: Number(h.valor || 0) > 0 ? Number(h.valor).toFixed(2).replace(".", ",") : "",
+      Saída: Number(h.valor || 0) < 0 ? (-Number(h.valor)).toFixed(2).replace(".", ",") : "",
+    }));
+    toCSV(rows, `financeiro-servicos-${finPeriodo}.csv`);
+    toast.success("CSV exportado.");
+  };
 
   // Saldo do mês por instalador: soma de valorInstalador das vendas do mês corrente
   // onde instaladorId === id. Backward-compat: vendas antigas sem campos seguem em 0.
@@ -281,8 +380,8 @@ export default function Servicos({
   };
 
   // Marca/desmarca o repasse do mês corrente como pago ao colaborador.
-  // Pagar = SAÍDA real do Caixa do Negócio (debita o acumulado do mês e registra
-  // no histórico). Desmarcar devolve ao Caixa o valor exato que havia saído.
+  // Pagar = SAÍDA do Banco do Serviço (debita o acumulado do mês da conta padrão).
+  // Desmarcar devolve à conta o valor exato que havia saído.
   const togglePagarInstalador = (inst) => {
     if (typeof setInstaladores !== "function") return;
     const pagos = inst.repassesPagos || [];
@@ -295,52 +394,33 @@ export default function Servicos({
       i.id === inst.id ? { ...i, repassesPagos: novos } : i
     ));
 
-    // Movimenta o Caixa do Negócio: ao pagar, debita o acumulado do mês; ao
-    // desmarcar, devolve exatamente o que havia sido debitado pra este mês.
-    if (typeof setCaixaNegocio === "function") {
-      setCaixaNegocio(prev => {
-        const hist = (prev?.historico) || [];
-        const ehDoMes = (h) => h.tipo === "pago-instalador" && h.instaladorId === inst.id
-          && (h.repasseMes === mesCorrente || (!!h.vendaId && (h.data || "").startsWith(mesCorrente)));
-        if (jaPago) {
-          // Desmarcar: só estorna o que ESTE controle de quitação debitou
-          // (entradas com repasseMes). Entradas legadas (por venda, com vendaId)
-          // foram debitadas na venda e seguem o estorno da venda, não daqui.
-          const debitado = hist
-            .filter(h => h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente)
-            .reduce((s, h) => s + Math.abs(Number(h.valor) || 0), 0);
-          return {
-            saldo: (prev?.saldo || 0) + debitado,
-            historico: hist.filter(h => !(h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente)),
-          };
+    if (jaPago) {
+      // Desmarcar: devolve ao(s) banco(s) o que saiu p/ este colaborador no mês.
+      const hist = (caixaNegocio?.historico) || [];
+      const doMes = hist.filter(h => h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente);
+      if (doMes.length) {
+        const net = doMes.reduce((s, h) => s + Number(h.valor || 0), 0); // negativo
+        const porBanco = {};
+        doMes.forEach(h => { if (h.bancoId) porBanco[h.bancoId] = (porBanco[h.bancoId] || 0) + Number(h.valor || 0); });
+        if (typeof setBancos === "function") {
+          setBancos(prev => prev.map(b => porBanco[b.id] ? { ...b, saldo: (Number(b.saldo) || 0) - porBanco[b.id] } : b));
         }
-        // Pagar: debita só o que AINDA não saiu do Caixa. Vendas do modelo antigo
-        // já debitaram o repasse na venda (entradas com vendaId no mês) — abate
-        // esse valor pra não cobrar em dobro.
-        const jaDebitado = hist
-          .filter(ehDoMes)
-          .reduce((s, h) => s + Math.abs(Number(h.valor) || 0), 0);
-        const aDebitar = Math.max(0, totalMes - jaDebitado);
-        if (aDebitar <= 0) return prev;
-        return {
-          saldo: (prev?.saldo || 0) - aDebitar,
-          historico: [{
-            id: uid(),
-            tipo: "pago-instalador",
-            data: todayISO(),
-            descricao: `Repasse a ${inst.nome} · ${mesCorrente}`,
-            valor: -aDebitar,
-            instaladorId: inst.id,
-            repasseMes: mesCorrente,
-            ts: new Date().toISOString(),
-          }, ...hist],
-        };
-      });
+        if (typeof setCaixaNegocio === "function") {
+          setCaixaNegocio(prev => ({
+            saldo: (prev?.saldo || 0) - net,
+            historico: ((prev?.historico) || []).filter(h => !(h.tipo === "pago-instalador" && h.instaladorId === inst.id && h.repasseMes === mesCorrente)),
+          }));
+        }
+      }
+      toast.success(`Repasse de ${inst.nome} (${mesCorrente}) desmarcado — devolvido ao Banco do Serviço.`);
+    } else {
+      if (totalMes > 0) {
+        lancar({ bancoId: bancoPadraoId, tipo: "pago-instalador", data: todayISO(),
+                 descricao: `Repasse a ${inst.nome} · ${mesCorrente}`, valor: -totalMes,
+                 instaladorId: inst.id, repasseMes: mesCorrente });
+      }
+      toast.success(`Repasse de ${fmt(totalMes)} a ${inst.nome} pago — debitado do Banco do Serviço.`);
     }
-
-    toast.success(jaPago
-      ? `Repasse de ${inst.nome} (${mesCorrente}) desmarcado — valor devolvido ao Caixa.`
-      : `Repasse de ${fmt(totalMes)} a ${inst.nome} pago — debitado do Caixa do Negócio.`);
   };
 
   /* ---------- Venda ---------- */
@@ -354,6 +434,7 @@ export default function Servicos({
     clienteId: "",
     instaladorId: "",
     valorInstalador: "",
+    bancoRecebimento: bancoPadraoId,
     obs: "",
   });
 
@@ -404,106 +485,89 @@ export default function Servicos({
     });
   };
 
-  /* ---------- Helpers de caixa / cobrança ---------- */
-  // Receita de uma venda/fatura entra na Caixa do Negócio. (O repasse ao
-  // colaborador é tratado à parte — não sai por venda.)
+  /* ---------- Helpers do Banco do Serviço ---------- */
+  // Lança 1 movimento numa conta do Banco do Serviço: ajusta o saldo da conta,
+  // o total (caixaNegocio.saldo) e registra no histórico (extrato do Financeiro).
+  // valor: + entrada / − saída. Tudo independente das Finanças do cockpit.
+  const lancar = (mov) => {
+    const valor = Number(mov.valor || 0);
+    const bancoId = mov.bancoId || bancoPadraoId;
+    if (bancoId && typeof setBancos === "function") {
+      setBancos(prev => prev.map(b => b.id === bancoId ? { ...b, saldo: (Number(b.saldo) || 0) + valor } : b));
+    }
+    if (typeof setCaixaNegocio === "function") {
+      setCaixaNegocio(prev => ({
+        saldo: (prev?.saldo || 0) + valor,
+        historico: [{
+          id: uid(),
+          tipo: mov.tipo,
+          data: mov.data || todayISO(),
+          descricao: mov.descricao || "",
+          valor,
+          bancoId: bancoId || null,
+          ...(mov.vendaId ? { vendaId: mov.vendaId } : {}),
+          ...(mov.contratoId ? { contratoId: mov.contratoId } : {}),
+          ...(mov.instaladorId ? { instaladorId: mov.instaladorId } : {}),
+          ...(mov.repasseMes ? { repasseMes: mov.repasseMes } : {}),
+          ts: new Date().toISOString(),
+        }, ...((prev?.historico) || [])],
+      }));
+    }
+  };
+
+  // Venda/fatura PAGA: a receita entra na conta de recebimento e, se houver
+  // custo (pago ao prestador), sai do mesmo banco. Nada toca Finanças/Contas.
   const aplicarReceitaCaixa = (v, descricaoReceita) => {
-    if (typeof setCaixaNegocio !== "function") return;
-    setCaixaNegocio(prev => {
-      const entrada = {
-        id: uid(),
-        tipo: v.contratoId ? "fatura-recorrente" : "venda-servico",
-        data: v.pagoEm || v.data || todayISO(),
-        descricao: descricaoReceita,
-        valor: Number(v.valor || 0),
-        custo: Number(v.custo || 0),
-        vendaId: v.id,
-        ...(v.contratoId ? { contratoId: v.contratoId } : {}),
-        ts: new Date().toISOString(),
-      };
-      return {
-        saldo: (prev?.saldo || 0) + Number(v.valor || 0),
-        historico: [entrada, ...((prev?.historico) || [])],
-      };
-    });
+    const bancoId = v.bancoRecebimento || bancoPadraoId;
+    lancar({ bancoId, tipo: v.contratoId ? "fatura-recorrente" : "venda-servico",
+             data: v.pagoEm || v.data, descricao: descricaoReceita,
+             valor: Number(v.valor || 0), vendaId: v.id, contratoId: v.contratoId });
+    const custo = Number(v.custo || 0);
+    if (custo > 0) {
+      lancar({ bancoId, tipo: "custo-servico",
+               data: v.pagoEm || v.data, descricao: `Custo/prestador · ${v.nome}`,
+               valor: -custo, vendaId: v.id, contratoId: v.contratoId });
+    }
   };
 
-  // Remove da Caixa os lançamentos de receita desta venda/fatura.
+  // Desfaz TODOS os lançamentos de uma venda/fatura (receita + custo), repondo
+  // o saldo de cada conta afetada. Lê o histórico atual p/ saber os bancos.
   const reverterReceitaCaixa = (v) => {
-    if (typeof setCaixaNegocio !== "function") return;
-    setCaixaNegocio(prev => {
-      const hist = (prev?.historico) || [];
-      const repasseDaVenda = hist
-        .filter(h => h.vendaId === v.id && h.tipo === "pago-instalador")
-        .reduce((s, h) => s + Math.abs(Number(h.valor) || 0), 0);
-      return {
-        saldo: (prev?.saldo || 0) - Number(v.valor || 0) + repasseDaVenda,
-        historico: hist.filter(h => h.vendaId !== v.id),
-      };
-    });
-  };
-
-  // Despesa do prestador em Finanças (dinheiro real). Só faturas com
-  // pagarAoFaturar + conta + custo > 0 (snapshot gravado na fatura).
-  const aplicarDespesaPrestador = (v) => {
-    const custoNum = Number(v.custo || 0);
-    if (!(v.pagarAoFaturar && v.contaPagamento && custoNum > 0)) return;
-    if (typeof setTransacoes !== "function") return;
-    const contaPag = contas.find(co => co.nome === v.contaPagamento);
-    if (!contaPag) {
-      toast.error(`Conta "${v.contaPagamento}" não existe mais. Despesa do prestador não criada.`);
-      return;
+    const hist = (caixaNegocio?.historico) || [];
+    const daVenda = hist.filter(h => h.vendaId === v.id);
+    if (daVenda.length === 0) return;
+    const net = daVenda.reduce((s, h) => s + Number(h.valor || 0), 0);
+    const porBanco = {};
+    daVenda.forEach(h => { if (h.bancoId) porBanco[h.bancoId] = (porBanco[h.bancoId] || 0) + Number(h.valor || 0); });
+    if (typeof setBancos === "function") {
+      setBancos(prev => prev.map(b => porBanco[b.id] ? { ...b, saldo: (Number(b.saldo) || 0) - porBanco[b.id] } : b));
     }
-    const catDesp = categorias.find(cat => cat.tipo === "despesa" && /serv|saas|software|ferramenta|negocio/i.test(cat.nome))?.nome
-                 || categorias.find(cat => cat.tipo === "despesa")?.nome
-                 || "Outros";
-    const despesa = {
-      id: uid(), tipo: "despesa",
-      descricao: `Pago a prestador · ${v.nome}`,
-      categoria: catDesp, conta: v.contaPagamento,
-      data: v.pagoEm || todayISO(), valor: custoNum,
-      compensado: true, fixa: false,
-      obs: `Pagamento ao prestador · contrato recorrente (serviço ${v.id})`,
-    };
-    setTransacoes(prev => [despesa, ...prev]);
-    if (typeof setContas === "function") {
-      setContas(prev => prev.map(co => co.nome === v.contaPagamento
-        ? { ...co, saldo: (parseFloat(co.saldo) || 0) - custoNum } : co));
+    if (typeof setCaixaNegocio === "function") {
+      setCaixaNegocio(prev => ({
+        saldo: (prev?.saldo || 0) - net,
+        historico: ((prev?.historico) || []).filter(h => h.vendaId !== v.id),
+      }));
     }
   };
 
-  const reverterDespesaPrestador = (v) => {
-    if (typeof setTransacoes !== "function") return;
-    const desp = (transacoes || []).find(t =>
-      t.tipo === "despesa" && (t.obs || "").includes(`serviço ${v.id}`));
-    if (!desp) return;
-    setTransacoes(prev => prev.filter(t => t.id !== desp.id));
-    if (typeof setContas === "function") {
-      setContas(prev => prev.map(co => co.nome === desp.conta
-        ? { ...co, saldo: (parseFloat(co.saldo) || 0) + Number(desp.valor || 0) } : co));
-    }
-  };
-
-  // Marcar fatura como PAGA: receita entra na Caixa + despesa do prestador.
+  // Marcar fatura como PAGA: receita (e custo) entram/saem do Banco do Serviço.
   const marcarFaturaPaga = (v) => {
     const cliente = clientes.find(c => c.id === v.clienteId);
     const vPago = { ...v, pago: true, pagoEm: todayISO() };
     setVendas((vendas || []).map(x => x.id === v.id ? vPago : x));
     aplicarReceitaCaixa(vPago, `${v.nome}${cliente ? ` · ${cliente.nome}` : ""}`);
-    aplicarDespesaPrestador(vPago);
     toast.success(`Pagamento de ${fmt(v.valor)} recebido · ${v.nome}`);
   };
 
-  // Voltar para PENDENTE: tira a receita da Caixa e desfaz a despesa.
+  // Voltar para PENDENTE: tira a receita (e custo) do Banco do Serviço.
   const marcarFaturaNaoPaga = async (v) => {
     const ok = await confirm({
       title: `Marcar "${v.nome}" como não paga?`,
-      body: `A receita de ${fmt(v.valor)} sai da Caixa do Negócio${v.pagarAoFaturar ? " e a despesa do prestador é desfeita" : ""}. A cobrança volta a ficar pendente.`,
+      body: `A receita de ${fmt(v.valor)} sai do Banco do Serviço${Number(v.custo || 0) > 0 ? " (e o custo do prestador é desfeito)" : ""}. A cobrança volta a ficar pendente.`,
       confirmLabel: "Marcar pendente",
     });
     if (!ok) return;
     reverterReceitaCaixa(v);
-    reverterDespesaPrestador(v);
     setVendas((vendas || []).map(x => x.id === v.id ? { ...x, pago: false, pagoEm: null } : x));
     toast.success("Cobrança marcada como pendente.");
   };
@@ -521,10 +585,91 @@ export default function Servicos({
     abrirWhatsApp(cliente.telefone, msg);
   };
 
+  // Cobrança consolidada por cliente (mensagem única com todos os itens em aberto).
+  const cobrarClienteWhatsApp = (grupo) => {
+    if (!grupo.cliente) { toast.error("Cliente sem cadastro — vincule um cliente para cobrar."); return; }
+    const linhas = grupo.itens.map(v => {
+      const ref = v.faturaRef
+        ? (v.faturaRef.length === 4 ? `Ano ${v.faturaRef}` : `${v.faturaRef.slice(5)}/${v.faturaRef.slice(0, 4)}`)
+        : (v.data ? v.data.split("-").reverse().join("/") : "");
+      return `• ${v.nome}${ref ? ` (${ref})` : ""} — ${fmt(v.valor)}`;
+    }).join("\n");
+    const msg = grupo.itens.length === 1
+      ? `Olá ${grupo.cliente.nome}! 👋\n\nSegue a cobrança em aberto:\n${linhas}\n\nPode confirmar o pagamento? Obrigado!`
+      : `Olá ${grupo.cliente.nome}! 👋\n\nSegue o resumo das suas cobranças em aberto:\n${linhas}\n\n*Total: ${fmt(grupo.total)}*\n\nPode confirmar o pagamento? Obrigado!`;
+    abrirWhatsApp(grupo.cliente.telefone, msg);
+  };
+
+  // Marca TODAS as cobranças de um cliente como pagas de uma vez.
+  const receberTudoCliente = async (grupo) => {
+    const ok = await confirm({
+      title: `Receber ${fmt(grupo.total)} de ${grupo.cliente?.nome || "cliente"}?`,
+      body: `${grupo.itens.length} cobrança(s) serão marcadas como pagas e a receita entra na Caixa do Negócio.`,
+      confirmLabel: "Receber tudo",
+    });
+    if (!ok) return;
+    const ids = new Set(grupo.itens.map(i => i.id));
+    const pagoEm = todayISO();
+    // Um único setVendas em lote; os efeitos de caixa usam updaters funcionais.
+    setVendas((vendas || []).map(x => ids.has(x.id) ? { ...x, pago: true, pagoEm } : x));
+    grupo.itens.forEach(v => {
+      const vPago = { ...v, pago: true, pagoEm };
+      aplicarReceitaCaixa(vPago, `${v.nome}${grupo.cliente ? ` · ${grupo.cliente.nome}` : ""}`);
+    });
+    toast.success(`${fmt(grupo.total)} recebido de ${grupo.cliente?.nome || "cliente"}.`);
+  };
+
+  /* ---------- Banco do Serviço (contas próprias) ---------- */
+  const abrirBancoNovo = () => setBancoForm({ id: null, nome: "", saldo: "" });
+  const abrirBancoEditar = (b) => setBancoForm({ ...b, saldo: String(b.saldo ?? "") });
+  const salvarBanco = () => {
+    const nome = (bancoForm.nome || "").trim();
+    if (!nome) { toast.error("Informe o nome da conta."); return; }
+    const saldo = Number(bancoForm.saldo) || 0;
+    if (bancoForm.id) {
+      setBancos((bancos || []).map(b => b.id === bancoForm.id ? { ...b, nome, saldo } : b));
+      toast.success("Conta atualizada.");
+    } else {
+      setBancos([...(bancos || []), { id: uid(), nome, saldo }]);
+      toast.success(`Conta ${nome} criada.`);
+    }
+    setBancoForm(null);
+  };
+  const excluirBanco = async (b) => {
+    if ((bancos || []).length <= 1) { toast.error("Mantenha ao menos uma conta no Banco do Serviço."); return; }
+    const ok = await confirm({
+      title: `Excluir a conta "${b.nome}"?`,
+      body: `Saldo atual: ${fmt(b.saldo || 0)}. As movimentações antigas continuam no extrato. Continuar?`,
+      danger: true, confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+    setBancos((bancos || []).filter(x => x.id !== b.id));
+    toast.success("Conta removida.");
+  };
+
+  // Lançamento manual de entrada/saída numa conta (aporte, despesa avulsa, etc).
+  const abrirLancamento = (tipo) => setLancamentoForm({ tipo, bancoId: bancoPadraoId, valor: "", descricao: "", data: todayISO() });
+  const salvarLancamento = () => {
+    const valorNum = Number(lancamentoForm.valor) || 0;
+    if (valorNum <= 0) { toast.error("Informe um valor positivo."); return; }
+    if (!lancamentoForm.bancoId) { toast.error("Selecione a conta."); return; }
+    const ent = lancamentoForm.tipo === "entrada";
+    lancar({
+      bancoId: lancamentoForm.bancoId,
+      tipo: ent ? "ajuste-entrada" : "ajuste-saida",
+      data: lancamentoForm.data,
+      descricao: (lancamentoForm.descricao || "").trim() || (ent ? "Entrada manual" : "Saída manual"),
+      valor: ent ? valorNum : -valorNum,
+    });
+    toast.success(ent ? "Entrada lançada no Banco do Serviço." : "Saída lançada no Banco do Serviço.");
+    setLancamentoForm(null);
+  };
+
   const confirmarVenda = () => {
     const nome = (vendaForm.nome || "").trim();
     const valor = Number(vendaForm.valor);
-    const custo = Number(vendaForm.custo) || 0;
+    // Custo único = repasse ao colaborador; venda avulsa não tem campo de custo.
+    const custo = 0;
     if (!nome) { toast.error("Informe o nome do serviço."); return; }
     if (!Number.isFinite(valor) || valor <= 0) { toast.error("Valor inválido."); return; }
 
@@ -540,6 +685,7 @@ export default function Servicos({
     const valorInst = Number(vendaForm.valorInstalador) || 0;
     const temInstalador = !!vendaForm.instaladorId && valorInst > 0;
 
+    const bancoRecebimento = vendaForm.bancoRecebimento || bancoPadraoId;
     const novaVenda = {
       id: uid(),
       servicoId: primaryServicoId, // retrocompat
@@ -552,32 +698,15 @@ export default function Servicos({
       instaladorId: temInstalador ? vendaForm.instaladorId : null,
       valorInstalador: temInstalador ? valorInst : 0,
       contaDestino: "Caixa do Negócio",
+      bancoRecebimento,
       pago: true,             // venda avulsa = recebida na hora
       pagoEm: vendaForm.data,
       obs: (vendaForm.obs || "").trim(),
     };
 
-    // Receita entra na Caixa do Negócio virtual (não toca Finanças). O repasse
-    // ao colaborador NÃO é debitado aqui — ele acumula como "a pagar" e só sai
-    // do Caixa quando o repasse do mês é marcado como pago.
-    if (typeof setCaixaNegocio === "function") {
-      setCaixaNegocio(prev => {
-        const entradaReceita = {
-          id: uid(),
-          tipo: "venda-servico",
-          data: vendaForm.data,
-          descricao: `Serviço · ${partes.join(" · ")}`,
-          valor,
-          custo,
-          vendaId: novaVenda.id,
-          ts: new Date().toISOString(),
-        };
-        return {
-          saldo: (prev?.saldo || 0) + valor,
-          historico: [entradaReceita, ...((prev?.historico) || [])],
-        };
-      });
-    }
+    // Venda avulsa entra paga: receita (e custo, se houver) movimentam o Banco
+    // do Serviço na conta de recebimento. Nada toca Finanças/Contas do cockpit.
+    aplicarReceitaCaixa(novaVenda, `Serviço · ${partes.join(" · ")}`);
 
     setVendas([novaVenda, ...vendas]);
     setVendaForm(null);
@@ -602,26 +731,8 @@ export default function Servicos({
     if (!ok) return;
 
     // Só reverte dinheiro se a venda/fatura tinha sido efetivamente paga.
-    if (foiPago) {
-      if (isCaixaVirtual) {
-        // Estorna na Caixa do Negócio virtual: remove a receita desta venda.
-        reverterReceitaCaixa(v);
-      } else {
-        // Venda antiga (legacy, com conta de Finanças): comportamento original.
-        setTransacoes(prev => prev.filter(t => !(
-          t.conta === v.contaDestino &&
-          t.valor === v.valor &&
-          t.tipo === "receita" &&
-          t.data === v.data &&
-          (t.obs || "").includes(`serviço ${v.id}`)
-        )));
-        setContas(prev => prev.map(c => c.nome === v.contaDestino
-          ? { ...c, saldo: (parseFloat(c.saldo) || 0) - Number(v.valor || 0) }
-          : c));
-      }
-      // Reverte a despesa do prestador no Finanças, se foi gerada pra esta venda.
-      reverterDespesaPrestador(v);
-    }
+    // Tudo no Banco do Serviço (receita + custo), nada toca Finanças.
+    if (foiPago) reverterReceitaCaixa(v);
 
     // Se a venda veio de um contrato recorrente, reabilita o "Gerar fatura"
     // desse mês — limpa ultimaFaturaRef. Robusto: limpa se bate com a fatura
@@ -660,8 +771,7 @@ export default function Servicos({
     nome: "",
     valor: "",
     custo: "",
-    contaPagamento: "",
-    pagarAoFaturar: false,
+    bancoRecebimento: bancoPadraoId,
     recorrencia: "mensal", // mensal | anual
     dataInicio: todayISO(),
     duracaoMeses: "", // vazio = indeterminado
@@ -672,14 +782,12 @@ export default function Servicos({
   });
 
   const abrirContratoEditar = (c) => {
-    const custoNum = Number(c.custo) || 0;
     setContratoForm({
       ...c,
       servicosIds: c.servicosIds || (c.servicoId ? [c.servicoId] : []),
       valor: String(c.valor ?? ""),
       custo: String(c.custo ?? ""),
-      contaPagamento: c.contaPagamento || "",
-      pagarAoFaturar: c.pagarAoFaturar !== undefined ? c.pagarAoFaturar : (custoNum > 0),
+      bancoRecebimento: c.bancoRecebimento || bancoPadraoId,
       duracaoMeses: c.duracaoMeses ? String(c.duracaoMeses) : "",
       instaladorId: c.instaladorId || "",
       valorInstalador: c.valorInstalador ? String(c.valorInstalador) : "",
@@ -739,7 +847,6 @@ export default function Servicos({
   const salvarContrato = () => {
     const nome = (contratoForm.nome || "").trim();
     const valor = Number(contratoForm.valor);
-    const custo = Number(contratoForm.custo) || 0;
     if (!nome) { toast.error("Informe o nome do contrato."); return; }
     if (!contratoForm.clienteId) { toast.error("Selecione um cliente."); return; }
     if (!Number.isFinite(valor) || valor <= 0) { toast.error("Valor inválido."); return; }
@@ -749,10 +856,10 @@ export default function Servicos({
     const temInstalador = !!contratoForm.instaladorId && valorInstN > 0;
     const dados = {
       ...contratoForm,
-      nome, valor, custo,
+      // O custo do contrato agora é só o repasse ao colaborador (campo único).
+      nome, valor, custo: 0,
       servicosIds: contratoForm.servicosIds || [],
-      contaPagamento: contratoForm.contaPagamento || "",
-      pagarAoFaturar: !!contratoForm.pagarAoFaturar && !!contratoForm.contaPagamento && custo > 0,
+      bancoRecebimento: contratoForm.bancoRecebimento || bancoPadraoId,
       duracaoMeses: Number.isFinite(duracaoMesesN) && duracaoMesesN > 0 ? duracaoMesesN : null,
       instaladorId: temInstalador ? contratoForm.instaladorId : null,
       valorInstalador: temInstalador ? valorInstN : 0,
@@ -818,9 +925,8 @@ export default function Servicos({
     const temInstalador = !!c.instaladorId && valorInstContrato > 0;
 
     // A fatura nasce como COBRANÇA PENDENTE (pago:false). Nada de dinheiro se
-    // move agora — receita na Caixa e despesa do prestador só acontecem quando
-    // você marcar como paga. Snapshot de contaPagamento/pagarAoFaturar pra que
-    // o "marcar pago" funcione mesmo se o contrato mudar depois.
+    // move agora — receita (e custo) só entram no Banco do Serviço quando você
+    // marcar como paga. Snapshot do banco de recebimento e do custo.
     const novaVenda = {
       id: uid(),
       servicoId: primaryServicoId,
@@ -836,8 +942,7 @@ export default function Servicos({
       instaladorId: temInstalador ? c.instaladorId : null,
       valorInstalador: temInstalador ? valorInstContrato : 0,
       contaDestino: "Caixa do Negócio",
-      contaPagamento: c.contaPagamento || "",
-      pagarAoFaturar: !!c.pagarAoFaturar && !!c.contaPagamento && Number(c.custo || 0) > 0,
+      bancoRecebimento: c.bancoRecebimento || bancoPadraoId,
       pago: false,
       pagoEm: null,
       obs: `Fatura recorrente · ref ${ref}`,
@@ -864,6 +969,18 @@ export default function Servicos({
         sub="Catálogo de serviços com preço/custo + histórico de vendas. Receita entra na Caixa do Negócio (não toca em Finanças)."
         action={
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {cobrancasPorCliente.qtdGeral > 0 && (
+              <button onClick={() => setCobrancasAberto(true)}
+                      title="Ver e cobrar todas as faturas em aberto"
+                      style={{
+                        background: `${T.red}18`, border: `1px solid ${T.red}`, color: T.red,
+                        padding: "8px 14px", borderRadius: 6, cursor: "pointer",
+                        fontFamily: T.sans, fontSize: 12, fontWeight: 600,
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                      }}>
+                <AlertTriangle size={14} /> Cobranças ({cobrancasPorCliente.qtdGeral})
+              </button>
+            )}
             <button onClick={() => { setRelatorioAba("clientes"); setRelatorioAberto(true); }}
                     className="btn-ghost">
               <Receipt size={14} className="inline mr-1.5" /> Relatório do mês
@@ -912,6 +1029,175 @@ export default function Servicos({
               instaladores={instaladores}
               hidden={hidden}
             />
+          </div>
+        )}
+      </div>
+
+      {/* BANCO DO SERVIÇO · contas próprias */}
+      <div style={{
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        padding: 14, marginBottom: 14,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <button onClick={() => setBancoExpandido(v => !v)}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0,
+                           display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ color: T.gold }}>
+              {bancoExpandido ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+            <span className="label-eyebrow">🏦 Banco do Serviço ({(bancos || []).length} conta{(bancos || []).length !== 1 ? "s" : ""})</span>
+          </button>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <span className="num" style={{ fontSize: 13, color: T.gold, fontWeight: 600 }}>
+              Total: {hidden ? "•••" : fmt((bancos || []).reduce((s, b) => s + Number(b.saldo || 0), 0))}
+            </span>
+            <button onClick={abrirBancoNovo}
+              style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted,
+                       padding: "5px 10px", borderRadius: 5, cursor: "pointer", fontSize: 10,
+                       letterSpacing: ".05em", textTransform: "uppercase" }}>
+              <Plus size={11} className="inline mr-1" /> Conta
+            </button>
+          </div>
+        </div>
+
+        {bancoExpandido && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+              <button onClick={() => abrirLancamento("entrada")} className="btn-ghost" style={{ fontSize: 11, color: T.green, borderColor: T.green }}>
+                + Entrada
+              </button>
+              <button onClick={() => abrirLancamento("saida")} className="btn-ghost" style={{ fontSize: 11, color: T.red, borderColor: T.red }}>
+                − Saída
+              </button>
+            </div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {(bancos || []).map(b => (
+                <div key={b.id} style={{
+                  display: "grid", gridTemplateColumns: "1fr auto auto", gap: 10, alignItems: "center",
+                  padding: "8px 10px", borderRadius: 5, background: T.bgSoft,
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>{b.nome}</span>
+                  <span className="num" style={{ fontSize: 13, fontWeight: 600, color: Number(b.saldo || 0) >= 0 ? T.gold : T.red }}>
+                    {hidden ? "•••" : fmt(b.saldo || 0)}
+                  </span>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => abrirBancoEditar(b)} title="Editar" style={btnIcon()}><Edit3 size={12} /></button>
+                    <button onClick={() => excluirBanco(b)} title="Excluir" style={btnIcon({ color: T.red })}><Trash2 size={12} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* FINANCEIRO · CAIXA DO NEGÓCIO */}
+      <div style={{
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        padding: 14, marginBottom: 14,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <button onClick={() => setFinanceiroExpandido(v => !v)}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0,
+                           display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ color: T.gold }}>
+              {financeiroExpandido ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+            <DollarSign size={14} style={{ color: T.gold }} />
+            <span className="label-eyebrow">Financeiro · Caixa do Negócio</span>
+          </button>
+          <span className="num" style={{ fontSize: 13, color: T.gold, fontWeight: 600 }}>
+            Saldo: {hidden ? "•••" : fmt(financeiro.saldoAtual)}
+          </span>
+        </div>
+
+        {financeiroExpandido && (
+          <div style={{ marginTop: 12 }}>
+            {/* Controles */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ display: "flex", gap: 4 }}>
+                {[{ id: "mes", l: "Mês" }, { id: "3m", l: "3 meses" }, { id: "ano", l: "Ano" }, { id: "tudo", l: "Tudo" }].map(o => (
+                  <button key={o.id} onClick={() => setFinPeriodo(o.id)}
+                    style={{
+                      padding: "5px 12px", fontSize: 10.5, letterSpacing: ".04em", textTransform: "uppercase",
+                      borderRadius: 5, cursor: "pointer", fontWeight: 600,
+                      background: finPeriodo === o.id ? `${T.gold}22` : "transparent",
+                      border: `1px solid ${finPeriodo === o.id ? T.gold : T.border}`,
+                      color: finPeriodo === o.id ? T.gold : T.muted,
+                    }}>
+                    {o.l}
+                  </button>
+                ))}
+              </div>
+              <input value={finBusca} onChange={e => setFinBusca(e.target.value)}
+                     placeholder="Buscar na descrição…"
+                     style={{ flex: 1, minWidth: 140, padding: "6px 10px", fontSize: 12,
+                              background: T.bg, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 5 }} />
+              <button onClick={exportarFinanceiroCSV} className="btn-ghost" style={{ fontSize: 11 }}>
+                <FileText size={12} className="inline mr-1" /> CSV
+              </button>
+              <button onClick={() => setFinPdfAberto(true)} className="btn-ghost" style={{ fontSize: 11 }}>
+                <FileText size={12} className="inline mr-1" /> PDF
+              </button>
+            </div>
+
+            {/* Totais do período */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
+              <FinTotal label="Entradas" valor={financeiro.entradas} cor={T.green} hidden={hidden} />
+              <FinTotal label="Saídas (repasses)" valor={financeiro.saidas} cor={T.red} hidden={hidden} />
+              <FinTotal label="Resultado" valor={financeiro.resultado} cor={financeiro.resultado >= 0 ? T.green : T.red} hidden={hidden} />
+            </div>
+
+            {/* Gráfico mensal receita x despesa */}
+            {financeiro.serie.length > 0 ? (
+              <div style={{ width: "100%", height: 200, marginBottom: 12 }}>
+                <ResponsiveContainer>
+                  <BarChart data={financeiro.serie} margin={{ top: 6, right: 8, left: 4, bottom: 0 }}>
+                    <CartesianGrid stroke={T.border} strokeDasharray="2 4" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fill: T.muted, fontSize: 10 }} stroke={T.border} />
+                    <YAxis tick={{ fill: T.muted, fontSize: 10 }} stroke={T.border}
+                           tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                    <Tooltip
+                      contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11, color: T.ink }}
+                      formatter={(v, k) => [fmt(v), k === "receita" ? "Receita" : "Despesa"]} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} formatter={(k) => k === "receita" ? "Receita" : "Despesa"} />
+                    <Bar dataKey="receita" fill={T.green} radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="despesa" fill={T.red} radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div style={{ padding: 18, fontSize: 12, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
+                Sem movimentações no período.
+              </div>
+            )}
+
+            {/* Extrato */}
+            {financeiro.movs.length > 0 && (
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 6, overflow: "hidden" }}>
+                {financeiro.movs.slice(0, 200).map((h, i) => {
+                  const v = Number(h.valor || 0);
+                  const entrada = v >= 0;
+                  return (
+                    <div key={h.id || i} style={{
+                      display: "grid", gridTemplateColumns: "58px 1fr auto", gap: 10, alignItems: "center",
+                      padding: "7px 10px", borderTop: i === 0 ? "none" : `1px solid ${T.border}`,
+                      background: i % 2 ? T.bgSoft : "transparent",
+                    }}>
+                      <span style={{ fontFamily: T.mono, fontSize: 10.5, color: T.faint }}>
+                        {(h.data || "").split("-").reverse().slice(0, 2).join("/")}
+                      </span>
+                      <span style={{ fontSize: 12, color: T.ink, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {h.descricao || (entrada ? "Receita" : "Repasse")}
+                      </span>
+                      <span className="num" style={{ fontSize: 12.5, fontWeight: 600, color: entrada ? T.green : T.red }}>
+                        {entrada ? "+" : "−"} {hidden ? "•••" : fmt(Math.abs(v))}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1470,14 +1756,10 @@ export default function Servicos({
                      onChange={e => setVendaForm({ ...vendaForm, nome: e.target.value })}
                      placeholder="Ex.: Gestão de tráfego" />
             </Field>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Valor (R$)" required>
                 <input type="number" step="0.01" value={vendaForm.valor}
                        onChange={e => setVendaForm({ ...vendaForm, valor: e.target.value })} />
-              </Field>
-              <Field label="Custo (R$)">
-                <input type="number" step="0.01" value={vendaForm.custo}
-                       onChange={e => setVendaForm({ ...vendaForm, custo: e.target.value })} />
               </Field>
               <Field label="Data" required>
                 <input type="date" value={vendaForm.data}
@@ -1503,24 +1785,33 @@ export default function Servicos({
                   ))}
                 </select>
               </Field>
-              <Field label="Repasse ao colaborador (R$)" hint="Sai do Caixa do Negócio">
+              <Field label="Repasse ao colaborador (R$)" hint="Sai do Banco do Serviço (ao pagar o repasse)">
                 <input type="number" step="0.01" value={vendaForm.valorInstalador || ""}
                        onChange={e => setVendaForm({ ...vendaForm, valorInstalador: e.target.value })}
                        placeholder="0,00"
                        disabled={!vendaForm.instaladorId} />
               </Field>
             </div>
+            <Field label="Conta de recebimento (Banco do Serviço)">
+              <select value={vendaForm.bancoRecebimento || ""}
+                      onChange={e => setVendaForm({ ...vendaForm, bancoRecebimento: e.target.value })}>
+                {(bancos || []).length === 0 && <option value="">Caixa</option>}
+                {(bancos || []).map(b => (
+                  <option key={b.id} value={b.id}>{b.nome} · {fmt(b.saldo || 0)}</option>
+                ))}
+              </select>
+            </Field>
             <div style={{
               padding: "10px 12px", marginBottom: 4, borderRadius: 6,
               background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
               fontSize: 12, color: T.muted,
             }}>
               <span style={{ color: T.muted }}>Recebe em:</span>{" "}
-              <strong style={{ color: T.gold }}>→ Caixa do Negócio</strong>
+              <strong style={{ color: T.gold }}>→ {nomeBanco(vendaForm.bancoRecebimento || bancoPadraoId)} (Banco do Serviço)</strong>
               <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3, fontStyle: "italic" }}>
-                Valor entra na Caixa virtual do Negócio (não cria transação em Finanças).
+                Tudo no Banco do Serviço, independente das Finanças do cockpit.
                 {vendaForm.instaladorId && Number(vendaForm.valorInstalador) > 0 && (
-                  <> Repasse ao colaborador fica pendente e só sai do Caixa quando você clicar em "Pagar".</>
+                  <> Repasse ao colaborador fica pendente e só sai quando você clicar em "Pagar".</>
                 )}
               </div>
             </div>
@@ -1614,25 +1905,11 @@ export default function Servicos({
                    onChange={e => setContratoForm({ ...contratoForm, nome: e.target.value })}
                    placeholder="Ex.: CRM mensal · Tráfego pago · App XYZ" />
           </Field>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Valor (R$)" required>
               <input type="number" step="0.01" value={contratoForm.valor}
                      onChange={e => setContratoForm({ ...contratoForm, valor: e.target.value })}
                      placeholder="200" />
-            </Field>
-            <Field label="Pago ao prestador (R$)">
-              <input type="number" step="0.01" value={contratoForm.custo}
-                     onChange={e => {
-                       const novoCusto = e.target.value;
-                       const custoNum = Number(novoCusto) || 0;
-                       setContratoForm({
-                         ...contratoForm,
-                         custo: novoCusto,
-                         // Se desligou (custo 0), desativa pagarAoFaturar
-                         pagarAoFaturar: custoNum > 0 ? contratoForm.pagarAoFaturar : false,
-                       });
-                     }}
-                     placeholder="50" />
             </Field>
             <Field label="Recorrência" required>
               <select value={contratoForm.recorrencia}
@@ -1642,40 +1919,15 @@ export default function Servicos({
               </select>
             </Field>
           </div>
-          {Number(contratoForm.custo) > 0 && (
-            <div style={{
-              padding: 10, marginTop: 4, borderRadius: 6,
-              background: T.bgSoft, border: `1px solid ${T.border}`,
-            }}>
-              <Field label="Conta pagamento (de onde sai o pagamento ao prestador)">
-                <select value={contratoForm.contaPagamento}
-                        onChange={e => {
-                          const novaConta = e.target.value;
-                          setContratoForm({
-                            ...contratoForm,
-                            contaPagamento: novaConta,
-                            // Se limpou a conta, desliga o auto-pagamento
-                            pagarAoFaturar: novaConta ? contratoForm.pagarAoFaturar : false,
-                          });
-                        }}>
-                  <option value="">— sem pagamento automático —</option>
-                  {contas.map(c => (
-                    <option key={c.id} value={c.nome}>{c.nome} · {fmt(c.saldo || 0)}</option>
-                  ))}
-                </select>
-              </Field>
-              {contratoForm.contaPagamento && (
-                <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, cursor: "pointer" }}>
-                  <input type="checkbox" checked={!!contratoForm.pagarAoFaturar}
-                         onChange={e => setContratoForm({ ...contratoForm, pagarAoFaturar: e.target.checked })}
-                         style={{ width: 16, height: 16, accentColor: T.gold }} />
-                  <span style={{ fontSize: 12.5, color: T.muted }}>
-                    Criar despesa ao faturar (desconta {fmt(Number(contratoForm.custo) || 0)} de {contratoForm.contaPagamento})
-                  </span>
-                </label>
-              )}
-            </div>
-          )}
+          <Field label="Conta de recebimento (Banco do Serviço)">
+            <select value={contratoForm.bancoRecebimento || ""}
+                    onChange={e => setContratoForm({ ...contratoForm, bancoRecebimento: e.target.value })}>
+              {(bancos || []).length === 0 && <option value="">Caixa</option>}
+              {(bancos || []).map(b => (
+                <option key={b.id} value={b.id}>{b.nome}</option>
+              ))}
+            </select>
+          </Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Data de início">
               <input type="date" value={contratoForm.dataInicio}
@@ -1756,7 +2008,7 @@ export default function Servicos({
             background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
             fontSize: 11.5, color: T.muted, lineHeight: 1.5,
           }}>
-            💡 <strong style={{ color: T.ink }}>Pago ao prestador</strong> + <strong style={{ color: T.ink }}>Criar despesa ao faturar</strong> gera a despesa em Finanças (a receita vai pra Caixa do Negócio).
+            💡 Ao <strong style={{ color: T.ink }}>receber</strong> a fatura, a receita entra na conta escolhida do <strong style={{ color: T.ink }}>Banco do Serviço</strong> e o <strong style={{ color: T.ink }}>pago ao prestador</strong> sai da mesma conta. Nada toca as Finanças do cockpit.
           </div>
           <div className="flex gap-3 justify-end mt-6">
             <button className="btn-ghost" onClick={() => setContratoForm(null)}>Cancelar</button>
@@ -1963,6 +2215,168 @@ export default function Servicos({
           servicos={servicos}
           onClose={() => setFaturaDoc(null)}
         />
+      )}
+
+      {/* MODAL: financeiro em PDF */}
+      {finPdfAberto && (
+        <FinanceiroDocModal
+          financeiro={financeiro}
+          periodoLabel={periodoLabel}
+          onClose={() => setFinPdfAberto(false)}
+        />
+      )}
+
+      {/* MODAL: conta do Banco do Serviço */}
+      {bancoForm && (
+        <Modal title={bancoForm.id ? "Editar conta" : "Nova conta do Banco do Serviço"}
+               onClose={() => setBancoForm(null)}>
+          <Field label="Nome da conta" required>
+            <input value={bancoForm.nome} autoFocus
+                   onChange={e => setBancoForm({ ...bancoForm, nome: e.target.value })}
+                   placeholder="Ex.: Caixa · Conta PIX · Banco Inter" />
+          </Field>
+          <Field label="Saldo atual (R$)" hint="Saldo inicial / atual desta conta">
+            <input type="number" step="0.01" value={bancoForm.saldo}
+                   onChange={e => setBancoForm({ ...bancoForm, saldo: e.target.value })}
+                   placeholder="0,00" />
+          </Field>
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => setBancoForm(null)}>Cancelar</button>
+            <button className="btn-gold" onClick={salvarBanco}>
+              <Check size={13} className="inline mr-1" /> {bancoForm.id ? "Salvar" : "Criar conta"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* MODAL: lançamento manual (entrada/saída) */}
+      {lancamentoForm && (
+        <Modal title={lancamentoForm.tipo === "entrada" ? "Nova entrada" : "Nova saída"}
+               onClose={() => setLancamentoForm(null)}>
+          <Field label="Conta" required>
+            <select value={lancamentoForm.bancoId || ""}
+                    onChange={e => setLancamentoForm({ ...lancamentoForm, bancoId: e.target.value })}>
+              {(bancos || []).map(b => (
+                <option key={b.id} value={b.id}>{b.nome} · {fmt(b.saldo || 0)}</option>
+              ))}
+            </select>
+          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Valor (R$)" required>
+              <input type="number" step="0.01" value={lancamentoForm.valor} autoFocus
+                     onChange={e => setLancamentoForm({ ...lancamentoForm, valor: e.target.value })}
+                     placeholder="0,00" />
+            </Field>
+            <Field label="Data" required>
+              <input type="date" value={lancamentoForm.data}
+                     onChange={e => setLancamentoForm({ ...lancamentoForm, data: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Descrição">
+            <input value={lancamentoForm.descricao}
+                   onChange={e => setLancamentoForm({ ...lancamentoForm, descricao: e.target.value })}
+                   placeholder={lancamentoForm.tipo === "entrada" ? "Ex.: Aporte, reembolso…" : "Ex.: Despesa, ferramenta, taxa…"} />
+          </Field>
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => setLancamentoForm(null)}>Cancelar</button>
+            <button className="btn-gold" onClick={salvarLancamento}>
+              <Check size={13} className="inline mr-1" /> Lançar
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* MODAL: cobrança em massa (cobranças em aberto por cliente) */}
+      {cobrancasAberto && (
+        <Modal title={`Cobranças em aberto · ${fmt(cobrancasPorCliente.totalGeral)}`}
+               onClose={() => setCobrancasAberto(false)} wide>
+          {cobrancasPorCliente.grupos.length === 0 ? (
+            <div style={{ padding: 28, fontSize: 13, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
+              🎉 Nenhuma cobrança em aberto — tudo recebido!
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, color: T.muted, marginBottom: 12 }}>
+                {cobrancasPorCliente.qtdGeral} cobrança{cobrancasPorCliente.qtdGeral !== 1 ? "s" : ""} pendente{cobrancasPorCliente.qtdGeral !== 1 ? "s" : ""},
+                totalizando <strong style={{ color: T.red }}>{hidden ? "•••" : fmt(cobrancasPorCliente.totalGeral)}</strong> a receber.
+              </div>
+              <div style={{ display: "grid", gap: 10, maxHeight: "60vh", overflowY: "auto" }}>
+                {cobrancasPorCliente.grupos.map((g, gi) => (
+                  <div key={g.clienteId || `sem-${gi}`} style={{
+                    background: T.bgSoft, border: `1px solid ${T.border}`,
+                    borderLeft: `3px solid ${T.red}`, borderRadius: 8, padding: 12,
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
+                          {g.cliente?.nome || "Sem cliente vinculado"}
+                        </div>
+                        <div style={{ fontSize: 11, color: T.muted }}>
+                          {g.itens.length} cobrança{g.itens.length !== 1 ? "s" : ""} · {g.cliente?.telefone || "sem telefone"}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                        <span className="num" style={{ fontSize: 15, fontWeight: 700, color: T.red }}>
+                          {hidden ? "•••" : fmt(g.total)}
+                        </span>
+                        <button onClick={() => cobrarClienteWhatsApp(g)}
+                                disabled={!g.cliente}
+                                title={g.cliente ? "Cobrar no WhatsApp (mensagem com todos os itens)" : "Cliente sem cadastro"}
+                                style={{
+                                  display: "inline-flex", alignItems: "center", gap: 4,
+                                  background: g.cliente ? "#25D366" : T.border, border: "none",
+                                  color: "#fff", padding: "0 10px", height: 30, borderRadius: 5,
+                                  cursor: g.cliente ? "pointer" : "not-allowed",
+                                  fontSize: 10.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase",
+                                  opacity: g.cliente ? 1 : 0.5,
+                                }}>
+                          <MessageCircle size={12} /> Cobrar
+                        </button>
+                        <button onClick={() => receberTudoCliente(g)}
+                                title="Marcar todas as cobranças deste cliente como pagas"
+                                style={{
+                                  display: "inline-flex", alignItems: "center", gap: 4,
+                                  background: T.green, border: "none", color: "#fff",
+                                  padding: "0 10px", height: 30, borderRadius: 5, cursor: "pointer",
+                                  fontSize: 10.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase",
+                                }}>
+                          <Check size={12} /> Receber tudo
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      {g.itens.map(v => {
+                        const ref = v.faturaRef
+                          ? (v.faturaRef.length === 4 ? `Ano ${v.faturaRef}` : `${v.faturaRef.slice(5)}/${v.faturaRef.slice(0, 4)}`)
+                          : (v.data ? v.data.split("-").reverse().slice(0, 2).join("/") : "");
+                        return (
+                          <div key={v.id} style={{
+                            display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+                            fontSize: 12, color: T.muted, paddingTop: 4, borderTop: `1px dashed ${T.border}`,
+                          }}>
+                            <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {v.nome}{ref ? ` · ${ref}` : ""}
+                            </span>
+                            <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+                              <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(v.valor)}</span>
+                              <button onClick={() => marcarFaturaPaga(v)} title="Marcar esta como paga"
+                                      style={btnIcon({ color: T.green, minWidth: 26, minHeight: 26, padding: 3 })}>
+                                <Check size={12} />
+                              </button>
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => setCobrancasAberto(false)}>Fechar</button>
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -2179,6 +2593,125 @@ function FaturaDocModal({ venda: v, cliente, servicos = [], onClose }) {
         <div className="no-print" style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "14px 28px 22px" }}>
           <button className="btn-ghost" onClick={onClose}>Fechar</button>
           <button className="btn-gold" onClick={() => toPDF("fatura-doc-print")}>
+            <FileText size={13} className="inline mr-1" /> Imprimir / PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+  return createPortal(content, document.body);
+}
+
+function FinTotal({ label, valor, cor, hidden }) {
+  return (
+    <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 6, padding: "8px 10px" }}>
+      <div style={{ fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, marginBottom: 3 }}>
+        {label}
+      </div>
+      <div className="num" style={{ fontSize: 16, fontWeight: 700, color: cor }}>
+        {hidden ? "•••" : fmt(valor)}
+      </div>
+    </div>
+  );
+}
+
+// Documento imprimível do financeiro (resumo + série mensal + extrato).
+// Portal direto no body pra que o toPDF (print-only-this) isole só este card.
+function FinanceiroDocModal({ financeiro, periodoLabel, onClose }) {
+  const empresa = (() => {
+    try { return localStorage.getItem("af4:empresa-nome") || "Âncora"; }
+    catch { return "Âncora"; }
+  })();
+  const tipoLabel = (t) => ({
+    "venda-servico": "Receita · venda", "fatura-recorrente": "Receita · fatura",
+    "pago-instalador": "Repasse colaborador", "custo-servico": "Custo/prestador",
+    "ajuste-entrada": "Entrada manual", "ajuste-saida": "Saída manual",
+  }[t] || t);
+  const emissao = new Date().toLocaleDateString("pt-BR");
+
+  const content = (
+    <div className="modal-overlay-bg" onClick={onClose}
+         style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,.6)",
+                  display: "grid", placeItems: "center", padding: 20, overflowY: "auto" }}>
+      <div onClick={e => e.stopPropagation()}
+           style={{ width: "min(680px, 100%)", maxHeight: "92vh", overflowY: "auto", background: "#fff", borderRadius: 10 }}>
+        <div id="financeiro-doc-print" style={{ padding: 28, color: "#111", background: "#fff", fontFamily: "Georgia, serif" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #111", paddingBottom: 12, marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>{empresa}</div>
+              <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>Financeiro · Caixa do Negócio</div>
+            </div>
+            <div style={{ textAlign: "right", fontSize: 11, color: "#666" }}>
+              <div>Período: {periodoLabel}</div>
+              <div>Emissão: {emissao}</div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 24, marginBottom: 16, fontSize: 13 }}>
+            <div><span style={{ color: "#666" }}>Entradas:</span> <strong style={{ color: "#137a3b" }}>{fmt(financeiro.entradas)}</strong></div>
+            <div><span style={{ color: "#666" }}>Saídas:</span> <strong style={{ color: "#b42318" }}>{fmt(financeiro.saidas)}</strong></div>
+            <div><span style={{ color: "#666" }}>Resultado:</span> <strong>{fmt(financeiro.resultado)}</strong></div>
+            <div><span style={{ color: "#666" }}>Saldo Caixa:</span> <strong>{fmt(financeiro.saldoAtual)}</strong></div>
+          </div>
+
+          {financeiro.serie.length > 0 && (
+            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16, fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid #ccc" }}>
+                  <th style={{ textAlign: "left", padding: "5px 6px", color: "#666" }}>Mês</th>
+                  <th style={{ textAlign: "right", padding: "5px 6px", color: "#666" }}>Receita</th>
+                  <th style={{ textAlign: "right", padding: "5px 6px", color: "#666" }}>Despesa</th>
+                  <th style={{ textAlign: "right", padding: "5px 6px", color: "#666" }}>Resultado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {financeiro.serie.map(m => (
+                  <tr key={m.mes} style={{ borderBottom: "1px solid #eee" }}>
+                    <td style={{ padding: "5px 6px" }}>{m.label}</td>
+                    <td style={{ padding: "5px 6px", textAlign: "right", color: "#137a3b" }}>{fmt(m.receita)}</td>
+                    <td style={{ padding: "5px 6px", textAlign: "right", color: "#b42318" }}>{fmt(m.despesa)}</td>
+                    <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 600 }}>{fmt(m.lucro)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          <div style={{ fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "#888", marginBottom: 6 }}>Extrato</div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5 }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid #ccc" }}>
+                <th style={{ textAlign: "left", padding: "4px 6px", color: "#666" }}>Data</th>
+                <th style={{ textAlign: "left", padding: "4px 6px", color: "#666" }}>Tipo</th>
+                <th style={{ textAlign: "left", padding: "4px 6px", color: "#666" }}>Descrição</th>
+                <th style={{ textAlign: "right", padding: "4px 6px", color: "#666" }}>Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {financeiro.movs.map((h, i) => {
+                const v = Number(h.valor || 0);
+                return (
+                  <tr key={h.id || i} style={{ borderBottom: "1px solid #eee" }}>
+                    <td style={{ padding: "4px 6px" }}>{(h.data || "").split("-").reverse().join("/")}</td>
+                    <td style={{ padding: "4px 6px" }}>{tipoLabel(h.tipo)}</td>
+                    <td style={{ padding: "4px 6px" }}>{h.descricao || ""}</td>
+                    <td style={{ padding: "4px 6px", textAlign: "right", color: v >= 0 ? "#137a3b" : "#b42318" }}>
+                      {v >= 0 ? "+" : "−"} {fmt(Math.abs(v))}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <div style={{ fontSize: 11, color: "#999", textAlign: "center", borderTop: "1px solid #eee", marginTop: 12, paddingTop: 10 }}>
+            {empresa} · Financeiro do Caixa do Negócio · {emissao}
+          </div>
+        </div>
+
+        <div className="no-print" style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "14px 28px 22px" }}>
+          <button className="btn-ghost" onClick={onClose}>Fechar</button>
+          <button className="btn-gold" onClick={() => toPDF("financeiro-doc-print")}>
             <FileText size={13} className="inline mr-1" /> Imprimir / PDF
           </button>
         </div>
