@@ -205,6 +205,7 @@ export default function App() {
   return (
     <div style={{ minHeight: "100vh", background: T.bg, color: T.ink }}>
       <GlobalStyles />
+      <style>{`.invest-nav::-webkit-scrollbar{display:none}.invest-nav{scrollbar-width:none}`}</style>
 
       {/* Cabeçalho */}
       <header style={{
@@ -236,7 +237,7 @@ export default function App() {
                 <div style={{
                   position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 41,
                   background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
-                  padding: 10, width: 230, boxShadow: `0 8px 24px ${T.bg}99`,
+                  padding: 10, width: "min(230px, calc(100vw - 32px))", boxShadow: `0 8px 24px ${T.bg}99`,
                 }}>
                   <div style={{ fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, marginBottom: 8, fontWeight: 600 }}>
                     Paleta de cores
@@ -278,9 +279,12 @@ export default function App() {
       </header>
 
       {/* Navegação por abas */}
-      <nav style={{
-        display: "flex", gap: 4, flexWrap: "wrap", padding: "10px 16px",
+      <nav className="invest-nav" style={{
+        display: "flex", gap: 4, padding: "10px 16px",
         borderBottom: `1px solid ${T.border}`, background: T.card,
+        // No celular vira uma faixa rolável na horizontal (em vez de quebrar em
+        // várias linhas e ocupar meia tela).
+        flexWrap: "nowrap", overflowX: "auto", WebkitOverflowScrolling: "touch",
       }}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => irParaTab(t.id)}
@@ -289,7 +293,7 @@ export default function App() {
                     border: `1px solid ${tab === t.id ? T.gold : T.border}`,
                     background: tab === t.id ? `${T.gold}22` : "transparent",
                     color: tab === t.id ? T.gold : T.muted, fontWeight: tab === t.id ? 600 : 400,
-                    whiteSpace: "nowrap",
+                    whiteSpace: "nowrap", flexShrink: 0,
                   }}>
             {t.label}
           </button>
