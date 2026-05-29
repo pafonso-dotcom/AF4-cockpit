@@ -7,7 +7,6 @@ import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import { abrirWhatsApp } from "../../../lib/whatsapp.js";
 import { toPDF, toCSV } from "../../../lib/exportRelatorio.js";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
 import PageHeader from "../../ui/PageHeader.jsx";
 import ControleAnualServicos from "./ControleAnualServicos.jsx";
 import Field from "../../ui/Field.jsx";
@@ -440,8 +439,9 @@ export default function Servicos({
     if (valor > restante + 0.005) { toast.error(`Valor maior que o restante (${fmt(restante)}).`); return; }
     valor = +valor.toFixed(2);
 
+    const obs = (pagarForm.obs || "").trim();
     lancar({ bancoId: bancoPadraoId, tipo: "pago-instalador", data: pagarForm.data,
-             descricao: `Repasse a ${inst.nome} · ${mesCorrente}`, valor: -valor,
+             descricao: `Repasse a ${inst.nome} · ${mesCorrente}${obs ? ` · ${obs}` : ""}`, valor: -valor,
              instaladorId: inst.id, repasseMes: mesCorrente });
 
     // Quita o mês só quando o acumulado cobre o total.
@@ -1249,25 +1249,7 @@ export default function Servicos({
               <FinTotal label="Resultado" valor={financeiro.resultado} cor={financeiro.resultado >= 0 ? T.green : T.red} hidden={hidden} />
             </div>
 
-            {/* Gráfico mensal receita x despesa */}
-            {financeiro.serie.length > 0 ? (
-              <div style={{ width: "100%", height: 200, marginBottom: 12 }}>
-                <ResponsiveContainer>
-                  <BarChart data={financeiro.serie} margin={{ top: 6, right: 8, left: 4, bottom: 0 }}>
-                    <CartesianGrid stroke={T.border} strokeDasharray="2 4" vertical={false} />
-                    <XAxis dataKey="label" tick={{ fill: T.muted, fontSize: 10 }} stroke={T.border} />
-                    <YAxis tick={{ fill: T.muted, fontSize: 10 }} stroke={T.border}
-                           tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
-                    <Tooltip
-                      contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11, color: T.ink }}
-                      formatter={(v, k) => [fmt(v), k === "receita" ? "Receita" : "Despesa"]} />
-                    <Legend wrapperStyle={{ fontSize: 11 }} formatter={(k) => k === "receita" ? "Receita" : "Despesa"} />
-                    <Bar dataKey="receita" fill={T.green} radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="despesa" fill={T.red} radius={[3, 3, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
+            {financeiro.movs.length === 0 && (
               <div style={{ padding: 18, fontSize: 12, color: T.faint, fontStyle: "italic", textAlign: "center" }}>
                 Sem movimentações no período.
               </div>
@@ -2458,6 +2440,11 @@ export default function Servicos({
                      onChange={e => setPagarForm({ ...pagarForm, data: e.target.value })} />
             </Field>
           </div>
+          <Field label="Observação">
+            <input value={pagarForm.obs || ""}
+                   onChange={e => setPagarForm({ ...pagarForm, obs: e.target.value })}
+                   placeholder="Ex.: adiantamento, PIX, vale, parte do mês…" />
+          </Field>
           <div style={{ fontSize: 11.5, color: T.faint, marginTop: 8, fontStyle: "italic" }}>
             Sai do Banco do Serviço (conta padrão). Pode pagar em partes — só fica "quitado" quando o total for atingido.
           </div>
