@@ -91,6 +91,33 @@ export default function AReceberEDividas({
     // Edição → comportamento simples: atualiza só esta entrada (não regenera parcelas)
     if (form.id) {
       const single = { ...data, valor };
+
+      // Ocorrência de Despesa Fixa: edita só ESTA ocorrência (valor/vencimento).
+      // O template da fixa e as demais ocorrências ficam intactos.
+      if (form._origem === "fixa" && form._fixaOccId) {
+        setFixaOcorrencias?.((fixaOcorrencias || []).map(o =>
+          o.id === form._fixaOccId
+            ? { ...o, valor, ...(form.vencimento ? { dataVencimento: form.vencimento } : {}) }
+            : o
+        ));
+        toast.success("Ocorrência atualizada (só este mês).");
+        setForm(null);
+        return;
+      }
+
+      // Despesa avulsa: edita a transação de origem.
+      if (form._origem === "transacao" && form._transacaoId) {
+        setTransacoes?.((transacoes || []).map(t =>
+          t.id === form._transacaoId
+            ? { ...t, descricao: form.nome, valor, categoria: form.categoria,
+                ...(form.vencimento ? { vencimento: form.vencimento } : {}), obs: form.obs }
+            : t
+        ));
+        toast.success("Despesa atualizada.");
+        setForm(null);
+        return;
+      }
+
       if (form.tipo === "receber") {
         setDevedores(devedores.map(d => d.id === form.id ? single : d));
       } else {
@@ -143,6 +170,46 @@ export default function AReceberEDividas({
   };
 
   const excluir = async (item, tipo) => {
+    // Parcela de cartão: não dá pra "apagar 1 parcela" sem recalcular
+    // fatura/limite — direciona pro Cartões (onde se exclui o parcelamento todo).
+    if (item._origem === "parcela") {
+      toast.info("Remova o parcelamento em Cartões.");
+      return;
+    }
+
+    // Ocorrência de Despesa Fixa: remove SÓ aquela do mês (as outras 11 ficam).
+    if (item._origem === "fixa" && item._fixaOccId) {
+      const ok = await confirm({
+        title: `Excluir "${item.nome}" (${item.obs || "este mês"})?`,
+        body: "Remove só esta ocorrência do mês. As demais cobranças da fixa continuam. Pode desfazer logo após.",
+        danger: true, confirmLabel: "Excluir só este mês",
+      });
+      if (!ok) return;
+      const backupOcc = fixaOcorrencias;
+      setFixaOcorrencias?.((fixaOcorrencias || []).filter(o => o.id !== item._fixaOccId));
+      toast.success(`"${item.nome}" (${item.obs || "este mês"}) excluído.`, {
+        action: { label: "Desfazer", onClick: () => setFixaOcorrencias?.(backupOcc) },
+      });
+      return;
+    }
+
+    // Despesa avulsa: o item virtual É uma transação — remove a transação.
+    if (item._origem === "transacao" && item._transacaoId) {
+      const ok = await confirm({
+        title: `Excluir "${item.nome}"?`,
+        body: "Remove a despesa de Transações. Pode desfazer logo após.",
+        danger: true, confirmLabel: "Excluir",
+      });
+      if (!ok) return;
+      const backupTx = transacoes;
+      setTransacoes?.((transacoes || []).filter(t => t.id !== item._transacaoId));
+      toast.success(`"${item.nome}" excluído.`, {
+        action: { label: "Desfazer", onClick: () => setTransacoes?.(backupTx) },
+      });
+      return;
+    }
+
+    // Dívida/recebimento tradicional.
     const ok = await confirm({
       title: `Excluir "${item.nome}"?`,
       body: "A entrada será removida — você pode desfazer logo após.",
@@ -768,31 +835,17 @@ export default function AReceberEDividas({
             _transacaoId: item._transacaoId || null,
           })}
           onEditar={(item) => {
-            if (item._origem === "fixa") {
-              toast.info("Edite esta fixa em Despesas Fixas.");
-              return;
-            }
             if (item._origem === "parcela") {
+              // Parcelas de cartão não têm modelo de "editar 1 parcela" sem
+              // recalcular fatura/limite — direciona pro lugar certo.
               toast.info("Edite o parcelamento em Cartões.");
               return;
             }
-            if (item._origem === "transacao") {
-              toast.info("Edite esta despesa em Transações.");
-              return;
-            }
+            // Fixa, transação avulsa e dívida tradicional: edita aqui mesmo.
+            // O dispatch de qual fonte atualizar acontece em save().
             setForm({ ...item, tipo: "dividas" });
           }}
-          onExcluir={(item) => {
-            if (item._origem === "fixa" || item._origem === "parcela") {
-              toast.info("Remova esta entrada na aba original (Despesas Fixas / Cartões).");
-              return;
-            }
-            if (item._origem === "transacao") {
-              toast.info("Remova esta despesa em Transações.");
-              return;
-            }
-            excluir(item, "dividas");
-          }}
+          onExcluir={(item) => excluir(item, "dividas")}
           onWhats={(item) => whatsapp.cobrarDivida(item)}
           dueLabel={dueLabel}
           hidden={hidden}
