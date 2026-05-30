@@ -150,7 +150,9 @@ export default function NovaTransacaoModal({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
           <div>
             <div style={lbl}>Categoria</div>
-            <select value={form.categoria} onChange={e => set("categoria", e.target.value)} style={inp}>
+            <select value={form.categoria}
+                    onChange={e => setForm(f => ({ ...f, categoria: e.target.value, subcategoria: "" }))}
+                    style={inp}>
               <option value="">— selecione —</option>
               {catsDoTipo.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
             </select>
@@ -162,6 +164,22 @@ export default function NovaTransacaoModal({
             </select>
           </div>
         </div>
+
+        {/* Subcategoria — só aparece se a categoria escolhida tem subs */}
+        {(() => {
+          const catObj = catsDoTipo.find(c => c.nome === form.categoria);
+          const subs = catObj?.subcategorias || [];
+          if (subs.length === 0) return null;
+          return (
+            <div style={{ marginBottom: 12 }}>
+              <div style={lbl}>Subcategoria (opcional)</div>
+              <select value={form.subcategoria || ""} onChange={e => set("subcategoria", e.target.value)} style={inp}>
+                <option value="">— Nenhuma —</option>
+                {subs.map(s => <option key={s.id} value={s.nome}>{s.nome}</option>)}
+              </select>
+            </div>
+          );
+        })()}
 
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: T.ink, cursor: "pointer", marginBottom: 14 }}>
           <input type="checkbox" checked={!!form.compensado}
