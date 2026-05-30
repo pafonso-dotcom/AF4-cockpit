@@ -913,6 +913,12 @@ export default function App() {
             {tab === "compras" && (
               <Compras compras={compras} setCompras={setCompras} />
             )}
+            {tab === "habitos" && (
+              <Habitos habitos={habitos} setHabitos={setHabitos} />
+            )}
+            {tab === "diario" && (
+              <Diario diario={diario} setDiario={setDiario} />
+            )}
           </div>
         )}
 

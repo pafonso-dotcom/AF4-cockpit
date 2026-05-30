@@ -10,6 +10,7 @@ import {
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
+  BookOpen, Repeat,
 } from "lucide-react";
 
 /**
@@ -111,6 +112,8 @@ function HeaderHorizontal({
       { id: "sugestoes",  label: "Sugestões",      icon: Lightbulb },
       { id: "metas",      label: "Metas",          icon: Target },
       { id: "compras",    label: "Compras",        icon: Tag },
+      { id: "habitos",    label: "Hábitos",        icon: Repeat },
+      { id: "diario",     label: "Diário",         icon: BookOpen },
     ],
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
@@ -476,6 +479,8 @@ function HeaderVertical({
       { id: "sugestoes",  label: "Sugestões",      icon: Lightbulb },
       { id: "metas",      label: "Metas",          icon: Target },
       { id: "compras",    label: "Compras",        icon: Tag },
+      { id: "habitos",    label: "Hábitos",        icon: Repeat },
+      { id: "diario",     label: "Diário",         icon: BookOpen },
     ],
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
