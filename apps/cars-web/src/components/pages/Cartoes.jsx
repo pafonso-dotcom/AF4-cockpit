@@ -498,10 +498,15 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                 grupos[idxPorChave[ch]].itens.push(p);
               });
               const comItens = grupos.filter(g => g.itens.length > 0);
-              const primeiraChave = comItens[0]?.chave;
               return comItens.map(grupo => {
-                const totalGrupo = grupo.itens.reduce((s, p) => s + (Number(p.valorTotal) || 0), 0);
-                const abertoPadrao = grupo.chave === primeiraChave;
+                // Total que FALTA pagar no grupo (restante = parcelas ainda não pagas).
+                const totalGrupo = grupo.itens.reduce((s, p) => {
+                  const valorParc = p.valorParcela || (p.totalParcelas ? (Number(p.valorTotal) || 0) / p.totalParcelas : 0);
+                  const pagas = (p.parcelasPagas || []).length;
+                  const restantes = Math.max(0, (p.totalParcelas || 0) - pagas);
+                  return s + valorParc * restantes;
+                }, 0);
+                const abertoPadrao = false; // sempre começa fechado
                 const aberto = grupo.chave in parcGrupoOverride ? parcGrupoOverride[grupo.chave] : abertoPadrao;
                 return (
                   <div key={grupo.chave}>
@@ -519,7 +524,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         <span style={{ fontSize: 11, color: T.faint }}>· {grupo.itens.length} {grupo.itens.length === 1 ? "compra" : "compras"}</span>
                       </span>
                       <span className="num" style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap" }}>
-                        {hidden ? "•••" : fmt(totalGrupo)}
+                        {hidden ? "•••" : fmt(totalGrupo)} <span style={{ fontSize: 9.5, color: T.faint, fontWeight: 500 }}>a pagar</span>
                       </span>
                     </div>
                     {/* Compras do cartão (escondidas quando recolhido) */}
