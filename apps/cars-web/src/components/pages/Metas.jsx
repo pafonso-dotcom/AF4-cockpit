@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Plus, Trash2, Edit3, Repeat, CheckCircle2, PiggyBank } from "lucide-react";
+import { Plus, Trash2, Edit3, Repeat, CheckCircle2, PiggyBank, TrendingUp } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, uid, todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import { gerarOcorrencias } from "../../lib/fixas.js";
 import { parseValorBR } from "../../lib/importExport.js";
+import { valorCdbHoje, getCdiAnual } from "../../lib/cdbMeta.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
@@ -23,6 +24,7 @@ export default function Metas({
   fixas = [], setFixas, fixaOcorrencias = [], setFixaOcorrencias,
   categorias = [], contas = [], setContas,
   transacoes = [], setTransacoes,
+  ativos = [], setAtivos,
 }) {
   const [form, setForm] = useState(null);
   const [resgate, setResgate] = useState(null); // { meta, valor, conta } — modal de uso/resgate
@@ -139,6 +141,67 @@ export default function Metas({
     }
     const rendimento = +(futuro - saldo).toFixed(2);
     return rendimento > 0.005 ? { rendimento, projetado: +(saldo + rendimento).toFixed(2) } : null;
+  };
+
+  // CDB de verdade da meta (ativo no módulo Investimentos vinculado à meta).
+  const cdbDe = (m) => (ativos || []).find(a => a._cdbMeta && a._metaId === m.id);
+  const valorCdbDe = (m) => {
+    const cdb = cdbDe(m);
+    if (!cdb) return 0;
+    return Number(cdb.qtd || 1) * (Number(cdb.preco) || 0);
+  };
+
+  // Aplica o saldo do cofrinho num CDB de verdade (Pós-CDI) na carteira.
+  // Move dinheiro: debita a conta-cofrinho e cria/incrementa o ativo CDB.
+  // Patrimônio igual (conta − , investimento +), mas agora rende a CDI sozinho.
+  const aplicarEmCdb = async (m) => {
+    if (!setAtivos) { toast.error("Módulo Investimentos indisponível."); return; }
+    const cofre = cofreDe(m);
+    const saldo = Number(cofre?.saldo) || 0;
+    if (!cofre || saldo <= 0.005) { toast.info("Sem saldo no cofrinho pra aplicar."); return; }
+    const ok = await confirm({
+      title: `Aplicar ${fmt(saldo)} em CDB?`,
+      body: `O dinheiro do cofrinho "${m.nome}" vira uma aplicação CDB Pós-CDI de verdade na sua carteira (Investimentos), rendendo a CDI (${getCdiAnual().toFixed(2)}% a.a.). Seu patrimônio não muda — só passa a render.`,
+      confirmLabel: "Aplicar em CDB",
+    });
+    if (!ok) return;
+    const hojeISO = todayISO();
+    const transferId = uid();
+    const catTransf = (categorias || []).find(c => /transfer|invest|aporte/i.test(c.nome || ""))?.nome || "";
+
+    // 1) Esvazia o cofrinho (transferência de saída — não é gasto).
+    setContas?.((contas || []).map(c => c.id === cofre.id
+      ? { ...c, saldo: +(((Number(c.saldo) || 0) - saldo)).toFixed(2) } : c));
+
+    // 2) Cria/incrementa o ativo CDB vinculado à meta.
+    const existente = cdbDe(m);
+    if (existente) {
+      const qtd = Number(existente.qtd) || 1;
+      const valorAtual = qtd * (Number(existente.preco) || 0);
+      const novoTotal = valorAtual + saldo;
+      const novoPm = +(((Number(existente.pm) || 0) * qtd + saldo)).toFixed(2); // custo acumulado
+      setAtivos((ativos || []).map(a => a.id === existente.id
+        ? { ...a, qtd: 1, pm: novoPm, preco: +novoTotal.toFixed(2), _aplicadoEm: hojeISO, _capituladoEm: hojeISO }
+        : a));
+    } else {
+      setAtivos([...(ativos || []), {
+        id: uid(), ticker: `CDB ${m.nome}`.slice(0, 24), nome: `CDB · ${m.nome}`,
+        tipo: "cdb", segmento: "Pós-fixado (CDI)",
+        qtd: 1, pm: +saldo.toFixed(2), preco: +saldo.toFixed(2),
+        _cdbMeta: true, _metaId: m.id, _aplicadoEm: hojeISO, _capituladoEm: hojeISO,
+      }]);
+    }
+
+    // 3) Par de transações marcado como transferência (cofrinho → investimento).
+    if (setTransacoes) {
+      setTransacoes([
+        { id: uid(), tipo: "despesa", valor: saldo, descricao: `Aplicação CDB · ${m.nome}`,
+          categoria: catTransf, conta: cofre.nome, data: hojeISO, compensado: true,
+          fixa: false, vencimento: null, transferenciaId: transferId, obs: "Cofrinho aplicado em CDB" },
+        ...(transacoes || []),
+      ]);
+    }
+    toast.success(`${fmt(saldo)} aplicado em CDB Pós-CDI pra "${m.nome}". Agora rende a CDI na carteira.`);
   };
 
   // FASE 3 — Resgatar / usar a meta.
@@ -362,6 +425,55 @@ export default function Metas({
                         <PiggyBank size={12} /> Usar / resgatar
                       </button>
                     )}
+                    {setAtivos && (
+                      <button onClick={() => aplicarEmCdb(m)}
+                              title="Move o saldo do cofrinho pra uma aplicação CDB de verdade que rende a CDI"
+                              style={{
+                                marginTop: 8, width: "100%",
+                                background: T.gold, color: T.bg,
+                                border: "none", padding: "7px 14px", borderRadius: 6,
+                                fontSize: 11, fontWeight: 700, cursor: "pointer",
+                                letterSpacing: ".05em", textTransform: "uppercase",
+                                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                              }}>
+                        <TrendingUp size={12} /> Aplicar em CDB
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* CDB de verdade da meta — valor atual rendendo a CDI */}
+              {(() => {
+                const cdb = cdbDe(m);
+                const valorCdb = valorCdbDe(m);
+                if (!cdb || valorCdb <= 0.005) return null;
+                const custo = Number(cdb.pm) || 0;
+                const rend = +(valorCdb - custo).toFixed(2);
+                return (
+                  <div style={{
+                    marginTop: 12, padding: 12, borderRadius: 8,
+                    background: `${T.green}11`, border: `1px solid ${T.green}33`,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                      <span style={{ fontSize: 11.5, color: T.muted, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <TrendingUp size={14} style={{ color: T.green }} /> Aplicado em CDB (Pós-CDI)
+                      </span>
+                      <span className="num" style={{ fontSize: 15, fontWeight: 700, color: T.ink }}>
+                        {hidden ? "•••" : fmt(valorCdb)}
+                      </span>
+                    </div>
+                    {rend > 0.005 && (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 6, paddingTop: 6, borderTop: `1px dashed ${T.green}33` }}>
+                        <span style={{ fontSize: 10.5, color: T.faint }}>Rendimento acumulado</span>
+                        <span className="num" style={{ fontSize: 11.5, fontWeight: 600, color: T.green }}>
+                          +{hidden ? "•••" : fmt(rend)}
+                        </span>
+                      </div>
+                    )}
+                    <div style={{ fontSize: 10, color: T.faint, marginTop: 8, fontStyle: "italic" }}>
+                      Rende a CDI sozinho · resgate em Investimentos (vender o ativo).
+                    </div>
                   </div>
                 );
               })()}

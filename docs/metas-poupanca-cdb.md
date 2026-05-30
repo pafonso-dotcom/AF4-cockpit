@@ -76,12 +76,20 @@ Quando a meta é USADA (compra realizada):
 - [x] Modo **"Devolver"**: transferência cofrinho → conta normal (não é gasto)
 - [x] Resgate parcial (valor editável, máx = saldo do cofrinho); abate de `meta.atual`
 
+### Fase 4 — Cofrinho vira CDB de verdade · ✅ FEITO
+- [x] Botão **"Aplicar em CDB"** no card da meta: move o saldo do cofrinho pra um
+      ativo CDB Pós-CDI de verdade no módulo Investimentos (vinculado à meta)
+- [x] O CDB **rende a CDI automaticamente** — efeito diário em `App.jsx`
+      capitaliza o `preco` desde a data de aplicação (`lib/cdbMeta.js`)
+- [x] Card mostra "Aplicado em CDB" com valor atual + rendimento acumulado
+- [x] CDBs de meta ficam fora da cotação de mercado (sim e real) pra não
+      sobrescrever o rendimento CDI
+- Resgate: vender o ativo no módulo Investimentos (fluxo de venda já existente)
+
 ## Pontos em aberto (decidir depois)
-- A poupança da meta é uma **conta-cofrinho real** (aparece em Contas) ou um
-  **saldo virtual** dentro da meta? (Conta real = saldo separado e visível;
-  virtual = mais simples, mas não aparece como conta.)
-- Rendimento só projetado, ou um dia virar aplicação CDB de verdade no Invest?
-- Várias metas = várias poupanças, ou uma reserva compartilhada?
+- Reaplicar automaticamente os próximos aportes no CDB (hoje é manual via botão)?
+- Resgate do CDB direto pelo card da meta (hoje resgata em Investimentos)?
+- Várias metas = vários CDBs (hoje), ou um CDB consolidado?
 
 ## Relação com o desbloqueio já feito
 Já foi liberado editar/excluir os itens (fixas/avulsas) direto na tela
