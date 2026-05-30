@@ -161,7 +161,7 @@ function Brand() {
       }}>A</div>
       <div>
         <div style={{ fontSize: 11, letterSpacing: ".25em", textTransform: "uppercase", fontWeight: 500, color: "var(--tx)" }}>
-          AF4 Cockpit
+          Aurum Finanças
         </div>
         <div style={{ fontSize: 9, letterSpacing: ".2em", color: "var(--td)", marginTop: 2 }}>
           Multi-Módulo · v3

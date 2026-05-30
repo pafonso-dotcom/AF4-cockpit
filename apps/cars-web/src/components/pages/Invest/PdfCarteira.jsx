@@ -119,7 +119,7 @@ export default function PdfCarteira({ ativos = [], proventos = [], operacoes = [
               Carteira de Investimentos
             </h1>
             <div style={{ fontSize: 13, color: "#666", marginTop: 4 }}>
-              AF4 Cockpit · Relatório completo · {todayISO()}
+              Aurum Finanças · Relatório completo · {todayISO()}
             </div>
           </div>
 

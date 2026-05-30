@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "AF4 Cockpit · Painel de Comando — finanças, investimentos, loja AF4.",
+  "description": "Aurum Finanças · Painel de Comando — finanças, investimentos, loja AF4.",
   "scripts": {
     "dev": "vite",
     "prebuild": "node scripts/clean-stale.mjs",

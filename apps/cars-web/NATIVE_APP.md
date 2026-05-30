@@ -1,4 +1,4 @@
-# AF4 Cockpit · App Nativo (iOS / Android / macOS)
+# Aurum Finanças · App Nativo (iOS / Android / macOS)
 
 O cockpit já é **PWA** — basta abrir no Safari/Chrome do celular e usar "Adicionar à tela inicial" pra ele funcionar como app, com ícone, sem barra de URL, e acesso offline.
 

@@ -1,4 +1,4 @@
-# AF4 Cockpit
+# Aurum Finanças
 
 Sistema completo de finanças pessoais + gestão da Loja AF4.
 Construído em React + Vite + Tailwind. 100% local (localStorage), sem servidor, sem custo recorrente.

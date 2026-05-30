@@ -52,7 +52,7 @@ export const importBackup = async (file) => {
   }
 
   if (payload.app !== "af4-cockpit") {
-    return { ok: false, error: "Este arquivo não é um backup do AF4 Cockpit" };
+    return { ok: false, error: "Este arquivo não é um backup do Aurum Finanças" };
   }
 
   if (!payload.data || typeof payload.data !== "object") {
