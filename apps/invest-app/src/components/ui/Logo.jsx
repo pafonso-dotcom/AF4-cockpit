@@ -10,16 +10,21 @@ export function LogoMark({ size = 28 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="Aurum" style={{ flexShrink: 0 }}>
       <defs>
-        <linearGradient id="aurumGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#c9a961" />
-          <stop offset="1" stopColor="#e6cd8f" />
+        <linearGradient id="aurumGold" x1="0" y1="0" x2="0.85" y2="1">
+          <stop offset="0" stopColor="#f6e6b0" />
+          <stop offset="0.5" stopColor="#d9b450" />
+          <stop offset="1" stopColor="#9a7322" />
         </linearGradient>
       </defs>
-      <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="#0c0b0a" stroke="#c9a96155" strokeWidth="1.5" />
-      <g fill="none" stroke="url(#aurumGrad)" strokeWidth="6.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 47 L32 16 L46 47" />
-        <path d="M24 36 H40" />
-      </g>
+      <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="#0c0b0a" stroke="#c9a96144" strokeWidth="1.5" />
+      {/* "A" dourado facetado */}
+      <path d="M32,12 L50,52 L41,52 L37,41 L27,41 L23,52 L14,52 Z M32,25 L36,36 L28,36 Z"
+            fill="url(#aurumGold)" fillRule="evenodd" />
+      {/* dobra 3D: metade direita mais escura */}
+      <path d="M32,12 L50,52 L41,52 L37,41 L32,41 L32,36 L36,36 L32,25 Z"
+            fill="#3a2b08" opacity="0.28" />
+      {/* brilho na aresta central */}
+      <path d="M32,12 L32,25" stroke="#fff3cf" strokeWidth="0.8" opacity="0.5" />
     </svg>
   );
 }
