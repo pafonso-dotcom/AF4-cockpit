@@ -495,7 +495,8 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                 })}
               </div>
             );
-          })}
+            });
+          })()}
         </div>
       )}
 
