@@ -28,6 +28,7 @@ import Proventos from "./components/pages/Invest/Proventos.jsx";
 import RelatoriosInvest from "./components/pages/Invest/RelatoriosInvest.jsx";
 import CalculadoraRenda from "./components/pages/Invest/CalculadoraRenda.jsx";
 import Projecao from "./components/pages/Invest/Projecao.jsx";
+import EvolucaoPatrimonio from "./components/pages/Invest/EvolucaoPatrimonio.jsx";
 import AnaliseTrade from "./components/pages/Trade/Analise.jsx";
 
 /* ============================================================
@@ -42,6 +43,7 @@ const lset = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } cat
 const TABS = [
   { id: "investimentos", label: "Painel" },
   { id: "carteira", label: "Carteira" },
+  { id: "evolucao", label: "Evolução" },
   { id: "objetivos", label: "Objetivos" },
   { id: "modelo", label: "Carteira modelo" },
   { id: "monte-carteira", label: "Monte sua carteira" },
@@ -72,6 +74,7 @@ export default function App() {
 
   // Estado de Investimentos
   const [ativos, setAtivos] = useState([]);
+  const [patrimonioHistorico, setPatrimonioHistorico] = useState([]);
   const [objetivosCarteira, setObjetivosCarteira] = useState([]);
   const [carteirasModeloCustom, setCarteirasModeloCustom] = useState([]);
   const [modeloAtivoId, setModeloAtivoId] = useState("idv-iniciante");
@@ -114,6 +117,7 @@ export default function App() {
       setContas(data.contas || []);
       setCategorias(data.categorias || []);
       setTransacoes(data.transacoes || []);
+      setPatrimonioHistorico(data.patrimonioHistorico || []);
     }
     // Sem dados salvos = carteira começa vazia (R$ 0,00). O cliente adiciona os próprios.
     setApiKeys(lget(KEYS_KEY, { brapi: "", alphavantage: "", anthropic: "", useRealMarket: true }));
@@ -128,10 +132,32 @@ export default function App() {
       ativos, objetivosCarteira, carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       tradeAnalisesIdV, tradeWatchlist, contas, categorias, transacoes,
+      patrimonioHistorico,
     });
   }, [loading, ativos, objetivosCarteira, carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
-      tradeAnalisesIdV, tradeWatchlist, contas, categorias, transacoes]);
+      tradeAnalisesIdV, tradeWatchlist, contas, categorias, transacoes, patrimonioHistorico]);
+
+  /* ---------- Snapshot diário do patrimônio (pra Evolução) ---------- */
+  useEffect(() => {
+    if (loading) return;
+    const hoje = new Date().toISOString().slice(0, 10);
+    const total = (ativos || []).reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
+    const investido = (ativos || []).reduce((s, a) => s + Number(a.qtd || 0) * Number(a.pm ?? a.precoMedio ?? 0), 0);
+    if (total <= 0 && investido <= 0) return; // carteira vazia → não registra
+    const ponto = { data: hoje, total: +total.toFixed(2), investido: +investido.toFixed(2) };
+    setPatrimonioHistorico(prev => {
+      const arr = [...(prev || [])];
+      const i = arr.findIndex(p => p.data === hoje);
+      if (i >= 0) {
+        if (arr[i].total === ponto.total && arr[i].investido === ponto.investido) return prev; // sem mudança
+        arr[i] = ponto;
+      } else {
+        arr.push(ponto);
+      }
+      return arr;
+    });
+  }, [loading, ativos]);
 
   useEffect(() => { if (!loading) lset(KEYS_KEY, apiKeys); }, [loading, apiKeys]);
 
@@ -355,6 +381,9 @@ export default function App() {
                            onProjetar={(ativo) => { setProjetarAlvo(ativo); setTab("projecao"); }}
                            hidden={hidden} />
           </div>
+        )}
+        {tab === "evolucao" && (
+          <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} />
         )}
         {tab === "objetivos" && (
           <div className="px-6 md:px-10">
