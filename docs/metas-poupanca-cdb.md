@@ -62,10 +62,13 @@ Quando a meta é USADA (compra realizada):
 - [x] Par de transações marcado com `transferenciaId` (não é gasto líquido); patrimônio intacto
 - [x] Modal meta-aware ("Guardar para…", "poupança não gasto", botão "🐷 Guardar na meta")
 
-### Fase 2 — Rendimento projetado (CDI) · ~1 sessão
-- [ ] Campo de rendimento na meta (projeção a CDI, taxa reaproveitada do Invest)
-- [ ] Card da meta: aportado · rendimento estimado · falta pro alvo
-- [ ] Histórico de aportes na meta
+### Fase 2 — Rendimento projetado (CDI) · ✅ FEITO
+- [x] Card da meta mostra "Se rendesse a CDI (X% a.a.) → +rendimento → projetado"
+- [x] Cada aporte capitaliza a CDI desde a sua data real (taxa reaproveitada do
+      Invest via localStorage `af4-cdi-anual`, default 10,5%)
+- [x] Tooltip deixa claro que é estimativa, não rendimento real creditado
+- Obs: é projeção pura (não credita o valor). Virar aplicação CDB real =
+  ainda em aberto (ver "Pontos em aberto").
 
 ### Fase 3 — Resgate / uso · ✅ FEITO
 - [x] Card da meta mostra saldo do cofrinho + botão "Usar / resgatar"

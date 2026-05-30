@@ -112,6 +112,35 @@ export default function Metas({
   const cofreNomeDe = (m) => `🐷 ${m.nome}`;
   const cofreDe = (m) => (contas || []).find(c => c.nome === cofreNomeDe(m));
 
+  // FASE 2 — Rendimento projetado a CDI.
+  // Cada movimento do cofrinho rende (ou deixa de render) à taxa CDI desde a
+  // sua data até hoje. rendimento = valor_futuro_dos_aportes − saldo_atual.
+  // Reaproveita a taxa CDI guardada pelo módulo Investimentos (localStorage).
+  const cdiAnual = (() => {
+    const v = Number(localStorage.getItem("af4-cdi-anual"));
+    return Number.isFinite(v) && v > 0 ? v : 10.5;
+  })();
+  const rendimentoCofre = (m) => {
+    const cofre = cofreDe(m);
+    if (!cofre) return null;
+    const saldo = Number(cofre.saldo) || 0;
+    if (saldo <= 0.005) return null;
+    const taxa = cdiAnual / 100;
+    const hojeMs = Date.now();
+    const movs = (transacoes || []).filter(t => t.conta === cofre.nome && t.compensado);
+    if (movs.length === 0) return null;
+    // Valor futuro de cada movimento (receita = +, despesa = −) capitalizado a CDI.
+    let futuro = 0;
+    for (const t of movs) {
+      const v = Number(t.valor) || 0;
+      const sinal = t.tipo === "receita" ? 1 : -1;
+      const dias = Math.max(0, (hojeMs - new Date(`${(t.data || "").slice(0,10)}T00:00:00`).getTime()) / 86400000);
+      futuro += sinal * v * Math.pow(1 + taxa, dias / 365);
+    }
+    const rendimento = +(futuro - saldo).toFixed(2);
+    return rendimento > 0.005 ? { rendimento, projetado: +(saldo + rendimento).toFixed(2) } : null;
+  };
+
   // FASE 3 — Resgatar / usar a meta.
   // modo "usar": o dinheiro foi gasto (comprou a viagem) → vira DESPESA real,
   //   sai do cofrinho e do patrimônio.
@@ -299,6 +328,21 @@ export default function Metas({
                         {hidden ? "•••" : fmt(saldoCofre)}
                       </span>
                     </div>
+                    {(() => {
+                      const rend = rendimentoCofre(m);
+                      if (!rend) return null;
+                      return (
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 6, paddingTop: 6, borderTop: `1px dashed ${T.gold}33` }}
+                             title={`Projeção a CDI ${fmtN(cdiAnual, 2)}% a.a. desde a data de cada aporte. Estimativa — não é rendimento real creditado.`}>
+                          <span style={{ fontSize: 10.5, color: T.faint }}>
+                            Se rendesse a CDI ({fmtN(cdiAnual, 1)}% a.a.)
+                          </span>
+                          <span className="num" style={{ fontSize: 11.5, fontWeight: 600, color: T.green }}>
+                            +{hidden ? "•••" : fmt(rend.rendimento)} → {hidden ? "•••" : fmt(rend.projetado)}
+                          </span>
+                        </div>
+                      );
+                    })()}
                     {setContas && setTransacoes && (
                       <button onClick={() => setResgate({
                                 meta: m, modo: "usar",
