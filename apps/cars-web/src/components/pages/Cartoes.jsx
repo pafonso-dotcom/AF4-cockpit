@@ -25,6 +25,12 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     });
   };
 
+  // Grupos de parcelamentos por cartão (colapsáveis). Override manual; padrão:
+  // só o primeiro cartão com compras fica aberto, os demais recolhidos.
+  const [parcGrupoOverride, setParcGrupoOverride] = useState({});
+  const toggleParcGrupo = (key, abertoPadrao) =>
+    setParcGrupoOverride(prev => ({ ...prev, [key]: !(key in prev ? prev[key] : abertoPadrao) }));
+
   // Used limit per card from active installments
   const usedByCard = useMemo(() => {
     const map = {};
@@ -64,12 +70,19 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         const dt = dataDaParcela(p, n);
         if (!dt) continue;
         if (dt.getFullYear() === curY && dt.getMonth() + 1 === curM) {
-          if (!map[p.cartaoId]) map[p.cartaoId] = { valor: 0, parcelas: 0 };
+          if (!map[p.cartaoId]) map[p.cartaoId] = { valor: 0, parcelas: 0, pendente: 0, parcelasPendentes: 0 };
           map[p.cartaoId].valor += valorParcela;
           map[p.cartaoId].parcelas += 1;
+          // Pendente = parcela ainda NÃO marcada como paga.
+          if (!(p.parcelasPagas || []).includes(n)) {
+            map[p.cartaoId].pendente += valorParcela;
+            map[p.cartaoId].parcelasPendentes += 1;
+          }
         }
       }
     });
+    // paga = tinha fatura no mês e nada pendente sobrou.
+    Object.values(map).forEach(f => { f.paga = f.parcelas > 0 && f.parcelasPendentes === 0; });
     return map;
   }, [parcelamentos]);
   const totalDisp = totalLimite - totalUsado;
@@ -378,7 +391,9 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                     <span><Calendar size={11} style={{ display: "inline", verticalAlign: "-1px", marginRight: 4 }} />Vence <strong style={{ color: T.ink }}>{c.vencimento}</strong></span>
                     <span>Fecha <strong style={{ color: T.ink }}>{c.fechamento || "—"}</strong></span>
                     {faturaPorCartao[c.id] && (
-                      <span>Fatura <strong style={{ color: T.ink }} className="num">{hidden ? "•••" : fmt(faturaPorCartao[c.id].valor)}</strong></span>
+                      <span>Fatura <strong style={{ color: T.ink }} className="num">{hidden ? "•••" : fmt(faturaPorCartao[c.id].valor)}</strong>
+                        {faturaPorCartao[c.id].paga && <strong style={{ color: T.green }}> · paga</strong>}
+                      </span>
                     )}
                   </div>
                   <ParcelasDoCartao
@@ -388,7 +403,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                     hidden={hidden}
                   />
                   <div style={{ display: "flex", gap: 6 }}>
-                    {faturaPorCartao[c.id] && faturaPorCartao[c.id].valor > 0 && (
+                    {faturaPorCartao[c.id] && faturaPorCartao[c.id].pendente > 0 ? (
                       <button onClick={(e) => { e.stopPropagation(); openPagamento(c); }}
                               style={{
                                 flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
@@ -398,7 +413,17 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                               }}>
                         Pagar fatura
                       </button>
-                    )}
+                    ) : faturaPorCartao[c.id] && faturaPorCartao[c.id].paga ? (
+                      <span style={{
+                        flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 700,
+                        letterSpacing: ".05em", textTransform: "uppercase",
+                        borderRadius: 4, background: `${T.green}22`, border: `1px solid ${T.green}`,
+                        color: T.green, textAlign: "center",
+                        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+                      }}>
+                        <Check size={11} /> Fatura paga
+                      </span>
+                    ) : null}
                     <button onClick={(e) => { e.stopPropagation(); setForm(c); }}
                             style={{
                               flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
@@ -458,7 +483,49 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           </div>
         ) : (
           <div className="space-y-4">
-            {parcelamentos.map(p => {
+            {(() => {
+              // Agrupa parcelamentos por cartão (na ordem dos cartões; "Outros" no fim).
+              const grupos = [];
+              const idxPorChave = {};
+              const chaveDe = (p) => p.cartaoId || `nome:${p.cartaoNome || "—"}`;
+              cartoes.forEach(c => { idxPorChave[c.id] = grupos.length; grupos.push({ chave: c.id, cartao: c, nome: c.nome, itens: [] }); });
+              parcelamentos.forEach(p => {
+                const ch = chaveDe(p);
+                if (!(ch in idxPorChave)) {
+                  idxPorChave[ch] = grupos.length;
+                  grupos.push({ chave: ch, cartao: null, nome: p.cartaoNome || "Cartão removido", itens: [] });
+                }
+                grupos[idxPorChave[ch]].itens.push(p);
+              });
+              const comItens = grupos.filter(g => g.itens.length > 0);
+              const primeiraChave = comItens[0]?.chave;
+              return comItens.map(grupo => {
+                const totalGrupo = grupo.itens.reduce((s, p) => s + (Number(p.valorTotal) || 0), 0);
+                const abertoPadrao = grupo.chave === primeiraChave;
+                const aberto = grupo.chave in parcGrupoOverride ? parcGrupoOverride[grupo.chave] : abertoPadrao;
+                return (
+                  <div key={grupo.chave}>
+                    {/* Cabeçalho do cartão (clicável: recolhe/expande as compras) */}
+                    <div onClick={() => toggleParcGrupo(grupo.chave, abertoPadrao)}
+                         style={{
+                           display: "flex", justifyContent: "space-between", alignItems: "center",
+                           padding: "10px 12px", background: T.bgSoft, border: `1px solid ${T.border}`,
+                           cursor: "pointer", gap: 8,
+                         }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                        <ChevronDown size={15} style={{ color: T.muted, transform: aberto ? "none" : "rotate(-90deg)", transition: "transform .15s", flexShrink: 0 }} />
+                        <CreditCard size={14} style={{ color: T.gold, flexShrink: 0 }} />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{grupo.nome}</span>
+                        <span style={{ fontSize: 11, color: T.faint }}>· {grupo.itens.length} {grupo.itens.length === 1 ? "compra" : "compras"}</span>
+                      </span>
+                      <span className="num" style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap" }}>
+                        {hidden ? "•••" : fmt(totalGrupo)}
+                      </span>
+                    </div>
+                    {/* Compras do cartão (escondidas quando recolhido) */}
+                    {aberto && (
+                    <div className="space-y-4" style={{ marginTop: 8 }}>
+                    {grupo.itens.map(p => {
               const valorParcela = p.valorTotal / p.totalParcelas;
               const pagas = p.parcelasPagas?.length || 0;
               const pctPago = (pagas / p.totalParcelas) * 100;
@@ -556,6 +623,12 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                 </div>
               );
             })}
+                    </div>
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
         )}
       </section>
