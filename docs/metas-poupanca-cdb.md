@@ -56,10 +56,11 @@ Quando a meta é USADA (compra realizada):
 
 ## Fases (rascunho)
 
-### Fase 1 — Aporte sem virar despesa · ~1 sessão
-- [ ] Trocar a baixa de "Pagar para Meta" → **aporte** (transferência interna)
-- [ ] `meta.atual += valor`; transação marcada como aporte (fora de "despesas")
-- [ ] Garantir que relatórios/gráficos não contem aporte como gasto
+### Fase 1 — Aporte sem virar despesa · ✅ FEITO
+- [x] Baixa de "Pagar para Meta" → **aporte** (transferência pra conta-cofrinho `🐷 <meta>`)
+- [x] `meta.atual += valor`
+- [x] Par de transações marcado com `transferenciaId` (não é gasto líquido); patrimônio intacto
+- [x] Modal meta-aware ("Guardar para…", "poupança não gasto", botão "🐷 Guardar na meta")
 
 ### Fase 2 — Rendimento projetado (CDI) · ~1 sessão
 - [ ] Campo de rendimento na meta (projeção a CDI, taxa reaproveitada do Invest)
