@@ -19,13 +19,11 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
   const [statusFilter, setStatusFilter] = useState("todas"); // todas | compensadas | pendentes
   const [editCatId, setEditCatId] = useState(null); // id da transação com select de categoria aberto
   const [txModal, setTxModal] = useState(null); // null | { modo: "novo" } | { modo: "editar", tx }
-  // Dias recolhidos no extrato (clica no cabeçalho do dia pra esconder/mostrar)
-  const [diasRecolhidos, setDiasRecolhidos] = useState(() => new Set());
-  const toggleDia = (dia) => setDiasRecolhidos(prev => {
-    const n = new Set(prev);
-    if (n.has(dia)) n.delete(dia); else n.add(dia);
-    return n;
-  });
+  // Override manual do estado de cada dia. Padrão: só o ÚLTIMO dia de movimento
+  // (mais recente) fica aberto; os demais recolhidos. { [dia]: true=aberto }.
+  const [diasOverride, setDiasOverride] = useState({});
+  const toggleDia = (dia, abertoPadrao) =>
+    setDiasOverride(prev => ({ ...prev, [dia]: !(dia in prev ? prev[dia] : abertoPadrao) }));
 
   const hoje = new Date();
   const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
@@ -334,9 +332,14 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         </button>
         {(() => {
           const dias = agruparPorDia(filtradas).map(g => g.dia);
-          const todosRecolhidos = dias.length > 0 && dias.every(d => diasRecolhidos.has(d));
+          const ultimoDia = dias.reduce((max, d) => (d > max ? d : max), dias[0] || "");
+          const estaAberto = (d) => (d in diasOverride ? diasOverride[d] : d === ultimoDia);
+          const todosRecolhidos = dias.length > 0 && dias.every(d => !estaAberto(d));
+          const setTodos = (aberto) => {
+            const o = {}; dias.forEach(d => { o[d] = aberto; }); setDiasOverride(o);
+          };
           return (
-            <button onClick={() => setDiasRecolhidos(todosRecolhidos ? new Set() : new Set(dias))}
+            <button onClick={() => setTodos(todosRecolhidos)}
                     title="Recolher ou expandir todos os dias"
                     style={{
                       padding: "5px 11px", borderRadius: 100, fontSize: 11,
@@ -366,14 +369,20 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             .extrato-row:hover .acoes { opacity: 1; }
             @media (hover: none) { .extrato-row .acoes { opacity: 1; } }
           `}</style>
-          {agruparPorDia(filtradas).map(grupo => {
+          {(() => {
+            const grupos = agruparPorDia(filtradas);
+            // Dia mais recente de movimento (independe da ordenação) → aberto por padrão.
+            const ultimoDia = grupos.reduce((max, g) => (g.dia > max ? g.dia : max), grupos[0]?.dia || "");
+            return grupos.map(grupo => {
             const net = grupo.itens.reduce((s, t) => s + (t.tipo === "receita" ? 1 : -1) * (parseFloat(t.valor) || 0), 0);
             const dl = fmtDataLonga(grupo.dia);
-            const recolhido = diasRecolhidos.has(grupo.dia);
+            const abertoPadrao = grupo.dia === ultimoDia; // só o último dia abre por padrão
+            const aberto = grupo.dia in diasOverride ? diasOverride[grupo.dia] : abertoPadrao;
+            const recolhido = !aberto;
             return (
               <div key={grupo.dia}>
                 {/* Cabeçalho do dia (clicável: recolhe/expande os lançamentos) */}
-                <div onClick={() => toggleDia(grupo.dia)} style={{
+                <div onClick={() => toggleDia(grupo.dia, abertoPadrao)} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
                   padding: "8px 14px", background: T.bgSoft, borderBottom: `1px solid ${T.border}`,
                   cursor: "pointer",
