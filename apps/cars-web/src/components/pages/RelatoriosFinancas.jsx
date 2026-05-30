@@ -60,6 +60,54 @@ export default function RelatoriosFinancas({
       .slice(0, 7);
   }, [transacoes]);
 
+  // ===== Tendência por categoria (6 meses) =====
+  // Pra cada categoria de despesa: total por mês + variação do mês atual vs média
+  // dos meses anteriores. Mostra o que está subindo/caindo de verdade.
+  const tendenciaCategorias = useMemo(() => {
+    const hoje = new Date();
+    const keys = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      keys.push(d.toISOString().slice(0, 7));
+    }
+    const mesAtual = keys[keys.length - 1];
+    const porCat = {}; // cat -> { [mes]: total }
+    transacoes.filter(t => t.tipo === "despesa").forEach(t => {
+      const mes = (t.data || "").slice(0, 7);
+      if (!keys.includes(mes)) return;
+      const cat = t.categoria || "Sem categoria";
+      (porCat[cat] = porCat[cat] || {});
+      porCat[cat][mes] = (porCat[cat][mes] || 0) + Number(t.valor || 0);
+    });
+    const linhas = Object.entries(porCat).map(([cat, meses]) => {
+      const serie = keys.map(k => meses[k] || 0);
+      const atual = meses[mesAtual] || 0;
+      const anteriores = keys.slice(0, -1).map(k => meses[k] || 0);
+      const mediaAnt = anteriores.length ? anteriores.reduce((s, v) => s + v, 0) / anteriores.length : 0;
+      const variacao = mediaAnt > 0 ? ((atual - mediaAnt) / mediaAnt) * 100 : (atual > 0 ? 100 : 0);
+      const total6m = serie.reduce((s, v) => s + v, 0);
+      return { cat, serie, atual, mediaAnt, variacao, total6m };
+    });
+    return linhas.sort((a, b) => b.total6m - a.total6m).slice(0, 8);
+  }, [transacoes]);
+
+  // ===== Maiores gastos do mês (transações individuais) =====
+  const maioresGastos = useMemo(() => {
+    const mes = new Date().toISOString().slice(0, 7);
+    return transacoes
+      .filter(t => t.tipo === "despesa" && (t.data || "").startsWith(mes))
+      .slice()
+      .sort((a, b) => Number(b.valor || 0) - Number(a.valor || 0))
+      .slice(0, 8)
+      .map(t => ({
+        descricao: t.descricao || t.categoria || "—",
+        categoria: t.categoria || "Sem categoria",
+        data: t.data,
+        valor: Number(t.valor || 0),
+        conta: t.conta || "",
+      }));
+  }, [transacoes]);
+
   // ===== Cashflow Preditivo =====
   const cashflowPrev = useMemo(() => {
     const hoje = new Date();
@@ -247,6 +295,84 @@ export default function RelatoriosFinancas({
               </div>
             ))}
           </div>
+        </ExportableCard>
+
+        {/* Tendência por categoria (6 meses) */}
+        <ExportableCard
+          id="rep-tendencia-categorias"
+          title="Tendência por categoria (6m)"
+          pngOk={pngOk}
+          csvData={{
+            headers: ["Categoria", "Mês atual", "Média 5m ant.", "Variação %", "Total 6m"],
+            rows: tendenciaCategorias.map(l => [l.cat, l.atual.toFixed(2), l.mediaAnt.toFixed(2), l.variacao.toFixed(1), l.total6m.toFixed(2)]),
+          }}
+          csvName={`af4-tendencia-categorias-${mesAtualKey}.csv`}
+          footer={<>↑ subindo · ↓ caindo — variação do mês atual vs média dos 5 meses anteriores.</>}
+        >
+          {tendenciaCategorias.length === 0 ? (
+            <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 12.5 }}>
+              Sem despesas nos últimos 6 meses.
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 6 }}>
+              {tendenciaCategorias.map(l => {
+                const sobe = l.variacao > 5, cai = l.variacao < -5;
+                const cor = sobe ? T.red : cai ? T.green : T.muted;
+                const max = Math.max(...l.serie, 1);
+                return (
+                  <div key={l.cat} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "center", padding: "6px 8px", background: T.bgSoft, borderRadius: 6 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12, color: T.ink, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.cat}</div>
+                      {/* Sparkline simples (6 barrinhas) */}
+                      <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 16, marginTop: 3 }}>
+                        {l.serie.map((v, i) => (
+                          <div key={i} title={hidden ? "" : fmt(v)} style={{ width: 6, height: `${Math.max(8, (v / max) * 100)}%`, background: i === l.serie.length - 1 ? cor : T.border, borderRadius: 1 }} />
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div className="num" style={{ fontSize: 12.5, color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(l.atual)}</div>
+                      <div className="num" style={{ fontSize: 10.5, color: cor, fontWeight: 600 }}>
+                        {sobe ? "↑" : cai ? "↓" : "→"} {l.variacao >= 0 ? "+" : ""}{l.variacao.toFixed(0)}%
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </ExportableCard>
+
+        {/* Maiores gastos do mês */}
+        <ExportableCard
+          id="rep-maiores-gastos"
+          title="Maiores gastos do mês"
+          pngOk={pngOk}
+          csvData={{
+            headers: ["Descrição", "Categoria", "Data", "Conta", "Valor"],
+            rows: maioresGastos.map(g => [g.descricao, g.categoria, g.data, g.conta, g.valor.toFixed(2)]),
+          }}
+          csvName={`af4-maiores-gastos-${mesAtualKey}.csv`}
+          footer={<>🔎 As 8 maiores despesas individuais do mês atual.</>}
+        >
+          {maioresGastos.length === 0 ? (
+            <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 12.5 }}>
+              Sem despesas este mês.
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 4 }}>
+              {maioresGastos.map((g, i) => (
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 8, alignItems: "center", padding: "6px 8px", background: T.bgSoft, borderRadius: 6 }}>
+                  <span style={{ fontSize: 10, color: T.faint, fontFamily: T.mono, width: 16, textAlign: "center" }}>{i + 1}</span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 12, color: T.ink, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.descricao}</div>
+                    <div style={{ fontSize: 10, color: T.muted }}>{g.categoria} · {(g.data || "").split("-").reverse().slice(0, 2).join("/")}</div>
+                  </div>
+                  <span className="num" style={{ fontSize: 12.5, color: T.red, fontWeight: 600 }}>{hidden ? "•••" : fmt(g.valor)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </ExportableCard>
       </ReportGrid>
     </div>
