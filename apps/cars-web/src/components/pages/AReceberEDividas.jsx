@@ -27,6 +27,7 @@ export default function AReceberEDividas({
   contas = [], setContas,
   transacoes = [], setTransacoes,
   categorias = [],
+  metas = [], setMetas,
   hidden,
   somenteReceber = false, // quando true, esconde o lado "A Pagar" (usado na tela unificada)
   vistaInicial = "receber", // "receber" | "pagar" — qual lado abre por padrão
@@ -257,6 +258,69 @@ export default function AReceberEDividas({
     // Quita o restante? (parcial que cobre tudo é tratado como baixa total)
     const quitaTudo = !isReceber || !ehParcial || valor >= saldoAberto - 0.005;
 
+    // Caso ESPECIAL: APORTE DE META (poupança, não despesa).
+    // O dinheiro NÃO é gasto — é transferido da conta de origem pra uma
+    // conta-cofrinho da meta. Patrimônio fica intacto; só realoca.
+    // Vira despesa real só quando a meta for usada (resgate — fase futura).
+    if (!isReceber && baixaForm._origem === "fixa" && baixaForm._metaId) {
+      const meta = (metas || []).find(m => m.id === baixaForm._metaId);
+      const cofreNome = `🐷 ${baixaForm._metaNome || meta?.nome || "Meta"}`;
+      let cofre = contas.find(c => c.nome === cofreNome);
+
+      // Cria o cofrinho na primeira vez (conta tipo poupança, saldo 0).
+      const transferId = uid();
+      let novasContas;
+      if (!cofre) {
+        const novoCofre = {
+          id: uid(), nome: cofreNome, instituicao: "Cofrinho",
+          tipo: "poupanca", escopo: conta.escopo || "pessoal",
+          saldo: 0, cor: T.gold, _cofreMetaId: baixaForm._metaId,
+        };
+        novasContas = [...contas, novoCofre];
+        cofre = novoCofre;
+      } else {
+        novasContas = contas;
+      }
+      // Transfere: debita origem, credita cofrinho.
+      setContas(novasContas.map(c => {
+        if (c.id === conta.id)  return { ...c, saldo: (parseFloat(c.saldo) || 0) - valor };
+        if (c.id === cofre.id)  return { ...c, saldo: (parseFloat(c.saldo) || 0) + valor };
+        return c;
+      }));
+
+      // Par de transações marcado como transferência (não conta como gasto).
+      const catTransf = (categorias || []).find(c => /transfer/i.test(c.nome || ""))?.nome || "";
+      const txSaida = {
+        id: uid(), tipo: "despesa", valor, descricao: `Aporte meta: ${baixaForm._metaNome || meta?.nome || ""}`.trim(),
+        categoria: catTransf, conta: baixaForm.contaDestino, data: baixaForm.dataBaixa,
+        compensado: true, fixa: false, vencimento: null,
+        transferenciaId: transferId, obs: baixaForm.obs || `Poupança da meta (${baixaForm.obs || ""})`.trim(),
+      };
+      const txEntrada = {
+        id: uid(), tipo: "receita", valor, descricao: `Aporte em ${cofreNome}`,
+        categoria: catTransf, conta: cofreNome, data: baixaForm.dataBaixa,
+        compensado: true, fixa: false, vencimento: null,
+        transferenciaId: transferId, obs: baixaForm.obs || "Poupança de meta",
+      };
+      setTransacoes([txSaida, txEntrada, ...transacoes]);
+
+      // Acumula na meta (atual += valor).
+      setMetas?.((metas || []).map(m => m.id === baixaForm._metaId
+        ? { ...m, atual: +(((parseFloat(m.atual) || 0) + valor)).toFixed(2) }
+        : m));
+
+      // Marca a ocorrência da fixa como paga (pra sair de "A Pagar").
+      setFixaOcorrencias?.((fixaOcorrencias || []).map(o =>
+        o.id === baixaForm._fixaOccId
+          ? { ...o, status: "paga", dataPagamento: baixaForm.dataBaixa, valorPago: valor, transacaoId: txSaida.id }
+          : o
+      ));
+
+      toast.success(`Guardado ${fmt(valor)} em "${cofreNome}". Patrimônio mantido — é poupança, não gasto.`);
+      setBaixaForm(null);
+      return;
+    }
+
     // Caso ESPECIAL: despesa avulsa já É uma transação — não cria outra.
     // Apenas marca a transação existente como compensada e debita a conta.
     if (!isReceber && baixaForm._origem === "transacao" && baixaForm._transacaoId) {
@@ -369,6 +433,10 @@ export default function AReceberEDividas({
       .filter(o => o.status === "pendente")
       .map(o => {
         const fixa = (fixas || []).find(f => f.id === o.fixaId);
+        // Fixa atrelada a uma meta = poupança automática. A baixa vira APORTE
+        // (transferência pro cofrinho da meta), não uma despesa.
+        const metaId = fixa?.metaId || null;
+        const meta = metaId ? (metas || []).find(m => m.id === metaId) : null;
         return {
           id: `fixa:${o.id}`,
           nome: fixa ? fixa.descricao : "Despesa fixa",
@@ -380,9 +448,12 @@ export default function AReceberEDividas({
           credor: fixa?.credor || "",
           _origem: "fixa",
           _fixaOccId: o.id,
+          // Sinaliza aporte de meta (só quando a meta ainda existe)
+          _metaId: meta ? metaId : null,
+          _metaNome: meta ? meta.nome : null,
         };
       });
-  }, [fixaOcorrencias, fixas]);
+  }, [fixaOcorrencias, fixas, metas]);
 
   // Parcelas de cartão pendentes — gera items virtuais pra cada
   // parcela ainda não marcada como paga.
@@ -833,6 +904,8 @@ export default function AReceberEDividas({
             _parcelamentoId: item._parcelamentoId || null,
             _parcelaN: item._parcelaN || null,
             _transacaoId: item._transacaoId || null,
+            _metaId: item._metaId || null,
+            _metaNome: item._metaNome || null,
           })}
           onEditar={(item) => {
             if (item._origem === "parcela") {
@@ -932,9 +1005,14 @@ export default function AReceberEDividas({
         const faltaApos = +(saldoAberto - valorParcialNum).toFixed(2);
         const saldoAtual = parseFloat(conta?.saldo) || 0;
         const saldoFinal = saldoAtual + (isReceber ? valor : -valor);
+        // Aporte de meta = poupança (transferência pro cofrinho), não gasto.
+        const ehAporteMeta = !isReceber && baixaForm._origem === "fixa" && !!baixaForm._metaId;
+        const cofreNome = ehAporteMeta ? `🐷 ${baixaForm._metaNome || "Meta"}` : null;
         return (
           <Modal
-            title={isReceber ? `Receber de ${baixaForm.nome}` : `Pagar para ${baixaForm.nome}`}
+            title={ehAporteMeta
+              ? `Guardar para ${baixaForm._metaNome || "meta"}`
+              : (isReceber ? `Receber de ${baixaForm.nome}` : `Pagar para ${baixaForm.nome}`)}
             onClose={() => setBaixaForm(null)}
           >
             <div style={{ padding: 12, background: T.bgSoft, borderRadius: 7, fontSize: 12.5, marginBottom: ehParcial || (isReceber && jaRecebido > 0) ? 12 : 18 }}>
@@ -1061,11 +1139,21 @@ export default function AReceberEDividas({
               background: `${T.green}11`, border: `1px solid ${T.green}33`,
               borderRadius: 6, fontSize: 11, color: T.green, lineHeight: 1.6,
             }}>
-              ✓ Cria transação "{isReceber ? "Recebimento" : "Pagamento"} de {baixaForm.nome}" em {baixaForm.contaDestino || "—"}<br />
-              ✓ {isReceber ? "Aumenta" : "Diminui"} saldo em {hidden ? "•••" : fmt(valor)}<br />
-              ✓ {ehParcial && faltaApos > 0.005
-                ? `Abate do saldo — falta ${fmt(faltaApos)} em aberto`
-                : `Marca como ${isReceber ? "recebido" : "pago"}`}
+              {ehAporteMeta ? (
+                <>
+                  💰 Transfere {hidden ? "•••" : fmt(valor)} de {baixaForm.contaDestino || "—"} para o cofrinho <strong>{cofreNome}</strong><br />
+                  ✓ É <strong>poupança, não gasto</strong> — seu patrimônio não muda<br />
+                  ✓ Soma na meta e marca este mês como guardado
+                </>
+              ) : (
+                <>
+                  ✓ Cria transação "{isReceber ? "Recebimento" : "Pagamento"} de {baixaForm.nome}" em {baixaForm.contaDestino || "—"}<br />
+                  ✓ {isReceber ? "Aumenta" : "Diminui"} saldo em {hidden ? "•••" : fmt(valor)}<br />
+                  ✓ {ehParcial && faltaApos > 0.005
+                    ? `Abate do saldo — falta ${fmt(faltaApos)} em aberto`
+                    : `Marca como ${isReceber ? "recebido" : "pago"}`}
+                </>
+              )}
             </div>
 
             <div className="flex gap-3 justify-end mt-5">
@@ -1073,7 +1161,7 @@ export default function AReceberEDividas({
               <button
                 disabled={parcialInvalido}
                 style={{
-                  background: isReceber ? T.green : T.red, color: isReceber ? T.bg : "#fff",
+                  background: (ehAporteMeta || isReceber) ? T.green : T.red, color: (ehAporteMeta || isReceber) ? T.bg : "#fff",
                   border: "none", padding: "10px 18px",
                   fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase",
                   fontWeight: 600, cursor: parcialInvalido ? "not-allowed" : "pointer", borderRadius: 7,
@@ -1081,7 +1169,9 @@ export default function AReceberEDividas({
                 }}
                 onClick={confirmarBaixa}
               >
-                {ehParcial && faltaApos > 0.005 ? "✓ Confirmar recebimento parcial" : (isReceber ? "✓ Confirmar recebimento" : "✓ Confirmar pagamento")}
+                {ehAporteMeta ? "🐷 Guardar na meta"
+                  : ehParcial && faltaApos > 0.005 ? "✓ Confirmar recebimento parcial"
+                  : (isReceber ? "✓ Confirmar recebimento" : "✓ Confirmar pagamento")}
               </button>
             </div>
           </Modal>
