@@ -89,7 +89,7 @@ export default function NovaTransacaoModal({
       position: "fixed", inset: 0, background: "rgba(0,0,0,.5)",
       display: "grid", placeItems: "center", zIndex: 1000, padding: 16,
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
+      <div onClick={e => e.stopPropagation()} style={{ maxHeight: "90vh", overflowY: "auto",
         background: T.card, borderRadius: 12, padding: 22,
         width: "100%", maxWidth: 460, border: `1px solid ${T.border}`,
         maxHeight: "90vh", overflowY: "auto",
