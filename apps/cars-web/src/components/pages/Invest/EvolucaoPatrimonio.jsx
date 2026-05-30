@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import React, { useMemo, useState, useEffect } from "react";
+import { AreaChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
@@ -8,6 +8,11 @@ import { fmt } from "../../../lib/format.js";
  * Evolução do patrimônio — gráfico temporal a partir dos snapshots
  * diários (gravados em App.jsx). O usuário escolhe o período (30d, 90d,
  * 1a, tudo). Mostra delta absoluto e % no canto.
+ *
+ * Camadas opcionais:
+ *  - "Aportado": total investido (qtd × preço médio) — linha tracejada.
+ *  - "CDI": benchmark que rende o patrimônio inicial à taxa CDI anual
+ *    (editável), permitindo ver se a carteira ficou acima/abaixo do CDI.
  *
  * Quando o histórico tem < 2 pontos, mostra mensagem amigável
  * ("Coletando dados — volte amanhã").
@@ -20,8 +25,16 @@ const PERIODOS = [
   { id: "tudo", label: "Tudo", dias: null },
 ];
 
+const CDI_KEY = "af4-cdi-anual";
+
 export default function EvolucaoPatrimonio({ historico = [], hidden }) {
   const [periodo, setPeriodo] = useState("90d");
+  const [mostrarCDI, setMostrarCDI] = useState(true);
+  const [cdiAnual, setCdiAnual] = useState(() => {
+    const v = Number(localStorage.getItem(CDI_KEY));
+    return Number.isFinite(v) && v > 0 ? v : 10.5;
+  });
+  useEffect(() => { localStorage.setItem(CDI_KEY, String(cdiAnual)); }, [cdiAnual]);
 
   const dados = useMemo(() => {
     if (!historico || historico.length === 0) return { vazio: true, motivo: "sem-snapshots" };
@@ -42,14 +55,30 @@ export default function EvolucaoPatrimonio({ historico = [], hidden }) {
     const delta = ultimo.total - primeiro.total;
     const deltaPct = primeiro.total > 0 ? (delta / primeiro.total) * 100 : 0;
 
+    // CDI: rende o patrimônio inicial à taxa anual (juros compostos diários).
+    const taxa = cdiAnual / 100;
+    const dataBase = new Date(primeiro.data);
+    const fatorDia = (iso) => {
+      const dias = Math.max(0, (new Date(iso) - dataBase) / 86400000);
+      return Math.pow(1 + taxa, dias / 365);
+    };
+
     // Para o eixo X, gera label curto (DD/MM)
     const pontos = filtrado.map(p => ({
       ...p,
       label: `${p.data.slice(8, 10)}/${p.data.slice(5, 7)}`,
+      cdi: primeiro.total * fatorDia(p.data),
     }));
 
-    return { vazio: false, pontos, primeiro, ultimo, delta, deltaPct };
-  }, [historico, periodo]);
+    // Só desenha a linha "Aportado" se houver custo registrado nos snapshots.
+    const temAportado = filtrado.some(p => p.totalAportado != null && p.totalAportado > 0);
+
+    // CDI acumulado no período e quanto a carteira ficou acima/abaixo.
+    const cdiPct = (fatorDia(ultimo.data) - 1) * 100;
+    const vsCDI = deltaPct - cdiPct;
+
+    return { vazio: false, pontos, primeiro, ultimo, delta, deltaPct, temAportado, cdiPct, vsCDI };
+  }, [historico, periodo, cdiAnual]);
 
   return (
     <div className="no-print" style={{
@@ -73,6 +102,17 @@ export default function EvolucaoPatrimonio({ historico = [], hidden }) {
                 {dados.delta >= 0 ? "+" : "−"}{hidden ? "•••" : fmt(Math.abs(dados.delta))}
                 <span style={{ opacity: 0.8 }}>({dados.deltaPct >= 0 ? "+" : ""}{dados.deltaPct.toFixed(2)}%)</span>
               </div>
+              {mostrarCDI && (
+                <span style={{
+                  fontSize: 10.5, fontWeight: 700, padding: "2px 7px", borderRadius: 20,
+                  letterSpacing: ".03em",
+                  color: dados.vsCDI >= 0 ? T.green : T.red,
+                  background: `${dados.vsCDI >= 0 ? T.green : T.red}1a`,
+                  border: `1px solid ${dados.vsCDI >= 0 ? T.green : T.red}55`,
+                }}>
+                  {dados.vsCDI >= 0 ? "▲" : "▼"} {dados.vsCDI >= 0 ? "+" : ""}{dados.vsCDI.toFixed(2)}% vs CDI
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -104,34 +144,77 @@ export default function EvolucaoPatrimonio({ historico = [], hidden }) {
           </div>
         </div>
       ) : (
-        <div style={{ width: "100%", height: 200 }}>
-          <ResponsiveContainer>
-            <AreaChart data={dados.pontos} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gradPatr" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%"  stopColor={T.gold} stopOpacity={0.4} />
-                  <stop offset="100%" stopColor={T.gold} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke={T.border} strokeDasharray="2 4" vertical={false} />
-              <XAxis dataKey="label"
-                     tick={{ fill: T.muted, fontSize: 10 }}
-                     stroke={T.border}
-                     interval="preserveStartEnd"
-                     minTickGap={30} />
-              <YAxis tick={{ fill: T.muted, fontSize: 10 }}
-                     stroke={T.border}
-                     tickFormatter={v => hidden ? "•••" : `${(v / 1000).toFixed(0)}k`} />
-              <Tooltip
-                contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11, color: T.ink }}
-                labelStyle={{ color: T.muted, marginBottom: 4 }}
-                formatter={(v) => [hidden ? "•••••" : fmt(v), "Patrimônio"]}
-              />
-              <Area type="monotone" dataKey="total" stroke={T.gold} strokeWidth={2}
-                    fill="url(#gradPatr)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        <>
+          <div style={{ width: "100%", height: 200 }}>
+            <ResponsiveContainer>
+              <AreaChart data={dados.pontos} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gradPatr" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"  stopColor={T.gold} stopOpacity={0.4} />
+                    <stop offset="100%" stopColor={T.gold} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke={T.border} strokeDasharray="2 4" vertical={false} />
+                <XAxis dataKey="label"
+                       tick={{ fill: T.muted, fontSize: 10 }}
+                       stroke={T.border}
+                       interval="preserveStartEnd"
+                       minTickGap={30} />
+                <YAxis tick={{ fill: T.muted, fontSize: 10 }}
+                       stroke={T.border}
+                       tickFormatter={v => hidden ? "•••" : `${(v / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11, color: T.ink }}
+                  labelStyle={{ color: T.muted, marginBottom: 4 }}
+                  formatter={(v, k) => {
+                    const nome = k === "totalAportado" ? "Aportado" : k === "cdi" ? "CDI" : "Patrimônio";
+                    return [hidden ? "•••••" : fmt(v), nome];
+                  }}
+                />
+                <Area type="monotone" dataKey="total" stroke={T.gold} strokeWidth={2}
+                      fill="url(#gradPatr)" name="Patrimônio" />
+                {dados.temAportado && (
+                  <Area type="monotone" dataKey="totalAportado" stroke={T.muted} strokeWidth={1.5}
+                        strokeDasharray="4 3" fill="none" name="Aportado" dot={false} />
+                )}
+                {mostrarCDI && (
+                  <Line type="monotone" dataKey="cdi" stroke={T.blue} strokeWidth={1.5}
+                        strokeDasharray="2 3" dot={false} name="CDI" />
+                )}
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Legenda + controle do CDI */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 8, fontSize: 10.5, color: T.muted }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 14, height: 2.5, background: T.gold, borderRadius: 2 }} /> Patrimônio
+            </span>
+            {dados.temAportado && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <span style={{ width: 14, height: 0, borderTop: `2px dashed ${T.muted}` }} /> Aportado
+              </span>
+            )}
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+              <input type="checkbox" checked={mostrarCDI} onChange={e => setMostrarCDI(e.target.checked)}
+                     style={{ accentColor: T.blue, cursor: "pointer" }} />
+              <span style={{ width: 14, height: 0, borderTop: `2px dashed ${T.blue}` }} /> CDI
+            </label>
+            {mostrarCDI && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: "auto" }}>
+                <span style={{ color: T.faint }}>taxa a.a.</span>
+                <input type="number" min={0} max={50} step={0.1} value={cdiAnual}
+                       onChange={e => setCdiAnual(Math.max(0, Number(e.target.value) || 0))}
+                       style={{
+                         width: 56, padding: "2px 6px", borderRadius: 4, textAlign: "right",
+                         background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink,
+                         fontSize: 11, fontVariantNumeric: "tabular-nums", outline: "none",
+                       }} />
+                <span style={{ color: T.faint }}>%</span>
+              </span>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
