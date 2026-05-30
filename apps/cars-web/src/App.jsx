@@ -410,12 +410,15 @@ export default function App() {
     const hoje = new Date().toISOString().slice(0, 10);
     const totalAtivos = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
     const totalContas = contas.reduce((s, c) => s + Number(c.saldo || 0), 0);
+    // Total aportado = custo dos ativos (qtd × preço médio). Permite comparar
+    // o valor de mercado com o que foi efetivamente investido.
+    const totalAportado = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.pm ?? a.precoMedio ?? 0), 0);
     const total = totalAtivos + totalContas;
     // Skip snapshot quando ainda não tem dados (evita gravar 0,00 ao 1º load)
     if (total <= 0) return;
     setPatrimonioHistorico(prev => {
       const semHoje = (prev || []).filter(p => p.data !== hoje);
-      return [...semHoje, { data: hoje, totalAtivos, totalContas, total }]
+      return [...semHoje, { data: hoje, totalAtivos, totalContas, totalAportado, total }]
         .sort((a, b) => a.data.localeCompare(b.data));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

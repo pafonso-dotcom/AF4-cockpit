@@ -319,12 +319,11 @@ export default function CalculadoraRenda() {
         <div className="calc-sliders-grid" style={{
           display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16,
         }}>
-          <Slider
+          <CampoValor
             label="Valor investido"
             value={valor}
             min={0} max={10_000_000} step={100_000}
             onChange={setValor}
-            display={fmtBRL.format(valor)}
           />
           <Slider
             label="Taxa de juros ao ano"
@@ -603,6 +602,51 @@ export default function CalculadoraRenda() {
           .calc-ideal-value { font-size: 30px !important; }
         }
       `}</style>
+    </div>
+  );
+}
+
+// Campo de valor DIGITÁVEL (com slider de ajuste fino embaixo). Substitui o
+// slider puro pro "Valor investido" — assim dá pra digitar valores exatos.
+function CampoValor({ label, value, min, max, step, onChange }) {
+  const [texto, setTexto] = useState("");
+  const [focado, setFocado] = useState(false);
+  // Enquanto não está editando, mostra formatado; ao focar, mostra número cru.
+  const exibir = focado ? texto : fmtBRL.format(value);
+  const commit = (raw) => {
+    const limpo = String(raw).replace(/[^\d]/g, "");
+    let n = limpo ? parseInt(limpo, 10) : 0;
+    if (n < min) n = min;
+    if (n > max) n = max;
+    onChange(n);
+  };
+  return (
+    <div>
+      <div style={{ marginBottom: 6 }}>
+        <span className="calc-slider-label" style={{ fontSize: 12, color: T.ink, fontWeight: 500 }}>{label}</span>
+      </div>
+      <input
+        type="text" inputMode="numeric"
+        value={focado ? exibir : fmtBRL.format(value)}
+        onFocus={() => { setFocado(true); setTexto(String(value)); }}
+        onBlur={() => { setFocado(false); commit(texto); }}
+        onChange={e => { setTexto(e.target.value); commit(e.target.value); }}
+        style={{
+          width: "100%", padding: "7px 10px", borderRadius: 6,
+          background: T.bgSoft, border: `1px solid ${T.border}`,
+          color: T.gold, fontFamily: T.serif, fontSize: 18, fontWeight: 600,
+          outline: "none",
+        }}
+      />
+      <input type="range"
+             min={min} max={max} step={step}
+             value={value}
+             onChange={e => onChange(Number(e.target.value))}
+             style={{ width: "100%", accentColor: T.gold, cursor: "pointer", marginTop: 6 }} />
+      <div className="calc-slider-range" style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: T.faint, marginTop: 2 }}>
+        <span>{fmtBRL.format(min)}</span>
+        <span>{fmtBRL.format(max)}</span>
+      </div>
     </div>
   );
 }
