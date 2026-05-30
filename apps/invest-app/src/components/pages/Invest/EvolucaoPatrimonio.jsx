@@ -19,6 +19,12 @@ const PERIODOS = [
 
 export default function EvolucaoPatrimonio({ historico = [], hidden }) {
   const [periodo, setPeriodo] = useState("90d");
+  // Taxa CDI ao ano usada no benchmark (editável, salva no dispositivo).
+  const [cdiAno, setCdiAno] = useState(() => {
+    const v = Number(localStorage.getItem("invest:cdi-ano"));
+    return Number.isFinite(v) && v > 0 ? v : 13.25;
+  });
+  const setCdi = (v) => { setCdiAno(v); try { localStorage.setItem("invest:cdi-ano", String(v)); } catch {} };
 
   const calc = useMemo(() => {
     const hist = [...(historico || [])].filter(p => p && p.data).sort((a, b) => a.data.localeCompare(b.data));
@@ -36,8 +42,11 @@ export default function EvolucaoPatrimonio({ historico = [], hidden }) {
     const deltaPct = ini.total > 0 ? (delta / ini.total) * 100 : 0;
     const resultado = (fim.total || 0) - (fim.investido || 0);
     const resultadoPct = fim.investido > 0 ? (resultado / fim.investido) * 100 : 0;
-    return { vazio: false, serie, delta, deltaPct, atual: fim.total || 0, investido: fim.investido || 0, resultado, resultadoPct };
-  }, [historico, periodo]);
+    // Benchmark CDI: acumulado no MESMO nº de dias do período observado.
+    const dias = Math.max(1, Math.round((new Date(fim.data) - new Date(ini.data)) / 86400000));
+    const cdiPct = (Math.pow(1 + cdiAno / 100, dias / 365) - 1) * 100;
+    return { vazio: false, serie, delta, deltaPct, atual: fim.total || 0, investido: fim.investido || 0, resultado, resultadoPct, dias, cdiPct };
+  }, [historico, periodo, cdiAno]);
 
   const m = (v) => (hidden ? "•••" : fmt(v));
   const fmtDia = (iso) => { const [, mes, dia] = (iso || "").split("-"); return `${dia}/${mes}`; };
@@ -84,6 +93,41 @@ export default function EvolucaoPatrimonio({ historico = [], hidden }) {
                  sub={`${calc.deltaPct >= 0 ? "+" : ""}${calc.deltaPct.toFixed(2)}%`}
                  cor={calc.delta >= 0 ? T.green : T.red}
                  icon={calc.delta >= 0 ? TrendingUp : TrendingDown} />
+          </div>
+
+          {/* Benchmark: carteira × CDI no mesmo período */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+            background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 16,
+          }}>
+            <span style={{ fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
+              Comparativo · {calc.dias} dia(s)
+            </span>
+            <span style={{ fontSize: 13 }}>
+              Sua carteira: <strong style={{ color: calc.deltaPct >= 0 ? T.green : T.red }}>
+                {calc.deltaPct >= 0 ? "+" : ""}{calc.deltaPct.toFixed(2)}%
+              </strong>
+            </span>
+            <span style={{ color: T.faint }}>vs</span>
+            <span style={{ fontSize: 13 }}>
+              CDI: <strong style={{ color: T.ink }}>+{calc.cdiPct.toFixed(2)}%</strong>
+            </span>
+            <span style={{
+              fontSize: 11.5, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
+              background: calc.deltaPct >= calc.cdiPct ? `${T.green}22` : `${T.red}22`,
+              color: calc.deltaPct >= calc.cdiPct ? T.green : T.red,
+            }}>
+              {calc.deltaPct >= calc.cdiPct
+                ? `▲ ${(calc.deltaPct - calc.cdiPct).toFixed(2)}% acima do CDI`
+                : `▼ ${(calc.cdiPct - calc.deltaPct).toFixed(2)}% abaixo do CDI`}
+            </span>
+            <label style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color: T.muted }}>
+              CDI ao ano
+              <input type="number" step="0.05" value={cdiAno}
+                     onChange={e => setCdi(Math.max(0, Number(e.target.value) || 0))}
+                     style={{ width: 70, padding: "4px 7px", borderRadius: 6, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 12 }} />
+              <span>%</span>
+            </label>
           </div>
 
           {/* Gráfico */}
