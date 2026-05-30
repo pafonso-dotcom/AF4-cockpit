@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { T, THEMES } from "../lib/theme.js";
 import { getPerfilAtivo } from "../lib/perfis.js";
 import { useLayout } from "../lib/useLayout.js";
+import AlertCenter from "./AlertCenter.jsx";
 import {
   Activity, Wallet, CreditCard, Receipt, Calendar, Tag, Sparkles, PiggyBank,
   Briefcase, TrendingUp, LineChart as LineIcon, Calculator, BarChart3,
@@ -74,6 +75,7 @@ function HeaderHorizontal({
   contas = [], cartoes = [],
   contaAberta, setContaAberta,
   cartaoAberto, setCartaoAberto,
+  alertData = {}, onNavegar,
 }) {
 
   const perfilAtivo = getPerfilAtivo();
@@ -206,6 +208,7 @@ function HeaderHorizontal({
                   className="hdr-util" style={utilBtn}>
             <Search size={18} />
           </button>
+          <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={utilBtn} iconSize={18} />
           <EscopoToggle escopoAtivo={escopoAtivo} onEscopoChange={onEscopoChange} />
           <button onClick={() => setHidden(!hidden)}
                   title={hidden ? "Mostrar valores" : "Ocultar valores"}
@@ -438,6 +441,7 @@ function HeaderVertical({
   contas = [], cartoes = [],
   contaAberta, setContaAberta,
   cartaoAberto, setCartaoAberto,
+  alertData = {}, onNavegar,
 }) {
   const perfilAtivo = getPerfilAtivo();
   const perms = perfilAtivo?.permissoes || { financas: true, invest: true, trade: true, config: true };
@@ -686,6 +690,7 @@ function HeaderVertical({
             style={vertUtilBtn}>
             <Search size={16} />
           </button>
+          <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={vertUtilBtn} iconSize={16} />
           <EscopoToggle escopoAtivo={escopoAtivo} onEscopoChange={onEscopoChange} compact />
           <button onClick={() => setHidden(!hidden)}
             title={hidden ? "Mostrar valores" : "Ocultar valores"}
