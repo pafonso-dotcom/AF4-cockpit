@@ -16,6 +16,8 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
   const [pacoteAberto, setPacoteAberto] = useState(null); // null | "list" | pacoteId
   const [selecionadas, setSelecionadas] = useState({});   // { "<pacoteId>:<nome>": true }
   const [vista, setVista] = useState("despesa"); // "receita" | "despesa"
+  // Mês de referência do orçamento (YYYY-MM). Orçamento é MENSAL.
+  const [mesOrc, setMesOrc] = useState(() => new Date().toISOString().slice(0, 7));
 
   // Agregação de transações por ID de categoria (evita somar em dobro
   // quando pai e filha partilham o mesmo nome).
@@ -30,6 +32,32 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
     });
     return m;
   }, [transacoes, categorias]);
+
+  // Gasto do MÊS de referência por categoria — base correta pro orçamento mensal.
+  const gastoMes = useMemo(() => {
+    const m = {};
+    const idPorNome = {};
+    categorias.forEach(c => { idPorNome[c.nome] = c.id; });
+    transacoes.forEach(t => {
+      if (t.tipo !== "despesa") return;
+      if (!(t.data || "").startsWith(mesOrc)) return;
+      const id = idPorNome[t.categoria];
+      if (id == null) return;
+      m[id] = (m[id] || 0) + Number(t.valor || 0);
+    });
+    return m;
+  }, [transacoes, categorias, mesOrc]);
+
+  const mesOrcLabel = (() => {
+    const [y, mm] = mesOrc.split("-").map(Number);
+    const nomes = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+    return `${nomes[mm - 1]} ${y}`;
+  })();
+  const passoMes = (delta) => {
+    const [y, mm] = mesOrc.split("-").map(Number);
+    const d = new Date(y, mm - 1 + delta, 1);
+    setMesOrc(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
 
   const [formErrors, setFormErrors] = useState({});
 
@@ -79,17 +107,41 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
         }
       />
 
-      {/* Limites de orçamento — visual cards */}
+      {/* Limites de orçamento — visual cards (MENSAL) */}
       {despesasComLimite.length > 0 && (
         <section className="mb-4">
-          <div className="ornament mb-2">
-            <span style={{ fontSize: 10, letterSpacing: "0.25em", textTransform: "uppercase", fontStyle: "normal" }}>
-              Limites de Orçamento
-            </span>
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <div className="ornament" style={{ margin: 0 }}>
+              <span style={{ fontSize: 10, letterSpacing: "0.25em", textTransform: "uppercase", fontStyle: "normal" }}>
+                Orçamento do mês
+              </span>
+            </div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <button onClick={() => passoMes(-1)} style={{ padding: "4px 8px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 5, cursor: "pointer", color: T.muted }}>‹</button>
+              <span style={{ fontSize: 12, fontWeight: 600, color: T.ink, minWidth: 78, textAlign: "center", textTransform: "capitalize" }}>{mesOrcLabel}</span>
+              <button onClick={() => passoMes(1)} style={{ padding: "4px 8px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 5, cursor: "pointer", color: T.muted }}>›</button>
+            </div>
           </div>
+          {(() => {
+            const totalLimite = despesasComLimite.reduce((s, c) => s + (Number(c.limite) || 0), 0);
+            const totalGasto = despesasComLimite.reduce((s, c) => s + (gastoMes[c.id] || 0), 0);
+            const pctTotal = totalLimite > 0 ? Math.min(100, (totalGasto / totalLimite) * 100) : 0;
+            const corTot = pctTotal >= 100 ? T.red : pctTotal >= 80 ? T.gold : T.green;
+            return (
+              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 7, padding: "10px 12px", marginBottom: 8 }}>
+                <div className="flex justify-between text-xs mb-1" style={{ color: T.muted }}>
+                  <span>Total orçado · {mesOrcLabel}</span>
+                  <span className="num">{hidden ? "•••" : `${fmt(totalGasto)} de ${fmt(totalLimite)}`}</span>
+                </div>
+                <div style={{ background: T.border, height: 6, borderRadius: 1 }}>
+                  <div style={{ width: `${pctTotal}%`, background: corTot, height: "100%", transition: "width .6s" }} />
+                </div>
+              </div>
+            );
+          })()}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {despesasComLimite.map(c => {
-              const gasto = stats[c.id] || 0;
+              const gasto = gastoMes[c.id] || 0;
               const saldo = c.limite - gasto;
               const pct = Math.min(100, (gasto / c.limite) * 100);
               const estado = pct >= 100 ? "estourado" : pct >= 80 ? "alerta" : "ok";
@@ -110,11 +162,11 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
                   </div>
                   <div className="space-y-1.5 mb-3">
                     <div className="flex justify-between text-xs">
-                      <span style={{ color: T.muted }}>Limite</span>
+                      <span style={{ color: T.muted }}>Limite/mês</span>
                       <span className="num" style={{ color: T.ink }}>{hidden ? "•••" : fmt(c.limite)}</span>
                     </div>
                     <div className="flex justify-between text-xs">
-                      <span style={{ color: T.muted }}>Gasto</span>
+                      <span style={{ color: T.muted }}>Gasto no mês</span>
                       <span className="num" style={{ color: T.ink }}>{hidden ? "•••" : fmt(gasto)}</span>
                     </div>
                     <div className="flex justify-between text-sm pt-1.5" style={{ borderTop: `1px solid ${T.border}` }}>
