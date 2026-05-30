@@ -310,6 +310,18 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--ac);
 }
 
+/* Foco visível por TECLADO (a11y) — anel dourado em qualquer elemento focável.
+   :focus-visible só dispara em navegação por teclado, não atrapalha o clique. */
+:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Inputs já têm destaque por border-color; evita anel duplo neles. */
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none;
+}
+
 /* ===== COLOR SELECT (cascata) ===== */
 .color-select { position: relative; }
 .color-select .csbtn {
