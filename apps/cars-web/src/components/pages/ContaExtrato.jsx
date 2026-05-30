@@ -19,6 +19,13 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
   const [statusFilter, setStatusFilter] = useState("todas"); // todas | compensadas | pendentes
   const [editCatId, setEditCatId] = useState(null); // id da transação com select de categoria aberto
   const [txModal, setTxModal] = useState(null); // null | { modo: "novo" } | { modo: "editar", tx }
+  // Dias recolhidos no extrato (clica no cabeçalho do dia pra esconder/mostrar)
+  const [diasRecolhidos, setDiasRecolhidos] = useState(() => new Set());
+  const toggleDia = (dia) => setDiasRecolhidos(prev => {
+    const n = new Set(prev);
+    if (n.has(dia)) n.delete(dia); else n.add(dia);
+    return n;
+  });
 
   const hoje = new Date();
   const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
@@ -325,6 +332,21 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           {sortDir === "desc" ? <ArrowDown size={11} /> : <ArrowUp size={11} />}
           {sortDir === "desc" ? "Mais recentes" : "Mais antigos"}
         </button>
+        {(() => {
+          const dias = agruparPorDia(filtradas).map(g => g.dia);
+          const todosRecolhidos = dias.length > 0 && dias.every(d => diasRecolhidos.has(d));
+          return (
+            <button onClick={() => setDiasRecolhidos(todosRecolhidos ? new Set() : new Set(dias))}
+                    title="Recolher ou expandir todos os dias"
+                    style={{
+                      padding: "5px 11px", borderRadius: 100, fontSize: 11,
+                      background: T.bgSoft, color: T.muted, border: `1px solid ${T.border}`,
+                      cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
+                    }}>
+              {todosRecolhidos ? "Expandir dias" : "Recolher dias"}
+            </button>
+          );
+        })()}
       </div>
 
       {/* Lista de transações — agrupada por dia, formato lista (responsivo) */}
@@ -347,25 +369,29 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           {agruparPorDia(filtradas).map(grupo => {
             const net = grupo.itens.reduce((s, t) => s + (t.tipo === "receita" ? 1 : -1) * (parseFloat(t.valor) || 0), 0);
             const dl = fmtDataLonga(grupo.dia);
+            const recolhido = diasRecolhidos.has(grupo.dia);
             return (
               <div key={grupo.dia}>
-                {/* Cabeçalho do dia */}
-                <div style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "baseline",
+                {/* Cabeçalho do dia (clicável: recolhe/expande os lançamentos) */}
+                <div onClick={() => toggleDia(grupo.dia)} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
                   padding: "8px 14px", background: T.bgSoft, borderBottom: `1px solid ${T.border}`,
+                  cursor: "pointer",
                 }}>
-                  <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 10, color: T.muted, display: "inline-block", transform: recolhido ? "none" : "rotate(90deg)", transition: "transform .15s" }}>▸</span>
                     <span className="num" style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{dl.dia}</span>
                     <span style={{ fontSize: 11, color: T.muted }}>{dl.mes} '{dl.ano}</span>
                     <span style={{ fontSize: 10.5, color: T.faint, textTransform: "capitalize" }}>· {dl.semana}</span>
+                    <span style={{ fontSize: 10.5, color: T.faint }}>· {grupo.itens.length} {grupo.itens.length === 1 ? "lançamento" : "lançamentos"}</span>
                   </span>
                   <span className="num" style={{ fontSize: 11, fontWeight: 600, color: net >= 0 ? T.green : T.red }}>
                     {hidden ? "•••" : `${net >= 0 ? "+ " : "− "}${fmt(Math.abs(net))}`}
                   </span>
                 </div>
 
-                {/* Lançamentos do dia */}
-                {grupo.itens.map(t => {
+                {/* Lançamentos do dia (escondidos quando recolhido) */}
+                {!recolhido && grupo.itens.map(t => {
                   const cat = categorias.find(c => c.nome === t.categoria);
                   const saldoApos = saldoPorTransacao.get(t.id);
                   const corTipo = t.tipo === "receita" ? T.green : T.red;
