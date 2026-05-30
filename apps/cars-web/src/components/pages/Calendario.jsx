@@ -14,6 +14,7 @@ import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
 import { getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
 import { EVENTO_TIPO } from "../../lib/coresUI.js";
+import CalendarioSemanaDia from "./CalendarioSemanaDia.jsx";
 
 const CATEGORIAS_AGENDA = [
   { id: "compromisso", label: "Compromisso", cor: EVENTO_TIPO.compromisso.cor, icon: Briefcase },
@@ -45,6 +46,9 @@ export default function Calendario({
   const [eventoForm, setEventoForm] = useState(null);
   const [formErrors, setFormErrors] = useState({});
   const [filterMode, setFilterMode] = useState("tudo"); // tudo | financeiro | pessoal
+  const [vista, setVista] = useState("mes"); // mes | semana | dia
+  // Data de referência para as vistas Semana/Dia (default hoje).
+  const [refDate, setRefDate] = useState(new Date());
 
   const months = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
@@ -126,11 +130,47 @@ export default function Calendario({
   }, [itensByDay, agendaByDay]);
 
   const navigate = (delta) => {
+    if (vista === "semana" || vista === "dia") {
+      const passo = vista === "semana" ? 7 : 1;
+      const d = new Date(refDate); d.setDate(d.getDate() + delta * passo);
+      setRefDate(d); setMonth(d.getMonth()); setYear(d.getFullYear());
+      return;
+    }
     let m = month + delta, y = year;
     if (m < 0) { m = 11; y--; }
     else if (m > 11) { m = 0; y++; }
     setMonth(m); setYear(y);
   };
+
+  const irHoje = () => {
+    const d = new Date();
+    setRefDate(d); setMonth(d.getMonth()); setYear(d.getFullYear());
+  };
+
+  // Abre o form de novo evento já com data/hora do slot clicado (Semana/Dia).
+  const novoEventoNoSlot = (dataISO, horaHHMM) => {
+    setEventoForm({
+      id: null, titulo: "", data: dataISO, horario: horaHHMM,
+      categoria: "compromisso", duracao: "60", local: "", link: "", obs: "", feito: false,
+    });
+  };
+
+  // Título do cabeçalho conforme a vista.
+  const tituloPeriodo = (() => {
+    if (vista === "dia") {
+      return refDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+    }
+    if (vista === "semana") {
+      const ini = new Date(refDate); ini.setDate(ini.getDate() - ini.getDay());
+      const fim = new Date(ini); fim.setDate(ini.getDate() + 6);
+      const f = (d) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+      return `${f(ini)} – ${f(fim)} ${fim.getFullYear()}`;
+    }
+    return null; // mês usa o título serif existente
+  })();
+
+  // Eventos da agenda (no filtro pessoal) para passar às vistas semana/dia.
+  const eventosAgendaVista = showPessoal ? (agenda || []) : [];
 
   const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
 
@@ -263,27 +303,57 @@ export default function Calendario({
         })}
       </div>
 
-      {/* Month navigator */}
+      {/* Navegador + seletor de vista */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)}
                   style={{ background: T.card, border: `1px solid ${T.border}`, color: T.muted, padding: 10, cursor: "pointer" }}>
             <ChevronLeft size={16} />
           </button>
-          <div style={{ fontFamily: T.serif, fontSize: 28, color: T.ink, fontWeight: 600, letterSpacing: "-0.02em" }}>
-            {months[month]} <span style={{ color: T.gold }}>{year}</span>
+          <div style={{ fontFamily: T.serif, fontSize: 24, color: T.ink, fontWeight: 600, letterSpacing: "-0.02em", textTransform: "capitalize", minWidth: 180 }}>
+            {vista === "mes"
+              ? <>{months[month]} <span style={{ color: T.gold }}>{year}</span></>
+              : tituloPeriodo}
           </div>
           <button onClick={() => navigate(1)}
                   style={{ background: T.card, border: `1px solid ${T.border}`, color: T.muted, padding: 10, cursor: "pointer" }}>
             <ChevronRight size={16} />
           </button>
         </div>
-        <button onClick={() => { setMonth(today.getMonth()); setYear(today.getFullYear()); }}
-                className="btn-ghost">
-          Hoje
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Toggle de vista */}
+          <div style={{ display: "inline-flex", gap: 0, background: T.bgSoft, padding: 3, borderRadius: 8, border: `1px solid ${T.border}` }}>
+            {[{ id: "mes", l: "Mês" }, { id: "semana", l: "Semana" }, { id: "dia", l: "Dia" }].map(o => {
+              const ativo = vista === o.id;
+              return (
+                <button key={o.id} onClick={() => setVista(o.id)}
+                  style={{
+                    padding: "5px 12px", fontSize: 11, fontWeight: ativo ? 700 : 500,
+                    background: ativo ? T.card : "transparent", color: ativo ? T.gold : T.muted,
+                    border: ativo ? `1px solid ${T.gold}55` : "1px solid transparent",
+                    borderRadius: 6, cursor: "pointer",
+                  }}>{o.l}</button>
+              );
+            })}
+          </div>
+          <button onClick={irHoje} className="btn-ghost">Hoje</button>
+        </div>
       </div>
 
+      {/* Vista Semana/Dia (grade de horários) */}
+      {vista !== "mes" && (
+        <CalendarioSemanaDia
+          modo={vista}
+          refDate={refDate}
+          eventos={eventosAgendaVista}
+          catMeta={catMeta}
+          onSlot={novoEventoNoSlot}
+          onEvento={(ev) => editarEvento(ev)}
+        />
+      )}
+
+      {/* Vista Mês (stats + grade mensal) */}
+      {vista === "mes" && (<>
       {/* Month stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6" style={{ background: T.border }}>
         <StatCard label="Receitas previstas" value={hidden ? "•••" : fmt(monthStats.receitas)} accent={T.green} icon={ArrowUpRight} />
@@ -542,6 +612,7 @@ export default function Calendario({
           </div>
         ))}
       </div>
+      </>)}
 
       {/* Modal novo/editar evento */}
       {eventoForm && (
