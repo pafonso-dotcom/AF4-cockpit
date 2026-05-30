@@ -911,7 +911,8 @@ export default function App() {
               <Metas metas={metas} setMetas={setMetas} hidden={hidden}
                      fixas={fixas} setFixas={setFixas}
                      fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
-                     categorias={categorias} contas={contas} />
+                     categorias={categorias} contas={contas} setContas={setContas}
+                     transacoes={transacoes} setTransacoes={setTransacoes} />
             )}
             {tab === "compras" && (
               <Compras compras={compras} setCompras={setCompras} />

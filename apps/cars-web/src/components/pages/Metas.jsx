@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Plus, Trash2, Edit3, Repeat, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Edit3, Repeat, CheckCircle2, PiggyBank } from "lucide-react";
 import { T } from "../../lib/theme.js";
-import { fmt, fmtN, uid } from "../../lib/format.js";
+import { fmt, fmtN, uid, todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import { gerarOcorrencias } from "../../lib/fixas.js";
+import { parseValorBR } from "../../lib/importExport.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
@@ -20,9 +21,11 @@ function mesesAteData(dataAlvoISO) {
 export default function Metas({
   metas, setMetas, hidden,
   fixas = [], setFixas, fixaOcorrencias = [], setFixaOcorrencias,
-  categorias = [], contas = [],
+  categorias = [], contas = [], setContas,
+  transacoes = [], setTransacoes,
 }) {
   const [form, setForm] = useState(null);
+  const [resgate, setResgate] = useState(null); // { meta, valor, conta } — modal de uso/resgate
 
   const calc = (m) => {
     // tempo necessário com juros compostos para atingir alvo
@@ -103,6 +106,67 @@ export default function Metas({
     setFixaOcorrencias([...(fixaOcorrencias || []), ...ocorrencias]);
     setMetas(metas.map(x => x.id === m.id ? { ...x, fixaId: novaFixa.id, aporte: valorMensal, prazo: meses } : x));
     toast.success(`Poupança de ${fmt(valorMensal)}/mês criada em Despesas Fixas pra "${m.nome}".`);
+  };
+
+  // Nome do cofrinho de uma meta (mesma convenção do aporte em AReceberEDividas).
+  const cofreNomeDe = (m) => `🐷 ${m.nome}`;
+  const cofreDe = (m) => (contas || []).find(c => c.nome === cofreNomeDe(m));
+
+  // FASE 3 — Resgatar / usar a meta.
+  // modo "usar": o dinheiro foi gasto (comprou a viagem) → vira DESPESA real,
+  //   sai do cofrinho e do patrimônio.
+  // modo "devolver": realocação de volta pra uma conta normal → transferência
+  //   (não é gasto; patrimônio intacto).
+  const confirmarResgate = () => {
+    const m = resgate.meta;
+    const cofre = cofreDe(m);
+    const valor = parseValorBR(resgate.valor) || 0;
+    const disponivel = Number(cofre?.saldo) || 0;
+    if (!cofre) { toast.error("Esta meta ainda não tem cofrinho (faça ao menos um aporte)."); return; }
+    if (!(valor > 0)) { toast.error("Informe um valor válido."); return; }
+    if (valor > disponivel + 0.005) { toast.error(`Máximo disponível no cofrinho: ${fmt(disponivel)}.`); return; }
+    const hojeISO = todayISO();
+    const novoAtual = Math.max(0, +(((Number(m.atual) || 0) - valor)).toFixed(2));
+
+    if (resgate.modo === "usar") {
+      // Gasto real: debita o cofrinho e cria 1 despesa (sai do patrimônio).
+      setContas?.((contas || []).map(c => c.id === cofre.id
+        ? { ...c, saldo: +(((Number(c.saldo) || 0) - valor)).toFixed(2) } : c));
+      const tx = {
+        id: uid(), tipo: "despesa", valor, descricao: `Uso da meta: ${m.nome}`,
+        categoria: resgate.categoria || "Outros", conta: cofre.nome, data: hojeISO,
+        compensado: true, fixa: false, vencimento: null,
+        obs: resgate.obs || `Resgate/uso da meta "${m.nome}"`,
+      };
+      setTransacoes?.([tx, ...(transacoes || [])]);
+      setMetas(metas.map(x => x.id === m.id ? { ...x, atual: novoAtual } : x));
+      toast.success(`Usou ${fmt(valor)} da meta "${m.nome}". Virou despesa real.`);
+    } else {
+      // Devolução: transferência cofrinho → conta normal (não é gasto).
+      const destino = (contas || []).find(c => c.nome === resgate.contaDestino);
+      if (!destino) { toast.error("Selecione a conta de destino."); return; }
+      const transferId = uid();
+      const catTransf = (categorias || []).find(c => /transfer/i.test(c.nome || ""))?.nome || "";
+      setContas?.((contas || []).map(c => {
+        if (c.id === cofre.id)   return { ...c, saldo: +(((Number(c.saldo) || 0) - valor)).toFixed(2) };
+        if (c.id === destino.id) return { ...c, saldo: +(((Number(c.saldo) || 0) + valor)).toFixed(2) };
+        return c;
+      }));
+      const txSaida = {
+        id: uid(), tipo: "despesa", valor, descricao: `Resgate de ${cofre.nome}`,
+        categoria: catTransf, conta: cofre.nome, data: hojeISO, compensado: true,
+        fixa: false, vencimento: null, transferenciaId: transferId, obs: resgate.obs || "Resgate de meta",
+      };
+      const txEntrada = {
+        id: uid(), tipo: "receita", valor, descricao: `Resgate da meta ${m.nome}`,
+        categoria: catTransf, conta: destino.nome, data: hojeISO, compensado: true,
+        fixa: false, vencimento: null, transferenciaId: transferId, obs: resgate.obs || "Resgate de meta",
+      };
+      setTransacoes?.([txSaida, txEntrada, ...(transacoes || [])]);
+      setMetas(metas.map(x => x.id === m.id ? { ...x, atual: novoAtual } : x));
+      toast.success(`Devolveu ${fmt(valor)} de "${m.nome}" pra ${destino.nome}.`);
+    }
+    setResgate(null);
   };
 
   const save = () => {
@@ -216,6 +280,47 @@ export default function Metas({
                   </button>
                 );
               })()}
+
+              {/* Cofrinho da meta — saldo guardado + botão de usar/resgatar */}
+              {(() => {
+                const cofre = cofreDe(m);
+                const saldoCofre = Number(cofre?.saldo) || 0;
+                if (!cofre || saldoCofre <= 0.005) return null;
+                return (
+                  <div style={{
+                    marginTop: 12, padding: 12, borderRadius: 8,
+                    background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                      <span style={{ fontSize: 11.5, color: T.muted, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <PiggyBank size={14} style={{ color: T.gold }} /> Guardado no cofrinho
+                      </span>
+                      <span className="num" style={{ fontSize: 15, fontWeight: 700, color: T.ink }}>
+                        {hidden ? "•••" : fmt(saldoCofre)}
+                      </span>
+                    </div>
+                    {setContas && setTransacoes && (
+                      <button onClick={() => setResgate({
+                                meta: m, modo: "usar",
+                                valor: String(saldoCofre),
+                                categoria: categorias.filter(c => c.tipo === "despesa")[0]?.nome || "Outros",
+                                contaDestino: (contas || []).find(c => c.nome !== cofre.nome)?.nome || "",
+                                obs: "",
+                              })}
+                              style={{
+                                marginTop: 10, width: "100%",
+                                background: "transparent", color: T.gold,
+                                border: `1px solid ${T.gold}`, padding: "7px 14px", borderRadius: 6,
+                                fontSize: 11, fontWeight: 700, cursor: "pointer",
+                                letterSpacing: ".05em", textTransform: "uppercase",
+                                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                              }}>
+                        <PiggyBank size={12} /> Usar / resgatar
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
               <div className="grid grid-cols-2 gap-4 mt-6 pt-6" style={{ borderTop: `1px solid ${T.border}` }}>
                 <div>
                   <div className="label-eyebrow">Aporte/mês</div>
@@ -298,6 +403,96 @@ export default function Metas({
           </div>
         </Modal>
       )}
+
+      {/* Modal Usar / Resgatar meta (Fase 3) */}
+      {resgate && (() => {
+        const cofre = cofreDe(resgate.meta);
+        const disponivel = Number(cofre?.saldo) || 0;
+        const valor = parseValorBR(resgate.valor) || 0;
+        const invalido = !(valor > 0) || valor > disponivel + 0.005;
+        const isUsar = resgate.modo === "usar";
+        return (
+          <Modal title={`Usar meta: ${resgate.meta.nome}`} onClose={() => setResgate(null)}>
+            <div style={{ padding: 12, background: T.bgSoft, borderRadius: 7, fontSize: 12.5, marginBottom: 14, display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: T.muted }}>Disponível no cofrinho:</span>
+              <span className="num" style={{ fontWeight: 700, color: T.ink }}>{fmt(disponivel)}</span>
+            </div>
+
+            {/* Modo: usar (gasto) ou devolver (transferência) */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+              {[
+                { id: "usar", label: "💸 Gastei", desc: "Vira despesa real" },
+                { id: "devolver", label: "↩︎ Devolver", desc: "Volta pra uma conta" },
+              ].map(opt => {
+                const active = resgate.modo === opt.id;
+                return (
+                  <button key={opt.id} onClick={() => setResgate({ ...resgate, modo: opt.id })}
+                    style={{
+                      flex: 1, padding: "10px 8px", borderRadius: 8, cursor: "pointer",
+                      background: active ? `${T.gold}22` : T.bgSoft,
+                      border: `1px solid ${active ? T.gold : T.border}`,
+                      color: active ? T.gold : T.muted, textAlign: "center",
+                    }}>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{opt.label}</div>
+                    <div style={{ fontSize: 10, marginTop: 2, color: T.faint }}>{opt.desc}</div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <Field label="Valor (R$)" required hint={`Máx. ${fmt(disponivel)}`}>
+              <input type="text" inputMode="decimal" value={resgate.valor}
+                     onChange={e => setResgate({ ...resgate, valor: e.target.value })}
+                     placeholder={String(disponivel)} />
+            </Field>
+
+            {isUsar ? (
+              <Field label="Categoria da despesa">
+                <select value={resgate.categoria}
+                        onChange={e => setResgate({ ...resgate, categoria: e.target.value })}>
+                  {categorias.filter(c => c.tipo === "despesa").map(c => (
+                    <option key={c.id} value={c.nome}>{c.nome}</option>
+                  ))}
+                  <option value="Outros">Outros</option>
+                </select>
+              </Field>
+            ) : (
+              <Field label="Devolver para qual conta?" required>
+                <select value={resgate.contaDestino}
+                        onChange={e => setResgate({ ...resgate, contaDestino: e.target.value })}>
+                  <option value="">Selecione…</option>
+                  {(contas || []).filter(c => c.nome !== cofre?.nome).map(c => (
+                    <option key={c.id} value={c.nome}>{c.nome} · saldo {fmt(c.saldo)}</option>
+                  ))}
+                </select>
+              </Field>
+            )}
+
+            <Field label="Observação (opcional)">
+              <input value={resgate.obs} onChange={e => setResgate({ ...resgate, obs: e.target.value })}
+                     placeholder={isUsar ? "Ex.: Passagens compradas" : "Ex.: Mudei de ideia"} />
+            </Field>
+
+            <div style={{
+              padding: 10, marginTop: 8, borderRadius: 6, fontSize: 11, lineHeight: 1.6,
+              background: `${T.gold}11`, border: `1px solid ${T.gold}33`, color: T.muted,
+            }}>
+              {isUsar
+                ? <>💸 Cria uma <strong>despesa real</strong> de {fmt(valor)} — o dinheiro sai do cofrinho e do patrimônio.</>
+                : <>↩︎ Transfere {fmt(valor)} do cofrinho de volta — <strong>não é gasto</strong>, patrimônio mantido.</>}
+            </div>
+
+            <div className="flex gap-3 justify-end mt-5">
+              <button className="btn-ghost" onClick={() => setResgate(null)}>Cancelar</button>
+              <button className="btn-gold" disabled={invalido}
+                      style={{ opacity: invalido ? 0.5 : 1, cursor: invalido ? "not-allowed" : "pointer" }}
+                      onClick={confirmarResgate}>
+                {isUsar ? "💸 Confirmar uso" : "↩︎ Devolver"}
+              </button>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

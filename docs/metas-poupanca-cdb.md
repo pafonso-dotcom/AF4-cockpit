@@ -67,9 +67,11 @@ Quando a meta é USADA (compra realizada):
 - [ ] Card da meta: aportado · rendimento estimado · falta pro alvo
 - [ ] Histórico de aportes na meta
 
-### Fase 3 — Resgate / uso · ~0,5 sessão
-- [ ] Botão "Usar meta" → gera a **despesa real** (a compra) e baixa patrimônio
-- [ ] Resgate parcial (tira parte da poupança de volta pra conta)
+### Fase 3 — Resgate / uso · ✅ FEITO
+- [x] Card da meta mostra saldo do cofrinho + botão "Usar / resgatar"
+- [x] Modo **"Gastei"**: vira **despesa real** (sai do cofrinho e do patrimônio)
+- [x] Modo **"Devolver"**: transferência cofrinho → conta normal (não é gasto)
+- [x] Resgate parcial (valor editável, máx = saldo do cofrinho); abate de `meta.atual`
 
 ## Pontos em aberto (decidir depois)
 - A poupança da meta é uma **conta-cofrinho real** (aparece em Contas) ou um
