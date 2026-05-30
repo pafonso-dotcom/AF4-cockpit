@@ -281,6 +281,47 @@ export function getAnualPorMes(ano, state = {}, escopo) {
 }
 
 /**
+ * Projeção de saldo dos próximos N meses (default 6).
+ * Parte do saldo atual somado de todas as contas (no escopo) e, para cada mês,
+ * soma os GANHOS previstos e subtrai as DESPESAS ainda PENDENTES
+ * (fixas/variáveis/parcelas/dívidas não pagas). O mês corrente considera só o
+ * que ainda falta acontecer (pendentes), já que o que foi pago já está no saldo.
+ *
+ * Retorna [{ mesISO, label, entradas, saidas, liquido, saldoFim }].
+ */
+export function getProjecaoSaldo(state = {}, escopo, meses = 6, hoje = new Date()) {
+  const st = aplicarEscopo(state, escopo);
+  const saldoInicial = (st.contas || []).reduce((s, c) => s + (Number(c.saldo) || 0), 0);
+
+  const nomes = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  const out = [];
+  let saldo = saldoInicial;
+  for (let i = 0; i < meses; i++) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+    const mesISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+    // Despesas pendentes do mês (o que já foi pago não conta — já está no saldo).
+    const despesas = getDespesasDoMes(mesISO, st, escopo)
+      .filter(x => x.status !== "paga");
+    const saidas = despesas.reduce((s, x) => s + (Number(x.valor) || 0), 0);
+
+    // Ganhos previstos do mês ainda não recebidos (status != paga).
+    const ganhos = getGanhosDoMes(mesISO, st, escopo)
+      .filter(g => g.status !== "paga");
+    const entradas = ganhos.reduce((s, g) => s + (Number(g.valor) || 0), 0);
+
+    const liquido = entradas - saidas;
+    saldo += liquido;
+    out.push({
+      mesISO,
+      label: `${nomes[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`,
+      entradas, saidas, liquido, saldoFim: saldo,
+    });
+  }
+  return { saldoInicial, meses: out };
+}
+
+/**
  * A partir de um item já produzido pelo getDespesasDoMes (tipo === "parcela"),
  * descobre qual parcelamento + número da parcela ele representa.
  * Retorna { parcId, numero } ou null se não conseguir identificar.

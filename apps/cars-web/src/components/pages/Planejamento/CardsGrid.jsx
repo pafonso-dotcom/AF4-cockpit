@@ -1,15 +1,19 @@
 import React, { useMemo } from "react";
-import { Calendar, BarChart3, Wallet, CreditCard, AlertTriangle, ChevronRight, Shield } from "lucide-react";
+import { Calendar, BarChart3, Wallet, CreditCard, AlertTriangle, ChevronRight, Shield, TrendingUp } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN, todayISO } from "../../../lib/format.js";
+import { getProjecaoSaldo } from "../../../lib/agregador.js";
 
 export default function CardsGrid({
   transacoes = [],
   devedores = [],
   dividas = [],
+  fixas = [],
   fixaOcorrencias = [],
   parcelamentos = [],
   contas = [],
+  categorias = [],
+  escopoAtivo,
   hidden,
   onAbrir,
 }) {
@@ -92,6 +96,16 @@ export default function CardsGrid({
     };
   }, [transacoes, devedores, dividas, fixaOcorrencias, parcelamentos, contas]);
 
+  // Previsão de saldo (6 meses) — para o card "Previsão".
+  const previsao = useMemo(() => {
+    const state = { contas, transacoes, categorias, devedores, dividas, fixas, fixaOcorrencias, parcelamentos };
+    const p = getProjecaoSaldo(state, escopoAtivo, 6);
+    const saldoFinal = p.meses.length ? p.meses[p.meses.length - 1].saldoFim : p.saldoInicial;
+    const menor = p.meses.reduce((min, x) => (x.saldoFim < min ? x.saldoFim : min), p.saldoInicial);
+    return { saldoFinal, negativo: menor < 0 };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contas, transacoes, categorias, devedores, dividas, fixas, fixaOcorrencias, parcelamentos, escopoAtivo]);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {/* DESPESAS DO MÊS — featured, ocupa 2 colunas */}
@@ -153,6 +167,16 @@ export default function CardsGrid({
         sub={`${stats.parcelasAtivas} parcelamento${stats.parcelasAtivas === 1 ? "" : "s"} ativo${stats.parcelasAtivas === 1 ? "" : "s"}`}
         valor={hidden ? "•••" : `${fmt(stats.parcelasMesValor)}/mês`}
         valorCor={T.ink}
+      />
+
+      {/* PREVISÃO DE SALDO */}
+      <CardMenor
+        onClick={() => onAbrir("previsao")}
+        icon={<TrendingUp size={20} color={previsao.negativo ? T.red : T.gold} />}
+        titulo="Previsão de saldo"
+        sub={previsao.negativo ? "⚠ pode ficar negativo" : "saldo em 6 meses"}
+        valor={hidden ? "•••" : fmt(previsao.saldoFinal)}
+        valorCor={previsao.negativo ? T.red : (previsao.saldoFinal >= 0 ? T.green : T.red)}
       />
 
       {/* ATENÇÃO */}
