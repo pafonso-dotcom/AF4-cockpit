@@ -6,17 +6,12 @@ import {
 import { T } from "../../lib/theme.js";
 import { todayISO } from "../../lib/format.js";
 import { getPerfilAtivo } from "../../lib/perfis.js";
+import { PRIORIDADE_COR, EVENTO_TIPO } from "../../lib/coresUI.js";
 
-const PRIO_COR = { alta: "#f87171", media: "#fbbf24", baixa: "#60a5fa" };
+const PRIO_COR = PRIORIDADE_COR;
 const PRIO_LBL = { alta: "Alta", media: "Média", baixa: "Baixa" };
 
-const CAT_AGENDA = {
-  compromisso: { cor: "#c9a96b", lbl: "Compromisso" },
-  viagem:      { cor: "#70ad47", lbl: "Viagem" },
-  lembrete:    { cor: "#5b9bd5", lbl: "Lembrete" },
-  pessoal:     { cor: "#e7a3a3", lbl: "Pessoal" },
-  evento:      { cor: "#d97757", lbl: "Evento" },
-};
+const CAT_AGENDA = EVENTO_TIPO;
 
 function saudar() {
   const h = new Date().getHours();
@@ -121,10 +116,10 @@ export default function AgendaInicio({
       {/* KPIs · 4-up no mobile, 5-up no desktop */}
       <div className="agenda-kpis">
         <KpiCard icon={Calendar}     cor={T.gold}     valor={eventosHoje.length} label="Eventos hoje"     subtitle={eventosHoje.length === 0 ? "Dia livre" : "Programado"}     onClick={() => go("calendario")} />
-        <KpiCard icon={CheckSquare}  cor="#60a5fa"    valor={tarefasPendentes.length} label="Tarefas"     subtitle={tarefasHoje.length === 0 ? "Nada pra hoje" : `${tarefasHoje.length} pra hoje`} onClick={() => go("tarefas")} />
-        <KpiCard icon={Target}       cor="#a78bfa"    valor={metasAtivas}             label="Metas ativas" subtitle="Em progresso"           onClick={() => go("metas")} />
-        <KpiCard icon={ShoppingCart} cor="#fbbf24"    valor={comprasPendentes}        label="Compras"      subtitle={comprasPendentes === 0 ? "Lista vazia" : "A comprar"} onClick={() => go("compras")} />
-        <KpiCard icon={Sparkles}     cor="#34d399"    valor={(ideias || []).length}   label="Ideias"       subtitle={ideiasFixadas > 0 ? `${ideiasFixadas} fixada${ideiasFixadas > 1 ? "s" : ""}` : "Brain dump"}    onClick={() => go("ideias")} />
+        <KpiCard icon={CheckSquare}  cor={T.blue}     valor={tarefasPendentes.length} label="Tarefas"     subtitle={tarefasHoje.length === 0 ? "Nada pra hoje" : `${tarefasHoje.length} pra hoje`} onClick={() => go("tarefas")} />
+        <KpiCard icon={Target}       cor={T.gold}     valor={metasAtivas}             label="Metas ativas" subtitle="Em progresso"           onClick={() => go("metas")} />
+        <KpiCard icon={ShoppingCart} cor={T.yellow}   valor={comprasPendentes}        label="Compras"      subtitle={comprasPendentes === 0 ? "Lista vazia" : "A comprar"} onClick={() => go("compras")} />
+        <KpiCard icon={Sparkles}     cor={T.green}    valor={(ideias || []).length}   label="Ideias"       subtitle={ideiasFixadas > 0 ? `${ideiasFixadas} fixada${ideiasFixadas > 1 ? "s" : ""}` : "Brain dump"}    onClick={() => go("ideias")} />
       </div>
 
       {/* FOCO DO DIA · ocupa largura toda quando tem */}

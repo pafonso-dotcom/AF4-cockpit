@@ -13,13 +13,14 @@ import StatCard from "../ui/StatCard.jsx";
 import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
 import { getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
+import { EVENTO_TIPO } from "../../lib/coresUI.js";
 
 const CATEGORIAS_AGENDA = [
-  { id: "compromisso", label: "Compromisso", cor: "#c9a96b", icon: Briefcase },
-  { id: "viagem",      label: "Viagem",      cor: "#70ad47", icon: Plane },
-  { id: "lembrete",    label: "Lembrete",    cor: "#5b9bd5", icon: AlarmClock },
-  { id: "pessoal",     label: "Pessoal",     cor: "#e7a3a3", icon: Heart },
-  { id: "evento",      label: "Evento",      cor: "#d97757", icon: Star },
+  { id: "compromisso", label: "Compromisso", cor: EVENTO_TIPO.compromisso.cor, icon: Briefcase },
+  { id: "viagem",      label: "Viagem",      cor: EVENTO_TIPO.viagem.cor,      icon: Plane },
+  { id: "lembrete",    label: "Lembrete",    cor: EVENTO_TIPO.lembrete.cor,    icon: AlarmClock },
+  { id: "pessoal",     label: "Pessoal",     cor: EVENTO_TIPO.pessoal.cor,     icon: Heart },
+  { id: "evento",      label: "Evento",      cor: EVENTO_TIPO.evento.cor,      icon: Star },
 ];
 
 const catMeta = (id) =>
@@ -243,7 +244,7 @@ export default function Calendario({
         {[
           { id: "tudo",       label: "Tudo",       cor: T.gold },
           { id: "financeiro", label: "Financeiro", cor: T.green },
-          { id: "pessoal",    label: "Pessoal",    cor: "#5b9bd5" },
+          { id: "pessoal",    label: "Pessoal",    cor: T.blue },
         ].map(f => {
           const ativo = filterMode === f.id;
           return (
@@ -288,7 +289,7 @@ export default function Calendario({
         <StatCard label="Receitas previstas" value={hidden ? "•••" : fmt(monthStats.receitas)} accent={T.green} icon={ArrowUpRight} />
         <StatCard label="Despesas previstas" value={hidden ? "•••" : fmt(monthStats.despesas)} accent={T.red} icon={ArrowDownRight} />
         <StatCard label="Pendentes" value={String(monthStats.pendentes)} accent={T.gold} icon={AlarmClock} />
-        <StatCard label="Eventos da agenda" value={String(monthStats.eventosAgenda)} accent="#5b9bd5" icon={Star} />
+        <StatCard label="Eventos da agenda" value={String(monthStats.eventosAgenda)} accent={T.blue} icon={Star} />
       </div>
 
       {/* Calendar grid */}

@@ -5,14 +5,9 @@ import { todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
+import { MOOD } from "../../lib/coresUI.js";
 
-const HUMORES = [
-  { v: 5, emoji: "😄", label: "Ótimo", cor: "#70ad47" },
-  { v: 4, emoji: "🙂", label: "Bem", cor: "#a5d77c" },
-  { v: 3, emoji: "😐", label: "Neutro", cor: "#c9a96b" },
-  { v: 2, emoji: "😕", label: "Mal", cor: "#e7a3a3" },
-  { v: 1, emoji: "😢", label: "Difícil", cor: "#d97757" },
-];
+const HUMORES = MOOD;
 
 function formatarDataLonga(iso) {
   if (!iso) return "—";
