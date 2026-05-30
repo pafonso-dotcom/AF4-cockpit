@@ -20,14 +20,17 @@ export function getCdiAnual() {
   return Number.isFinite(v) && v > 0 ? v : 10.5;
 }
 
-// Valor de mercado de um CDB de meta hoje = pm capitalizado a CDI desde _aplicadoEm.
-// Usa juros compostos diários (mesma fórmula do benchmark CDI do app).
+// Valor de mercado de um CDB de meta hoje = valor-base capitalizado a CDI desde
+// _aplicadoEm. O valor-base (_baseValor) é o valor de MERCADO na data-base — que
+// na 1ª aplicação é igual ao aporte, mas após reaplicar já inclui o rendimento
+// consolidado. Por isso NÃO usamos `pm` (custo) como base: senão a reaplicação
+// jogaria fora o rendimento já acumulado. Juros compostos diários.
 export function valorCdbHoje(ativo, hojeISO = new Date().toISOString().slice(0, 10), cdiAnual = getCdiAnual()) {
-  const pm = Number(ativo.pm) || 0;
-  const base = ativo._aplicadoEm || hojeISO;
-  const dias = Math.max(0, (new Date(`${hojeISO}T00:00:00`) - new Date(`${base}T00:00:00`)) / 86400000);
+  const base = Number(ativo._baseValor != null ? ativo._baseValor : ativo.pm) || 0;
+  const baseData = ativo._aplicadoEm || hojeISO;
+  const dias = Math.max(0, (new Date(`${hojeISO}T00:00:00`) - new Date(`${baseData}T00:00:00`)) / 86400000);
   const taxa = cdiAnual / 100;
-  return +(pm * Math.pow(1 + taxa, dias / 365)).toFixed(2);
+  return +(base * Math.pow(1 + taxa, dias / 365)).toFixed(2);
 }
 
 // Recalcula o preço (valor de mercado) de todos os CDBs de meta.

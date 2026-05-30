@@ -176,18 +176,20 @@ export default function Metas({
     // 2) Cria/incrementa o ativo CDB vinculado à meta.
     const existente = cdbDe(m);
     if (existente) {
-      const qtd = Number(existente.qtd) || 1;
-      const valorAtual = qtd * (Number(existente.preco) || 0);
-      const novoTotal = valorAtual + saldo;
-      const novoPm = +(((Number(existente.pm) || 0) * qtd + saldo)).toFixed(2); // custo acumulado
+      // Reaplicação: o valor de mercado ATUAL (já com rendimento) + o novo aporte
+      // viram a nova base de capitalização, a partir de hoje. O custo (pm) só soma
+      // o que foi de fato aportado — assim o rendimento acumulado é preservado.
+      const valorAtual = (Number(existente.qtd) || 1) * (Number(existente.preco) || 0);
+      const novaBase = +(valorAtual + saldo).toFixed(2);
+      const novoPm = +(((Number(existente.pm) || 0) + saldo)).toFixed(2);
       setAtivos((ativos || []).map(a => a.id === existente.id
-        ? { ...a, qtd: 1, pm: novoPm, preco: +novoTotal.toFixed(2), _aplicadoEm: hojeISO, _capituladoEm: hojeISO }
+        ? { ...a, qtd: 1, pm: novoPm, preco: novaBase, _baseValor: novaBase, _aplicadoEm: hojeISO, _capituladoEm: hojeISO }
         : a));
     } else {
       setAtivos([...(ativos || []), {
         id: uid(), ticker: `CDB ${m.nome}`.slice(0, 24), nome: `CDB · ${m.nome}`,
         tipo: "cdb", segmento: "Pós-fixado (CDI)",
-        qtd: 1, pm: +saldo.toFixed(2), preco: +saldo.toFixed(2),
+        qtd: 1, pm: +saldo.toFixed(2), preco: +saldo.toFixed(2), _baseValor: +saldo.toFixed(2),
         _cdbMeta: true, _metaId: m.id, _aplicadoEm: hojeISO, _capituladoEm: hojeISO,
       }]);
     }
