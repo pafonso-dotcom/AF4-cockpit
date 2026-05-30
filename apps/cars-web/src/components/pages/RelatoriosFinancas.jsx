@@ -108,36 +108,33 @@ export default function RelatoriosFinancas({
       }));
   }, [transacoes]);
 
-  // ===== Cashflow Preditivo =====
-  const cashflowPrev = useMemo(() => {
-    const hoje = new Date();
-    const r = seisMeses.slice(-3).reduce((s, m) => s + m.value1, 0) / 3 || 18000;
-    const d = seisMeses.slice(-3).reduce((s, m) => s + m.value2, 0) / 3 || 12000;
-    const sobra = r - d;
-    const projecao = [];
-    for (let i = 1; i <= 6; i++) {
-      const data = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
-      const nome = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][data.getMonth()];
-      // Pequena variação aleatória pra parecer real
-      const variacao = sobra * (0.85 + Math.random() * 0.3);
-      projecao.push({ label: nome, value: variacao });
+  // ===== Sobra mensal REAL (últimos 6 meses) = receita − despesa por mês =====
+  const sobraMensal = useMemo(
+    () => seisMeses.map(m => ({ label: m.label, value: m.value1 - m.value2 })),
+    [seisMeses]
+  );
+  const sobraMediaReal = sobraMensal.length
+    ? sobraMensal.reduce((s, m) => s + m.value, 0) / sobraMensal.length : 0;
+  const sobraTotalReal = sobraMensal.reduce((s, m) => s + m.value, 0);
+
+  // ===== Sobra acumulada no ano (REAL) — mês a mês do ano corrente =====
+  const acumuladoAno = useMemo(() => {
+    const ano = new Date().getFullYear();
+    const mesAtualIdx = new Date().getMonth(); // 0..11
+    const nomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+    const out = [];
+    let acc = 0;
+    for (let m = 0; m <= mesAtualIdx; m++) {
+      const key = `${ano}-${String(m + 1).padStart(2, "0")}`;
+      const tx = transacoes.filter(t => (t.data || "").startsWith(key));
+      const rec = tx.filter(t => t.tipo === "receita").reduce((s, t) => s + Number(t.valor || 0), 0);
+      const desp = tx.filter(t => t.tipo === "despesa").reduce((s, t) => s + Number(t.valor || 0), 0);
+      acc += rec - desp;
+      out.push({ label: nomes[m], value: acc });
     }
-    return projecao;
-  }, [seisMeses]);
-
-  // ===== Patrimônio: visão comparativa (estimada por crescimento) =====
-  const saldoContas = contas.reduce((s, c) => s + Number(c.saldo || 0), 0);
-  const comparativoAnual = [
-    { label: "2024", value: saldoContas * 0.72 },
-    { label: "2025", value: saldoContas * 0.88 },
-    { label: "2026", value: saldoContas },
-  ];
-
-  const crescimento = saldoContas > 0
-    ? ((saldoContas - saldoContas * 0.72) / (saldoContas * 0.72)) * 100
-    : 0;
-
-  const sobraProjetada = cashflowPrev.reduce((s, m) => s + m.value, 0);
+    return out;
+  }, [transacoes]);
+  const sobraAnoTotal = acumuladoAno.length ? acumuladoAno[acumuladoAno.length - 1].value : 0;
 
   // ===== Projeção REAL · meses a vencer (compromissos já agendados) =====
   const projecaoReal = useMemo(() => {
@@ -163,7 +160,7 @@ export default function RelatoriosFinancas({
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
       <div className="eb">Finanças · Relatórios</div>
       <h1 className="h1">Análises <em>do período.</em></h1>
-      <p className="hs">Evolução · top categorias · cashflow previsto · comparativo anual.</p>
+      <p className="hs">Evolução · categorias · sobra mensal · tendências · maiores gastos.</p>
 
       {/* Evolução do patrimônio (snapshot diário) — visão de longo prazo */}
       <div style={{ marginTop: 16 }}>
@@ -212,44 +209,46 @@ export default function RelatoriosFinancas({
         </ExportableCard>
 
         <ExportableCard
-          id="rep-cashflow"
-          title="Cashflow Preditivo (próx. 6m)"
+          id="rep-sobra-mensal"
+          title="Sobra mensal (6 meses)"
           pngOk={pngOk}
           csvData={{
-            headers: ["Mês", "Sobra projetada"],
-            rows: cashflowPrev.map(m => [m.label, m.value.toFixed(2)]),
+            headers: ["Mês", "Sobra (receita − despesa)"],
+            rows: sobraMensal.map(m => [m.label, m.value.toFixed(2)]),
           }}
-          csvName={`af4-cashflow-preditivo-${mesAtualKey}.csv`}
+          csvName={`af4-sobra-mensal-${mesAtualKey}.csv`}
           footer={
-            <>📈 Sobra média projetada: {hidden ? "•••" : fmt(sobraProjetada / 6)}/mês · projeção fim de período:&nbsp;
-              <strong style={{ color: T.green }}>{hidden ? "•••" : fmt(sobraProjetada)}</strong>
+            <>💰 Sobra média real: <strong style={{ color: sobraMediaReal >= 0 ? T.green : T.red }}>{hidden ? "•••" : fmt(sobraMediaReal)}</strong>/mês ·
+              acumulado 6m: {hidden ? "•••" : fmt(sobraTotalReal)}
             </>
           }
         >
           <BarChart
-            data={cashflowPrev}
+            data={sobraMensal}
             color={T.gold}
-            formatValue={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v.toFixed(0)}
+            formatValue={v => Math.abs(v) >= 1000 ? `${(v/1000).toFixed(1)}k` : v.toFixed(0)}
           />
         </ExportableCard>
 
         <ExportableCard
-          id="rep-comparativo-anual"
-          title="Comparativo Anual"
+          id="rep-acumulado-ano"
+          title={`Sobra acumulada no ano (${new Date().getFullYear()})`}
           pngOk={pngOk}
           csvData={{
-            headers: ["Ano", "Patrimônio"],
-            rows: comparativoAnual.map(c => [c.label, c.value.toFixed(2)]),
+            headers: ["Mês", "Acumulado no ano"],
+            rows: acumuladoAno.map(c => [c.label, c.value.toFixed(2)]),
           }}
-          csvName={`af4-comparativo-anual-${mesAtualKey}.csv`}
+          csvName={`af4-acumulado-ano-${mesAtualKey}.csv`}
           footer={
-            <>📊 Patrimônio cresceu <strong style={{ color: T.green }}>+ {crescimento.toFixed(1)}%</strong> em 24 meses</>
+            <>📊 Resultado acumulado do ano até agora:&nbsp;
+              <strong style={{ color: sobraAnoTotal >= 0 ? T.green : T.red }}>{hidden ? "•••" : fmt(sobraAnoTotal)}</strong>
+            </>
           }
         >
           <BarChart
-            data={comparativoAnual.map(c => ({ ...c, value: c.value }))}
+            data={acumuladoAno}
             color={T.gold}
-            formatValue={v => hidden ? "•••" : `${(v/1000).toFixed(0)}k`}
+            formatValue={v => hidden ? "•••" : (Math.abs(v) >= 1000 ? `${(v/1000).toFixed(1)}k` : v.toFixed(0))}
           />
         </ExportableCard>
 
