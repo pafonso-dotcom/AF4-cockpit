@@ -31,12 +31,19 @@ Nada é gravado no servidor — a imagem só transita, o resultado volta e fica
 - [ ] Criar secret `ANTHROPIC_API_KEY` no Worker
 - [ ] **Proteção do endpoint** (endpoint público gasta a API): header secreto/PIN na config do app + rate limit
 
-### Fase 1 — Backend: Worker de extração · ~1 sessão
-- [ ] Endpoint `POST /api/recibo` (imagem base64/multipart)
-- [ ] Validação de tamanho/tipo + rate limit + auth por header secreto
-- [ ] Chamada Claude Vision com **tool/JSON schema** (saída estruturada) + **prompt caching** no system prompt
-- [ ] Normalização da resposta + tratamento de erro (foto ruim, sem valor, etc.)
-- [ ] Testes (mock da API) + deploy do Worker
+### Fase 1 — Backend: Worker de extração · ✅ FEITO
+- [x] Endpoint `POST /api/recibo` — `worker/recibo.js`
+- [x] Validação de tamanho (5 MB) / tipo (jpeg/png/webp/gif) + auth por header `x-recibo-pin`
+- [x] Claude Vision (**Haiku 4.5**) com **tool/JSON schema** + **prompt caching** no system
+- [x] Normalização (abs no valor, clamp confiança, data ISO) + erros 401/400/413/422/502
+- [x] 11 testes (mock da API)
+
+**Secrets a configurar no Worker (você roda na Cloudflare):**
+```
+wrangler secret put ANTHROPIC_API_KEY   # obrigatório
+wrangler secret put RECIBO_PIN          # opcional, recomendado (protege o endpoint)
+```
+Sem `RECIBO_PIN` o endpoint fica aberto (só teste). Com ele, o app manda o header `x-recibo-pin`.
 
 ### Fase 2 — Frontend: captura & upload · ~1 sessão
 - [ ] Botão **"📷 Escanear recibo"** no fluxo de nova transação / no extrato

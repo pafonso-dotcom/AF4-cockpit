@@ -3,6 +3,7 @@
  *
  * Roteamento:
  *  - /api/ping → health check (verifica se o Worker responde)
+ *  - /api/recibo → extração de recibo por foto (Claude Vision; chave no Worker)
  *  - tudo o mais → static assets (SPA)
  *
  * Sync de dados entre dispositivos é feito via GitHub Gist (lib/gistSync.js
@@ -12,6 +13,8 @@
  * cheguem ao usuário sem cache HTTP do navegador travar a versão antiga
  * (problema observado no iOS WebKit em *.workers.dev).
  */
+
+import { handleRecibo } from "./recibo.js";
 
 const VERSION = "2026-05-24-2";
 
@@ -29,6 +32,11 @@ export default {
     // Health check
     if (url.pathname === "/api/ping") {
       return json({ ok: true, version: VERSION });
+    }
+
+    // Extração de recibo por foto (Claude Vision — chave fica no Worker).
+    if (url.pathname === "/api/recibo") {
+      return handleRecibo(request, env);
     }
 
     // Endpoints /api/* antigos (state/keys) foram removidos — sync agora
