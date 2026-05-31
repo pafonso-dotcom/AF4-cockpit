@@ -324,7 +324,7 @@ function HeaderHorizontal({
                   color: active ? T.gold : NAV_MUTED,
                   borderTop: "none", borderLeft: "none", borderRight: "none",
                   borderBottom: `2px solid ${active ? T.gold : "transparent"}`,
-                  fontSize: 13.5, letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 500,
+                  fontSize: 15, letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 500,
                   display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
                   cursor: "pointer", transition: "color .15s, background .15s, border-color .15s",
                   fontFamily: T.sans, borderRadius: "6px 6px 0 0",
@@ -558,7 +558,7 @@ function HeaderVertical({
   const subtabs = SUBTABS[modulo] || SUBTABS.financas;
   const moduloAtivo = TODOS_MODULOS.find(m => m.id === modulo) || { label: modulo };
 
-  const NAV_BG = "rgba(10,10,12,.96)";
+  const NAV_BG = "#23272E";
   const NAV_INK = "#f5f5f7";
   const NAV_MUTED = "#a8a8b0";
   const NAV_BORDER = "rgba(255,255,255,0.08)";
@@ -619,7 +619,7 @@ function HeaderVertical({
                       padding: "8px 10px", borderRadius: 7,
                       background: ativo ? "rgba(255,255,255,0.08)" : "transparent",
                       color: ativo ? T.gold : NAV_INK,
-                      fontWeight: ativo ? 600 : 400, fontSize: 12,
+                      fontWeight: ativo ? 600 : 400, fontSize: 13,
                       border: "none", cursor: "pointer", textAlign: "left",
                       display: "flex", alignItems: "center", gap: 9,
                     }}>
@@ -668,7 +668,7 @@ function HeaderVertical({
                           <React.Fragment key={s.id}>
                             <button onClick={() => setTab(s.id)}
                               style={{
-                                padding: "7px 10px 7px 26px", borderRadius: 5, fontSize: 12.5,
+                                padding: "7px 10px 7px 26px", borderRadius: 5, fontSize: 14,
                                 background: sAtivo ? "rgba(255,255,255,0.08)" : "transparent",
                                 color: sAtivo ? NAV_INK : NAV_MUTED,
                                 fontWeight: sAtivo ? 600 : 400,
