@@ -39,9 +39,14 @@ export default function ImportarCarteiraModal({ ativos = [], setAtivos, onClose 
 
   const confirmar = () => {
     if (!itens?.length) return;
+    const validos = itens.filter(it => it.qtd > 0);
+    if (validos.length === 0) {
+      toast.error("Defina a quantidade de pelo menos um ativo antes de importar.");
+      return;
+    }
     const mapa = new Map(ativos.map(a => [String(a.ticker || "").toUpperCase(), a]));
     let novos = 0, atualizados = 0;
-    itens.forEach(it => {
+    validos.forEach(it => {
       const ex = mapa.get(it.ticker);
       if (ex) {
         // soma quantidade; recalcula PM ponderado quando ambos têm PM
@@ -97,6 +102,11 @@ export default function ImportarCarteiraModal({ ativos = [], setAtivos, onClose 
             <div style={{ fontSize: 12, color: T.muted, marginBottom: 8 }}>
               <strong style={{ color: T.ink }}>{itens.length}</strong> ativo(s) detectado(s){erros.length > 0 ? ` · ${erros.length} ignorado(s)` : ""}:
             </div>
+            {semQtd && (
+              <div style={{ fontSize: 11.5, color: T.gold, background: `${T.gold}14`, border: `1px solid ${T.gold}44`, borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>
+                Esta planilha não tem coluna de quantidade (parece uma lista de análise). Informe a quantidade de cada ativo abaixo — quem ficar em 0 não é importado.
+              </div>
+            )}
             <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                 <thead>
@@ -112,7 +122,11 @@ export default function ImportarCarteiraModal({ ativos = [], setAtivos, onClose 
                     <tr key={i} style={{ borderTop: `1px solid ${T.border}` }}>
                       <td style={{ ...td(), color: T.ink, fontWeight: 600 }}>{it.ticker}</td>
                       <td style={td()}>{it.tipo}</td>
-                      <td style={{ ...td(), textAlign: "right" }} className="num">{it.qtd}</td>
+                      <td style={{ ...td(), textAlign: "right" }}>
+                        <input type="number" min={0} value={it.qtd || ""} onChange={e => setQtdItem(i, e.target.value)}
+                               placeholder="0"
+                               style={{ width: 80, padding: "4px 7px", textAlign: "right", borderRadius: 6, border: `1px solid ${it.qtd > 0 ? T.border : T.gold}`, background: T.bgSoft, color: T.ink, fontSize: 12 }} />
+                      </td>
                       <td style={{ ...td(), textAlign: "right" }} className="num">{it.pm > 0 ? fmt(it.pm) : "—"}</td>
                     </tr>
                   ))}
