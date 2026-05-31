@@ -350,23 +350,28 @@ export default function App() {
           horizontal (faixa rolável) por padrão, vertical (lateral) opcional. */}
       <div style={{ display: "flex", flexDirection: navVertical ? "row" : "column", alignItems: "stretch" }}>
       <nav className="invest-nav" style={{
-        display: "flex", gap: 4, padding: "10px 16px", background: "#23272E",
+        display: "flex", gap: navVertical ? 2 : 6, padding: navVertical ? "10px 12px" : "8px 16px", background: "#23272E",
         ...(navVertical
           ? { flexDirection: "column", borderRight: "1px solid rgba(255,255,255,.08)", minWidth: 176, flexShrink: 0 }
           : { borderBottom: "1px solid rgba(255,255,255,.08)", flexWrap: "nowrap", overflowX: "auto", WebkitOverflowScrolling: "touch" }),
       }}>
-        {tabsVisiveis.map(t => (
-          <button key={t.id} onClick={() => irParaTab(t.id)}
-                  style={{
-                    padding: "8px 14px", borderRadius: navVertical ? 8 : 100, fontSize: 12, cursor: "pointer",
-                    border: `1px solid ${tab === t.id ? "#E8C25A" : "rgba(255,255,255,.16)"}`,
-                    background: tab === t.id ? "rgba(232,194,90,.18)" : "transparent",
-                    color: tab === t.id ? "#E8C25A" : "rgba(240,235,225,.72)", fontWeight: tab === t.id ? 600 : 400,
-                    whiteSpace: "nowrap", flexShrink: 0, textAlign: navVertical ? "left" : "center",
-                  }}>
-            {t.label}
-          </button>
-        ))}
+        {tabsVisiveis.map(t => {
+          const ativo = tab === t.id;
+          return (
+            <button key={t.id} onClick={() => irParaTab(t.id)}
+                    style={{
+                      padding: navVertical ? "9px 12px" : "8px 6px", fontSize: 13, cursor: "pointer",
+                      background: navVertical && ativo ? "rgba(232,194,90,.12)" : "transparent",
+                      border: "none",
+                      borderRadius: navVertical ? 8 : 0,
+                      borderBottom: navVertical ? "none" : `2px solid ${ativo ? "#E8C25A" : "transparent"}`,
+                      color: ativo ? "#E8C25A" : "rgba(240,235,225,.66)", fontWeight: ativo ? 600 : 400,
+                      whiteSpace: "nowrap", flexShrink: 0, textAlign: navVertical ? "left" : "center",
+                    }}>
+              {t.label}
+            </button>
+          );
+        })}
       </nav>
 
       <main className="fade-up" style={{ paddingBottom: 40, flex: 1, minWidth: 0 }}>
