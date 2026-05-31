@@ -510,7 +510,6 @@ function HeaderVertical({
     { id: "financas", label: "Finanças",      icon: Wallet },
     { id: "invest",   label: "Investimentos", icon: Briefcase },
     { id: "negocio",  label: "Negócio",       icon: Store },
-    { id: "agenda",   label: "Agenda",        icon: Calendar },
   ];
   const MODULOS = TODOS_MODULOS.filter(m => perms[m.id] !== false);
 
