@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Logo, { AurumMark } from "./ui/Logo.jsx";
 import { T, THEMES } from "../lib/theme.js";
 import { getPerfilAtivo } from "../lib/perfis.js";
 import { useLayout } from "../lib/useLayout.js";
@@ -192,21 +193,8 @@ function HeaderHorizontal({
       }}>
         {/* BRAND · logo + nome */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginRight: "auto", flexShrink: 0 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: `linear-gradient(135deg, ${T.gold}, ${T.goldHi})`,
-            display: "grid", placeItems: "center",
-            color: T.bg, fontWeight: 700, fontSize: 16,
-            flexShrink: 0,
-          }}>A</div>
-          <div className="header-brand-text" style={{ lineHeight: 1.15 }}>
-            <div style={{ fontSize: 14, letterSpacing: ".05em", fontWeight: 600, color: NAV_INK }}>
-              Aurum Finanças
-            </div>
-            <div className="header-subtitle" style={{ fontSize: 9.5, letterSpacing: ".18em", color: NAV_FAINT, marginTop: 1 }}>
-              v4 · Multi-Módulo
-            </div>
-          </div>
+          <span className="hide-desktop"><AurumMark size={34} /></span>
+          <span className="header-brand-text"><Logo size={27} /></span>
         </div>
 
         {sep}

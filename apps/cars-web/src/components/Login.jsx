@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Logo from "./ui/Logo.jsx";
 import { LogIn, UserPlus, Mail, KeyRound } from "lucide-react";
 import { signIn, signUp, resetPassword, updatePassword } from "../lib/supabase.js";
 
@@ -151,24 +152,7 @@ function LinkBtn({ onClick, children }) {
 }
 
 function Brand() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <div style={{
-        width: 44, height: 44, borderRadius: 11,
-        background: "linear-gradient(135deg, var(--ac), var(--ac2))",
-        display: "grid", placeItems: "center",
-        color: "var(--bg)", fontWeight: 700, fontSize: 18,
-      }}>A</div>
-      <div>
-        <div style={{ fontSize: 11, letterSpacing: ".25em", textTransform: "uppercase", fontWeight: 500, color: "var(--tx)" }}>
-          Aurum Finanças
-        </div>
-        <div style={{ fontSize: 9, letterSpacing: ".2em", color: "var(--td)", marginTop: 2 }}>
-          Multi-Módulo · v3
-        </div>
-      </div>
-    </div>
-  );
+  return <Logo size={36} wordColor="var(--tx)" tagColor="var(--td)" ring="var(--bg)" />;
 }
 
 const shellStyle = {
