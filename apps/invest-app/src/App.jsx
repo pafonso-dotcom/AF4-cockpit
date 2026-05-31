@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { RefreshCw, Eye, EyeOff, LogOut, Palette } from "lucide-react";
+import { RefreshCw, Eye, EyeOff, LogOut, Palette, LayoutGrid } from "lucide-react";
 
 import { T, applyTheme, THEMES } from "./lib/theme.js";
 import { simulateTick } from "./lib/format.js";
@@ -69,6 +69,9 @@ export default function App() {
   const [themeId, setThemeId] = useState(() => { try { return localStorage.getItem("invest:theme") || "gold"; } catch { return "gold"; } });
   const [paletaAberta, setPaletaAberta] = useState(false);
   const trocarTema = (id) => { setThemeId(id); try { localStorage.setItem("invest:theme", id); } catch {} };
+  // Orientação do menu: horizontal (padrão) ou vertical (opcional).
+  const [navVertical, setNavVertical] = useState(() => { try { return localStorage.getItem("invest:nav") === "vertical"; } catch { return false; } });
+  const toggleNav = () => setNavVertical(v => { const n = !v; try { localStorage.setItem("invest:nav", n ? "vertical" : "horizontal"); } catch {} return n; });
 
   const [apiKeys, setApiKeys] = useState({ brapi: "", alphavantage: "", anthropic: "", useRealMarket: true });
 
@@ -272,7 +275,7 @@ export default function App() {
       {/* Cabeçalho — barra de marca, sempre escura (independente da paleta) */}
       <header style={{
         display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
-        padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,.08)", background: "#0c0b0a",
+        padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,.08)", background: "#23272E",
       }}>
         <div style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em" }}>
           <Logo size={26} />
@@ -281,6 +284,9 @@ export default function App() {
           <button onClick={() => setHidden(h => !h)} title={hidden ? "Mostrar valores" : "Ocultar valores"}
                   style={btn()}>
             {hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+          </button>
+          <button onClick={toggleNav} title={navVertical ? "Menu horizontal" : "Menu vertical"} style={btn()}>
+            <LayoutGrid size={14} /> {navVertical ? "Horizontal" : "Vertical"}
           </button>
           <button onClick={refreshMarket} disabled={refreshing} title="Atualizar cotações"
                   style={btn(refreshing)}>
@@ -340,29 +346,30 @@ export default function App() {
         </div>
       </header>
 
-      {/* Navegação por abas */}
+      {/* Navegação + conteúdo. Menu em grafite fixo (independe da paleta);
+          horizontal (faixa rolável) por padrão, vertical (lateral) opcional. */}
+      <div style={{ display: "flex", flexDirection: navVertical ? "row" : "column", alignItems: "stretch" }}>
       <nav className="invest-nav" style={{
-        display: "flex", gap: 4, padding: "10px 16px",
-        borderBottom: `1px solid ${T.border}`, background: T.card,
-        // No celular vira uma faixa rolável na horizontal (em vez de quebrar em
-        // várias linhas e ocupar meia tela).
-        flexWrap: "nowrap", overflowX: "auto", WebkitOverflowScrolling: "touch",
+        display: "flex", gap: 4, padding: "10px 16px", background: "#23272E",
+        ...(navVertical
+          ? { flexDirection: "column", borderRight: "1px solid rgba(255,255,255,.08)", minWidth: 176, flexShrink: 0 }
+          : { borderBottom: "1px solid rgba(255,255,255,.08)", flexWrap: "nowrap", overflowX: "auto", WebkitOverflowScrolling: "touch" }),
       }}>
         {tabsVisiveis.map(t => (
           <button key={t.id} onClick={() => irParaTab(t.id)}
                   style={{
-                    padding: "6px 14px", borderRadius: 100, fontSize: 12, cursor: "pointer",
-                    border: `1px solid ${tab === t.id ? T.gold : T.border}`,
-                    background: tab === t.id ? `${T.gold}22` : "transparent",
-                    color: tab === t.id ? T.gold : T.muted, fontWeight: tab === t.id ? 600 : 400,
-                    whiteSpace: "nowrap", flexShrink: 0,
+                    padding: "8px 14px", borderRadius: navVertical ? 8 : 100, fontSize: 12, cursor: "pointer",
+                    border: `1px solid ${tab === t.id ? "#E8C25A" : "rgba(255,255,255,.16)"}`,
+                    background: tab === t.id ? "rgba(232,194,90,.18)" : "transparent",
+                    color: tab === t.id ? "#E8C25A" : "rgba(240,235,225,.72)", fontWeight: tab === t.id ? 600 : 400,
+                    whiteSpace: "nowrap", flexShrink: 0, textAlign: navVertical ? "left" : "center",
                   }}>
             {t.label}
           </button>
         ))}
       </nav>
 
-      <main className="fade-up" style={{ paddingBottom: 40 }}>
+      <main className="fade-up" style={{ paddingBottom: 40, flex: 1, minWidth: 0 }}>
         {tab === "investimentos" && (
           <InvestPainel ativos={ativos} transacoes={transacoes} categorias={categorias} hidden={hidden}
                         onTabChange={(t) => setTab(t)}
@@ -443,6 +450,7 @@ export default function App() {
           </div>
         )}
       </main>
+      </div>
 
       <Footer />
       <ToastContainer />

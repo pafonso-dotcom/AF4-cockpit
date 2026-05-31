@@ -10,21 +10,22 @@ export function LogoMark({ size = 28 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="Aurum" style={{ flexShrink: 0 }}>
       <defs>
-        <linearGradient id="aurumGold" x1="0" y1="0" x2="0.85" y2="1">
-          <stop offset="0" stopColor="#f6e6b0" />
-          <stop offset="0.5" stopColor="#d9b450" />
-          <stop offset="1" stopColor="#9a7322" />
+        {/* Gradiente ouro da paleta: Ouro Profundo → Ouro → Ouro Claro */}
+        <linearGradient id="aurumGold" x1="0" y1="0" x2="0.7" y2="1">
+          <stop offset="0" stopColor="#F6E3A1" />
+          <stop offset="0.5" stopColor="#E8C25A" />
+          <stop offset="1" stopColor="#C9961F" />
         </linearGradient>
       </defs>
-      <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="#0c0b0a" stroke="#c9a96144" strokeWidth="1.5" />
-      {/* "A" dourado facetado */}
-      <path d="M32,12 L50,52 L41,52 L37,41 L27,41 L23,52 L14,52 Z M32,25 L36,36 L28,36 Z"
-            fill="url(#aurumGold)" fillRule="evenodd" />
-      {/* dobra 3D: metade direita mais escura */}
-      <path d="M32,12 L50,52 L41,52 L37,41 L32,41 L32,36 L36,36 L32,25 Z"
-            fill="#3a2b08" opacity="0.28" />
-      {/* brilho na aresta central */}
-      <path d="M32,12 L32,25" stroke="#fff3cf" strokeWidth="0.8" opacity="0.5" />
+      {/* "A" triangular: triângulo externo com recorte interno + barra horizontal */}
+      <path
+        d="M32 6 L60 58 L4 58 Z M32 22 L18 50 L46 50 Z"
+        fill="url(#aurumGold)" fillRule="evenodd"
+      />
+      {/* barra do "A" (atravessa o vão interno) */}
+      <rect x="22" y="44" width="20" height="5" rx="1" fill="url(#aurumGold)" />
+      {/* brilho na aresta esquerda do pico */}
+      <path d="M32 6 L20 40" stroke="#fff6d8" strokeWidth="1" opacity="0.45" strokeLinecap="round" />
     </svg>
   );
 }
