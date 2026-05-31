@@ -11,6 +11,11 @@ describe("format helpers", () => {
       expect(fmt(null)).toMatch(/R\$\s?0,00/);
       expect(fmt(undefined)).toMatch(/R\$\s?0,00/);
     });
+    it("nunca mostra 'R$ NaN' (NaN/Infinity viram 0)", () => {
+      expect(fmt(NaN)).toMatch(/R\$\s?0,00/);
+      expect(fmt(Infinity)).toMatch(/R\$\s?0,00/);
+      expect(fmtN(NaN)).toBe("0,00");
+    });
     it("handles negative", () => {
       expect(fmt(-100)).toMatch(/-?R\$\s?100,00/);
     });

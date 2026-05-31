@@ -1,5 +1,5 @@
 -- ==========================================================
--- AF4 Cockpit · Migration — sync de dados via Supabase
+-- Aurum Finanças · Migration — sync de dados via Supabase
 -- Banco: Postgres (Supabase)
 --
 -- Como aplicar:

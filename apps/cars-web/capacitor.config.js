@@ -1,5 +1,5 @@
 /**
- * Capacitor config · empacota o AF4 Cockpit como app nativo iOS/Android/macOS.
+ * Capacitor config · empacota o Aurum Finanças como app nativo iOS/Android/macOS.
  *
  * Para empacotar como app nativo:
  *
@@ -27,7 +27,7 @@
 
 const config = {
   appId: "com.af4motors.cockpit",
-  appName: "AF4 Cockpit",
+  appName: "Aurum Finanças",
   webDir: "dist",
   bundledWebRuntime: false,
   backgroundColor: "#0a0908",

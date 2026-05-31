@@ -29,6 +29,7 @@ import SettingsModal from "./components/modals/SettingsModal.jsx";
 import PerfisModal from "./components/modals/PerfisModal.jsx";
 import { getPerfilAtivo } from "./lib/perfis.js";
 import { garantirOcorrenciasDoAno } from "./lib/fixas.js";
+import { capitalizarCdbsMeta } from "./lib/cdbMeta.js";
 import { atualizarCarteira } from "./lib/cotacoes.js";
 import { useKeyboardShortcuts } from "./lib/keyboardShortcuts.js";
 import { useLayout } from "./lib/useLayout.js";
@@ -424,6 +425,17 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, ativos, contas]);
 
+  /* ---------- CDB de meta: rende a CDI automaticamente (1x/dia) ---------- */
+  // Recalcula o valor de mercado dos CDBs de meta capitalizando a CDI desde a
+  // data de aplicação. Idempotente por dia — só grava se algo mudou.
+  useEffect(() => {
+    if (loading) return;
+    if (!ativos.some(a => a._cdbMeta)) return;
+    const { ativos: nova, mudou } = capitalizarCdbsMeta(ativos);
+    if (mudou) setAtivos(nova);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, ativos]);
+
   /* ---------- Notificações de vencimentos: verifica a cada 30min ---------- */
   useEffect(() => {
     if (loading) return;
@@ -560,6 +572,8 @@ export default function App() {
     if (!apiKeys.useRealMarket) {
       setTimeout(() => {
         setAtivos(prev => prev.map(a => {
+          // CDB de meta rende a CDI sozinho — não recebe tick aleatório de mercado.
+          if (a._cdbMeta) return a;
           const vol = a.tipo === "cripto" ? 0.04 : a.tipo === "fii" ? 0.012 : a.tipo === "tesouro" ? 0.005 : 0.025;
           return { ...a, preco: +simulateTick(a.preco, vol).toFixed(2), ultimaAtt: new Date().toISOString(), realtime: false };
         }));
@@ -571,8 +585,9 @@ export default function App() {
 
     // Modo real: usa lib/cotacoes.js (BRAPI pra ações/FIIs + Binance pra cripto)
     try {
-      // Para Binance, traduz ticker BR de cripto (BTC, ETH) pra pair USDT
-      const ativosComSymbol = ativos.map(a => {
+      // Para Binance, traduz ticker BR de cripto (BTC, ETH) pra pair USDT.
+      // CDBs de meta rendem a CDI sozinhos — fora da cotação de mercado.
+      const ativosComSymbol = ativos.filter(a => !a._cdbMeta).map(a => {
         if (a.tipo === "cripto" && !/USDT$/i.test(a.ticker)) {
           return { ...a, _symbolCotacao: `${a.ticker.toUpperCase()}USDT` };
         }
@@ -584,6 +599,8 @@ export default function App() {
 
       let okCount = 0;
       setAtivos(prev => prev.map(a => {
+        // CDB de meta rende a CDI sozinho — nunca recebe cotação nem tick de mercado.
+        if (a._cdbMeta) return a;
         const sym = a.tipo === "cripto" && !/USDT$/i.test(a.ticker)
           ? `${a.ticker.toUpperCase()}USDT`
           : a.ticker;
@@ -911,7 +928,9 @@ export default function App() {
               <Metas metas={metas} setMetas={setMetas} hidden={hidden}
                      fixas={fixas} setFixas={setFixas}
                      fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
-                     categorias={categorias} contas={contas} />
+                     categorias={categorias} contas={contas} setContas={setContas}
+                     transacoes={transacoes} setTransacoes={setTransacoes}
+                     ativos={ativos} setAtivos={setAtivos} />
             )}
             {tab === "compras" && (
               <Compras compras={compras} setCompras={setCompras} />

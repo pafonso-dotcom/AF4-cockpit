@@ -1,4 +1,4 @@
-# AF4 Cockpit · Quick Start
+# Aurum Finanças · Quick Start
 
 > App multi-módulo (Finanças · Investimentos · Loja AF4) com tema Poppins · 7 paletas selecionáveis.
 

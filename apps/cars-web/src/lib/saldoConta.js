@@ -31,7 +31,7 @@ export function reconciliarContas(contas = [], transacoes = []) {
     const antigo = Number(c.saldo) || 0;
     const txs = transacoes.filter(t => t.conta === c.nome && t.compensado);
     const somaTx = txs.reduce(
-      (s, t) => s + (t.tipo === "receita" ? Number(t.valor) : -Number(t.valor)),
+      (s, t) => s + (t.tipo === "receita" ? (Number(t.valor) || 0) : -(Number(t.valor) || 0)),
       0
     );
 

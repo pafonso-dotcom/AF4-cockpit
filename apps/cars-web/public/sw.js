@@ -1,4 +1,4 @@
-// AF4 Cockpit Service Worker — v5
+// Aurum Finanças Service Worker — v5
 // - Network-first pra navegação (HTML/index) — sempre carrega versão fresca
 // - Cache-first pra assets (JS/CSS/imagens) — performance
 // - /api/* e APIs externas → bypass total (sem cache, sem intercept)

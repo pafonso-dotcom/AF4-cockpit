@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, ArrowRightLeft, Search, Printer, ArrowUp, ArrowDown, Edit3, Trash2 } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt } from "../../lib/format.js";
 import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
+import { reconciliarContas } from "../../lib/saldoConta.js";
 import NovaTransacaoModal from "../modals/NovaTransacaoModal.jsx";
 
 /**
@@ -32,6 +33,38 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
   const transacoesDaConta = useMemo(() => {
     return transacoes.filter(t => t.conta === conta.nome);
   }, [transacoes, conta]);
+
+  // Saldo "verdadeiro" = saldoInicial (se houver) + transações compensadas.
+  // Se a conta NÃO tem saldoInicial, o próprio conta.saldo é a referência.
+  const saldoVerdadeiro = useMemo(() => {
+    const compensadas = transacoesDaConta.filter(t => t.compensado);
+    const somaTx = compensadas.reduce(
+      (s, t) => s + (t.tipo === "receita" ? Number(t.valor) || 0 : -(Number(t.valor) || 0)), 0
+    );
+    if (conta.saldoInicial != null) return (Number(conta.saldoInicial) || 0) + somaTx;
+    return Number(conta.saldo) || 0;
+  }, [transacoesDaConta, conta.saldoInicial, conta.saldo]);
+
+  // Drift entre o saldo guardado (cache) e o verdadeiro. Se houver, o banner
+  // mostra o verdadeiro e a gente corrige o cache (uma vez por sessão da tela).
+  const driftSaldo = +(saldoVerdadeiro - (Number(conta.saldo) || 0)).toFixed(2);
+  const saldoExibido = Math.abs(driftSaldo) > 0.005 ? saldoVerdadeiro : (Number(conta.saldo) || 0);
+
+  const autoReconciliado = useRef(false);
+  useEffect(() => {
+    if (autoReconciliado.current) return;
+    if (Math.abs(driftSaldo) <= 0.005) return;
+    if (!setContas) return;
+    autoReconciliado.current = true;
+    const backup = contas;
+    const { contas: novaLista, mudancas } = reconciliarContas(contas, transacoes || []);
+    if (mudancas.length === 0) return;
+    setContas(novaLista);
+    toast.success(
+      `Saldo de ${conta.nome} corrigido: ${driftSaldo > 0 ? "+" : ""}${fmt(driftSaldo)} (agora bate com os lançamentos).`,
+      { action: { label: "Desfazer", onClick: () => setContas(backup) } }
+    );
+  }, [driftSaldo, contas, transacoes, setContas, conta.nome]);
 
   // Aplica filtros
   const filtradas = useMemo(() => {
@@ -151,9 +184,9 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
     const saidas = noMes.filter(t => t.tipo === "despesa" && t.compensado).reduce((s, t) => s + (parseFloat(t.valor) || 0), 0);
     const pendReceitas = noMes.filter(t => t.tipo === "receita" && !t.compensado).reduce((s, t) => s + (parseFloat(t.valor) || 0), 0);
     const pendDespesas = noMes.filter(t => t.tipo === "despesa" && !t.compensado).reduce((s, t) => s + (parseFloat(t.valor) || 0), 0);
-    const saldoPrev = (parseFloat(conta.saldo) || 0) + pendReceitas - pendDespesas;
+    const saldoPrev = saldoVerdadeiro + pendReceitas - pendDespesas;
     return { entradas, saidas, pendReceitas, pendDespesas, saldoPrev };
-  }, [transacoesDaConta, conta, mesAtual]);
+  }, [transacoesDaConta, conta, mesAtual, saldoVerdadeiro]);
 
   // Gradiente estilo cartão, por banco/instituição (mesma identidade visual dos Cartões).
   const gradient = gradByName(conta.instituicao || conta.nome, conta.cor);
@@ -199,7 +232,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             Saldo atual
           </div>
           <div className="num conta-hero-valor" style={{ fontFamily: T.serif, fontWeight: 300, lineHeight: 1, fontVariantNumeric: "tabular-nums", wordBreak: "break-word" }}>
-            {hidden ? "R$ •••••" : fmt(conta.saldo)}
+            {hidden ? "R$ •••••" : fmt(saldoExibido)}
           </div>
         </div>
         <style>{`

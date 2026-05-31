@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 /**
- * Header AF4 Cockpit · v4 (refatorado pra hierarquia clara)
+ * Header Aurum Finanças · v4 (refatorado pra hierarquia clara)
  *  Linha 1 (sempre): logo · separador · subtabs (scroll) · separador · quick actions · separador · utility · gap · settings · avatar
  *  Linha 2 (≥640px): módulos (Finanças/Invest)
  *  Mobile (<640px): linha 1 = logo + settings; linha 2 = subtabs scroll
@@ -191,7 +191,7 @@ function HeaderHorizontal({
           }}>A</div>
           <div className="header-brand-text" style={{ lineHeight: 1.15 }}>
             <div style={{ fontSize: 14, letterSpacing: ".05em", fontWeight: 600, color: NAV_INK }}>
-              AF4 Cockpit
+              Aurum Finanças
             </div>
             <div className="header-subtitle" style={{ fontSize: 9.5, letterSpacing: ".18em", color: NAV_FAINT, marginTop: 1 }}>
               v4 · Multi-Módulo
@@ -549,7 +549,7 @@ function HeaderVertical({
             color: T.bg, fontWeight: 700, fontSize: 16,
           }}>A</div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>AF4 Cockpit</div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>Aurum Finanças</div>
             <div style={{ fontSize: 8.5, color: NAV_MUTED, letterSpacing: ".2em" }}>v4 · MULTI-MÓDULO</div>
           </div>
         </div>
