@@ -29,7 +29,7 @@ import SettingsModal from "./components/modals/SettingsModal.jsx";
 import PerfisModal from "./components/modals/PerfisModal.jsx";
 import { getPerfilAtivo } from "./lib/perfis.js";
 import { garantirOcorrenciasDoAno } from "./lib/fixas.js";
-import { capitalizarCdbsMeta } from "./lib/cdbMeta.js";
+import { capitalizarCdbsMeta, autoAplicarCofrinhos } from "./lib/cdbMeta.js";
 import { atualizarCarteira } from "./lib/cotacoes.js";
 import { useKeyboardShortcuts } from "./lib/keyboardShortcuts.js";
 import { useLayout } from "./lib/useLayout.js";
@@ -435,6 +435,20 @@ export default function App() {
     if (mudou) setAtivos(nova);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, ativos]);
+
+  /* ---------- Reaplicação automática: cofrinho → CDB (metas com autoCdb) ---------- */
+  // Quando uma meta tem autoCdb ligado e o cofrinho recebe saldo (ex.: aporte
+  // mensal), aplica automaticamente no CDB. Roda quando metas/contas mudam.
+  useEffect(() => {
+    if (loading) return;
+    if (!metas.some(m => m.autoCdb)) return;
+    const r = autoAplicarCofrinhos({ metas, contas, ativos, transacoes, categorias });
+    if (!r.mudou) return;
+    setContas(r.contas);
+    setAtivos(r.ativos);
+    setTransacoes(r.transacoes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, metas, contas]);
 
   /* ---------- Notificações de vencimentos: verifica a cada 30min ---------- */
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { valorCdbHoje, capitalizarCdbsMeta } from "../cdbMeta.js";
+import { valorCdbHoje, capitalizarCdbsMeta, autoAplicarCofrinhos } from "../cdbMeta.js";
 
 const CDI = 10; // 10% a.a. — facilita conferir as contas
 
@@ -54,5 +54,41 @@ describe("capitalizarCdbsMeta", () => {
     const { ativos: nova } = capitalizarCdbsMeta([reaplicado], hoje, CDI);
     expect(nova[0].preco).toBeCloseTo(1600, 2); // rendimento dos 100 preservado
     expect(nova[0].preco).toBeGreaterThan(nova[0].pm); // valor > custo
+  });
+});
+
+describe("autoAplicarCofrinhos", () => {
+  const meta = { id: "m1", nome: "Viagem", autoCdb: true };
+  const cofre = { id: "cof", nome: "🐷 Viagem", _cofreMetaId: "m1", saldo: 500, tipo: "poupanca" };
+
+  it("não faz nada se a meta não tem autoCdb", () => {
+    const r = autoAplicarCofrinhos({ metas: [{ ...meta, autoCdb: false }], contas: [cofre] });
+    expect(r.mudou).toBe(false);
+  });
+
+  it("aplica o saldo do cofrinho no CDB e esvazia o cofrinho", () => {
+    const r = autoAplicarCofrinhos({ metas: [meta], contas: [cofre], ativos: [], transacoes: [] });
+    expect(r.mudou).toBe(true);
+    const cofreDepois = r.contas.find(c => c.id === "cof");
+    expect(cofreDepois.saldo).toBeCloseTo(0, 2);
+    const cdb = r.ativos.find(a => a._cdbMeta && a._metaId === "m1");
+    expect(cdb).toBeTruthy();
+    expect(cdb.preco).toBeCloseTo(500, 2);
+    expect(r.transacoes.length).toBe(1);
+  });
+
+  it("é idempotente: rodar de novo com cofrinho vazio não muda nada", () => {
+    const r1 = autoAplicarCofrinhos({ metas: [meta], contas: [cofre], ativos: [], transacoes: [] });
+    const r2 = autoAplicarCofrinhos({ metas: [meta], contas: r1.contas, ativos: r1.ativos, transacoes: r1.transacoes });
+    expect(r2.mudou).toBe(false);
+  });
+
+  it("incrementa o CDB existente em vez de duplicar", () => {
+    const cdbExistente = { id: "cdb1", _cdbMeta: true, _metaId: "m1", qtd: 1, pm: 1000, preco: 1000, _baseValor: 1000 };
+    const r = autoAplicarCofrinhos({ metas: [meta], contas: [cofre], ativos: [cdbExistente], transacoes: [] });
+    const cdbs = r.ativos.filter(a => a._cdbMeta && a._metaId === "m1");
+    expect(cdbs.length).toBe(1);
+    expect(cdbs[0].preco).toBeCloseTo(1500, 2); // 1000 + 500
+    expect(cdbs[0].pm).toBeCloseTo(1500, 2);
   });
 });
