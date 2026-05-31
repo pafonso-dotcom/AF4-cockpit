@@ -11,6 +11,8 @@ import { ehAdmin } from "./lib/admin.js";
 import { toast } from "./lib/toast.js";
 import Paywall from "./components/billing/Paywall.jsx";
 import Admin from "./components/admin/Admin.jsx";
+import RankingIdV from "./components/pages/Invest/RankingIdV.jsx";
+import { carregarFundamentos } from "./lib/fundamentos.js";
 
 import GlobalStyles from "./components/ui/GlobalStyles.jsx";
 import ToastContainer from "./components/ui/ToastContainer.jsx";
@@ -49,6 +51,7 @@ const TABS = [
   { id: "monte-carteira", label: "Monte sua carteira" },
   { id: "calc-renda", label: "Calculadora" },
   { id: "projecao", label: "Projeção" },
+  { id: "ranking", label: "Análise" },
   { id: "analises", label: "Análises" },
   { id: "proventos", label: "Proventos" },
   { id: "relatorios-i", label: "Relatórios" },
@@ -77,6 +80,7 @@ export default function App() {
 
   // Estado de Investimentos
   const [ativos, setAtivos] = useState([]);
+  const [fundamentos, setFundamentos] = useState({});
   const [patrimonioHistorico, setPatrimonioHistorico] = useState([]);
   const [objetivosCarteira, setObjetivosCarteira] = useState([]);
   const [carteirasModeloCustom, setCarteirasModeloCustom] = useState([]);
@@ -175,6 +179,12 @@ export default function App() {
     if (!supabaseConfigured) return;
     getUser().then(setUsuario).catch(() => {});
   }, []);
+
+  // Carrega a base de fundamentos (curadoria) pra classificação automática.
+  useEffect(() => {
+    if (loading) return;
+    carregarFundamentos().then(setFundamentos).catch(() => {});
+  }, [loading]);
 
   const tabsVisiveis = ehAdmin(usuario) ? [...TABS, { id: "gerencial", label: "Gerencial" }] : TABS;
 
@@ -400,8 +410,14 @@ export default function App() {
                            onRefresh={refreshMarket} refreshing={refreshing}
                            onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
                            onProjetar={(ativo) => { setProjetarAlvo(ativo); setTab("projecao"); }}
+                           fundamentos={fundamentos}
                            hidden={hidden} />
           </div>
+        )}
+        {tab === "ranking" && (
+          <RankingIdV ativos={ativos} fundamentos={fundamentos} hidden={hidden}
+                      isAdmin={ehAdmin(usuario)}
+                      onMudou={() => carregarFundamentos(true).then(setFundamentos)} />
         )}
         {tab === "evolucao" && (
           <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} />
