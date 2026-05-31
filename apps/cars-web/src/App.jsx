@@ -197,7 +197,15 @@ export default function App() {
   /* ---------- Load on mount ---------- */
   useEffect(() => {
     (async () => {
-      const [data, keys] = await Promise.all([loadAll(), loadKeys()]);
+      let data = null, keys = null;
+      try {
+        [data, keys] = await Promise.all([loadAll(), loadKeys()]);
+      } catch (e) {
+        // localStorage corrompido / leitura falhou → segue com seeds (evita tela branca).
+        console.error("Falha ao carregar dados — usando seeds:", e);
+        data = null; keys = null;
+      }
+      try {
       if (data) {
         setContas(data.contas || seedContas);
         setCategorias((data.categorias || seedCategorias).map(c => ({ ...c, limite: c.limite ?? null })));
@@ -308,8 +316,14 @@ export default function App() {
         setTradeAnalisesIdV([]);
         setTradeOnboardingVisto(false);
       }
-      if (keys) setApiKeys(prev => ({ ...prev, ...keys }));
-      setLoading(false);
+        if (keys) setApiKeys(prev => ({ ...prev, ...keys }));
+      } catch (e) {
+        // Erro ao aplicar os dados carregados (migração/estado inesperado).
+        // Não trava o app: loga e segue — o finally libera o loading.
+        console.error("Falha ao aplicar dados carregados:", e);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
