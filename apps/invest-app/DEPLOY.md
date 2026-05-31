@@ -136,3 +136,21 @@ Como funciona: com a cobrança ligada (`VITE_BILLING_ENABLED=true`), um cliente
 novo usa o app normalmente durante `VITE_TRIAL_DIAS` dias. A barra do topo mostra
 "Teste · Xd" restantes. Quando o trial acaba e não há assinatura ativa, aparece
 o Paywall. (O trial é calculado pela data de criação da conta — não grava nada.)
+
+---
+
+## Parte 8 · Classificação automática (metodologia embutida)
+
+O app classifica os ativos sozinho (nota + selo + recomendação) usando os
+critérios da metodologia — sem planilha e sem o cliente preencher nada. Os
+indicadores ficam numa base central que **você (admin) cura**.
+
+1. Crie a tabela: SQL Editor → cole `sql/003_fundamentos.sql` → Run.
+2. Garanta as variáveis de admin (Parte 6): `SUPABASE_URL`,
+   `SUPABASE_SERVICE_ROLE`, `ADMIN_EMAIL`, `VITE_ADMIN_EMAIL`.
+3. Logado como admin, abra a aba **Análise** → **Cadastrar ativo** → informe o
+   ticker e os indicadores (DY, ROE, dívida, etc.). Salvou, **todos os clientes**
+   passam a ver a nota/recomendação desse ativo.
+
+Como evoluir pro automático total (futuro): basta um job preencher a tabela
+`fundamentos` a partir de uma API — o resto do app não muda.
