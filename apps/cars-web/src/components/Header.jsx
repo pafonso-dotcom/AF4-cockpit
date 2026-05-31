@@ -25,6 +25,22 @@ export default function Header(props) {
   return <HeaderHorizontal {...props} />;
 }
 
+// Filhas da "matriz" Agenda — ficam ESCONDIDAS; só aparecem ao clicar na Agenda.
+// O id da matriz na lista de subtabs é "inicio" (a aba Início da Agenda).
+export const AGENDA_TABS = [
+  { id: "inicio",     label: "Início",       icon: Home },
+  { id: "calendario", label: "Calendário",   icon: Calendar },
+  { id: "notas",      label: "Compromissos", icon: StickyNote },
+  { id: "tarefas",    label: "Tarefas",      icon: CheckSquare },
+  { id: "metas",      label: "Metas",        icon: Target },
+  { id: "compras",    label: "Compras",      icon: Tag },
+  { id: "habitos",    label: "Hábitos",      icon: Repeat },
+  { id: "diario",     label: "Diário",       icon: BookOpen },
+  { id: "ideias",     label: "Ideias",       icon: Sparkles },
+  { id: "sugestoes",  label: "Sugestões",    icon: Lightbulb },
+];
+const AGENDA_TAB_IDS = new Set(AGENDA_TABS.map(t => t.id));
+
 /* Toggle global de escopo · Pessoal / Negócio / Tudo */
 function EscopoToggle({ escopoAtivo = "tudo", onEscopoChange, compact }) {
   const opcoes = [
@@ -104,17 +120,9 @@ function HeaderHorizontal({
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
       { id: "audit",        label: "Histórico",    icon: History },
-      // Agenda incorporada ao módulo Finanças (vida + finanças num só lugar).
-      { id: "calendario", label: "Calendário",     icon: Calendar },
-      { id: "notas",      label: "Compromissos",   icon: StickyNote },
-      { id: "tarefas",    label: "Tarefas",        icon: CheckSquare },
-      { id: "metas",      label: "Metas",          icon: Target },
-      { id: "compras",    label: "Compras",        icon: Tag },
-      { id: "habitos",    label: "Hábitos",        icon: Repeat },
-      { id: "diario",     label: "Diário",         icon: BookOpen },
-      { id: "ideias",     label: "Ideias",         icon: Sparkles },
-      { id: "inicio",     label: "Agenda · Início", icon: Home },
-      { id: "sugestoes",  label: "Sugestões",      icon: Lightbulb },
+      // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
+      // que ficam escondidas até clicar aqui.
+      { id: "inicio",       label: "Agenda",       icon: Calendar, agenda: true },
     ],
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
@@ -302,7 +310,8 @@ function HeaderHorizontal({
         }}>
           {subtabs.map(st => {
             const Icon = st.icon;
-            const active = tab === st.id;
+            // A matriz Agenda fica "ativa" quando qualquer filha está aberta.
+            const active = st.agenda ? AGENDA_TAB_IDS.has(tab) : tab === st.id;
             const pending = pendingCounts[st.id] || 0;
             return (
               <button key={st.id}
@@ -321,6 +330,9 @@ function HeaderHorizontal({
                   fontFamily: T.sans, borderRadius: "6px 6px 0 0",
                 }}>
                 <Icon size={14} /> {st.label}
+                {st.agenda && (
+                  <span style={{ fontSize: 9, opacity: .8, marginLeft: 1, transform: active ? "rotate(90deg)" : "none", transition: "transform .15s", display: "inline-block" }}>▸</span>
+                )}
                 {pending > 0 && (
                   <span style={{
                     background: T.red, color: "#fff",
@@ -333,6 +345,37 @@ function HeaderHorizontal({
           })}
         </div>
       </div>
+
+      {/* ===== Sub-abas da matriz Agenda — escondidas; só aparecem ao abrir a Agenda ===== */}
+      {AGENDA_TAB_IDS.has(tab) && (
+        <div style={{ borderTop: `1px solid ${NAV_BORDER}`, padding: "0 16px", background: NAV_SOFT }}>
+          <div style={{
+            maxWidth: 1280, margin: "0 auto",
+            display: "flex", gap: 4, overflowX: "auto", padding: "6px 0", alignItems: "center",
+          }}>
+            <span style={{ fontSize: 9.5, color: NAV_FAINT, letterSpacing: ".2em", textTransform: "uppercase", whiteSpace: "nowrap", paddingRight: 4 }}>
+              Agenda ·
+            </span>
+            {AGENDA_TABS.map(st => {
+              const Icon = st.icon;
+              const active = tab === st.id;
+              return (
+                <button key={st.id} onClick={() => setTab(st.id)} title={st.label}
+                  style={{
+                    padding: "5px 12px", borderRadius: 14,
+                    background: active ? `${T.gold}22` : NAV_SOFT,
+                    color: active ? T.gold : NAV_MUTED,
+                    border: `1px solid ${active ? T.gold : NAV_BORDER}`,
+                    fontSize: 11.5, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap",
+                    fontFamily: T.sans, display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>
+                  <Icon size={12} /> {st.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ============== LINHA 4 · árvore (filhos) de Contas / Cartões ============== */}
       {((tab === "contas" && contas.length > 0 && setContaAberta) ||
@@ -483,17 +526,9 @@ function HeaderVertical({
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
       { id: "audit",        label: "Histórico",    icon: History },
-      // Agenda incorporada ao módulo Finanças (vida + finanças num só lugar).
-      { id: "calendario", label: "Calendário",     icon: Calendar },
-      { id: "notas",      label: "Compromissos",   icon: StickyNote },
-      { id: "tarefas",    label: "Tarefas",        icon: CheckSquare },
-      { id: "metas",      label: "Metas",          icon: Target },
-      { id: "compras",    label: "Compras",        icon: Tag },
-      { id: "habitos",    label: "Hábitos",        icon: Repeat },
-      { id: "diario",     label: "Diário",         icon: BookOpen },
-      { id: "ideias",     label: "Ideias",         icon: Sparkles },
-      { id: "inicio",     label: "Agenda · Início", icon: Home },
-      { id: "sugestoes",  label: "Sugestões",      icon: Lightbulb },
+      // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
+      // que ficam escondidas até clicar aqui.
+      { id: "inicio",       label: "Agenda",       icon: Calendar, agenda: true },
     ],
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
@@ -605,21 +640,29 @@ function HeaderVertical({
                     <div style={{ display: "flex", flexDirection: "column", gap: 1, margin: "2px 0 6px" }}>
                       {mSubtabs.map(s => {
                         const SIcon = s.icon;
-                        const sAtivo = s.id === tab;
+                        const sAtivo = s.agenda ? AGENDA_TAB_IDS.has(tab) : s.id === tab;
                         const pending = pendingCounts[s.id] || 0;
-                        // Filhos da árvore: Contas → bancos, Cartões → cartões.
+                        // Filhos da árvore — ESCONDIDOS até clicar na aba-pai:
+                        // bancos só aparecem com Contas aberta; cartões com Cartões aberta.
                         let filhos = null;
-                        if (s.id === "contas" && contas.length > 0 && setContaAberta) {
+                        if (s.id === "contas" && tab === "contas" && contas.length > 0 && setContaAberta) {
                           filhos = contas.map(c => ({
                             id: `conta:${c.id}`, label: c.nome, cor: c.cor,
                             ativo: contaAberta?.id === c.id,
                             onClick: () => { setTab("contas"); setContaAberta(c); },
                           }));
-                        } else if (s.id === "cartoes" && cartoes.length > 0 && setCartaoAberto) {
+                        } else if (s.id === "cartoes" && tab === "cartoes" && cartoes.length > 0 && setCartaoAberto) {
                           filhos = cartoes.map(c => ({
                             id: `cartao:${c.id}`, label: c.nome, cor: null,
                             ativo: cartaoAberto?.id === c.id,
                             onClick: () => { setTab("cartoes"); setCartaoAberto(c); },
+                          }));
+                        } else if (s.agenda && AGENDA_TAB_IDS.has(tab)) {
+                          // Matriz Agenda: filhas só aparecem quando a Agenda está aberta.
+                          filhos = AGENDA_TABS.filter(t => t.id !== "inicio").map(t => ({
+                            id: `ag:${t.id}`, label: t.label, cor: null,
+                            ativo: tab === t.id,
+                            onClick: () => setTab(t.id),
                           }));
                         }
                         return (
