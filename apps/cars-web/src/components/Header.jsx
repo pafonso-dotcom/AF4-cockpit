@@ -642,15 +642,16 @@ function HeaderVertical({
                         const SIcon = s.icon;
                         const sAtivo = s.agenda ? AGENDA_TAB_IDS.has(tab) : s.id === tab;
                         const pending = pendingCounts[s.id] || 0;
-                        // Filhos da árvore: Contas → bancos, Cartões → cartões.
+                        // Filhos da árvore — ESCONDIDOS até clicar na aba-pai:
+                        // bancos só aparecem com Contas aberta; cartões com Cartões aberta.
                         let filhos = null;
-                        if (s.id === "contas" && contas.length > 0 && setContaAberta) {
+                        if (s.id === "contas" && tab === "contas" && contas.length > 0 && setContaAberta) {
                           filhos = contas.map(c => ({
                             id: `conta:${c.id}`, label: c.nome, cor: c.cor,
                             ativo: contaAberta?.id === c.id,
                             onClick: () => { setTab("contas"); setContaAberta(c); },
                           }));
-                        } else if (s.id === "cartoes" && cartoes.length > 0 && setCartaoAberto) {
+                        } else if (s.id === "cartoes" && tab === "cartoes" && cartoes.length > 0 && setCartaoAberto) {
                           filhos = cartoes.map(c => ({
                             id: `cartao:${c.id}`, label: c.nome, cor: null,
                             ativo: cartaoAberto?.id === c.id,
