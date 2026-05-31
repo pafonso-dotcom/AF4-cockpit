@@ -112,7 +112,11 @@ export default function Metas({
 
   // Nome do cofrinho de uma meta (mesma convenção do aporte em AReceberEDividas).
   const cofreNomeDe = (m) => `🐷 ${m.nome}`;
-  const cofreDe = (m) => (contas || []).find(c => c.nome === cofreNomeDe(m));
+  // Localiza o cofrinho pela meta. Prioriza o vínculo estável por ID
+  // (_cofreMetaId) — assim renomear a meta NÃO órfã o cofrinho — e cai no
+  // nome só por compatibilidade com cofrinhos antigos sem o id.
+  const cofreDe = (m) => (contas || []).find(c => c._cofreMetaId === m.id)
+    || (contas || []).find(c => c.nome === cofreNomeDe(m));
 
   // FASE 2 — Rendimento projetado a CDI.
   // Cada movimento do cofrinho rende (ou deixa de render) à taxa CDI desde a
@@ -274,13 +278,16 @@ export default function Metas({
       return;
     }
 
+    // Campos numéricos vazios não podem virar NaN (quebrariam progresso,
+    // projeção e cálculo). Default 0 (ou 1 no prazo, pra evitar divisão por 0).
+    const numOr = (v, fb = 0) => { const n = parseFloat(v); return Number.isFinite(n) ? n : fb; };
     const data = {
       ...form,
-      alvo: parseFloat(form.alvo),
-      atual: parseFloat(form.atual),
-      prazo: parseInt(form.prazo),
-      aporte: parseFloat(form.aporte),
-      taxa: parseFloat(form.taxa),
+      alvo: numOr(form.alvo),
+      atual: numOr(form.atual),
+      prazo: Math.max(1, parseInt(form.prazo, 10) || 1),
+      aporte: numOr(form.aporte),
+      taxa: numOr(form.taxa),
       dataAlvo: form.dataAlvo || null,
     };
     if (form.id && metas.find(m => m.id === form.id)) {

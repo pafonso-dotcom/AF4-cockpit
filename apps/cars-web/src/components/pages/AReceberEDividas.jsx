@@ -263,9 +263,17 @@ export default function AReceberEDividas({
     // conta-cofrinho da meta. Patrimônio fica intacto; só realoca.
     // Vira despesa real só quando a meta for usada (resgate — fase futura).
     if (!isReceber && baixaForm._origem === "fixa" && baixaForm._metaId) {
+      // Não deixa a conta de origem ficar negativa.
+      if ((parseFloat(conta.saldo) || 0) < valor - 0.005) {
+        toast.error(`Saldo insuficiente em ${conta.nome} (${fmt(conta.saldo)}) pra guardar ${fmt(valor)}.`);
+        return;
+      }
       const meta = (metas || []).find(m => m.id === baixaForm._metaId);
       const cofreNome = `🐷 ${baixaForm._metaNome || meta?.nome || "Meta"}`;
-      let cofre = contas.find(c => c.nome === cofreNome);
+      // Acha o cofrinho pelo vínculo estável (id da meta); cai no nome só
+      // por compat. Evita criar cofrinho duplicado se a meta foi renomeada.
+      let cofre = contas.find(c => c._cofreMetaId === baixaForm._metaId)
+        || contas.find(c => c.nome === cofreNome);
 
       // Cria o cofrinho na primeira vez (conta tipo poupança, saldo 0).
       const transferId = uid();

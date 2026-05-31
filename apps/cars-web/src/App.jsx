@@ -599,6 +599,8 @@ export default function App() {
 
       let okCount = 0;
       setAtivos(prev => prev.map(a => {
+        // CDB de meta rende a CDI sozinho — nunca recebe cotação nem tick de mercado.
+        if (a._cdbMeta) return a;
         const sym = a.tipo === "cripto" && !/USDT$/i.test(a.ticker)
           ? `${a.ticker.toUpperCase()}USDT`
           : a.ticker;
