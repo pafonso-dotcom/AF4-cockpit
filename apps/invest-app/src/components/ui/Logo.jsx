@@ -2,13 +2,13 @@ import React from "react";
 import { T } from "../../lib/theme.js";
 
 /**
- * Marca do produto Aurum.
+ * Marca do produto Aureus.
  * Símbolo "A" dourado (que evoca um pico / crescimento) sobre fundo escuro.
  * Vetor (SVG): nítido em qualquer tamanho e serve de favicon / ícone PWA.
  */
 export function LogoMark({ size = 28 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="Aurum" style={{ flexShrink: 0 }}>
+    <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="Aureus" style={{ flexShrink: 0 }}>
       <defs>
         {/* Gradiente ouro da paleta: Ouro Profundo → Ouro → Ouro Claro */}
         <linearGradient id="aurumGold" x1="0" y1="0" x2="0.7" y2="1">
@@ -31,7 +31,7 @@ export function LogoMark({ size = 28 }) {
 }
 
 /**
- * Marca completa: símbolo + "Aurum" + sufixo ".invest".
+ * Marca completa: símbolo + "Aureus" + sufixo ".invest".
  * Cores FIXAS da marca (dourado) — não mudam com a paleta, pra manter
  * identidade consistente (o logo vive numa barra de fundo escuro).
  */
@@ -43,7 +43,7 @@ export default function Logo({ size = 28, sufixo = true }) {
         <span style={{
           fontFamily: T.serif, fontWeight: 600, fontSize: Math.round(size * 0.72),
           color: "#d4b87a", letterSpacing: "-0.01em", lineHeight: 1,
-        }}>Aurum</span>
+        }}>Aureus</span>
         {sufixo && (
           <span style={{
             fontFamily: T.serif, fontWeight: 500, fontSize: Math.round(size * 0.42),

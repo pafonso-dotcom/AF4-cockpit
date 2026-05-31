@@ -6,7 +6,7 @@ import { carregarFundamentos } from "../../lib/fundamentos.js";
 import { billingEnabled, trialDias } from "../../lib/subscription.js";
 
 /**
- * Painel administrativo do Aurum (só admin). Abas:
+ * Painel administrativo do Aureus (só admin). Abas:
  * Clientes · Curadoria · Assinaturas · Configurações.
  */
 const ABAS = [

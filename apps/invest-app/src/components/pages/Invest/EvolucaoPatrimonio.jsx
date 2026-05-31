@@ -76,7 +76,7 @@ export default function EvolucaoPatrimonio({ historico = [], hidden }) {
         }}>
           📈 Coletando dados… o gráfico aparece quando houver pelo menos <strong>2 dias</strong> de histórico.
           <div style={{ fontSize: 11.5, marginTop: 6 }}>
-            O Aurum registra o seu patrimônio automaticamente todo dia que você abre o app. Volte amanhã pra ver a evolução começar. 🙂
+            O Aureus registra o seu patrimônio automaticamente todo dia que você abre o app. Volte amanhã pra ver a evolução começar. 🙂
           </div>
         </div>
       ) : (
