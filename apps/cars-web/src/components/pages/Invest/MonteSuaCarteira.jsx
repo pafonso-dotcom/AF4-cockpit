@@ -342,6 +342,18 @@ export default function MonteSuaCarteira({ ativos = [], apiKey = null }) {
  * CalculadoraRenda (valor serif gold em cima, faixa min/max embaixo).
  */
 function ValorSlider({ value, min, max, step, onChange }) {
+  // Texto editável do valor — permite DIGITAR qualquer quantia (inclusive
+  // acima do teto do slider). O slider continua sincronizado (clampado ao max).
+  const [editando, setEditando] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  const commit = () => {
+    const limpo = (draft || "").replace(/[^\d]/g, "");
+    const n = parseInt(limpo, 10);
+    if (Number.isFinite(n) && n > 0) onChange(Math.max(min, n));
+    setEditando(false);
+  };
+
   return (
     <div>
       <div style={{
@@ -351,15 +363,38 @@ function ValorSlider({ value, min, max, step, onChange }) {
         <span style={{ fontSize: 12, color: T.ink, fontWeight: 500 }}>
           Valor a investir
         </span>
-        <span className="num" style={{
-          fontFamily: T.serif, fontSize: 18, fontWeight: 600, color: T.gold,
-        }}>
-          {fmtBRL.format(value)}
-        </span>
+        {editando ? (
+          <input
+            autoFocus
+            type="text"
+            inputMode="numeric"
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditando(false); }}
+            placeholder="Ex.: 25000000"
+            style={{
+              fontFamily: T.serif, fontSize: 18, fontWeight: 600, color: T.gold,
+              textAlign: "right", width: 180, background: T.bgSoft,
+              border: `1px solid ${T.gold}`, borderRadius: 6, padding: "2px 8px",
+            }}
+          />
+        ) : (
+          <button
+            onClick={() => { setDraft(String(Math.round(value))); setEditando(true); }}
+            title="Clique para digitar o valor"
+            className="num"
+            style={{
+              fontFamily: T.serif, fontSize: 18, fontWeight: 600, color: T.gold,
+              background: "transparent", border: "none", cursor: "text", padding: 0,
+            }}>
+            {fmtBRL.format(value)}
+          </button>
+        )}
       </div>
       <input type="range"
              min={min} max={max} step={step}
-             value={value}
+             value={Math.min(value, max)}
              onChange={e => onChange(Number(e.target.value))}
              style={{
                width: "100%",
@@ -371,7 +406,7 @@ function ValorSlider({ value, min, max, step, onChange }) {
         fontSize: 9.5, color: T.faint, marginTop: 1,
       }}>
         <span>{fmtBRL.format(min)}</span>
-        <span>{fmtBRL.format(max)}</span>
+        <span>{value > max ? `${fmtBRL.format(value)} (digitado)` : fmtBRL.format(max)}</span>
       </div>
     </div>
   );
