@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Aurum">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Aureus">
   <defs>
     <linearGradient id="aurumGold" x1="0" y1="0" x2="0.7" y2="1">
       <stop offset="0" stop-color="#F6E3A1"/>
@@ -6,8 +6,8 @@
       <stop offset="1" stop-color="#C9961F"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="112" fill="#23272E"/>
-  <path d="M256 64 L472 464 L40 464 Z M256 188 L152 404 L360 404 Z" fill="url(#aurumGold)" fill-rule="evenodd"/>
-  <rect x="176" y="356" width="160" height="40" rx="8" fill="url(#aurumGold)"/>
-  <path d="M256 64 L160 336" stroke="#fff6d8" stroke-width="8" opacity="0.45" stroke-linecap="round"/>
+  <rect width="512" height="512" rx="112" fill="#0f1d35"/>
+  <circle cx="256" cy="256" r="176" fill="none" stroke="url(#aurumGold)" stroke-width="20"/>
+  <circle cx="256" cy="256" r="138" fill="none" stroke="url(#aurumGold)" stroke-width="8" opacity="0.5"/>
+  <path d="M256 150 L334 360 L292 360 L273 304 L239 304 L220 360 L178 360 Z M256 220 L245 258 L267 258 Z" fill="url(#aurumGold)" fill-rule="evenodd"/>
 </svg>
