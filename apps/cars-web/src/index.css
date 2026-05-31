@@ -42,15 +42,16 @@ html { zoom: var(--text-scale, 1); }
 body { color: var(--text-color, inherit); }
 
 :root {
-  --bg: #0a0a0c;
-  --be: #111114;
-  --bc: #131317;
-  --bc2: #17171c;
-  --bd: #1f1f24;
-  --bd2: #2a2a30;
+  /* Base grafite (#23272E) — fundo mais elegante que o quase-preto anterior. */
+  --bg: #23272E;
+  --be: #282c34;
+  --bc: #2d323b;
+  --bc2: #333945;
+  --bd: #3a3f4a;
+  --bd2: #474d5a;
   --tx: #f5f5f7;
-  --tm: #8a8a93;
-  --td: #54545c;
+  --tm: #a3a8b3;
+  --td: #6e7480;
   --ac: #c9a961;
   --ac2: #d4b87a;
   --sc: #4ade80;

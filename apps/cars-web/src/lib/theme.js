@@ -12,9 +12,11 @@ const FONTS = {
 // Base ESCURA — todas as variantes mudam só o acento
 const DARK_BASE = {
   dark: true,
-  bg: "#0a0a0c", bgSoft: "#111114", card: "#131317", cardHi: "#17171c",
-  border: "#1f1f24", borderHi: "#2a2a30",
-  ink: "#f5f5f7", muted: "#8a8a93", faint: "#54545c",
+  // Base grafite (#23272E) em vez de quase-preto — fundo mais elegante,
+  // mantendo a hierarquia de profundidade (bg < bgSoft < card < cardHi).
+  bg: "#23272E", bgSoft: "#282c34", card: "#2d323b", cardHi: "#333945",
+  border: "#3a3f4a", borderHi: "#474d5a",
+  ink: "#f5f5f7", muted: "#a3a8b3", faint: "#6e7480",
   green: "#4ade80", red: "#f87171", blue: "#60a5fa", yellow: "#fbbf24",
 };
 
