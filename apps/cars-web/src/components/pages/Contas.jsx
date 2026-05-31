@@ -67,23 +67,25 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
       return;
     }
 
-    // Grava o valor digitado como saldoInicial e recalcula o saldo atual
-    // (saldoInicial + soma das transações compensadas dessa conta).
-    // Isso garante que o saldo fique sempre consistente com as transações.
+    // O valor digitado é o SALDO ATUAL (o que aparece no app do banco).
+    // O app deriva o saldoInicial pra trás: inicial = atual − soma das
+    // transações compensadas. Assim o saldo bate exatamente com o banco e a
+    // coluna "saldo após" de cada lançamento fica consistente.
     const txsExistentes = (transacoes || []).filter(t => t.conta === form.nome && t.compensado);
     const somaTx = txsExistentes.reduce(
       (s, t) => s + (t.tipo === "receita" ? (Number(t.valor) || 0) : -(Number(t.valor) || 0)),
       0
     );
-    const novoSaldo = saldoParsed + somaTx;
-    const formNormalizado = { ...form, saldoInicial: saldoParsed, saldo: novoSaldo };
+    const saldoAtual = saldoParsed;
+    const saldoInicial = +(saldoAtual - somaTx).toFixed(2);
+    const formNormalizado = { ...form, saldoInicial, saldo: saldoAtual };
 
     if (form.id && contas.find(c => c.id === form.id)) {
       setContas(contas.map(c => c.id === form.id ? formNormalizado : c));
-      toast.success(`Conta atualizada · saldo inicial ${fmt(saldoParsed)} → atual ${fmt(novoSaldo)}.`);
+      toast.success(`Conta atualizada · saldo atual ${fmt(saldoAtual)} (bate com o banco).`);
     } else {
       setContas([...contas, { ...formNormalizado, id: uid() }]);
-      toast.success(`Conta "${form.nome}" criada com saldo ${fmt(novoSaldo)}.`);
+      toast.success(`Conta "${form.nome}" criada com saldo ${fmt(saldoAtual)}.`);
     }
     setForm(null);
     setFormErrors({});
@@ -293,7 +295,8 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                 )}
                 <button onClick={(e) => {
                             e.stopPropagation();
-                            setForm({ ...c, saldo: c.saldoInicial != null ? c.saldoInicial : c.saldo });
+                            // Abre o form com o SALDO ATUAL (o que o usuário compara com o banco).
+                            setForm({ ...c });
                           }}
                         style={{
                           flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
@@ -351,7 +354,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               <option value="negocio">🏢 Negócio</option>
             </select>
           </Field>
-          <Field label="Saldo inicial (R$)" error={formErrors.saldo} hint="Aceita: 1500 · 1500,00 · 1.500,00 · R$ 1.234,56 · negativos pra dívida">
+          <Field label="Saldo atual (R$)" error={formErrors.saldo} hint="O mesmo que aparece no app do banco. Aceita: 1500 · 1.500,00 · R$ 1.234,56 · negativo pra dívida">
             <input
               type="text"
               inputMode="decimal"
