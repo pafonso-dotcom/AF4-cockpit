@@ -172,8 +172,9 @@ function HeaderHorizontal({
   return (
     <nav style={{
       position: "sticky", top: 0, zIndex: 50,
-      background: "rgba(10,10,12,.92)", backdropFilter: "blur(14px)",
-      borderBottom: `1px solid ${T.border}`,
+      // Grafite elegante (mesmo tom do Aurum invest) — fixo, independe da paleta.
+      background: "#23272E", backdropFilter: "blur(14px)",
+      borderBottom: `1px solid ${NAV_BORDER}`,
     }}>
       {/* ============== LINHA 1 · brand · ações · utility ============== */}
       <div style={{
