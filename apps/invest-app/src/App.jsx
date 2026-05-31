@@ -338,6 +338,15 @@ export default function App() {
               </>
             )}
           </div>
+          {billingEnabled && sub?.emTrial && sub.trialRestante > 0 && (
+            <span title="Período de teste" style={{
+              display: "inline-flex", alignItems: "center", padding: "6px 10px", borderRadius: 100,
+              fontSize: 11.5, fontWeight: 600, background: "rgba(232,194,90,.16)", color: "#E8C25A",
+              border: "1px solid rgba(232,194,90,.4)", whiteSpace: "nowrap",
+            }}>
+              Teste · {sub.trialRestante}d
+            </span>
+          )}
           {supabaseConfigured && (
             <button onClick={() => signOut()} title="Sair da conta" style={btn()}>
               <LogOut size={14} /> Sair

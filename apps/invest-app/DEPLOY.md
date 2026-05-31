@@ -120,3 +120,19 @@ Depois, **Retry deployment**. Faça login com esse e-mail → a aba **Gerencial*
 > ⚠️ A `service_role` dá acesso total ao banco — por isso fica **só no servidor**
 > (no endpoint protegido `/api/admin`), nunca no navegador. O painel só responde
 > pro e-mail definido em `ADMIN_EMAIL`.
+
+---
+
+## Parte 7 · Período de teste (trial) antes de cobrar
+
+Pra dar dias grátis a cada cliente novo antes do bloqueio de cobrança, defina
+no Cloudflare Pages → Environment variables:
+
+| Variável | Exemplo | Pra quê |
+|---|---|---|
+| `VITE_TRIAL_DIAS` | `7` | dias de teste grátis (contados da criação da conta) |
+
+Como funciona: com a cobrança ligada (`VITE_BILLING_ENABLED=true`), um cliente
+novo usa o app normalmente durante `VITE_TRIAL_DIAS` dias. A barra do topo mostra
+"Teste · Xd" restantes. Quando o trial acaba e não há assinatura ativa, aparece
+o Paywall. (O trial é calculado pela data de criação da conta — não grava nada.)
