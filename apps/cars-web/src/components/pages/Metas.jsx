@@ -210,6 +210,67 @@ export default function Metas({
     toast.success(`${fmt(saldo)} aplicado em CDB Pós-CDI pra "${m.nome}". Agora rende a CDI na carteira.`);
   };
 
+  // Resgata o CDB de volta pro cofrinho (total). O valor de mercado atual
+  // (com rendimento) volta como saldo do cofrinho; o ativo CDB é removido da
+  // carteira. Patrimônio mantido (investimento − , cofrinho +). Daí o usuário
+  // pode usar/devolver pelo fluxo de resgate normal.
+  const resgatarCdb = async (m) => {
+    const cdb = cdbDe(m);
+    const valorCdb = valorCdbDe(m);
+    if (!cdb || valorCdb <= 0.005) { toast.info("Não há CDB aplicado nesta meta."); return; }
+    const cofre = cofreDe(m);
+    const ok = await confirm({
+      title: `Resgatar ${fmt(valorCdb)} do CDB?`,
+      body: `O CDB de "${m.nome}" volta pro cofrinho com o rendimento incluído. De lá você pode usar (gasto) ou devolver pra uma conta. Patrimônio não muda.`,
+      confirmLabel: "Resgatar do CDB",
+    });
+    if (!ok) return;
+    const hojeISO = todayISO();
+    const transferId = uid();
+    const catTransf = (categorias || []).find(c => /transfer|invest|aporte/i.test(c.nome || ""))?.nome || "";
+    const backupAtivos = ativos, backupContas = contas, backupTx = transacoes;
+
+    // 1) Remove o ativo CDB da carteira.
+    setAtivos?.((ativos || []).filter(a => a.id !== cdb.id));
+
+    // 2) Credita o cofrinho (cria se não existir — ex.: cofre já tinha sido esvaziado).
+    let cofreId = cofre?.id;
+    if (cofre) {
+      setContas?.((contas || []).map(c => c.id === cofre.id
+        ? { ...c, saldo: +(((Number(c.saldo) || 0) + valorCdb)).toFixed(2) } : c));
+    } else {
+      cofreId = uid();
+      setContas?.([...(contas || []), {
+        id: cofreId, nome: cofreNomeDe(m), instituicao: "Cofrinho",
+        tipo: "poupanca", escopo: "pessoal", saldo: +valorCdb.toFixed(2),
+        cor: T.gold, _cofreMetaId: m.id, saldoInicial: +valorCdb.toFixed(2),
+      }]);
+    }
+
+    // 3) Par de transação (investimento → cofrinho). Não é gasto.
+    if (setTransacoes) {
+      setTransacoes([
+        { id: uid(), tipo: "receita", valor: valorCdb, descricao: `Resgate CDB · ${m.nome}`,
+          categoria: catTransf, conta: cofreNomeDe(m), data: hojeISO, compensado: true,
+          fixa: false, vencimento: null, transferenciaId: transferId, obs: "CDB resgatado pro cofrinho" },
+        ...(transacoes || []),
+      ]);
+    }
+    toast.success(`${fmt(valorCdb)} resgatado do CDB pro cofrinho de "${m.nome}".`, {
+      action: { label: "Desfazer", onClick: () => { setAtivos?.(backupAtivos); setContas?.(backupContas); setTransacoes?.(backupTx); } },
+    });
+  };
+
+  // Liga/desliga a reaplicação automática: quando ligada, todo saldo que cai
+  // no cofrinho é aplicado no CDB automaticamente (via efeito no App).
+  const toggleAutoCdb = (m) => {
+    const novo = !m.autoCdb;
+    setMetas(metas.map(x => x.id === m.id ? { ...x, autoCdb: novo } : x));
+    toast.success(novo
+      ? `Reaplicação automática ligada: aportes de "${m.nome}" vão direto pro CDB.`
+      : `Reaplicação automática desligada para "${m.nome}".`);
+  };
+
   // FASE 3 — Resgatar / usar a meta.
   // modo "usar": o dinheiro foi gasto (comprou a viagem) → vira DESPESA real,
   //   sai do cofrinho e do patrimônio.
@@ -448,6 +509,16 @@ export default function Metas({
                         <TrendingUp size={12} /> Aplicar em CDB
                       </button>
                     )}
+                    {setAtivos && (
+                      <label style={{
+                        marginTop: 10, display: "flex", alignItems: "center", gap: 8,
+                        fontSize: 11, color: T.muted, cursor: "pointer", userSelect: "none",
+                      }}>
+                        <input type="checkbox" checked={!!m.autoCdb} onChange={() => toggleAutoCdb(m)}
+                               style={{ width: 15, height: 15, accentColor: T.gold, flexShrink: 0 }} />
+                        Reaplicar aportes no CDB automaticamente
+                      </label>
+                    )}
                   </div>
                 );
               })()}
@@ -481,8 +552,32 @@ export default function Metas({
                       </div>
                     )}
                     <div style={{ fontSize: 10, color: T.faint, marginTop: 8, fontStyle: "italic" }}>
-                      Rende a CDI sozinho · resgate em Investimentos (vender o ativo).
+                      Rende a CDI sozinho. Resgate aqui ou venda o ativo em Investimentos.
                     </div>
+                    {setAtivos && (
+                      <button onClick={() => resgatarCdb(m)}
+                              title="Traz o CDB (com rendimento) de volta pro cofrinho"
+                              style={{
+                                marginTop: 10, width: "100%",
+                                background: "transparent", color: T.green,
+                                border: `1px solid ${T.green}`, padding: "7px 14px", borderRadius: 6,
+                                fontSize: 11, fontWeight: 700, cursor: "pointer",
+                                letterSpacing: ".05em", textTransform: "uppercase",
+                                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                              }}>
+                        <PiggyBank size={12} /> Resgatar do CDB
+                      </button>
+                    )}
+                    {setAtivos && (
+                      <label style={{
+                        marginTop: 10, display: "flex", alignItems: "center", gap: 8,
+                        fontSize: 11, color: T.muted, cursor: "pointer", userSelect: "none",
+                      }}>
+                        <input type="checkbox" checked={!!m.autoCdb} onChange={() => toggleAutoCdb(m)}
+                               style={{ width: 15, height: 15, accentColor: T.gold, flexShrink: 0 }} />
+                        Reaplicar aportes no CDB automaticamente
+                      </label>
+                    )}
                   </div>
                 );
               })()}

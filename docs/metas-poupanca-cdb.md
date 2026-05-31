@@ -86,10 +86,16 @@ Quando a meta é USADA (compra realizada):
       sobrescrever o rendimento CDI
 - Resgate: vender o ativo no módulo Investimentos (fluxo de venda já existente)
 
+### Fase 5 — Resgate do CDB pelo card + reaplicar automático · ✅ FEITO
+- [x] Botão **"Resgatar do CDB"** no card: traz o CDB (com rendimento) de volta
+      pro cofrinho; de lá usa/devolve pelo fluxo normal. Com Desfazer.
+- [x] Checkbox **"Reaplicar aportes no CDB automaticamente"** (`meta.autoCdb`):
+      todo saldo que cai no cofrinho é aplicado no CDB sozinho (efeito no App,
+      idempotente — não duplica nem entra em loop)
+
 ## Pontos em aberto (decidir depois)
-- Reaplicar automaticamente os próximos aportes no CDB (hoje é manual via botão)?
-- Resgate do CDB direto pelo card da meta (hoje resgata em Investimentos)?
 - Várias metas = vários CDBs (hoje), ou um CDB consolidado?
+- Resgate parcial do CDB (hoje o resgate pelo card é total)
 
 ## Relação com o desbloqueio já feito
 Já foi liberado editar/excluir os itens (fixas/avulsas) direto na tela
