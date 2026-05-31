@@ -219,7 +219,7 @@ const buildPDFReport = ({ transacoes, contas, ativos, totais, escopo }) => {
 
   return `<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8">
-<title>Aurum Finanças · Relatório · ${new Date().toLocaleDateString("pt-BR")}</title>
+<title>NUMVI · Relatório · ${new Date().toLocaleDateString("pt-BR")}</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
@@ -258,7 +258,7 @@ const buildPDFReport = ({ transacoes, contas, ativos, totais, escopo }) => {
 </head><body>
   <div class="header">
     <div class="eyebrow">Relatório · emitido em ${new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}</div>
-    <h1><em>Aurum Finanças</em> · Painel de Comando</h1>
+    <h1><em>NUMVI</em> · Painel de Comando</h1>
     <div class="lead">Síntese de contas, transações e investimentos.</div>
   </div>
 
@@ -326,7 +326,7 @@ const buildPDFReport = ({ transacoes, contas, ativos, totais, escopo }) => {
 
   <div class="footer">
     <em>finis</em><br>
-    Aurum Finanças · Painel de Comando · Gerado em ${new Date().toLocaleString("pt-BR")}
+    NUMVI · Painel de Comando · Gerado em ${new Date().toLocaleString("pt-BR")}
   </div>
 </body></html>`;
 };

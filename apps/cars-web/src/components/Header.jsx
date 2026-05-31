@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Logo, { NumviMark } from "./ui/Logo.jsx";
 import { T, THEMES } from "../lib/theme.js";
 import { getPerfilAtivo } from "../lib/perfis.js";
 import { useLayout } from "../lib/useLayout.js";
@@ -14,7 +15,7 @@ import {
 } from "lucide-react";
 
 /**
- * Header Aurum Finanças · v4 (refatorado pra hierarquia clara)
+ * Header NUMVI · v4 (refatorado pra hierarquia clara)
  *  Linha 1 (sempre): logo · separador · subtabs (scroll) · separador · quick actions · separador · utility · gap · settings · avatar
  *  Linha 2 (≥640px): módulos (Finanças/Invest)
  *  Mobile (<640px): linha 1 = logo + settings; linha 2 = subtabs scroll
@@ -180,7 +181,7 @@ function HeaderHorizontal({
   return (
     <nav style={{
       position: "sticky", top: 0, zIndex: 50,
-      // Grafite elegante (mesmo tom do Aurum invest) — fixo, independe da paleta.
+      // Grafite elegante (tom grafite) — fixo, independe da paleta.
       background: "#23272E", backdropFilter: "blur(14px)",
       borderBottom: `1px solid ${NAV_BORDER}`,
     }}>
@@ -190,23 +191,10 @@ function HeaderHorizontal({
         padding: "14px 16px",
         display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
       }}>
-        {/* BRAND · logo + nome */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginRight: "auto", flexShrink: 0 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: `linear-gradient(135deg, ${T.gold}, ${T.goldHi})`,
-            display: "grid", placeItems: "center",
-            color: T.bg, fontWeight: 700, fontSize: 16,
-            flexShrink: 0,
-          }}>A</div>
-          <div className="header-brand-text" style={{ lineHeight: 1.15 }}>
-            <div style={{ fontSize: 14, letterSpacing: ".05em", fontWeight: 600, color: NAV_INK }}>
-              Aurum Finanças
-            </div>
-            <div className="header-subtitle" style={{ fontSize: 9.5, letterSpacing: ".18em", color: NAV_FAINT, marginTop: 1 }}>
-              v4 · Multi-Módulo
-            </div>
-          </div>
+        {/* BRAND · marca NUMVI */}
+        <div style={{ display: "flex", alignItems: "center", marginRight: "auto", flexShrink: 0 }}>
+          <span className="hide-desktop"><NumviMark size={34} /></span>
+          <span className="header-brand-text"><Logo size={27} /></span>
         </div>
 
         {sep}
@@ -589,15 +577,10 @@ function HeaderVertical({
         backdropFilter: "blur(14px)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: `linear-gradient(135deg, ${T.gold}, ${T.goldHi})`,
-            display: "grid", placeItems: "center",
-            color: T.bg, fontWeight: 700, fontSize: 16,
-          }}>A</div>
+          <NumviMark size={34} />
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>Aurum Finanças</div>
-            <div style={{ fontSize: 8.5, color: NAV_MUTED, letterSpacing: ".2em" }}>v4 · MULTI-MÓDULO</div>
+            <div style={{ fontFamily: "Georgia, serif", fontSize: 16, fontWeight: 700, letterSpacing: ".18em", color: "#E8C25A" }}>NUMVI</div>
+            <div style={{ fontSize: 8, color: NAV_MUTED, letterSpacing: ".22em", textTransform: "uppercase", marginTop: 2 }}>dinheiro com visão</div>
           </div>
         </div>
 
