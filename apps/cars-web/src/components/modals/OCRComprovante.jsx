@@ -3,6 +3,7 @@ import { Camera, Sparkles, CheckCircle2, AlertCircle, RotateCcw } from "lucide-r
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
 import { ocrComprovante } from "../../lib/ocrComprovante.js";
+import { extrairReciboViaWorker } from "../../lib/reciboWorker.js";
 import { audit } from "../../lib/auditLog.js";
 import { toast } from "../../lib/toast.js";
 import Modal from "../ui/Modal.jsx";
@@ -34,16 +35,42 @@ export default function OCRComprovante({
     if (file) handleFile(file);
   };
 
+  // Mapeia categoria sugerida pela IA pra uma categoria existente do cockpit
+  // (case-insensitive); se não casar, mantém a sugestão (o select aceita "Outros").
+  const mapCategoria = (sugerida) => {
+    if (!sugerida) return "Outros";
+    const hit = categorias.find(c => (c.nome || "").toLowerCase() === sugerida.toLowerCase());
+    return hit ? hit.nome : sugerida;
+  };
+
   const processar = async () => {
     if (!imagem) return;
-    if (!temGeminiKey) { setErro("Configure a chave Gemini em Configurações → APIs (1.500 análises/dia grátis)."); return; }
     setErro("");
     setStep("processando");
     try {
-      const result = await ocrComprovante({
-        file: imagem.file,
-        categoriasDisponiveis: categorias.map(c => c.nome),
-      });
+      // Caminho preferido: Worker com Claude Vision (chave protegida no servidor).
+      // Fallback: Gemini client-side, se houver chave e o Worker não estiver pronto.
+      let result, fonte;
+      try {
+        const r = await extrairReciboViaWorker({ file: imagem.file, categorias: categorias.map(c => c.nome) });
+        result = {
+          tipo: r.tipo, descricao: r.loja, valor: r.valor, data: r.data,
+          categoria: mapCategoria(r.categoriaSugerida), subcategoria: r.subcategoria,
+          estabelecimento: r.loja, pagamento: r.pagamento, confianca: r.confianca, alerta: r.alerta,
+        };
+        fonte = "Claude Vision";
+      } catch (errWorker) {
+        if (!temGeminiKey) throw errWorker; // sem fallback → erro do Worker
+        const g = await ocrComprovante({ file: imagem.file, categoriasDisponiveis: categorias.map(c => c.nome) });
+        result = { ...g, categoria: mapCategoria(g.categoria) };
+        fonte = "Gemini Vision";
+      }
+
+      const obsPartes = [];
+      if (result.estabelecimento && result.estabelecimento !== result.descricao) obsPartes.push(`Estabelecimento: ${result.estabelecimento}`);
+      if (result.pagamento) obsPartes.push(`Pgto: ${result.pagamento}`);
+      if (result.alerta) obsPartes.push(`⚠ ${result.alerta}`);
+
       setForma({
         tipo: result.tipo || "despesa",
         descricao: result.descricao || "",
@@ -52,8 +79,9 @@ export default function OCRComprovante({
         categoria: result.categoria || "Outros",
         subcategoria: result.subcategoria || "",
         conta: contas[0]?.nome || "",
-        obs: result.estabelecimento && result.estabelecimento !== result.descricao
-          ? `Estabelecimento: ${result.estabelecimento}` : "",
+        obs: obsPartes.join(" · "),
+        _fonte: fonte,
+        _confianca: result.confianca,
       });
       setStep("revisar");
     } catch (err) {
@@ -66,12 +94,13 @@ export default function OCRComprovante({
     if (!forma.descricao || !forma.valor) { toast.error("Descrição e valor obrigatórios."); return; }
     const valorNum = parseFloat(String(forma.valor).replace(",", ".")) || 0;
     if (valorNum <= 0) { toast.error("Valor inválido."); return; }
+    const sufixo = `OCR ${forma._fonte || "recibo"}`;
     const tx = {
       id: uid(), tipo: forma.tipo, descricao: forma.descricao,
       valor: valorNum, data: forma.data,
       categoria: forma.categoria, subcategoria: forma.subcategoria || null,
       conta: forma.conta, compensado: true, fixa: false,
-      obs: forma.obs + " · OCR Gemini Vision",
+      obs: forma.obs ? `${forma.obs} · ${sufixo}` : sufixo,
     };
     setTransacoes([tx, ...transacoes]);
     audit.create("transação", forma.descricao, tx.id, { ...tx, fonte: "OCR" });
@@ -80,7 +109,7 @@ export default function OCRComprovante({
   };
 
   return (
-    <Modal title="Comprovante por foto · Gemini Vision" onClose={onClose} wide>
+    <Modal title="Escanear recibo por foto" onClose={onClose} wide>
       {step === "upload" && (
         <>
           {!imagem ? (
@@ -110,7 +139,7 @@ export default function OCRComprovante({
               </div>
               <div className="flex gap-3">
                 <button className="btn-gold" onClick={processar} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <Sparkles size={13} /> Processar com Gemini Vision
+                  <Sparkles size={13} /> Escanear recibo
                 </button>
                 <button className="btn-ghost" onClick={() => setImagem(null)}>Outra imagem</button>
               </div>
@@ -127,15 +156,20 @@ export default function OCRComprovante({
       {step === "processando" && (
         <div style={{ padding: 40, textAlign: "center" }}>
           <Sparkles size={36} className="spin" style={{ color: T.gold, marginBottom: 14 }} />
-          <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, marginBottom: 6 }}>Analisando comprovante…</h3>
-          <p style={{ fontSize: 12, color: T.muted }}>Gemini Vision está extraindo data, valor, estabelecimento e categoria.</p>
+          <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, marginBottom: 6 }}>Analisando recibo…</h3>
+          <p style={{ fontSize: 12, color: T.muted }}>Extraindo loja, valor, data e categoria da foto.</p>
         </div>
       )}
 
       {step === "revisar" && forma && (
         <>
-          <div style={{ padding: 12, marginBottom: 14, background: `${T.green}11`, border: `1px solid ${T.green}`, borderRadius: 7, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: T.green }}>
+          <div style={{ padding: 12, marginBottom: 14, background: `${T.green}11`, border: `1px solid ${T.green}`, borderRadius: 7, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: T.green, flexWrap: "wrap" }}>
             <CheckCircle2 size={14} /> Dados extraídos! Revise antes de criar.
+            {forma._fonte && (
+              <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.muted }}>
+                {forma._fonte}{typeof forma._confianca === "number" ? ` · confiança ${forma._confianca}%` : ""}
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field label="Descrição *"><input type="text" value={forma.descricao} onChange={e => setForma({ ...forma, descricao: e.target.value })} /></Field>

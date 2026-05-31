@@ -213,6 +213,17 @@ function APIs({ apiKeys, setApiKeys }) {
   });
   const [statusTesteGemini, setStatusTesteGemini] = useState(null);
 
+  // PIN do scanner de recibo (Worker /api/recibo). Vive em localStorage.
+  const [reciboPinDraft, setReciboPinDraft] = useState(() => {
+    try { return localStorage.getItem("af4:recibo-pin") || ""; } catch { return ""; }
+  });
+  const salvarReciboPin = () => {
+    try {
+      localStorage.setItem("af4:recibo-pin", (reciboPinDraft || "").trim());
+      toast.success("PIN do recibo salvo.");
+    } catch {}
+  };
+
   const salvarChaveGemini = () => {
     try {
       localStorage.setItem("af4:gemini-key", (geminiKeyDraft || "").trim());
@@ -334,6 +345,30 @@ function APIs({ apiKeys, setApiKeys }) {
                   : `✗ ${statusTesteGemini.erro}`}
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      <div className="fb">
+        <h4>📷 Escanear recibo</h4>
+        <p style={{ fontSize: 11.5, color: T.muted, marginTop: -4, marginBottom: 10 }}>
+          O scanner usa o servidor (Claude Vision) com a chave protegida — você não precisa
+          colar nenhuma chave de API aqui. Se o endpoint estiver protegido por <strong>PIN</strong>,
+          informe o mesmo PIN configurado no Worker.
+        </p>
+        <div className="fr">
+          <div className="ff" style={{ gridColumn: "1 / -1" }}>
+            <label>PIN do recibo (opcional)</label>
+            <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+              <input type="password"
+                     value={reciboPinDraft}
+                     onChange={e => setReciboPinDraft(e.target.value)}
+                     placeholder="Só se o Worker exigir PIN"
+                     style={{ flex: 1 }} />
+              <button onClick={salvarReciboPin} className="btn-gold" style={{ padding: "0 14px", fontSize: 11, whiteSpace: "nowrap" }}>
+                Salvar
+              </button>
+            </div>
           </div>
         </div>
       </div>

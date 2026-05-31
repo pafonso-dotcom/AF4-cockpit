@@ -45,17 +45,20 @@ wrangler secret put RECIBO_PIN          # opcional, recomendado (protege o endpo
 ```
 Sem `RECIBO_PIN` o endpoint fica aberto (só teste). Com ele, o app manda o header `x-recibo-pin`.
 
-### Fase 2 — Frontend: captura & upload · ~1 sessão
-- [ ] Botão **"📷 Escanear recibo"** no fluxo de nova transação / no extrato
-- [ ] `<input capture="environment">` abre a câmera; preview + opção *refazer*
-- [ ] **Compressão no cliente** (canvas → ~1024px, JPEG) pra baixar custo/upload
-- [ ] Estados de loading / erro
+### Fase 2 — Frontend: captura & upload · ✅ FEITO
+- [x] Modal de câmera já existia; agora aponta pro Worker `/api/recibo` (Claude),
+      com **fallback** pro Gemini client-side se o Worker não estiver pronto
+- [x] `<input capture="environment">` abre a câmera; preview + "Outra imagem"
+- [x] **Compressão no cliente** (`lib/reciboWorker.js`: canvas → 1024px, JPEG 0.82)
+- [x] Estados de loading / erro amigáveis (401/413/422/500/rede)
+- [x] Campo **PIN do recibo** em Configurações → APIs (`af4:recibo-pin`)
 
-### Fase 3 — Revisão & importação · ~1 sessão
-- [ ] Tela de confirmação **pré-preenchida** (loja, data, valor, categoria)
-- [ ] Mapear **categoria sugerida → categorias existentes** do cockpit
-- [ ] Criar transação reaproveitando a **detecção de duplicidade** (`chaveTransacao`)
-- [ ] Opção de anexar a foto (thumbnail no IndexedDB) ou descartar
+### Fase 3 — Revisão & importação · ✅ FEITO
+- [x] Tela de confirmação **pré-preenchida** (loja→descrição, data, valor, categoria, tipo)
+- [x] **Categoria sugerida → categoria existente** do cockpit (case-insensitive)
+- [x] Cria a transação (compensada) ao confirmar; badge mostra fonte + confiança
+- [x] Obs recebe estabelecimento / forma de pagamento / alerta da IA
+- Pendente (menor): anexar a foto como thumbnail; dedupe via chaveTransacao
 
 ### Fase 4 — Polimento & "app no telefone" · ~0,5–1 sessão
 - [ ] Mensagens de erro amigáveis + comportamento offline
