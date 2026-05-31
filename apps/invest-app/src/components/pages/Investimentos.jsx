@@ -56,6 +56,7 @@ const SEGMENTOS = {
 
 export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, onRefresh, refreshing, onAnalisar, onProjetar, hidden }) {
   const [form, setForm] = useState(null);
+  const [importarAberto, setImportarAberto] = useState(false);
   const [aporteForm, setAporteForm] = useState(null);
   const [vendaForm, setVendaForm] = useState(null);
   const [filter, setFilter] = useState("todos");
