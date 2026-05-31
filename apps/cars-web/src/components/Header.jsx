@@ -82,11 +82,13 @@ function HeaderHorizontal({
   const perfilAtivo = getPerfilAtivo();
   const perms = perfilAtivo?.permissoes || { financas: true, invest: true, trade: true, config: true };
 
+  // Barra de bancos/cartões começa RECOLHIDA — abre só ao clicar no rótulo.
+  const [listaItensAberta, setListaItensAberta] = useState(false);
+
   const TODOS_MODULOS = [
     { id: "financas", label: "Finanças",      icon: Wallet,    desc: "Pessoal" },
     { id: "invest",   label: "Investimentos", icon: Briefcase, desc: "Carteira" },
     { id: "negocio",  label: "Negócio",       icon: Store,     desc: "Operação" },
-    { id: "agenda",   label: "Agenda",        icon: Calendar,  desc: "Vida" },
   ];
   const MODULOS = TODOS_MODULOS.filter(m => perms[m.id] !== false);
 
@@ -102,18 +104,17 @@ function HeaderHorizontal({
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
       { id: "audit",        label: "Histórico",    icon: History },
-    ],
-    agenda: [
-      { id: "inicio",     label: "Início",         icon: Home },
-      { id: "notas",      label: "Compromissos",   icon: StickyNote },
+      // Agenda incorporada ao módulo Finanças (vida + finanças num só lugar).
       { id: "calendario", label: "Calendário",     icon: Calendar },
+      { id: "notas",      label: "Compromissos",   icon: StickyNote },
       { id: "tarefas",    label: "Tarefas",        icon: CheckSquare },
-      { id: "ideias",     label: "Ideias",         icon: Sparkles },
-      { id: "sugestoes",  label: "Sugestões",      icon: Lightbulb },
       { id: "metas",      label: "Metas",          icon: Target },
       { id: "compras",    label: "Compras",        icon: Tag },
       { id: "habitos",    label: "Hábitos",        icon: Repeat },
       { id: "diario",     label: "Diário",         icon: BookOpen },
+      { id: "ideias",     label: "Ideias",         icon: Sparkles },
+      { id: "inicio",     label: "Agenda · Início", icon: Home },
+      { id: "sugestoes",  label: "Sugestões",      icon: Lightbulb },
     ],
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
@@ -340,10 +341,22 @@ function HeaderHorizontal({
             maxWidth: 1280, margin: "0 auto",
             display: "flex", gap: 6, overflowX: "auto", padding: "6px 0", alignItems: "center",
           }}>
-            <span style={{ fontSize: 9.5, color: NAV_FAINT, letterSpacing: ".2em", textTransform: "uppercase", whiteSpace: "nowrap", paddingRight: 4 }}>
-              {tab === "contas" ? "Bancos" : "Cartões"} ·
-            </span>
-            {(tab === "contas" ? contas : cartoes).map(c => {
+            {/* Rótulo clicável: recolhe/expande a lista de bancos/cartões */}
+            <button
+              onClick={() => setListaItensAberta(v => !v)}
+              aria-expanded={listaItensAberta}
+              title={listaItensAberta ? "Recolher" : "Mostrar"}
+              style={{
+                background: "transparent", border: "none", cursor: "pointer",
+                fontSize: 9.5, color: NAV_FAINT, letterSpacing: ".2em", textTransform: "uppercase",
+                whiteSpace: "nowrap", paddingRight: 4, display: "inline-flex", alignItems: "center", gap: 5,
+                fontFamily: T.sans, fontWeight: 600,
+              }}>
+              <span style={{ display: "inline-block", transform: listaItensAberta ? "rotate(90deg)" : "none", transition: "transform .15s" }}>▸</span>
+              {tab === "contas" ? "Bancos" : "Cartões"}
+              <span style={{ color: NAV_MUTED }}>({(tab === "contas" ? contas : cartoes).length})</span>
+            </button>
+            {listaItensAberta && (tab === "contas" ? contas : cartoes).map(c => {
               const ativo = tab === "contas"
                 ? contaAberta?.id === c.id
                 : cartaoAberto?.id === c.id;
@@ -469,18 +482,17 @@ function HeaderVertical({
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
       { id: "audit",        label: "Histórico",    icon: History },
-    ],
-    agenda: [
-      { id: "inicio",     label: "Início",         icon: Home },
-      { id: "notas",      label: "Compromissos",   icon: StickyNote },
+      // Agenda incorporada ao módulo Finanças (vida + finanças num só lugar).
       { id: "calendario", label: "Calendário",     icon: Calendar },
+      { id: "notas",      label: "Compromissos",   icon: StickyNote },
       { id: "tarefas",    label: "Tarefas",        icon: CheckSquare },
-      { id: "ideias",     label: "Ideias",         icon: Sparkles },
-      { id: "sugestoes",  label: "Sugestões",      icon: Lightbulb },
       { id: "metas",      label: "Metas",          icon: Target },
       { id: "compras",    label: "Compras",        icon: Tag },
       { id: "habitos",    label: "Hábitos",        icon: Repeat },
       { id: "diario",     label: "Diário",         icon: BookOpen },
+      { id: "ideias",     label: "Ideias",         icon: Sparkles },
+      { id: "inicio",     label: "Agenda · Início", icon: Home },
+      { id: "sugestoes",  label: "Sugestões",      icon: Lightbulb },
     ],
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
