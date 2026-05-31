@@ -2,11 +2,14 @@
    FORMAT · helpers de formatação e utilidades
    ============================================================ */
 
+// Number.isFinite descarta null/undefined/NaN/Infinity — evita "R$ NaN" na UI.
+const safeNum = (v) => (Number.isFinite(v) ? v : 0);
+
 export const fmt = (v, c = "BRL") =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: c, maximumFractionDigits: 2 }).format(v ?? 0);
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: c, maximumFractionDigits: 2 }).format(safeNum(v));
 
 export const fmtN = (v, d = 2) =>
-  new Intl.NumberFormat("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d }).format(v ?? 0);
+  new Intl.NumberFormat("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d }).format(safeNum(v));
 
 export const fmtP = (v) => `${v >= 0 ? "+" : ""}${fmtN(v, 2)}%`;
 
