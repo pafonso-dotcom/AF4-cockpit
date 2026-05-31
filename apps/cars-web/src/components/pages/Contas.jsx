@@ -72,7 +72,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     // Isso garante que o saldo fique sempre consistente com as transações.
     const txsExistentes = (transacoes || []).filter(t => t.conta === form.nome && t.compensado);
     const somaTx = txsExistentes.reduce(
-      (s, t) => s + (t.tipo === "receita" ? Number(t.valor) : -Number(t.valor)),
+      (s, t) => s + (t.tipo === "receita" ? (Number(t.valor) || 0) : -(Number(t.valor) || 0)),
       0
     );
     const novoSaldo = saldoParsed + somaTx;
