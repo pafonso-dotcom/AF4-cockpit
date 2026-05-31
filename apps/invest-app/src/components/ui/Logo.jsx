@@ -2,36 +2,34 @@ import React from "react";
 import { T } from "../../lib/theme.js";
 
 /**
- * Marca do produto Aurum.
- * Símbolo "A" dourado (que evoca um pico / crescimento) sobre fundo escuro.
- * Vetor (SVG): nítido em qualquer tamanho e serve de favicon / ícone PWA.
+ * Marca do produto Aureus — moeda/anel com "A" (remete ao aureus, moeda de ouro).
+ * Anel duplo dourado + "A" central. Vetor (SVG): nítido em qualquer tamanho e
+ * serve de favicon / ícone PWA.
  */
 export function LogoMark({ size = 28 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="Aurum" style={{ flexShrink: 0 }}>
+    <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="Aureus" style={{ flexShrink: 0 }}>
       <defs>
-        {/* Gradiente ouro da paleta: Ouro Profundo → Ouro → Ouro Claro */}
+        {/* Gradiente ouro da paleta: Ouro Claro → Ouro → Ouro Profundo */}
         <linearGradient id="aurumGold" x1="0" y1="0" x2="0.7" y2="1">
           <stop offset="0" stopColor="#F6E3A1" />
           <stop offset="0.5" stopColor="#E8C25A" />
           <stop offset="1" stopColor="#C9961F" />
         </linearGradient>
       </defs>
-      {/* "A" triangular: triângulo externo com recorte interno + barra horizontal */}
-      <path
-        d="M32 6 L60 58 L4 58 Z M32 22 L18 50 L46 50 Z"
-        fill="url(#aurumGold)" fillRule="evenodd"
-      />
-      {/* barra do "A" (atravessa o vão interno) */}
-      <rect x="22" y="44" width="20" height="5" rx="1" fill="url(#aurumGold)" />
-      {/* brilho na aresta esquerda do pico */}
-      <path d="M32 6 L20 40" stroke="#fff6d8" strokeWidth="1" opacity="0.45" strokeLinecap="round" />
+      {/* anel externo (moeda) */}
+      <circle cx="32" cy="32" r="27" fill="none" stroke="url(#aurumGold)" strokeWidth="3" />
+      {/* anel interno fino */}
+      <circle cx="32" cy="32" r="21" fill="none" stroke="url(#aurumGold)" strokeWidth="1.2" opacity="0.5" />
+      {/* "A" central */}
+      <path d="M32 17 L43 47 L37 47 L34.3 39 L29.7 39 L27 47 L21 47 Z M32 27 L30.4 34 L33.6 34 Z"
+            fill="url(#aurumGold)" fillRule="evenodd" />
     </svg>
   );
 }
 
 /**
- * Marca completa: símbolo + "Aurum" + sufixo ".invest".
+ * Marca completa: símbolo + "Aureus" + sufixo ".invest".
  * Cores FIXAS da marca (dourado) — não mudam com a paleta, pra manter
  * identidade consistente (o logo vive numa barra de fundo escuro).
  */
@@ -43,7 +41,7 @@ export default function Logo({ size = 28, sufixo = true }) {
         <span style={{
           fontFamily: T.serif, fontWeight: 600, fontSize: Math.round(size * 0.72),
           color: "#d4b87a", letterSpacing: "-0.01em", lineHeight: 1,
-        }}>Aurum</span>
+        }}>Aureus</span>
         {sufixo && (
           <span style={{
             fontFamily: T.serif, fontWeight: 500, fontSize: Math.round(size * 0.42),
