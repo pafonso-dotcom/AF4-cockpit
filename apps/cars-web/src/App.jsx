@@ -776,6 +776,7 @@ export default function App() {
                          devedores={devedores} dividas={dividas}
                          fixas={fixas} fixaOcorrencias={fixaOcorrencias}
                          agenda={agenda}
+                         patrimonioHistorico={patrimonioHistorico}
                          escopoAtivo={escopoAtivo}
                          onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
                          onContaClick={(c) => { setTab("contas"); setContaAberta(c); }} />
@@ -906,8 +907,8 @@ export default function App() {
           </div>
         )}
 
-        {/* MÓDULO: AGENDA — vida pessoal (início, compromissos, calendário, tarefas, ideias, metas, compras) */}
-        {modulo === "agenda" && (
+        {/* AGENDA — agora incorporada ao módulo Finanças (as tabs vivem em financas). */}
+        {modulo === "financas" && (
           <div className="px-6 md:px-10">
             {tab === "inicio" && (
               <AgendaInicio
