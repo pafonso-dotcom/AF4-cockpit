@@ -5,6 +5,7 @@ import { fetchAdminOverview, adminEmail, definirTrial } from "../../lib/admin.js
 import { carregarFundamentos } from "../../lib/fundamentos.js";
 import { billingEnabled, trialDias } from "../../lib/subscription.js";
 import { toast } from "../../lib/toast.js";
+import { APP_URL } from "../../lib/config.js";
 
 /**
  * Painel administrativo do Aurum (só admin). Abas:
@@ -82,7 +83,6 @@ export default function Admin() {
 }
 
 /* ---------- Clientes ---------- */
-const APP_URL = "https://investimentos-app.pages.dev";
 
 function diasRestantes(iso) {
   if (!iso) return null;
