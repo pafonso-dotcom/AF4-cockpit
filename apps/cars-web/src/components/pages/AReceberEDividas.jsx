@@ -726,7 +726,7 @@ export default function AReceberEDividas({
               title: "Abre o modal de baixa para o item vencido mais antigo",
               onClick: () => {
                 const proximo = [...totaisAlerta.over.receber, ...totaisAlerta.over.pagar]
-                  .sort((a, b) => (a.vencimento || "").localeCompare(b.vencimento || ""))[0];
+                  .sort((a, b) => String(a.vencimento || "").localeCompare(String(b.vencimento || "")))[0];
                 if (!proximo) return;
                 const isReceber = devAbertos.includes(proximo);
                 setBaixaForm({
