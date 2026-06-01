@@ -6,7 +6,7 @@ import { fmt, fmtN } from "../../lib/format.js";
 import { gerarInsights } from "../../lib/intelligence.js";
 import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
-import { getKPIsMes } from "../../lib/agregador.js";
+import { getKPIsMes, getDespesasDoMes } from "../../lib/agregador.js";
 import { supabase } from "../../lib/supabase.js";
 import EvolucaoPatrimonio from "./Invest/EvolucaoPatrimonio.jsx";
 
@@ -160,6 +160,18 @@ export default function Dashboard({
     return ini > 0 ? ((fim - ini) / ini) * 100 : 0;
   }, [evolucao]);
 
+  // ===== Contas a PAGAR vencendo hoje (fixas, parcelas, dívidas, avulsas) =====
+  const aPagarHoje = useMemo(() => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const mesISO = hoje.slice(0, 7);
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
+    let desp = [];
+    try { desp = getDespesasDoMes(mesISO, state, escopoAtivo); } catch {}
+    return desp
+      .filter(d => d.status !== "paga" && (d.data || "").slice(0, 10) === hoje)
+      .map(d => ({ id: d.id, nome: d.descricao, valor: Number(d.valor) || 0 }));
+  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, escopoAtivo]);
+
   // ===== Projeção próximos 6 meses =====
   const projecao = useMemo(() => {
     const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
@@ -222,7 +234,9 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <GastosCategoriaCard data={gastosCat} hidden={hidden} />
-        <AReceberCard devedores={devedores} hidden={hidden} onSeeAll={() => onTabChange?.("areceber")} />
+        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} hidden={hidden}
+          onSeeAll={() => onTabChange?.("areceber")}
+          onVerPagar={() => onTabChange?.("areceber")} />
         <ProjecaoCard projecao={projecao} hidden={hidden} />
       </section>
 
@@ -468,7 +482,7 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-function AReceberCard({ devedores = [], hidden, onSeeAll }) {
+function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVerPagar }) {
   const hoje = new Date().toISOString().slice(0, 10);
   const fimSemana = (() => {
     const d = new Date();
@@ -587,6 +601,37 @@ function AReceberCard({ devedores = [], hidden, onSeeAll }) {
             </div>
           )}
         </>
+      )}
+
+      {/* A PAGAR vencendo HOJE — contas (fixas/parcelas/dívidas) que vencem hoje */}
+      {aPagarHoje.length > 0 && (
+        <div style={{
+          marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.border}`,
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <div style={{ fontSize: 9.5, color: T.red, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <AlertCircle size={11} /> A pagar hoje
+            </div>
+            <div className="num" style={{ fontSize: 12, fontWeight: 700, color: T.red }}>
+              {hidden ? "•••" : fmt(aPagarHoje.reduce((s, p) => s + (Number(p.valor) || 0), 0))}
+            </div>
+          </div>
+          {aPagarHoje.slice(0, 3).map(p => (
+            <div key={p.id} onClick={onVerPagar} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", fontSize: 11.5, cursor: onVerPagar ? "pointer" : "default" }}>
+              <div style={{ color: T.ink, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
+                {p.nome}
+              </div>
+              <div className="num" style={{ color: T.red, fontWeight: 600, marginLeft: 8, flexShrink: 0 }}>
+                {hidden ? "•••" : fmt(Number(p.valor) || 0)}
+              </div>
+            </div>
+          ))}
+          {aPagarHoje.length > 3 && (
+            <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>
+              +{aPagarHoje.length - 3} {aPagarHoje.length - 3 === 1 ? "outra conta" : "outras contas"}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
