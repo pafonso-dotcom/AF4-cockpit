@@ -495,12 +495,13 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                               {cat ? cat.nome : "+ categoria"}
                             </button>
                           )}
-                          {t.obs && (
-                            <span style={{ fontSize: 11, color: T.faint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
-                              {t.obs}
-                            </span>
-                          )}
                         </div>
+                        {/* Observação em linha própria — visível e completa */}
+                        {t.obs && (
+                          <div style={{ fontSize: 11, color: T.muted, marginTop: 3, lineHeight: 1.35, wordBreak: "break-word" }}>
+                            {t.obs}
+                          </div>
+                        )}
                       </div>
 
                       {/* Valor + saldo */}

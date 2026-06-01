@@ -181,6 +181,13 @@ export default function NovaTransacaoModal({
           );
         })()}
 
+        <div style={{ marginBottom: 12 }}>
+          <div style={lbl}>Observação (opcional)</div>
+          <textarea value={form.obs || ""} onChange={e => set("obs", e.target.value)}
+                    rows={2} placeholder="Notas, detalhes, nº do comprovante… aparece no extrato"
+                    style={{ ...inp, resize: "vertical", minHeight: 38, fontFamily: "inherit" }} />
+        </div>
+
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: T.ink, cursor: "pointer", marginBottom: 14 }}>
           <input type="checkbox" checked={!!form.compensado}
                  onChange={e => set("compensado", e.target.checked)}
