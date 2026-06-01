@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import ResumoExecutivo from "./ResumoExecutivo.jsx";
@@ -9,6 +9,7 @@ import ParcelasView from "./ParcelasView.jsx";
 import PrevisaoView from "./PrevisaoView.jsx";
 import AtencaoView from "./AtencaoView.jsx";
 import ReservaEmergenciaView from "./ReservaEmergenciaView.jsx";
+import DespesasFixas from "../DespesasFixas.jsx";
 
 /**
  * Hub de Planejamento de Finanças.
@@ -16,8 +17,11 @@ import ReservaEmergenciaView from "./ReservaEmergenciaView.jsx";
  * - Expandido: ao clicar num card, troca o hub pela view completa daquela área
  */
 export default function Planejamento(props) {
-  const { hidden } = props;
+  const { hidden, tab } = props;
   const [cardAberto, setCardAberto] = useState(null);
+  const [voltouAoHub, setVoltouAoHub] = useState(false);
+  // Ao trocar de aba no menu, reseta a navegação interna do Planejamento.
+  useEffect(() => { setCardAberto(null); setVoltouAoHub(false); }, [tab]);
 
   // "despesas" e "recebiveis" agora abrem a MESMA tela unificada (toggle A Pagar/Receber).
   const views = {
@@ -28,16 +32,23 @@ export default function Planejamento(props) {
     previsao: PrevisaoView,
     atencao: AtencaoView,
     reserva: ReservaEmergenciaView,
+    fixas: DespesasFixas,
   };
 
+  // Tab do menu pode abrir uma view direto (ex.: "fixas" → Despesas Fixas;
+  // "areceber" → A Pagar & Receber; "relatorios-anual" → Anual).
+  const tabToCard = { fixas: "fixas", areceber: "recebiveis", "relatorios-anual": "anual" };
+  const cardInicial = voltouAoHub ? null : (tabToCard[tab] || null);
+  const aberto = cardAberto || cardInicial;
+
   // cardAberto pode trazer um parâmetro após ":" (ex.: "recebiveis:pagar")
-  const [cardId, cardParam] = (cardAberto || "").split(":");
+  const [cardId, cardParam] = (aberto || "").split(":");
   if (cardId && views[cardId]) {
     const View = views[cardId];
     return (
       <div className="fade-up py-8 px-6">
         <button
-          onClick={() => setCardAberto(null)}
+          onClick={() => { setCardAberto(null); setVoltouAoHub(true); }}
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "8px 14px", marginBottom: 16,
