@@ -830,6 +830,7 @@ export default function App() {
                 cartoes={cartoes} setCartoes={setCartoes}
                 metas={metas} setMetas={setMetas}
                 escopoAtivo={escopoAtivo}
+                tab={tab}
                 hidden={hidden}
               />
             )}
