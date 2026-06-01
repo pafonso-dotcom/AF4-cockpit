@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Users, RefreshCw, Award, CreditCard, Settings, Search } from "lucide-react";
+import { Users, RefreshCw, Award, CreditCard, Settings, Search, Clock } from "lucide-react";
 import { T } from "../../lib/theme.js";
-import { fetchAdminOverview, adminEmail } from "../../lib/admin.js";
+import { fetchAdminOverview, adminEmail, definirTrial } from "../../lib/admin.js";
 import { carregarFundamentos } from "../../lib/fundamentos.js";
 import { billingEnabled, trialDias } from "../../lib/subscription.js";
+import { toast } from "../../lib/toast.js";
 
 /**
  * Painel administrativo do Aurum (só admin). Abas:
@@ -72,7 +73,7 @@ export default function Admin() {
         </div>
       )}
 
-      {aba === "clientes" && <Clientes data={data} />}
+      {aba === "clientes" && <Clientes data={data} onRecarregar={carregar} />}
       {aba === "curadoria" && <Curadoria />}
       {aba === "assinaturas" && <Assinaturas data={data} />}
       {aba === "config" && <Config />}
@@ -81,10 +82,41 @@ export default function Admin() {
 }
 
 /* ---------- Clientes ---------- */
-function Clientes({ data }) {
+const APP_URL = "https://investimentos-app.pages.dev";
+
+function diasRestantes(iso) {
+  if (!iso) return null;
+  const d = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
+  return d;
+}
+
+function Clientes({ data, onRecarregar }) {
   const [busca, setBusca] = useState("");
+  const [salvando, setSalvando] = useState(null); // id em processamento
+
   if (!data) return <Vazio texto="Carregando clientes…" />;
   const lista = (data.usuarios || []).filter(u => !busca || (u.email || "").toLowerCase().includes(busca.toLowerCase()));
+
+  const conceder = async (u) => {
+    const txt = window.prompt(`Conceder/estender teste para ${u.email}.\nQuantos dias? (use 0 para encerrar)`, "30");
+    if (txt === null) return;
+    const dias = Number(txt);
+    if (!Number.isFinite(dias)) { toast.error("Número inválido."); return; }
+    setSalvando(u.id);
+    try {
+      await definirTrial(u.id, dias);
+      toast.success(dias > 0 ? `Teste de ${u.email} estendido +${dias} dia(s).` : `Teste de ${u.email} encerrado.`);
+      onRecarregar?.();
+    } catch (e) {
+      toast.error(e.message || "Falha ao atualizar o teste.");
+    } finally { setSalvando(null); }
+  };
+
+  const convidar = (u) => {
+    const msg = `Olá! 👋 Te convido a conhecer a Aureus — plataforma única de investimentos.\n\nAcesse: ${APP_URL}\n\nCrie sua conta e organize sua carteira com clareza. 🪙`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
   return (
     <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>
@@ -92,35 +124,59 @@ function Clientes({ data }) {
         <Kpi label="Assinantes ativos" valor={data.totais.assinantesAtivos} cor={T.green} />
         <Kpi label="Assinaturas (total)" valor={data.totais.assinaturas} cor={T.ink} />
       </div>
-      <div style={{ position: "relative", marginBottom: 12, maxWidth: 320 }}>
-        <Search size={13} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: T.muted }} />
-        <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por e-mail…"
-               style={{ width: "100%", padding: "8px 11px 8px 32px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12.5, borderRadius: 8 }} />
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+        <div style={{ position: "relative", flex: 1, minWidth: 200, maxWidth: 320 }}>
+          <Search size={13} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: T.muted }} />
+          <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por e-mail…"
+                 style={{ width: "100%", padding: "8px 11px 8px 32px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12.5, borderRadius: 8 }} />
+        </div>
+        <button onClick={() => convidar({})} style={btnWhats()}>
+          📲 Convidar pelo WhatsApp
+        </button>
       </div>
       <Tabela>
         <thead>
           <tr style={{ background: T.bgSoft }}>
             <th style={th("left")}>Cliente</th>
-            <th style={th("center")}>Confirmado</th>
+            <th style={th("center")}>Conf.</th>
             <th style={th("center")}>Assinatura</th>
+            <th style={th("center")}>Teste</th>
             <th style={th("left")}>Cadastro</th>
-            <th style={th("left")}>Último acesso</th>
+            <th style={th("center")}>Ações</th>
           </tr>
         </thead>
         <tbody>
           {lista.length === 0 ? (
-            <tr><td colSpan={5} style={{ ...td(), textAlign: "center", color: T.faint, fontStyle: "italic", padding: 24 }}>Nenhum cliente.</td></tr>
-          ) : lista.map(u => (
-            <tr key={u.id} style={{ borderTop: `1px solid ${T.border}` }}>
-              <td style={{ ...td(), color: T.ink }}>{u.email}</td>
-              <td style={{ ...td(), textAlign: "center" }}>{u.confirmado ? "✅" : "—"}</td>
-              <td style={{ ...td(), textAlign: "center" }}><StatusChip status={u.status} /></td>
-              <td style={td()}>{fmtData(u.criado)}</td>
-              <td style={td()}>{fmtData(u.ultimoLogin)}</td>
-            </tr>
-          ))}
+            <tr><td colSpan={6} style={{ ...td(), textAlign: "center", color: T.faint, fontStyle: "italic", padding: 24 }}>Nenhum cliente.</td></tr>
+          ) : lista.map(u => {
+            const dr = diasRestantes(u.trialAte);
+            return (
+              <tr key={u.id} style={{ borderTop: `1px solid ${T.border}` }}>
+                <td style={{ ...td(), color: T.ink }}>{u.email}</td>
+                <td style={{ ...td(), textAlign: "center" }}>{u.confirmado ? "✅" : "—"}</td>
+                <td style={{ ...td(), textAlign: "center" }}><StatusChip status={u.status} /></td>
+                <td style={{ ...td(), textAlign: "center" }}>
+                  {dr == null ? <span style={{ color: T.faint }}>—</span>
+                    : dr > 0 ? <span style={{ color: T.gold, fontWeight: 600 }}>{dr}d</span>
+                    : <span style={{ color: T.red }}>expirado</span>}
+                </td>
+                <td style={td()}>{fmtData(u.criado)}</td>
+                <td style={{ ...td(), textAlign: "center", whiteSpace: "nowrap" }}>
+                  <button onClick={() => conceder(u)} disabled={salvando === u.id} title="Conceder/estender teste"
+                          style={btnIcon()}>
+                    <Clock size={14} /> {salvando === u.id ? "…" : "Teste"}
+                  </button>
+                  <button onClick={() => convidar(u)} title="Convidar pelo WhatsApp"
+                          style={{ ...btnIcon(), marginLeft: 6 }}>📲</button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </Tabela>
+      <div style={{ marginTop: 8, fontSize: 10.5, color: T.faint, fontStyle: "italic" }}>
+        "Teste" concede/estende dias grátis pro cliente (0 encerra). O convite abre o WhatsApp com o link do app.
+      </div>
     </>
   );
 }
@@ -280,3 +336,5 @@ function fmtData(iso) {
 }
 const th = (a) => ({ padding: "9px 11px", textAlign: a, fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 600 });
 const td = () => ({ padding: "9px 11px", verticalAlign: "middle" });
+const btnIcon = () => ({ display: "inline-flex", alignItems: "center", gap: 4, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, padding: "5px 9px", borderRadius: 7, fontSize: 11.5, cursor: "pointer" });
+const btnWhats = () => ({ display: "inline-flex", alignItems: "center", gap: 6, background: "#25D36622", border: "1px solid #25D366", color: "#1c9e4d", padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer" });

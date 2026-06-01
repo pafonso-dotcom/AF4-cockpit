@@ -56,6 +56,7 @@ export async function onRequest(context) {
     confirmado: !!u.email_confirmed_at || !!u.confirmed_at,
     status: subByUser[u.id]?.status || "—",
     validade: subByUser[u.id]?.validade || null,
+    trialAte: subByUser[u.id]?.trial_ate || null,
   })).sort((a, b) => (b.criado || "").localeCompare(a.criado || ""));
 
   const ativos = subs.filter(s => ["active", "trialing"].includes(s.status)).length;
