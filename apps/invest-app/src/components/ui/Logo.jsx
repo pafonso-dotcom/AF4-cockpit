@@ -42,7 +42,7 @@ export default function Logo({ size = 28, sufixo = true }) {
           fontFamily: T.serif, fontWeight: 600, fontSize: Math.round(size * 0.72),
           letterSpacing: "-0.01em", lineHeight: 1,
         }}>
-          <span style={{ color: "#e23b3b" }}>A</span>
+          <span style={{ color: "#a01e2e" }}>A</span>
           <span style={{ color: "#d4b87a" }}>ureus</span>
         </span>
         {sufixo && (
