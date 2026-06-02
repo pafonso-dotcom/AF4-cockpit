@@ -3,10 +3,10 @@
    ============================================================ */
 
 const FONTS = {
-  serif: '"Poppins", system-ui, -apple-system, sans-serif',
-  body:  '"Poppins", system-ui, -apple-system, sans-serif',
-  mono:  '"Poppins", ui-monospace, monospace',
-  sans:  '"Poppins", system-ui, -apple-system, sans-serif',
+  serif: '"Nunito", system-ui, -apple-system, sans-serif',
+  body:  '"Nunito", system-ui, -apple-system, sans-serif',
+  mono:  '"Nunito", ui-monospace, monospace',
+  sans:  '"Nunito", system-ui, -apple-system, sans-serif',
 };
 
 // Base ESCURA — todas as variantes mudam só o acento

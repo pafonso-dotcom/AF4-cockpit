@@ -48,7 +48,7 @@ export default function Logo({
     <div style={{ display: "flex", alignItems: "center", gap: size * 0.4 }}>
       <NumviMark size={size * 1.3} bg={bg} />
       <span style={{
-        fontFamily: "'Poppins', system-ui, -apple-system, sans-serif",
+        fontFamily: "'Nunito', system-ui, -apple-system, sans-serif",
         fontWeight: 800, fontSize: size, letterSpacing: "-0.01em",
         lineHeight: 1, display: "inline-flex", alignItems: "baseline",
       }}>

@@ -197,7 +197,7 @@ function HeaderHorizontal({
         {/* BRAND · marca NUMVI */}
         <div style={{ display: "flex", alignItems: "center", marginRight: "auto", flexShrink: 0 }}>
           {/* Mobile: só o nome (sem símbolo). Desktop: lockup completo. */}
-          <span className="hide-desktop" style={{ fontFamily: "'Poppins', system-ui, sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em" }}>
+          <span className="hide-desktop" style={{ fontFamily: "'Nunito', system-ui, sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em" }}>
             <span style={{ color: "#9E2B3A" }}>N</span><span style={{ color: "#E8C25A" }}>umvi</span>
           </span>
           <span className="header-brand-text"><Logo size={24} sufixo="·finanças" /></span>
@@ -329,17 +329,17 @@ function HeaderHorizontal({
                 title={st.label}
                 style={{
                   position: "relative",
-                  padding: "10px 18px",
+                  padding: "9px 12px",
                   background: active ? `${T.gold}1a` : "transparent",
                   color: active ? T.gold : NAV_MUTED,
                   borderTop: "none", borderLeft: "none", borderRight: "none",
                   borderBottom: `2px solid ${active ? T.gold : "transparent"}`,
-                  fontSize: 16, letterSpacing: ".01em", fontWeight: 500,
+                  fontSize: 13.5, letterSpacing: ".01em", fontWeight: 500,
                   display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
                   cursor: "pointer", transition: "color .15s, background .15s, border-color .15s",
                   fontFamily: "Georgia, 'Times New Roman', serif", borderRadius: "6px 6px 0 0",
                 }}>
-                <Icon size={14} /> {st.label}
+                <Icon size={13} /> {st.label}
                 {st.agenda && (
                   <span style={{ fontSize: 9, opacity: .8, marginLeft: 1, transform: active ? "rotate(90deg)" : "none", transition: "transform .15s", display: "inline-block" }}>▸</span>
                 )}

@@ -1,19 +1,25 @@
 {
-  "name": "Aurum Finanças",
-  "short_name": "NUMVI",
-  "description": "Painel de Comando — finanças pessoais, investimentos, cartões e operação da loja AF4.",
+  "name": "Numvi · dinheiro com visão",
+  "short_name": "Numvi",
+  "description": "Numvi — controle financeiro, investimentos e metas com inteligência.",
   "start_url": ".",
   "scope": ".",
-  "display": "browser",
+  "display": "standalone",
   "orientation": "portrait",
   "background_color": "#23272E",
   "theme_color": "#23272E",
   "icons": [
     {
+      "src": "./apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
       "src": "./icon.svg",
       "type": "image/svg+xml",
       "sizes": "any",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
