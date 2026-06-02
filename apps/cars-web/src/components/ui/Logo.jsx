@@ -13,6 +13,7 @@ import React from "react";
 const GOLD_HI = "#F4D47C";
 const GOLD_MD = "#E8C25A";
 const GOLD_LO = "#B8902E";
+const N_COLOR = "#7B1E2B"; // vermelho bordô do "N" do NUMVI
 
 export function NumviMark({ size = 36, bg = "#23272E", gid }) {
   const id = gid || `numvi-${Math.random().toString(36).slice(2, 7)}`;
@@ -56,7 +57,7 @@ export default function Logo({
           fontWeight: 700, fontSize: size * 0.78, letterSpacing: ".2em",
           color: wordColor,
         }}>
-          NUMVI
+          <span style={{ color: N_COLOR }}>N</span>UMVI
         </span>
         {tagline && (
           <>
