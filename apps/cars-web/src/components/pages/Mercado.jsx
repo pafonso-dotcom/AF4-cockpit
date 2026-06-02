@@ -9,6 +9,7 @@ export default function Mercado({ ativos, apiKeys }) {
   const [liveIndices, setLiveIndices] = useState(null);
   const [liveLoading, setLiveLoading] = useState(false);
   const [liveError, setLiveError] = useState(null);
+  const [tick, setTick] = useState(0); // incrementa pra forçar refetch
 
   useEffect(() => {
     if (!apiKeys?.useRealMarket) { setLiveIndices(null); return; }
@@ -53,11 +54,23 @@ export default function Mercado({ ativos, apiKeys }) {
       setLiveLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [apiKeys?.useRealMarket, apiKeys?.brapi]);
+  }, [apiKeys?.useRealMarket, apiKeys?.brapi, tick]);
 
-  const movers = [...ativos].map(a => {
-    const denom = a.base || a.pm || a.preco;
-    const v = denom > 0 ? ((a.preco - denom) / denom) * 100 + (Math.random() - 0.5) * 0.4 : 0;
+  // Auto-refresh a cada 60s (só no modo real).
+  useEffect(() => {
+    if (!apiKeys?.useRealMarket) return;
+    const id = setInterval(() => setTick(t => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, [apiKeys?.useRealMarket]);
+
+  // Maiores altas/baixas da SUA carteira pela variação real (variacao24h das
+  // cotações). Sem dado de variação, usa o ganho vs preço médio. Nada aleatório.
+  const movers = [...(ativos || [])].map(a => {
+    let v = Number(a.variacao24h);
+    if (!Number.isFinite(v)) {
+      const denom = a.base || a.pm || a.preco;
+      v = denom > 0 ? ((a.preco - denom) / denom) * 100 : 0;
+    }
     return { ...a, varDia: v };
   }).sort((a, b) => b.varDia - a.varDia);
 
@@ -90,6 +103,19 @@ export default function Mercado({ ativos, apiKeys }) {
         eyebrow="Capítulo V"
         title="Mercado"
         sub="O pulso do dia. Índices, cotações e movimentos da sua carteira."
+        action={apiKeys?.useRealMarket && (
+          <button onClick={() => setTick(t => t + 1)} disabled={liveLoading}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "8px 14px", borderRadius: 7, cursor: liveLoading ? "wait" : "pointer",
+              background: "transparent", border: `1px solid ${T.gold}`, color: T.gold,
+              fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
+              fontFamily: T.sans,
+            }}>
+            <RefreshCw size={13} style={liveLoading ? { animation: "spin 1s linear infinite" } : undefined} />
+            Atualizar
+          </button>
+        )}
       />
 
       {/* Status banner */}
@@ -139,8 +165,8 @@ export default function Mercado({ ativos, apiKeys }) {
         </h3>
         <div style={{ color: T.muted, fontSize: 16, marginTop: 12, lineHeight: 1.7 }} className="italic">
           Em mercados voláteis, o erro mais frequente não é a escolha do ativo, mas a frequência da decisão.
-          Quem revê tese todo dia transforma ruído em direção. Esta área é simulada e existe para que você se acostume
-          a ler o mercado com calma — atualize quando quiser, e observe os movimentos da sua carteira em perspectiva.
+          Quem revê tese todo dia transforma ruído em direção. Atualize quando quiser
+          e observe os movimentos da sua carteira em perspectiva.
         </div>
         <div className="mt-4" style={{ color: T.faint, fontSize: 12, fontFamily: T.sans, letterSpacing: "0.15em", textTransform: "uppercase" }}>
           — NUMVI
