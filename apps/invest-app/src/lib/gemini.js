@@ -129,7 +129,11 @@ export async function fetchComRetry(url, opts, maxTentativas = 3) {
 
 export async function gerarTextoGemini(prompt, opts = {}) {
   const key = getKey(opts);
-  if (!key) throw new Error("Chave do Gemini não configurada");
+  // Sem chave local → usa o proxy do servidor (chave fica no Cloudflare).
+  // Assim o cliente não precisa configurar nada.
+  const url = key
+    ? `${ENDPOINT}/${MODEL}:generateContent?key=${encodeURIComponent(key)}`
+    : `/api/gemini/${MODEL}:generateContent`;
 
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
@@ -140,14 +144,11 @@ export async function gerarTextoGemini(prompt, opts = {}) {
     },
   };
 
-  const res = await fetchComRetry(
-    `${ENDPOINT}/${MODEL}:generateContent?key=${encodeURIComponent(key)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }
-  );
+  const res = await fetchComRetry(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 
   const data = await res.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "";

@@ -47,6 +47,21 @@ export async function onRequest(context) {
       return passthrough(r);
     }
 
+    if (service === "gemini") {
+      // /api/gemini/<model>:generateContent  → injeta a GEMINI_KEY do servidor.
+      const key = env.GEMINI_KEY || "";
+      if (!key) return json({ error: "IA indisponível: GEMINI_KEY não configurada no servidor." }, 503);
+      const body = await request.text();
+      const sep = qs ? "&" : "?";
+      const target = `https://generativelanguage.googleapis.com/v1beta/models/${rest}${qs}${sep}key=${encodeURIComponent(key)}`;
+      const r = await fetch(target, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+      return passthrough(r);
+    }
+
     return json({ error: "Serviço não suportado." }, 404);
   } catch (e) {
     return json({ error: String(e?.message || e) }, 502);
