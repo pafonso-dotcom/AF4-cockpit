@@ -23,10 +23,13 @@ export default function Mercado({ ativos, apiKeys }) {
       const out = [];
       if (ind) ind.forEach(r => {
         const nomeMap = { "^BVSP": "Ibovespa", "^GSPC": "S&P 500", "^IXIC": "Nasdaq" };
-        if (r.regularMarketPrice) {
+        // Aceita preços alternativos quando regularMarketPrice não vem na resposta
+        // (a BRAPI às vezes omite no índice, fazendo o Ibovespa "sumir").
+        const preco = r.regularMarketPrice ?? r.regularMarketPreviousClose ?? r.price ?? r.close;
+        if (preco != null) {
           out.push({
             nome: nomeMap[r.symbol] || r.symbol,
-            valor: r.regularMarketPrice,
+            valor: preco,
             var: r.regularMarketChangePercent ?? 0,
             real: true,
           });
@@ -70,7 +73,16 @@ export default function Mercado({ ativos, apiKeys }) {
     { nome: "Euro (EUR)",  valor: 6.21,    var: 0.34 },
     { nome: "Bitcoin",     valor: 412300,  var: 2.18 },
   ];
-  const indices = liveIndices || indicesSim;
+  // Reais se disponíveis; senão, simulados. Garante que índices-chave (Ibovespa)
+  // sempre apareçam: se a API não trouxe, completa com o valor simulado.
+  let indices = liveIndices || indicesSim;
+  if (liveIndices) {
+    const temIbov = liveIndices.some(i => /ibov/i.test(i.nome));
+    if (!temIbov) {
+      const simIbov = indicesSim.find(i => /ibov/i.test(i.nome));
+      if (simIbov) indices = [{ ...simIbov, sim: true }, ...liveIndices];
+    }
+  }
 
   return (
     <div className="fade-up py-8">
