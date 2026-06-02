@@ -31,6 +31,13 @@ function parcelasAtivasDoCartao(cartao, parcelamentos = []) {
 function faturaMensalDoCartao(cartao, parcelamentos = []) {
   return parcelasAtivasDoCartao(cartao, parcelamentos).reduce((s, p) => s + valorDaParcela(p), 0);
 }
+// Valor a pagar do mês COMPLETO: se há fatura importada (que já soma à vista +
+// fixas + parcelas) e não está paga, usa o valor dela; senão, só as parcelas.
+function valorAPagarMes(cartao, parcelamentos = []) {
+  if (cartao.faturaImportada && cartao.faturaImportada.paga) return 0;
+  const fiTotal = cartao.faturaImportada ? Number(cartao.faturaImportada.valorTotal) || 0 : 0;
+  return fiTotal > 0 ? fiTotal : faturaMensalDoCartao(cartao, parcelamentos);
+}
 
 export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, categorias, hidden, onCartaoClick, cartaoAtivo }) {
   const [form, setForm] = useState(null);
@@ -326,7 +333,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
 
       {/* Stats — sem limite (a pedido): foco no que se paga no mês */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-px mb-8" style={{ background: T.border }}>
-        <StatCard label="A pagar no mês" value={hidden ? "•••••" : fmt(cartoes.reduce((s, c) => s + faturaMensalDoCartao(c, parcelamentos), 0))} accent={T.gold} icon={CreditCard} sub={`${cartoes.length} cartões`} />
+        <StatCard label="A pagar no mês" value={hidden ? "•••••" : fmt(cartoes.reduce((s, c) => s + valorAPagarMes(c, parcelamentos), 0))} accent={T.gold} icon={CreditCard} sub={`${cartoes.length} cartões`} />
         <StatCard label="Comprometido (total)" value={hidden ? "•••••" : fmt(totalUsado)} accent={T.red} icon={TrendingDown} sub="soma de todas as parcelas" />
         <StatCard label="Parcelamentos ativos" value={String(parcelamentos.filter(p => (p.parcelasPagas?.length || 0) < p.totalParcelas).length)}
                   accent={T.blue} icon={Repeat} />
@@ -354,11 +361,13 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           }, 0);
           const exp = expandedCart.has(c.id);
           const ativaCard = cartaoAtivo?.id === c.id;
-          // Valor a pagar do MÊS = soma de uma parcela de cada parcelamento em
-          // curso (bate exatamente com a lista de parcelas). Se a fatura
-          // importada já foi marcada como paga, o mês fica zerado.
+          // Valor a pagar do MÊS = fatura importada (à vista + fixas + parcelas)
+          // se houver e não estiver paga; senão, soma das parcelas do mês.
           const fiPaga = !!(c.faturaImportada && c.faturaImportada.paga);
-          const aPagar = fiPaga ? 0 : faturaMensalDoCartao(c, parcelamentos);
+          const parcelasMes = faturaMensalDoCartao(c, parcelamentos);
+          const aPagar = valorAPagarMes(c, parcelamentos);
+          // Diferença = compras à vista + fixas da fatura (o que não é parcela).
+          const extrasMes = Math.max(0, aPagar - parcelasMes);
           return (
             <div key={c.id}
                  style={{
@@ -407,6 +416,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   <ParcelasDoCartao
                     cartao={c}
                     parcelamentos={parcelamentos}
+                    extras={extrasMes}
                     brand={{ ...brand, fg: T.ink }}
                     hidden={hidden}
                   />
@@ -894,7 +904,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
    ParcelasDoCartao — bloco colapsável dentro do card de cartão.
    Mostra parcelamentos ativos com progressbar.
    ============================================================ */
-function ParcelasDoCartao({ cartao, parcelamentos = [], brand, hidden }) {
+function ParcelasDoCartao({ cartao, parcelamentos = [], extras = 0, brand, hidden }) {
   const [aberto, setAberto] = useState(false);
 
   // Match por cartaoId OU por nome normalizado
@@ -906,10 +916,12 @@ function ParcelasDoCartao({ cartao, parcelamentos = [], brand, hidden }) {
     return false;
   });
 
-  if (ativos.length === 0) return null;
+  const extrasValor = Number(extras) || 0;
+  if (ativos.length === 0 && extrasValor <= 0) return null;
 
-  // Total do mês = uma parcela de cada parcelamento ativo (mesma regra do card).
-  const totalMes = ativos.reduce((s, p) => s + valorDaParcela(p), 0);
+  // Total do mês = parcelas (uma de cada) + compras à vista/fixas da fatura.
+  const totalParcelas = ativos.reduce((s, p) => s + valorDaParcela(p), 0);
+  const totalMes = totalParcelas + extrasValor;
 
   return (
     <div style={{
@@ -958,6 +970,17 @@ function ParcelasDoCartao({ cartao, parcelamentos = [], brand, hidden }) {
               </div>
             );
           })}
+          {/* Compras à vista + fixas da fatura (o que não é parcela) */}
+          {extrasValor > 0 && (
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              padding: "6px 8px", borderRadius: 5, background: "rgba(0,0,0,0.18)",
+              fontSize: 10.5, color: brand.fg,
+            }}>
+              <span style={{ fontWeight: 600, opacity: 0.95 }}>Compras à vista + fixas</span>
+              <span className="num" style={{ opacity: 0.9 }}>{hidden ? "•••" : fmt(extrasValor)}</span>
+            </div>
+          )}
           {/* TOTAL no final da lista */}
           <div style={{
             display: "flex", justifyContent: "space-between", alignItems: "center",
