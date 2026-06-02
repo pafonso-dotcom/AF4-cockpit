@@ -99,17 +99,11 @@ export default function CartaoExtrato({ cartao, transacoes = [], parcelamentos =
     return [...txs, ...parcsTx].sort((a, b) => (b.data || "").localeCompare(a.data || ""));
   }, [txCartao, parcelasDoMes, mesAtual]);
 
-  // Saldo total em aberto (todas as parcelas restantes) — base do limite/disponível.
-  const usadoTotal = Number(cartao.usado ?? cartao.faturaAtual ?? 0);
-  // Valor a pagar do mês: prefere a fatura IMPORTADA (valor real do mês);
-  // senão a fatura do mês corrente (faturaAtual); senão o saldo usado.
-  // Não é a soma de todas as parcelas em aberto.
-  const fiAberta = cartao.faturaImportada && Number(cartao.faturaImportada.valorTotal) > 0 && !cartao.faturaImportada.paga
-    ? Number(cartao.faturaImportada.valorTotal) : null;
-  const fatura = fiAberta != null ? fiAberta : Number(cartao.faturaAtual ?? cartao.usado ?? 0);
-  const limite = Number(cartao.limite || 0);
-  const disponivel = limite - usadoTotal;
-  const pctUso = limite > 0 ? (usadoTotal / limite) * 100 : 0;
+  // Restante = saldo total em aberto (todas as parcelas que faltam).
+  const usadoTotal = Number(cartao.usado ?? 0);
+  // Valor a pagar do mês — vem calculado da lista de cartões (faturaAtual),
+  // que é a soma de uma parcela de cada parcelamento em curso.
+  const fatura = Number(cartao.faturaAtual ?? cartao.usado ?? 0);
   const totalParcMes = parcCartao.reduce((s, p) => s + Number(p.valorParcela || p.valor || 0), 0);
 
   // Gradiente baseado no nome do cartão
@@ -160,7 +154,7 @@ export default function CartaoExtrato({ cartao, transacoes = [], parcelamentos =
           <div style={{
             fontSize: 10, color: "rgba(255,255,255,.7)",
             letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 4,
-          }}>Fatura a pagar {pctUso > 60 ? "· ⚠ ALERTA" : ""}</div>
+          }}>Fatura a pagar (mês)</div>
           <div className="cartao-hero-valor" style={{ fontSize: 28, fontWeight: 300, fontVariantNumeric: "tabular-nums", wordBreak: "break-word" }}>
             {hidden ? "•••" : fmt(fatura)}
           </div>
@@ -170,18 +164,14 @@ export default function CartaoExtrato({ cartao, transacoes = [], parcelamentos =
       {/* KPIs */}
       <div className="kg">
         <div className="k">
-          <div className="kh"><div className="kl">Limite</div></div>
-          <div className="kv">{hidden ? "•••" : fmt(limite)}</div>
-          <div className="ku" style={{ color: pctUso > 60 ? T.red : T.faint }}>
-            Disp: {hidden ? "•••" : fmt(disponivel)}
-          </div>
+          <div className="kh"><div className="kl">A pagar (mês)</div></div>
+          <div className="kv">{hidden ? "•••" : fmt(fatura)}</div>
+          <div className="ku" style={{ color: T.faint }}>fatura do mês</div>
         </div>
         <div className="k">
-          <div className="kh"><div className="kl">Uso</div></div>
-          <div className="kv">{pctUso.toFixed(0)}%</div>
-          <div className="ku" style={{ color: pctUso > 60 ? T.red : pctUso > 40 ? T.yellow : T.green }}>
-            {pctUso > 60 ? "Alto" : pctUso > 40 ? "Moderado" : "Saudável"}
-          </div>
+          <div className="kh"><div className="kl">Restante (total)</div></div>
+          <div className="kv">{hidden ? "•••" : fmt(usadoTotal)}</div>
+          <div className="ku" style={{ color: T.faint }}>todas as parcelas</div>
         </div>
         <div className="k">
           <div className="kh"><div className="kl">Vencimento</div></div>

@@ -11,6 +11,27 @@ import StatCard from "../ui/StatCard.jsx";
 import Modal from "../ui/Modal.jsx";
 import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
 
+// ===== Helpers compartilhados de parcelas =====
+// Mantidos no nível do módulo pra que o cálculo do "valor a pagar" do cartão
+// use EXATAMENTE a mesma regra da lista de parcelas (match por id OU nome,
+// valor da parcela = valorParcela ?? valorTotal/totalParcelas). Assim o total
+// sempre bate com o que aparece na tela.
+const normNomeCartao = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+const valorDaParcela = (p) =>
+  Number(p.valorParcela || (p.valorTotal && p.totalParcelas ? p.valorTotal / p.totalParcelas : 0)) || 0;
+function parcelasAtivasDoCartao(cartao, parcelamentos = []) {
+  return parcelamentos.filter(p => {
+    if ((p.parcelasPagas?.length || 0) >= p.totalParcelas) return false;
+    if (p.cartaoId === cartao.id) return true;
+    if (normNomeCartao(p.cartaoNome) === normNomeCartao(cartao.nome)) return true;
+    return false;
+  });
+}
+// Fatura do mês = uma parcela de cada parcelamento ainda em curso.
+function faturaMensalDoCartao(cartao, parcelamentos = []) {
+  return parcelasAtivasDoCartao(cartao, parcelamentos).reduce((s, p) => s + valorDaParcela(p), 0);
+}
+
 export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, categorias, hidden, onCartaoClick, cartaoAtivo }) {
   const [form, setForm] = useState(null);
   const [parcForm, setParcForm] = useState(null);
@@ -44,7 +65,6 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     return map;
   }, [parcelamentos]);
 
-  const totalLimite = cartoes.reduce((s, c) => s + Number(c.limite || 0), 0);
   const totalUsado = Object.values(usedByCard).reduce((s, v) => s + v, 0);
 
   // Helper: dia que cada parcela cai. Se tem dataPrimeira, soma (N-1) meses; senão usa dataCompra +1 mês
@@ -56,54 +76,6 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     const dt = new Date(y, startMonth - 1 + (n - 1), d);
     return dt;
   };
-
-  // Fatura por cartão e mês — soma das parcelas que vencem em (ano, mes)
-  const faturaPorCartao = useMemo(() => {
-    const now = new Date();
-    const curY = now.getFullYear();
-    const curM = now.getMonth() + 1;
-    const map = {};
-    parcelamentos.forEach(p => {
-      if (!p.cartaoId) return;
-      const valorParcela = p.valorTotal / p.totalParcelas;
-      for (let n = 1; n <= p.totalParcelas; n++) {
-        const dt = dataDaParcela(p, n);
-        if (!dt) continue;
-        if (dt.getFullYear() === curY && dt.getMonth() + 1 === curM) {
-          if (!map[p.cartaoId]) map[p.cartaoId] = { valor: 0, parcelas: 0, pendente: 0, parcelasPendentes: 0 };
-          map[p.cartaoId].valor += valorParcela;
-          map[p.cartaoId].parcelas += 1;
-          // Pendente = parcela ainda NÃO marcada como paga.
-          if (!(p.parcelasPagas || []).includes(n)) {
-            map[p.cartaoId].pendente += valorParcela;
-            map[p.cartaoId].parcelasPendentes += 1;
-          }
-        }
-      }
-    });
-    // paga = tinha fatura no mês e nada pendente sobrou.
-    Object.values(map).forEach(f => { f.paga = f.parcelas > 0 && f.parcelasPendentes === 0; });
-    return map;
-  }, [parcelamentos]);
-
-  // Fatura mensal estimada por cartão: uma parcela de cada parcelamento ainda
-  // em curso (restantes > 0). Independe de datas — sempre disponível, mesmo
-  // quando os parcelamentos importados não têm data certinha. É o "valor a
-  // pagar no mês", não a soma de TODAS as parcelas restantes (que é o "usado").
-  const faturaMensalPorCartao = useMemo(() => {
-    const map = {};
-    parcelamentos.forEach(p => {
-      if (!p.cartaoId) return;
-      const pagas = p.parcelasPagas?.length || 0;
-      const restantes = (p.totalParcelas || 0) - pagas;
-      if (restantes <= 0) return;
-      const valorParcela = (p.valorTotal || 0) / (p.totalParcelas || 1);
-      map[p.cartaoId] = (map[p.cartaoId] || 0) + valorParcela;
-    });
-    return map;
-  }, [parcelamentos]);
-
-  const totalDisp = totalLimite - totalUsado;
 
   const [formErrors, setFormErrors] = useState({});
   const [parcErrors, setParcErrors] = useState({});
@@ -352,12 +324,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         }
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-8" style={{ background: T.border }}>
-        <StatCard label="Limite total" value={hidden ? "•••••" : fmt(totalLimite)} accent={T.gold} icon={CreditCard} sub={`${cartoes.length} cartões`} />
-        <StatCard label="Comprometido" value={hidden ? "•••••" : fmt(totalUsado)} accent={T.red} icon={TrendingDown} />
-        <StatCard label="Disponível" value={hidden ? "•••••" : fmt(totalDisp)} accent={T.green} icon={TrendingUp}
-                  sub={`${fmtN(totalLimite > 0 ? (totalDisp/totalLimite)*100 : 0, 0)}% livre`} />
+      {/* Stats — sem limite (a pedido): foco no que se paga no mês */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-px mb-8" style={{ background: T.border }}>
+        <StatCard label="A pagar no mês" value={hidden ? "•••••" : fmt(cartoes.reduce((s, c) => s + faturaMensalDoCartao(c, parcelamentos), 0))} accent={T.gold} icon={CreditCard} sub={`${cartoes.length} cartões`} />
+        <StatCard label="Comprometido (total)" value={hidden ? "•••••" : fmt(totalUsado)} accent={T.red} icon={TrendingDown} sub="soma de todas as parcelas" />
         <StatCard label="Parcelamentos ativos" value={String(parcelamentos.filter(p => (p.parcelasPagas?.length || 0) < p.totalParcelas).length)}
                   accent={T.blue} icon={Repeat} />
       </div>
@@ -376,25 +346,19 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           const brand = c.banco === "custom" && c.bandeiraCustom
             ? c.bandeiraCustom
             : (BANK_BRANDS[c.banco] || BANK_BRANDS.outro);
-          const usado = usedByCard[c.id] || 0;
-          const disp = c.limite - usado;
-          const pctUsado = c.limite > 0 ? (usado / c.limite) * 100 : 0;
+          const parcAtivas = parcelasAtivasDoCartao(c, parcelamentos);
+          // "Restante" = tudo que ainda falta pagar (todas as parcelas em aberto).
+          const usado = parcAtivas.reduce((s, p) => {
+            const restantes = (p.totalParcelas || 0) - (p.parcelasPagas?.length || 0);
+            return s + valorDaParcela(p) * restantes;
+          }, 0);
           const exp = expandedCart.has(c.id);
           const ativaCard = cartaoAtivo?.id === c.id;
-          // Fatura a pagar do mês (NÃO é a soma de todas as parcelas):
-          //   1º) fatura IMPORTADA (valor real da fatura);
-          //   2º) fatura do mês corrente calculada por data;
-          //   3º) estimativa mensal (uma parcela de cada parcelamento em curso).
-          const fi = c.faturaImportada && Number(c.faturaImportada.valorTotal) > 0 ? c.faturaImportada : null;
-          const fatData = faturaPorCartao[c.id];
-          const fatMensal = faturaMensalPorCartao[c.id] || 0;
-          const fat = fi
-            ? { valor: Number(fi.valorTotal), paga: !!fi.paga, pendente: fi.paga ? 0 : Number(fi.valorTotal) }
-            : (fatData && fatData.pendente > 0
-                ? fatData
-                : (fatMensal > 0
-                    ? { valor: fatMensal, paga: false, pendente: fatMensal, estimada: true }
-                    : null));
+          // Valor a pagar do MÊS = soma de uma parcela de cada parcelamento em
+          // curso (bate exatamente com a lista de parcelas). Se a fatura
+          // importada já foi marcada como paga, o mês fica zerado.
+          const fiPaga = !!(c.faturaImportada && c.faturaImportada.paga);
+          const aPagar = fiPaga ? 0 : faturaMensalDoCartao(c, parcelamentos);
           return (
             <div key={c.id}
                  style={{
@@ -405,7 +369,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                    transition: "all .15s",
                  }}>
               {/* Linha principal — pai */}
-              <div onClick={() => onCartaoClick && onCartaoClick({ ...c, usado, faturaAtual: fat ? fat.valor : usado })}
+              <div onClick={() => onCartaoClick && onCartaoClick({ ...c, usado, faturaAtual: aPagar })}
                    style={{
                      display: "flex", alignItems: "center", gap: 10,
                      padding: "10px 12px",
@@ -415,9 +379,11 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
                   <div style={{ fontSize: 10, color: T.muted }}>
-                    {fat && fat.pendente > 0
-                      ? <>A pagar <span className="num" style={{ color: T.gold, fontWeight: 600 }}>{hidden ? "•••" : `${fat.estimada ? "~" : ""}${fmt(fat.pendente)}`}</span> · Usado <span className="num">{hidden ? "•••" : fmt(usado)}</span></>
-                      : <>Usado <span className="num">{hidden ? "•••" : fmt(usado)}</span> · Livre <span className="num" style={{ color: T.ink }}>{hidden ? "•••" : fmt(disp)}</span></>}
+                    {fiPaga
+                      ? <span style={{ color: T.green }}>Fatura do mês paga</span>
+                      : aPagar > 0
+                        ? <>A pagar <span className="num" style={{ color: T.gold, fontWeight: 600 }}>{hidden ? "•••" : fmt(aPagar)}</span>{usado > 0 && <> · Restante <span className="num">{hidden ? "•••" : fmt(usado)}</span></>}</>
+                        : <span>Sem fatura no mês</span>}
                   </div>
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); toggleExpandedCart(c.id); }}
@@ -426,25 +392,17 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   <ChevronDown size={16} style={{ transform: exp ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
                 </button>
               </div>
-              {/* Barra de limite (sempre visível) */}
-              <div style={{ padding: "0 12px 8px" }}>
-                <div style={{ background: T.border, height: 3, borderRadius: 1 }}>
-                  <div style={{ width: `${Math.min(100, pctUsado)}%`, height: "100%", background: brand.bg, opacity: 0.9, transition: "width 0.6s" }} />
-                </div>
-              </div>
               {/* Filhos — expandido */}
               {exp && (
                 <div style={{ padding: "8px 12px 10px", borderTop: `1px dashed ${T.border}`, display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: T.muted, flexWrap: "wrap", gap: 6 }}>
                     <span><Calendar size={11} style={{ display: "inline", verticalAlign: "-1px", marginRight: 4 }} />Vence <strong style={{ color: T.ink }}>{c.vencimento}</strong></span>
                     <span>Fecha <strong style={{ color: T.ink }}>{c.fechamento || "—"}</strong></span>
-                    {fat && (
-                      <span>Fatura <strong style={{ color: T.ink }} className="num">{hidden ? "•••" : `${fat.estimada ? "~" : ""}${fmt(fat.valor)}`}</strong>
-                        {fat.paga
-                          ? <strong style={{ color: T.green }}> · paga</strong>
-                          : <strong style={{ color: T.gold }}> · a pagar{fat.estimada ? " (mês estimado)" : ""}</strong>}
-                      </span>
-                    )}
+                    {fiPaga
+                      ? <span>Fatura do mês <strong style={{ color: T.green }}>paga</strong></span>
+                      : aPagar > 0 && (
+                        <span>Fatura do mês <strong style={{ color: T.gold }} className="num">{hidden ? "•••" : fmt(aPagar)}</strong> · a pagar</span>
+                      )}
                   </div>
                   <ParcelasDoCartao
                     cartao={c}
@@ -453,7 +411,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                     hidden={hidden}
                   />
                   <div style={{ display: "flex", gap: 6 }}>
-                    {fat && fat.pendente > 0 ? (
+                    {aPagar > 0 ? (
                       <button onClick={(e) => { e.stopPropagation(); openPagamento(c); }}
                               style={{
                                 flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
@@ -463,7 +421,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                               }}>
                         Pagar fatura
                       </button>
-                    ) : fat && fat.paga ? (
+                    ) : fiPaga ? (
                       <span style={{
                         flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 700,
                         letterSpacing: ".05em", textTransform: "uppercase",
@@ -950,6 +908,9 @@ function ParcelasDoCartao({ cartao, parcelamentos = [], brand, hidden }) {
 
   if (ativos.length === 0) return null;
 
+  // Total do mês = uma parcela de cada parcelamento ativo (mesma regra do card).
+  const totalMes = ativos.reduce((s, p) => s + valorDaParcela(p), 0);
+
   return (
     <div style={{
       borderTop: "1px solid rgba(255,255,255,0.1)",
@@ -968,7 +929,10 @@ function ParcelasDoCartao({ cartao, parcelamentos = [], brand, hidden }) {
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
           <CreditCard size={11} /> {ativos.length} parcelamento{ativos.length === 1 ? "" : "s"} ativo{ativos.length === 1 ? "" : "s"}
         </span>
-        {aberto ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span style={{ opacity: 0.95 }}>{hidden ? "•••" : fmt(totalMes)}/mês</span>
+          {aberto ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </span>
       </button>
 
       {aberto && (
@@ -977,7 +941,7 @@ function ParcelasDoCartao({ cartao, parcelamentos = [], brand, hidden }) {
             const pagas = p.parcelasPagas?.length || 0;
             const total = p.totalParcelas;
             const pct = total > 0 ? (pagas / total) * 100 : 0;
-            const valorParc = p.valorParcela || (p.valorTotal && p.totalParcelas ? p.valorTotal / p.totalParcelas : 0);
+            const valorParc = valorDaParcela(p);
             return (
               <div key={p.id} style={{
                 background: "rgba(0,0,0,0.25)", padding: "6px 8px", borderRadius: 5,
@@ -994,6 +958,15 @@ function ParcelasDoCartao({ cartao, parcelamentos = [], brand, hidden }) {
               </div>
             );
           })}
+          {/* TOTAL no final da lista */}
+          <div style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            marginTop: 2, paddingTop: 6, borderTop: `1px solid rgba(255,255,255,0.15)`,
+            fontSize: 11.5, fontWeight: 700, color: brand.fg,
+          }}>
+            <span style={{ letterSpacing: ".04em", textTransform: "uppercase" }}>Total da fatura (mês)</span>
+            <span className="num">{hidden ? "•••" : fmt(totalMes)}</span>
+          </div>
         </div>
       )}
     </div>
