@@ -36,6 +36,13 @@ export default function AReceberEDividas({
   const [baixaForm, setBaixaForm] = useState(null); // baixa de um item
 
   const hoje = todayISO();
+  // "YYYY-MM" seguro de qualquer vencimento (string ISO, Date ou número).
+  // Evita crash "x.slice is not a function" quando o dado vem fora de string.
+  const ymOf = (v) => {
+    if (!v) return "";
+    if (typeof v === "string") return v.slice(0, 7);
+    try { return new Date(v).toISOString().slice(0, 7); } catch { return ""; }
+  };
   const em3d = new Date();
   em3d.setDate(em3d.getDate() + 3);
   const em3dIso = em3d.toISOString().slice(0, 10);
@@ -55,7 +62,12 @@ export default function AReceberEDividas({
     return Math.round((d - h) / 86400000);
   };
 
-  const dueLabel = (data) => {
+  const dueLabel = (dataRaw) => {
+    if (!dataRaw) return { txt: "Sem data", cor: T.muted, status: "none" };
+    // Aceita string ISO, Date ou número — normaliza pra "YYYY-MM-DD".
+    const data = typeof dataRaw === "string"
+      ? dataRaw
+      : (() => { try { return new Date(dataRaw).toISOString().slice(0, 10); } catch { return ""; } })();
     if (!data) return { txt: "Sem data", cor: T.muted, status: "none" };
     const dias = diasParaVencer(data);
     if (dias < 0)  return { txt: `${data.slice(8,10)}/${data.slice(5,7)} · ${dias}d`, cor: T.red,   status: "over" };
@@ -537,7 +549,7 @@ export default function AReceberEDividas({
     .map(d => d.vencimento)
     .filter(Boolean);
   const mesesDisponiveis = useMemo(() => {
-    const set = new Set(todosVencimentos.map(v => v.slice(0, 7)));
+    const set = new Set(todosVencimentos.map(ymOf).filter(Boolean));
     set.add(hoje.slice(0, 7));
     return [...set].sort();
   }, [todosVencimentos.join(","), hoje]);
@@ -547,7 +559,7 @@ export default function AReceberEDividas({
   const filtroMes = (item) => {
     if (!mesAtivo) return true;
     if (!item.vencimento) return mesAtivo === hoje.slice(0, 7); // sem data → cai no mês corrente
-    return item.vencimento.slice(0, 7) === mesAtivo;
+    return ymOf(item.vencimento) === mesAtivo;
   };
 
   const receberMes = devAbertos.filter(filtroMes);
@@ -714,7 +726,7 @@ export default function AReceberEDividas({
               title: "Abre o modal de baixa para o item vencido mais antigo",
               onClick: () => {
                 const proximo = [...totaisAlerta.over.receber, ...totaisAlerta.over.pagar]
-                  .sort((a, b) => (a.vencimento || "").localeCompare(b.vencimento || ""))[0];
+                  .sort((a, b) => String(a.vencimento || "").localeCompare(String(b.vencimento || "")))[0];
                 if (!proximo) return;
                 const isReceber = devAbertos.includes(proximo);
                 setBaixaForm({
@@ -783,8 +795,8 @@ export default function AReceberEDividas({
         {mesesDisponiveis.map(ym => {
           const ativo = ym === mesAtivo;
           const countNoMes =
-            devAbertos.filter(d => d.vencimento && d.vencimento.slice(0,7) === ym).length +
-            divAbertas.filter(d => d.vencimento && d.vencimento.slice(0,7) === ym).length;
+            devAbertos.filter(d => ymOf(d.vencimento) === ym).length +
+            divAbertas.filter(d => ymOf(d.vencimento) === ym).length;
           return (
             <button key={ym} onClick={() => setMesAtivo(ym)}
               style={{
@@ -1477,7 +1489,12 @@ function CompromissoTabela({
                       {item.vencimento ? (
                         <div>
                           <div style={{ color: due.cor, fontWeight: (isOver || isWarn) ? 600 : 400, fontSize: 12.5 }}>
-                            {item.vencimento.slice(8,10)}/{item.vencimento.slice(5,7)}/{item.vencimento.slice(2,4)}
+                            {(() => {
+                              const s = typeof item.vencimento === "string"
+                                ? item.vencimento
+                                : (() => { try { return new Date(item.vencimento).toISOString().slice(0,10); } catch { return ""; } })();
+                              return `${s.slice(8,10)}/${s.slice(5,7)}/${s.slice(2,4)}`;
+                            })()}
                           </div>
                           <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>
                             {(() => {
