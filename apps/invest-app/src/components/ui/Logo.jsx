@@ -40,8 +40,11 @@ export default function Logo({ size = 28, sufixo = true }) {
       <span style={{ display: "inline-flex", alignItems: "baseline", gap: 1 }}>
         <span style={{
           fontFamily: T.serif, fontWeight: 600, fontSize: Math.round(size * 0.72),
-          color: "#d4b87a", letterSpacing: "-0.01em", lineHeight: 1,
-        }}>Aureus</span>
+          letterSpacing: "-0.01em", lineHeight: 1,
+        }}>
+          <span style={{ color: "#e23b3b" }}>A</span>
+          <span style={{ color: "#d4b87a" }}>ureus</span>
+        </span>
         {sufixo && (
           <span style={{
             fontFamily: T.serif, fontWeight: 500, fontSize: Math.round(size * 0.42),
