@@ -194,11 +194,11 @@ function HeaderHorizontal({
       }}>
         {/* BRAND · marca NUMVI */}
         <div style={{ display: "flex", alignItems: "center", marginRight: "auto", flexShrink: 0 }}>
-          {/* Mobile: só o nome NUMVI (sem símbolo). Desktop: lockup completo. */}
-          <span className="hide-desktop" style={{ fontFamily: "Georgia, serif", fontSize: 19, fontWeight: 700, letterSpacing: ".16em", color: "#E8C25A" }}>
-            <span style={{ color: "#7B1E2B" }}>N</span>UMVI
+          {/* Mobile: só o nome (sem símbolo). Desktop: lockup completo. */}
+          <span className="hide-desktop" style={{ fontFamily: "'Poppins', system-ui, sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em" }}>
+            <span style={{ color: "#9E2B3A" }}>N</span><span style={{ color: "#E8C25A" }}>umvi</span>
           </span>
-          <span className="header-brand-text"><Logo size={27} /></span>
+          <span className="header-brand-text"><Logo size={24} sufixo="finanças" /></span>
         </div>
 
         {sep}
@@ -582,11 +582,7 @@ function HeaderVertical({
         backdropFilter: "blur(14px)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-          <NumviMark size={34} />
-          <div>
-            <div style={{ fontFamily: "Georgia, serif", fontSize: 16, fontWeight: 700, letterSpacing: ".18em", color: "#E8C25A" }}><span style={{ color: "#7B1E2B" }}>N</span>UMVI</div>
-            <div style={{ fontSize: 8, color: NAV_MUTED, letterSpacing: ".22em", textTransform: "uppercase", marginTop: 2 }}>dinheiro com visão</div>
-          </div>
+          <Logo size={22} sufixo="finanças" />
         </div>
 
         <div>
