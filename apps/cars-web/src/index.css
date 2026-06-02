@@ -543,9 +543,12 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   /* Reduz tamanho das paletas */
   .palette-dot { width: 14px !important; height: 14px !important; }
 }
+/* Marca no header: desktop mostra o lockup completo; mobile mostra só o
+   wordmark NUMVI (sem símbolo). */
+.hide-desktop { display: none; }
 @media (max-width: 480px) {
-  /* Esconde o nome "NUMVI" — só o ícone "A" */
   .header-brand-text { display: none !important; }
+  .hide-desktop { display: inline-block !important; }
 }
 
 /* ===== SCROLLBARS ===== */
