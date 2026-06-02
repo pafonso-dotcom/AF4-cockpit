@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { RefreshCw, Eye, EyeOff, LogOut, Palette, LayoutGrid } from "lucide-react";
+import { RefreshCw, Eye, EyeOff, LogOut, LayoutGrid, Settings2, Check } from "lucide-react";
 
 import { T, applyTheme, THEMES } from "./lib/theme.js";
 import { simulateTick } from "./lib/format.js";
@@ -70,7 +70,7 @@ export default function App() {
   const [marketStatus, setMarketStatus] = useState({ at: null, mode: "sim", okCount: 0, total: 0 });
   // Paleta de cores escolhida (preferência do dispositivo).
   const [themeId, setThemeId] = useState(() => { try { return localStorage.getItem("invest:theme") || "gold"; } catch { return "gold"; } });
-  const [paletaAberta, setPaletaAberta] = useState(false);
+  const [configAberto, setConfigAberto] = useState(false); // menu compacto de ferramentas/config
   const trocarTema = (id) => { setThemeId(id); try { localStorage.setItem("invest:theme", id); } catch {} };
   // Orientação do menu: horizontal (padrão) ou vertical (opcional).
   const [navVertical, setNavVertical] = useState(() => { try { return localStorage.getItem("invest:nav") === "vertical"; } catch { return false; } });
@@ -290,64 +290,7 @@ export default function App() {
         <div style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em" }}>
           <Logo size={26} />
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button onClick={() => setHidden(h => !h)} title={hidden ? "Mostrar valores" : "Ocultar valores"}
-                  style={btn()}>
-            {hidden ? <EyeOff size={14} /> : <Eye size={14} />}
-          </button>
-          <button onClick={toggleNav} title={navVertical ? "Menu horizontal" : "Menu vertical"} style={btn()}>
-            <LayoutGrid size={14} /> {navVertical ? "Horizontal" : "Vertical"}
-          </button>
-          <button onClick={refreshMarket} disabled={refreshing} title="Atualizar cotações"
-                  style={btn(refreshing)}>
-            <RefreshCw size={14} className={refreshing ? "spin" : ""} />
-            {marketStatus.mode === "real" ? `Real · ${marketStatus.okCount}/${marketStatus.total}` : "Atualizar"}
-          </button>
-          {/* Paleta de cores */}
-          <div style={{ position: "relative" }}>
-            <button onClick={() => setPaletaAberta(v => !v)} title="Mudar paleta de cores" style={btn()}>
-              <Palette size={14} /> Cores
-            </button>
-            {paletaAberta && (
-              <>
-                <div onClick={() => setPaletaAberta(false)}
-                     style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-                <div style={{
-                  position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 41,
-                  background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
-                  padding: 10, width: "min(230px, calc(100vw - 32px))", boxShadow: `0 8px 24px ${T.bg}99`,
-                }}>
-                  <div style={{ fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, marginBottom: 8, fontWeight: 600 }}>
-                    Paleta de cores
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}>
-                    {Object.values(THEMES).map(tema => {
-                      const ativo = tema.id === themeId;
-                      return (
-                        <button key={tema.id} onClick={() => { trocarTema(tema.id); setPaletaAberta(false); }}
-                                title={tema.subtitulo || tema.nome}
-                                style={{
-                                  display: "flex", alignItems: "center", gap: 7, padding: "6px 8px",
-                                  borderRadius: 7, cursor: "pointer", textAlign: "left",
-                                  border: `1px solid ${ativo ? tema.gold : T.border}`,
-                                  background: ativo ? `${tema.gold}22` : "transparent",
-                                }}>
-                          <span style={{
-                            width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
-                            background: `linear-gradient(135deg, ${tema.gold}, ${tema.goldHi})`,
-                            border: `1px solid ${T.border}`,
-                          }} />
-                          <span style={{ fontSize: 11.5, color: ativo ? tema.gold : T.ink, fontWeight: ativo ? 600 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {tema.nome}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
           {billingEnabled && sub?.emTrial && sub.trialRestante > 0 && (
             <span title="Período de teste" style={{
               display: "inline-flex", alignItems: "center", padding: "6px 10px", borderRadius: 100,
@@ -357,11 +300,73 @@ export default function App() {
               Teste · {sub.trialRestante}d
             </span>
           )}
-          {supabaseConfigured && (
-            <button onClick={() => signOut()} title="Sair da conta" style={btn()}>
-              <LogOut size={14} /> Sair
+          {/* Essenciais: ocultar valores + atualizar (compactos, só ícone) */}
+          <button onClick={() => setHidden(h => !h)} title={hidden ? "Mostrar valores" : "Ocultar valores"}
+                  style={btnIco()}>
+            {hidden ? <EyeOff size={15} /> : <Eye size={15} />}
+          </button>
+          <button onClick={refreshMarket} disabled={refreshing}
+                  title={marketStatus.mode === "real" ? `Cotações reais · ${marketStatus.okCount}/${marketStatus.total}` : "Atualizar cotações"}
+                  style={btnIco(refreshing)}>
+            <RefreshCw size={15} className={refreshing ? "spin" : ""} />
+          </button>
+
+          {/* Menu compacto de ferramentas/configurações (engrenagem) */}
+          <div style={{ position: "relative" }}>
+            <button onClick={() => setConfigAberto(v => !v)} title="Configurações" style={btnIco(false, configAberto)}>
+              <Settings2 size={15} />
             </button>
-          )}
+            {configAberto && (
+              <>
+                <div onClick={() => setConfigAberto(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+                <div style={{
+                  position: "absolute", right: 0, top: "calc(100% + 8px)", zIndex: 41,
+                  background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
+                  padding: 8, width: "min(260px, calc(100vw - 24px))", boxShadow: `0 10px 30px ${T.bg}aa`,
+                }}>
+                  {/* Orientação do menu */}
+                  <MenuItem onClick={() => { toggleNav(); }}>
+                    <LayoutGrid size={15} /> Menu {navVertical ? "horizontal" : "vertical"}
+                  </MenuItem>
+
+                  {/* Paleta de cores (submenu inline) */}
+                  <div style={{ padding: "8px 10px 4px", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
+                    Paleta de cores
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6, padding: "0 6px 6px" }}>
+                    {Object.values(THEMES).map(tema => {
+                      const ativo = tema.id === themeId;
+                      return (
+                        <button key={tema.id} onClick={() => trocarTema(tema.id)} title={tema.subtitulo || tema.nome}
+                                style={{
+                                  display: "flex", alignItems: "center", gap: 7, padding: "6px 8px",
+                                  borderRadius: 7, cursor: "pointer", textAlign: "left",
+                                  border: `1px solid ${ativo ? tema.gold : T.border}`,
+                                  background: ativo ? `${tema.gold}22` : "transparent",
+                                }}>
+                          <span style={{ width: 14, height: 14, borderRadius: "50%", flexShrink: 0,
+                            background: `linear-gradient(135deg, ${tema.gold}, ${tema.goldHi})`, border: `1px solid ${T.border}` }} />
+                          <span style={{ fontSize: 11, color: ativo ? tema.gold : T.ink, fontWeight: ativo ? 600 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {tema.nome}
+                          </span>
+                          {ativo && <Check size={12} style={{ color: tema.gold, marginLeft: "auto" }} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {supabaseConfigured && (
+                    <>
+                      <div style={{ height: 1, background: T.border, margin: "4px 6px" }} />
+                      <MenuItem onClick={() => signOut()} cor={T.red}>
+                        <LogOut size={15} /> Sair da conta
+                      </MenuItem>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -497,3 +502,27 @@ const btn = (busy) => ({
   color: "rgba(240,235,225,.82)",
   cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1,
 });
+
+// Botão compacto só-ícone (topo). `ativo` realça quando o menu está aberto.
+const btnIco = (busy, ativo) => ({
+  display: "inline-flex", alignItems: "center", justifyContent: "center",
+  width: 36, height: 36, borderRadius: 9,
+  background: ativo ? "rgba(255,255,255,.12)" : "rgba(255,255,255,.04)",
+  border: "1px solid rgba(255,255,255,.16)", color: "rgba(240,235,225,.85)",
+  cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1,
+});
+
+// Item de menu (dropdown de configurações).
+function MenuItem({ children, onClick, cor }) {
+  return (
+    <button onClick={onClick} style={{
+      display: "flex", alignItems: "center", gap: 9, width: "100%",
+      padding: "9px 10px", borderRadius: 8, border: "none", background: "transparent",
+      color: cor || T.ink, fontSize: 12.5, cursor: "pointer", textAlign: "left",
+    }}
+      onMouseEnter={e => e.currentTarget.style.background = T.bgSoft}
+      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+      {children}
+    </button>
+  );
+}
