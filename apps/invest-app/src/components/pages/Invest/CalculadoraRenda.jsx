@@ -9,8 +9,6 @@ import PageHeader from "../../ui/PageHeader.jsx";
  *
  * Simula quanto um valor investido em renda fixa rende por mês, em 3
  * cenários (bruto / saca tudo / preserva o patrimônio contra a inflação),
- * com equivalente em EUR pelo câmbio configurável.
- *
  * Todos os valores recalculam ao vivo conforme o usuário move os sliders.
  */
 
@@ -19,7 +17,6 @@ const DEFAULTS = {
   taxaAnualPct: 13.25,
   irPct: 0,
   inflacaoPct: 4.5,
-  cambio: 5.84,
 };
 
 const ATALHOS = [
@@ -56,16 +53,12 @@ const GRUPOS = [
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency", currency: "BRL", maximumFractionDigits: 0,
 });
-const fmtEUR = new Intl.NumberFormat("pt-PT", {
-  style: "currency", currency: "EUR", maximumFractionDigits: 0,
-});
 
 export default function CalculadoraRenda() {
   const [valor, setValor]             = useState(DEFAULTS.valor);
   const [taxaAnualPct, setTaxa]       = useState(DEFAULTS.taxaAnualPct);
   const [irPct, setIr]                = useState(DEFAULTS.irPct);
   const [inflacaoPct, setInflacao]    = useState(DEFAULTS.inflacaoPct);
-  const [cambio, setCambio]           = useState(DEFAULTS.cambio);
   const [horizonteAnos, setHorizonte] = useState(30);
   const [cenariosAberto, setCenariosAberto] = useState(false);
 
@@ -79,7 +72,6 @@ export default function CalculadoraRenda() {
     setTaxa(DEFAULTS.taxaAnualPct);
     setIr(DEFAULTS.irPct);
     setInflacao(DEFAULTS.inflacaoPct);
-    setCambio(DEFAULTS.cambio);
     setHorizonte(30);
   };
 
@@ -106,8 +98,6 @@ export default function CalculadoraRenda() {
 
     return { brutoMes, liquidoMes, rendaRealMes, taxaLiquidaAnual, taxaRealAnual };
   }, [valor, taxaAnualPct, irPct, inflacaoPct]);
-
-  const toEur = (v) => (cambio > 0 ? v / cambio : 0);
 
   // ===== Evolução do patrimônio (horizonteAnos) =====
   // Mostra o PODER DE COMPRA do patrimônio em cada cenário, em R$ de hoje.
@@ -342,13 +332,6 @@ export default function CalculadoraRenda() {
             display={`${inflacaoPct.toFixed(1)} %`}
           />
           <Slider
-            label="Câmbio (R$ por €)"
-            value={cambio}
-            min={4} max={8} step={0.01}
-            onChange={setCambio}
-            display={`R$ ${cambio.toFixed(2)} / €`}
-          />
-          <Slider
             label="Horizonte (anos)"
             value={horizonteAnos}
             min={5} max={50} step={1}
@@ -377,9 +360,7 @@ export default function CalculadoraRenda() {
         {/* DESTAQUE: valor ideal de saque (preserva o principal contra inflação) */}
         <ValorIdealCard
           valor={resultado.rendaRealMes}
-          valorEur={toEur(resultado.rendaRealMes)}
           valorAnual={resultado.rendaRealMes * 12}
-          valorAnualEur={toEur(resultado.rendaRealMes * 12)}
           liquidoMes={resultado.liquidoMes}
           taxaRealAnual={resultado.taxaRealAnual}
           viavel={resultado.rendaRealMes > 0}
@@ -396,9 +377,6 @@ export default function CalculadoraRenda() {
             em2={reserva[snap2] || 0}
             em3={reserva[snap3] || 0}
             rendaExtraFim={reserva.rendaExtraFim || 0}
-            em1Eur={toEur(reserva[snap1] || 0)}
-            em3Eur={toEur(reserva[snap3] || 0)}
-            rendaExtraFimEur={toEur(reserva.rendaExtraFim || 0)}
             valorIdeal={resultado.rendaRealMes}
           />
         )}
@@ -411,7 +389,6 @@ export default function CalculadoraRenda() {
             snap1Anos={snap1}
             snap2Anos={snap2}
             snap3Anos={snap3}
-            toEur={toEur}
             valorIdeal={resultado.rendaRealMes}
             liquidoMesHoje={resultado.liquidoMes}
             principalInicial={valor}
@@ -426,14 +403,12 @@ export default function CalculadoraRenda() {
         <ResultCard
           titulo="Bruto / mês"
           valor={resultado.brutoMes}
-          valorEur={toEur(resultado.brutoMes)}
           descricao="Rendimento mensal sem desconto de IR."
           cor={T.muted}
         />
         <ResultCard
           titulo="Líquido / mês (saca tudo)"
           valor={resultado.liquidoMes}
-          valorEur={toEur(resultado.liquidoMes)}
           descricao="Quanto você pode retirar todo mês, descontado o IR."
           cor={T.gold}
           destaque
@@ -441,7 +416,6 @@ export default function CalculadoraRenda() {
         <ResultCard
           titulo="Renda real / mês (preserva)"
           valor={resultado.rendaRealMes}
-          valorEur={toEur(resultado.rendaRealMes)}
           descricao={resultado.rendaRealMes > 0
             ? "Quanto retirar mantendo o poder de compra do principal."
             : "A inflação consome todo o rendimento líquido — preservação inviável neste cenário."}
@@ -665,7 +639,6 @@ function Slider({ label, value, min, max, step, onChange, display }) {
 
 function formatRange(v, label) {
   if (label === "Valor investido") return fmtBRL.format(v);
-  if (label === "Câmbio (R$ por €)") return `R$ ${v.toFixed(2)}`;
   if (label === "Horizonte (anos)") return `${v} anos`;
   return `${v}%`;
 }
@@ -704,9 +677,6 @@ function ValorIdealCard({ valor, valorEur, valorAnual, valorAnualEur, liquidoMes
       }}>
         {fmtBRL.format(valor)}
       </div>
-      <div className="num" style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
-        ≈ {fmtEUR.format(valorEur)}
-      </div>
 
       {viavel ? (
         <>
@@ -720,9 +690,6 @@ function ValorIdealCard({ valor, valorEur, valorAnual, valorAnualEur, liquidoMes
               </div>
               <div className="num" style={{ fontSize: 13, color: T.ink, fontWeight: 600 }}>
                 {fmtBRL.format(valorAnual)}
-              </div>
-              <div className="num" style={{ fontSize: 10, color: T.muted }}>
-                ≈ {fmtEUR.format(valorAnualEur)}
               </div>
             </div>
             <div>
@@ -807,10 +774,6 @@ function ReservaCard({ snap1Anos, snap2Anos, snap3Anos, em1, em2, em3, rendaExtr
         <ReservaCol anos={`${snap3Anos} anos`} valor={em3} cor={cor} destaque />
       </div>
 
-      <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>
-        ≈ {fmtEUR.format(em3Eur)} em {snap3Anos} anos · começa em {fmtEUR.format(em1Eur)} em {snap1Anos} anos
-      </div>
-
       {rendaExtraFim > 0 && (
         <div style={{
           marginTop: 8, padding: 8, background: `${cor}15`,
@@ -819,7 +782,7 @@ function ReservaCard({ snap1Anos, snap2Anos, snap3Anos, em1, em2, em3, rendaExtr
         }}>
           💡 <strong>Em {snap3Anos} anos</strong>, essa reserva sozinha geraria mais{" "}
           <strong className="num" style={{ color: cor }}>{fmtBRL.format(rendaExtraFim)}/mês</strong>{" "}
-          de renda (~{fmtEUR.format(rendaExtraFimEur)}/mês) — somando ao saque original,
+          de renda — somando ao saque original,
           sua renda mensal total no fim do período seria{" "}
           <strong className="num" style={{ color: cor }}>
             {fmtBRL.format(valorIdeal + rendaExtraFim)}/mês
@@ -913,7 +876,7 @@ function ExcedenteReaplicadoCard({ proj, snap1Anos, snap2Anos, snap3Anos, toEur,
           <strong className="num" style={{ color: cor }}>
             {fmtBRL.format(p3.liquidoMesReal)}/mês
           </strong>{" "}
-          em R$ de hoje (≈ {fmtEUR.format(toEur(p3.liquidoMesReal))}/mês).
+          em R$ de hoje.
         </div>
       )}
     </div>
@@ -964,11 +927,6 @@ function ResultCard({ titulo, valor, valorEur, descricao, cor, destaque }) {
         letterSpacing: "-0.01em", lineHeight: 1,
       }}>
         {fmtBRL.format(valor)}
-      </div>
-      <div className="num calc-result-value-eur" style={{
-        fontSize: 11, color: T.muted, marginTop: 2,
-      }}>
-        ≈ {fmtEUR.format(valorEur)}
       </div>
       <div style={{
         fontSize: 10.5, color: T.faint, marginTop: 5, lineHeight: 1.4,
