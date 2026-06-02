@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { TrendingUp, Sparkles, Radar } from "lucide-react";
+import { TrendingUp, Sparkles, Radar, Award } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 
 import Performance from "./Performance.jsx";
 import AnaliseIdV from "../Trade/AnaliseIdV.jsx";
 import AnaliseCarteira from "./AnaliseCarteira.jsx";
+import FundamentosIA from "./FundamentosIA.jsx";
 
 const VIEWS = [
   { id: "performance",      label: "Performance",          icon: TrendingUp },
+  { id: "fundamentos",      label: "Fundamentos (IA)",     icon: Award },
   { id: "idv",              label: "Análise IdV",          icon: Sparkles },
   { id: "carteira-analise", label: "Análise da Carteira",  icon: Radar },
 ];
@@ -68,6 +70,7 @@ export default function AnalisesUnificada({
 
       <div style={{ marginTop: -16 /* compensa o py-8 das páginas internas */ }}>
         {view === "performance"      && <Performance ativos={ativos} hidden={hidden} />}
+        {view === "fundamentos"      && <div className="py-8"><FundamentosIA ativos={ativos} /></div>}
         {view === "idv"              && <AnaliseIdV analises={tradeAnalisesIdV} setAnalises={setTradeAnalisesIdV} ativos={ativos} />}
         {view === "carteira-analise" && <AnaliseCarteira ativos={ativos} hidden={hidden} onAnalisar={onAnalisarAtivo} />}
       </div>
