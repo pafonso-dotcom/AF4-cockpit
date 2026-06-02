@@ -78,3 +78,45 @@ export async function salvarFundamento({ ticker, classe, nome, dados }) {
   _cache = null; // invalida cache
   return out;
 }
+
+/* ---------- Análise com IA (admin) ---------- */
+// Pede à IA (servidor) pra preencher os indicadores de um ticker conforme os
+// critérios da classe + a metodologia cadastrada, e grava em fundamentos.
+export async function analisarComIA({ ticker, classe, nome, criterios }) {
+  const s = await getSession();
+  const token = s?.access_token;
+  if (!token) throw new Error("Sessão não encontrada.");
+  const r = await fetch("/api/admin/analisar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ ticker, classe, nome, criterios }),
+  });
+  const out = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(out.error || `Erro ${r.status}`);
+  _cache = null;
+  return out;
+}
+
+/* ---------- Metodologia (admin) ---------- */
+export async function carregarMetodologia(classe) {
+  if (!supabaseConfigured) return "";
+  try {
+    const { data, error } = await supabase.from("metodologia").select("texto").eq("classe", classe).maybeSingle();
+    if (error) throw error;
+    return data?.texto || "";
+  } catch { return ""; }
+}
+
+export async function salvarMetodologia(classe, texto) {
+  const s = await getSession();
+  const token = s?.access_token;
+  if (!token) throw new Error("Sessão não encontrada.");
+  const r = await fetch("/api/admin/metodologia", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ classe, texto }),
+  });
+  const out = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(out.error || `Erro ${r.status}`);
+  return out;
+}

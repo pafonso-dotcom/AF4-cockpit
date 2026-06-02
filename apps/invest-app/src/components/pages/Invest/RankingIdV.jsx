@@ -3,7 +3,7 @@ import { Award, Pencil, Plus, X, Sparkles } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { toast } from "../../../lib/toast.js";
 import { CRITERIOS_FII, CRITERIOS_ACOES, CRITERIOS_STOCK, CRITERIOS_REIT } from "../../../lib/criteriosIdV.js";
-import { classificar, classeDoAtivo, salvarFundamento } from "../../../lib/fundamentos.js";
+import { classificar, classeDoAtivo, salvarFundamento, analisarComIA } from "../../../lib/fundamentos.js";
 
 const CRIT = { fii: CRITERIOS_FII, acao: CRITERIOS_ACOES, stock: CRITERIOS_STOCK, reit: CRITERIOS_REIT };
 const CLASSES = [
@@ -129,8 +129,25 @@ export default function RankingIdV({ ativos = [], fundamentos = {}, hidden, isAd
 function EditarFundamento({ edit, setEdit, onSalvo }) {
   const criterios = CRIT[edit.classe] || [];
   const [salvando, setSalvando] = useState(false);
+  const [analisando, setAnalisando] = useState(false);
   const set = (k, v) => setEdit(e => ({ ...e, [k]: v }));
   const setDado = (id, v) => setEdit(e => ({ ...e, dados: { ...e.dados, [id]: v } }));
+
+  const analisar = async () => {
+    const ticker = String(edit.ticker || "").toUpperCase().trim();
+    if (!ticker) { toast.error("Informe o ticker antes de analisar."); return; }
+    setAnalisando(true);
+    try {
+      const crit = criterios.map(c => ({ id: c.id, label: c.label, tipo: c.tipo, opcoes: c.opcoes }));
+      const out = await analisarComIA({ ticker, classe: edit.classe, nome: edit.nome || ticker, criterios: crit });
+      // Preenche os campos com o que a IA retornou (e já fica salvo na base).
+      setEdit(e => ({ ...e, dados: { ...e.dados, ...(out.dados || {}) } }));
+      toast.success(`IA analisou ${ticker}${out.resumo ? ` · ${out.resumo}` : ""}`);
+      onSalvo?.();
+    } catch (e) {
+      toast.error(e.message || "Falha na análise por IA.");
+    } finally { setAnalisando(false); }
+  };
 
   const salvar = async () => {
     const ticker = String(edit.ticker || "").toUpperCase().trim();
@@ -185,9 +202,15 @@ function EditarFundamento({ edit, setEdit, onSalvo }) {
           ))}
         </div>
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
-          <button onClick={() => setEdit(null)} style={btnGhost()}>Cancelar</button>
-          <button onClick={salvar} disabled={salvando} style={btnGold()}>{salvando ? "Salvando…" : "Salvar"}</button>
+        <div style={{ display: "flex", gap: 8, justifyContent: "space-between", marginTop: 16, flexWrap: "wrap" }}>
+          <button onClick={analisar} disabled={analisando}
+                  style={{ ...btnGhost(), borderColor: T.gold, color: T.gold, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Sparkles size={14} /> {analisando ? "Analisando…" : "Analisar com IA"}
+          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => setEdit(null)} style={btnGhost()}>Cancelar</button>
+            <button onClick={salvar} disabled={salvando} style={btnGold()}>{salvando ? "Salvando…" : "Salvar"}</button>
+          </div>
         </div>
       </div>
     </div>

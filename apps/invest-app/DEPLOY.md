@@ -155,3 +155,21 @@ indicadores ficam numa base central que **você (admin) cura**.
 
 Como evoluir pro automático total (futuro): basta um job preencher a tabela
 `fundamentos` a partir de uma API — o resto do app não muda.
+
+---
+
+## Parte 9 · Análise por IA (metodologia + preenchimento automático)
+
+O admin pode escrever a **metodologia/critérios** por classe e usar **"Analisar
+com IA"** pra preencher os indicadores de um ativo automaticamente (a IA roda
+no servidor — o cliente não vê chave nenhuma). Aí a nota/recomendação saem sozinhas.
+
+1. Crie a tabela: SQL Editor → cole `sql/004_metodologia.sql` → Run.
+2. Garanta `GEMINI_KEY` (Parte 4) e as variáveis de admin (Parte 6) no Cloudflare.
+3. Admin → **Gerencial → Curadoria**: escreva a metodologia por classe e salve.
+4. Admin → aba **Análise → Cadastrar ativo** → informe o ticker → **Analisar com IA**.
+   A IA preenche os indicadores conforme a metodologia e grava na base; a nota
+   aparece pra todos os clientes.
+
+> A IA faz estimativas a partir do que conhece — revise os valores quando quiser.
+> É ferramenta de apoio, não recomendação de investimento.

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { Users, RefreshCw, Award, CreditCard, Settings, Search, Clock } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fetchAdminOverview, adminEmail, definirTrial } from "../../lib/admin.js";
-import { carregarFundamentos } from "../../lib/fundamentos.js";
+import { carregarFundamentos, carregarMetodologia, salvarMetodologia } from "../../lib/fundamentos.js";
 import { billingEnabled, trialDias } from "../../lib/subscription.js";
 import { toast } from "../../lib/toast.js";
 import { APP_URL } from "../../lib/config.js";
@@ -182,6 +182,59 @@ function Clientes({ data, onRecarregar }) {
 }
 
 /* ---------- Curadoria (base de fundamentos) ---------- */
+const CLASSES_MET = [
+  { id: "fii", label: "FIIs" }, { id: "acao", label: "Ações BR" },
+  { id: "stock", label: "Stocks US" }, { id: "reit", label: "REITs" },
+];
+
+function MetodologiaEditor() {
+  const [classe, setClasse] = useState("fii");
+  const [texto, setTexto] = useState("");
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    setCarregando(true);
+    carregarMetodologia(classe).then(t => { setTexto(t || ""); setCarregando(false); }).catch(() => setCarregando(false));
+  }, [classe]);
+
+  const salvar = async () => {
+    setSalvando(true);
+    try { await salvarMetodologia(classe, texto); toast.success("Metodologia salva."); }
+    catch (e) { toast.error(e.message || "Falha ao salvar."); }
+    finally { setSalvando(false); }
+  };
+
+  return (
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14, marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+        <strong style={{ fontSize: 13, color: T.ink }}>📐 Metodologia & critérios (guia a IA)</strong>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {CLASSES_MET.map(c => (
+            <button key={c.id} onClick={() => setClasse(c.id)}
+              style={{ padding: "4px 11px", borderRadius: 100, fontSize: 11.5, cursor: "pointer",
+                border: `1px solid ${classe === c.id ? T.gold : T.border}`,
+                background: classe === c.id ? `${T.gold}22` : "transparent",
+                color: classe === c.id ? T.gold : T.muted, fontWeight: classe === c.id ? 600 : 400 }}>{c.label}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 8 }}>
+        Descreva sua metodologia e os critérios de um bom ativo dessa classe. A IA usa esse texto ao "Analisar com IA" pra preencher os indicadores e dar a nota.
+      </div>
+      <textarea value={texto} onChange={e => setTexto(e.target.value)} rows={6}
+        placeholder={carregando ? "Carregando…" : "Ex.: FII bom = DY 12M ≥ 9%, vacância < 10%, P/VP entre 0,9 e 1,1, gestão consolidada, segmento de Logística/Lajes/Shoppings..."}
+        style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 12.5, fontFamily: "inherit", resize: "vertical" }} />
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+        <button onClick={salvar} disabled={salvando || carregando}
+          style={{ background: T.gold, color: "#1a1407", border: "none", padding: "8px 16px", borderRadius: 8, fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>
+          {salvando ? "Salvando…" : "Salvar metodologia"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Curadoria() {
   const [fund, setFund] = useState(null);
   useEffect(() => { carregarFundamentos(true).then(setFund).catch(() => setFund({})); }, []);
@@ -190,6 +243,7 @@ function Curadoria() {
   const porClasse = linhas.reduce((m, r) => { m[r.classe || "fii"] = (m[r.classe || "fii"] || 0) + 1; return m; }, {});
   return (
     <>
+      <MetodologiaEditor />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
         <Kpi label="Ativos na base" valor={linhas.length} cor={T.gold} />
         <Kpi label="FIIs" valor={porClasse.fii || 0} cor={T.ink} />
@@ -197,7 +251,7 @@ function Curadoria() {
         <Kpi label="EUA (Stock/REIT)" valor={(porClasse.stock || 0) + (porClasse.reit || 0)} cor={T.ink} />
       </div>
       <div style={{ fontSize: 12, color: T.muted, marginBottom: 12 }}>
-        O cadastro e a edição dos indicadores são feitos na aba <strong>Análise</strong> (botão "Cadastrar ativo"). Aqui é a visão geral da base que alimenta a classificação automática.
+        O cadastro/edição dos indicadores e o <strong>"Analisar com IA"</strong> ficam na aba <strong>Análise</strong>. Aqui é a metodologia + a visão geral da base.
       </div>
       <Tabela>
         <thead>
