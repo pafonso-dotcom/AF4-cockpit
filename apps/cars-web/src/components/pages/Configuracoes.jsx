@@ -206,10 +206,12 @@ function APIs({ apiKeys, setApiKeys }) {
     return base;
   });
 
-  // Gemini key vive em localStorage separado (af4:gemini-key), não no apiKeys
+  // Gemini key: guardada em apiKeys.gemini (sincroniza na conta/nuvem) E
+  // espelhada em localStorage("af4:gemini-key"), que é onde lib/gemini.js lê.
+  // Assim o cliente configura uma vez e não precisa recolocar em outro aparelho.
   const [geminiKeyDraft, setGeminiKeyDraft] = useState(() => {
-    try { return localStorage.getItem("af4:gemini-key") || ""; }
-    catch { return ""; }
+    try { return (apiKeys?.gemini) || localStorage.getItem("af4:gemini-key") || ""; }
+    catch { return apiKeys?.gemini || ""; }
   });
   const [statusTesteGemini, setStatusTesteGemini] = useState(null);
 
@@ -225,8 +227,13 @@ function APIs({ apiKeys, setApiKeys }) {
   };
 
   const salvarChaveGemini = () => {
+    const key = (geminiKeyDraft || "").trim();
     try {
-      localStorage.setItem("af4:gemini-key", (geminiKeyDraft || "").trim());
+      localStorage.setItem("af4:gemini-key", key);
+      // Também guarda em apiKeys → sincroniza com a conta (nuvem) e segue o
+      // usuário em outros aparelhos, sem precisar recolocar.
+      setApiKeys(prev => ({ ...prev, gemini: key }));
+      setEdit(prev => ({ ...prev, gemini: key }));
       toast.success("Chave do Gemini salva.");
       setStatusTesteGemini(null);
     } catch (e) {
