@@ -220,25 +220,25 @@ const buildPDFReport = ({ transacoes, contas, ativos, totais, escopo }) => {
   return `<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <title>NUMVI · Relatório · ${new Date().toLocaleDateString("pt-BR")}</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
   @page { size: A4; margin: 16mm 14mm; }
-  body { font-family: 'Poppins', system-ui, sans-serif; color: #1a1612; margin: 0; line-height: 1.5; background: #faf6e9; font-weight: 400; }
-  .num { font-family: 'Poppins', system-ui, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; font-weight: 500; }
-  .eyebrow { font-family: 'Poppins', system-ui, sans-serif; font-size: 8.5pt; letter-spacing: 0.3em; text-transform: uppercase; color: #8a7d68; font-weight: 500; }
-  h1 { font-family: 'Poppins', system-ui, sans-serif; font-size: 36pt; margin: 4pt 0 2pt; line-height: 1; letter-spacing: -0.03em; font-weight: 700; }
+  body { font-family: 'Nunito', system-ui, sans-serif; color: #1a1612; margin: 0; line-height: 1.5; background: #faf6e9; font-weight: 400; }
+  .num { font-family: 'Nunito', system-ui, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; font-weight: 500; }
+  .eyebrow { font-family: 'Nunito', system-ui, sans-serif; font-size: 8.5pt; letter-spacing: 0.3em; text-transform: uppercase; color: #8a7d68; font-weight: 500; }
+  h1 { font-family: 'Nunito', system-ui, sans-serif; font-size: 36pt; margin: 4pt 0 2pt; line-height: 1; letter-spacing: -0.03em; font-weight: 700; }
   h1 em { color: #8a6a3a; font-style: italic; font-weight: 600; }
-  h2 { font-family: 'Poppins', system-ui, sans-serif; font-size: 20pt; margin: 24pt 0 6pt; letter-spacing: -0.02em; font-weight: 600; border-top: 1px solid #c9bb9d; padding-top: 14pt; }
-  h3 { font-family: 'Poppins', system-ui, sans-serif; font-size: 13pt; margin: 14pt 0 4pt; font-weight: 500; color: #5e503c; }
+  h2 { font-family: 'Nunito', system-ui, sans-serif; font-size: 20pt; margin: 24pt 0 6pt; letter-spacing: -0.02em; font-weight: 600; border-top: 1px solid #c9bb9d; padding-top: 14pt; }
+  h3 { font-family: 'Nunito', system-ui, sans-serif; font-size: 13pt; margin: 14pt 0 4pt; font-weight: 500; color: #5e503c; }
   .header { padding-bottom: 16pt; margin-bottom: 18pt; border-bottom: 1px solid #c9bb9d; }
   .lead { color: #5e503c; font-size: 11pt; margin-top: 6pt; font-weight: 300; }
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #c9bb9d; margin: 12pt 0 4pt; }
   .stat { background: #faf6e9; padding: 10pt 12pt; }
-  .stat .lbl { font-size: 7.5pt; letter-spacing: 0.22em; text-transform: uppercase; color: #5e503c; font-family: 'Poppins', system-ui, sans-serif; font-weight: 500; }
-  .stat .val { font-family: 'Poppins', system-ui, sans-serif; font-size: 17pt; margin-top: 4pt; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; font-weight: 600; }
+  .stat .lbl { font-size: 7.5pt; letter-spacing: 0.22em; text-transform: uppercase; color: #5e503c; font-family: 'Nunito', system-ui, sans-serif; font-weight: 500; }
+  .stat .val { font-family: 'Nunito', system-ui, sans-serif; font-size: 17pt; margin-top: 4pt; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; font-weight: 600; }
   table { width: 100%; border-collapse: collapse; margin: 6pt 0 8pt; font-size: 9.5pt; }
-  th { text-align: left; font-family: 'Poppins', system-ui, sans-serif; font-size: 7.5pt; letter-spacing: 0.18em; text-transform: uppercase; color: #5e503c; font-weight: 500; padding: 6pt 4pt 5pt; border-bottom: 1px solid #c9bb9d; }
+  th { text-align: left; font-family: 'Nunito', system-ui, sans-serif; font-size: 7.5pt; letter-spacing: 0.18em; text-transform: uppercase; color: #5e503c; font-weight: 500; padding: 6pt 4pt 5pt; border-bottom: 1px solid #c9bb9d; }
   td { padding: 5pt 4pt; border-bottom: 1px solid #ebe2cc; vertical-align: top; }
   td.num, th.num { text-align: right; }
   .green { color: #56784f; }
@@ -246,10 +246,10 @@ const buildPDFReport = ({ transacoes, contas, ativos, totais, escopo }) => {
   .gold { color: #8a6a3a; }
   .muted { color: #8a7d68; font-size: 9pt; }
   .month-section { page-break-inside: avoid; margin-bottom: 12pt; }
-  .ornament { display: flex; align-items: center; gap: 12px; color: #8a6a3a; font-style: italic; margin: 18pt 0 6pt; font-family: 'Poppins', system-ui, sans-serif; font-weight: 500; }
+  .ornament { display: flex; align-items: center; gap: 12px; color: #8a6a3a; font-style: italic; margin: 18pt 0 6pt; font-family: 'Nunito', system-ui, sans-serif; font-weight: 500; }
   .ornament::before, .ornament::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, transparent, #c9bb9d, transparent); }
   .footer { margin-top: 28pt; padding-top: 12pt; border-top: 1px solid #c9bb9d; text-align: center; font-style: italic; color: #5e503c; font-size: 9.5pt; }
-  .footer em { font-family: 'Poppins', system-ui, sans-serif; font-size: 13pt; color: #8a6a3a; font-weight: 600; font-style: italic; }
+  .footer em { font-family: 'Nunito', system-ui, sans-serif; font-size: 13pt; color: #8a6a3a; font-weight: 600; font-style: italic; }
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .page-break { page-break-before: always; }
