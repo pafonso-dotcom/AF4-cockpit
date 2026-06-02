@@ -316,7 +316,13 @@ export default function App() {
         setTradeAnalisesIdV([]);
         setTradeOnboardingVisto(false);
       }
-        if (keys) setApiKeys(prev => ({ ...prev, ...keys }));
+        if (keys) {
+          setApiKeys(prev => ({ ...prev, ...keys }));
+          // A chave do Gemini é sincronizada na conta (apiKeys.gemini, vai pra
+          // nuvem). Espelha no localStorage onde lib/gemini.js efetivamente lê,
+          // pra ela aparecer já configurada num aparelho novo / após limpar cache.
+          try { if (keys.gemini) localStorage.setItem("af4:gemini-key", keys.gemini); } catch {}
+        }
       } catch (e) {
         // Erro ao aplicar os dados carregados (migração/estado inesperado).
         // Não trava o app: loga e segue — o finally libera o loading.

@@ -348,24 +348,24 @@ export default function CalculadoraRenda() {
         display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: 10,
       }}>
         <ResultCard
-          titulo="Bruto / mês"
+          titulo="Rende por mês (antes do IR)"
           valor={resultado.brutoMes}
-          descricao="Rendimento mensal sem desconto de IR."
+          descricao="O total que o investimento rende no mês, sem descontar imposto."
           cor={T.muted}
         />
         <ResultCard
-          titulo="Líquido / mês (saca tudo)"
+          titulo="Pode tirar no máximo"
           valor={resultado.liquidoMes}
-          descricao="Quanto você pode retirar todo mês, descontado o IR."
+          descricao="Tirando isso todo mês você vive do rendimento — mas o patrimônio perde valor com a inflação."
           cor={T.gold}
           destaque
         />
         <ResultCard
-          titulo="Renda real / mês (preserva)"
+          titulo="Tirar sem gastar o patrimônio"
           valor={resultado.rendaRealMes}
           descricao={resultado.rendaRealMes > 0
-            ? "Quanto retirar mantendo o poder de compra do principal."
-            : "A inflação consome todo o rendimento líquido — preservação inviável neste cenário."}
+            ? "Tirando só isso, o dinheiro nunca acaba e mantém o mesmo valor lá na frente."
+            : "Neste cenário a inflação come todo o rendimento — qualquer saque encolhe o patrimônio."}
           cor={resultado.rendaRealMes > 0 ? T.green : T.red}
         />
       </div>
@@ -607,7 +607,7 @@ function formatRange(v, label) {
   return `${v}%`;
 }
 
-function ValorIdealCard({ valor, valorEur, valorAnual, valorAnualEur, liquidoMes, taxaRealAnual, viavel }) {
+function ValorIdealCard({ valor, valorAnual, liquidoMes, taxaRealAnual, viavel }) {
   // Diferença entre "saca tudo" e "valor ideal" = quanto a inflação consumiria
   const inflacaoConsome = Math.max(0, liquidoMes - valor);
   const pctIdeal = liquidoMes > 0 ? (valor / liquidoMes) * 100 : 0;
@@ -632,14 +632,14 @@ function ValorIdealCard({ valor, valorEur, valorAnual, valorAnualEur, liquidoMes
       </div>
 
       <div className="label-eyebrow" style={{ color: viavel ? T.green : T.red, marginBottom: 4 }}>
-        Valor ideal de saque mensal
+        Quanto sacar por mês sem gastar o patrimônio
       </div>
 
       <div className="num calc-ideal-value" style={{
         fontFamily: T.serif, fontSize: 28, fontWeight: 700, color: T.ink,
         letterSpacing: "-0.02em", lineHeight: 1,
       }}>
-        {fmtBRL.format(valor)}
+        {fmtBRL.format(valor)}<span style={{ fontSize: 14, color: T.muted, fontWeight: 500 }}>/mês</span>
       </div>
 
       {viavel ? (
