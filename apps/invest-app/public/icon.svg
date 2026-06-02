@@ -9,5 +9,5 @@
   <rect width="512" height="512" rx="112" fill="#0f1d35"/>
   <circle cx="256" cy="256" r="176" fill="none" stroke="url(#aurumGold)" stroke-width="20"/>
   <circle cx="256" cy="256" r="138" fill="none" stroke="url(#aurumGold)" stroke-width="8" opacity="0.5"/>
-  <path d="M256 150 L334 360 L292 360 L273 304 L239 304 L220 360 L178 360 Z M256 220 L245 258 L267 258 Z" fill="url(#aurumGold)" fill-rule="evenodd"/>
+  <path d="M256 150 L334 360 L292 360 L273 304 L239 304 L220 360 L178 360 Z M256 220 L245 258 L267 258 Z" fill="#a01e2e" fill-rule="evenodd"/>
 </svg>
