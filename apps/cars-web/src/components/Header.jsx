@@ -581,7 +581,7 @@ function HeaderVertical({
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
           <NumviMark size={34} />
           <div>
-            <div style={{ fontFamily: "Georgia, serif", fontSize: 16, fontWeight: 700, letterSpacing: ".18em", color: "#E8C25A" }}>NUMVI</div>
+            <div style={{ fontFamily: "Georgia, serif", fontSize: 16, fontWeight: 700, letterSpacing: ".18em", color: "#E8C25A" }}><span style={{ color: "#7B1E2B" }}>N</span>UMVI</div>
             <div style={{ fontSize: 8, color: NAV_MUTED, letterSpacing: ".22em", textTransform: "uppercase", marginTop: 2 }}>dinheiro com visão</div>
           </div>
         </div>
