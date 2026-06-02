@@ -401,6 +401,7 @@ export default function App() {
       <main className="fade-up" style={{ paddingBottom: 40, flex: 1, minWidth: 0 }}>
         {tab === "investimentos" && (
           <InvestPainel ativos={ativos} transacoes={transacoes} categorias={categorias} hidden={hidden}
+                        apiKeys={apiKeys}
                         onTabChange={(t) => setTab(t)}
                         onAbrirAnaliseCarteira={() => { setAnaliseViewInicial("carteira-analise"); setTab("analises"); }}
                         onAbrirAnaliseIdv={() => { setAnaliseViewInicial("idv"); setTab("analises"); }}

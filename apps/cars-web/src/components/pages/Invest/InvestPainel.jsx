@@ -5,13 +5,14 @@ import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
 import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, PROVENTO_REGEX } from "../../../lib/invest-constants.js";
 import { calcAlocacaoPorClasse, calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
+import IndicesGlobais from "../IndicesGlobais.jsx";
 
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 
 export default function InvestPainel({
   ativos = [], transacoes = [], categorias = [],
   hidden, onTabChange, onAnalisar,
-  onAbrirAnaliseCarteira, onAbrirAnaliseIdv,
+  onAbrirAnaliseCarteira, onAbrirAnaliseIdv, apiKeys = {},
 }) {
   const mask = (s) => hidden ? "•••••" : s;
   const hoje = new Date();
@@ -99,6 +100,9 @@ export default function InvestPainel({
           Sua carteira, <em style={{ color: T.gold }}>com clareza.</em>
         </h1>
       </div>
+
+      {/* Índices globais ao vivo */}
+      <IndicesGlobais apiKeys={apiKeys} />
 
       {/* KPIs */}
       <section className="ip-kpi-grid" style={{
