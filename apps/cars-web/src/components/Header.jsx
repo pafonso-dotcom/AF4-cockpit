@@ -337,7 +337,7 @@ function HeaderHorizontal({
                   fontSize: 13.5, letterSpacing: ".01em", fontWeight: 500,
                   display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
                   cursor: "pointer", transition: "color .15s, background .15s, border-color .15s",
-                  fontFamily: "Georgia, 'Times New Roman', serif", borderRadius: "6px 6px 0 0",
+                  fontFamily: "'Nunito', system-ui, sans-serif", borderRadius: "6px 6px 0 0",
                 }}>
                 <Icon size={13} /> {st.label}
                 {st.agenda && (
@@ -671,7 +671,7 @@ function HeaderVertical({
                             <button onClick={() => setTab(s.id)}
                               style={{
                                 padding: "7px 10px 7px 26px", borderRadius: 5, fontSize: 15,
-                                fontFamily: "Georgia, 'Times New Roman', serif",
+                                fontFamily: "'Nunito', system-ui, sans-serif",
                                 background: sAtivo ? "rgba(255,255,255,0.08)" : "transparent",
                                 color: sAtivo ? NAV_INK : NAV_MUTED,
                                 fontWeight: sAtivo ? 600 : 400,
