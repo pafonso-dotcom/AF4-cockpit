@@ -11,7 +11,7 @@ import {
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
-  BookOpen, Repeat,
+  BookOpen, Repeat, MoreHorizontal,
 } from "lucide-react";
 
 /**
@@ -101,6 +101,8 @@ function HeaderHorizontal({
 
   // Barra de bancos/cartões começa RECOLHIDA — abre só ao clicar no rótulo.
   const [listaItensAberta, setListaItensAberta] = useState(false);
+  // Menu "⋯" agrupa os utilitários (busca/ocultar/tema/atualizar) no topo.
+  const [menuUtilAberto, setMenuUtilAberto] = useState(false);
 
   const TODOS_MODULOS = [
     { id: "financas", label: "Finanças",      icon: Wallet,    desc: "Pessoal" },
@@ -183,7 +185,7 @@ function HeaderHorizontal({
     <nav style={{
       position: "sticky", top: 0, zIndex: 50,
       // Grafite elegante (tom grafite) — fixo, independe da paleta.
-      background: "#23272E", backdropFilter: "blur(14px)",
+      background: "#2d323b", backdropFilter: "blur(14px)",
       borderBottom: `1px solid ${NAV_BORDER}`,
     }}>
       {/* ============== LINHA 1 · brand · ações · utility ============== */}
@@ -206,30 +208,46 @@ function HeaderHorizontal({
         {/* Quick actions removidas — agora via atalhos de teclado N/V/A.
             Pressione ? pra ver lista de atalhos. */}
 
-        {/* UTILITY · 40x40 cada */}
-        <div className="hide-mobile" style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-          <button onClick={() => onOpenPalette?.()}
-                  title="Busca rápida de abas (Ctrl/Cmd+K)"
-                  className="hdr-util" style={utilBtn}>
-            <Search size={18} />
-          </button>
+        {/* UTILITY · agrupados num único menu "⋯" (alertas fica fora, sempre visível) */}
+        <div className="hide-mobile" style={{ display: "inline-flex", gap: 8, alignItems: "center", position: "relative" }}>
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={utilBtn} iconSize={18} />
-          <EscopoToggle escopoAtivo={escopoAtivo} onEscopoChange={onEscopoChange} />
-          <button onClick={() => setHidden(!hidden)}
-                  title={hidden ? "Mostrar valores" : "Ocultar valores"}
-                  className="hdr-util" style={utilBtn}>
-            {hidden ? <EyeOff size={18} /> : <Eye size={18} />}
+          <button onClick={() => setMenuUtilAberto(v => !v)}
+                  title="Mais ações" aria-label="Mais ações"
+                  className="hdr-util" style={{ ...utilBtn, background: menuUtilAberto ? `${T.gold}22` : NAV_SOFT, color: menuUtilAberto ? T.gold : NAV_MUTED }}>
+            <MoreHorizontal size={20} />
           </button>
-          <button onClick={() => onOpenSettings?.("toggle-tema")}
-                  title={T.dark ? "Mudar para tema claro" : "Mudar para tema escuro"}
-                  className="hdr-util" style={utilBtn}>
-            {T.dark ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-          <button onClick={onRefresh} title="Atualizar cotações" disabled={refreshing}
-                  className="hdr-util"
-                  style={{ ...utilBtn, color: refreshing ? T.gold : NAV_MUTED, cursor: refreshing ? "wait" : "pointer" }}>
-            <RefreshCw size={18} style={refreshing ? { animation: "spin 1s linear infinite" } : undefined} />
-          </button>
+          {menuUtilAberto && (
+            <>
+              <div onClick={() => setMenuUtilAberto(false)} style={{ position: "fixed", inset: 0, zIndex: 90 }} />
+              <div style={{
+                position: "absolute", right: 0, top: "calc(100% + 8px)", zIndex: 91,
+                background: "#2d323b", border: `1px solid ${NAV_BORDER}`, borderRadius: 10,
+                padding: 6, minWidth: 190, boxShadow: "0 12px 28px rgba(0,0,0,.4)",
+                display: "flex", flexDirection: "column", gap: 2,
+              }}>
+                {[
+                  { lbl: "Busca rápida", icon: Search, on: () => { onOpenPalette?.(); setMenuUtilAberto(false); } },
+                  { lbl: hidden ? "Mostrar valores" : "Ocultar valores", icon: hidden ? EyeOff : Eye, on: () => { setHidden(!hidden); setMenuUtilAberto(false); } },
+                  { lbl: T.dark ? "Tema claro" : "Tema escuro", icon: T.dark ? Sun : Moon, on: () => { onOpenSettings?.("toggle-tema"); setMenuUtilAberto(false); } },
+                  { lbl: refreshing ? "Atualizando…" : "Atualizar cotações", icon: RefreshCw, on: () => { onRefresh?.(); setMenuUtilAberto(false); } },
+                ].map(it => {
+                  const I = it.icon;
+                  return (
+                    <button key={it.lbl} onClick={it.on}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, padding: "9px 11px",
+                        background: "transparent", border: "none", borderRadius: 7, cursor: "pointer",
+                        color: NAV_INK, fontSize: 13, textAlign: "left", fontFamily: T.sans, width: "100%",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.06)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <I size={15} style={{ color: NAV_MUTED }} /> {it.lbl}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
 
         {/* SETTINGS · sempre na extremidade direita, com margin-left extra */}
@@ -316,10 +334,10 @@ function HeaderHorizontal({
                   color: active ? T.gold : NAV_MUTED,
                   borderTop: "none", borderLeft: "none", borderRight: "none",
                   borderBottom: `2px solid ${active ? T.gold : "transparent"}`,
-                  fontSize: 15, letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 500,
+                  fontSize: 16, letterSpacing: ".01em", fontWeight: 500,
                   display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
                   cursor: "pointer", transition: "color .15s, background .15s, border-color .15s",
-                  fontFamily: T.sans, borderRadius: "6px 6px 0 0",
+                  fontFamily: "Georgia, 'Times New Roman', serif", borderRadius: "6px 6px 0 0",
                 }}>
                 <Icon size={14} /> {st.label}
                 {st.agenda && (
@@ -551,7 +569,7 @@ function HeaderVertical({
   const subtabs = SUBTABS[modulo] || SUBTABS.financas;
   const moduloAtivo = TODOS_MODULOS.find(m => m.id === modulo) || { label: modulo };
 
-  const NAV_BG = "#23272E";
+  const NAV_BG = "#2d323b";
   const NAV_INK = "#f5f5f7";
   const NAV_MUTED = "#a8a8b0";
   const NAV_BORDER = "rgba(255,255,255,0.08)";
@@ -652,7 +670,8 @@ function HeaderVertical({
                           <React.Fragment key={s.id}>
                             <button onClick={() => setTab(s.id)}
                               style={{
-                                padding: "7px 10px 7px 26px", borderRadius: 5, fontSize: 14,
+                                padding: "7px 10px 7px 26px", borderRadius: 5, fontSize: 15,
+                                fontFamily: "Georgia, 'Times New Roman', serif",
                                 background: sAtivo ? "rgba(255,255,255,0.08)" : "transparent",
                                 color: sAtivo ? NAV_INK : NAV_MUTED,
                                 fontWeight: sAtivo ? 600 : 400,
@@ -735,7 +754,6 @@ function HeaderVertical({
             <Search size={16} />
           </button>
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={vertUtilBtn} iconSize={16} />
-          <EscopoToggle escopoAtivo={escopoAtivo} onEscopoChange={onEscopoChange} compact />
           <button onClick={() => setHidden(!hidden)}
             title={hidden ? "Mostrar valores" : "Ocultar valores"}
             style={vertUtilBtn}>
