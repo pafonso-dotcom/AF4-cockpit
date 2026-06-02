@@ -11,7 +11,7 @@ export default function AnaliseFatura({
   categorias, setCategorias,
   transacoes, setTransacoes,
   contas, setContas,
-  cartoes,
+  cartoes, setCartoes,
   fixas = [], setFixas,
   fixaOcorrencias = [], setFixaOcorrencias,
   parcelamentos = [], setParcelamentos,
@@ -133,7 +133,8 @@ export default function AnaliseFatura({
     setProgress("Preparando documento…");
 
     try {
-      const prompt = `Você é um analisador de fatura de cartão de crédito brasileiro. Analise o conteúdo e classifique CADA item em um dos 3 tipos:
+      const hojeBR = new Date().toLocaleDateString("pt-BR");
+      const prompt = `Você é um analisador de fatura de cartão de crédito brasileiro. Hoje é ${hojeBR}. Use SEMPRE o ano correto da fatura: não invente anos passados — se o ano do vencimento/fechamento não estiver explícito no documento, assuma o ano atual. Analise o conteúdo e classifique CADA item em um dos 3 tipos:
 
 - "vista": compra única, à vista, SEM parcelamento
 - "fixa": assinatura recorrente mensal (Netflix, Spotify, ChatGPT, academia, plano de saúde, internet, telefone, etc.)
@@ -818,7 +819,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
           fixas={fixas} setFixas={setFixas}
           fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
           parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
-          cartoes={cartoes}
+          cartoes={cartoes} setCartoes={setCartoes}
           onClose={() => {
             setPreviewAberto(false);
             setAnaliseRaw(null);
