@@ -33,6 +33,7 @@ export default function PreviewImportarFaturaModal({
   parcelamentos = [],
   setParcelamentos,
   cartoes = [],
+  setCartoes,
   onClose,
 }) {
   // Conta de débito é OPCIONAL — default vazio ("Definir depois, no pagamento").
@@ -68,8 +69,21 @@ export default function PreviewImportarFaturaModal({
     };
   }));
 
-  const mesFatura = brDateToMonthISO(analise.vencimento) || todayISO().slice(0, 7);
-  const dataPagto = brDateToISO(analise.vencimento) || todayISO();
+  // Competência (mês/ano) da fatura — editável. A IA às vezes erra o ANO
+  // (lê 2024 numa fatura atual); como você está importando agora, se o ano
+  // lido for passado assumimos o ano corrente. Você pode ajustar no campo.
+  const [competencia, setCompetencia] = useState(() => {
+    const m = brDateToMonthISO(analise.vencimento) || todayISO().slice(0, 7);
+    const [yy, mm] = m.split("-");
+    const curY = new Date().getFullYear();
+    return Number(yy) < curY ? `${curY}-${mm}` : m;
+  });
+  const mesFatura = competencia;
+  const dataPagto = (() => {
+    const venc = brDateToISO(analise.vencimento);
+    const dia = venc ? venc.slice(8, 10) : "10";
+    return `${competencia}-${dia}`;
+  })();
 
   // Itens com match detectado (parcelamentos existentes)
   const itensProcessados = useMemo(() => {
@@ -266,6 +280,18 @@ export default function PreviewImportarFaturaModal({
         : c));
     }
 
+    // Registra a fatura REAL (valor a pagar = à vista + fixas + parcelas desta
+    // competência) no cartão. É isso que vira "fatura a pagar" — não a soma de
+    // todas as parcelas futuras (essa é a dívida total dos parcelamentos).
+    const valorFaturaReal = incluidos.reduce((s, i) => s + (Number(i.valor) || 0), 0);
+    const cartaoFaturaId = cartaoSelecionado
+      || cartoes.find(c => normalize(c.nome) === normalize(banco))?.id;
+    if (cartaoFaturaId && setCartoes && valorFaturaReal > 0) {
+      setCartoes(cartoes.map(c => c.id === cartaoFaturaId
+        ? { ...c, faturaImportada: { valorTotal: valorFaturaReal, competencia: mesFatura, vencimento: dataPagto, paga: false, criadoEm: todayISO() } }
+        : c));
+    }
+
     toast.success(
       `Fatura importada · ${incluidos.length} itens${conta ? ` em ${contaNome}` : " (banco a definir no pagamento)"}. ` +
       `${stats.vista} variáveis · ${stats.fixa} fixas · ${stats.parcela} parcelas (${stats.matches} matches).`
@@ -353,6 +379,12 @@ export default function PreviewImportarFaturaModal({
               </option>
             ))}
           </select>
+        </Field>
+
+        <Field label="Competência da fatura (mês/ano)"
+               hint="Mês a que esta fatura se refere. Ajuste se a leitura automática errou o ano.">
+          <input type="month" value={competencia}
+                 onChange={e => setCompetencia(e.target.value)} />
         </Field>
 
         <div style={{

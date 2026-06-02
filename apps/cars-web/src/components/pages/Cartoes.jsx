@@ -178,16 +178,23 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
 
   const openPagamento = (cartao) => {
     const now = new Date();
-    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    // Se há fatura importada em aberto, paga por ELA (valor real da fatura) e
+    // na competência dela; senão, cai no modelo de parcelas do mês corrente.
+    const fi = cartao.faturaImportada && !cartao.faturaImportada.paga ? cartao.faturaImportada : null;
+    const monthKey = fi?.competencia
+      || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const { valorSugerido, parcelasDoMes } = parcelasDaCompetencia(cartao.id, monthKey);
+    const valor = fi ? Number(fi.valorTotal).toFixed(2)
+      : (valorSugerido > 0 ? valorSugerido.toFixed(2) : "");
     setPagFatura({
       cartaoId: cartao.id,
       cartaoNome: cartao.nome,
-      valor: valorSugerido > 0 ? valorSugerido.toFixed(2) : "",
+      valor,
       contaNome: contas?.[0]?.nome || "",
       data: todayISO(),
       monthKey,
       parcelasDoMes,
+      faturaImportada: !!fi,
     });
     setPagErrors({});
   };
@@ -280,6 +287,13 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
       return { ...p, parcelasPagas: Array.from(newPagas).sort((a, b) => a - b) };
     }));
 
+    // Se era a fatura importada, marca como paga (some o botão, vira "paga").
+    if (pagFatura.faturaImportada) {
+      setCartoes(cartoes.map(c => c.id === pagFatura.cartaoId && c.faturaImportada
+        ? { ...c, faturaImportada: { ...c.faturaImportada, paga: true } }
+        : c));
+    }
+
     // 4. Adiciona transação
     setTransacoes([novaTransacao, ...transacoes]);
 
@@ -349,6 +363,12 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           const pctUsado = c.limite > 0 ? (usado / c.limite) * 100 : 0;
           const exp = expandedCart.has(c.id);
           const ativaCard = cartaoAtivo?.id === c.id;
+          // Fatura a pagar: prefere a fatura IMPORTADA (valor real da fatura),
+          // senão usa o cálculo por parcelas do mês corrente.
+          const fi = c.faturaImportada && Number(c.faturaImportada.valorTotal) > 0 ? c.faturaImportada : null;
+          const fat = fi
+            ? { valor: Number(fi.valorTotal), paga: !!fi.paga, pendente: fi.paga ? 0 : Number(fi.valorTotal) }
+            : (faturaPorCartao[c.id] || null);
           return (
             <div key={c.id}
                  style={{
@@ -390,9 +410,11 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: T.muted, flexWrap: "wrap", gap: 6 }}>
                     <span><Calendar size={11} style={{ display: "inline", verticalAlign: "-1px", marginRight: 4 }} />Vence <strong style={{ color: T.ink }}>{c.vencimento}</strong></span>
                     <span>Fecha <strong style={{ color: T.ink }}>{c.fechamento || "—"}</strong></span>
-                    {faturaPorCartao[c.id] && (
-                      <span>Fatura <strong style={{ color: T.ink }} className="num">{hidden ? "•••" : fmt(faturaPorCartao[c.id].valor)}</strong>
-                        {faturaPorCartao[c.id].paga && <strong style={{ color: T.green }}> · paga</strong>}
+                    {fat && (
+                      <span>Fatura <strong style={{ color: T.ink }} className="num">{hidden ? "•••" : fmt(fat.valor)}</strong>
+                        {fat.paga
+                          ? <strong style={{ color: T.green }}> · paga</strong>
+                          : <strong style={{ color: T.gold }}> · a pagar</strong>}
                       </span>
                     )}
                   </div>
@@ -403,7 +425,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                     hidden={hidden}
                   />
                   <div style={{ display: "flex", gap: 6 }}>
-                    {faturaPorCartao[c.id] && faturaPorCartao[c.id].pendente > 0 ? (
+                    {fat && fat.pendente > 0 ? (
                       <button onClick={(e) => { e.stopPropagation(); openPagamento(c); }}
                               style={{
                                 flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
@@ -413,7 +435,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                               }}>
                         Pagar fatura
                       </button>
-                    ) : faturaPorCartao[c.id] && faturaPorCartao[c.id].paga ? (
+                    ) : fat && fat.paga ? (
                       <span style={{
                         flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 700,
                         letterSpacing: ".05em", textTransform: "uppercase",

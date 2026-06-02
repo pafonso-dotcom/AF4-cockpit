@@ -912,7 +912,7 @@ export default function App() {
                 categorias={categorias} setCategorias={setCategorias}
                 transacoes={transacoes} setTransacoes={setTransacoes}
                 contas={contas} setContas={setContas}
-                cartoes={cartoes}
+                cartoes={cartoes} setCartoes={setCartoes}
                 fixas={fixas} setFixas={setFixas}
                 fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
                 parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
