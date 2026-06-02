@@ -99,10 +99,17 @@ export default function CartaoExtrato({ cartao, transacoes = [], parcelamentos =
     return [...txs, ...parcsTx].sort((a, b) => (b.data || "").localeCompare(a.data || ""));
   }, [txCartao, parcelasDoMes, mesAtual]);
 
-  const fatura = Number(cartao.faturaAtual || cartao.usado || 0);
+  // Saldo total em aberto (todas as parcelas restantes) — base do limite/disponível.
+  const usadoTotal = Number(cartao.usado ?? cartao.faturaAtual ?? 0);
+  // Valor a pagar do mês: prefere a fatura IMPORTADA (valor real do mês);
+  // senão a fatura do mês corrente (faturaAtual); senão o saldo usado.
+  // Não é a soma de todas as parcelas em aberto.
+  const fiAberta = cartao.faturaImportada && Number(cartao.faturaImportada.valorTotal) > 0 && !cartao.faturaImportada.paga
+    ? Number(cartao.faturaImportada.valorTotal) : null;
+  const fatura = fiAberta != null ? fiAberta : Number(cartao.faturaAtual ?? cartao.usado ?? 0);
   const limite = Number(cartao.limite || 0);
-  const disponivel = limite - fatura;
-  const pctUso = limite > 0 ? (fatura / limite) * 100 : 0;
+  const disponivel = limite - usadoTotal;
+  const pctUso = limite > 0 ? (usadoTotal / limite) * 100 : 0;
   const totalParcMes = parcCartao.reduce((s, p) => s + Number(p.valorParcela || p.valor || 0), 0);
 
   // Gradiente baseado no nome do cartão
@@ -153,7 +160,7 @@ export default function CartaoExtrato({ cartao, transacoes = [], parcelamentos =
           <div style={{
             fontSize: 10, color: "rgba(255,255,255,.7)",
             letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 4,
-          }}>Fatura {pctUso > 60 ? "· ⚠ ALERTA" : "atual"}</div>
+          }}>Fatura a pagar {pctUso > 60 ? "· ⚠ ALERTA" : ""}</div>
           <div className="cartao-hero-valor" style={{ fontSize: 28, fontWeight: 300, fontVariantNumeric: "tabular-nums", wordBreak: "break-word" }}>
             {hidden ? "•••" : fmt(fatura)}
           </div>

@@ -379,7 +379,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                    transition: "all .15s",
                  }}>
               {/* Linha principal — pai */}
-              <div onClick={() => onCartaoClick && onCartaoClick({ ...c, usado, faturaAtual: usado })}
+              <div onClick={() => onCartaoClick && onCartaoClick({ ...c, usado, faturaAtual: fat ? fat.valor : usado })}
                    style={{
                      display: "flex", alignItems: "center", gap: 10,
                      padding: "10px 12px",
@@ -389,7 +389,9 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
                   <div style={{ fontSize: 10, color: T.muted }}>
-                    Usado <span className="num">{hidden ? "•••" : fmt(usado)}</span> · Livre <span className="num" style={{ color: T.ink }}>{hidden ? "•••" : fmt(disp)}</span>
+                    {fat && fat.pendente > 0
+                      ? <>A pagar <span className="num" style={{ color: T.gold, fontWeight: 600 }}>{hidden ? "•••" : fmt(fat.pendente)}</span> · Livre <span className="num" style={{ color: T.ink }}>{hidden ? "•••" : fmt(disp)}</span></>
+                      : <>Usado <span className="num">{hidden ? "•••" : fmt(usado)}</span> · Livre <span className="num" style={{ color: T.ink }}>{hidden ? "•••" : fmt(disp)}</span></>}
                   </div>
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); toggleExpandedCart(c.id); }}
