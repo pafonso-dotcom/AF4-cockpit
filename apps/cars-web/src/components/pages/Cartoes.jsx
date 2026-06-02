@@ -85,6 +85,24 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     Object.values(map).forEach(f => { f.paga = f.parcelas > 0 && f.parcelasPendentes === 0; });
     return map;
   }, [parcelamentos]);
+
+  // Fatura mensal estimada por cartão: uma parcela de cada parcelamento ainda
+  // em curso (restantes > 0). Independe de datas — sempre disponível, mesmo
+  // quando os parcelamentos importados não têm data certinha. É o "valor a
+  // pagar no mês", não a soma de TODAS as parcelas restantes (que é o "usado").
+  const faturaMensalPorCartao = useMemo(() => {
+    const map = {};
+    parcelamentos.forEach(p => {
+      if (!p.cartaoId) return;
+      const pagas = p.parcelasPagas?.length || 0;
+      const restantes = (p.totalParcelas || 0) - pagas;
+      if (restantes <= 0) return;
+      const valorParcela = (p.valorTotal || 0) / (p.totalParcelas || 1);
+      map[p.cartaoId] = (map[p.cartaoId] || 0) + valorParcela;
+    });
+    return map;
+  }, [parcelamentos]);
+
   const totalDisp = totalLimite - totalUsado;
 
   const [formErrors, setFormErrors] = useState({});
@@ -363,12 +381,20 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           const pctUsado = c.limite > 0 ? (usado / c.limite) * 100 : 0;
           const exp = expandedCart.has(c.id);
           const ativaCard = cartaoAtivo?.id === c.id;
-          // Fatura a pagar: prefere a fatura IMPORTADA (valor real da fatura),
-          // senão usa o cálculo por parcelas do mês corrente.
+          // Fatura a pagar do mês (NÃO é a soma de todas as parcelas):
+          //   1º) fatura IMPORTADA (valor real da fatura);
+          //   2º) fatura do mês corrente calculada por data;
+          //   3º) estimativa mensal (uma parcela de cada parcelamento em curso).
           const fi = c.faturaImportada && Number(c.faturaImportada.valorTotal) > 0 ? c.faturaImportada : null;
+          const fatData = faturaPorCartao[c.id];
+          const fatMensal = faturaMensalPorCartao[c.id] || 0;
           const fat = fi
             ? { valor: Number(fi.valorTotal), paga: !!fi.paga, pendente: fi.paga ? 0 : Number(fi.valorTotal) }
-            : (faturaPorCartao[c.id] || null);
+            : (fatData && fatData.pendente > 0
+                ? fatData
+                : (fatMensal > 0
+                    ? { valor: fatMensal, paga: false, pendente: fatMensal, estimada: true }
+                    : null));
           return (
             <div key={c.id}
                  style={{
@@ -390,7 +416,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
                   <div style={{ fontSize: 10, color: T.muted }}>
                     {fat && fat.pendente > 0
-                      ? <>A pagar <span className="num" style={{ color: T.gold, fontWeight: 600 }}>{hidden ? "•••" : fmt(fat.pendente)}</span> · Livre <span className="num" style={{ color: T.ink }}>{hidden ? "•••" : fmt(disp)}</span></>
+                      ? <>A pagar <span className="num" style={{ color: T.gold, fontWeight: 600 }}>{hidden ? "•••" : `${fat.estimada ? "~" : ""}${fmt(fat.pendente)}`}</span> · Usado <span className="num">{hidden ? "•••" : fmt(usado)}</span></>
                       : <>Usado <span className="num">{hidden ? "•••" : fmt(usado)}</span> · Livre <span className="num" style={{ color: T.ink }}>{hidden ? "•••" : fmt(disp)}</span></>}
                   </div>
                 </div>
@@ -413,10 +439,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                     <span><Calendar size={11} style={{ display: "inline", verticalAlign: "-1px", marginRight: 4 }} />Vence <strong style={{ color: T.ink }}>{c.vencimento}</strong></span>
                     <span>Fecha <strong style={{ color: T.ink }}>{c.fechamento || "—"}</strong></span>
                     {fat && (
-                      <span>Fatura <strong style={{ color: T.ink }} className="num">{hidden ? "•••" : fmt(fat.valor)}</strong>
+                      <span>Fatura <strong style={{ color: T.ink }} className="num">{hidden ? "•••" : `${fat.estimada ? "~" : ""}${fmt(fat.valor)}`}</strong>
                         {fat.paga
                           ? <strong style={{ color: T.green }}> · paga</strong>
-                          : <strong style={{ color: T.gold }}> · a pagar</strong>}
+                          : <strong style={{ color: T.gold }}> · a pagar{fat.estimada ? " (mês estimado)" : ""}</strong>}
                       </span>
                     )}
                   </div>
