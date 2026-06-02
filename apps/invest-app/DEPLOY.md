@@ -73,6 +73,7 @@ adicione as que quiser usar (todas opcionais):
 | Variável | Pra quê | Onde pegar |
 |---|---|---|
 | `BRAPI_TOKEN` | Cotações de ações/FIIs **BR** (recomendado) | brapi.dev (cadastro grátis, 1.000 req/mês) |
+| `GEMINI_KEY` | IA — "Monte sua carteira" e sugestões (recomendado, grátis) | aistudio.google.com (API key grátis) |
 | `ANTHROPIC_KEY` | IA — "Monte sua carteira" e análises | console.anthropic.com (pago por uso) |
 | `ALPHAVANTAGE_KEY` | Ações dos **EUA** | alphavantage.co (chave grátis) |
 

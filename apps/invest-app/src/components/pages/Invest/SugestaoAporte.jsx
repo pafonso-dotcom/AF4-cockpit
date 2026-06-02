@@ -91,9 +91,11 @@ export default function SugestaoAporte({
     : (parseValorBR(valor) || 0);
   const cdiN = parseValorBR(taxaCdi) || 10.5;
 
-  // Detecta provedor: prefere Gemini (key em localStorage), fallback Claude (apiKey prop)
+  // Provedor de IA. Gemini é o padrão: se o cliente não tiver chave própria,
+  // o app usa a chave do SERVIDOR (proxy /api/gemini). Assim ninguém precisa
+  // configurar nada. Chave local (se houver) tem prioridade.
   const geminiKey = (typeof localStorage !== "undefined" && localStorage.getItem("af4:gemini-key")) || "";
-  const provedor = geminiKey ? "gemini" : (apiKey ? "claude" : null);
+  const provedor = "gemini";
 
   /* ===== Busca ===== */
   const buscar = async () => {
