@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef } from "react";
 import { Activity, Sparkles, X, Trash2, Check, AlertCircle, CheckCircle2, Upload, FileText, ChevronLeft, Repeat, Plus, ScanLine, Loader2 } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, uid, todayISO } from "../../lib/format.js";
-import { gerarJSONGemini, gerarJSONGeminiComPDF, anonimizar, fetchComRetry } from "../../lib/gemini.js";
+import { gerarJSONGemini, gerarJSONGeminiComPDF, anonimizar, fetchComRetry, parseJSONTolerante } from "../../lib/gemini.js";
 import { printHTML } from "../../lib/importExport.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import PreviewImportarFaturaModal from "../modals/PreviewImportarFaturaModal.jsx";
@@ -197,17 +197,21 @@ Regras IMPORTANTES:
                 { inline_data: { mime_type: mimeType, data: base64 } },
               ],
             }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 8192, responseMimeType: "application/json" },
+            generationConfig: { temperature: 0.1, maxOutputTokens: 32768, responseMimeType: "application/json" },
           }),
         });
         const data = await resp.json();
-        const texto = (data.candidates?.[0]?.content?.parts?.[0]?.text || "")
-          .replace(/^```json\s*/i, "")
-          .replace(/^```\s*/i, "")
-          .replace(/```\s*$/i, "")
-          .trim();
+        const cand = data.candidates?.[0];
+        const texto = (cand?.content?.parts?.[0]?.text || "").trim();
         if (!texto) throw new Error("Gemini retornou resposta vazia. Tente colar o texto da fatura.");
-        return JSON.parse(texto);
+        // Parser tolerante: limpa fences e fecha JSON truncado (faturas longas).
+        const obj = parseJSONTolerante(texto);
+        if (obj) return obj;
+        // Não deu pra recuperar: se a resposta foi cortada por limite, avisa claro.
+        if (cand?.finishReason === "MAX_TOKENS") {
+          throw new Error("A fatura é muito longa e a IA cortou a resposta. Tente enviar em partes (ex.: metade das páginas) ou cole o texto da fatura.");
+        }
+        throw new Error("A IA retornou um formato inesperado. Tente de novo ou cole o texto da fatura.");
       };
 
       if (ehPDF) {
@@ -241,7 +245,7 @@ Regras IMPORTANTES:
         parsed = await gerarJSONGemini(promptCompleto, {
           apiKey: geminiKey,
           temperature: 0.1,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 32768,
         });
       }
 

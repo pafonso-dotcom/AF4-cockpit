@@ -35,7 +35,7 @@ function erroAmigavel(status, body = "") {
  * - Tenta extrair o primeiro objeto JSON entre { ... } como último recurso
  * Devolve o objeto parseado ou null se nada funcionar.
  */
-function parseJSONTolerante(texto) {
+export function parseJSONTolerante(texto) {
   if (!texto || typeof texto !== "string") return null;
 
   // 1. Limpa fences markdown
