@@ -9,8 +9,6 @@ import PageHeader from "../../ui/PageHeader.jsx";
  *
  * Simula quanto um valor investido em renda fixa rende por mês, em 3
  * cenários (bruto / saca tudo / preserva o patrimônio contra a inflação),
- * com equivalente em EUR pelo câmbio configurável.
- *
  * Todos os valores recalculam ao vivo conforme o usuário move os sliders.
  */
 
@@ -19,7 +17,6 @@ const DEFAULTS = {
   taxaAnualPct: 13.25,
   irPct: 0,
   inflacaoPct: 4.5,
-  cambio: 5.84,
 };
 
 const ATALHOS = [
@@ -56,16 +53,12 @@ const GRUPOS = [
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency", currency: "BRL", maximumFractionDigits: 0,
 });
-const fmtEUR = new Intl.NumberFormat("pt-PT", {
-  style: "currency", currency: "EUR", maximumFractionDigits: 0,
-});
 
 export default function CalculadoraRenda() {
   const [valor, setValor]             = useState(DEFAULTS.valor);
   const [taxaAnualPct, setTaxa]       = useState(DEFAULTS.taxaAnualPct);
   const [irPct, setIr]                = useState(DEFAULTS.irPct);
   const [inflacaoPct, setInflacao]    = useState(DEFAULTS.inflacaoPct);
-  const [cambio, setCambio]           = useState(DEFAULTS.cambio);
   const [horizonteAnos, setHorizonte] = useState(30);
   const [cenariosAberto, setCenariosAberto] = useState(false);
 
@@ -79,7 +72,6 @@ export default function CalculadoraRenda() {
     setTaxa(DEFAULTS.taxaAnualPct);
     setIr(DEFAULTS.irPct);
     setInflacao(DEFAULTS.inflacaoPct);
-    setCambio(DEFAULTS.cambio);
     setHorizonte(30);
   };
 
@@ -106,8 +98,6 @@ export default function CalculadoraRenda() {
 
     return { brutoMes, liquidoMes, rendaRealMes, taxaLiquidaAnual, taxaRealAnual };
   }, [valor, taxaAnualPct, irPct, inflacaoPct]);
-
-  const toEur = (v) => (cambio > 0 ? v / cambio : 0);
 
   // ===== Evolução do patrimônio (horizonteAnos) =====
   // Mostra o PODER DE COMPRA do patrimônio em cada cenário, em R$ de hoje.
@@ -154,61 +144,22 @@ export default function CalculadoraRenda() {
     return { reduzMeio, reduzFim, anoMeio: meio, anoFim: horizonteAnos };
   }, [valor, inflacaoPct, horizonteAnos]);
 
-  // Projeção da reserva: se o usuário poupar TODO o saque ideal mês a mês,
-  // o quanto vira (em R$ de hoje) em snap1/snap2/snap3 + renda extra que
-  // essa reserva geraria sozinha (à mesma taxa real).
-  const reserva = useMemo(() => {
-    const taxaReal = resultado.taxaRealAnual;
-    const taxaRealMensal = taxaReal > 0 ? Math.pow(1 + taxaReal, 1 / 12) - 1 : 0;
-    const proj = {};
-    let acumulado = 0;
-    for (let n = 1; n <= snap3; n++) {
-      for (let m = 0; m < 12; m++) {
-        acumulado = acumulado * (1 + taxaRealMensal) + resultado.rendaRealMes;
-      }
-      if (n === snap1 || n === snap2 || n === snap3) {
-        proj[n] = acumulado;
-      }
-    }
-    const rendaExtraFim = (proj[snap3] || 0) * taxaRealMensal;
-    return { ...proj, rendaExtraFim };
-  }, [resultado.taxaRealAnual, resultado.rendaRealMes, snap1, snap2, snap3]);
 
-  // Excedente reaplicado: o usuário saca SÓ o valor ideal (nominal congelado),
-  // e o que sobra do líquido mensal (líquido − ideal) volta pro principal.
-  // Como o principal cresce e o saque é fixo, o próximo mês gera mais líquido
-  // → mais excedente → snowball. Mostra principal nominal + real (descontada
-  // inflação) e o líquido mensal projetado em 10/20/30 anos.
-  const excedenteReaplicado = useMemo(() => {
-    const taxa = taxaAnualPct / 100;
-    const ir = irPct / 100;
+  // Reinvestir tudo (não sacar nada): o patrimônio cresce por juros compostos
+  // na taxa líquida (após IR). Guarda o valor NOMINAL e o REAL (poder de compra,
+  // descontada a inflação) em snap1/snap2/snap3.
+  const reinvestir = useMemo(() => {
+    const tLiq = resultado.taxaLiquidaAnual;     // já é líquida de IR, ao ano
     const inflacao = inflacaoPct / 100;
-    const taxaMensal = Math.pow(1 + taxa, 1 / 12) - 1;
-    const sacaFixo = resultado.rendaRealMes; // nominal congelado em R$ de hoje
-
-    let principal = valor;
     const proj = {};
-    for (let n = 1; n <= snap3; n++) {
-      for (let m = 0; m < 12; m++) {
-        const bruto = principal * taxaMensal;
-        const liquido = bruto * (1 - ir);
-        // saca o ideal (fixo) e o que sobra volta pro principal
-        principal = principal + liquido - sacaFixo;
-      }
-      if (n === snap1 || n === snap2 || n === snap3) {
-        const principalReal = principal / Math.pow(1 + inflacao, n);
-        const liquidoMes = principal * taxaMensal * (1 - ir);
-        const liquidoMesReal = liquidoMes / Math.pow(1 + inflacao, n);
-        proj[n] = {
-          nominal: principal,
-          real: principalReal,
-          liquidoMes,
-          liquidoMesReal,
-        };
-      }
-    }
+    [snap1, snap2, snap3].forEach(n => {
+      const nominal = valor * Math.pow(1 + tLiq, n);
+      const real = nominal / Math.pow(1 + inflacao, n);
+      proj[n] = { nominal, real };
+    });
     return proj;
-  }, [valor, taxaAnualPct, irPct, inflacaoPct, resultado.rendaRealMes, snap1, snap2, snap3]);
+  }, [valor, resultado.taxaLiquidaAnual, inflacaoPct, snap1, snap2, snap3]);
+
 
   return (
     <div className="fade-up py-6 px-6 calc-root">
@@ -347,13 +298,6 @@ export default function CalculadoraRenda() {
             display={`${inflacaoPct.toFixed(1)} %`}
           />
           <Slider
-            label="Câmbio (R$ por €)"
-            value={cambio}
-            min={4} max={8} step={0.01}
-            onChange={setCambio}
-            display={`R$ ${cambio.toFixed(2)} / €`}
-          />
-          <Slider
             label="Horizonte (anos)"
             value={horizonteAnos}
             min={5} max={50} step={1}
@@ -376,52 +320,27 @@ export default function CalculadoraRenda() {
 
       {/* CARDS de destaque em linha */}
       <div className="calc-cards-grid" style={{
-        display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: 10,
+        display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 10,
         alignItems: "start",
       }}>
         {/* DESTAQUE: valor ideal de saque (preserva o principal contra inflação) */}
         <ValorIdealCard
           valor={resultado.rendaRealMes}
-          valorEur={toEur(resultado.rendaRealMes)}
           valorAnual={resultado.rendaRealMes * 12}
-          valorAnualEur={toEur(resultado.rendaRealMes * 12)}
           liquidoMes={resultado.liquidoMes}
           taxaRealAnual={resultado.taxaRealAnual}
           viavel={resultado.rendaRealMes > 0}
         />
 
-        {/* BÔNUS: se você poupar o saque ideal todo mês, ele acumula
-            uma reserva paralela que também rende. */}
-        {resultado.rendaRealMes > 0 && (
-          <ReservaCard
-            snap1Anos={snap1}
-            snap2Anos={snap2}
-            snap3Anos={snap3}
-            em1={reserva[snap1] || 0}
-            em2={reserva[snap2] || 0}
-            em3={reserva[snap3] || 0}
-            rendaExtraFim={reserva.rendaExtraFim || 0}
-            em1Eur={toEur(reserva[snap1] || 0)}
-            em3Eur={toEur(reserva[snap3] || 0)}
-            rendaExtraFimEur={toEur(reserva.rendaExtraFim || 0)}
-            valorIdeal={resultado.rendaRealMes}
-          />
-        )}
-
-        {/* BÔNUS 2: saca o ideal (fixo) e o excedente líquido volta pro
-            principal → snowball que faz o líquido mensal crescer. */}
-        {resultado.rendaRealMes > 0 && (
-          <ExcedenteReaplicadoCard
-            proj={excedenteReaplicado}
-            snap1Anos={snap1}
-            snap2Anos={snap2}
-            snap3Anos={snap3}
-            toEur={toEur}
-            valorIdeal={resultado.rendaRealMes}
-            liquidoMesHoje={resultado.liquidoMes}
-            principalInicial={valor}
-          />
-        )}
+        {/* Se NÃO sacar nada e deixar tudo rendendo (juros compostos). */}
+        <ReinvestirCard
+          principal={valor}
+          snap1Anos={snap1}
+          snap2Anos={snap2}
+          snap3Anos={snap3}
+          reinveste={reinvestir}
+          taxaLiquidaAnual={resultado.taxaLiquidaAnual}
+        />
       </div>
 
       {/* CARTÕES de saída (bruto / líquido / renda real) em linha */}
@@ -431,14 +350,12 @@ export default function CalculadoraRenda() {
         <ResultCard
           titulo="Bruto / mês"
           valor={resultado.brutoMes}
-          valorEur={toEur(resultado.brutoMes)}
           descricao="Rendimento mensal sem desconto de IR."
           cor={T.muted}
         />
         <ResultCard
           titulo="Líquido / mês (saca tudo)"
           valor={resultado.liquidoMes}
-          valorEur={toEur(resultado.liquidoMes)}
           descricao="Quanto você pode retirar todo mês, descontado o IR."
           cor={T.gold}
           destaque
@@ -446,7 +363,6 @@ export default function CalculadoraRenda() {
         <ResultCard
           titulo="Renda real / mês (preserva)"
           valor={resultado.rendaRealMes}
-          valorEur={toEur(resultado.rendaRealMes)}
           descricao={resultado.rendaRealMes > 0
             ? "Quanto retirar mantendo o poder de compra do principal."
             : "A inflação consome todo o rendimento líquido — preservação inviável neste cenário."}
@@ -687,7 +603,6 @@ function Slider({ label, value, min, max, step, onChange, display }) {
 
 function formatRange(v, label) {
   if (label === "Valor investido") return fmtBRL.format(v);
-  if (label === "Câmbio (R$ por €)") return `R$ ${v.toFixed(2)}`;
   if (label === "Horizonte (anos)") return `${v} anos`;
   return `${v}%`;
 }
@@ -726,9 +641,6 @@ function ValorIdealCard({ valor, valorEur, valorAnual, valorAnualEur, liquidoMes
       }}>
         {fmtBRL.format(valor)}
       </div>
-      <div className="num" style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
-        ≈ {fmtEUR.format(valorEur)}
-      </div>
 
       {viavel ? (
         <>
@@ -742,9 +654,6 @@ function ValorIdealCard({ valor, valorEur, valorAnual, valorAnualEur, liquidoMes
               </div>
               <div className="num" style={{ fontSize: 13, color: T.ink, fontWeight: 600 }}>
                 {fmtBRL.format(valorAnual)}
-              </div>
-              <div className="num" style={{ fontSize: 10, color: T.muted }}>
-                ≈ {fmtEUR.format(valorAnualEur)}
               </div>
             </div>
             <div>
@@ -792,183 +701,73 @@ function ValorIdealCard({ valor, valorEur, valorAnual, valorAnualEur, liquidoMes
   );
 }
 
-function ReservaCard({ snap1Anos, snap2Anos, snap3Anos, em1, em2, em3, rendaExtraFim, em1Eur, em3Eur, rendaExtraFimEur, valorIdeal }) {
-  const cor = T.blue || "#60a5fa";
+function ReinvestirCard({ principal, snap1Anos, snap2Anos, snap3Anos, reinveste, taxaLiquidaAnual }) {
+  const cor = "#22c55e";
+  const p1 = reinveste[snap1Anos] || { nominal: principal, real: principal };
+  const p2 = reinveste[snap2Anos] || { nominal: principal, real: principal };
+  const p3 = reinveste[snap3Anos] || { nominal: principal, real: principal };
+  const multiplicador = principal > 0 ? p3.real / principal : 1;
+
   return (
     <div style={{
       background: `linear-gradient(135deg, ${cor}22 0%, ${cor}08 60%, ${T.card} 100%)`,
-      border: `1px solid ${cor}`,
-      borderLeft: `3px solid ${cor}`,
-      borderRadius: 8, padding: 12,
-      position: "relative",
+      border: `1px solid ${cor}`, borderLeft: `3px solid ${cor}`,
+      borderRadius: 8, padding: 12, position: "relative",
     }}>
       <div style={{
-        position: "absolute", top: 8, right: 10,
-        fontSize: 8.5, padding: "2px 6px", borderRadius: 100,
-        background: cor, color: T.bg,
-        fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase",
+        position: "absolute", top: 8, right: 10, fontSize: 8.5, padding: "2px 6px",
+        borderRadius: 100, background: cor, color: T.bg, fontWeight: 700,
+        letterSpacing: ".12em", textTransform: "uppercase",
       }}>
-        🪙 Bônus
+        🚀 Reinveste
       </div>
 
       <div className="label-eyebrow" style={{ color: cor, marginBottom: 4 }}>
-        Reserva acumulada — se você poupar o saque ideal
+        Se você NÃO sacar (reinveste tudo)
       </div>
 
-      <div style={{ fontSize: 11, color: T.muted, marginBottom: 8, lineHeight: 1.4, fontStyle: "italic" }}>
-        Sacando {fmtBRL.format(valorIdeal)}/mês mas reinvestindo cada saque (mesma taxa real),
-        você acumula uma segunda fonte de patrimônio em valor de hoje.
+      <div style={{ fontSize: 11, color: T.muted, marginBottom: 10, lineHeight: 1.4, fontStyle: "italic" }}>
+        Deixando o valor investido e os rendimentos rendendo juntos (juros compostos),
+        seu patrimônio cresce assim — em poder de compra (R$ de hoje):
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
+        <ReinvestCol anos={`${snap1Anos} anos`} valor={p1.real} cor={cor} />
+        <ReinvestCol anos={`${snap2Anos} anos`} valor={p2.real} cor={cor} />
+        <ReinvestCol anos={`${snap3Anos} anos`} valor={p3.real} cor={cor} destaque />
       </div>
 
       <div style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8,
-        marginBottom: 8,
+        fontSize: 11.5, color: T.ink, lineHeight: 1.5, marginTop: 8,
+        background: `${cor}14`, border: `1px solid ${cor}44`, borderRadius: 6, padding: "8px 10px",
       }}>
-        <ReservaCol anos={`${snap1Anos} anos`} valor={em1} cor={cor} />
-        <ReservaCol anos={`${snap2Anos} anos`} valor={em2} cor={cor} />
-        <ReservaCol anos={`${snap3Anos} anos`} valor={em3} cor={cor} destaque />
+        💡 Em <strong>{snap3Anos} anos</strong>, os {fmtBRL.format(principal)} investidos viram{" "}
+        <strong className="num" style={{ color: cor }}>{fmtBRL.format(p3.real)}</strong>{" "}
+        em poder de compra (≈ <strong>{multiplicador.toFixed(1)}×</strong> o valor inicial),
+        sem você precisar aportar mais nada.
       </div>
-
-      <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>
-        ≈ {fmtEUR.format(em3Eur)} em {snap3Anos} anos · começa em {fmtEUR.format(em1Eur)} em {snap1Anos} anos
-      </div>
-
-      {rendaExtraFim > 0 && (
-        <div style={{
-          marginTop: 8, padding: 8, background: `${cor}15`,
-          border: `1px solid ${cor}33`, borderRadius: 6,
-          fontSize: 11, color: T.ink, lineHeight: 1.4,
-        }}>
-          💡 <strong>Em {snap3Anos} anos</strong>, essa reserva sozinha geraria mais{" "}
-          <strong className="num" style={{ color: cor }}>{fmtBRL.format(rendaExtraFim)}/mês</strong>{" "}
-          de renda (~{fmtEUR.format(rendaExtraFimEur)}/mês) — somando ao saque original,
-          sua renda mensal total no fim do período seria{" "}
-          <strong className="num" style={{ color: cor }}>
-            {fmtBRL.format(valorIdeal + rendaExtraFim)}/mês
-          </strong>.
-        </div>
-      )}
     </div>
   );
 }
 
-function ReservaCol({ anos, valor, cor, destaque }) {
+function ReinvestCol({ anos, valor, cor, destaque }) {
   return (
     <div style={{
-      padding: 6, borderRadius: 5,
-      background: destaque ? `${cor}15` : "transparent",
-      border: destaque ? `1px solid ${cor}33` : "1px solid transparent",
+      padding: "6px 8px", borderRadius: 6, textAlign: "center",
+      background: destaque ? `${cor}1c` : "transparent",
+      border: destaque ? `1px solid ${cor}55` : `1px solid ${T.border}`,
     }}>
-      <div style={{ fontSize: 8.5, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
+      <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
         {anos}
       </div>
-      <div className="num" style={{
-        fontFamily: T.serif,
-        fontSize: destaque ? 15 : 13,
-        fontWeight: 600, color: destaque ? cor : T.ink,
-      }}>
+      <div className="num" style={{ fontSize: 13, fontWeight: 600, color: destaque ? cor : T.ink }}>
         {fmtBRL.format(valor)}
       </div>
     </div>
   );
 }
 
-function ExcedenteReaplicadoCard({ proj, snap1Anos, snap2Anos, snap3Anos, toEur, valorIdeal, liquidoMesHoje, principalInicial }) {
-  const cor = T.purple || "#a78bfa";
-  const empty = { nominal: 0, real: 0, liquidoMes: 0, liquidoMesReal: 0 };
-  const p3 = proj[snap3Anos] || empty;
-  const p2 = proj[snap2Anos] || empty;
-  const p1 = proj[snap1Anos] || empty;
-  const excedenteHoje = Math.max(0, liquidoMesHoje - valorIdeal);
-  const ganhoRealFim = p3.real - principalInicial;
 
-  return (
-    <div style={{
-      background: `linear-gradient(135deg, ${cor}22 0%, ${cor}08 60%, ${T.card} 100%)`,
-      border: `1px solid ${cor}`,
-      borderLeft: `3px solid ${cor}`,
-      borderRadius: 8, padding: 12,
-      position: "relative",
-    }}>
-      <div style={{
-        position: "absolute", top: 8, right: 10,
-        fontSize: 8.5, padding: "2px 6px", borderRadius: 100,
-        background: cor, color: T.bg,
-        fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase",
-      }}>
-        ❄ Snowball
-      </div>
-
-      <div className="label-eyebrow" style={{ color: cor, marginBottom: 4 }}>
-        Excedente reaplicado no principal
-      </div>
-
-      <div style={{ fontSize: 11, color: T.muted, marginBottom: 8, lineHeight: 1.4, fontStyle: "italic" }}>
-        Saca só {fmtBRL.format(valorIdeal)}/mês (valor ideal congelado). O que
-        sobra do líquido ({fmtBRL.format(excedenteHoje)}/mês hoje) volta pro
-        principal — que cresce e passa a gerar mais a cada mês.
-      </div>
-
-      <div style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8,
-        marginBottom: 8,
-      }}>
-        <ExcedenteCol anos={`${snap1Anos} anos`} data={p1} cor={cor} />
-        <ExcedenteCol anos={`${snap2Anos} anos`} data={p2} cor={cor} />
-        <ExcedenteCol anos={`${snap3Anos} anos`} data={p3} cor={cor} destaque />
-      </div>
-
-      {ganhoRealFim > 0 && (
-        <div style={{
-          marginTop: 8, padding: 8, background: `${cor}15`,
-          border: `1px solid ${cor}33`, borderRadius: 6,
-          fontSize: 11, color: T.ink, lineHeight: 1.4,
-        }}>
-          💡 <strong>Em {snap3Anos} anos</strong>, mantendo o saque fixo de{" "}
-          {fmtBRL.format(valorIdeal)}/mês, o principal cresce de{" "}
-          {fmtBRL.format(principalInicial)} para{" "}
-          <strong className="num" style={{ color: cor }}>
-            {fmtBRL.format(p3.real)}
-          </strong>{" "}
-          em poder de compra (+{fmtBRL.format(ganhoRealFim)}). O líquido
-          mensal projetado vira{" "}
-          <strong className="num" style={{ color: cor }}>
-            {fmtBRL.format(p3.liquidoMesReal)}/mês
-          </strong>{" "}
-          em R$ de hoje (≈ {fmtEUR.format(toEur(p3.liquidoMesReal))}/mês).
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ExcedenteCol({ anos, data, cor, destaque }) {
-  return (
-    <div style={{
-      padding: 6, borderRadius: 5,
-      background: destaque ? `${cor}15` : "transparent",
-      border: destaque ? `1px solid ${cor}33` : "1px solid transparent",
-    }}>
-      <div style={{ fontSize: 8.5, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
-        {anos}
-      </div>
-      <div className="num" style={{
-        fontFamily: T.serif,
-        fontSize: destaque ? 14 : 12,
-        fontWeight: 600, color: destaque ? cor : T.ink,
-        lineHeight: 1.1,
-      }}>
-        {fmtBRL.format(data.real)}
-      </div>
-      <div style={{ fontSize: 9.5, color: T.faint, marginTop: 1 }}>
-        principal real
-      </div>
-      <div className="num" style={{ fontSize: 10.5, color: T.muted, marginTop: 3 }}>
-        {fmtBRL.format(data.liquidoMesReal)}/mês
-      </div>
-    </div>
-  );
-}
 
 function ResultCard({ titulo, valor, valorEur, descricao, cor, destaque }) {
   return (
@@ -986,11 +785,6 @@ function ResultCard({ titulo, valor, valorEur, descricao, cor, destaque }) {
         letterSpacing: "-0.01em", lineHeight: 1,
       }}>
         {fmtBRL.format(valor)}
-      </div>
-      <div className="num calc-result-value-eur" style={{
-        fontSize: 11, color: T.muted, marginTop: 2,
-      }}>
-        ≈ {fmtEUR.format(valorEur)}
       </div>
       <div style={{
         fontSize: 10.5, color: T.faint, marginTop: 5, lineHeight: 1.4,
