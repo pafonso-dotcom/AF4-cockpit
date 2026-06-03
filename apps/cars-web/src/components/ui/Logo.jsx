@@ -31,8 +31,10 @@ export function NumviMark({ size = 36, bg = "#23272E", gid }) {
       <rect width="64" height="64" rx="15" fill={bg} />
       {/* anel (moeda / riqueza) */}
       <circle cx="32" cy="32" r="23" fill="none" stroke={`url(#${id})`} strokeWidth="3.2" />
-      {/* "N" no centro */}
-      <path d="M23 43 V21 H27.5 L37 35 V21 H41 V43 H36.5 L27 29 V43 Z" fill={`url(#${id})`} />
+      {/* "A" no centro (Aurum) */}
+      <text x="32" y="33" textAnchor="middle" dominantBaseline="central"
+            fontFamily="'Nunito', system-ui, sans-serif" fontWeight="800" fontSize="34"
+            fill={`url(#${id})`}>A</text>
     </svg>
   );
 }
@@ -52,8 +54,8 @@ export default function Logo({
         fontWeight: 800, fontSize: size, letterSpacing: "-0.01em",
         lineHeight: 1, display: "inline-flex", alignItems: "baseline",
       }}>
-        <span style={{ color: BORDO }}>N</span>
-        <span style={{ color: wordColor }}>umvi</span>
+        <span style={{ color: BORDO }}>A</span>
+        <span style={{ color: wordColor }}>urum</span>
         {sufixo && (
           <span style={{ color: sufixoColor, fontWeight: 500, fontSize: size * 0.6, marginLeft: size * 0.05 }}>
             {sufixo}
