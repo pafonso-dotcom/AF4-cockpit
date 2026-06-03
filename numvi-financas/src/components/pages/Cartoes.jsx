@@ -372,8 +372,27 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     const backupTransacoes = transacoes;
     const backupParcelamentos = parcelamentos;
 
-    // 1. Cria transação de despesa
-    const novaTransacao = {
+    // Itens à vista da fatura importada entram PENDENTES no momento da importação.
+    // Ao pagar, eles viram "pagos" (compensado) e o débito do saldo acontece aqui —
+    // o pagamento é tratado como uma transferência, sem criar despesa categorizada
+    // nova (as despesas reais são os próprios itens). Para faturas não importadas
+    // (modelo de parcelas do mês), mantém a transação consolidada de pagamento.
+    const ehImportada = !!pagFatura.faturaImportada;
+    const idsPagar = ehImportada
+      ? new Set(
+          (transacoes || [])
+            .filter(t =>
+              !t.compensado &&
+              t.cartaoId === pagFatura.cartaoId &&
+              String(t.origem || "").startsWith("fatura-") &&
+              String(t.data || "").slice(0, 7) === pagFatura.monthKey
+            )
+            .map(t => t.id)
+        )
+      : new Set();
+
+    // 1. Cria transação de despesa (só para faturas NÃO importadas)
+    const novaTransacao = ehImportada ? null : {
       id: uid(),
       tipo: "despesa",
       descricao: `Fatura ${cartao.nome} · ${pagFatura.monthKey}`,
@@ -406,8 +425,17 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         : c));
     }
 
-    // 4. Adiciona transação
-    setTransacoes([novaTransacao, ...transacoes]);
+    // 4. Aplica nas transações:
+    //    - importada: marca os itens pendentes da fatura como pagos (compensado)
+    //    - não importada: adiciona a transação consolidada de pagamento
+    if (ehImportada) {
+      setTransacoes((transacoes || []).map(t =>
+        idsPagar.has(t.id)
+          ? { ...t, compensado: true, conta: t.conta || conta.nome }
+          : t));
+    } else {
+      setTransacoes([novaTransacao, ...transacoes]);
+    }
 
     setPagFatura(null);
     setPagErrors({});

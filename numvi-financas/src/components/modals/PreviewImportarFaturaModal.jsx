@@ -159,7 +159,8 @@ export default function PreviewImportarFaturaModal({
       const cat = item.categoria_sugerida || "Outros";
 
       if (item.tipo === "vista") {
-        totalDebitado += valor;
+        // Entra como PENDENTE (não debita a conta agora). Só vira "paga" e
+        // debita o saldo quando a fatura for paga em Cartões → "Pagar fatura".
         novasTransacoes.push({
           id: uid(),
           tipo: "despesa",
@@ -169,7 +170,7 @@ export default function PreviewImportarFaturaModal({
           categoria: cat,
           conta: contaNome,
           cartaoId: cartaoSelecionado || null,
-          compensado: true,
+          compensado: false,
           fixa: false,
           obs: `Importado da fatura ${banco}`,
           origem: origemTag,
@@ -302,7 +303,7 @@ export default function PreviewImportarFaturaModal({
     }
 
     toast.success(
-      `Fatura importada · ${incluidos.length} itens${conta ? ` em ${contaNome}` : " (banco a definir no pagamento)"}. ` +
+      `Fatura importada · ${incluidos.length} itens (pendentes — debita ao pagar a fatura). ` +
       `${stats.vista} à vista · ${stats.parcela} parcelas (${stats.matches} matches).`
     );
     onClose?.();
@@ -408,7 +409,10 @@ export default function PreviewImportarFaturaModal({
           marginTop: 8, color: T.red, fontFamily: T.serif,
           fontSize: 18, fontWeight: 600,
         }}>
-          Total a debitar: − {fmt(stats.valorTotal)}
+          Total da fatura: {fmt(stats.valorTotal)}
+        </div>
+        <div style={{ marginTop: 4, fontSize: 11, color: T.muted }}>
+          Entra como <strong style={{ color: T.gold }}>pendente</strong> — o saldo só é debitado quando você pagar a fatura em Cartões.
         </div>
       </div>
 
