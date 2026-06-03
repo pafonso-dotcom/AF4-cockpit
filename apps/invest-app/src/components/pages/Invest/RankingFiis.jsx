@@ -83,7 +83,7 @@ export default function RankingFiis({ apiKeys = {}, getFundamentos, preencherIA 
           {segmentos.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         <select value={limite} onChange={e => setLimite(Number(e.target.value))} style={{ ...inp, flex: "0 0 auto", width: 110 }}>
-          {[25, 50, 100, 200].map(n => <option key={n} value={n}>{n} / página</option>)}
+          {[10, 15, 25, 50, 100, 200].map(n => <option key={n} value={n}>{n} / página</option>)}
         </select>
         <button onClick={() => setSoPotencial(v => !v)}
           style={{ ...(soPotencial ? btnGold() : btnGhost()), display: "inline-flex", alignItems: "center", gap: 6 }}>
