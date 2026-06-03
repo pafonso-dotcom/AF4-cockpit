@@ -1,0 +1,17 @@
+{
+  // Cloudflare Worker do NUMVI Finanças (produto standalone).
+  // Serve a SPA estática (dist) + /api/ping e /api/recibo (scanner de
+  // recibo por foto via Claude Vision — a chave fica como secret no Worker).
+  //
+  // Deploy (a partir desta pasta como root no Cloudflare):
+  //   build:  pnpm install && pnpm --filter numvi-financas build
+  //   deploy: npx wrangler deploy
+  "name": "numvi-financas",
+  "compatibility_date": "2026-06-03",
+  "main": "./worker/index.js",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS"
+  }
+}
