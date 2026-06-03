@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Logo, { NumviMark } from "./ui/Logo.jsx";
 import { BRAND_SUFIXO } from "../lib/brand.js";
+import { forcarAtualizacaoApp } from "../lib/appUpdate.js";
 import { T, THEMES } from "../lib/theme.js";
 import { getPerfilAtivo } from "../lib/perfis.js";
 import { useLayout } from "../lib/useLayout.js";
@@ -12,7 +13,7 @@ import {
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
-  BookOpen, Repeat, MoreHorizontal, LogOut,
+  BookOpen, Repeat, MoreHorizontal, LogOut, RotateCw,
 } from "lucide-react";
 
 /**
@@ -231,6 +232,7 @@ function HeaderHorizontal({
                   { lbl: hidden ? "Mostrar valores" : "Ocultar valores", icon: hidden ? EyeOff : Eye, on: () => { setHidden(!hidden); setMenuUtilAberto(false); } },
                   { lbl: T.dark ? "Tema claro" : "Tema escuro", icon: T.dark ? Sun : Moon, on: () => { onOpenSettings?.("toggle-tema"); setMenuUtilAberto(false); } },
                   { lbl: refreshing ? "Atualizando…" : "Atualizar cotações", icon: RefreshCw, on: () => { onRefresh?.(); setMenuUtilAberto(false); } },
+                  { lbl: "Atualizar app (nova versão)", icon: RotateCw, on: () => { setMenuUtilAberto(false); forcarAtualizacaoApp(); } },
                   { lbl: "Sair do aplicativo", icon: LogOut, danger: true, on: () => { setMenuUtilAberto(false); (onLogout || (() => window.__af4Logout?.()))(); } },
                 ].map(it => {
                   const I = it.icon;
@@ -758,6 +760,17 @@ function HeaderVertical({
             display: "flex", alignItems: "center", gap: 9, fontSize: 12,
           }}>
           <Settings size={14} /> Configurações
+        </button>
+        <button
+          onClick={() => forcarAtualizacaoApp()}
+          title="Limpa o cache e busca a versão mais recente"
+          style={{
+            padding: "8px 10px", borderRadius: 7, marginTop: 4,
+            background: "rgba(255,255,255,0.05)", color: NAV_MUTED,
+            border: "none", cursor: "pointer", textAlign: "left",
+            display: "flex", alignItems: "center", gap: 9, fontSize: 12,
+          }}>
+          <RotateCw size={14} /> Atualizar app
         </button>
         <button
           onClick={onLogout || (() => window.__af4Logout?.())}
