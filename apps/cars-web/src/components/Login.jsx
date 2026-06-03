@@ -152,7 +152,7 @@ function LinkBtn({ onClick, children }) {
 }
 
 function Brand() {
-  return <Logo size={30} sufixo="·finanças" bg="var(--bg)" />;
+  return <Logo size={30} sufixo="·pessoal" bg="var(--bg)" />;
 }
 
 const shellStyle = {
