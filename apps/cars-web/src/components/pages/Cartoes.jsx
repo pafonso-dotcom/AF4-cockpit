@@ -27,16 +27,43 @@ function parcelasAtivasDoCartao(cartao, parcelamentos = []) {
     return false;
   });
 }
-// Fatura do mês = uma parcela de cada parcelamento ainda em curso.
-function faturaMensalDoCartao(cartao, parcelamentos = []) {
-  return parcelasAtivasDoCartao(cartao, parcelamentos).reduce((s, p) => s + valorDaParcela(p), 0);
+// Mês corrente no formato YYYY-MM (chave de competência).
+const mesAtualKey = () => todayISO().slice(0, 7);
+// Mês em que a parcela N cai. Se tem dataPrimeira, soma (N-1) meses;
+// senão usa dataCompra + 1 mês. Retorna Date ou null se não há base.
+function dataDaParcela(p, n) {
+  const base = p.dataPrimeira || p.dataCompra;
+  if (!base) return null;
+  const [y, m, d] = base.split("-").map(Number);
+  const startMonth = p.dataPrimeira ? m : m + 1;
+  return new Date(y, startMonth - 1 + (n - 1), d);
+}
+// Fatura do mês = só as parcelas que VENCEM neste mês (monthKey) e que AINDA
+// não estão marcadas como pagas. Assim, depois de pagar/antecipar a fatura,
+// o valor deixa de aparecer como "a pagar" (antes somava 1 parcela de cada
+// parcelamento em curso, ignorando data e pagamento).
+function faturaMensalDoCartao(cartao, parcelamentos = [], monthKey = mesAtualKey()) {
+  return parcelasAtivasDoCartao(cartao, parcelamentos).reduce((s, p) => {
+    const pagas = new Set(p.parcelasPagas || []);
+    let devido = 0;
+    for (let n = 1; n <= (p.totalParcelas || 0); n++) {
+      if (pagas.has(n)) continue;
+      const dt = dataDaParcela(p, n);
+      if (!dt) continue;
+      if (`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}` === monthKey) {
+        devido += valorDaParcela(p);
+      }
+    }
+    return s + devido;
+  }, 0);
 }
 // Valor a pagar do mês COMPLETO: se há fatura importada (que já soma à vista +
-// fixas + parcelas) e não está paga, usa o valor dela; senão, só as parcelas.
-function valorAPagarMes(cartao, parcelamentos = []) {
+// fixas + parcelas) e não está paga, usa o valor dela; senão, só as parcelas
+// do mês que ainda não foram pagas.
+function valorAPagarMes(cartao, parcelamentos = [], monthKey = mesAtualKey()) {
   if (cartao.faturaImportada && cartao.faturaImportada.paga) return 0;
   const fiTotal = cartao.faturaImportada ? Number(cartao.faturaImportada.valorTotal) || 0 : 0;
-  return fiTotal > 0 ? fiTotal : faturaMensalDoCartao(cartao, parcelamentos);
+  return fiTotal > 0 ? fiTotal : faturaMensalDoCartao(cartao, parcelamentos, monthKey);
 }
 
 export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, categorias, hidden, onCartaoClick, cartaoAtivo }) {
@@ -73,16 +100,6 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
   }, [parcelamentos]);
 
   const totalUsado = Object.values(usedByCard).reduce((s, v) => s + v, 0);
-
-  // Helper: dia que cada parcela cai. Se tem dataPrimeira, soma (N-1) meses; senão usa dataCompra +1 mês
-  const dataDaParcela = (p, n) => {
-    const base = p.dataPrimeira || p.dataCompra;
-    if (!base) return null;
-    const [y, m, d] = base.split("-").map(Number);
-    const startMonth = p.dataPrimeira ? m : m + 1;
-    const dt = new Date(y, startMonth - 1 + (n - 1), d);
-    return dt;
-  };
 
   const [formErrors, setFormErrors] = useState({});
   const [parcErrors, setParcErrors] = useState({});
