@@ -63,8 +63,12 @@ export function getDespesasDoMes(mesISO, state = {}, escopo) {
   const hoje = new Date().toISOString().slice(0, 10);
 
   // 1. Fixas (via fixaOcorrencias — modelo novo)
+  // Ocorrência órfã (cuja fixa foi apagada) não conta — senão a despesa
+  // continua aparecendo nos relatórios mesmo depois de excluída.
+  const fixaExiste = (id) => (state.fixas || []).some(f => f.id === id);
   (state.fixaOcorrencias || []).forEach(o => {
     if (o.mes !== mesISO) return;
+    if (!fixaExiste(o.fixaId)) return;
     const status = o.status === "paga"
       ? "paga"
       : (o.dataVencimento && o.dataVencimento < hoje ? "atrasada" : "pendente");

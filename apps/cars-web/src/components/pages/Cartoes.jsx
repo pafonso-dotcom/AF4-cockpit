@@ -319,7 +319,11 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     if (typeof setParcelamentos === "function") setParcelamentos((parcelamentos || []).filter(p => !parcIds.has(p.id)));
     if (typeof setFixas === "function") setFixas((fixas || []).filter(f => !fixaIds.has(f.id)));
     if (typeof setFixaOcorrencias === "function") {
-      setFixaOcorrencias((fixaOcorrencias || []).filter(o => !fixaIds.has(o.fixaId) || o.status === "paga"));
+      // Mantém só as ocorrências de fixas que SOBREVIVEM. Assim remove as das
+      // fixas apagadas (inclusive pagas) e também purga órfãs antigas — pra não
+      // continuarem aparecendo no controle anual.
+      const fixasVivas = new Set((fixas || []).filter(f => !fixaIds.has(f.id)).map(f => f.id));
+      setFixaOcorrencias((fixaOcorrencias || []).filter(o => fixasVivas.has(o.fixaId)));
     }
     if (Object.keys(ajustes).length && typeof setContas === "function") {
       setContas((contas || []).map(c => ajustes[c.nome] ? { ...c, saldo: (Number(c.saldo) || 0) + ajustes[c.nome] } : c));
