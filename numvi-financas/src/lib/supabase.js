@@ -105,7 +105,7 @@ export function onAuthChange(cb) {
 export async function fetchAurumState() {
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from("aurum_state")
+    .from("numvi_state")
     .select("state")
     .maybeSingle();
   if (error) {
@@ -120,7 +120,7 @@ export async function saveAurumState(state) {
   const session = await getSession();
   if (!session) return;
   const { error } = await supabase
-    .from("aurum_state")
+    .from("numvi_state")
     .upsert({ user_id: session.user.id, state }, { onConflict: "user_id" });
   if (error) console.error("[AF4] saveAurumState", error);
 }
@@ -128,7 +128,7 @@ export async function saveAurumState(state) {
 export async function fetchAurumKeys() {
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from("aurum_keys")
+    .from("numvi_keys")
     .select("keys")
     .maybeSingle();
   if (error) {
@@ -143,7 +143,7 @@ export async function saveAurumKeys(keys) {
   const session = await getSession();
   if (!session) return;
   const { error } = await supabase
-    .from("aurum_keys")
+    .from("numvi_keys")
     .upsert({ user_id: session.user.id, keys }, { onConflict: "user_id" });
   if (error) console.error("[AF4] saveAurumKeys", error);
 }

@@ -37,26 +37,33 @@ const local = {
    loadAll / saveAll — estado completo do app (localStorage)
    ============================================================ */
 
+// Chave de cache local POR USUÁRIO. Sem isso, ao trocar de conta no mesmo
+// dispositivo o app herdava o cache do usuário anterior (vazamento de dados).
+const keyState = (session) => session ? `${STORE_KEY}:${session.user.id}` : STORE_KEY;
+const keyKeys  = (session) => session ? `${KEYS_KEY}:${session.user.id}` : KEYS_KEY;
+
 export const loadAll = async () => {
-  // Supabase (legado) — só se logado
   if (supabaseConfigured) {
     const session = await getSession();
     if (session) {
+      const k = keyState(session);
       const remote = await fetchAurumState();
       if (remote) {
-        local.set(STORE_KEY, remote);
+        local.set(k, remote);
         return remote;
       }
-      const cached = local.get(STORE_KEY);
+      // Só o cache DESTE usuário (nunca o de outra conta).
+      const cached = local.get(k);
       if (cached) {
         await supabaseSaveState(cached);
         return cached;
       }
+      // Conta nova / sem dados na nuvem → começa LIMPO (não herda nada).
       return null;
     }
   }
 
-  // Default: localStorage
+  // Default: localStorage (modo local, sem login)
   return local.get(STORE_KEY);
 };
 
@@ -65,13 +72,14 @@ let lastDataRef = null;
 const REMOTE_DEBOUNCE_MS = 1500;
 
 export const saveAll = async (data, opts = {}) => {
-  // SEMPRE persiste local imediatamente
-  local.set(STORE_KEY, data);
   lastDataRef = data;
 
-  // Sync no Supabase legado (se logado) — debounce
-  if (!supabaseConfigured) return;
+  // Sem Supabase → cache local global (modo local).
+  if (!supabaseConfigured) { local.set(STORE_KEY, data); return; }
+
   const session = await getSession();
+  // Cache local POR USUÁRIO (evita vazar pro próximo login no mesmo device).
+  local.set(keyState(session), data);
   if (!session) return;
 
   if (opts.immediate) {
@@ -104,12 +112,13 @@ export const loadKeys = async () => {
   if (supabaseConfigured) {
     const session = await getSession();
     if (session) {
+      const k = keyKeys(session);
       const remote = await fetchAurumKeys();
       if (remote) {
-        local.set(KEYS_KEY, remote);
+        local.set(k, remote);
         return remote;
       }
-      const cached = local.get(KEYS_KEY);
+      const cached = local.get(k);
       if (cached) { await supabaseSaveKeys(cached); return cached; }
       return null;
     }
@@ -121,10 +130,10 @@ let keysTimer = null;
 let lastKeysRef = null;
 
 export const saveKeys = async (data) => {
-  local.set(KEYS_KEY, data);
   lastKeysRef = data;
-  if (!supabaseConfigured) return;
+  if (!supabaseConfigured) { local.set(KEYS_KEY, data); return; }
   const session = await getSession();
+  local.set(keyKeys(session), data);
   if (!session) return;
   clearTimeout(keysTimer);
   keysTimer = setTimeout(() => {
