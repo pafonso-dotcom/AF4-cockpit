@@ -11,7 +11,7 @@ import {
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
-  BookOpen, Repeat, MoreHorizontal,
+  BookOpen, Repeat, MoreHorizontal, LogOut,
 } from "lucide-react";
 
 /**
@@ -95,6 +95,7 @@ function HeaderHorizontal({
   contaAberta, setContaAberta,
   cartaoAberto, setCartaoAberto,
   alertData = {}, onNavegar,
+  onLogout,
 }) {
 
   const perfilAtivo = getPerfilAtivo();
@@ -244,6 +245,21 @@ function HeaderHorizontal({
                     </button>
                   );
                 })}
+                {onLogout && (
+                  <>
+                    <div style={{ height: 1, background: NAV_BORDER, margin: "4px 2px" }} />
+                    <button onClick={() => { setMenuUtilAberto(false); onLogout(); }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, padding: "9px 11px",
+                        background: "transparent", border: "none", borderRadius: 7, cursor: "pointer",
+                        color: "#f87171", fontSize: 13, textAlign: "left", fontFamily: T.sans, width: "100%",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(248,113,113,.12)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <LogOut size={15} style={{ color: "#f87171" }} /> Sair do aplicativo
+                    </button>
+                  </>
+                )}
               </div>
             </>
           )}
@@ -526,6 +542,7 @@ function HeaderVertical({
   contaAberta, setContaAberta,
   cartaoAberto, setCartaoAberto,
   alertData = {}, onNavegar,
+  onLogout,
 }) {
   const perfilAtivo = getPerfilAtivo();
   const perms = perfilAtivo?.permissoes || { financas: true, invest: true, trade: true, config: true };
@@ -754,6 +771,19 @@ function HeaderVertical({
           }}>
           <Settings size={14} /> Configurações
         </button>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            style={{
+              padding: "8px 10px", borderRadius: 7,
+              background: "rgba(248,113,113,0.08)",
+              color: "#f87171",
+              border: "none", cursor: "pointer", textAlign: "left",
+              display: "flex", alignItems: "center", gap: 9, fontSize: 12,
+            }}>
+            <LogOut size={14} /> Sair do aplicativo
+          </button>
+        )}
       </aside>
 
       <header className="hdr-vertical-topbar" style={{
