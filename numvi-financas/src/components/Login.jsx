@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { LogIn, UserPlus, Mail, KeyRound } from "lucide-react";
 import { signIn, signUp, resetPassword, updatePassword } from "../lib/supabase.js";
 import Logo from "./ui/Logo.jsx";
+import { BRAND_SUFIXO } from "../lib/brand.js";
 
 /**
  * Tela de autenticação (Supabase Auth · e-mail + senha).
@@ -152,7 +153,7 @@ function LinkBtn({ onClick, children }) {
 }
 
 function Brand() {
-  return <Logo size={30} sufixo="·finanças" bg="var(--bg)" />;
+  return <Logo size={30} sufixo={BRAND_SUFIXO} bg="var(--bg)" />;
 }
 
 const shellStyle = {

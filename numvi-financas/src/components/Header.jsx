@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Logo, { NumviMark } from "./ui/Logo.jsx";
+import { BRAND_SUFIXO } from "../lib/brand.js";
 import { T, THEMES } from "../lib/theme.js";
 import { getPerfilAtivo } from "../lib/perfis.js";
 import { useLayout } from "../lib/useLayout.js";
@@ -200,7 +201,7 @@ function HeaderHorizontal({
           <span className="hide-desktop" style={{ fontFamily: "'Nunito', system-ui, sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em" }}>
             <span style={{ color: "#9E2B3A" }}>N</span><span style={{ color: "#E8C25A" }}>umvi</span>
           </span>
-          <span className="header-brand-text"><Logo size={24} sufixo="·finanças" /></span>
+          <span className="header-brand-text"><Logo size={24} sufixo={BRAND_SUFIXO} /></span>
         </div>
 
         {sep}
@@ -615,7 +616,7 @@ function HeaderVertical({
         backdropFilter: "blur(14px)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-          <Logo size={20} sufixo="·finanças" />
+          <Logo size={20} sufixo={BRAND_SUFIXO} />
         </div>
 
         <div>

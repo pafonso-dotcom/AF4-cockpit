@@ -5,18 +5,27 @@
    ============================================================ */
 
 import { createClient } from "@supabase/supabase-js";
+import { VARIANT } from "./brand.js";
 
 // Credenciais do projeto Supabase. A anon key é pública por design —
 // vai no bundle do cliente de qualquer forma, e a segurança real vem
-// das policies RLS no banco. Ficam aqui como padrão para o app rodar
-// sem depender de variáveis de build; env vars, se definidas, vencem.
+// das policies RLS no banco.
 //
-// Projeto atual: maqlnsivmreagpkhbkbn (us-west-1)
+// Variante "pessoal": cai no projeto pessoal do dono como padrão (dados já
+//   existentes), a menos que VITE_SUPABASE_URL/KEY sejam definidos.
+// Variante "comercial": EXIGE VITE_SUPABASE_URL/KEY explícitos. Sem eles o
+//   app fica "não configurado" (fail-closed) — nunca cai no banco pessoal
+//   por engano, evitando misturar dados de clientes com os do dono.
+//
+// Projeto pessoal: maqlnsivmreagpkhbkbn (us-west-1)
 // Migrado em 2026-05-25 do projeto antigo (rffxplwshwfjnedefvqg).
+const PESSOAL_URL = "https://maqlnsivmreagpkhbkbn.supabase.co";
+const PESSOAL_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hcWxuc2l2bXJlYWdwa2hia2JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NzQ4NjMsImV4cCI6MjA5NTA1MDg2M30.eMWAkJca6TQ1J8728IoQ3MnWdq37uHAlA4ybiCwdOkQ";
+
 const URL = import.meta.env.VITE_SUPABASE_URL
-  || "https://maqlnsivmreagpkhbkbn.supabase.co";
+  || (VARIANT === "pessoal" ? PESSOAL_URL : "");
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
-  || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hcWxuc2l2bXJlYWdwa2hia2JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NzQ4NjMsImV4cCI6MjA5NTA1MDg2M30.eMWAkJca6TQ1J8728IoQ3MnWdq37uHAlA4ybiCwdOkQ";
+  || (VARIANT === "pessoal" ? PESSOAL_KEY : "");
 
 export const supabaseConfigured = !!(URL && KEY);
 
