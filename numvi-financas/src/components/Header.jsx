@@ -230,6 +230,7 @@ function HeaderHorizontal({
                   { lbl: hidden ? "Mostrar valores" : "Ocultar valores", icon: hidden ? EyeOff : Eye, on: () => { setHidden(!hidden); setMenuUtilAberto(false); } },
                   { lbl: T.dark ? "Tema claro" : "Tema escuro", icon: T.dark ? Sun : Moon, on: () => { onOpenSettings?.("toggle-tema"); setMenuUtilAberto(false); } },
                   { lbl: refreshing ? "Atualizando…" : "Atualizar cotações", icon: RefreshCw, on: () => { onRefresh?.(); setMenuUtilAberto(false); } },
+                  { lbl: "Sair do aplicativo", icon: LogOut, danger: true, on: () => { setMenuUtilAberto(false); (onLogout || (() => window.__af4Logout?.()))(); } },
                 ].map(it => {
                   const I = it.icon;
                   return (
@@ -237,29 +238,15 @@ function HeaderHorizontal({
                       style={{
                         display: "flex", alignItems: "center", gap: 10, padding: "9px 11px",
                         background: "transparent", border: "none", borderRadius: 7, cursor: "pointer",
-                        color: NAV_INK, fontSize: 13, textAlign: "left", fontFamily: T.sans, width: "100%",
+                        color: it.danger ? T.red : NAV_INK, fontSize: 13, textAlign: "left", fontFamily: T.sans, width: "100%",
+                        borderTop: it.danger ? `1px solid ${NAV_BORDER}` : "none", marginTop: it.danger ? 2 : 0,
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.06)"}
+                      onMouseEnter={e => e.currentTarget.style.background = it.danger ? `${T.red}18` : "rgba(255,255,255,.06)"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      <I size={15} style={{ color: NAV_MUTED }} /> {it.lbl}
+                      <I size={15} style={{ color: it.danger ? T.red : NAV_MUTED }} /> {it.lbl}
                     </button>
                   );
                 })}
-                {onLogout && (
-                  <>
-                    <div style={{ height: 1, background: NAV_BORDER, margin: "4px 2px" }} />
-                    <button onClick={() => { setMenuUtilAberto(false); onLogout(); }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10, padding: "9px 11px",
-                        background: "transparent", border: "none", borderRadius: 7, cursor: "pointer",
-                        color: "#f87171", fontSize: 13, textAlign: "left", fontFamily: T.sans, width: "100%",
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = "rgba(248,113,113,.12)"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      <LogOut size={15} style={{ color: "#f87171" }} /> Sair do aplicativo
-                    </button>
-                  </>
-                )}
               </div>
             </>
           )}
@@ -771,19 +758,16 @@ function HeaderVertical({
           }}>
           <Settings size={14} /> Configurações
         </button>
-        {onLogout && (
-          <button
-            onClick={onLogout}
-            style={{
-              padding: "8px 10px", borderRadius: 7,
-              background: "rgba(248,113,113,0.08)",
-              color: "#f87171",
-              border: "none", cursor: "pointer", textAlign: "left",
-              display: "flex", alignItems: "center", gap: 9, fontSize: 12,
-            }}>
-            <LogOut size={14} /> Sair do aplicativo
-          </button>
-        )}
+        <button
+          onClick={onLogout || (() => window.__af4Logout?.())}
+          style={{
+            padding: "8px 10px", borderRadius: 7, marginTop: 4,
+            background: "rgba(248,113,113,0.08)", color: "#f87171",
+            border: "none", cursor: "pointer", textAlign: "left",
+            display: "flex", alignItems: "center", gap: 9, fontSize: 12,
+          }}>
+          <LogOut size={14} /> Sair do aplicativo
+        </button>
       </aside>
 
       <header className="hdr-vertical-topbar" style={{

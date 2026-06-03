@@ -31,8 +31,8 @@ export function NumviMark({ size = 36, bg = "#23272E", gid }) {
       <rect width="64" height="64" rx="15" fill={bg} />
       {/* anel (moeda / riqueza) */}
       <circle cx="32" cy="32" r="23" fill="none" stroke={`url(#${id})`} strokeWidth="3.2" />
-      {/* "N" no centro */}
-      <path d="M23 43 V21 H27.5 L37 35 V21 H41 V43 H36.5 L27 29 V43 Z" fill={`url(#${id})`} />
+      {/* "N" no centro — bordô (marca NUMVI Finanças) */}
+      <path d="M23 43 V21 H27.5 L37 35 V21 H41 V43 H36.5 L27 29 V43 Z" fill={BORDO} />
     </svg>
   );
 }
