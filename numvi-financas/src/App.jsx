@@ -35,9 +35,6 @@ import { useKeyboardShortcuts } from "./lib/keyboardShortcuts.js";
 import { useLayout } from "./lib/useLayout.js";
 import AtalhosOverlay from "./components/modals/AtalhosOverlay.jsx";
 import CommandPalette from "./components/ui/CommandPalette.jsx";
-import OnboardingTradeModal from "./components/modals/OnboardingTradeModal.jsx";
-import AnaliseTrade from "./components/pages/Trade/Analise.jsx";
-import AnaliseCarteira from "./components/pages/Invest/AnaliseCarteira.jsx";
 
 import Dashboard from "./components/pages/Dashboard.jsx";
 import Contas from "./components/pages/Contas.jsx";
@@ -59,21 +56,6 @@ import Despesas from "./components/pages/Despesas.jsx";
 import ControleAnual from "./components/pages/Relatorios/ControleAnual.jsx";
 import Planejamento from "./components/pages/Planejamento/index.jsx";
 import AnaliseFatura from "./components/pages/AnaliseFatura.jsx";
-import Investimentos from "./components/pages/Investimentos.jsx";
-import AnaliseIdV from "./components/pages/Trade/AnaliseIdV.jsx";
-import Analise from "./components/pages/Analise.jsx";
-import Mercado from "./components/pages/Mercado.jsx";
-import Simulador from "./components/pages/Simulador.jsx";
-import CalculadoraRenda from "./components/pages/Invest/CalculadoraRenda.jsx";
-import Projecao from "./components/pages/Invest/Projecao.jsx";
-import AnalisesUnificada from "./components/pages/Invest/Analises.jsx";
-import ObjetivosCarteira from "./components/pages/Invest/ObjetivosCarteira.jsx";
-import CarteiraModelo from "./components/pages/Invest/CarteiraModelo.jsx";
-import MonteSuaCarteira from "./components/pages/Invest/MonteSuaCarteira.jsx";
-import InvestPainel from "./components/pages/Invest/InvestPainel.jsx";
-import Performance from "./components/pages/Invest/Performance.jsx";
-import Proventos from "./components/pages/Invest/Proventos.jsx";
-import RelatoriosInvest from "./components/pages/Invest/RelatoriosInvest.jsx";
 import RelatoriosFinancas from "./components/pages/RelatoriosFinancas.jsx";
 import CartaoExtrato from "./components/pages/CartaoExtrato.jsx";
 import ContaExtrato from "./components/pages/ContaExtrato.jsx";
@@ -81,10 +63,6 @@ import AReceberEDividas from "./components/pages/AReceberEDividas.jsx";
 import AuditLog from "./components/pages/AuditLog.jsx";
 import PergunteAoClaude from "./components/pages/PergunteAoClaude.jsx";
 import Configuracoes from "./components/pages/Configuracoes.jsx";
-import NegocioPainel from "./components/pages/Negocio/NegocioPainel.jsx";
-import NegocioVeiculos from "./components/pages/Negocio/Veiculos.jsx";
-import NegocioServicos from "./components/pages/Negocio/Servicos.jsx";
-import NegocioClientes from "./components/pages/Negocio/Clientes.jsx";
 
 export default function App() {
   const [modulo, setModulo] = useState(() => {
@@ -145,55 +123,6 @@ export default function App() {
   // Array de { data: "YYYY-MM-DD", totalAtivos, totalContas, total }.
   const [patrimonioHistorico, setPatrimonioHistorico] = useState([]);
 
-  // ===== Módulo NEGÓCIO (revenda de carros + serviços) =====
-  // Estrutura inicial; cada array recebe handlers/UIs em PRs seguintes.
-  const [negocioVeiculos,        setNegocioVeiculos]        = useState([]); // estoque
-  const [negocioVendasVeiculos,  setNegocioVendasVeiculos]  = useState([]); // vendas de carros
-  const [negocioServicos,        setNegocioServicos]        = useState([]); // catálogo de serviços
-  const [negocioVendasServicos,  setNegocioVendasServicos]  = useState([]); // vendas de serviços
-  const [negocioContratos,       setNegocioContratos]       = useState([]); // contratos recorrentes (CRM, tráfego, app, etc)
-  const [negocioClientes,        setNegocioClientes]        = useState([]); // clientes
-  const [negocioInstaladores,    setNegocioInstaladores]    = useState([]); // instaladores (executam serviços, recebem do caixa)
-
-  // Objetivos da carteira (árvore IdV-style)
-  const [objetivosCarteira, setObjetivosCarteira] = useState([]);
-
-  // Carteiras modelo IdV (custom + builtin) + qual está ativo
-  const [carteirasModeloCustom, setCarteirasModeloCustom] = useState([]);
-  const [modeloAtivoId, setModeloAtivoId] = useState("idv-iniciante");
-
-  // Carteira virtual de proventos (saldo + histórico de movimentações)
-  // Modelo: { saldo: number, historico: [{id, data, tipo, valor, descricao, proventoKey?, ticker?}] }
-  const [carteiraProventos, setCarteiraProventos] = useState({ saldo: 0, historico: [] });
-  // Caixa virtual do Negócio (saldo + histórico de movimentações)
-  // Receitas de venda de veículos / serviços / faturas recorrentes entram
-  // aqui em vez de criar transação em Finanças.
-  // Modelo: { saldo: number, historico: [{id, data, tipo, valor, descricao, vendaId?, contratoId?, ts}] }
-  const [caixaNegocio, setCaixaNegocio] = useState({ saldo: 0, historico: [] });
-  // Banco do Serviço: contas próprias do negócio de serviços, totalmente
-  // independentes das Contas/Finanças do cockpit. Modelo: [{ id, nome, saldo }].
-  const [negocioBancos, setNegocioBancos] = useState([]);
-  // Proventos marcados como recebidos: { [proventoKey]: { dataBaixa, destino, valor } }
-  const [proventosRecebidos, setProventosRecebidos] = useState({});
-  // Proventos que o user marcou como "Ignorados" (não interessam, foram
-  // excluídos da lista de previstos). Persistidos junto com o resto.
-  const [proventosIgnorados, setProventosIgnorados] = useState({});
-  // Proventos lançados manualmente pelo user (extrato real, ajuste,
-  // provento que o sistema não previu, etc). Array de objetos com o
-  // mesmo shape de calendarioProventos + manual: true.
-  const [proventosManuais, setProventosManuais] = useState([]);
-
-  // AF4 Trade
-  const [tradeWatchlist, setTradeWatchlist] = useState([]);
-  const [tradeHistorico, setTradeHistorico] = useState([]);
-  const [tradeAnalisesIdV, setTradeAnalisesIdV] = useState([]);
-  const [tradeOnboardingVisto, setTradeOnboardingVisto] = useState(false);
-  const [analiseAlvo, setAnaliseAlvo] = useState(null);
-  const [projetarAlvo, setProjetarAlvo] = useState(null);
-  // View inicial pra AnalisesUnificada — quando InvestPainel pede pra
-  // abrir direto em "carteira-analise" ou "idv", esse state sinaliza.
-  const [analiseViewInicial, setAnaliseViewInicial] = useState(null);
-
   /* ---------- Load on mount ---------- */
   useEffect(() => {
     (async () => {
@@ -242,26 +171,6 @@ export default function App() {
         setTarefas(data.tarefas || []);
         setSugestoes(data.sugestoes || []);
         setPatrimonioHistorico(data.patrimonioHistorico || []);
-        setNegocioVeiculos(data.negocioVeiculos || []);
-        setNegocioVendasVeiculos(data.negocioVendasVeiculos || []);
-        setNegocioServicos(data.negocioServicos || []);
-        setNegocioVendasServicos(data.negocioVendasServicos || []);
-        setNegocioContratos(data.negocioContratos || []);
-        setNegocioClientes(data.negocioClientes || []);
-        setNegocioInstaladores(data.negocioInstaladores || []);
-        setObjetivosCarteira(data.objetivosCarteira || []);
-        setCarteirasModeloCustom(data.carteirasModeloCustom || []);
-        if (data.modeloAtivoId) setModeloAtivoId(data.modeloAtivoId);
-        setCarteiraProventos(data.carteiraProventos || { saldo: 0, historico: [] });
-        setCaixaNegocio(data.caixaNegocio || { saldo: 0, historico: [] });
-        setNegocioBancos(data.negocioBancos || []);
-        setProventosRecebidos(data.proventosRecebidos || {});
-        setProventosIgnorados(data.proventosIgnorados || {});
-        setProventosManuais(data.proventosManuais || []);
-        setTradeWatchlist(data.tradeWatchlist || []);
-        setTradeHistorico(data.tradeHistorico || []);
-        setTradeAnalisesIdV(data.tradeAnalisesIdV || []);
-        setTradeOnboardingVisto(!!data.tradeOnboardingVisto);
         if (data.themeId && THEMES[data.themeId]) setThemeId(data.themeId);
         // Migração one-shot: marca contas/categorias antigas com escopo detectado
         setTimeout(() => {
@@ -296,25 +205,6 @@ export default function App() {
         setTarefas([]);
         setSugestoes([]);
         setPatrimonioHistorico([]);
-        setNegocioVeiculos([]);
-        setNegocioVendasVeiculos([]);
-        setNegocioServicos([]);
-        setNegocioVendasServicos([]);
-        setNegocioContratos([]);
-        setNegocioClientes([]);
-        setNegocioInstaladores([]);
-        setObjetivosCarteira([]);
-        setCarteirasModeloCustom([]);
-        setCarteiraProventos({ saldo: 0, historico: [] });
-        setCaixaNegocio({ saldo: 0, historico: [] });
-        setNegocioBancos([]);
-        setProventosRecebidos({});
-        setProventosIgnorados({});
-        setProventosManuais([]);
-        setTradeWatchlist([]);
-        setTradeHistorico([]);
-        setTradeAnalisesIdV([]);
-        setTradeOnboardingVisto(false);
       }
         if (keys) {
           setApiKeys(prev => ({ ...prev, ...keys }));
@@ -340,22 +230,12 @@ export default function App() {
       contas, categorias, transacoes, ativos, metas, notas,
       cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
-      negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes, negocioInstaladores,
-      carteirasModeloCustom, modeloAtivoId,
-      carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
-      caixaNegocio, negocioBancos,
-      tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
+      habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico,
       themeId,
     });
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
       fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
-      negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes, negocioInstaladores,
-      carteirasModeloCustom, modeloAtivoId,
-      carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
-      caixaNegocio, negocioBancos,
-      tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
+      habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico,
       themeId, loading]);
 
   useEffect(() => {
@@ -982,174 +862,6 @@ export default function App() {
           </div>
         )}
 
-        {/* MÓDULO: NEGÓCIO (revenda + serviços) */}
-        {modulo === "negocio" && (
-          <div className="px-6 md:px-10">
-            {(tab === "negocio-painel" || !tab.startsWith("negocio-")) && (
-              <NegocioPainel
-                negocioVeiculos={negocioVeiculos}
-                negocioVendasVeiculos={negocioVendasVeiculos}
-                negocioServicos={negocioServicos}
-                negocioVendasServicos={negocioVendasServicos}
-                negocioClientes={negocioClientes}
-                caixaNegocio={caixaNegocio}
-                hidden={hidden}
-                onTabChange={(t) => setTab(t)}
-              />
-            )}
-            {tab === "negocio-veiculos" && (
-              <NegocioVeiculos
-                veiculos={negocioVeiculos} setVeiculos={setNegocioVeiculos}
-                vendas={negocioVendasVeiculos} setVendas={setNegocioVendasVeiculos}
-                clientes={negocioClientes}
-                contas={contas} setContas={setContas}
-                transacoes={transacoes} setTransacoes={setTransacoes}
-                categorias={categorias}
-                caixaNegocio={caixaNegocio} setCaixaNegocio={setCaixaNegocio}
-                hidden={hidden}
-              />
-            )}
-            {tab === "negocio-servicos" && (
-              <NegocioServicos
-                servicos={negocioServicos} setServicos={setNegocioServicos}
-                vendas={negocioVendasServicos} setVendas={setNegocioVendasServicos}
-                contratos={negocioContratos} setContratos={setNegocioContratos}
-                clientes={negocioClientes}
-                veiculos={negocioVeiculos}
-                instaladores={negocioInstaladores} setInstaladores={setNegocioInstaladores}
-                bancos={negocioBancos} setBancos={setNegocioBancos}
-                caixaNegocio={caixaNegocio} setCaixaNegocio={setCaixaNegocio}
-                hidden={hidden}
-              />
-            )}
-            {tab === "negocio-clientes" && (
-              <NegocioClientes
-                clientes={negocioClientes} setClientes={setNegocioClientes}
-                vendasVeiculos={negocioVendasVeiculos}
-                vendasServicos={negocioVendasServicos}
-                hidden={hidden}
-              />
-            )}
-          </div>
-        )}
-
-        {/* MÓDULO: INVESTIMENTOS */}
-        {modulo === "invest" && (
-          <>
-            {tab === "investimentos" && (
-              <InvestPainel ativos={ativos} transacoes={transacoes} categorias={categorias} hidden={hidden}
-                            apiKeys={apiKeys}
-                            onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
-                            onAbrirAnaliseCarteira={() => { setAnaliseViewInicial("carteira-analise"); setTab("analises"); }}
-                            onAbrirAnaliseIdv={() => { setAnaliseViewInicial("idv"); setTab("analises"); }}
-                            onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }} />
-            )}
-            {tab === "analises" && (
-              <div className="px-6 md:px-10">
-                <AnalisesUnificada
-                  ativos={ativos} hidden={hidden}
-                  tradeAnalisesIdV={tradeAnalisesIdV} setTradeAnalisesIdV={setTradeAnalisesIdV}
-                  onAnalisarAtivo={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
-                  apiKeys={apiKeys}
-                  viewInicial={analiseViewInicial}
-                  onConsumirViewInicial={() => setAnaliseViewInicial(null)}
-                />
-              </div>
-            )}
-            {tab === "carteira" && (
-              <div className="px-6 md:px-10">
-                <Investimentos ativos={ativos} setAtivos={setAtivos}
-                               contas={contas} setContas={setContas}
-                               categorias={categorias}
-                               transacoes={transacoes} setTransacoes={setTransacoes}
-                               onRefresh={refreshMarket} refreshing={refreshing}
-                               onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
-                               onProjetar={(ativo) => { setProjetarAlvo(ativo); setTab("projecao"); }}
-                               hidden={hidden} />
-              </div>
-            )}
-            {tab === "objetivos" && (
-              <div className="px-6 md:px-10">
-                <ObjetivosCarteira
-                  ativos={ativos}
-                  objetivosCarteira={objetivosCarteira}
-                  setObjetivosCarteira={setObjetivosCarteira}
-                  hidden={hidden}
-                  apiKeys={apiKeys}
-                />
-              </div>
-            )}
-            {tab === "modelo" && (
-              <div className="px-6 md:px-10">
-                <CarteiraModelo
-                  ativos={ativos}
-                  carteirasModeloCustom={carteirasModeloCustom}
-                  setCarteirasModeloCustom={setCarteirasModeloCustom}
-                  modeloAtivoId={modeloAtivoId}
-                  setModeloAtivoId={setModeloAtivoId}
-                  hidden={hidden}
-                  apiKeys={apiKeys}
-                />
-              </div>
-            )}
-            {tab === "monte-carteira" && (
-              <div className="px-6 md:px-10">
-                <MonteSuaCarteira ativos={ativos} apiKey={apiKeys.anthropic} />
-              </div>
-            )}
-            {tab === "proventos" && (
-              <Proventos
-                ativos={ativos} setAtivos={setAtivos}
-                hidden={hidden}
-                carteiraProventos={carteiraProventos}
-                setCarteiraProventos={setCarteiraProventos}
-                proventosRecebidos={proventosRecebidos}
-                setProventosRecebidos={setProventosRecebidos}
-                proventosIgnorados={proventosIgnorados}
-                setProventosIgnorados={setProventosIgnorados}
-                proventosManuais={proventosManuais}
-                setProventosManuais={setProventosManuais}
-                contas={contas} setContas={setContas}
-                categorias={categorias}
-                transacoes={transacoes} setTransacoes={setTransacoes}
-              />
-            )}
-            {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} proventos={[]} operacoes={[]} hidden={hidden} />}
-            {tab === "mercado" && (
-              <div className="px-6 md:px-10">
-                <Mercado ativos={ativos} apiKeys={apiKeys} />
-              </div>
-            )}
-            {tab === "simulador" && (
-              <div className="px-6 md:px-10">
-                <Simulador />
-              </div>
-            )}
-            {tab === "calc-renda" && (
-              <div className="px-6 md:px-10">
-                <CalculadoraRenda />
-              </div>
-            )}
-            {tab === "projecao" && (
-              <div className="px-6 md:px-10">
-                <Projecao
-                  ativos={ativos} hidden={hidden} apiKeys={apiKeys}
-                  alvoInicial={projetarAlvo}
-                  onConsumirAlvo={() => setProjetarAlvo(null)}
-                />
-              </div>
-            )}
-          </>
-        )}
-
-        {/* TELA DE ANÁLISE TÉCNICA DE UM ATIVO (fluxo a partir do Análise da Carteira) */}
-        {modulo === "invest" && tab === "trade-ativo" && (
-          <div className="px-6 md:px-10">
-            <AnaliseTrade tradeWatchlist={tradeWatchlist} ativos={ativos} alvoInicial={analiseAlvo}
-                          onVoltar={() => setTab("analises")} />
-          </div>
-        )}
-
         {/* MÓDULO: CONFIGURAÇÕES */}
         {modulo === "config" && (
           <Configuracoes subtab={tab}
@@ -1171,9 +883,6 @@ export default function App() {
                              setContas([]); setCartoes([]); setParcelamentos([]);
                              setTransacoes([]); setCategorias([]);
                              setMetas([]); setNotas([]); setDevedores([]); setDividas([]);
-                           } else if (id === "invest") {
-                             cleared.ativos = [];
-                             setAtivos([]);
                            }
                            await saveAll(cleared, { immediate: true });
                          }} />
@@ -1199,9 +908,6 @@ export default function App() {
           setTab(t);
         }}
       />
-      {["analise-carteira", "trade-ativo"].includes(tab) && !tradeOnboardingVisto && (
-        <OnboardingTradeModal onClose={() => setTradeOnboardingVisto(true)} />
-      )}
     </div>
   );
 }
