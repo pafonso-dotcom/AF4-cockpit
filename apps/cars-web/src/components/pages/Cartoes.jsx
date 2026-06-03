@@ -66,7 +66,7 @@ function valorAPagarMes(cartao, parcelamentos = [], monthKey = mesAtualKey()) {
   return fiTotal > 0 ? fiTotal : faturaMensalDoCartao(cartao, parcelamentos, monthKey);
 }
 
-export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, categorias, hidden, onCartaoClick, cartaoAtivo }) {
+export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, fixas = [], setFixas, fixaOcorrencias = [], setFixaOcorrencias, categorias, hidden, onCartaoClick, cartaoAtivo }) {
   const [form, setForm] = useState(null);
   const [parcForm, setParcForm] = useState(null);
   const [pagFatura, setPagFatura] = useState(null); // { cartaoId, valor, contaNome, data }
@@ -245,6 +245,100 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     }
     toast.success(`${alvos.length} lançamento(s) de fatura removido(s).`, {
       action: { label: "Desfazer", onClick: () => setTransacoes(backup) },
+    });
+  };
+
+  // Exclui TUDO que veio da importação da fatura DESTE cartão: transações à
+  // vista, parcelamentos, fixas (+ ocorrências pendentes) e zera a fatura
+  // importada. Identifica pela tag origem "fatura-<banco>" (transações e
+  // parcelamentos) e pelo obs "Importado da fatura <banco>" (fixas).
+  // Não toca em lançamentos criados à mão. Saldos das contas são devolvidos.
+  const normTxt = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  const excluirLancamentosDaFatura = async (cartao) => {
+    // Origens "fatura-*" amarradas a este cartão (via cartaoId).
+    const origens = new Set();
+    (parcelamentos || []).forEach(p => {
+      if (p.cartaoId === cartao.id && typeof p.origem === "string" && p.origem.startsWith("fatura-")) origens.add(p.origem);
+    });
+    (transacoes || []).forEach(t => {
+      if (t.cartaoId === cartao.id && typeof t.origem === "string" && t.origem.startsWith("fatura-")) origens.add(t.origem);
+    });
+    // Bancos candidatos (casar fixas/1ª-tx sem cartaoId): nome e banco do cartão + os já achados.
+    const bancosNorm = [...new Set([
+      ...[...origens].map(o => o.replace(/^fatura-/, "")),
+      cartao.nome, cartao.banco,
+    ])].map(normTxt).filter(Boolean);
+
+    const origemCasaFatura = (origem) => {
+      if (typeof origem !== "string" || !origem.startsWith("fatura-")) return false;
+      if (origens.has(origem)) return true;
+      const b = normTxt(origem.replace(/^fatura-/, ""));
+      return bancosNorm.some(x => x && (b.includes(x) || x.includes(b)));
+    };
+    const obsCasaFatura = (obs) => {
+      const o = normTxt(obs);
+      if (!o.startsWith("importado da fatura")) return false;
+      return bancosNorm.some(x => x && o.includes(x));
+    };
+
+    const txAlvo = (transacoes || []).filter(t =>
+      (t.cartaoId === cartao.id && typeof t.origem === "string" && t.origem.startsWith("fatura-"))
+      || origemCasaFatura(t.origem)
+      || obsCasaFatura(t.obs));
+    const parcAlvo = (parcelamentos || []).filter(p =>
+      p.cartaoId === cartao.id && typeof p.origem === "string" && p.origem.startsWith("fatura-"));
+    const fixaAlvo = (fixas || []).filter(f =>
+      origemCasaFatura(f.origem) || obsCasaFatura(f.obs));
+
+    const total = txAlvo.length + parcAlvo.length + fixaAlvo.length;
+    if (total === 0 && !cartao.faturaImportada) {
+      toast.info("Nenhum lançamento de fatura encontrado para este cartão.");
+      return;
+    }
+
+    const ok = await confirm({
+      title: `Excluir lançamentos da fatura de "${cartao.nome}"?`,
+      body: `Remove ${txAlvo.length} transação(ões), ${parcAlvo.length} parcelamento(s) e ${fixaAlvo.length} fixa(s) que vieram da importação da fatura${cartao.faturaImportada ? ", e zera a fatura importada" : ""}. Ocorrências de fixa já pagas e lançamentos criados à mão são preservados. Saldos das contas são devolvidos.`,
+      danger: true, confirmLabel: "Excluir tudo",
+    });
+    if (!ok) return;
+
+    // Backups para Desfazer
+    const backupTx = transacoes, backupParc = parcelamentos, backupFixas = fixas,
+          backupOcc = fixaOcorrencias, backupContas = contas, backupCartoes = cartoes;
+
+    // Devolve saldo das contas tocadas pelas transações removidas
+    const ajustes = {};
+    txAlvo.forEach(t => { if (t.conta) ajustes[t.conta] = (ajustes[t.conta] || 0) + Number(t.valor || 0); });
+
+    const txIds = new Set(txAlvo.map(t => t.id));
+    const parcIds = new Set(parcAlvo.map(p => p.id));
+    const fixaIds = new Set(fixaAlvo.map(f => f.id));
+
+    if (typeof setTransacoes === "function") setTransacoes((transacoes || []).filter(t => !txIds.has(t.id)));
+    if (typeof setParcelamentos === "function") setParcelamentos((parcelamentos || []).filter(p => !parcIds.has(p.id)));
+    if (typeof setFixas === "function") setFixas((fixas || []).filter(f => !fixaIds.has(f.id)));
+    if (typeof setFixaOcorrencias === "function") {
+      setFixaOcorrencias((fixaOcorrencias || []).filter(o => !fixaIds.has(o.fixaId) || o.status === "paga"));
+    }
+    if (Object.keys(ajustes).length && typeof setContas === "function") {
+      setContas((contas || []).map(c => ajustes[c.nome] ? { ...c, saldo: (Number(c.saldo) || 0) + ajustes[c.nome] } : c));
+    }
+    if (cartao.faturaImportada && typeof setCartoes === "function") {
+      setCartoes((cartoes || []).map(c => c.id === cartao.id ? { ...c, faturaImportada: null } : c));
+    }
+
+    toast.success(`Lançamentos da fatura de ${cartao.nome} removidos (${total}).`, {
+      duration: 6000,
+      action: {
+        label: "Desfazer",
+        onClick: () => {
+          setTransacoes(backupTx); setParcelamentos(backupParc);
+          if (setFixas) setFixas(backupFixas);
+          if (setFixaOcorrencias) setFixaOcorrencias(backupOcc);
+          setContas(backupContas); setCartoes(backupCartoes);
+        },
+      },
     });
   };
 
@@ -489,6 +583,17 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                       <Trash2 size={11} /> Excluir
                     </button>
                   </div>
+                  <button onClick={(e) => { e.stopPropagation(); excluirLancamentosDaFatura(c); }}
+                          title="Remove transações, parcelamentos e fixas que vieram da importação da fatura deste cartão"
+                          style={{
+                            width: "100%", marginTop: 6, padding: "5px 8px", fontSize: 9.5, fontWeight: 600,
+                            letterSpacing: ".05em", textTransform: "uppercase",
+                            borderRadius: 4, background: "transparent",
+                            border: `1px dashed ${T.red}55`, color: T.red, cursor: "pointer",
+                            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+                          }}>
+                    <Trash2 size={11} /> Excluir lançamentos da fatura
+                  </button>
                 </div>
               )}
             </div>

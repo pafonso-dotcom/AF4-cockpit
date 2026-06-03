@@ -873,6 +873,8 @@ export default function App() {
                          parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
                          contas={contas} setContas={setContas}
                          transacoes={transacoes} setTransacoes={setTransacoes}
+                         fixas={fixas} setFixas={setFixas}
+                         fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
                          categorias={categorias}
                          hidden={hidden}
                          cartaoAtivo={cartaoAberto}

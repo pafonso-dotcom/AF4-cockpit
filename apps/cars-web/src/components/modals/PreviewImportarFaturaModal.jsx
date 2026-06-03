@@ -199,6 +199,7 @@ export default function PreviewImportarFaturaModal({
           inicioEm: mesFatura,
           terminoEm: null,
           obs: `Importado da fatura ${banco}`,
+          origem: origemTag,
           criadoEm: todayISO(),
         });
 
