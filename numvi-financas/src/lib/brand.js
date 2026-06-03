@@ -6,9 +6,11 @@
    Mesmo código-fonte, dois deploys distintos só pela variável de build.
    ============================================================ */
 
-// Este projeto (numvi-financas) é o produto COMERCIAL — default "comercial".
-// Pode forçar "pessoal" via VITE_NUMVI_VARIANT, mas aqui o padrão é comercial.
-const RAW = String(import.meta.env.VITE_NUMVI_VARIANT || "comercial").toLowerCase().trim();
+// Default "pessoal" por segurança: o Worker pessoal não define a variável,
+// então sem ela o app cai no ambiente do dono (dados em numvi_state) em vez de
+// expor o shell comercial / esconder os dados pessoais. O deploy COMERCIAL
+// define VITE_NUMVI_VARIANT=comercial explicitamente.
+const RAW = String(import.meta.env.VITE_NUMVI_VARIANT || "pessoal").toLowerCase().trim();
 
 // "financas"/"finanças" são aceites como sinónimos de comercial por conveniência.
 export const VARIANT = (RAW === "comercial" || RAW === "financas" || RAW === "finanças")
