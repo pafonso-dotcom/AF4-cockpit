@@ -7,6 +7,7 @@ import { API, COIN_MAP } from "./lib/api.js";
 import { generateRecurringForCurrentMonth } from "./lib/recorrencia.js";
 import { lerEscopo, salvarEscopo, migrarEscoposAuto } from "./lib/escopo.js";
 import { toast } from "./lib/toast.js";
+import { confirm } from "./lib/confirm.js";
 import { createBackup, shouldAutoBackup } from "./lib/autoBackup.js";
 import { audit } from "./lib/auditLog.js";
 import { checkAndNotify, getConfig as getNotifCfg } from "./lib/notifications.js";
@@ -121,6 +122,24 @@ export default function App() {
     return () => { active = false; sub.subscription.unsubscribe(); };
   }, []);
   const ehGestor = isGestor(userEmail);
+
+  // Sair do aplicativo: encerra a sessão no Supabase e recarrega para a tela de login.
+  const handleLogout = async () => {
+    const ok = await confirm({
+      title: "Sair do aplicativo?",
+      body: "Você vai precisar entrar de novo com seu e-mail e senha. Seus dados ficam guardados.",
+      confirmLabel: "Sair",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      if (supabase) await supabase.auth.signOut();
+    } catch (e) {
+      toast.error("Não foi possível sair: " + (e?.message || e));
+      return;
+    }
+    try { window.location.reload(); } catch {}
+  };
 
   // Cliente (não-gestor) nunca acessa Config nem o painel Gerencial.
   useEffect(() => {
@@ -678,6 +697,7 @@ export default function App() {
           }
         }}
         pendingCounts={pendingCounts}
+        onLogout={handleLogout}
       />
 
       <KeyboardShortcuts
@@ -808,7 +828,10 @@ export default function App() {
               <div className="px-6 md:px-10">
                 <CartaoExtrato cartao={cartaoAberto}
                                transacoes={transacoes}
+                               setTransacoes={setTransacoes}
                                parcelamentos={parcelamentos}
+                               setParcelamentos={setParcelamentos}
+                               categorias={categorias}
                                onVoltar={() => setCartaoAberto(null)}
                                hidden={hidden} />
               </div>
