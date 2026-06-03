@@ -91,6 +91,32 @@ export default function Dashboard({
   const receitasMes = useMemo(() => transacoes.filter(t => t.tipo === "receita" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
   const despesasMes = useMemo(() => transacoes.filter(t => t.tipo === "despesa" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
 
+  // "Despesas este mês" do card = total LANÇADO para o mês (competência):
+  // fixas, variáveis, parcelas e dívidas com vencimento neste mês, mesmo que
+  // já tenham sido pagas/antecipadas em outro mês. Usa o mesmo agregador do
+  // Planejamento. (O `despesasMes` acima, em regime de caixa, segue sendo
+  // usado só pro fluxo de patrimônio.)
+  const stateAgg = useMemo(
+    () => ({ transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes }),
+    [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes]
+  );
+  const mesAnteriorISO = useMemo(() => {
+    const [y, m] = mesISO.split("-").map(Number);
+    const d = new Date(y, m - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }, [mesISO]);
+  const despesasMesLancadas = useMemo(() => {
+    try { return getKPIsMes(mesISO, stateAgg, escopoAtivo).totalPrevisto || 0; }
+    catch { return despesasMes; }
+  }, [stateAgg, mesISO, escopoAtivo, despesasMes]);
+  const momDespesasLancadas = useMemo(() => {
+    try {
+      const atual = getKPIsMes(mesISO, stateAgg, escopoAtivo).totalPrevisto || 0;
+      const ant = getKPIsMes(mesAnteriorISO, stateAgg, escopoAtivo).totalPrevisto || 0;
+      return ant > 0 ? ((atual - ant) / ant) * 100 : 0;
+    } catch { return 0; }
+  }, [stateAgg, mesISO, mesAnteriorISO, escopoAtivo]);
+
   const momReceitas = useMemo(() => calcMoMTransacoes(transacoes, { tipo: "receita" }), [transacoes]);
   const momDespesas = useMemo(() => calcMoMTransacoes(transacoes, { tipo: "despesa" }), [transacoes]);
 
@@ -214,7 +240,7 @@ export default function Dashboard({
         <KpiBlock label="Total em Contas" value={mask(fmt(totalContas))} sub={`${contas.length} contas ativas`} icon={Wallet} cor={T.green} />
         <KpiBlock label="Investimentos" value={mask(fmt(totalInvest))} sub="rentabilidade" icon={PieIcon} cor={T.green} variation={rentInvest} />
         <KpiBlock label="Receitas este mês" value={mask(fmt(receitasMes))} sub="vs mês anterior" icon={TrendingUp} cor={T.green} variation={momReceitas} />
-        <KpiBlock label="Despesas este mês" value={mask(fmt(despesasMes))} sub="vs mês anterior" icon={TrendingDown} cor={T.red} variation={momDespesas} negativeGood />
+        <KpiBlock label="Despesas este mês" value={mask(fmt(despesasMesLancadas))} sub="lançadas no mês · vs mês anterior" icon={TrendingDown} cor={T.red} variation={momDespesasLancadas} negativeGood />
       </section>
 
       {/* Evolução do patrimônio (mesmo gráfico dos Relatórios, com benchmark CDI) */}
