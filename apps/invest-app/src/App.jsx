@@ -11,7 +11,6 @@ import { ehAdmin } from "./lib/admin.js";
 import { toast } from "./lib/toast.js";
 import Paywall from "./components/billing/Paywall.jsx";
 import Admin from "./components/admin/Admin.jsx";
-import RankingIdV from "./components/pages/Invest/RankingIdV.jsx";
 import { carregarFundamentos } from "./lib/fundamentos.js";
 
 import GlobalStyles from "./components/ui/GlobalStyles.jsx";
@@ -51,8 +50,7 @@ const TABS = [
   { id: "monte-carteira", label: "Monte sua carteira" },
   { id: "calc-renda", label: "Calculadora" },
   { id: "projecao", label: "Projeção" },
-  { id: "ranking", label: "Análise" },
-  { id: "analises", label: "Análises" },
+  { id: "analises", label: "Análise" },
   { id: "proventos", label: "Proventos" },
   { id: "relatorios-i", label: "Relatórios" },
 ];
@@ -420,11 +418,6 @@ export default function App() {
                            hidden={hidden} />
           </div>
         )}
-        {tab === "ranking" && (
-          <RankingIdV ativos={ativos} fundamentos={fundamentos} hidden={hidden}
-                      isAdmin={ehAdmin(usuario)}
-                      onMudou={() => carregarFundamentos(true).then(setFundamentos)} />
-        )}
         {tab === "evolucao" && (
           <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} />
         )}
@@ -462,6 +455,9 @@ export default function App() {
                                tradeAnalisesIdV={tradeAnalisesIdV} setTradeAnalisesIdV={setTradeAnalisesIdV}
                                onAnalisarAtivo={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
                                apiKeys={apiKeys}
+                               fundamentos={fundamentos}
+                               isAdmin={ehAdmin(usuario)}
+                               onMudouFundamentos={() => carregarFundamentos(true).then(setFundamentos)}
                                viewInicial={analiseViewInicial}
                                onConsumirViewInicial={() => setAnaliseViewInicial(null)} />
           </div>
