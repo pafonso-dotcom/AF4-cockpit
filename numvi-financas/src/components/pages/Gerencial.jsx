@@ -39,12 +39,23 @@ export default function Gerencial({ clientes = [], setClientes, gestorEmail = ""
   };
 
   const convidarWhatsApp = () => {
-    const c = upsertCliente(busca);
-    if (!c) return;
+    // O convite só compartilha o link — NÃO exige e-mail. Se um e-mail válido
+    // estiver digitado, também registra o cliente na lista (opcional).
     const texto = `Olá! Te convido pra usar o NUMVI Finanças — sua vida financeira organizada num só lugar. Acesse: ${APP_URL}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
-    toast.success(`Convite gerado para ${c.email}.`);
-    setBusca("");
+    const e = (busca || "").trim().toLowerCase();
+    if (e && /.+@.+\..+/.test(e)) {
+      upsertCliente(e);
+      toast.success(`Convite gerado e ${e} adicionado.`);
+      setBusca("");
+    } else {
+      toast.success("Convite aberto no WhatsApp.");
+    }
+  };
+
+  const adicionarCliente = () => {
+    const c = upsertCliente(busca);
+    if (c) { toast.success(`${c.email} adicionado.`); setBusca(""); }
   };
 
   const atualizarCliente = (id, patch) =>
@@ -113,11 +124,18 @@ export default function Gerencial({ clientes = [], setClientes, gestorEmail = ""
               <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: T.muted }} />
               <input value={busca} onChange={e => setBusca(e.target.value)}
                      placeholder="Buscar ou adicionar por e-mail…"
-                     onKeyDown={e => { if (e.key === "Enter") convidarWhatsApp(); }}
+                     onKeyDown={e => { if (e.key === "Enter") adicionarCliente(); }}
                      style={{ width: "100%", padding: "9px 12px 9px 32px", background: T.bgSoft,
                               border: `1px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 13 }} />
             </div>
-            <button onClick={convidarWhatsApp} style={{
+            <button onClick={adicionarCliente} title="Adiciona o e-mail digitado à lista de clientes" style={{
+              padding: "9px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+              background: "transparent", border: `1px solid ${T.border}`, color: T.muted,
+              display: "inline-flex", alignItems: "center", gap: 6,
+            }}>
+              + Adicionar
+            </button>
+            <button onClick={convidarWhatsApp} title="Abre o WhatsApp com o link do app (não precisa de e-mail)" style={{
               padding: "9px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
               background: "transparent", border: `1px solid ${T.green}`, color: T.green,
               display: "inline-flex", alignItems: "center", gap: 6,
