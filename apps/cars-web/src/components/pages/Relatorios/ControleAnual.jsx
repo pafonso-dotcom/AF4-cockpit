@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from "react";
-import { Printer, Download, ClipboardCopy, ChevronDown, ChevronUp } from "lucide-react";
+import { Printer, Download, ClipboardCopy, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, todayISO } from "../../../lib/format.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import { toast } from "../../../lib/toast.js";
+import { confirm } from "../../../lib/confirm.js";
 import { getAnualPorMes } from "../../../lib/agregador.js";
 
 const MES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -32,8 +33,11 @@ export default function ControleAnual({
   transacoes = [],
   dividas = [],
   fixaOcorrencias = [],
+  setFixaOcorrencias,
   fixas = [],
+  setFixas,
   parcelamentos = [],
+  setParcelamentos,
   devedores = [],
   hidden,
 }) {
@@ -131,6 +135,77 @@ export default function ControleAnual({
   const labelStatus = (s) => s === "fechado" ? "Fechado" : s === "em-andamento" ? "Em andamento" : "Previsto";
   const corStatus = (s) => s === "fechado" ? T.muted : s === "em-andamento" ? T.gold : T.faint;
 
+  // Remove duplicadas que aparecem no controle anual: fixas (mesmo nome + valor)
+  // e parcelamentos (mesmo nome + valor da parcela + total). Mantém uma de cada
+  // e remove as cópias; pagamentos/parcelas pagas da que sobra ficam intactos.
+  const removerDuplicadas = async () => {
+    const norm = (s) => (s || "").toLowerCase().normalize("NFD")
+      .replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, "")
+      .replace(/\s+/g, " ").trim();
+    const valorParcela = (p) =>
+      Number(p.valorParcela || (p.valorTotal && p.totalParcelas ? p.valorTotal / p.totalParcelas : 0)) || 0;
+
+    // Fixas duplicadas
+    const gFix = {};
+    (fixas || []).forEach(f => {
+      const k = `${norm(f.descricao)}|${Math.round((Number(f.valor) || 0) * 100)}`;
+      (gFix[k] = gFix[k] || []).push(f);
+    });
+    const fixasRemover = [];
+    Object.values(gFix).filter(g => g.length > 1).forEach(g => {
+      const ord = [...g].sort((a, b) =>
+        (fixaOcorrencias.filter(o => o.fixaId === b.id).length) -
+        (fixaOcorrencias.filter(o => o.fixaId === a.id).length));
+      fixasRemover.push(...ord.slice(1));
+    });
+
+    // Parcelamentos duplicados
+    const gParc = {};
+    (parcelamentos || []).forEach(p => {
+      const k = `${norm(p.descricao)}|${Math.round(valorParcela(p) * 100)}|${p.totalParcelas || 0}`;
+      (gParc[k] = gParc[k] || []).push(p);
+    });
+    const parcRemover = [];
+    Object.values(gParc).filter(g => g.length > 1).forEach(g => {
+      const ord = [...g].sort((a, b) => (b.parcelasPagas?.length || 0) - (a.parcelasPagas?.length || 0));
+      parcRemover.push(...ord.slice(1));
+    });
+
+    const total = fixasRemover.length + parcRemover.length;
+    if (total === 0) {
+      toast.info("Nenhuma duplicada encontrada no controle anual.");
+      return;
+    }
+    const ok = await confirm({
+      title: `Remover ${total} duplicada${total === 1 ? "" : "s"}?`,
+      body: `Encontrei ${fixasRemover.length} fixa(s) e ${parcRemover.length} parcelamento(s) repetidos. Mantém uma de cada e remove as cópias. Tem Desfazer.`,
+      danger: true, confirmLabel: "Remover",
+    });
+    if (!ok) return;
+
+    const fixaIds = new Set(fixasRemover.map(f => f.id));
+    const parcIds = new Set(parcRemover.map(p => p.id));
+    const backupFixas = fixas, backupOcc = fixaOcorrencias, backupParc = parcelamentos;
+
+    if (typeof setFixas === "function") setFixas((fixas || []).filter(f => !fixaIds.has(f.id)));
+    if (typeof setFixaOcorrencias === "function") {
+      setFixaOcorrencias((fixaOcorrencias || []).filter(o => !fixaIds.has(o.fixaId)));
+    }
+    if (typeof setParcelamentos === "function") setParcelamentos((parcelamentos || []).filter(p => !parcIds.has(p.id)));
+
+    toast.success(`${total} duplicada${total === 1 ? "" : "s"} removida${total === 1 ? "" : "s"}.`, {
+      duration: 6000,
+      action: {
+        label: "Desfazer",
+        onClick: () => {
+          if (setFixas) setFixas(backupFixas);
+          if (setFixaOcorrencias) setFixaOcorrencias(backupOcc);
+          if (setParcelamentos) setParcelamentos(backupParc);
+        },
+      },
+    });
+  };
+
   return (
     <div className="fade-up py-8 px-6">
       <PageHeader
@@ -154,6 +229,10 @@ export default function ControleAnual({
             </button>
             <button onClick={copiarTabela} className="btn-ghost" title="Copiar para Excel/Sheets">
               <ClipboardCopy size={13} className="inline mr-1.5" /> Copiar
+            </button>
+            <button onClick={removerDuplicadas} className="btn-ghost" title="Remove fixas e parcelamentos repetidos"
+                    style={{ color: T.red, borderColor: `${T.red}55` }}>
+              <Trash2 size={13} className="inline mr-1.5" /> Remover duplicadas
             </button>
           </div>
         }
