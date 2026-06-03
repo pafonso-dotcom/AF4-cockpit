@@ -1,13 +1,11 @@
 /**
- * Chat IA · usa a Anthropic Claude API com dados contextualizados do cockpit.
+ * Chat IA · usa o Gemini (via Worker /api/gemini) com dados contextualizados.
  *
- * A chave fica em apiKeys.anthropic (configurável em Settings).
- * Privacidade: dados nunca saem da máquina sem permissão; apenas o resumo
- * relevante para a pergunta é enviado para a API.
+ * Sem chave do cliente: a chave fica como secret no Worker (GEMINI_API_KEY).
+ * Privacidade: só o resumo relevante dos dados é enviado para a IA.
  */
 
-const ENDPOINT = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-5";
+import { gerarTextoGemini } from "./gemini.js";
 
 /** Monta resumo compacto dos dados do cockpit pra dar contexto à IA. */
 export function buildContext({ transacoes = [], contas = [], ativos = [], vendas = [], veiculos = [], devedores = [], dividas = [], cheques = [] }) {
@@ -83,9 +81,9 @@ ${topCat.map(([c, v], i) => `${i + 1}. ${c}: R$ ${v.toFixed(2)}`).join("\n")}
  * Envia uma pergunta para o Claude com o contexto dos dados.
  * Retorna a resposta em texto.
  */
-export async function perguntarAoClaude({ apiKey, pergunta, historico = [], contextoDados, model = MODEL }) {
-  const systemPrompt = `Você é um assistente financeiro pessoal do NUMVI Finanças.
-Sua função é analisar os dados financeiros do usuário e responder perguntas com clareza e em PT-BR.
+export async function perguntarAoClaude({ pergunta, historico = [], contextoDados }) {
+  const sistema = `Você é o assistente financeiro do NUMVI Finanças.
+Analise os dados do usuário e responda com clareza, em PT-BR.
 
 Princípios:
 - Seja direto e objetivo · evite preâmbulo
@@ -93,54 +91,26 @@ Princípios:
 - Cite valores específicos quando relevante (formate como R$ 1.234,56)
 - Quando der opinião financeira, deixe claro que é sugestão, não recomendação
 - Quando faltar dado pra responder, diga o que falta
-- Tom: profissional mas próximo, como um contador de confiança
+- Tom: profissional mas próximo, como um contador de confiança`;
 
-Você terá acesso ao snapshot atual dos dados financeiros no início do prompt.
+  const conversa = historico
+    .map(h => `${h.role === "user" ? "Usuário" : "Assistente"}: ${h.content}`)
+    .join("\n");
 
-${contextoDados}`;
+  const prompt = `${sistema}
 
-  const messages = [
-    ...historico.map(h => ({ role: h.role, content: h.content })),
-    { role: "user", content: pergunta },
-  ];
+=== DADOS ATUAIS ===
+${contextoDados}
 
-  // Com chave do cliente → direto na Anthropic; sem chave → proxy do Worker
-  // (/api/ai-chat), que guarda a chave como secret no servidor.
-  const payload = { model, max_tokens: 1024, system: systemPrompt, messages };
+${conversa ? `=== CONVERSA ATÉ AQUI ===\n${conversa}\n\n` : ""}Usuário: ${pergunta}
+
+Responda como o assistente (texto corrido, sem markdown pesado):`;
+
   try {
-    const res = apiKey
-      ? await fetch(ENDPOINT, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-            "anthropic-dangerous-direct-browser-access": "true",
-          },
-          body: JSON.stringify(payload),
-        })
-      : await fetch("/api/ai-chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      throw new Error(`Claude API retornou ${res.status}: ${errText.slice(0, 200)}`);
-    }
-
-    const data = await res.json();
-    const text = (data.content || [])
-      .filter(c => c.type === "text")
-      .map(c => c.text)
-      .join("\n");
-    return text || "(resposta vazia)";
+    const texto = await gerarTextoGemini(prompt, { temperature: 0.3, maxOutputTokens: 1024 });
+    return (texto || "").trim() || "(resposta vazia)";
   } catch (err) {
-    if (err.message?.includes("Failed to fetch") || err.message?.includes("NetworkError")) {
-      throw new Error("Falha ao conectar com a Claude API. Verifique sua conexão.");
-    }
-    throw err;
+    throw new Error(err.message || "Erro ao consultar a IA.");
   }
 }
 
