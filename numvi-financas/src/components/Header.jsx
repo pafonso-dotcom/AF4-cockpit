@@ -11,7 +11,7 @@ import {
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
-  BookOpen, Repeat, MoreHorizontal,
+  BookOpen, Repeat, MoreHorizontal, LogOut,
 } from "lucide-react";
 
 /**
@@ -229,6 +229,7 @@ function HeaderHorizontal({
                   { lbl: hidden ? "Mostrar valores" : "Ocultar valores", icon: hidden ? EyeOff : Eye, on: () => { setHidden(!hidden); setMenuUtilAberto(false); } },
                   { lbl: T.dark ? "Tema claro" : "Tema escuro", icon: T.dark ? Sun : Moon, on: () => { onOpenSettings?.("toggle-tema"); setMenuUtilAberto(false); } },
                   { lbl: refreshing ? "Atualizando…" : "Atualizar cotações", icon: RefreshCw, on: () => { onRefresh?.(); setMenuUtilAberto(false); } },
+                  { lbl: "Sair do app", icon: LogOut, danger: true, on: () => { setMenuUtilAberto(false); window.__af4Logout?.(); } },
                 ].map(it => {
                   const I = it.icon;
                   return (
@@ -236,11 +237,12 @@ function HeaderHorizontal({
                       style={{
                         display: "flex", alignItems: "center", gap: 10, padding: "9px 11px",
                         background: "transparent", border: "none", borderRadius: 7, cursor: "pointer",
-                        color: NAV_INK, fontSize: 13, textAlign: "left", fontFamily: T.sans, width: "100%",
+                        color: it.danger ? T.red : NAV_INK, fontSize: 13, textAlign: "left", fontFamily: T.sans, width: "100%",
+                        borderTop: it.danger ? `1px solid ${NAV_BORDER}` : "none", marginTop: it.danger ? 2 : 0,
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.06)"}
+                      onMouseEnter={e => e.currentTarget.style.background = it.danger ? `${T.red}18` : "rgba(255,255,255,.06)"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      <I size={15} style={{ color: NAV_MUTED }} /> {it.lbl}
+                      <I size={15} style={{ color: it.danger ? T.red : NAV_MUTED }} /> {it.lbl}
                     </button>
                   );
                 })}
@@ -753,6 +755,16 @@ function HeaderVertical({
             display: "flex", alignItems: "center", gap: 9, fontSize: 12,
           }}>
           <Settings size={14} /> Configurações
+        </button>
+        <button
+          onClick={() => window.__af4Logout?.()}
+          style={{
+            padding: "8px 10px", borderRadius: 7, marginTop: 4,
+            background: "rgba(255,255,255,0.05)", color: T.red,
+            border: "none", cursor: "pointer", textAlign: "left",
+            display: "flex", alignItems: "center", gap: 9, fontSize: 12,
+          }}>
+          <LogOut size={14} /> Sair do app
         </button>
       </aside>
 
