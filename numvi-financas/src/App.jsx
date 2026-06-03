@@ -121,8 +121,12 @@ export default function App() {
 
   // Cliente (não-gestor) nunca acessa Config nem o painel Gerencial.
   useEffect(() => {
-    if (!ehGestor && (modulo === "config" || tab === "gerencial")) {
+    if (!ehGestor && tab === "gerencial") {
       setModulo("financas"); setTab("dashboard");
+    }
+    // Cliente que cair numa subtab restrita de config → manda pra Aparência.
+    if (!ehGestor && modulo === "config" && (tab === "cfg-apis" || tab === "cfg-modulos")) {
+      setTab("cfg-aparencia");
     }
   }, [ehGestor, modulo, tab]);
 
@@ -892,8 +896,8 @@ export default function App() {
         )}
 
         {/* MÓDULO: CONFIGURAÇÕES */}
-        {modulo === "config" && ehGestor && (
-          <Configuracoes subtab={tab}
+        {modulo === "config" && (
+          <Configuracoes subtab={tab} ehGestor={ehGestor}
                          themeId={themeId} setThemeId={setThemeId}
                          apiKeys={apiKeys} setApiKeys={setApiKeys}
                          modulesEnabled={modulesEnabled} setModulesEnabled={setModulesEnabled}

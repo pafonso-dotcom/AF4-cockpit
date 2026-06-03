@@ -21,27 +21,34 @@ export default function Configuracoes({
   apiKeys, setApiKeys,
   modulesEnabled, setModulesEnabled,
   onClearModule,
+  ehGestor = false,
 }) {
+  // Cliente (não-gestor) só acessa Aparência e Backup. Se cair numa restrita,
+  // mostra Aparência.
+  const sub = (!ehGestor && (subtab === "cfg-apis" || subtab === "cfg-modulos"))
+    ? "cfg-aparencia" : subtab;
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
       <div className="eb">Sistema · Configurações</div>
       <h1 className="h1">Painel de <em>controle.</em></h1>
-      <p className="hs">Tema, integrações de API, módulos ativos e backup de dados.</p>
+      <p className="hs">{ehGestor
+        ? "Tema, integrações de API, módulos ativos e backup de dados."
+        : "Tema, layout e backup dos seus dados."}</p>
 
-      {subtab === "cfg-aparencia" && (
+      {sub === "cfg-aparencia" && (
         <Aparencia themeId={themeId} setThemeId={setThemeId} />
       )}
-      {subtab === "cfg-apis" && (
+      {sub === "cfg-apis" && ehGestor && (
         <APIs apiKeys={apiKeys} setApiKeys={setApiKeys} />
       )}
-      {subtab === "cfg-modulos" && (
+      {sub === "cfg-modulos" && ehGestor && (
         <Modulos modulesEnabled={modulesEnabled} setModulesEnabled={setModulesEnabled}
                  onClearModule={onClearModule} />
       )}
-      {subtab === "cfg-backup" && (
+      {sub === "cfg-backup" && (
         <>
-          <MigracaoSupabase />
-          <SyncGist />
+          {ehGestor && <MigracaoSupabase />}
+          {ehGestor && <SyncGist />}
           <Backup />
         </>
       )}
