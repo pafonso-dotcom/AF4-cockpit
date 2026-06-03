@@ -1,19 +1,12 @@
 /* ============================================================
-   BRAND · variante do app (pessoal vs comercial)
-   Definida em build via VITE_NUMVI_VARIANT:
-     "pessoal"   (default) → uso pessoal do dono; dados no Supabase pessoal.
-     "comercial"           → produto comercial; Supabase próprio (via env vars).
-   Mesmo código-fonte, dois deploys distintos só pela variável de build.
+   BRAND · este projeto (numvi-financas) é o produto COMERCIAL.
+   Fixado em "comercial" — marca "·finanças" e tabelas numvi_com_*.
+   (O app pessoal é o outro deploy, cars-web/af4cockpit.)
    ============================================================ */
 
-// Este projeto (numvi-financas) é o produto COMERCIAL — default "comercial".
-// Pode forçar "pessoal" via VITE_NUMVI_VARIANT, mas aqui o padrão é comercial.
-const RAW = String(import.meta.env.VITE_NUMVI_VARIANT || "comercial").toLowerCase().trim();
-
-// "financas"/"finanças" são aceites como sinónimos de comercial por conveniência.
-export const VARIANT = (RAW === "comercial" || RAW === "financas" || RAW === "finanças")
-  ? "comercial"
-  : "pessoal";
+// Fixo: ignora qualquer VITE_NUMVI_VARIANT do build (evita cair em "pessoal"
+// por engano de configuração).
+export const VARIANT = "comercial";
 
 export const IS_COMERCIAL = VARIANT === "comercial";
 
