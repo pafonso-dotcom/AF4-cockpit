@@ -21,7 +21,7 @@ export default function RankingFiis({ apiKeys = {}, getFundamentos, preencherIA 
     setEstado(e => ({ ...e, carregando: true, erro: null }));
     const fundamentos = getFundamentos ? ((await getFundamentos()) || {}) : {};
     const r = await carregarRankingFiis({ token: apiKeys.brapi, fundamentos });
-    setEstado({ carregando: false, erro: r.ok ? null : r.erro, linhas: r.linhas || [] });
+    setEstado({ carregando: false, erro: r.ok ? null : r.erro, linhas: r.linhas || [], cvm: r.cvmCasados ?? null });
   };
 
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [apiKeys.brapi]);
@@ -69,6 +69,7 @@ export default function RankingFiis({ apiKeys = {}, getFundamentos, preencherIA 
       <p style={{ fontSize: 12, color: T.muted, marginBottom: 14 }}>
         Seleção dos ativos com melhor potencial pela metodologia (Nota Ativo, Imóvel, Gestão e Geral).
         {estado.linhas.length > 0 && <> · {estado.linhas.length} FIIs · <strong style={{ color: T.green }}>{totalPotencial}</strong> com potencial (Ativo e Imóvel &gt; 8).</>}
+        {estado.cvm != null && <> · <span style={{ color: T.muted }}>{estado.cvm} enriquecidos pela CVM</span></>}
       </p>
 
       {/* Filtros */}
