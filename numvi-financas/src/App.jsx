@@ -63,6 +63,9 @@ import AReceberEDividas from "./components/pages/AReceberEDividas.jsx";
 import AuditLog from "./components/pages/AuditLog.jsx";
 import PergunteAoClaude from "./components/pages/PergunteAoClaude.jsx";
 import Configuracoes from "./components/pages/Configuracoes.jsx";
+import Gerencial from "./components/pages/Gerencial.jsx";
+import { isGestor } from "./lib/gestor.js";
+import { supabase } from "./lib/supabase.js";
 
 export default function App() {
   const [modulo, setModulo] = useState(() => {
@@ -101,6 +104,27 @@ export default function App() {
   const [parcelamentos, setParcelamentos] = useState([]);
   const [devedores, setDevedores] = useState([]);
   const [dividas, setDividas] = useState([]);
+
+  // Painel Gerencial (gestor) — CRM local de clientes do produto.
+  const [clientes, setClientes] = useState([]);
+
+  // E-mail do usuário logado (Supabase) → define se é o gestor.
+  const [userEmail, setUserEmail] = useState("");
+  useEffect(() => {
+    if (!supabase) return;
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => { if (active) setUserEmail(data?.user?.email || ""); });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setUserEmail(session?.user?.email || ""));
+    return () => { active = false; sub.subscription.unsubscribe(); };
+  }, []);
+  const ehGestor = isGestor(userEmail);
+
+  // Cliente (não-gestor) nunca acessa Config nem o painel Gerencial.
+  useEffect(() => {
+    if (!ehGestor && (modulo === "config" || tab === "gerencial")) {
+      setModulo("financas"); setTab("dashboard");
+    }
+  }, [ehGestor, modulo, tab]);
 
   // Escopo financeiro · Pessoal / Negócio / Tudo
   const [escopoAtivo, setEscopoAtivo] = useState(lerEscopo());
@@ -160,6 +184,7 @@ export default function App() {
         }));
         setDevedores(data.devedores || seedDevedores);
         setDividas(data.dividas || seedDividas);
+        setClientes(data.clientes || []);
         // Migração silenciosa: se backup antigo não tem essas chaves, vira []
         setFixas(data.fixas || []);
         setFixaOcorrencias(data.fixaOcorrencias || []);
@@ -228,12 +253,12 @@ export default function App() {
     if (loading) return;
     saveAll({
       contas, categorias, transacoes, ativos, metas, notas,
-      cartoes, parcelamentos, devedores, dividas,
+      cartoes, parcelamentos, devedores, dividas, clientes,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico,
       themeId,
     });
-  }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
+  }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas, clientes,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico,
       themeId, loading]);
@@ -603,6 +628,7 @@ export default function App() {
         contaAberta={contaAberta} setContaAberta={setContaAberta}
         cartaoAberto={cartaoAberto} setCartaoAberto={setCartaoAberto}
         hidden={hidden} setHidden={setHidden}
+        ehGestor={ehGestor}
         escopoAtivo={escopoAtivo}
         onEscopoChange={(novo) => { setEscopoAtivo(novo); salvarEscopo(novo); }}
         onOpenPalette={() => setPaletaAberta(true)}
@@ -669,6 +695,9 @@ export default function App() {
         {/* MÓDULO: FINANÇAS */}
         {modulo === "financas" && (
           <div className="px-6 md:px-10">
+            {tab === "gerencial" && ehGestor && (
+              <Gerencial clientes={clientes} setClientes={setClientes} gestorEmail={userEmail} />
+            )}
             {tab === "dashboard" && (
               <Dashboard totais={totais} hidden={hidden} contas={contas} ativos={ativos}
                          transacoes={transacoes} categorias={categorias} metas={metas}
@@ -863,7 +892,7 @@ export default function App() {
         )}
 
         {/* MÓDULO: CONFIGURAÇÕES */}
-        {modulo === "config" && (
+        {modulo === "config" && ehGestor && (
           <Configuracoes subtab={tab}
                          themeId={themeId} setThemeId={setThemeId}
                          apiKeys={apiKeys} setApiKeys={setApiKeys}
@@ -891,7 +920,7 @@ export default function App() {
 
       <Footer />
       <BottomTabBar
-        modulo={modulo} setModulo={setModulo}
+        modulo={modulo} setModulo={setModulo} tab={tab} ehGestor={ehGestor}
         setTab={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
       />
       <PomodoroFloat />
