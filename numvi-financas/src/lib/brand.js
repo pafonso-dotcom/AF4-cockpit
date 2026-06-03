@@ -6,7 +6,9 @@
    Mesmo código-fonte, dois deploys distintos só pela variável de build.
    ============================================================ */
 
-const RAW = String(import.meta.env.VITE_NUMVI_VARIANT || "pessoal").toLowerCase().trim();
+// Este projeto (numvi-financas) é o produto COMERCIAL — default "comercial".
+// Pode forçar "pessoal" via VITE_NUMVI_VARIANT, mas aqui o padrão é comercial.
+const RAW = String(import.meta.env.VITE_NUMVI_VARIANT || "comercial").toLowerCase().trim();
 
 // "financas"/"finanças" são aceites como sinónimos de comercial por conveniência.
 export const VARIANT = (RAW === "comercial" || RAW === "financas" || RAW === "finanças")
