@@ -84,7 +84,7 @@ function HeaderHorizontal({
   modulo, setModulo,
   tab, setTab,
   hidden, setHidden,
-  ehGestor = false,
+  ehGestor = false, userEmail = "",
   escopoAtivo, onEscopoChange,
   onRefresh, refreshing,
   onOpenSettings,
@@ -279,16 +279,16 @@ function HeaderHorizontal({
                   }}>
             <Settings size={20} />
           </button>
-          <button onClick={() => onOpenSettings?.("perfis")}
-                  title={`Perfil ativo: ${perfilAtivo?.nome || "—"} · clique pra gerenciar`}
+          <button onClick={() => onLogout?.()}
+                  title={`${userEmail || "Sua conta"} · sair`}
                   style={{
                     padding: 0, width: 36, height: 36, borderRadius: "50%",
-                    background: perfilAtivo?.cor || T.gold,
+                    background: T.gold,
                     color: T.bg, border: `2px solid ${T.border}`,
                     fontWeight: 700, fontSize: 14, cursor: "pointer",
                     display: "grid", placeItems: "center", flexShrink: 0,
                   }}>
-            {(perfilAtivo?.nome || "?").charAt(0).toUpperCase()}
+            {(userEmail || "?").charAt(0).toUpperCase()}
           </button>
         </div>
       </div>
@@ -519,7 +519,7 @@ function HeaderVertical({
   modulo, setModulo,
   tab, setTab,
   hidden, setHidden,
-  ehGestor = false,
+  ehGestor = false, userEmail = "",
   escopoAtivo, onEscopoChange,
   onRefresh, refreshing,
   onOpenSettings,
@@ -807,16 +807,16 @@ function HeaderVertical({
             style={{ ...vertUtilBtn, cursor: refreshing ? "wait" : "pointer", color: refreshing ? T.gold : NAV_MUTED }}>
             <RefreshCw size={16} style={refreshing ? { animation: "spin 1s linear infinite" } : undefined} />
           </button>
-          <button onClick={() => onOpenSettings?.("perfis")}
-            title={`Perfil: ${perfilAtivo?.nome || "—"}`}
+          <button onClick={() => onLogout?.()}
+            title={`${userEmail || "Sua conta"} · sair`}
             style={{
               padding: 0, width: 30, height: 30, borderRadius: "50%",
-              background: perfilAtivo?.cor || T.gold,
+              background: T.gold,
               color: T.bg, border: `2px solid ${NAV_BORDER}`,
               fontWeight: 700, fontSize: 12, cursor: "pointer",
               display: "grid", placeItems: "center", flexShrink: 0,
             }}>
-            {(perfilAtivo?.nome || "?").charAt(0).toUpperCase()}
+            {(userEmail || "?").charAt(0).toUpperCase()}
           </button>
         </div>
       </header>

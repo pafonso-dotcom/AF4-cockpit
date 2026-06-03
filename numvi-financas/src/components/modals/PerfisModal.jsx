@@ -65,7 +65,7 @@ export default function PerfisModal({ onClose }) {
       <Modal title="Gerenciar usuários do cockpit" onClose={onClose} wide>
         <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 16, lineHeight: 1.6 }}>
           Crie perfis com diferentes permissões. Útil pra deixar um aparelho na loja com perfil
-          <strong style={{ color: T.gold }}> "vendedor"</strong> que só vê o módulo da AF4 Motors.
+          <strong style={{ color: T.gold }}> "vendedor"</strong> que só vê um módulo específico.
           Os dados financeiros são compartilhados — só o que aparece na tela muda.
         </p>
 
@@ -143,7 +143,7 @@ export default function PerfisModal({ onClose }) {
           <strong style={{ color: T.gold }}>Como cada role acessa:</strong>
           <ul style={{ margin: "5px 0 0 18px", padding: 0 }}>
             <li><strong>Admin</strong> · vê tudo, edita tudo. Recomendado pra você.</li>
-            <li><strong>Vendedor</strong> · só vê o módulo Loja AF4. Lança vendas e leads. Não vê finanças pessoais. <em>Útil pro Anderson Kid.</em></li>
+            <li><strong>Vendedor</strong> · vê só o que você liberar. Não vê tudo. <em>Útil pra um colaborador.</em></li>
             <li><strong>Visualizador</strong> · vê tudo mas não edita. Útil pra mostrar pra contador, sócio.</li>
           </ul>
         </div>
@@ -153,7 +153,7 @@ export default function PerfisModal({ onClose }) {
         <Modal title={form.id && perfis.find(p => p.id === form.id) ? "Editar perfil" : "Novo perfil"} onClose={() => setForm(null)}>
           <Field label="Nome *">
             <input value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })}
-                   placeholder="Ex.: Anderson Kid" />
+                   placeholder="Ex.: João" />
           </Field>
           <Field label="E-mail (opcional)">
             <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
