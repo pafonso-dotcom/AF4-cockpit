@@ -134,11 +134,12 @@ export default function AnaliseFatura({
 
     try {
       const hojeBR = new Date().toLocaleDateString("pt-BR");
-      const prompt = `Você é um analisador de fatura de cartão de crédito brasileiro. Hoje é ${hojeBR}. Use SEMPRE o ano correto da fatura: não invente anos passados — se o ano do vencimento/fechamento não estiver explícito no documento, assuma o ano atual. Analise o conteúdo e classifique CADA item em um dos 3 tipos:
+      const prompt = `Você é um analisador de fatura de cartão de crédito brasileiro. Hoje é ${hojeBR}. Use SEMPRE o ano correto da fatura: não invente anos passados — se o ano do vencimento/fechamento não estiver explícito no documento, assuma o ano atual. Analise o conteúdo e classifique CADA item em um dos 2 tipos:
 
-- "vista": compra única, à vista, SEM parcelamento
-- "fixa": assinatura recorrente mensal (Netflix, Spotify, ChatGPT, academia, plano de saúde, internet, telefone, etc.)
+- "vista": qualquer compra única, à vista, SEM parcelamento (inclui compras na internet, app stores, assinaturas e mensalidades — tudo que NÃO é parcelado)
 - "parcela": qualquer item com indicação de parcelamento (ex.: "iPhone 3/10", "Renner 1/4", "PARC 5/12")
+
+NUNCA classifique nada como assinatura/despesa fixa recorrente. Quem decide se uma compra é recorrente é o usuário, manualmente, em Despesas Fixas — a importação só lança o que está na fatura, nunca cria recorrência automática.
 
 Categorias DISPONÍVEIS (use EXATAMENTE uma destas):
 ${categoriasDespesa.map(c => `- ${c}`).join("\n")}
@@ -157,7 +158,7 @@ Retorne EXATAMENTE este JSON (sem markdown, sem texto extra, sem comentários):
       "valor": número (sempre positivo, em reais),
       "data_compra": "DD/MM/YYYY",
       "categoria_sugerida": "(uma da lista acima ou 'Outros')",
-      "tipo": "vista" | "fixa" | "parcela",
+      "tipo": "vista" | "parcela",
       "parcela_atual": número (SÓ se tipo='parcela', ex.: 5),
       "parcela_total": número (SÓ se tipo='parcela', ex.: 12),
       "valor_parcela": número (SÓ se tipo='parcela', igual ao valor)
@@ -168,9 +169,8 @@ Retorne EXATAMENTE este JSON (sem markdown, sem texto extra, sem comentários):
 Regras IMPORTANTES:
 1. Se aparecer "X/N", "X DE N", "PARC X/N" na descrição → tipo: "parcela" (parcela_atual=X, parcela_total=N)
 2. Limpe o nome: "PARC 5/12 IPHONE 16 APPLE" → descricao: "iPhone 16 Apple", parcela_atual: 5, parcela_total: 12
-3. tipo: "fixa" para: Netflix, Spotify, Amazon Prime, Disney+, HBO, Globoplay, ChatGPT Plus, Claude Pro, Apple One/Music/TV/iCloud, Google One, Notion, academia, plano de saúde, internet, telefone fixo/celular plano, mensalidade escolar.
-4. Tudo que NÃO é parcela nem assinatura recorrente → tipo: "vista"
-5. NÃO inclua: "pagamento recebido", "saldo anterior", "juros", "estorno", "crédito", "tarifa de anuidade total" (mas inclua AS PARCELAS dela como tipo "parcela").
+3. Tudo que NÃO tiver indicação de parcelamento → tipo: "vista" (incluindo Netflix, Apple, internet, mensalidades — NÃO marque como fixa/recorrente).
+4. NÃO inclua: "pagamento recebido", "saldo anterior", "juros", "estorno", "crédito", "tarifa de anuidade total" (mas inclua AS PARCELAS dela como tipo "parcela").
 6. Se a categoria certa não está na lista, use "Outros".
 7. Retorne APENAS o JSON, NADA mais.`;
 
@@ -277,7 +277,10 @@ Regras IMPORTANTES:
           descricao: String(it.descricao || "Lançamento").trim(),
           valor: Math.abs(Number(it.valor) || 0),
           categoria_sugerida: categoriasDespesa.includes(it.categoria_sugerida) ? it.categoria_sugerida : "Outros",
-          tipo: it.tipo || (it.fixa ? "fixa" : "vista"),
+          // Importação nunca cria despesa fixa/recorrente automaticamente:
+          // qualquer "fixa" sugerida pela IA (ou legado) é tratada como "vista".
+          // Só "parcela" preserva o tratamento próprio; o resto vira "vista".
+          tipo: it.tipo === "parcela" ? "parcela" : "vista",
         })).filter(t => t.valor > 0),
       };
 
@@ -386,7 +389,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
       <PageHeader
         eyebrow="Capítulo IV · Inteligência"
         title="Análise de Fatura com IA"
-        sub="Envie o PDF da fatura. O Gemini lê, classifica em vista/fixa/parcela, detecta match com parcelamentos existentes, e importa direto para o Planejamento."
+        sub="Envie o PDF da fatura. O Gemini lê, classifica em à vista ou parcela, detecta match com parcelamentos existentes, e importa direto para o Planejamento. Assinaturas recorrentes você cadastra manualmente em Despesas Fixas."
       />
 
       {/* UPLOAD STAGE */}
