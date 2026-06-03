@@ -109,6 +109,7 @@ export default function App() {
   const [clientes, setClientes] = useState([]);
   const [curadoria, setCuradoria] = useState([]); // dicas/conteúdos pro cliente
   const [planos, setPlanos] = useState([]);       // planos de assinatura
+  const [gerencialConfig, setGerencialConfig] = useState({}); // { appUrl, mensagemConvite, testeDias }
 
   // E-mail do usuário logado (Supabase) → define se é o gestor.
   const [userEmail, setUserEmail] = useState("");
@@ -193,6 +194,7 @@ export default function App() {
         setClientes(data.clientes || []);
         setCuradoria(data.curadoria || []);
         setPlanos(data.planos || []);
+        setGerencialConfig(data.gerencialConfig || {});
         // Migração silenciosa: se backup antigo não tem essas chaves, vira []
         setFixas(data.fixas || []);
         setFixaOcorrencias(data.fixaOcorrencias || []);
@@ -261,12 +263,12 @@ export default function App() {
     if (loading) return;
     saveAll({
       contas, categorias, transacoes, ativos, metas, notas,
-      cartoes, parcelamentos, devedores, dividas, clientes, curadoria, planos,
+      cartoes, parcelamentos, devedores, dividas, clientes, curadoria, planos, gerencialConfig,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico,
       themeId,
     });
-  }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas, clientes, curadoria, planos,
+  }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas, clientes, curadoria, planos, gerencialConfig,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico,
       themeId, loading]);
@@ -707,6 +709,7 @@ export default function App() {
               <Gerencial clientes={clientes} setClientes={setClientes}
                          curadoria={curadoria} setCuradoria={setCuradoria}
                          planos={planos} setPlanos={setPlanos}
+                         config={gerencialConfig} setConfig={setGerencialConfig}
                          gestorEmail={userEmail} />
             )}
             {tab === "dashboard" && (

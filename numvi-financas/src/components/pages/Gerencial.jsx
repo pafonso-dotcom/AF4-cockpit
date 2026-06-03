@@ -17,6 +17,7 @@ export default function Gerencial({
   clientes = [], setClientes,
   curadoria = [], setCuradoria,
   planos = [], setPlanos,
+  config = {}, setConfig,
   gestorEmail = "",
 }) {
   const [sub, setSub] = useState("clientes");
@@ -47,7 +48,10 @@ export default function Gerencial({
   const convidarWhatsApp = () => {
     // O convite só compartilha o link — NÃO exige e-mail. Se um e-mail válido
     // estiver digitado, também registra o cliente na lista (opcional).
-    const texto = `Olá! Te convido pra usar o NUMVI Finanças — sua vida financeira organizada num só lugar. Acesse: ${APP_URL}`;
+    const url = (config.appUrl || "").trim() || APP_URL;
+    const base = (config.mensagemConvite || "").trim()
+      || "Olá! Te convido pra usar o NUMVI Finanças — sua vida financeira organizada num só lugar. Acesse: {link}";
+    const texto = base.includes("{link}") ? base.replace("{link}", url) : `${base} ${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
     const e = (busca || "").trim().toLowerCase();
     if (e && /.+@.+\..+/.test(e)) {
@@ -68,8 +72,9 @@ export default function Gerencial({
     setClientes(clientes.map(c => c.id === id ? { ...c, ...patch } : c));
 
   const concederTeste = (c) => {
-    // "Teste" concede/estende dias grátis. Clicar soma 7 dias; longo-press (Alt) zera.
-    const novos = (Number(c.testeDias) || 0) + 7;
+    // "Teste" concede/estende dias grátis (padrão configurável).
+    const passo = Number(config.testeDias) > 0 ? Number(config.testeDias) : 7;
+    const novos = (Number(c.testeDias) || 0) + passo;
     atualizarCliente(c.id, { testeDias: novos, assinatura: c.assinatura === "ativa" ? "ativa" : "teste" });
     toast.success(`${c.email}: teste em ${novos} dias.`);
   };
@@ -222,10 +227,7 @@ export default function Gerencial({
       )}
 
       {sub === "config" && (
-        <div style={{ background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10, padding: 40, textAlign: "center", color: T.muted }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, marginBottom: 6 }}>Configurações</div>
-          Em breve — próxima fase do painel do gestor.
-        </div>
+        <ConfigTab config={config} setConfig={setConfig} gestorEmail={gestorEmail} />
       )}
     </div>
   );
@@ -447,4 +449,69 @@ function iconBtn(cor) {
     padding: "5px 8px", borderRadius: 6, cursor: "pointer", background: "transparent",
     border: `1px solid ${cor}55`, color: cor, display: "inline-flex", alignItems: "center", gap: 4,
   };
+}
+
+/* ============ CONFIGURAÇÕES do gestor ============ */
+function ConfigTab({ config = {}, setConfig, gestorEmail = "" }) {
+  const [form, setForm] = useState({
+    appUrl: config.appUrl || "",
+    mensagemConvite: config.mensagemConvite || "",
+    testeDias: config.testeDias || "",
+  });
+
+  const salvar = () => {
+    setConfig({
+      appUrl: form.appUrl.trim(),
+      mensagemConvite: form.mensagemConvite.trim(),
+      testeDias: Number(form.testeDias) || 0,
+    });
+    toast.success("Configurações do gestor salvas.");
+  };
+
+  return (
+    <div style={{ maxWidth: 620 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
+        <Campo label="E-mail do gestor">
+          <input value={gestorEmail} disabled style={{ ...inp, marginBottom: 0, opacity: 0.7 }} />
+          <div style={{ fontSize: 10.5, color: T.muted, marginTop: 4 }}>
+            Definido no build (VITE_GESTOR_EMAILS). Só este e-mail vê o painel Gerencial.
+          </div>
+        </Campo>
+      </div>
+
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 16 }}>
+        <Campo label="Link do app (usado no convite)">
+          <input value={form.appUrl} onChange={e => setForm({ ...form, appUrl: e.target.value })}
+                 placeholder={APP_URL} style={{ ...inp, marginBottom: 0 }} />
+        </Campo>
+        <Campo label="Mensagem do convite (WhatsApp)">
+          <textarea value={form.mensagemConvite} onChange={e => setForm({ ...form, mensagemConvite: e.target.value })}
+                    rows={3} placeholder="Use {link} onde o link do app deve entrar."
+                    style={{ ...inp, marginBottom: 0, resize: "vertical" }} />
+          <div style={{ fontSize: 10.5, color: T.muted, marginTop: 4 }}>
+            Use <code>{"{link}"}</code> pra posicionar o link; se não usar, o link é colado no fim.
+          </div>
+        </Campo>
+        <Campo label="Dias de teste por clique no botão “Teste”">
+          <input value={form.testeDias} onChange={e => setForm({ ...form, testeDias: e.target.value })}
+                 inputMode="numeric" placeholder="7" style={{ ...inp, marginBottom: 0, width: 120 }} />
+        </Campo>
+        <button onClick={salvar} style={{
+          marginTop: 8, padding: "9px 18px", borderRadius: 8, fontSize: 12.5, fontWeight: 600,
+          cursor: "pointer", background: T.gold, color: T.bg, border: "none",
+        }}>
+          Salvar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Campo({ label, children }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: T.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: ".05em" }}>{label}</div>
+      {children}
+    </div>
+  );
 }
