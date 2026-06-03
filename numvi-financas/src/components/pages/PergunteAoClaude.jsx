@@ -16,6 +16,10 @@ export default function PergunteAoClaude({
   const scrollRef = useRef();
   const inputRef = useRef();
 
+  // IA atendida pelo servidor (Worker /api/ai-chat) — não exige chave do
+  // cliente. Mantém funcionando se o usuário tiver chave própria também.
+  const iaDisponivel = true;
+
   // Auto-scroll ao adicionar mensagens
   useEffect(() => {
     if (scrollRef.current) {
@@ -26,7 +30,7 @@ export default function PergunteAoClaude({
   const enviar = async (texto) => {
     const q = (texto ?? pergunta).trim();
     if (!q || pensando) return;
-    if (!apiKey) {
+    if (!iaDisponivel) {
       setErro("Configure a chave Anthropic em Configurações → API Keys antes de usar o chat.");
       return;
     }
@@ -80,7 +84,7 @@ export default function PergunteAoClaude({
         }
       />
 
-      {!apiKey && (
+      {!iaDisponivel && (
         <div style={{
           padding: 18, marginBottom: 16, borderRadius: 8,
           background: `${T.yellow}11`, border: `1px solid ${T.yellow}`,
@@ -123,16 +127,16 @@ export default function PergunteAoClaude({
               }}>
                 {SUGESTOES.slice(0, 6).map((s, i) => (
                   <button key={i} onClick={() => enviar(s)}
-                          disabled={!apiKey || pensando}
+                          disabled={!iaDisponivel || pensando}
                           style={{
                             padding: "10px 12px", textAlign: "left",
                             background: T.bgSoft, border: `1px solid ${T.border}`,
                             color: T.ink, fontSize: 11.5, borderRadius: 7,
-                            cursor: apiKey ? "pointer" : "not-allowed",
+                            cursor: iaDisponivel ? "pointer" : "not-allowed",
                             transition: "all .2s",
-                            opacity: !apiKey ? 0.5 : 1,
+                            opacity: !iaDisponivel ? 0.5 : 1,
                           }}
-                          onMouseEnter={e => { if (apiKey) e.currentTarget.style.borderColor = T.gold; }}
+                          onMouseEnter={e => { if (iaDisponivel) e.currentTarget.style.borderColor = T.gold; }}
                           onMouseLeave={e => e.currentTarget.style.borderColor = T.border}>
                     "{s}"
                   </button>
@@ -186,8 +190,8 @@ export default function PergunteAoClaude({
                 enviar();
               }
             }}
-            placeholder={apiKey ? "Pergunte algo sobre seus dados…" : "Configure a chave primeiro"}
-            disabled={!apiKey || pensando}
+            placeholder={iaDisponivel ? "Pergunte algo sobre seus dados…" : "Configure a chave primeiro"}
+            disabled={!iaDisponivel || pensando}
             rows={1}
             style={{
               flex: 1, padding: "10px 12px",
@@ -198,11 +202,11 @@ export default function PergunteAoClaude({
             }}
           />
           <button onClick={() => enviar()}
-                  disabled={!apiKey || pensando || !pergunta.trim()}
+                  disabled={!iaDisponivel || pensando || !pergunta.trim()}
                   className="btn-gold"
                   style={{
                     padding: "10px 16px",
-                    opacity: (!apiKey || pensando || !pergunta.trim()) ? 0.5 : 1,
+                    opacity: (!iaDisponivel || pensando || !pergunta.trim()) ? 0.5 : 1,
                     display: "inline-flex", alignItems: "center", gap: 6,
                   }}>
             <Send size={13} /> {pensando ? "..." : "Enviar"}

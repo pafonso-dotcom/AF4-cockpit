@@ -39,6 +39,43 @@ export default {
       return handleRecibo(request, env);
     }
 
+    // IA · Gemini (Análise de fatura, OCR, voz). Chave fica no Worker
+    // (GEMINI_API_KEY como secret). O app envia o corpo do generateContent.
+    if (url.pathname === "/api/gemini" && request.method === "POST") {
+      if (!env.GEMINI_API_KEY) return json({ error: "Servidor sem GEMINI_API_KEY configurada." }, 500);
+      try {
+        const body = await request.text();
+        const model = url.searchParams.get("model") || "gemini-2.5-flash";
+        const g = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,
+          { method: "POST", headers: { "Content-Type": "application/json" }, body }
+        );
+        return new Response(await g.text(), { status: g.status, headers: { "Content-Type": "application/json" } });
+      } catch (e) {
+        return json({ error: "Falha ao chamar o Gemini: " + (e.message || e) }, 502);
+      }
+    }
+
+    // IA · Claude (Pergunte ao Claude). Chave fica no Worker (ANTHROPIC_API_KEY).
+    if (url.pathname === "/api/ai-chat" && request.method === "POST") {
+      if (!env.ANTHROPIC_API_KEY) return json({ error: "Servidor sem ANTHROPIC_API_KEY configurada." }, 500);
+      try {
+        const body = await request.text();
+        const a = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": env.ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+          },
+          body,
+        });
+        return new Response(await a.text(), { status: a.status, headers: { "Content-Type": "application/json" } });
+      } catch (e) {
+        return json({ error: "Falha ao chamar o Claude: " + (e.message || e) }, 502);
+      }
+    }
+
     // Endpoints /api/* antigos (state/keys) foram removidos — sync agora
     // é via GitHub Gist direto do cliente. Devolve 410 Gone pra qualquer
     // chamada residual.

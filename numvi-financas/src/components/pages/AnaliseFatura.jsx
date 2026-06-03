@@ -124,10 +124,6 @@ export default function AnaliseFatura({
       return;
     }
     const geminiKey = (typeof localStorage !== "undefined" && localStorage.getItem("af4:gemini-key")) || apiKeys?.gemini || "";
-    if (!geminiKey.trim()) {
-      setError("Para usar a análise por IA é preciso configurar sua chave do Gemini em ⚙ Configurações → Inteligência Artificial. Crie a sua em aistudio.google.com. Como alternativa, use a aba ✏️ Cadastrar manual aí em cima.");
-      return;
-    }
     setError("");
     setStage("analyzing");
     setProgress("Preparando documento…");
@@ -632,7 +628,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                 </div>
               </div>
             </div>
-            {!(typeof localStorage !== "undefined" && localStorage.getItem("af4:gemini-key")) && (
+            {false && (
               <div style={{ marginTop: 20, padding: 12, background: T.bg, border: `1px solid ${T.border}`, fontSize: 12, color: T.muted, fontStyle: "italic" }}>
                 <strong style={{ color: T.gold, fontStyle: "normal" }}>Em produção:</strong> a análise por IA usa <strong>Google Gemini 2.5 Flash</strong> (1500 análises/dia grátis). Crie sua chave em <span style={{ color: T.gold }}>aistudio.google.com</span> e cole em ⚙ Configurações → Inteligência Artificial.
               </div>

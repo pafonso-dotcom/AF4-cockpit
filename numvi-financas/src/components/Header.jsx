@@ -148,9 +148,8 @@ function HeaderHorizontal({
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência",    icon: Sparkles },
-      { id: "cfg-apis",      label: "APIs",         icon: Settings },
-      { id: "cfg-modulos",   label: "Módulos",      icon: Package },
-      { id: "cfg-backup",    label: "Backup",       icon: RefreshCw },
+      ...(ehGestor ? [{ id: "cfg-modulos", label: "Módulos", icon: Package }] : []),
+      { id: "cfg-backup",    label: "Backup",        icon: RefreshCw },
     ],
   };
 
@@ -266,7 +265,6 @@ function HeaderHorizontal({
               <Briefcase size={19} />
             </button>
           )}
-          {ehGestor && (
           <button onClick={() => { setModulo("config"); setTab("cfg-aparencia"); }}
                   title="Configurações"
                   className="hdr-util"
@@ -278,7 +276,6 @@ function HeaderHorizontal({
                   }}>
             <Settings size={20} />
           </button>
-          )}
           <button onClick={() => onOpenSettings?.("perfis")}
                   title={`Perfil ativo: ${perfilAtivo?.nome || "—"} · clique pra gerenciar`}
                   style={{
@@ -575,8 +572,7 @@ function HeaderVertical({
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência", icon: Sparkles },
-      { id: "cfg-apis",      label: "APIs",      icon: Settings },
-      { id: "cfg-modulos",   label: "Módulos",   icon: Package },
+      ...(ehGestor ? [{ id: "cfg-modulos", label: "Módulos", icon: Package }] : []),
       { id: "cfg-backup",    label: "Backup",    icon: RefreshCw },
     ],
   };
@@ -747,7 +743,6 @@ function HeaderVertical({
             <Briefcase size={14} /> Gerencial
           </button>
         )}
-        {ehGestor && (
         <button
           onClick={() => { setModulo("config"); setTab("cfg-aparencia"); }}
           style={{
@@ -759,7 +754,6 @@ function HeaderVertical({
           }}>
           <Settings size={14} /> Configurações
         </button>
-        )}
       </aside>
 
       <header className="hdr-vertical-topbar" style={{

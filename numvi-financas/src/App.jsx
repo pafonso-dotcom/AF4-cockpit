@@ -107,6 +107,9 @@ export default function App() {
 
   // Painel Gerencial (gestor) — CRM local de clientes do produto.
   const [clientes, setClientes] = useState([]);
+  const [curadoria, setCuradoria] = useState([]); // dicas/conteúdos pro cliente
+  const [planos, setPlanos] = useState([]);       // planos de assinatura
+  const [gerencialConfig, setGerencialConfig] = useState({}); // { appUrl, mensagemConvite, testeDias }
 
   // E-mail do usuário logado (Supabase) → define se é o gestor.
   const [userEmail, setUserEmail] = useState("");
@@ -121,8 +124,12 @@ export default function App() {
 
   // Cliente (não-gestor) nunca acessa Config nem o painel Gerencial.
   useEffect(() => {
-    if (!ehGestor && (modulo === "config" || tab === "gerencial")) {
+    if (!ehGestor && tab === "gerencial") {
       setModulo("financas"); setTab("dashboard");
+    }
+    // Cliente que cair numa subtab restrita de config → manda pra Aparência.
+    if (!ehGestor && modulo === "config" && (tab === "cfg-apis" || tab === "cfg-modulos")) {
+      setTab("cfg-aparencia");
     }
   }, [ehGestor, modulo, tab]);
 
@@ -185,6 +192,9 @@ export default function App() {
         setDevedores(data.devedores || seedDevedores);
         setDividas(data.dividas || seedDividas);
         setClientes(data.clientes || []);
+        setCuradoria(data.curadoria || []);
+        setPlanos(data.planos || []);
+        setGerencialConfig(data.gerencialConfig || {});
         // Migração silenciosa: se backup antigo não tem essas chaves, vira []
         setFixas(data.fixas || []);
         setFixaOcorrencias(data.fixaOcorrencias || []);
@@ -253,12 +263,12 @@ export default function App() {
     if (loading) return;
     saveAll({
       contas, categorias, transacoes, ativos, metas, notas,
-      cartoes, parcelamentos, devedores, dividas, clientes,
+      cartoes, parcelamentos, devedores, dividas, clientes, curadoria, planos, gerencialConfig,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico,
       themeId,
     });
-  }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas, clientes,
+  }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas, clientes, curadoria, planos, gerencialConfig,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico,
       themeId, loading]);
@@ -696,7 +706,11 @@ export default function App() {
         {modulo === "financas" && (
           <div className="px-6 md:px-10">
             {tab === "gerencial" && ehGestor && (
-              <Gerencial clientes={clientes} setClientes={setClientes} gestorEmail={userEmail} />
+              <Gerencial clientes={clientes} setClientes={setClientes}
+                         curadoria={curadoria} setCuradoria={setCuradoria}
+                         planos={planos} setPlanos={setPlanos}
+                         config={gerencialConfig} setConfig={setGerencialConfig}
+                         gestorEmail={userEmail} />
             )}
             {tab === "dashboard" && (
               <Dashboard totais={totais} hidden={hidden} contas={contas} ativos={ativos}
@@ -892,8 +906,8 @@ export default function App() {
         )}
 
         {/* MÓDULO: CONFIGURAÇÕES */}
-        {modulo === "config" && ehGestor && (
-          <Configuracoes subtab={tab}
+        {modulo === "config" && (
+          <Configuracoes subtab={tab} ehGestor={ehGestor}
                          themeId={themeId} setThemeId={setThemeId}
                          apiKeys={apiKeys} setApiKeys={setApiKeys}
                          modulesEnabled={modulesEnabled} setModulesEnabled={setModulesEnabled}

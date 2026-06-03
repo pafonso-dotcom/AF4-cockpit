@@ -10,6 +10,17 @@ function getKey(opts = {}) {
   return opts.apiKey || localStorage.getItem(KEY_LS);
 }
 
+// Endpoint do generateContent. Se o cliente tiver chave própria, vai direto
+// ao Google; senão, usa o proxy do Worker (/api/gemini), que guarda a chave
+// como secret no servidor — assim a IA funciona sem o usuário configurar nada.
+const PROXY = "/api/gemini";
+function endpointGemini(opts = {}) {
+  const key = getKey(opts);
+  return key
+    ? `${ENDPOINT}/${MODEL}:generateContent?key=${encodeURIComponent(key)}`
+    : PROXY;
+}
+
 /**
  * Traduz status HTTP do Gemini em mensagem útil pro usuário final.
  */
@@ -128,9 +139,6 @@ export async function fetchComRetry(url, opts, maxTentativas = 3) {
 }
 
 export async function gerarTextoGemini(prompt, opts = {}) {
-  const key = getKey(opts);
-  if (!key) throw new Error("Chave do Gemini não configurada");
-
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
@@ -141,7 +149,7 @@ export async function gerarTextoGemini(prompt, opts = {}) {
   };
 
   const res = await fetchComRetry(
-    `${ENDPOINT}/${MODEL}:generateContent?key=${encodeURIComponent(key)}`,
+    endpointGemini(opts),
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -185,9 +193,6 @@ export async function gerarJSONGeminiComAudio(prompt, audioBase64, mimeType = "a
 }
 
 async function _gerarJSONGeminiComArquivo(prompt, base64, mimeType, opts = {}) {
-  const key = getKey(opts);
-  if (!key) throw new Error("Chave do Gemini não configurada");
-
   const body = {
     contents: [{
       parts: [
@@ -203,7 +208,7 @@ async function _gerarJSONGeminiComArquivo(prompt, base64, mimeType, opts = {}) {
   };
 
   const res = await fetchComRetry(
-    `${ENDPOINT}/${MODEL}:generateContent?key=${encodeURIComponent(key)}`,
+    endpointGemini(opts),
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

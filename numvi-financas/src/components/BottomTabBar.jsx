@@ -13,7 +13,7 @@ export default function BottomTabBar({ modulo, setModulo, setTab, tab, ehGestor 
     { id: "financas", label: "Finanças", icon: Wallet, active: modulo === "financas" && tab !== "inicio" && tab !== "gerencial", onClick: () => ir("financas", "dashboard") },
     { id: "agenda", label: "Agenda", icon: Calendar, active: modulo === "financas" && tab === "inicio", onClick: () => ir("financas", "inicio") },
     ...(ehGestor ? [{ id: "gerencial", label: "Gestor", icon: Briefcase, active: tab === "gerencial", onClick: () => ir("financas", "gerencial") }] : []),
-    ...(ehGestor ? [{ id: "config", label: "Config", icon: Settings, active: modulo === "config", onClick: () => ir("config", "cfg-aparencia") }] : []),
+    { id: "config", label: "Config", icon: Settings, active: modulo === "config", onClick: () => ir("config", "cfg-aparencia") },
   ];
 
   return (
