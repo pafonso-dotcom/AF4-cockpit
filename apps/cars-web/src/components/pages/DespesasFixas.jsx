@@ -113,6 +113,46 @@ export default function DespesasFixas({
     toast.success(`"${fixa.descricao}" excluída. ${pagas.length > 0 ? `${pagas.length} pagamento${pagas.length === 1 ? "" : "s"} preservado${pagas.length === 1 ? "" : "s"}.` : ""}`);
   };
 
+  // Remove fixas duplicadas (mesmo nome + mesmo valor). Mantém a que tem mais
+  // ocorrências e remove as cópias; pagamentos já feitos ficam preservados.
+  const removerDuplicadas = async () => {
+    const norm = (s) => (s || "").toLowerCase().normalize("NFD")
+      .replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, "")
+      .replace(/\s+/g, " ").trim();
+    const contarOcc = (f) => fixaOcorrencias.filter(o => o.fixaId === f.id).length;
+    const grupos = {};
+    fixas.forEach(f => {
+      const key = `${norm(f.descricao)}|${Math.round((Number(f.valor) || 0) * 100)}`;
+      (grupos[key] = grupos[key] || []).push(f);
+    });
+    const remover = [];
+    Object.values(grupos).filter(g => g.length > 1).forEach(g => {
+      const ordenado = [...g].sort((a, b) => contarOcc(b) - contarOcc(a));
+      remover.push(...ordenado.slice(1)); // mantém a 1ª (mais ocorrências)
+    });
+    if (remover.length === 0) {
+      toast.info("Nenhuma fixa duplicada encontrada.");
+      return;
+    }
+    const ok = await confirm({
+      title: `Remover ${remover.length} fixa${remover.length === 1 ? "" : "s"} duplicada${remover.length === 1 ? "" : "s"}?`,
+      body: "Mantém uma de cada despesa repetida e remove as cópias (ocorrências pendentes). Pagamentos já feitos ficam preservados no histórico.",
+      danger: true, confirmLabel: "Remover",
+    });
+    if (!ok) return;
+    const idsRemover = new Set(remover.map(f => f.id));
+    const backupFixas = fixas;
+    const backupOcc = fixaOcorrencias;
+    setFixas(fixas.filter(f => !idsRemover.has(f.id)));
+    setFixaOcorrencias(fixaOcorrencias.filter(o => !idsRemover.has(o.fixaId) || o.status === "paga"));
+    toast.success(`${remover.length} fixa${remover.length === 1 ? "" : "s"} duplicada${remover.length === 1 ? "" : "s"} removida${remover.length === 1 ? "" : "s"}.`, {
+      action: {
+        label: "Desfazer",
+        onClick: () => { setFixas(backupFixas); setFixaOcorrencias(backupOcc); },
+      },
+    });
+  };
+
   const handleConfirmarPagamento = ({ dataPagto, valorPago, lancarNoBanco, conta }) => {
     const occ = fixaOcorrencias.find(o => o.id === pagandoOccId);
     if (!occ) return;
@@ -208,9 +248,14 @@ export default function DespesasFixas({
         title={<>Despesas <em>Fixas.</em></>}
         sub="Agenda de obrigações recorrentes — aluguel, mensalidades, assinaturas. Pagar aqui não toca no banco automaticamente: o app pergunta a cada vez."
         action={
-          <button className="btn-gold" onClick={() => { setEditingFixa(null); setModalNovaFixaOpen(true); }}>
-            <Plus size={14} className="inline mr-1.5" /> Nova fixa
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <button className="btn-ghost" onClick={removerDuplicadas} title="Remove fixas repetidas (mesmo nome e valor)">
+              <Trash2 size={14} className="inline mr-1.5" /> Remover duplicadas
+            </button>
+            <button className="btn-gold" onClick={() => { setEditingFixa(null); setModalNovaFixaOpen(true); }}>
+              <Plus size={14} className="inline mr-1.5" /> Nova fixa
+            </button>
+          </div>
         }
       />
 
