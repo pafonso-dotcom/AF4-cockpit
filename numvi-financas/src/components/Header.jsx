@@ -282,17 +282,6 @@ function HeaderHorizontal({
                   }}>
             <Settings size={20} />
           </button>
-          <button onClick={() => onLogout?.()}
-                  title={`${userEmail || "Sua conta"} · sair`}
-                  style={{
-                    padding: 0, width: 36, height: 36, borderRadius: "50%",
-                    background: T.gold,
-                    color: T.bg, border: `2px solid ${T.border}`,
-                    fontWeight: 700, fontSize: 14, cursor: "pointer",
-                    display: "grid", placeItems: "center", flexShrink: 0,
-                  }}>
-            {(userEmail || "?").charAt(0).toUpperCase()}
-          </button>
         </div>
       </div>
 
@@ -820,17 +809,6 @@ function HeaderVertical({
             title="Atualizar cotações"
             style={{ ...vertUtilBtn, cursor: refreshing ? "wait" : "pointer", color: refreshing ? T.gold : NAV_MUTED }}>
             <RefreshCw size={16} style={refreshing ? { animation: "spin 1s linear infinite" } : undefined} />
-          </button>
-          <button onClick={() => onLogout?.()}
-            title={`${userEmail || "Sua conta"} · sair`}
-            style={{
-              padding: 0, width: 30, height: 30, borderRadius: "50%",
-              background: T.gold,
-              color: T.bg, border: `2px solid ${NAV_BORDER}`,
-              fontWeight: 700, fontSize: 12, cursor: "pointer",
-              display: "grid", placeItems: "center", flexShrink: 0,
-            }}>
-            {(userEmail || "?").charAt(0).toUpperCase()}
           </button>
         </div>
       </header>
