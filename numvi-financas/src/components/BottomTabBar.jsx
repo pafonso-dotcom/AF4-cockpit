@@ -6,23 +6,14 @@ import { T } from "../lib/theme.js";
  * Bottom tab bar fixo no celular (≤768px). Esconde em desktop.
  * Navega entre os 2 módulos + abre Configurações.
  */
-export default function BottomTabBar({ modulo, setModulo, setTab }) {
-  const irPara = (id) => {
-    setModulo(id);
-    const firstTab = FIRST_TAB_OF[id];
-    if (firstTab) setTab(firstTab);
-  };
-
-  const irConfig = () => {
-    setModulo("config");
-    setTab("cfg-aparencia");
-  };
+export default function BottomTabBar({ modulo, setModulo, setTab, tab, ehGestor = false }) {
+  const ir = (mod, t) => { setModulo(mod); setTab(t); };
 
   const items = [
-    { id: "financas", label: "Finanças", icon: Wallet,    onClick: () => irPara("financas") },
-    { id: "invest",   label: "Invest",   icon: Briefcase, onClick: () => irPara("invest") },
-    { id: "agenda",   label: "Agenda",   icon: Calendar,  onClick: () => irPara("agenda") },
-    { id: "config",   label: "Config",   icon: Settings,  onClick: irConfig },
+    { id: "financas", label: "Finanças", icon: Wallet, active: modulo === "financas" && tab !== "inicio" && tab !== "gerencial", onClick: () => ir("financas", "dashboard") },
+    { id: "agenda", label: "Agenda", icon: Calendar, active: modulo === "financas" && tab === "inicio", onClick: () => ir("financas", "inicio") },
+    ...(ehGestor ? [{ id: "gerencial", label: "Gestor", icon: Briefcase, active: tab === "gerencial", onClick: () => ir("financas", "gerencial") }] : []),
+    ...(ehGestor ? [{ id: "config", label: "Config", icon: Settings, active: modulo === "config", onClick: () => ir("config", "cfg-aparencia") }] : []),
   ];
 
   return (
@@ -31,7 +22,7 @@ export default function BottomTabBar({ modulo, setModulo, setTab }) {
         <div className="btb-inner">
           {items.map(it => {
             const Icon = it.icon;
-            const active = modulo === it.id;
+            const active = it.active;
             return (
               <button key={it.id} onClick={it.onClick}
                 className={`btb-item${active ? " active" : ""}`}
