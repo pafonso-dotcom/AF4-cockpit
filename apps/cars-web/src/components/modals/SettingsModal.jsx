@@ -154,6 +154,7 @@ export default function SettingsModal({ apiKeys, setApiKeys, onClose }) {
         <SyncBlock />
         <NotificationsBlock />
         <MarketPollingBlock />
+        <AtualizarAppBlock />
 
         <div className="flex gap-3 mt-6">
           <button className="btn-gold" onClick={save}>Salvar configurações</button>
@@ -162,6 +163,47 @@ export default function SettingsModal({ apiKeys, setApiKeys, onClose }) {
       </div>
     </div>
   ), document.body);
+}
+
+// Força atualização: desregistra o service worker, limpa todos os caches
+// e recarrega da rede. Resolve o caso (comum em iPad/PWA) de versão antiga
+// travada. É o mesmo efeito do kill-switch ?nosw=1, só que num botão.
+function AtualizarAppBlock() {
+  const [busy, setBusy] = useState(false);
+  const forcar = async () => {
+    setBusy(true);
+    try {
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if (typeof caches !== "undefined" && caches.keys) {
+        const ks = await caches.keys();
+        await Promise.all(ks.map(k => caches.delete(k)));
+      }
+    } catch { /* segue pro reload mesmo se falhar */ }
+    // Recarrega sem o SW; o cache-buster evita pegar HTML em cache.
+    location.replace(location.origin + location.pathname + "?nosw=1&t=" + Date.now());
+  };
+  return (
+    <div style={{
+      marginTop: 18, padding: 14,
+      border: `1px dashed ${T.border}`, background: T.bgSoft,
+      borderRadius: 7,
+    }}>
+      <div className="label-eyebrow" style={{ color: T.muted, marginBottom: 6 }}>
+        🔄 Atualizar app
+      </div>
+      <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 10, lineHeight: 1.55 }}>
+        Está vendo uma versão antiga (telas cortadas, mudanças que não apareceram)?
+        Isto limpa o cache do app e recarrega a versão mais recente. Seus dados
+        ficam salvos — nada é apagado.
+      </div>
+      <button onClick={forcar} disabled={busy} className="btn-gold">
+        {busy ? "Atualizando…" : "Atualizar agora"}
+      </button>
+    </div>
+  );
 }
 
 function SyncBlock() {

@@ -5,6 +5,7 @@ import { fmt, uid, todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import {
   matchParcelamento,
+  matchFixaExistente,
   detectarDuplicidadeFatura,
   gerarOcorrenciasFixa,
   brDateToISO,
@@ -55,8 +56,9 @@ export default function PreviewImportarFaturaModal({
   const [cartaoSelecionado, setCartaoSelecionado] = useState(cartaoInicial);
   const [itens, setItens] = useState(() => (analise.itens || analise.transacoes || []).map((it, idx) => {
     const tipo = it.tipo || (it.fixa ? "fixa" : "vista");
-    // Parcela que já existe entra DESMARCADA por default (evita duplicar)
-    const jaExiste = tipo === "parcela" && !!matchParcelamento(it, parcelamentos);
+    // Parcela OU fixa que já existe entra DESMARCADA por default (evita duplicar)
+    const jaExiste = (tipo === "parcela" && !!matchParcelamento(it, parcelamentos))
+                  || (tipo === "fixa" && !!matchFixaExistente(it, fixas));
     return {
       ...it,
       _idx: idx,
@@ -92,9 +94,12 @@ export default function PreviewImportarFaturaModal({
         const match = matchParcelamento(item, parcelamentos);
         return { ...item, _match: match };
       }
+      if (item.tipo === "fixa") {
+        return { ...item, _matchFixa: matchFixaExistente(item, fixas) };
+      }
       return item;
     });
-  }, [itens, parcelamentos]);
+  }, [itens, parcelamentos, fixas]);
 
   // Agrupamento por tipo (pra mostrar contadores)
   const stats = useMemo(() => {
@@ -172,6 +177,8 @@ export default function PreviewImportarFaturaModal({
       }
 
       if (item.tipo === "fixa") {
+        // Já existe uma fixa igual (mesmo nome + valor) — não duplica.
+        if (matchFixaExistente(item, fixas)) return;
         totalDebitado += valor;
         // Cria template + 12 ocorrências (1ª já paga)
         const fixaId = `fixa-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -192,6 +199,7 @@ export default function PreviewImportarFaturaModal({
           inicioEm: mesFatura,
           terminoEm: null,
           obs: `Importado da fatura ${banco}`,
+          origem: origemTag,
           criadoEm: todayISO(),
         });
 
@@ -409,7 +417,7 @@ export default function PreviewImportarFaturaModal({
         {itensProcessados.map(item => {
           const cor = corPorTipo[item.tipo] || T.muted;
           const opacidade = item._incluir ? 1 : 0.45;
-          const matchBanner = item.tipo === "parcela" && item._match;
+          const matchBanner = (item.tipo === "parcela" && item._match) || (item.tipo === "fixa" && item._matchFixa);
           const novaParcela = item.tipo === "parcela" && !item._match;
           return (
             <div key={item._idx} style={{
@@ -456,7 +464,7 @@ export default function PreviewImportarFaturaModal({
                         textTransform: "uppercase",
                       }}>Já existe</span>
                       <span style={{ color: T.blue || "#60a5fa", display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 600 }}>
-                        <Link2 size={10} /> {item._match.descricao}
+                        <Link2 size={10} /> {(item._match || item._matchFixa)?.descricao}
                       </span>
                     </>
                   )}

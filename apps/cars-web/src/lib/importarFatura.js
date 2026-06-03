@@ -64,6 +64,35 @@ export function matchParcelamento(item, parcelamentosExistentes = []) {
 }
 
 /**
+ * Tenta achar uma despesa fixa existente que case com o item da fatura.
+ * Critérios:
+ *  - valor com diferença ≤ 1%
+ *  - nome similar (subset OU jaccard > 0.5)
+ * Evita duplicar fixas quando a mesma fatura é reimportada.
+ */
+export function matchFixaExistente(item, fixasExistentes = []) {
+  if (!item) return null;
+  if (!Array.isArray(fixasExistentes) || fixasExistentes.length === 0) return null;
+
+  const descNorm = normalize(item.descricao || "");
+  if (!descNorm) return null;
+  const valorItem = Number(item.valor) || 0;
+
+  const candidatos = fixasExistentes.filter(f => {
+    const valorFixa = Number(f.valor) || 0;
+    if (!valorFixa) return false;
+    const dif = Math.abs(valorFixa - valorItem) / valorFixa;
+    if (dif > 0.01) return false;
+
+    const fNorm = normalize(f.descricao || "");
+    if (!fNorm) return false;
+    return fNorm.includes(descNorm) || descNorm.includes(fNorm) || jaccardSimilarity(fNorm, descNorm) > 0.5;
+  });
+
+  return candidatos[0] || null;
+}
+
+/**
  * Verifica se a fatura inteira parece já ter sido importada.
  * Retorna objeto com `duplicada: true` se ≥ 70% das parcelas já existem.
  */
