@@ -84,6 +84,7 @@ function HeaderHorizontal({
   modulo, setModulo,
   tab, setTab,
   hidden, setHidden,
+  ehGestor = false,
   escopoAtivo, onEscopoChange,
   onRefresh, refreshing,
   onOpenSettings,
@@ -251,6 +252,21 @@ function HeaderHorizontal({
 
         {/* SETTINGS · sempre na extremidade direita, com margin-left extra */}
         <div style={{ display: "inline-flex", gap: 10, alignItems: "center", marginLeft: 12 }}>
+          {/* Painel Gerencial e Configurações: só pro gestor (clientes não veem). */}
+          {ehGestor && (
+            <button onClick={() => { setModulo("financas"); setTab("gerencial"); }}
+                    title="Painel Gerencial (gestor)"
+                    className="hdr-util"
+                    style={{
+                      ...utilBtn,
+                      background: tab === "gerencial" ? `${T.gold}22` : NAV_SOFT,
+                      border: `1px solid ${tab === "gerencial" ? T.gold : NAV_BORDER}`,
+                      color: tab === "gerencial" ? T.gold : NAV_MUTED,
+                    }}>
+              <Briefcase size={19} />
+            </button>
+          )}
+          {ehGestor && (
           <button onClick={() => { setModulo("config"); setTab("cfg-aparencia"); }}
                   title="Configurações"
                   className="hdr-util"
@@ -262,6 +278,7 @@ function HeaderHorizontal({
                   }}>
             <Settings size={20} />
           </button>
+          )}
           <button onClick={() => onOpenSettings?.("perfis")}
                   title={`Perfil ativo: ${perfilAtivo?.nome || "—"} · clique pra gerenciar`}
                   style={{
@@ -502,6 +519,7 @@ function HeaderVertical({
   modulo, setModulo,
   tab, setTab,
   hidden, setHidden,
+  ehGestor = false,
   escopoAtivo, onEscopoChange,
   onRefresh, refreshing,
   onOpenSettings,
@@ -716,6 +734,20 @@ function HeaderVertical({
 
         <div style={{ flex: 1 }} />
 
+        {ehGestor && (
+          <button
+            onClick={() => { setModulo("financas"); setTab("gerencial"); }}
+            style={{
+              padding: "8px 10px", borderRadius: 7,
+              background: tab === "gerencial" ? `${T.gold}22` : "rgba(255,255,255,0.05)",
+              color: tab === "gerencial" ? T.gold : NAV_MUTED,
+              border: "none", cursor: "pointer", textAlign: "left",
+              display: "flex", alignItems: "center", gap: 9, fontSize: 12,
+            }}>
+            <Briefcase size={14} /> Gerencial
+          </button>
+        )}
+        {ehGestor && (
         <button
           onClick={() => { setModulo("config"); setTab("cfg-aparencia"); }}
           style={{
@@ -727,6 +759,7 @@ function HeaderVertical({
           }}>
           <Settings size={14} /> Configurações
         </button>
+        )}
       </aside>
 
       <header className="hdr-vertical-topbar" style={{
