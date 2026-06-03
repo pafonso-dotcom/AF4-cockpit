@@ -12,10 +12,6 @@ import Field from "../ui/Field.jsx";
 // Extrai transações de um extrato em PDF usando o Gemini.
 // Devolve o mesmo formato de parseExtrato: { banco, transacoes, erro }.
 async function parseExtratoPDFFile(file) {
-  const key = (typeof localStorage !== "undefined" && localStorage.getItem("af4:gemini-key")) || "";
-  if (!key.trim()) {
-    return { erro: "Para importar PDF é preciso configurar a chave do Gemini em ⚙ Configurações → Inteligência Artificial. Como alternativa, envie o arquivo OFX ou CSV do banco." };
-  }
   try {
     const base64 = await fileToBase64(file);
     if (!base64 || base64.length < 100) return { erro: "PDF aparentemente vazio. Tente outro arquivo." };

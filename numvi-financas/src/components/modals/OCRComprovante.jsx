@@ -13,7 +13,7 @@ export default function OCRComprovante({
   contas, categorias,
   transacoes, setTransacoes, onClose,
 }) {
-  const temGeminiKey = !!(localStorage.getItem("af4:gemini-key") || "").trim();
+  const temGeminiKey = true; // IA via servidor (Worker /api/gemini)
   const [imagem, setImagem] = useState(null);
   const [step, setStep] = useState("upload");
   const [forma, setForma] = useState(null);

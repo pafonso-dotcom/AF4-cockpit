@@ -28,7 +28,7 @@ export default function VoiceTransacao({ contas, categorias, transacoes, setTran
   const inicioRef = useRef(null);
   const audioRef = useRef(null);
 
-  const temGeminiKey = !!(localStorage.getItem("af4:gemini-key") || "").trim();
+  const temGeminiKey = true; // IA via servidor (Worker /api/gemini)
 
   const iniciar = async () => {
     setErro("");
