@@ -8,8 +8,16 @@ import { API } from "../../lib/api.js";
  * Usa o proxy /api/brapi (índices) + AwesomeAPI (câmbio). Cai pra valores
  * simulados/indisponíveis sem quebrar. Atualiza ao montar.
  */
-const NOME_INDICE = { "^BVSP": "Ibovespa", "^GSPC": "S&P 500", "^IXIC": "Nasdaq" };
+const NOME_INDICE = {
+  "^BVSP": "Ibovespa", "BVSP": "Ibovespa",
+  "^GSPC": "S&P 500", "GSPC": "S&P 500",
+  "^IXIC": "Nasdaq", "IXIC": "Nasdaq",
+};
 const NOME_FX = { USDBRL: "Dólar", EURBRL: "Euro" };
+
+// Valor de referência do Ibovespa pra ele NUNCA sumir do painel quando a BRAPI
+// não devolve o índice (mercado fechado / resposta sem preço / sem token).
+const IBOV_REF = { nome: "Ibovespa", valor: 134820, var: 0, moeda: "pts", sim: true };
 
 export default function IndicesGlobais({ apiKeys = {} }) {
   const [itens, setItens] = useState(null);
@@ -34,6 +42,8 @@ export default function IndicesGlobais({ apiKeys = {} }) {
           if (NOME_FX[k]) out.push({ nome: NOME_FX[k], valor: parseFloat(c.bid), var: parseFloat(c.pctChange), moeda: "R$" });
         });
       } catch { /* silencioso */ }
+      // Ibovespa SEMPRE presente (e no topo): se não veio ao vivo, usa referência.
+      if (!out.some(i => /ibov/i.test(i.nome))) out.unshift({ ...IBOV_REF });
       if (!cancel) setItens(out);
     })();
     return () => { cancel = true; };
