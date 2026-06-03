@@ -8,7 +8,10 @@ import AnaliseIdV from "../Trade/AnaliseIdV.jsx";
 import AnaliseCarteira from "./AnaliseCarteira.jsx";
 import FundamentosIA from "./FundamentosIA.jsx";
 import RankingFiis from "./RankingFiis.jsx";
-import { carregarFundamentos } from "../../../lib/fundamentosLocal.js";
+import { carregarFundamentos, analisarComIA } from "../../../lib/fundamentosLocal.js";
+import { CRITERIOS_FII } from "../../../lib/criteriosIdV.js";
+
+const CRIT_FII = CRITERIOS_FII.map(c => ({ id: c.id, label: c.label, tipo: c.tipo, opcoes: c.opcoes }));
 
 const VIEWS = [
   { id: "performance",      label: "Performance",          icon: TrendingUp },
@@ -73,7 +76,11 @@ export default function AnalisesUnificada({
 
       <div style={{ marginTop: -16 /* compensa o py-8 das páginas internas */ }}>
         {view === "performance"      && <Performance ativos={ativos} hidden={hidden} />}
-        {view === "ranking-fiis"     && <RankingFiis apiKeys={apiKeys} fundamentos={carregarFundamentos()} />}
+        {view === "ranking-fiis"     && (
+          <RankingFiis apiKeys={apiKeys}
+            getFundamentos={() => carregarFundamentos()}
+            preencherIA={async (ativo) => { await analisarComIA({ ticker: ativo.ticker, classe: "fii", nome: ativo.nome, criterios: CRIT_FII }); }} />
+        )}
         {view === "fundamentos"      && <div className="py-8"><FundamentosIA ativos={ativos} /></div>}
         {view === "idv"              && <AnaliseIdV analises={tradeAnalisesIdV} setAnalises={setTradeAnalisesIdV} ativos={ativos} />}
         {view === "carteira-analise" && <AnaliseCarteira ativos={ativos} hidden={hidden} onAnalisar={onAnalisarAtivo} />}

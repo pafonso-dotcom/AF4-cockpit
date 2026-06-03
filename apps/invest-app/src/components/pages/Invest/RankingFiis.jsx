@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Building2, Search, RefreshCw, Filter } from "lucide-react";
+import { Building2, Search, RefreshCw, Filter, Sparkles } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { carregarRankingFiis } from "../../../lib/fiisRanking.js";
 
@@ -9,15 +9,17 @@ import { carregarRankingFiis } from "../../../lib/fiisRanking.js";
  * Os campos ainda não automáticos (vacância, nº imóveis, taxa) entram com a
  * CVM depois — aqui mostram "—" sem quebrar o ranking.
  */
-export default function RankingFiis({ apiKeys = {}, fundamentos = {} }) {
+export default function RankingFiis({ apiKeys = {}, getFundamentos, preencherIA }) {
   const [estado, setEstado] = useState({ carregando: true, erro: null, linhas: [] });
   const [busca, setBusca] = useState("");
   const [segmento, setSegmento] = useState("");
   const [limite, setLimite] = useState(50);
   const [soPotencial, setSoPotencial] = useState(false);
+  const [progresso, setProgresso] = useState(null); // { i, total } durante o preenchimento por IA
 
   const carregar = async () => {
     setEstado(e => ({ ...e, carregando: true, erro: null }));
+    const fundamentos = getFundamentos ? ((await getFundamentos()) || {}) : {};
     const r = await carregarRankingFiis({ token: apiKeys.brapi, fundamentos });
     setEstado({ carregando: false, erro: r.ok ? null : r.erro, linhas: r.linhas || [] });
   };
@@ -40,6 +42,19 @@ export default function RankingFiis({ apiKeys = {}, fundamentos = {} }) {
   }, [estado.linhas, busca, segmento, limite, soPotencial]);
 
   const totalPotencial = estado.linhas.filter(l => l.notas.melhorPotencial).length;
+  const semDados = filtradas.filter(l => l.notas.notaImovel == null || l.notas.notaGestao == null);
+
+  // Completa com IA os FIIs visíveis sem dados (vacância/imóveis/taxa) e recalcula.
+  const completarComIA = async () => {
+    if (!preencherIA || semDados.length === 0) return;
+    setProgresso({ i: 0, total: semDados.length });
+    for (let i = 0; i < semDados.length; i++) {
+      try { await preencherIA(semDados[i]); } catch { /* pula falhas e segue */ }
+      setProgresso({ i: i + 1, total: semDados.length });
+    }
+    setProgresso(null);
+    await carregar();
+  };
 
   return (
     <div className="fade-up py-8" style={{ maxWidth: 1100, margin: "0 auto" }}>
@@ -74,6 +89,14 @@ export default function RankingFiis({ apiKeys = {}, fundamentos = {} }) {
           style={{ ...(soPotencial ? btnGold() : btnGhost()), display: "inline-flex", alignItems: "center", gap: 6 }}>
           <Filter size={13} /> Só melhor potencial
         </button>
+        {preencherIA && (
+          <button onClick={completarComIA} disabled={!!progresso || semDados.length === 0}
+            title="Preenche por IA os FIIs visíveis sem vacância/imóveis/taxa"
+            style={{ ...btnGhost(), borderColor: T.gold, color: T.gold, display: "inline-flex", alignItems: "center", gap: 6, opacity: semDados.length === 0 ? 0.5 : 1 }}>
+            <Sparkles size={13} />
+            {progresso ? `Completando ${progresso.i}/${progresso.total}…` : `Completar com IA${semDados.length ? ` (${semDados.length})` : ""}`}
+          </button>
+        )}
       </div>
 
       {estado.carregando ? (
