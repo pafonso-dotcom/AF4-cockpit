@@ -3,7 +3,6 @@ import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, Ar
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN } from "../../lib/format.js";
-import { gerarInsights } from "../../lib/intelligence.js";
 import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { getKPIsMes, getDespesasDoMes } from "../../lib/agregador.js";
@@ -184,12 +183,16 @@ export default function Dashboard({
     });
   }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, escopoAtivo]);
 
-  // ===== Insights =====
-  const insights = useMemo(() => {
-    try { return gerarInsights(transacoes, contas, ativos, cartoes, parcelamentos) || []; }
-    catch { return []; }
-  }, [transacoes, contas, ativos, cartoes, parcelamentos]);
-  const principalInsight = insights[0];
+  // ===== Despesas do mês (total / pagas / a pagar) =====
+  const despesasResumo = useMemo(() => {
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
+    let kpi = null;
+    try { kpi = getKPIsMes(mesISO, state, escopoAtivo); } catch {}
+    const total = Number(kpi?.totalPrevisto || 0);
+    const pagas = Number(kpi?.totalPago || 0);
+    const aPagar = Number(kpi?.totalPendente || 0) + Number(kpi?.totalAtrasado || 0);
+    return { total, pagas, aPagar };
+  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, mesISO, escopoAtivo]);
 
   return (
     <div className="fade-up">
@@ -226,7 +229,7 @@ export default function Dashboard({
       }}>
         <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
         <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
-        <InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("analiseia")} />
+        <DespesasMesCard resumo={despesasResumo} hidden={hidden} onSeeAll={() => onTabChange?.("transacoes")} />
       </section>
 
       {/* Bottom row */}
@@ -385,24 +388,34 @@ function AlocacaoCard({ data, total, hidden, onSeeAll }) {
   );
 }
 
-function InsightsCard({ insight, onSeeAll }) {
-  const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
+function DespesasMesCard({ resumo, hidden, onSeeAll }) {
+  const { total = 0, pagas = 0, aPagar = 0 } = resumo || {};
+  const linhas = [
+    { label: "Desp. Total",   valor: total,   cor: T.ink },
+    { label: "Desp. Pagas",   valor: pagas,   cor: T.green },
+    { label: "Desp. a pagar", valor: aPagar,  cor: T.red },
+  ];
   return (
-    <div style={{ background: bg, color: "#fff", borderRadius: 12, padding: 16, display: "flex", flexDirection: "column" }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14, display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-          🤖 Insights da IA
+        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+          <TrendingDown size={16} style={{ color: T.red }} /> Despesas do Mês
         </div>
-        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 11, cursor: "pointer" }}>Ver todos</button>
+        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver tudo</button>
       </div>
-      <div style={{ flex: 1, fontSize: 13, lineHeight: 1.5, marginBottom: 14 }}>
-        {insight?.texto || insight?.descricao || insight?.titulo
-          || "Acompanhe aqui análises automáticas dos seus gastos, receitas e tendências."}
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {linhas.map((l, i) => (
+          <div key={l.label} style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            padding: "11px 0", borderBottom: i < linhas.length - 1 ? `1px solid ${T.border}` : "none",
+          }}>
+            <span style={{ fontSize: 13, color: T.muted }}>{l.label}</span>
+            <span className="num" style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: l.cor }}>
+              {hidden ? "•••••" : fmt(l.valor)}
+            </span>
+          </div>
+        ))}
       </div>
-      <button onClick={onSeeAll}
-              style={{ background: "rgba(255,255,255,0.1)", border: `1px solid rgba(255,255,255,0.2)`, color: "#fff", padding: "8px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", alignSelf: "flex-start" }}>
-        Ver análise completa →
-      </button>
     </div>
   );
 }
