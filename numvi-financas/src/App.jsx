@@ -348,7 +348,7 @@ export default function App() {
         savedAt: new Date().toISOString(),
       };
       const m = await createBackup(snapshot, "auto");
-      if (m) console.info(`[AF4] Backup automático criado (${m.sizeKb}KB).`);
+      if (m) console.info(`[NUMVI] Backup automático criado (${m.sizeKb}KB).`);
     };
 
     fazerBackup(); // dispara uma vez ao montar (se tiver passado o intervalo)
@@ -657,7 +657,7 @@ export default function App() {
         contaAberta={contaAberta} setContaAberta={setContaAberta}
         cartaoAberto={cartaoAberto} setCartaoAberto={setCartaoAberto}
         hidden={hidden} setHidden={setHidden}
-        ehGestor={ehGestor}
+        ehGestor={ehGestor} userEmail={userEmail}
         escopoAtivo={escopoAtivo}
         onEscopoChange={(novo) => { setEscopoAtivo(novo); salvarEscopo(novo); }}
         onOpenPalette={() => setPaletaAberta(true)}
@@ -714,9 +714,6 @@ export default function App() {
         <SettingsModal apiKeys={apiKeys} setApiKeys={setApiKeys} onClose={() => setSettingsOpen(false)} />
       )}
 
-      {perfisOpen && (
-        <PerfisModal onClose={() => setPerfisOpen(false)} />
-      )}
 
       <main
         className={isVertical ? "pb-24" : "max-w-7xl mx-auto pb-24"}

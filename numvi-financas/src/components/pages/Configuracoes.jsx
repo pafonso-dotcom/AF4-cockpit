@@ -726,7 +726,7 @@ function SyncGist() {
         <ol style={{ paddingLeft: 18, fontSize: 12.5, color: T.muted, lineHeight: 1.7 }}>
           <li>
             Abra{" "}
-            <a href="https://github.com/settings/tokens/new?description=AF4%20Cockpit&scopes=gist" target="_blank" rel="noopener noreferrer" style={{ color: T.gold }}>
+            <a href="https://github.com/settings/tokens/new?description=NUMVI&scopes=gist" target="_blank" rel="noopener noreferrer" style={{ color: T.gold }}>
               github.com/settings/tokens/new
             </a>{" "}
             (já vem com o escopo certo marcado)
