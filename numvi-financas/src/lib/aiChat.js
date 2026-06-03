@@ -84,10 +84,8 @@ ${topCat.map(([c, v], i) => `${i + 1}. ${c}: R$ ${v.toFixed(2)}`).join("\n")}
  * Retorna a resposta em texto.
  */
 export async function perguntarAoClaude({ apiKey, pergunta, historico = [], contextoDados, model = MODEL }) {
-  if (!apiKey) throw new Error("Configure a chave Anthropic em Configurações → API Keys.");
-
-  const systemPrompt = `Você é um assistente financeiro pessoal do Paulo Afonso, dono da AF4 Motors em Tatuí-SP.
-Sua função é analisar os dados do cockpit financeiro dele e responder perguntas com clareza e em PT-BR.
+  const systemPrompt = `Você é um assistente financeiro pessoal do NUMVI Finanças.
+Sua função é analisar os dados financeiros do usuário e responder perguntas com clareza e em PT-BR.
 
 Princípios:
 - Seja direto e objetivo · evite preâmbulo
@@ -106,22 +104,26 @@ ${contextoDados}`;
     { role: "user", content: pergunta },
   ];
 
+  // Com chave do cliente → direto na Anthropic; sem chave → proxy do Worker
+  // (/api/ai-chat), que guarda a chave como secret no servidor.
+  const payload = { model, max_tokens: 1024, system: systemPrompt, messages };
   try {
-    const res = await fetch(ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages,
-      }),
-    });
+    const res = apiKey
+      ? await fetch(ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true",
+          },
+          body: JSON.stringify(payload),
+        })
+      : await fetch("/api/ai-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
