@@ -1,3 +1,4 @@
 packages:
   - "apps/cars-web"
   - "apps/invest-app"
+  - "numvi-financas"

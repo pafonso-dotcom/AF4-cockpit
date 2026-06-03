@@ -1,0 +1,811 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Modal de comprovante (Transacoes.jsx) vira fullscreen no mobile pra
+   o iframe/imagem aproveitarem toda a tela e o close ficar acessível. */
+@media (max-width: 640px) {
+  .comprovante-modal { padding: 0 !important; }
+  .comprovante-modal-content {
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    padding: 12px !important;
+    padding-top: max(56px, env(safe-area-inset-top, 16px)) !important;
+  }
+  .comprovante-modal-iframe { width: 100% !important; height: 80vh !important; }
+}
+
+/* Indicador "ao vivo" — bolinha verde pulsante usada nos ativos que
+   receberam cotação fresca (refreshMarket nos últimos 60s). */
+@keyframes af4LivePulse {
+  0%   { box-shadow: 0 0 0 0   rgba(74,222,128,0.7); }
+  70%  { box-shadow: 0 0 0 6px rgba(74,222,128,0);   }
+  100% { box-shadow: 0 0 0 0   rgba(74,222,128,0);   }
+}
+.af4-live-dot {
+  display: inline-block;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #4ade80;
+  animation: af4LivePulse 1.6s ease-out infinite;
+}
+
+/* ============================================================
+   NUMVI · estilo demo v3 (Poppins · dark · 7 paletas)
+   ============================================================ */
+
+/* Customização do usuário em "Aparência":
+   --text-scale aplica zoom global (0.9 / 1.0 / 1.15).
+   --text-color sobrescreve a cor base do texto quando definida. */
+html { zoom: var(--text-scale, 1); }
+body { color: var(--text-color, inherit); }
+
+:root {
+  /* Base grafite (#23272E) — fundo mais elegante que o quase-preto anterior. */
+  --bg: #23272E;
+  --be: #282c34;
+  --bc: #2d323b;
+  --bc2: #333945;
+  --bd: #3a3f4a;
+  --bd2: #474d5a;
+  --tx: #f5f5f7;
+  --tm: #a3a8b3;
+  --td: #6e7480;
+  --ac: #c9a961;
+  --ac2: #d4b87a;
+  --sc: #4ade80;
+  --dn: #f87171;
+  --wn: #fbbf24;
+  --info: #60a5fa;
+  --r: 12px;
+}
+
+[data-c="gold"]    { --ac: #c9a961; --ac2: #d4b87a; }
+[data-c="emerald"] { --ac: #10b981; --ac2: #34d399; }
+[data-c="cyan"]    { --ac: #06b6d4; --ac2: #22d3ee; }
+[data-c="violet"]  { --ac: #8b5cf6; --ac2: #a78bfa; }
+[data-c="rose"]    { --ac: #f43f5e; --ac2: #fb7185; }
+[data-c="amber"]   { --ac: #f59e0b; --ac2: #fbbf24; }
+[data-c="ice"]     { --ac: #e5e7eb; --ac2: #f3f4f6; }
+
+/* ===== LIGHT THEMES ===== */
+[data-c="papel"] {
+  --bg: #f4ecd8; --be: #ede3ca; --bc: #fbf6e8; --bc2: #f4ecd8;
+  --bd: #d9c9a3; --bd2: #bfae87;
+  --tx: #2a2218; --tm: #5e503c; --td: #8a7b62;
+  --ac: #8a5a28; --ac2: #a87440;
+  --sc: #56784f; --dn: #9a4032; --wn: #b8862a; --info: #3f6a8c;
+}
+[data-c="linho"] {
+  --bg: #f3efe7; --be: #ebe5d8; --bc: #fbf9f3; --bc2: #f3efe7;
+  --bd: #d0c8b6; --bd2: #a89d83;
+  --tx: #222018; --tm: #5a5346; --td: #857d6c;
+  --ac: #5d7548; --ac2: #7a9460;
+  --sc: #56784f; --dn: #a14a3a; --wn: #a87a2a; --info: #3f6a8c;
+}
+[data-c="perola"] {
+  --bg: #f5f5f7; --be: #eaeaef; --bc: #ffffff; --bc2: #f5f5f7;
+  --bd: #d8d8de; --bd2: #a8a8b0;
+  --tx: #1a1a1f; --tm: #5a5a64; --td: #8888a0;
+  --ac: #4a5a8a; --ac2: #6a7aaa;
+  --sc: #3c8c5a; --dn: #c14a4a; --wn: #b88c2a; --info: #3f6a8c;
+}
+
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--tx);
+  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, color-mix(in srgb, var(--ac) 6%, transparent), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, color-mix(in srgb, var(--ac) 4%, transparent), transparent 70%),
+    var(--bg);
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: radial-gradient(rgba(255,255,255,.012) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+/* ===== TYPOGRAPHY ===== */
+.eb {
+  font-size: 10px; letter-spacing: .3em; text-transform: uppercase;
+  color: var(--td); margin-bottom: 11px;
+  display: flex; align-items: center; gap: 10px;
+}
+.eb::before { content: ''; width: 24px; height: 1px; background: var(--ac); }
+
+.h1 {
+  font-size: clamp(28px, 5vw, 46px);
+  font-weight: 200; letter-spacing: -.03em; line-height: 1;
+  margin-bottom: 10px;
+}
+.h1 em { font-style: italic; color: var(--ac); font-weight: 300; }
+
+.hs {
+  color: var(--tm); font-size: 12.5px; font-weight: 300;
+  max-width: 720px; line-height: 1.55;
+}
+
+.label-eyebrow {
+  font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--td); font-weight: 500;
+}
+
+.num { font-variant-numeric: tabular-nums; }
+
+/* ===== SECTION HEADER ===== */
+.st {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin: 28px 0 12px; gap: 10px; flex-wrap: wrap;
+}
+.st h2 {
+  font-size: 11px; letter-spacing: .25em; text-transform: uppercase;
+  font-weight: 500; color: var(--tx);
+}
+.st .mt {
+  font-size: 10px; color: var(--td); letter-spacing: .15em; text-transform: uppercase;
+}
+
+/* ===== HIGHLIGHT METRICS (3 cols top) ===== */
+.hm {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  margin: 24px 0; border-top: 1px solid var(--bd); border-bottom: 1px solid var(--bd);
+}
+.hc { padding: 22px 18px; border-right: 1px solid var(--bd); }
+.hc:last-child { border-right: none; }
+.hl {
+  font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--td); margin-bottom: 11px;
+}
+.hv {
+  font-size: clamp(24px, 4.5vw, 38px); font-weight: 300; letter-spacing: -.02em;
+  line-height: 1; font-variant-numeric: tabular-nums;
+}
+.cy { font-size: 11px; color: var(--td); margin-right: 4px; font-weight: 300; vertical-align: top; line-height: 1.5; }
+.dl { margin-top: 8px; font-size: 10.5px; color: var(--sc); }
+.dl.neg { color: var(--dn); }
+.dl.warn { color: var(--wn); }
+
+@media (max-width: 720px) {
+  .hm { grid-template-columns: 1fr; }
+  .hc { border-right: none; border-bottom: 1px solid var(--bd); }
+  .hc:last-child { border-bottom: none; }
+}
+
+/* ===== KPI GRID (4 cols) ===== */
+.kg {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1px; background: var(--bd); border: 1px solid var(--bd);
+  border-radius: var(--r); overflow: hidden; margin-bottom: 24px;
+}
+@media (max-width: 720px) { .kg { grid-template-columns: repeat(2, 1fr); } }
+.k { background: var(--bc); padding: 18px; }
+.kh { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.kl { font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: var(--tm); }
+.ki { width: 20px; height: 20px; color: var(--ac); }
+.kv {
+  font-size: 24px; font-weight: 300; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.ku { font-size: 10px; color: var(--td); margin-top: 5px; }
+.ku.pos { color: var(--sc); }
+.ku.neg { color: var(--dn); }
+
+/* ===== PANEL ===== */
+.pn {
+  background: var(--bc); border: 1px solid var(--bd);
+  border-radius: var(--r); overflow: hidden;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 6px;
+  font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; font-weight: 500;
+  border: 1px solid var(--bd2); background: transparent; color: var(--tx);
+  cursor: pointer; transition: all .2s; font-family: inherit;
+}
+.btn:hover { border-color: var(--ac); color: var(--ac); }
+.btn.bp { background: var(--ac); color: var(--bg); border-color: var(--ac); }
+.btn.bp:hover { background: var(--ac2); color: var(--bg); }
+.btn.bd { background: var(--bc); color: var(--dn); border-color: var(--bd2); }
+.btn.bd:hover { border-color: var(--dn); }
+
+.btn-gold {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 6px;
+  background: var(--ac); color: var(--bg); border: 1px solid var(--ac);
+  font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; font-weight: 500;
+  cursor: pointer; transition: all .2s; font-family: inherit;
+}
+.btn-gold:hover { background: var(--ac2); }
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 6px;
+  background: transparent; color: var(--tx); border: 1px solid var(--bd2);
+  font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; font-weight: 500;
+  cursor: pointer; transition: all .2s; font-family: inherit;
+}
+.btn-ghost:hover { border-color: var(--ac); color: var(--ac); }
+
+/* ===== BADGES ===== */
+.bg-c {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 9px; padding: 3px 8px; border-radius: 100px;
+  letter-spacing: .12em; text-transform: uppercase; font-weight: 500;
+  white-space: nowrap;
+}
+.bg-c::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.bgd { background: color-mix(in srgb, var(--sc) 12%, transparent); color: var(--sc); border: 1px solid color-mix(in srgb, var(--sc) 30%, transparent); }
+.bgr { background: color-mix(in srgb, var(--ac) 12%, transparent); color: var(--ac); border: 1px solid color-mix(in srgb, var(--ac) 30%, transparent); }
+.bgp { background: color-mix(in srgb, var(--wn) 12%, transparent); color: var(--wn); border: 1px solid color-mix(in srgb, var(--wn) 30%, transparent); }
+.bgg { background: color-mix(in srgb, var(--dn) 12%, transparent); color: var(--dn); border: 1px solid color-mix(in srgb, var(--dn) 30%, transparent); }
+.bgi { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 30%, transparent); }
+
+/* ===== ALERT BAR ===== */
+.ar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--info) 10%, transparent), transparent);
+  border: 1px solid color-mix(in srgb, var(--info) 30%, transparent);
+  border-radius: var(--r); margin: 20px 0;
+}
+.ai {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: color-mix(in srgb, var(--info) 20%, transparent);
+  color: var(--info); display: grid; place-items: center; flex-shrink: 0; font-size: 14px;
+}
+.at strong { font-size: 12px; font-weight: 500; color: var(--tx); }
+.at p { font-size: 10.5px; color: var(--tm); margin-top: 2px; line-height: 1.6; }
+
+/* ===== FORM blocks ===== */
+.fb {
+  background: var(--bc); border: 1px solid var(--bd); border-radius: var(--r);
+  padding: 14px; margin-bottom: 11px;
+}
+.fb h4 {
+  font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+  font-weight: 500; margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--bd); color: var(--tx);
+}
+.fr {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px; margin-bottom: 10px;
+}
+.ff label {
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--td); display: block; margin-bottom: 5px; font-weight: 500;
+}
+.ff input, .ff select, .ff textarea {
+  width: 100%; padding: 9px 11px;
+  background: var(--be); border: 1px solid var(--bd); border-radius: 7px;
+  color: var(--tx); font-size: 13px; font-family: inherit;
+}
+.ff input:focus, .ff select:focus, .ff textarea:focus { outline: none; border-color: var(--ac); }
+.ff select:disabled { opacity: .45; cursor: not-allowed; }
+.ff .hint { font-size: 9.5px; color: var(--td); margin-top: 5px; letter-spacing: .03em; }
+.ff .hint.ok { color: var(--sc); }
+.ff .hint.ac { color: var(--ac); }
+
+/* Form inputs estilo global (compatibilidade com Field.jsx) */
+input, select, textarea {
+  font-family: inherit;
+  background: var(--be);
+  border: 1px solid var(--bd);
+  color: var(--tx);
+  border-radius: 7px;
+  padding: 9px 11px;
+  font-size: 13px;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--ac);
+}
+
+/* Foco visível por TECLADO (a11y) — anel dourado em qualquer elemento focável.
+   :focus-visible só dispara em navegação por teclado, não atrapalha o clique. */
+:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Inputs já têm destaque por border-color; evita anel duplo neles. */
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none;
+}
+
+/* ===== COLOR SELECT (cascata) ===== */
+.color-select { position: relative; }
+.color-select .csbtn {
+  width: 100%; padding: 9px 11px;
+  background: var(--be); border: 1px solid var(--bd); border-radius: 7px;
+  color: var(--tx); font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; text-align: left;
+  font-family: inherit;
+}
+.color-select .csbtn:hover { border-color: var(--bd2); }
+.color-select .csbtn .swatch-mini {
+  width: 18px; height: 18px; border-radius: 5px;
+  border: 1px solid var(--bd2); flex-shrink: 0;
+}
+.color-select .csbtn .csname { flex: 1; }
+.color-select .csbtn .csarrow { font-size: 10px; color: var(--td); }
+.color-select.open .csbtn { border-color: var(--ac); }
+.color-select .csdrop {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--bc); border: 1px solid var(--bd); border-radius: 7px;
+  max-height: 260px; overflow-y: auto; z-index: 20;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+.color-select.open .csdrop { display: block; }
+.csopt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; cursor: pointer; font-size: 12.5px;
+  border-bottom: 1px solid var(--bd);
+}
+.csopt:last-child { border-bottom: none; }
+.csopt:hover { background: var(--be); }
+.csopt.sel { background: color-mix(in srgb, var(--ac) 10%, transparent); }
+.csopt .sw-mini {
+  width: 18px; height: 18px; border-radius: 5px;
+  border: 1px solid var(--bd2); flex-shrink: 0;
+}
+
+/* ===== TABLE ===== */
+.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tbl th {
+  padding: 8px 14px; text-align: left;
+  font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--td); font-weight: 500;
+  border-bottom: 1px solid var(--bd); background: var(--be);
+}
+.tbl td {
+  padding: 9px 14px; border-bottom: 1px solid var(--bd);
+  font-variant-numeric: tabular-nums; color: var(--tx);
+}
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:hover td { background: var(--be); }
+.tbl .pos { color: var(--sc); }
+.tbl .neg { color: var(--dn); }
+
+/* ===== ANIMATIONS ===== */
+.fade-up { animation: rs .35s ease both; }
+@keyframes rs { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== CARDS (veículos / contas / cartões) ===== */
+.cg {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px; margin-top: 18px;
+}
+.cc {
+  background: var(--bc); border: 1px solid var(--bd); border-radius: var(--r);
+  overflow: hidden; cursor: pointer; transition: all .2s;
+}
+.cc:hover { transform: translateY(-2px); border-color: var(--bd2); }
+.cc.vendido { opacity: .55; }
+.cimg {
+  height: 140px;
+  background: linear-gradient(135deg, #1a1a20, #131317);
+  display: grid; place-items: center;
+  font-size: 48px; color: var(--td); position: relative;
+}
+.cimg .cb { position: absolute; top: 10px; right: 10px; }
+.cimg .pcor {
+  position: absolute; bottom: 10px; right: 10px;
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid var(--bd2); box-shadow: 0 2px 6px rgba(0,0,0,.4);
+}
+.cbody { padding: 11px; }
+.cn { font-size: 13px; font-weight: 500; color: var(--tx); }
+.cm { font-size: 10.5px; color: var(--tm); margin-top: 3px; }
+.cp { font-size: 20px; font-weight: 300; margin-top: 12px; font-variant-numeric: tabular-nums; color: var(--tx); }
+.cmg { font-size: 10.5px; color: var(--sc); margin-top: 4px; }
+
+/* ===== KANBAN (funil) ===== */
+.kb {
+  display: flex; gap: 12px;
+  overflow-x: auto; padding-bottom: 10px; margin-top: 18px;
+}
+.kb::-webkit-scrollbar { height: 6px; }
+.kb::-webkit-scrollbar-thumb { background: var(--bd2); border-radius: 3px; }
+.kbc { flex: 0 0 260px; display: flex; flex-direction: column; gap: 8px; }
+.kbc-h { display: flex; align-items: center; gap: 8px; padding: 8px 4px; }
+.kbc-h .dot { width: 8px; height: 8px; border-radius: 50%; }
+.kbc-h .nm { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--tm); font-weight: 500; }
+.kbc-h .ct { margin-left: auto; font-size: 10px; color: var(--td); }
+.kc {
+  background: var(--bc); border: 1px solid var(--bd); border-radius: 8px;
+  padding: 12px; cursor: pointer; transition: all .2s;
+}
+.kc:hover { border-color: var(--bd2); transform: translateY(-1px); }
+
+/* ===== EMPTY STATE ===== */
+.empty-state { padding: 40px 20px; text-align: center; color: var(--tm); font-size: 13px; }
+.empty-state .ic { font-size: 36px; margin-bottom: 8px; opacity: .5; }
+
+/* ============================================================
+   MOBILE RESPONSIVE — corrige grids fixos com gridTemplateColumns
+   inline (repeat(N, 1fr)), paddings e tipografia quebrando no
+   mobile. Mantém resolução nativa (não força DPR scaling).
+   ============================================================ */
+
+* { box-sizing: border-box; }
+html, body { overflow-x: hidden; max-width: 100vw; }
+
+/* Imagens e vídeos nunca estouram o viewport */
+img, svg, video, canvas { max-width: 100%; height: auto; }
+
+/* ===== TABLET (até 768px) ===== */
+@media (max-width: 768px) {
+  body { font-size: 13px; }
+
+  /* Containers principais usam menos padding */
+  main { padding-left: 14px !important; padding-right: 14px !important; }
+
+  /* KPI grids: 2 colunas */
+  .kg { grid-template-columns: repeat(2, 1fr) !important; }
+  .k { padding: 14px !important; }
+  .kv { font-size: 20px !important; }
+
+  /* Highlight metrics: 1 coluna */
+  .hm { grid-template-columns: 1fr !important; }
+  .hc { padding: 18px 14px !important; border-right: none !important; border-bottom: 1px solid var(--bd); }
+  .hc:last-child { border-bottom: none; }
+
+  /* Section headers wrap melhor */
+  .st { flex-wrap: wrap; gap: 6px; margin: 20px 0 10px; }
+
+  /* Cards-grid (carros, contas, cartões) com cards menores */
+  .cg { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important; gap: 10px; }
+
+  /* Form rows com fields menores */
+  .fr { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important; gap: 10px; }
+  .fb { padding: 14px !important; }
+
+  /* Tabela rola horizontal */
+  .pn { overflow-x: auto; }
+  .tbl { font-size: 12px; min-width: 540px; }
+  .tbl th, .tbl td { padding: 9px 12px; }
+
+  /* Kanban scroll já funciona, só ajusta tamanho de coluna */
+  .kbc { flex: 0 0 240px; }
+
+  /* Botões um pouco mais clicáveis */
+  .btn, .btn-gold, .btn-ghost { padding: 10px 14px; font-size: 11px; }
+}
+
+/* ===== MOBILE (até 640px) ===== */
+@media (max-width: 640px) {
+  main { padding-left: 12px !important; padding-right: 12px !important; }
+
+  /* Override agressivo: QUALQUER inline grid de 2-4 colunas vira single
+     col ou 2 cols em mobile. Os grids inline (gridTemplateColumns:
+     "repeat(N, 1fr)") usados em várias páginas viram inacessíveis
+     sem isso. */
+  [style*="grid-template-columns:repeat(4"],
+  [style*="grid-template-columns: repeat(4"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  [style*="grid-template-columns:repeat(3"],
+  [style*="grid-template-columns: repeat(3"] {
+    grid-template-columns: 1fr !important;
+  }
+  [style*="grid-template-columns:repeat(2"],
+  [style*="grid-template-columns: repeat(2"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* KPI grid sempre 1 col no mobile */
+  .kg { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Headers de seção menores */
+  .h1 { font-size: clamp(22px, 7vw, 32px) !important; }
+  .hs { font-size: 12px; }
+
+  /* Cards stack */
+  .cg { grid-template-columns: 1fr !important; }
+
+  /* Tabela pode ser bem estreita */
+  .tbl { font-size: 11.5px; min-width: 480px; }
+  .tbl th, .tbl td { padding: 8px 10px; }
+
+  /* Modais full-width no mobile */
+  .modal, [role="dialog"] {
+    max-width: calc(100vw - 16px) !important;
+    margin: 8px !important;
+  }
+}
+
+/* ===== MOBILE PEQUENO (até 420px) ===== */
+@media (max-width: 420px) {
+  body { font-size: 12.5px; }
+  .kg { grid-template-columns: 1fr !important; }
+  .cg { grid-template-columns: 1fr !important; }
+  .btn, .btn-gold, .btn-ghost { padding: 9px 12px; font-size: 10.5px; letter-spacing: .08em; }
+  .kv { font-size: 18px !important; }
+  .hv { font-size: clamp(20px, 7vw, 28px) !important; }
+}
+
+/* ===== HEADER RESPONSIVO ===== */
+@media (max-width: 720px) {
+  /* Esconde o subtítulo "v3 · Multi-Módulo" */
+  .header-subtitle { display: none !important; }
+  /* Reduz tamanho das paletas */
+  .palette-dot { width: 14px !important; height: 14px !important; }
+}
+/* Marca no header: desktop mostra o lockup completo; mobile mostra só o
+   wordmark NUMVI (sem símbolo). */
+.hide-desktop { display: none; }
+@media (max-width: 480px) {
+  .header-brand-text { display: none !important; }
+  .hide-desktop { display: inline-block !important; }
+}
+
+/* ===== SCROLLBARS ===== */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bd2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ac); }
+
+/* Touch tap highlight removido — dá sensação de app nativo */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Inputs no iOS Safari sem zoom forçado (precisa 16px+) */
+@media (max-width: 768px) {
+  input, select, textarea { font-size: 16px !important; }
+  .ff input, .ff select, .ff textarea { font-size: 16px !important; }
+}
+
+/* ============================================================
+   PRINT — relatórios PDF, recibos
+   .print-area = área a imprimir · .no-print = some na impressão
+   .pdf-page-break = força quebra antes do elemento
+   ============================================================ */
+@media print {
+  body { background: #fff !important; color: #111 !important; overflow: visible !important; }
+  .no-print, nav, header, footer, .toast-container, .modal-overlay-bg { display: none !important; }
+  .modal-content,
+  .print-area {
+    position: static !important;
+    inset: auto !important;
+    max-width: none !important;
+    width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    color: #111 !important;
+    overflow: visible !important;
+  }
+  .print-area * { color: #111 !important; }
+  .pdf-page-break { page-break-before: always; break-before: page; }
+  .pdf-page-break-after { page-break-after: always; break-after: page; }
+  /* Tabelas longas (ex.: carteira) PRECISAM poder quebrar entre linhas. */
+  table { page-break-inside: auto; break-inside: auto; width: 100% !important; min-width: 0 !important; }
+  thead { display: table-header-group; }  /* repete cabeçalho em cada página */
+  tr { page-break-inside: avoid; break-inside: avoid; }
+  /* Indicador "ao vivo" não imprime (animação fica zoada no papel). */
+  .af4-live-dot { display: none !important; }
+  /* Containers com scroll horizontal viram normais no print. */
+  .overflow-x-auto { overflow: visible !important; }
+}
+
+/* ============================================================
+   MOBILE / iPHONE — escala global, modais, tabelas, grids, forms
+   Tudo aqui é override pra telas pequenas. Mantém desktop intacto.
+   ============================================================ */
+
+/* Safe-area iPhone (notch + home indicator) */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Modal: no mobile vira full-bleed quase, mais ar pra rolar */
+@media (max-width: 640px) {
+  .modal-content {
+    max-width: 100% !important;
+    max-height: calc(100vh - 16px) !important;
+    border-radius: 10px !important;
+    padding: 18px !important;
+  }
+  .modal-content h3 {
+    font-size: 19px !important;
+    margin-bottom: 14px !important;
+    padding-right: 40px !important;
+  }
+  .modal-content .grid-cols-2,
+  .modal-content .grid-cols-3,
+  .modal-content .grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+  /* Botões dentro do modal: stack vertical */
+  .modal-content .flex.gap-2.justify-between,
+  .modal-content .flex.gap-3.justify-end,
+  .modal-content .flex.gap-3.mt-6 {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .modal-content button.btn-gold,
+  .modal-content button.btn-ghost {
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 14px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* Tabelas: scroll horizontal automático com indicação visual */
+@media (max-width: 768px) {
+  .tbl,
+  table.tbl {
+    font-size: 12px !important;
+    min-width: 560px; /* força scroll horizontal em vez de quebrar */
+  }
+  .tbl th,
+  .tbl td {
+    padding: 7px 8px !important;
+    white-space: nowrap;
+  }
+  /* Wrapper que recebe overflow-x deve ter touch scrolling suave */
+  div[style*="overflowX"],
+  div[style*="overflow-x"] {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Forms grids do NovoVeiculo (.fr) — converte 3-4 cols em 1 col no mobile */
+@media (max-width: 640px) {
+  .novo-grid { grid-template-columns: 1fr !important; }
+  .fr {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .fb {
+    padding: 14px !important;
+  }
+  .fb h4 {
+    font-size: 13px !important;
+  }
+  .ff label {
+    font-size: 11px !important;
+  }
+}
+
+/* Grids inline com gridTemplateColumns: repeat(N, 1fr) — qualquer N>2 vira 1col */
+@media (max-width: 640px) {
+  div[style*="grid-template-columns:repeat(3"],
+  div[style*="grid-template-columns: repeat(3"],
+  div[style*="gridTemplateColumns: \"repeat(3"],
+  div[style*="grid-template-columns:repeat(4"],
+  div[style*="grid-template-columns: repeat(4"],
+  div[style*="grid-template-columns:repeat(5"],
+  div[style*="grid-template-columns: repeat(5"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* 2 cols continua 2 cols pra KPIs ficarem grid 2x2 */
+}
+
+/* PageHeader actions: empilha no mobile */
+@media (max-width: 640px) {
+  /* PageHeader normalmente tem flex justify-between — vira coluna */
+  .pageheader-bar,
+  div[class*="page-header"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+}
+
+/* AlertCards / SaldoCards: padding menor no mobile */
+@media (max-width: 640px) {
+  .alert-card,
+  .saldo-card {
+    padding: 12px !important;
+  }
+}
+
+/* Sub-bar de Loja (filtro Ativos/Disponíveis/Reservados...): scroll horizontal */
+@media (max-width: 640px) {
+  .flex.flex-wrap.gap-2,
+  .flex.flex-wrap.gap-3 {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  /* Mas: se o flex-wrap está sendo usado em modal/cards de seleção de pacote, mantém quebra */
+  .modal-content .flex.flex-wrap { flex-wrap: wrap !important; overflow: visible !important; }
+}
+
+/* StatCards e KPIs: fonte menor, padding menor */
+@media (max-width: 640px) {
+  .num,
+  div[class*="num"] { font-variant-numeric: tabular-nums; }
+}
+
+/* Botões de ação rápida em rows (Cheques, AReceber): deixa wrap */
+@media (max-width: 640px) {
+  div[style*="display: \"inline-flex\""][style*="gap"] {
+    flex-wrap: wrap;
+  }
+}
+
+/* ContaExtrato tabela: header KPIs (2x2 no mobile, com gap visível) */
+@media (max-width: 640px) {
+  .grid-cols-4,
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Inputs/textareas/selects: já 16px no iOS, mas garantindo padding maior pra área de toque */
+@media (max-width: 640px) {
+  input[type="text"], input[type="number"], input[type="date"], input[type="email"],
+  input[type="password"], input[type="search"], input[type="tel"], input[type="url"],
+  textarea, select {
+    min-height: 40px;
+    padding: 9px 11px;
+  }
+  button {
+    min-height: 36px;
+  }
+}
+
+/* Notch / status bar do iPhone — cabeçalho sticky alinhado */
+@supports (padding-top: env(safe-area-inset-top)) {
+  nav[style*="position: sticky"][style*="top: 0"] {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Filtros do extrato — em mobile vira coluna */
+@media (max-width: 640px) {
+  .extrato-filtros {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Filtros do extrato: vira coluna no mobile */
+@media (max-width: 640px) {
+  .extrato-filtros {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ============================================================
+   PRINT-ONLY-THIS — esconde tudo exceto o card com .print-only-this
+   Usado pelo helper exportRelatorio.toPDF
+   ============================================================ */
+@media print {
+  body[data-print-only] > *:not(:has(.print-only-this)) { display: none !important; }
+  body[data-print-only] .print-only-this {
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    background: #fff !important;
+    color: #111 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  body[data-print-only] .no-print { display: none !important; }
+}
