@@ -13,7 +13,7 @@ export default function RankingFiis({ apiKeys = {}, getFundamentos, preencherIA 
   const [estado, setEstado] = useState({ carregando: true, erro: null, linhas: [] });
   const [busca, setBusca] = useState("");
   const [segmento, setSegmento] = useState("");
-  const [limite, setLimite] = useState(50);
+  const [limite, setLimite] = useState(25);
   const [soPotencial, setSoPotencial] = useState(false);
   const [progresso, setProgresso] = useState(null); // { i, total } durante o preenchimento por IA
 
