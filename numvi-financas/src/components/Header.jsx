@@ -148,10 +148,7 @@ function HeaderHorizontal({
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência",    icon: Sparkles },
-      ...(ehGestor ? [
-        { id: "cfg-apis",    label: "APIs",          icon: Settings },
-        { id: "cfg-modulos", label: "Módulos",       icon: Package },
-      ] : []),
+      ...(ehGestor ? [{ id: "cfg-modulos", label: "Módulos", icon: Package }] : []),
       { id: "cfg-backup",    label: "Backup",        icon: RefreshCw },
     ],
   };
@@ -575,10 +572,7 @@ function HeaderVertical({
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência", icon: Sparkles },
-      ...(ehGestor ? [
-        { id: "cfg-apis",    label: "APIs",      icon: Settings },
-        { id: "cfg-modulos", label: "Módulos",   icon: Package },
-      ] : []),
+      ...(ehGestor ? [{ id: "cfg-modulos", label: "Módulos", icon: Package }] : []),
       { id: "cfg-backup",    label: "Backup",    icon: RefreshCw },
     ],
   };
