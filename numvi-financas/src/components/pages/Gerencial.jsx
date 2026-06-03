@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { supabase } from "../../lib/supabase.js";
 import { Users, BookOpen, CreditCard, Settings, RefreshCw, Send, Clock, Trash2, CheckCircle2, Search } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { uid, todayISO, fmt } from "../../lib/format.js";
@@ -23,67 +24,79 @@ export default function Gerencial({
   const [sub, setSub] = useState("clientes");
   const [busca, setBusca] = useState("");
 
+  // Usuários REAIS (cadastros no Supabase), buscados no Worker (/api/usuarios).
+  const [usuarios, setUsuarios] = useState([]);
+  const [carregando, setCarregando] = useState(false);
+  const [erroUsuarios, setErroUsuarios] = useState("");
+
+  const carregar = async () => {
+    if (!supabase) return;
+    setCarregando(true); setErroUsuarios("");
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token;
+      const res = await fetch("/api/usuarios", { headers: { Authorization: `Bearer ${token}` } });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || `Falha (${res.status}).`);
+      setUsuarios(j.users || []);
+    } catch (e) {
+      setErroUsuarios(e.message || "Erro ao carregar usuários.");
+    } finally { setCarregando(false); }
+  };
+  useEffect(() => { carregar(); }, []);
+
+  // CRM local (assinatura/teste) indexado por e-mail.
+  const localPorEmail = useMemo(() => {
+    const m = {};
+    (clientes || []).forEach(c => { if (c.email) m[c.email.toLowerCase()] = c; });
+    return m;
+  }, [clientes]);
+
+  // Lista exibida = usuários reais + dados locais (assinatura/teste).
   const lista = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    const base = q ? clientes.filter(c => (c.email || "").toLowerCase().includes(q)) : clientes;
-    return [...base].sort((a, b) => (b.cadastro || "").localeCompare(a.cadastro || ""));
-  }, [clientes, busca]);
+    const base = (usuarios || []).map(u => {
+      const loc = localPorEmail[(u.email || "").toLowerCase()] || {};
+      return { ...u, assinatura: loc.assinatura || "", testeDias: Number(loc.testeDias) || 0 };
+    });
+    const filt = q ? base.filter(u => (u.email || "").toLowerCase().includes(q)) : base;
+    return filt.sort((a, b) => (b.cadastro || "").localeCompare(a.cadastro || ""));
+  }, [usuarios, localPorEmail, busca]);
 
   const stats = useMemo(() => ({
-    total: clientes.length,
-    ativos: clientes.filter(c => c.assinatura === "ativa").length,
-    assinaturas: clientes.filter(c => c.assinatura === "ativa" || c.assinatura === "teste").length,
-  }), [clientes]);
+    total: usuarios.length,
+    ativos: lista.filter(u => u.assinatura === "ativa").length,
+    assinaturas: lista.filter(u => u.assinatura === "ativa" || u.assinatura === "teste").length,
+  }), [usuarios, lista]);
 
-  const upsertCliente = (email) => {
-    const e = (email || "").trim().toLowerCase();
-    if (!e || !/.+@.+\..+/.test(e)) { toast.error("Informe um e-mail válido."); return null; }
-    const existe = clientes.find(c => (c.email || "").toLowerCase() === e);
-    if (existe) return existe;
-    const novo = { id: uid(), email: e, confirmado: false, assinatura: "", testeDias: 0, cadastro: todayISO() };
-    setClientes([novo, ...clientes]);
-    return novo;
-  };
-
-  const convidarWhatsApp = () => {
-    // O convite só compartilha o link — NÃO exige e-mail. Se um e-mail válido
-    // estiver digitado, também registra o cliente na lista (opcional).
-    const url = (config.appUrl || "").trim() || APP_URL;
-    const base = (config.mensagemConvite || "").trim()
-      || "Olá! Te convido pra usar o NUMVI Finanças — sua vida financeira organizada num só lugar. Acesse: {link}";
-    const texto = base.includes("{link}") ? base.replace("{link}", url) : `${base} ${url}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
-    const e = (busca || "").trim().toLowerCase();
-    if (e && /.+@.+\..+/.test(e)) {
-      upsertCliente(e);
-      toast.success(`Convite gerado e ${e} adicionado.`);
-      setBusca("");
+  // Atualiza o registro LOCAL (por e-mail) de assinatura/teste.
+  const upsertLocal = (email, patch) => {
+    const e = (email || "").toLowerCase();
+    const existe = (clientes || []).some(c => (c.email || "").toLowerCase() === e);
+    if (existe) {
+      setClientes(clientes.map(c => (c.email || "").toLowerCase() === e ? { ...c, ...patch } : c));
     } else {
-      toast.success("Convite aberto no WhatsApp.");
+      setClientes([{ id: uid(), email, assinatura: "", testeDias: 0, cadastro: todayISO(), ...patch }, ...clientes]);
     }
   };
 
-  const adicionarCliente = () => {
-    const c = upsertCliente(busca);
-    if (c) { toast.success(`${c.email} adicionado.`); setBusca(""); }
-  };
-
-  const atualizarCliente = (id, patch) =>
-    setClientes(clientes.map(c => c.id === id ? { ...c, ...patch } : c));
-
-  const concederTeste = (c) => {
-    // "Teste" concede/estende dias grátis (padrão configurável).
+  const concederTeste = (u) => {
     const passo = Number(config.testeDias) > 0 ? Number(config.testeDias) : 7;
-    const novos = (Number(c.testeDias) || 0) + passo;
-    atualizarCliente(c.id, { testeDias: novos, assinatura: c.assinatura === "ativa" ? "ativa" : "teste" });
-    toast.success(`${c.email}: teste em ${novos} dias.`);
+    const novos = (Number(u.testeDias) || 0) + passo;
+    upsertLocal(u.email, { testeDias: novos, assinatura: u.assinatura === "ativa" ? "ativa" : "teste" });
+    toast.success(`${u.email}: teste em ${novos} dias.`);
   };
 
-  const removerCliente = async (c) => {
-    const ok = await confirm({ title: `Remover ${c.email}?`, danger: true, confirmLabel: "Remover",
-      body: "Remove o cliente do painel (não afeta a conta dele no login)." });
-    if (!ok) return;
-    setClientes(clientes.filter(x => x.id !== c.id));
+  const toggleAssinatura = (u) =>
+    upsertLocal(u.email, { assinatura: u.assinatura === "ativa" ? "" : "ativa" });
+
+  const convidarWhatsApp = () => {
+    const url = (config.appUrl || "").trim() || APP_URL;
+    const baseMsg = (config.mensagemConvite || "").trim()
+      || "Olá! Te convido pra usar o NUMVI Finanças — sua vida financeira organizada num só lugar. Acesse: {link}";
+    const texto = baseMsg.includes("{link}") ? baseMsg.replace("{link}", url) : `${baseMsg} ${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
+    toast.success("Convite aberto no WhatsApp.");
   };
 
   const SUBS = [
@@ -134,17 +147,16 @@ export default function Gerencial({
             <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
               <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: T.muted }} />
               <input value={busca} onChange={e => setBusca(e.target.value)}
-                     placeholder="Buscar ou adicionar por e-mail…"
-                     onKeyDown={e => { if (e.key === "Enter") adicionarCliente(); }}
+                     placeholder="Buscar por e-mail…"
                      style={{ width: "100%", padding: "9px 12px 9px 32px", background: T.bgSoft,
                               border: `1px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 13 }} />
             </div>
-            <button onClick={adicionarCliente} title="Adiciona o e-mail digitado à lista de clientes" style={{
+            <button onClick={carregar} disabled={carregando} title="Recarregar usuários do servidor" style={{
               padding: "9px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
               background: "transparent", border: `1px solid ${T.border}`, color: T.muted,
               display: "inline-flex", alignItems: "center", gap: 6,
             }}>
-              + Adicionar
+              <RefreshCw size={14} /> {carregando ? "Atualizando…" : "Atualizar"}
             </button>
             <button onClick={convidarWhatsApp} title="Abre o WhatsApp com o link do app (não precisa de e-mail)" style={{
               padding: "9px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
@@ -170,11 +182,9 @@ export default function Gerencial({
               </thead>
               <tbody>
                 {lista.map(c => (
-                  <tr key={c.id} style={{ borderTop: `1px solid ${T.border}` }}>
+                  <tr key={c.id || c.email} style={{ borderTop: `1px solid ${T.border}` }}>
                     <td style={{ ...td, color: T.ink, fontWeight: 500 }}>{c.email}</td>
-                    <td style={{ ...td, textAlign: "center", cursor: "pointer" }}
-                        onClick={() => atualizarCliente(c.id, { confirmado: !c.confirmado })}
-                        title="Marcar confirmado">
+                    <td style={{ ...td, textAlign: "center" }} title={c.confirmado ? "E-mail confirmado" : "E-mail não confirmado"}>
                       {c.confirmado
                         ? <CheckCircle2 size={16} color={T.green} style={{ display: "inline" }} />
                         : <span style={{ color: T.faint }}>—</span>}
@@ -191,22 +201,23 @@ export default function Gerencial({
                     </td>
                     <td style={{ ...td, color: T.muted }}>{fmtData(c.cadastro)}</td>
                     <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
-                      <button onClick={() => concederTeste(c)} title="Conceder/estender 7 dias de teste" style={actBtn}>
+                      <button onClick={() => concederTeste(c)} title="Conceder/estender dias de teste" style={actBtn}>
                         <Clock size={12} /> Teste
                       </button>
-                      <button onClick={() => atualizarCliente(c.id, { assinatura: c.assinatura === "ativa" ? "" : "ativa" })}
-                              title="Alternar assinatura ativa" style={{ ...actBtn, marginLeft: 6 }}>
+                      <button onClick={() => toggleAssinatura(c)}
+                              title="Alternar assinatura ativa"
+                              style={{ ...actBtn, marginLeft: 6, ...(c.assinatura === "ativa" ? { borderColor: `${T.green}55`, color: T.green } : {}) }}>
                         <CreditCard size={12} />
-                      </button>
-                      <button onClick={() => removerCliente(c)} title="Remover" style={{ ...actBtn, marginLeft: 6, borderColor: `${T.red}55`, color: T.red }}>
-                        <Trash2 size={12} />
                       </button>
                     </td>
                   </tr>
                 ))}
                 {lista.length === 0 && (
-                  <tr><td colSpan={6} style={{ ...td, textAlign: "center", color: T.muted, padding: 24, fontStyle: "italic" }}>
-                    {busca ? "Nenhum cliente encontrado." : "Nenhum cliente ainda. Digite um e-mail e convide pelo WhatsApp."}
+                  <tr><td colSpan={6} style={{ ...td, textAlign: "center", color: erroUsuarios ? T.red : T.muted, padding: 24, fontStyle: "italic" }}>
+                    {carregando ? "Carregando usuários…"
+                      : erroUsuarios ? erroUsuarios
+                      : busca ? "Nenhum usuário encontrado."
+                      : "Nenhum usuário cadastrado ainda."}
                   </td></tr>
                 )}
               </tbody>

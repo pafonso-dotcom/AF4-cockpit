@@ -76,6 +76,43 @@ export default {
       }
     }
 
+    // Lista de usuários reais (Supabase) — só pro gestor. Usa a service-role
+    // key como secret (SUPABASE_SERVICE_ROLE_KEY). Valida que o chamador é
+    // gestor pelo token dele antes de devolver qualquer coisa.
+    if (url.pathname === "/api/usuarios" && request.method === "GET") {
+      const SUPA = env.SUPABASE_URL || "https://maqlnsivmreagpkhbkbn.supabase.co";
+      const SERVICE = env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!SERVICE) return json({ error: "Servidor sem SUPABASE_SERVICE_ROLE_KEY." }, 500);
+      const token = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+      if (!token) return json({ error: "Não autenticado." }, 401);
+      try {
+        const meRes = await fetch(`${SUPA}/auth/v1/user`, {
+          headers: { apikey: SERVICE, Authorization: `Bearer ${token}` },
+        });
+        if (!meRes.ok) return json({ error: "Token inválido." }, 401);
+        const me = await meRes.json();
+        const gestores = (env.GESTOR_EMAILS || "p.afonso@me.com")
+          .toLowerCase().split(",").map(s => s.trim()).filter(Boolean);
+        if (!gestores.includes((me.email || "").toLowerCase())) {
+          return json({ error: "Acesso restrito ao gestor." }, 403);
+        }
+        const r = await fetch(`${SUPA}/auth/v1/admin/users?per_page=1000`, {
+          headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` },
+        });
+        if (!r.ok) return json({ error: "Falha ao listar usuários." }, 502);
+        const data = await r.json();
+        const users = (data.users || []).map(u => ({
+          id: u.id,
+          email: u.email,
+          confirmado: !!(u.email_confirmed_at || u.confirmed_at),
+          cadastro: (u.created_at || "").slice(0, 10),
+        }));
+        return json({ users });
+      } catch (e) {
+        return json({ error: "Erro ao consultar usuários: " + (e.message || e) }, 502);
+      }
+    }
+
     // Endpoints /api/* antigos (state/keys) foram removidos — sync agora
     // é via GitHub Gist direto do cliente. Devolve 410 Gone pra qualquer
     // chamada residual.
