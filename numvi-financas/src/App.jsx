@@ -107,6 +107,8 @@ export default function App() {
 
   // Painel Gerencial (gestor) — CRM local de clientes do produto.
   const [clientes, setClientes] = useState([]);
+  const [curadoria, setCuradoria] = useState([]); // dicas/conteúdos pro cliente
+  const [planos, setPlanos] = useState([]);       // planos de assinatura
 
   // E-mail do usuário logado (Supabase) → define se é o gestor.
   const [userEmail, setUserEmail] = useState("");
@@ -189,6 +191,8 @@ export default function App() {
         setDevedores(data.devedores || seedDevedores);
         setDividas(data.dividas || seedDividas);
         setClientes(data.clientes || []);
+        setCuradoria(data.curadoria || []);
+        setPlanos(data.planos || []);
         // Migração silenciosa: se backup antigo não tem essas chaves, vira []
         setFixas(data.fixas || []);
         setFixaOcorrencias(data.fixaOcorrencias || []);
@@ -257,12 +261,12 @@ export default function App() {
     if (loading) return;
     saveAll({
       contas, categorias, transacoes, ativos, metas, notas,
-      cartoes, parcelamentos, devedores, dividas, clientes,
+      cartoes, parcelamentos, devedores, dividas, clientes, curadoria, planos,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico,
       themeId,
     });
-  }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas, clientes,
+  }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas, clientes, curadoria, planos,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico,
       themeId, loading]);
@@ -700,7 +704,10 @@ export default function App() {
         {modulo === "financas" && (
           <div className="px-6 md:px-10">
             {tab === "gerencial" && ehGestor && (
-              <Gerencial clientes={clientes} setClientes={setClientes} gestorEmail={userEmail} />
+              <Gerencial clientes={clientes} setClientes={setClientes}
+                         curadoria={curadoria} setCuradoria={setCuradoria}
+                         planos={planos} setPlanos={setPlanos}
+                         gestorEmail={userEmail} />
             )}
             {tab === "dashboard" && (
               <Dashboard totais={totais} hidden={hidden} contas={contas} ativos={ativos}

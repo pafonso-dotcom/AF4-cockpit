@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { Users, BookOpen, CreditCard, Settings, RefreshCw, Send, Clock, Trash2, CheckCircle2, Search } from "lucide-react";
 import { T } from "../../lib/theme.js";
-import { uid, todayISO } from "../../lib/format.js";
+import { uid, todayISO, fmt } from "../../lib/format.js";
+import { Plus, Pin, Link as LinkIcon } from "lucide-react";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import { APP_URL } from "../../lib/gestor.js";
@@ -12,7 +13,12 @@ import { APP_URL } from "../../lib/gestor.js";
  *
  * Cliente: { id, email, confirmado, assinatura: ""|"ativa"|"teste", testeDias, cadastro }
  */
-export default function Gerencial({ clientes = [], setClientes, gestorEmail = "" }) {
+export default function Gerencial({
+  clientes = [], setClientes,
+  curadoria = [], setCuradoria,
+  planos = [], setPlanos,
+  gestorEmail = "",
+}) {
   const [sub, setSub] = useState("clientes");
   const [busca, setBusca] = useState("");
 
@@ -207,11 +213,17 @@ export default function Gerencial({ clientes = [], setClientes, gestorEmail = ""
         </>
       )}
 
-      {sub !== "clientes" && (
+      {sub === "curadoria" && (
+        <CuradoriaTab curadoria={curadoria} setCuradoria={setCuradoria} />
+      )}
+
+      {sub === "assinaturas" && (
+        <AssinaturasTab planos={planos} setPlanos={setPlanos} clientes={clientes} />
+      )}
+
+      {sub === "config" && (
         <div style={{ background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10, padding: 40, textAlign: "center", color: T.muted }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, marginBottom: 6 }}>
-            {SUBS.find(s => s.id === sub)?.label}
-          </div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, marginBottom: 6 }}>Configurações</div>
           Em breve — próxima fase do painel do gestor.
         </div>
       )}
@@ -245,4 +257,194 @@ function fmtData(iso) {
   if (!iso) return "—";
   const [y, m, d] = iso.split("-");
   return d && m && y ? `${d}/${m}/${y}` : iso;
+}
+
+/* ============ CURADORIA — dicas/conteúdos pro cliente ============ */
+function CuradoriaTab({ curadoria = [], setCuradoria }) {
+  const [form, setForm] = useState({ titulo: "", texto: "", link: "" });
+
+  const publicar = () => {
+    const titulo = form.titulo.trim();
+    if (!titulo) { toast.error("Dê um título à dica."); return; }
+    const item = {
+      id: uid(), titulo, texto: form.texto.trim(), link: form.link.trim(),
+      fixado: false, data: todayISO(),
+    };
+    setCuradoria([item, ...curadoria]);
+    setForm({ titulo: "", texto: "", link: "" });
+    toast.success("Conteúdo publicado.");
+  };
+
+  const togglePin = (id) =>
+    setCuradoria(curadoria.map(c => c.id === id ? { ...c, fixado: !c.fixado } : c));
+
+  const remover = async (c) => {
+    const ok = await confirm({ title: `Remover "${c.titulo}"?`, danger: true, confirmLabel: "Remover" });
+    if (!ok) return;
+    setCuradoria(curadoria.filter(x => x.id !== c.id));
+  };
+
+  const lista = [...curadoria].sort((a, b) =>
+    (b.fixado - a.fixado) || (b.data || "").localeCompare(a.data || ""));
+
+  return (
+    <>
+      {/* Form */}
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: T.ink, marginBottom: 10 }}>Nova dica / conteúdo</div>
+        <input value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })}
+               placeholder="Título" style={inp} />
+        <textarea value={form.texto} onChange={e => setForm({ ...form, texto: e.target.value })}
+                  placeholder="Texto da dica (opcional)" rows={3}
+                  style={{ ...inp, resize: "vertical" }} />
+        <input value={form.link} onChange={e => setForm({ ...form, link: e.target.value })}
+               placeholder="Link (opcional)" style={inp} />
+        <button onClick={publicar} style={{
+          marginTop: 6, padding: "9px 16px", borderRadius: 8, fontSize: 12.5, fontWeight: 600,
+          cursor: "pointer", background: T.gold, color: T.bg, border: "none",
+          display: "inline-flex", alignItems: "center", gap: 6,
+        }}>
+          <Plus size={14} /> Publicar
+        </button>
+      </div>
+
+      {/* Lista */}
+      <div style={{ display: "grid", gap: 10 }}>
+        {lista.map(c => (
+          <div key={c.id} style={{
+            background: T.card, border: `1px solid ${c.fixado ? T.gold : T.border}`,
+            borderRadius: 10, padding: 14,
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: T.ink }}>{c.titulo}</div>
+              <div style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
+                <button onClick={() => togglePin(c.id)} title="Fixar" style={iconBtn(c.fixado ? T.gold : T.muted)}>
+                  <Pin size={13} />
+                </button>
+                <button onClick={() => remover(c)} title="Remover" style={iconBtn(T.red)}>
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+            {c.texto && <div style={{ fontSize: 12.5, color: T.muted, marginTop: 6, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{c.texto}</div>}
+            {c.link && (
+              <a href={c.link} target="_blank" rel="noreferrer"
+                 style={{ fontSize: 12, color: T.blue || "#60a5fa", marginTop: 8, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <LinkIcon size={12} /> {c.link}
+              </a>
+            )}
+            <div style={{ fontSize: 10.5, color: T.faint, marginTop: 8 }}>{fmtData(c.data)}</div>
+          </div>
+        ))}
+        {lista.length === 0 && (
+          <div style={{ background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10, padding: 30, textAlign: "center", color: T.muted, fontStyle: "italic" }}>
+            Nenhum conteúdo ainda. Publique a primeira dica acima.
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+/* ============ ASSINATURAS — planos + resumo de assinantes ============ */
+function AssinaturasTab({ planos = [], setPlanos, clientes = [] }) {
+  const [form, setForm] = useState({ nome: "", preco: "", periodo: "mensal" });
+
+  const resumo = {
+    ativos: clientes.filter(c => c.assinatura === "ativa").length,
+    teste: clientes.filter(c => c.assinatura === "teste").length,
+    total: clientes.length,
+  };
+
+  const addPlano = () => {
+    const nome = form.nome.trim();
+    const preco = Number(String(form.preco).replace(",", "."));
+    if (!nome) { toast.error("Dê um nome ao plano."); return; }
+    if (!(preco > 0)) { toast.error("Informe um preço válido."); return; }
+    setPlanos([...planos, { id: uid(), nome, preco, periodo: form.periodo, ativo: true }]);
+    setForm({ nome: "", preco: "", periodo: "mensal" });
+    toast.success("Plano criado.");
+  };
+
+  const toggleAtivo = (id) =>
+    setPlanos(planos.map(p => p.id === id ? { ...p, ativo: !p.ativo } : p));
+
+  const remover = async (p) => {
+    const ok = await confirm({ title: `Remover plano "${p.nome}"?`, danger: true, confirmLabel: "Remover" });
+    if (!ok) return;
+    setPlanos(planos.filter(x => x.id !== p.id));
+  };
+
+  return (
+    <>
+      {/* Resumo de assinantes (da lista de Clientes) */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 18 }}>
+        <Kpi label="Assinantes ativos" valor={resumo.ativos} cor={T.green} />
+        <Kpi label="Em teste" valor={resumo.teste} cor={T.gold} />
+        <Kpi label="Total de clientes" valor={resumo.total} />
+      </div>
+
+      {/* Novo plano */}
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: T.ink, marginBottom: 10 }}>Novo plano</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })}
+                 placeholder="Nome do plano" style={{ ...inp, flex: 1, minWidth: 160, marginBottom: 0 }} />
+          <input value={form.preco} onChange={e => setForm({ ...form, preco: e.target.value })}
+                 placeholder="Preço (R$)" inputMode="decimal" style={{ ...inp, width: 120, marginBottom: 0 }} />
+          <select value={form.periodo} onChange={e => setForm({ ...form, periodo: e.target.value })}
+                  style={{ ...inp, width: 130, marginBottom: 0 }}>
+            <option value="mensal">Mensal</option>
+            <option value="anual">Anual</option>
+          </select>
+          <button onClick={addPlano} style={{
+            padding: "9px 16px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+            background: T.gold, color: T.bg, border: "none", display: "inline-flex", alignItems: "center", gap: 6,
+          }}>
+            <Plus size={14} /> Criar
+          </button>
+        </div>
+      </div>
+
+      {/* Lista de planos */}
+      <div style={{ display: "grid", gap: 10 }}>
+        {planos.map(p => (
+          <div key={p.id} style={{
+            background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 16px",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+            opacity: p.ativo ? 1 : 0.55,
+          }}>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: T.ink }}>{p.nome}</div>
+              <div style={{ fontSize: 11.5, color: T.muted }}>{p.periodo === "anual" ? "Anual" : "Mensal"}</div>
+            </div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+              <span className="num" style={{ fontSize: 15, fontWeight: 600, color: T.gold }}>{fmt(p.preco)}</span>
+              <button onClick={() => toggleAtivo(p.id)} style={{
+                ...iconBtn(p.ativo ? T.green : T.muted), padding: "4px 10px", width: "auto", fontSize: 10.5, fontWeight: 600,
+              }}>{p.ativo ? "Ativo" : "Inativo"}</button>
+              <button onClick={() => remover(p)} title="Remover" style={iconBtn(T.red)}><Trash2 size={13} /></button>
+            </div>
+          </div>
+        ))}
+        {planos.length === 0 && (
+          <div style={{ background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10, padding: 30, textAlign: "center", color: T.muted, fontStyle: "italic" }}>
+            Nenhum plano ainda. Crie o primeiro acima.
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+const inp = {
+  width: "100%", padding: "9px 12px", marginBottom: 8, background: T.bgSoft,
+  border: `1px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 13,
+  fontFamily: "inherit", boxSizing: "border-box",
+};
+function iconBtn(cor) {
+  return {
+    padding: "5px 8px", borderRadius: 6, cursor: "pointer", background: "transparent",
+    border: `1px solid ${cor}55`, color: cor, display: "inline-flex", alignItems: "center", gap: 4,
+  };
 }
