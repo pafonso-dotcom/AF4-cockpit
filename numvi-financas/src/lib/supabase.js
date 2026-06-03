@@ -5,27 +5,25 @@
    ============================================================ */
 
 import { createClient } from "@supabase/supabase-js";
-import { VARIANT } from "./brand.js";
+import { VARIANT, TABLE_STATE, TABLE_KEYS } from "./brand.js";
 
 // Credenciais do projeto Supabase. A anon key é pública por design —
 // vai no bundle do cliente de qualquer forma, e a segurança real vem
 // das policies RLS no banco.
 //
-// Variante "pessoal": cai no projeto pessoal do dono como padrão (dados já
-//   existentes), a menos que VITE_SUPABASE_URL/KEY sejam definidos.
-// Variante "comercial": EXIGE VITE_SUPABASE_URL/KEY explícitos. Sem eles o
-//   app fica "não configurado" (fail-closed) — nunca cai no banco pessoal
-//   por engano, evitando misturar dados de clientes com os do dono.
+// Por agora, pessoal e comercial PARTILHAM o mesmo projeto Supabase
+// (limite de 2 projetos grátis por conta). A separação dos dados é feita
+// por TABELAS distintas (ver brand.js: numvi_state vs numvi_com_state) +
+// RLS por usuário. Quando o comercial migrar para um projeto dedicado,
+// basta definir VITE_SUPABASE_URL/KEY no build comercial — env vence.
 //
 // Projeto pessoal: maqlnsivmreagpkhbkbn (us-west-1)
 // Migrado em 2026-05-25 do projeto antigo (rffxplwshwfjnedefvqg).
 const PESSOAL_URL = "https://maqlnsivmreagpkhbkbn.supabase.co";
 const PESSOAL_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hcWxuc2l2bXJlYWdwa2hia2JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NzQ4NjMsImV4cCI6MjA5NTA1MDg2M30.eMWAkJca6TQ1J8728IoQ3MnWdq37uHAlA4ybiCwdOkQ";
 
-const URL = import.meta.env.VITE_SUPABASE_URL
-  || (VARIANT === "pessoal" ? PESSOAL_URL : "");
-const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
-  || (VARIANT === "pessoal" ? PESSOAL_KEY : "");
+const URL = import.meta.env.VITE_SUPABASE_URL || PESSOAL_URL;
+const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || PESSOAL_KEY;
 
 export const supabaseConfigured = !!(URL && KEY);
 
@@ -114,7 +112,7 @@ export function onAuthChange(cb) {
 export async function fetchAurumState() {
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from("numvi_state")
+    .from(TABLE_STATE)
     .select("state")
     .maybeSingle();
   if (error) {
@@ -129,7 +127,7 @@ export async function saveAurumState(state) {
   const session = await getSession();
   if (!session) return;
   const { error } = await supabase
-    .from("numvi_state")
+    .from(TABLE_STATE)
     .upsert({ user_id: session.user.id, state }, { onConflict: "user_id" });
   if (error) console.error("[AF4] saveAurumState", error);
 }
@@ -137,7 +135,7 @@ export async function saveAurumState(state) {
 export async function fetchAurumKeys() {
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from("numvi_keys")
+    .from(TABLE_KEYS)
     .select("keys")
     .maybeSingle();
   if (error) {
@@ -152,7 +150,7 @@ export async function saveAurumKeys(keys) {
   const session = await getSession();
   if (!session) return;
   const { error } = await supabase
-    .from("numvi_keys")
+    .from(TABLE_KEYS)
     .upsert({ user_id: session.user.id, keys }, { onConflict: "user_id" });
   if (error) console.error("[AF4] saveAurumKeys", error);
 }
