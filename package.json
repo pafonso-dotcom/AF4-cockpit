@@ -6,7 +6,10 @@
   "scripts": {
     "build": "turbo run build",
     "start": "pnpm --filter @repo/cars-web start",
-    "dev": "pnpm --filter @repo/cars-web dev"
+    "dev": "pnpm --filter @repo/cars-web dev",
+    "catalogo:dev": "pnpm --filter @repo/catalogo dev",
+    "catalogo:build": "pnpm --filter @repo/catalogo build",
+    "catalogo:start": "pnpm --filter @repo/catalogo start"
   },
   "devDependencies": {
     "turbo": "^2.9.8"
