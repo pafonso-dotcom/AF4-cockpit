@@ -26,7 +26,7 @@ export default function CarroCard({ carro, onAbrir }) {
       {/* Foto */}
       <div className="relative aspect-[16/10] w-full">
         <CarImage
-          src={carro.foto}
+          src={(carro.fotos && carro.fotos[0]) || carro.foto}
           alt={`${carro.marca} ${carro.modelo}`}
           className="h-full w-full"
         />

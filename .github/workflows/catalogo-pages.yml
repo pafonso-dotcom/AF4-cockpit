@@ -1,0 +1,65 @@
+name: Deploy Catálogo (GitHub Pages)
+
+# Publica o app apps/catalogo no GitHub Pages.
+# PRÉ-REQUISITO (uma vez): Settings → Pages → Build and deployment →
+# Source: "GitHub Actions". Depois disso, todo push na main que mexer
+# em apps/catalogo republica o site automaticamente.
+# Também dá pra rodar manualmente em Actions → "Deploy Catálogo".
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/catalogo/**"
+      - ".github/workflows/catalogo-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Um deploy por vez; não cancela um deploy em andamento.
+concurrency:
+  group: catalogo-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Build do catálogo
+        run: pnpm --filter @repo/catalogo build
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload do artefato
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/catalogo/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar no Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

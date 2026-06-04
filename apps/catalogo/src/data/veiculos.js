@@ -15,9 +15,13 @@
 //      preco:     89900                        (número, em reais)
 //      destaque:  true                         (opcional — fita "Destaque")
 //      vendido:   false                        (true esconde/risca o card)
-//      foto:      "https://..."                (opcional — sem foto vira placeholder)
-//      extras:    ["Completo", "Único dono"]   (opcional — chips)
+//      fotos:     ["/carros/x/1.jpg", ...]      (opcional — galeria; 1ª é a capa)
+//      foto:      "https://..."                 (opcional — foto única, alternativa a "fotos")
+//      extras:    ["Completo", "Único dono"]    (opcional — chips)
 //    }
+//
+//  Fotos próprias: salve em apps/catalogo/public/carros/<id>/ e referencie
+//  como "/carros/<id>/1.jpg". Sem foto, o card mostra placeholder — nada quebra.
 //
 //  Dica: as fotos abaixo apontam pra Unsplash. Se estiver offline ou
 //  quiser usar fotos próprias, troque a URL ou coloque a imagem em
@@ -26,6 +30,33 @@
 // =============================================================
 
 export const VEICULOS = [
+  // ===== Estoque REAL AF4 =====
+  {
+    id: "polo-track-2025",
+    marca: "Volkswagen",
+    modelo: "Polo",
+    versao: "1.0 Track",
+    ano: "2025",
+    km: 42000,
+    cambio: "Manual",
+    combustivel: "Flex",
+    cor: "Cinza",
+    preco: 79900,
+    destaque: true,
+    vendido: false,
+    // Coloque as 5 fotos em apps/catalogo/public/carros/polo-track-2025/
+    // com estes nomes (1 = capa). Enquanto não existirem, aparece o placeholder.
+    fotos: [
+      "/carros/polo-track-2025/1.jpg",
+      "/carros/polo-track-2025/2.jpg",
+      "/carros/polo-track-2025/3.jpg",
+      "/carros/polo-track-2025/4.jpg",
+      "/carros/polo-track-2025/5.jpg",
+    ],
+    extras: ["Revisado"],
+  },
+
+  // ===== Exemplos (remover quando entrar o estoque real) =====
   {
     id: "tcross",
     marca: "Volkswagen",

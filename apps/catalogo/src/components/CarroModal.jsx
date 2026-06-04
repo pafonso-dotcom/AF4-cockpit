@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   X,
   Calendar,
@@ -8,23 +8,42 @@ import {
   Palette,
   Check,
   MessageCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import CarImage from "./CarImage.jsx";
 import { fmtPreco, fmtKm } from "../lib/format.js";
 import { linkWhatsApp } from "../config.js";
 
-/** Detalhes do veículo + CTA de WhatsApp. */
+/** Detalhes do veículo + galeria de fotos + CTA de WhatsApp. */
 export default function CarroModal({ carro, onClose }) {
-  // Fecha no ESC e trava o scroll do fundo enquanto aberto.
+  const [idx, setIdx] = useState(0);
+
+  // Galeria: usa "fotos" (array) ou cai pra "foto" única.
+  const fotos = carro
+    ? carro.fotos?.length
+      ? carro.fotos
+      : carro.foto
+        ? [carro.foto]
+        : []
+    : [];
+  const temGaleria = fotos.length > 1;
+  const irPara = (n) => setIdx((n + fotos.length) % fotos.length);
+
+  // Fecha no ESC, navega galeria com ← →, e trava o scroll do fundo.
   useEffect(() => {
-    const onKey = (e) => e.key === "Escape" && onClose();
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+      if (temGaleria && e.key === "ArrowLeft") setIdx((i) => (i - 1 + fotos.length) % fotos.length);
+      if (temGaleria && e.key === "ArrowRight") setIdx((i) => (i + 1) % fotos.length);
+    };
     window.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [onClose]);
+  }, [onClose, temGaleria, fotos.length]);
 
   if (!carro) return null;
 
@@ -48,21 +67,44 @@ export default function CarroModal({ carro, onClose }) {
         className="fade-up flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-line bg-surface sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Foto + fechar */}
+        {/* Galeria + fechar */}
         <div className="relative aspect-[16/10] w-full shrink-0">
           <CarImage
-            src={carro.foto}
-            alt={`${carro.marca} ${carro.modelo}`}
+            src={fotos[idx]}
+            alt={`${carro.marca} ${carro.modelo} — foto ${idx + 1}`}
             className="h-full w-full"
           />
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/60 text-white ring-1 ring-white/20 transition hover:bg-black/80"
+            className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/60 text-white ring-1 ring-white/20 transition hover:bg-black/80"
           >
             <X size={18} />
           </button>
-          <div className="absolute bottom-3 left-4 right-4">
+
+          {temGaleria && (
+            <>
+              <button
+                onClick={() => irPara(idx - 1)}
+                aria-label="Foto anterior"
+                className="absolute left-3 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-black/55 text-white ring-1 ring-white/20 transition hover:bg-black/80"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                onClick={() => irPara(idx + 1)}
+                aria-label="Próxima foto"
+                className="absolute right-3 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-black/55 text-white ring-1 ring-white/20 transition hover:bg-black/80"
+              >
+                <ChevronRight size={20} />
+              </button>
+              <span className="absolute right-3 bottom-3 z-10 rounded-full bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-white ring-1 ring-white/15">
+                {idx + 1}/{fotos.length}
+              </span>
+            </>
+          )}
+
+          <div className="pointer-events-none absolute bottom-3 left-4 right-4">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-300">
               {carro.marca}
             </div>
@@ -72,6 +114,24 @@ export default function CarroModal({ carro, onClose }) {
             </h2>
           </div>
         </div>
+
+        {/* Miniaturas */}
+        {temGaleria && (
+          <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-line bg-surface px-4 py-3">
+            {fotos.map((f, i) => (
+              <button
+                key={i}
+                onClick={() => setIdx(i)}
+                aria-label={`Ver foto ${i + 1}`}
+                className={`h-14 w-20 shrink-0 overflow-hidden rounded-lg ring-2 transition ${
+                  i === idx ? "ring-accent" : "ring-transparent opacity-70 hover:opacity-100"
+                }`}
+              >
+                <CarImage src={f} alt="" className="h-full w-full" />
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Corpo rolável */}
         <div className="flex-1 overflow-y-auto p-5">
