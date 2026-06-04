@@ -11,7 +11,7 @@ import "./index.css";
 // Encerra também qualquer sessão ativa por garantia.
 // → Quando resolvermos tudo, mude para false e faça deploy.
 // ============================================================
-const MANUTENCAO = true;
+const MANUTENCAO = false;
 
 function Manutencao() {
   return (
