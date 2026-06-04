@@ -16,9 +16,12 @@ import {
   fetchAurumKeys, saveAurumKeys as supabaseSaveKeys,
 } from "./supabase.js";
 
-export const STORE_KEY  = "financas:dados:v1";
-export const MARKET_KEY = "financas:mercado:v1";
-export const KEYS_KEY   = "financas:apikeys:v1";
+// Chaves de cache PRÓPRIAS do comercial. Este domínio (numvi-financas) já foi
+// usado como app pessoal e ficou cache pessoal ("financas:*") no localStorage.
+// Com um prefixo distinto, o comercial NUNCA lê esse resíduo pessoal.
+export const STORE_KEY  = "numvicom:dados:v1";
+export const MARKET_KEY = "numvicom:mercado:v1";
+export const KEYS_KEY   = "numvicom:apikeys:v1";
 
 const local = {
   get(key) {
@@ -32,6 +35,16 @@ const local = {
     try { localStorage.removeItem(key); } catch {}
   },
 };
+
+// Limpeza única (anti-vazamento): remove qualquer cache pessoal legado
+// ("financas:*") deixado neste domínio quando ele servia o app pessoal — para
+// nunca ser exibido nem copiado para um cliente do comercial.
+try {
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith("financas:")) localStorage.removeItem(k);
+  }
+} catch {}
 
 /* ============================================================
    loadAll / saveAll — estado completo do app (localStorage)

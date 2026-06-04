@@ -15,7 +15,7 @@
 
 import { loadAll, loadKeys } from "./storage.js";
 
-const STORAGE_KEY = "financas:dados:v1";
+const STORAGE_KEY = "numvicom:dados:v1";
 
 /** Coleta tudo num único snapshot */
 export function snapshot() {

@@ -513,7 +513,7 @@ function AutoBackupsList() {
     try {
       const data = await readBackup(id);
       if (!data) { setMsg({ tipo: "erro", txt: "Não consegui ler o backup." }); return; }
-      localStorage.setItem("financas:dados:v1", JSON.stringify(data));
+      localStorage.setItem("numvicom:dados:v1", JSON.stringify(data));
       setMsg({ tipo: "ok", txt: "Backup restaurado. Recarregando…" });
       setTimeout(() => window.location.reload(), 1200);
     } catch (e) {
@@ -541,7 +541,7 @@ function AutoBackupsList() {
 
   const criarAgora = async () => {
     // O snapshot dos dados é gerado pelo App.jsx no useEffect. Aqui só forçamos um manual usando o storage atual.
-    const dados = safeParse(localStorage.getItem("financas:dados:v1"), null);
+    const dados = safeParse(localStorage.getItem("numvicom:dados:v1"), null);
     if (!dados) { setMsg({ tipo: "erro", txt: "Sem dados pra fazer backup ainda." }); return; }
     setBusy(true);
     try {
