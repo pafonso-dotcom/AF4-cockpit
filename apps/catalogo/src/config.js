@@ -17,9 +17,9 @@ export const LOJA = {
   vendedor: "João Silva",
   vendedorCargo: "Atendimento personalizado para realizar seu sonho",
   // Telefone só com dígitos, com DDI 55 + DDD (usado no link do WhatsApp)
-  whatsapp: "5511999999999",
+  whatsapp: "5515998233299",
   // Como o telefone aparece na tela
-  telefoneExibicao: "(11) 99999-9999",
+  telefoneExibicao: "(15) 99823-3299",
   instagram: "@joaosilvaveiculos",
   instagramUrl: "https://instagram.com/joaosilvaveiculos",
   cidade: "São Paulo - SP",
