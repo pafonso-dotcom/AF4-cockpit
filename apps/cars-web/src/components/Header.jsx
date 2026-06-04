@@ -12,7 +12,7 @@ import {
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
-  BookOpen, Repeat, MoreHorizontal, RotateCw,
+  BookOpen, Repeat, MoreHorizontal, RotateCw, LogOut,
 } from "lucide-react";
 
 /**
@@ -232,6 +232,7 @@ function HeaderHorizontal({
                   { lbl: T.dark ? "Tema claro" : "Tema escuro", icon: T.dark ? Sun : Moon, on: () => { onOpenSettings?.("toggle-tema"); setMenuUtilAberto(false); } },
                   { lbl: refreshing ? "Atualizando…" : "Atualizar cotações", icon: RefreshCw, on: () => { onRefresh?.(); setMenuUtilAberto(false); } },
                   { lbl: "Atualizar app (nova versão)", icon: RotateCw, on: () => { setMenuUtilAberto(false); forcarAtualizacaoApp(); } },
+                  { lbl: "Sair do app", icon: LogOut, danger: true, on: () => { setMenuUtilAberto(false); window.__af4Logout?.(); } },
                 ].map(it => {
                   const I = it.icon;
                   return (
@@ -239,11 +240,12 @@ function HeaderHorizontal({
                       style={{
                         display: "flex", alignItems: "center", gap: 10, padding: "9px 11px",
                         background: "transparent", border: "none", borderRadius: 7, cursor: "pointer",
-                        color: NAV_INK, fontSize: 13, textAlign: "left", fontFamily: T.sans, width: "100%",
+                        color: it.danger ? "#f87171" : NAV_INK, fontSize: 13, textAlign: "left", fontFamily: T.sans, width: "100%",
+                        borderTop: it.danger ? `1px solid ${NAV_BORDER}` : "none", marginTop: it.danger ? 2 : 0,
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.06)"}
+                      onMouseEnter={e => e.currentTarget.style.background = it.danger ? "rgba(248,113,113,.12)" : "rgba(255,255,255,.06)"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      <I size={15} style={{ color: NAV_MUTED }} /> {it.lbl}
+                      <I size={15} style={{ color: it.danger ? "#f87171" : NAV_MUTED }} /> {it.lbl}
                     </button>
                   );
                 })}
@@ -775,6 +777,11 @@ function HeaderVertical({
             title="Atualizar app (buscar versão nova)"
             style={vertUtilBtn}>
             <RotateCw size={16} />
+          </button>
+          <button onClick={() => window.__af4Logout?.()}
+            title="Sair do app"
+            style={{ ...vertUtilBtn, color: "#f87171" }}>
+            <LogOut size={16} />
           </button>
           <button onClick={() => onOpenSettings?.("perfis")}
             title={`Perfil: ${perfilAtivo?.nome || "—"}`}
