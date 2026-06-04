@@ -885,7 +885,10 @@ export default function App() {
               <div className="px-6 md:px-10">
                 <CartaoExtrato cartao={cartaoAberto}
                                transacoes={transacoes}
+                               setTransacoes={setTransacoes}
                                parcelamentos={parcelamentos}
+                               setParcelamentos={setParcelamentos}
+                               categorias={categorias}
                                onVoltar={() => setCartaoAberto(null)}
                                hidden={hidden} />
               </div>

@@ -37,11 +37,31 @@ function parcelaNoMes(parc, mesISO) {
  * Extrato de um cartão de crédito.
  * Mostra: gradiente do cartão, KPIs, parcelamentos ativos e transações da fatura.
  */
-export default function CartaoExtrato({ cartao, transacoes = [], parcelamentos = [], onVoltar, hidden }) {
+export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, parcelamentos = [], setParcelamentos, categorias = [], onVoltar, hidden }) {
   if (!cartao) return null;
 
   const mesAtual = new Date().toISOString().slice(0, 7);
   const [verTodasParcelas, setVerTodasParcelas] = useState(false);
+
+  // Categorias de despesa disponíveis para o seletor inline da fatura.
+  const categoriasDespesa = useMemo(
+    () => (categorias || []).filter(c => c.tipo !== "receita").map(c => c.nome),
+    [categorias]
+  );
+
+  // Altera a categoria direto na fatura:
+  //  - item de transação → atualiza a transação
+  //  - item de parcelamento → atualiza o parcelamento (vale para todas as parcelas)
+  const mudarCategoria = (item, novaCategoria) => {
+    if (!novaCategoria) return;
+    if (item._origem === "transacao" && typeof setTransacoes === "function") {
+      setTransacoes((transacoes || []).map(t =>
+        t.id === item.id ? { ...t, categoria: novaCategoria } : t));
+    } else if (item._origem === "parcelamento" && item.parcId && typeof setParcelamentos === "function") {
+      setParcelamentos((parcelamentos || []).map(p =>
+        p.id === item.parcId ? { ...p, categoria: novaCategoria } : p));
+    }
+  };
 
   // Transações do cartão no mês atual
   const txCartao = useMemo(() => {
@@ -88,6 +108,7 @@ export default function CartaoExtrato({ cartao, transacoes = [], parcelamentos =
 
     const parcsTx = parcelasDoMes.map(p => ({
       id: `parc-${p.parcId}-${p.numero}`,
+      parcId: p.parcId,
       data: mesAtual + "-01",
       descricao: `${p.descricao} (${p.numero}/${p.total})`,
       categoria: p.categoria,
@@ -259,7 +280,25 @@ export default function CartaoExtrato({ cartao, transacoes = [], parcelamentos =
                       )}
                       {t.descricao}{t.fixa && " 🔁"}
                     </td>
-                    <td><span className="bg-c bgi">{t.categoria}</span></td>
+                    <td>
+                      <select
+                        value={t.categoria || ""}
+                        onChange={(e) => mudarCategoria(t, e.target.value)}
+                        title="Alterar categoria"
+                        style={{
+                          background: T.bgSoft, color: T.ink,
+                          border: `1px solid ${T.border}`, borderRadius: 6,
+                          padding: "4px 8px", fontSize: 11, cursor: "pointer", maxWidth: 180,
+                        }}
+                      >
+                        {t.categoria && !categoriasDespesa.includes(t.categoria) && (
+                          <option value={t.categoria}>{t.categoria}</option>
+                        )}
+                        {categoriasDespesa.map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </td>
                     <td style={{ textAlign: "right" }} className="num neg">
                       {hidden ? "•••" : `− ${fmt(Math.abs(Number(t.valor || 0)))}`}
                     </td>
