@@ -7,7 +7,7 @@
   // Se ainda houver binding KV no painel do Cloudflare (de versão
   // anterior), pode remover — é só "Settings → Variables and Secrets
   // → KV namespace bindings → Remove".
-  "name": "af4cockpit",
+  "name": "numvi-financas-comercial",
   "compatibility_date": "2026-05-22",
   "main": "./worker/index.js",
   "assets": {
