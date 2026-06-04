@@ -21,12 +21,26 @@ const cx = 32, cy = 32, rOut = 24.6, rIn = 21.4; // anel (r=23, stroke 3.2)
 // bordô do "4" (mesma cor do icon.svg)
 const BORDO = [0x9e, 0x2b, 0x3a];
 
-// "4" em 3 retângulos (iguais ao icon.svg): haste direita + barra + topo esquerdo
+// "4" como traços arredondados (mesmos pontos do icon.svg): diagonal + barra
+// + haste. Cada traço é uma "cápsula" (distância ao segmento ≤ metade da
+// espessura) → cantos/pontas redondos.
+const FOUR_SEGS = [
+  [34, 16, 18, 38],
+  [18, 38, 44, 38],
+  [37, 16, 37, 48],
+];
+const FOUR_HW = 2.75; // metade da espessura (stroke-width 5.5)
+function distSeg(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
 function isFour(ux, uy) {
-  const stem = ux >= 33 && ux <= 39 && uy >= 18 && uy <= 46;
-  const bar  = ux >= 21 && ux <= 39 && uy >= 30 && uy <= 36;
-  const upl  = ux >= 21 && ux <= 27 && uy >= 18 && uy <= 36;
-  return stem || bar || upl;
+  for (const s of FOUR_SEGS) {
+    if (distSeg(ux, uy, s[0], s[1], s[2], s[3]) <= FOUR_HW) return true;
+  }
+  return false;
 }
 // dourado interpolado pela diagonal (canto sup-esq → inf-dir)
 function gold(ux, uy) {
