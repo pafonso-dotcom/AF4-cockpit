@@ -21,10 +21,10 @@ export default function Vendedor() {
               <img
                 src={LOJA.vendedorFoto}
                 alt={LOJA.vendedor}
-                className="h-16 w-16 rounded-full object-cover ring-2 ring-brand/40"
+                className="h-16 w-16 rounded-full object-cover ring-2 ring-accent/40"
               />
             ) : (
-              <div className="grid h-16 w-16 place-items-center rounded-full bg-brand/15 font-display text-xl font-extrabold text-brandSoft ring-2 ring-brand/40">
+              <div className="grid h-16 w-16 place-items-center rounded-full bg-accent/15 font-display text-xl font-extrabold text-accentSoft ring-2 ring-accent/40">
                 {iniciais}
               </div>
             )}
@@ -47,22 +47,22 @@ export default function Vendedor() {
               href={linkWhatsApp(null)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2.5 text-sm text-zinc-200 transition hover:text-brandSoft"
+              className="flex items-center gap-2.5 text-sm text-zinc-200 transition hover:text-accentSoft"
             >
-              <Phone size={16} className="text-brandSoft" />
+              <Phone size={16} className="text-accent" />
               {LOJA.telefoneExibicao}
             </a>
             <a
               href={LOJA.instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2.5 text-sm text-zinc-200 transition hover:text-brandSoft"
+              className="flex items-center gap-2.5 text-sm text-zinc-200 transition hover:text-accentSoft"
             >
-              <Instagram size={16} className="text-brandSoft" />
+              <Instagram size={16} className="text-accent" />
               {LOJA.instagram}
             </a>
             <div className="flex items-center gap-2.5 text-sm text-zinc-200">
-              <MapPin size={16} className="text-brandSoft" />
+              <MapPin size={16} className="text-accent" />
               {LOJA.cidade}
             </div>
           </div>

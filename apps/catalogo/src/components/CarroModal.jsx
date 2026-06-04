@@ -81,7 +81,7 @@ export default function CarroModal({ carro, onClose }) {
               <div className="text-[10px] uppercase tracking-wider text-zinc-500">
                 {carro.vendido ? "Vendido por" : "Valor"}
               </div>
-              <div className="num font-display text-3xl font-extrabold text-brandSoft">
+              <div className="num font-display text-3xl font-extrabold text-money">
                 {fmtPreco(carro.preco)}
               </div>
             </div>
@@ -100,7 +100,7 @@ export default function CarroModal({ carro, onClose }) {
                 className="rounded-xl bg-surface2 p-3 ring-1 ring-line"
               >
                 <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-zinc-500">
-                  <f.icon size={13} className="text-brandSoft" />
+                  <f.icon size={13} className="text-accent" />
                   {f.label}
                 </div>
                 <div className="mt-1 font-semibold text-white">{f.value}</div>
@@ -118,7 +118,7 @@ export default function CarroModal({ carro, onClose }) {
                 {carro.extras.map((e, i) => (
                   <span
                     key={i}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-brand/10 px-3 py-1.5 text-[12px] font-medium text-brandSoft ring-1 ring-brand/25"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5 text-[12px] font-medium text-accentSoft ring-1 ring-accent/25"
                   >
                     <Check size={13} /> {e}
                   </span>

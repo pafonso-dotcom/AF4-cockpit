@@ -9,10 +9,12 @@ export default {
         surface: "#141417",
         surface2: "#1c1c20",
         line: "#2a2a30",
-        brand: "#e4121f", // vermelho (preços, "4" do logo)
+        brand: "#e4121f", // vermelho ("4" do logo, CTA, detalhes)
         brandSoft: "#ef3b46",
-        accent: "#f97316", // laranja ("AF" do logo, destaques)
+        accent: "#f97316", // laranja ("AF" do logo, destaques, ícones)
         accentSoft: "#fb923c",
+        money: "#22c55e", // verde (preços)
+        moneySoft: "#4ade80",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

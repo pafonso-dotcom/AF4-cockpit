@@ -64,7 +64,7 @@ export default function CarroCard({ carro, onAbrir }) {
               key={i}
               className="inline-flex items-center gap-1 rounded-md bg-surface2 px-2 py-1 text-[11px] font-medium text-zinc-300 ring-1 ring-line"
             >
-              <s.icon size={12} className="text-brandSoft" />
+              <s.icon size={12} className="text-accent" />
               {s.label}
             </span>
           ))}
@@ -76,7 +76,7 @@ export default function CarroCard({ carro, onAbrir }) {
             <div className="text-[10px] uppercase tracking-wider text-zinc-500">
               {carro.vendido ? "Vendido por" : "Por apenas"}
             </div>
-            <div className="num font-display text-2xl font-extrabold text-brandSoft">
+            <div className="num font-display text-2xl font-extrabold text-money">
               {fmtPreco(carro.preco)}
             </div>
           </div>
