@@ -119,7 +119,7 @@ export default function PdfCarteira({ ativos = [], proventos = [], operacoes = [
               Carteira de Investimentos
             </h1>
             <div style={{ fontSize: 13, color: "#666", marginTop: 4 }}>
-              NUMVI · Relatório completo · {todayISO()}
+              AF4 · Relatório completo · {todayISO()}
             </div>
           </div>
 

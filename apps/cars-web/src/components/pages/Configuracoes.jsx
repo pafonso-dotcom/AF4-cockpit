@@ -734,7 +734,7 @@ function SyncGist() {
             </a>{" "}
             (já vem com o escopo certo marcado)
           </li>
-          <li><strong>Note</strong> (descrição): <em>NUMVI</em> (ou o que quiser)</li>
+          <li><strong>Note</strong> (descrição): <em>AF4</em> (ou o que quiser)</li>
           <li><strong>Expiration</strong>: escolha "No expiration" pra nunca expirar, ou "1 year" pra renovar anualmente</li>
           <li><strong>Select scopes</strong>: marque apenas <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>gist</code> (importante — só esse, mais nada)</li>
           <li>Botão verde "Generate token" no fim</li>

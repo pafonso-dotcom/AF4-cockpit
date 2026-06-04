@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Logo, { NumviMark } from "./ui/Logo.jsx";
+import { forcarAtualizacaoApp } from "../lib/appUpdate.js";
 import { T, THEMES } from "../lib/theme.js";
 import { getPerfilAtivo } from "../lib/perfis.js";
 import { useLayout } from "../lib/useLayout.js";
@@ -11,7 +12,7 @@ import {
   Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
-  BookOpen, Repeat, MoreHorizontal,
+  BookOpen, Repeat, MoreHorizontal, RotateCw,
 } from "lucide-react";
 
 /**
@@ -230,6 +231,7 @@ function HeaderHorizontal({
                   { lbl: hidden ? "Mostrar valores" : "Ocultar valores", icon: hidden ? EyeOff : Eye, on: () => { setHidden(!hidden); setMenuUtilAberto(false); } },
                   { lbl: T.dark ? "Tema claro" : "Tema escuro", icon: T.dark ? Sun : Moon, on: () => { onOpenSettings?.("toggle-tema"); setMenuUtilAberto(false); } },
                   { lbl: refreshing ? "Atualizando…" : "Atualizar cotações", icon: RefreshCw, on: () => { onRefresh?.(); setMenuUtilAberto(false); } },
+                  { lbl: "Atualizar app (nova versão)", icon: RotateCw, on: () => { setMenuUtilAberto(false); forcarAtualizacaoApp(); } },
                 ].map(it => {
                   const I = it.icon;
                   return (
@@ -768,6 +770,11 @@ function HeaderVertical({
             title="Atualizar cotações"
             style={{ ...vertUtilBtn, cursor: refreshing ? "wait" : "pointer", color: refreshing ? T.gold : NAV_MUTED }}>
             <RefreshCw size={16} style={refreshing ? { animation: "spin 1s linear infinite" } : undefined} />
+          </button>
+          <button onClick={() => forcarAtualizacaoApp()}
+            title="Atualizar app (buscar versão nova)"
+            style={vertUtilBtn}>
+            <RotateCw size={16} />
           </button>
           <button onClick={() => onOpenSettings?.("perfis")}
             title={`Perfil: ${perfilAtivo?.nome || "—"}`}

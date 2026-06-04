@@ -18,7 +18,7 @@ const BORDO   = "#9E2B3A"; // vermelho bordô do "N"
 export function NumviMark({ size = 36, bg = "#23272E", gid }) {
   const id = gid || `numvi-${Math.random().toString(36).slice(2, 7)}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" role="img" aria-label="Numvi"
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" role="img" aria-label="AF4"
          xmlns="http://www.w3.org/2000/svg" style={{ display: "block", flexShrink: 0 }}>
       <defs>
         <linearGradient id={id} x1="12" y1="10" x2="52" y2="54" gradientUnits="userSpaceOnUse">
@@ -31,10 +31,10 @@ export function NumviMark({ size = 36, bg = "#23272E", gid }) {
       <rect width="64" height="64" rx="15" fill={bg} />
       {/* anel (moeda / riqueza) */}
       <circle cx="32" cy="32" r="23" fill="none" stroke={`url(#${id})`} strokeWidth="3.2" />
-      {/* "4" no centro (AF4) */}
+      {/* "4" no centro (AF4) — bordô, igual à marca */}
       <text x="32" y="33" textAnchor="middle" dominantBaseline="central"
             fontFamily="'Nunito', system-ui, sans-serif" fontWeight="800" fontSize="32"
-            fill={`url(#${id})`}>4</text>
+            fill={BORDO}>4</text>
     </svg>
   );
 }

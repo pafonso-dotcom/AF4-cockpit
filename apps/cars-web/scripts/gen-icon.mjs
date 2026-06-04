@@ -18,17 +18,15 @@ const GOLD_LO = [0xb8, 0x90, 0x2e];
 const U = W / 64;
 const cx = 32, cy = 32, rOut = 24.6, rIn = 21.4; // anel (r=23, stroke 3.2)
 
-// polígono do "N" (mesmos vértices do path do SVG)
-const N = [
-  [23,43],[23,21],[27.5,21],[37,35],[37,21],[41,21],[41,43],[36.5,43],[27,29],[27,43],
-];
-function inPoly(x, y, poly) {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
-    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
-  }
-  return inside;
+// bordô do "4" (mesma cor do icon.svg)
+const BORDO = [0x9e, 0x2b, 0x3a];
+
+// "4" em 3 retângulos (iguais ao icon.svg): haste direita + barra + topo esquerdo
+function isFour(ux, uy) {
+  const stem = ux >= 33 && ux <= 39 && uy >= 18 && uy <= 46;
+  const bar  = ux >= 21 && ux <= 39 && uy >= 30 && uy <= 36;
+  const upl  = ux >= 21 && ux <= 27 && uy >= 18 && uy <= 36;
+  return stem || bar || upl;
 }
 // dourado interpolado pela diagonal (canto sup-esq → inf-dir)
 function gold(ux, uy) {
@@ -47,9 +45,9 @@ for (let y = 0; y < H; y++) {
     const ux = x / U, uy = y / U;            // coords no espaço 64
     const dist = Math.hypot(ux - cx, uy - cy);
     const isRing = dist <= rOut && dist >= rIn;
-    const isN = inPoly(ux, uy, N);
     let c = BG;
-    if (isRing || isN) c = gold(ux, uy);
+    if (isRing) c = gold(ux, uy);
+    else if (isFour(ux, uy)) c = BORDO;
     const i = (y * W + x) * 4;
     px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = 255;
   }

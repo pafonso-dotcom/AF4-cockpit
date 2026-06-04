@@ -117,6 +117,16 @@ export default function Dashboard({
     } catch { return 0; }
   }, [stateAgg, mesISO, mesAnteriorISO, escopoAtivo]);
 
+  // Resumo de despesas do mês: total / pagas / a pagar (pendentes + atrasadas).
+  const despesasResumo = useMemo(() => {
+    let kpi = null;
+    try { kpi = getKPIsMes(mesISO, stateAgg, escopoAtivo); } catch {}
+    const total = Number(kpi?.totalPrevisto || 0);
+    const pagas = Number(kpi?.totalPago || 0);
+    const aPagar = Number(kpi?.totalPendente || 0) + Number(kpi?.totalAtrasado || 0);
+    return { total, pagas, aPagar };
+  }, [stateAgg, mesISO, escopoAtivo]);
+
   const momReceitas = useMemo(() => calcMoMTransacoes(transacoes, { tipo: "receita" }), [transacoes]);
   const momDespesas = useMemo(() => calcMoMTransacoes(transacoes, { tipo: "despesa" }), [transacoes]);
 
@@ -240,7 +250,7 @@ export default function Dashboard({
         <KpiBlock label="Total em Contas" value={mask(fmt(totalContas))} sub={`${contas.length} contas ativas`} icon={Wallet} cor={T.green} />
         <KpiBlock label="Investimentos" value={mask(fmt(totalInvest))} sub="rentabilidade" icon={PieIcon} cor={T.green} variation={rentInvest} />
         <KpiBlock label="Receitas este mês" value={mask(fmt(receitasMes))} sub="vs mês anterior" icon={TrendingUp} cor={T.green} variation={momReceitas} />
-        <KpiBlock label="Despesas este mês" value={mask(fmt(despesasMesLancadas))} sub="lançadas no mês · vs mês anterior" icon={TrendingDown} cor={T.red} variation={momDespesasLancadas} negativeGood />
+        <DespesasKpiBlock resumo={despesasResumo} hidden={hidden} />
       </section>
 
       {/* Evolução do patrimônio (mesmo gráfico dos Relatórios, com benchmark CDI) */}
@@ -335,6 +345,33 @@ function KpiBlock({ label, value, sub, icon: Icon, cor, variation, negativeGood 
           <Icon size={16} style={{ color: cor || T.gold }} />
         </div>
       )}
+    </div>
+  );
+}
+
+function DespesasKpiBlock({ resumo, hidden }) {
+  const { total = 0, pagas = 0, aPagar = 0 } = resumo || {};
+  const linhas = [
+    { l: "Desp. total",    v: total,  c: T.ink },
+    { l: "Desp. paga",     v: pagas,  c: T.green },
+    { l: "Desp. a pagar",  v: aPagar, c: T.red },
+  ];
+  return (
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14, minHeight: 110 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <span style={{ fontSize: 11, color: T.muted }}>Despesas este mês</span>
+        <TrendingDown size={14} style={{ color: T.red }} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {linhas.map(x => (
+          <div key={x.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+            <span style={{ fontSize: 11, color: T.muted }}>{x.l}</span>
+            <span className="num" style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 600, color: x.c, whiteSpace: "nowrap" }}>
+              {hidden ? "•••" : fmt(x.v)}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
