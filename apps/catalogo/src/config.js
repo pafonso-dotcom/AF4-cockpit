@@ -5,8 +5,8 @@
 // =============================================================
 
 export const LOJA = {
-  nome: "Seu Carro Seminovos",
-  selo: "Seminovos selecionados",
+  nome: "AF4",
+  selo: "AF4 · Seminovos selecionados",
   // Chamada principal do topo
   titulo: "Catálogo de Veículos",
   subtitulo: "Apresentação que vende!",

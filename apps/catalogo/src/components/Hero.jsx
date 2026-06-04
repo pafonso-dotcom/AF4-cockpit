@@ -9,8 +9,18 @@ export default function Hero() {
   return (
     <header className="glow-bg border-b border-line">
       <div className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
-        {/* Selo + nome */}
-        <div className="flex items-center gap-2 text-brandSoft">
+        {/* Marca da loja */}
+        <div className="flex items-center gap-3">
+          <span className="inline-flex items-center rounded-xl bg-brand px-3 py-1.5 font-display text-2xl font-black uppercase tracking-tight text-white shadow-[0_8px_24px_-8px_rgba(228,18,31,0.7)]">
+            {LOJA.nome}
+          </span>
+          <span className="font-display text-base font-bold uppercase tracking-[0.2em] text-zinc-300">
+            Seminovos
+          </span>
+        </div>
+
+        {/* Selo + estrelas */}
+        <div className="mt-5 flex items-center gap-2 text-brandSoft">
           {[...Array(5)].map((_, i) => (
             <Star key={i} size={13} fill="currentColor" />
           ))}
