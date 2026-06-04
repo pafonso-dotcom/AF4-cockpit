@@ -138,7 +138,7 @@ export default function CarroModal({ carro, onClose }) {
             className={`flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold uppercase tracking-wide transition ${
               carro.vendido
                 ? "cursor-not-allowed bg-surface2 text-zinc-500 ring-1 ring-line"
-                : "bg-brand text-white hover:bg-brandSoft active:scale-[0.99]"
+                : "bg-gradient-to-r from-accent to-brand text-white hover:from-accentSoft hover:to-brandSoft active:scale-[0.99]"
             }`}
             onClick={(e) => carro.vendido && e.preventDefault()}
           >

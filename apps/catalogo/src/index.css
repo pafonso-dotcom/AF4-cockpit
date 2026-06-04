@@ -54,10 +54,10 @@ body {
   animation: fadeUp 0.4s ease both;
 }
 
-/* Brilho vermelho sutil de fundo, igual à arte de referência */
+/* Brilho quente de fundo — laranja + vermelho */
 .glow-bg {
   background:
-    radial-gradient(900px 500px at 80% -5%, rgba(228, 18, 31, 0.18), transparent 60%),
-    radial-gradient(700px 400px at 0% 0%, rgba(228, 18, 31, 0.08), transparent 55%),
+    radial-gradient(900px 500px at 80% -5%, rgba(228, 18, 31, 0.16), transparent 60%),
+    radial-gradient(700px 420px at 5% 0%, rgba(249, 115, 22, 0.12), transparent 55%),
     #0a0a0b;
 }

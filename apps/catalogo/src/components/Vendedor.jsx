@@ -72,7 +72,7 @@ export default function Vendedor() {
             href={linkWhatsApp(null)}
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex items-center justify-center gap-3 rounded-2xl bg-brand px-6 py-4 transition hover:bg-brandSoft active:scale-[0.99]"
+            className="group flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-accent to-brand px-6 py-4 transition hover:from-accentSoft hover:to-brandSoft active:scale-[0.99]"
           >
             <ShoppingCart size={26} className="text-white" />
             <div className="text-left leading-none">

@@ -32,7 +32,7 @@ export default function CarroCard({ carro, onAbrir }) {
         />
 
         {carro.destaque && !carro.vendido && (
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-brand px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-lg">
+          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-lg">
             <Star size={11} fill="currentColor" /> Destaque
           </span>
         )}
