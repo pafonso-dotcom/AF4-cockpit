@@ -52,13 +52,10 @@ export const loadAll = async () => {
         local.set(k, remote);
         return remote;
       }
-      // Só o cache DESTE usuário (nunca o de outra conta).
-      const cached = local.get(k);
-      if (cached) {
-        await supabaseSaveState(cached);
-        return cached;
-      }
-      // Conta nova / sem dados na nuvem → começa LIMPO (não herda nada).
+      // Logado SEM dados na nuvem = conta LIMPA. NÃO adota o cache local (pode
+      // ser dado antigo de outra tabela/variante) nem re-salva na nuvem — e
+      // PURGA o cache pra não vazar dados em sessões seguintes.
+      local.delete(k);
       return null;
     }
   }
@@ -118,8 +115,7 @@ export const loadKeys = async () => {
         local.set(k, remote);
         return remote;
       }
-      const cached = local.get(k);
-      if (cached) { await supabaseSaveKeys(cached); return cached; }
+      local.delete(k);
       return null;
     }
   }
