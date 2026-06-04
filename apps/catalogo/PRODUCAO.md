@@ -3,60 +3,63 @@
 Lista de tarefas pra colocar o catálogo no ar. Marcado com:
 - 🧑 = depende de você (dados, contas, decisão)
 - 🤖 = posso fazer / já automatizado
-- ⏱️ = estimativa rápida
+
+> **Status (04/06):** estrutura, visual, favicon, capa, deploy e o 1º carro
+> real (VW Polo) já estão prontos. Falta principalmente **conteúdo real**
+> (fotos + demais carros + dados do vendedor) e **ativar o GitHub Pages**.
 
 ---
 
 ## 1. Conteúdo real (substituir o exemplo)
-- [ ] 🧑 Definir os **veículos reais** do estoque (marca, modelo, versão, ano, km, câmbio, combustível, cor, preço, opcionais).
-- [ ] 🧑 Reunir as **fotos** de cada carro (de preferência boa qualidade, proporção paisagem). Colocar em `apps/catalogo/public/` ou usar links.
-- [ ] 🤖 Preencher `src/data/veiculos.js` com os carros reais (me manda a lista que eu insiro).
-- [ ] 🧑 Conferir **preços e disponibilidade** (o que está vendido marca `vendido: true`).
+- [~] 🧑 Veículos reais — **1 de N** cadastrado (VW Polo 1.0 Track 2025). Faltam os demais.
+- [ ] 🧑 Reunir as **fotos** de cada carro (paisagem, boa qualidade).
+- [~] 🤖 Preencher `src/data/veiculos.js` — Polo inserido; insiro o resto quando chegar.
+- [ ] 🧑 Conferir **preços e disponibilidade** (vendido → `vendido: true`).
+- [ ] 🧑 Decidir: **remover os carros de exemplo** (deixar só os reais)?
 
 ## 2. Dados da loja / vendedor (`src/config.js`)
-- [ ] 🧑 Confirmar **nome da loja** (AF4) e chamada.
-- [ ] 🧑 **WhatsApp real** (formato `55` + DDD + número, só dígitos).
+- [x] 🤖 Nome da loja **AF4** e chamada.
+- [x] 🤖 **WhatsApp real** — (15) 99823-3299 (testado, mensagem pré-preenchida OK).
 - [ ] 🧑 **Instagram** real (@ e link).
-- [ ] 🧑 **Cidade / região** de atendimento.
-- [ ] 🧑 Nome do **vendedor** (ou da loja) e foto/logo (opcional).
-- [ ] 🤖 Aplicar tudo no `config.js` e testar o link do WhatsApp (mensagem pré-preenchida).
+- [ ] 🧑 **Cidade / região** de atendimento (DDD 15 ≈ Sorocaba? confirmar).
+- [ ] 🧑 Nome do **vendedor** (hoje placeholder "João Silva") e foto/logo (opcional).
 
 ## 3. Identidade visual
-- [x] 🤖 Paleta definida (laranja + vermelho + verde nos preços).
+- [x] 🤖 Paleta (laranja + vermelho + verde nos preços).
 - [x] 🤖 Logo "AF" laranja / "4" vermelho.
-- [ ] 🧑 (Opcional) Logo oficial em imagem (PNG/SVG) se houver — substituo o texto.
-- [ ] 🤖 **Favicon** (ícone da aba) com a marca AF4.
-- [ ] 🤖 **Imagem de preview (Open Graph)** — a “capa” que aparece ao compartilhar no WhatsApp/Instagram.
+- [x] 🤖 **Favicon** (ícone da aba) AF4.
+- [x] 🤖 **Apple touch icon** (ícone ao salvar na tela inicial).
+- [x] 🤖 **Imagem de capa (Open Graph)** pra compartilhar.
+- [ ] 🧑 (Opcional) Logo oficial em imagem, se houver.
 
 ## 4. Deploy / hospedagem
-- [ ] 🧑 Escolher **onde hospedar**: GitHub Pages (grátis), Cloudflare Pages (mesmo provedor dos outros apps) ou outro.
-- [ ] 🧑 (Se quiser **domínio próprio**, ex.: `catalogo.af4...`) ter o domínio em mãos.
-- [ ] 🤖 Configurar o **deploy automático** (build → publicar) na opção escolhida.
-- [ ] 🤖 Gerar o **link público** e testar no celular.
+- [x] 🤖 **Deploy configurado** — workflow GitHub Pages (`.github/workflows/catalogo-pages.yml`).
+- [ ] 🧑 **Ativar o Pages**: Settings → Pages → Source: **"GitHub Actions"** (uma vez).
+- [ ] 🧑 (Opcional) **Domínio próprio**.
+- [ ] 🤖 Confirmar o **link público** e testar no celular (após ativar o Pages + merge).
 
 ## 5. Qualidade antes de publicar
-- [ ] 🤖 Rodar `pnpm catalogo:build` e garantir build limpo.
-- [ ] 🧑/🤖 Testar no **celular** (layout, rolagem, abrir card, botão WhatsApp).
-- [ ] 🧑/🤖 Testar a **busca e filtros** (marca, câmbio, ordenação).
-- [ ] 🤖 Conferir que as **fotos carregam** (e o fallback aparece quando faltar).
-- [ ] 🧑 Revisar **textos e preços** (sem erro de digitação).
+- [x] 🤖 Build limpo (`pnpm catalogo:build`).
+- [x] 🤖 Testado layout desktop/mobile, busca, filtros, galeria, fallback de foto.
+- [ ] 🧑 Revisar **textos e preços** finais (sem erro de digitação).
 
 ## 6. Publicação (PR #281)
-- [ ] 🤖 Tirar o **PR #281 de draft** (pronto pra revisão).
-- [ ] 🧑 **Aprovar / mandar mergear** pra `main`.
+- [x] 🤖 PR pronto pra revisão (saiu de draft).
+- [ ] 🧑 **Aprovar / mergear** pra `main`.
 - [ ] 🤖 Confirmar o **deploy no ar** e mandar o link final.
 
 ## 7. Pós-produção (opcional, depois)
-- [ ] 🤖 Integrar com o estoque do módulo **Negócio/Veículos** (catálogo puxa os carros disponíveis automaticamente).
-- [ ] 🤖 **Analytics** (quantas visitas / cliques no WhatsApp).
-- [ ] 🤖 Botão de **compartilhar** e/ou QR Code do catálogo pra divulgar.
+- [ ] 🤖 Integrar com o estoque do módulo **Negócio/Veículos** (catálogo automático).
+- [ ] 🤖 **Analytics** (visitas / cliques no WhatsApp).
+- [ ] 🤖 Botão de **compartilhar** e/ou **QR Code** pra divulgar.
 
 ---
 
-### Caminho mais rápido pra amanhã (mínimo viável)
-1. Você me manda **lista de carros + fotos** e os **dados reais** (WhatsApp, Instagram, cidade).
-2. Eu **preencho**, gero **favicon + capa de compartilhamento**, e **configuro o deploy**.
-3. Testamos no celular, **tiro o PR de draft** e mergeamos.
-4. Mando o **link público** → no ar. ✅
+### Pra amanhã (o que falta, em ordem)
+1. 🧑 Me manda **as 5 fotos do Polo** + os **demais carros** (com fotos).
+2. 🧑 **Nome do vendedor**, **Instagram** e **cidade**.
+3. 🤖 Eu cadastro tudo, removo os exemplos (se você confirmar) e reviso.
+4. 🧑 **Ativar o GitHub Pages** (Settings → Pages → GitHub Actions).
+5. 🧑 **Mergear o PR #281** → 🤖 confirmo o site no ar e mando o link. ✅
 
-> Estimativa: se os dados/fotos estiverem prontos, dá pra ir ao ar em **~1-2h** de trabalho.
+> Com fotos e dados em mãos, fechamos em **~1-2h**.
