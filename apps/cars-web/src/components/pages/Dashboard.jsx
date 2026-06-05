@@ -165,19 +165,18 @@ export default function Dashboard({
   }, [ativos]);
 
   // ===== Gastos por categoria (donut) =====
-  // Usa a MESMA base do card "Despesas este mês" (agregador: fixas + variáveis +
-  // parcelas + dívidas + transações, com dedup), pra que o total do donut bata
-  // com o "Desp. total". Antes usava só transações (caixa) e não correspondia.
+  // Mesma base do relatório "Top categorias do mês": transações de despesa do
+  // mês atual, agrupadas pela categoria crua (inclui "Cartão" = pagamento de
+  // fatura). Assim o donut bate exatamente com o relatório.
   const gastosCat = useMemo(() => {
-    let desp = [];
-    try { desp = getDespesasDoMes(mesISO, stateAgg, escopoAtivo); } catch {}
     const m = {};
-    desp.forEach(d => { const k = d.categoria || "Outros"; m[k] = (m[k] || 0) + (Number(d.valor) || 0); });
+    transacoes.filter(t => t.tipo === "despesa" && ehMesAtual(t.data))
+      .forEach(t => { const k = t.categoria || "Sem categoria"; m[k] = (m[k] || 0) + (Number(t.valor) || 0); });
     const tot = Object.values(m).reduce((s,v) => s+v, 0) || 1;
     return Object.entries(m).sort((a,b) => b[1]-a[1]).map(([k,v], i) => ({
       nome: k, valor: v, pct: (v/tot)*100, cor: CORES_CAT[i % CORES_CAT.length],
     }));
-  }, [stateAgg, mesISO, escopoAtivo]);
+  }, [transacoes, mesISO]);
 
   // ===== Evolução do patrimônio (mês a mês YTD) =====
   const evolucao = useMemo(() => {
