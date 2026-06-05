@@ -118,14 +118,18 @@ export default function Dashboard({
   }, [stateAgg, mesISO, mesAnteriorISO, escopoAtivo]);
 
   // Resumo de despesas do mês: total / pagas / a pagar (pendentes + atrasadas).
+  // Mesma base do donut/relatório: transações de despesa do mês (inclui "Cartão"
+  // = pagamento de fatura). Paga = compensado · A pagar = não compensado. Assim
+  // o "Desp. total" bate com o total do donut e com o relatório.
   const despesasResumo = useMemo(() => {
-    let kpi = null;
-    try { kpi = getKPIsMes(mesISO, stateAgg, escopoAtivo); } catch {}
-    const total = Number(kpi?.totalPrevisto || 0);
-    const pagas = Number(kpi?.totalPago || 0);
-    const aPagar = Number(kpi?.totalPendente || 0) + Number(kpi?.totalAtrasado || 0);
+    let total = 0, pagas = 0, aPagar = 0;
+    transacoes.filter(t => t.tipo === "despesa" && ehMesAtual(t.data)).forEach(t => {
+      const v = Number(t.valor || 0);
+      total += v;
+      if (t.compensado) pagas += v; else aPagar += v;
+    });
     return { total, pagas, aPagar };
-  }, [stateAgg, mesISO, escopoAtivo]);
+  }, [transacoes, mesISO]);
 
   const momReceitas = useMemo(() => calcMoMTransacoes(transacoes, { tipo: "receita" }), [transacoes]);
   const momDespesas = useMemo(() => calcMoMTransacoes(transacoes, { tipo: "despesa" }), [transacoes]);
