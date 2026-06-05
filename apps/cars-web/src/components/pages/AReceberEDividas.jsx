@@ -353,6 +353,15 @@ export default function AReceberEDividas({
       return;
     }
 
+    // Vínculo de origem: pagamento de fixa/parcela/dívida carrega a referência
+    // da fonte, para o agregador NÃO contar a despesa duas vezes (a fonte já é
+    // contada). Sem isto, "Pagamento para LUZ" entrava em Variáveis além da Fixa.
+    const origemLink = isReceber ? {}
+      : baixaForm._origem === "fixa"    && baixaForm._fixaOccId      ? { origemFixaOcorrenciaId: baixaForm._fixaOccId }
+      : baixaForm._origem === "parcela" && baixaForm._parcelamentoId ? { origemParcelamentoId: baixaForm._parcelamentoId }
+      : baixaForm._origem === "divida"                              ? { origemDividaId: baixaForm.itemId }
+      : {};
+
     // 1) Cria transação
     const novaTransacao = {
       id: uid(),
@@ -366,6 +375,7 @@ export default function AReceberEDividas({
       valor,
       compensado: true,
       fixa: false,
+      ...origemLink,
       obs: baixaForm.obs || `Baixa automática${baixaForm.parcela ? ` (${baixaForm.parcela})` : ""}${(isReceber && ehParcial && !quitaTudo) ? " · parcial" : ""}`,
     };
     setTransacoes([novaTransacao, ...transacoes]);
