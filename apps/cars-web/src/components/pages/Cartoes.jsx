@@ -386,17 +386,22 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         ).map(t => t.id))
       : new Set();
 
-    // 1. Cria transação de despesa (só para faturas NÃO importadas)
-    const novaTransacao = ehImportada ? null : {
+    // 1. Cria a transação do PAGAMENTO da fatura (a "baixa" visível na conta).
+    //    Para fatura importada ela é uma transferência (origem "fatura-pagamento")
+    //    e NÃO conta como despesa — os itens importados é que são as despesas.
+    const novaTransacao = {
       id: uid(),
       tipo: "despesa",
-      descricao: `Fatura ${cartao.nome} · ${pagFatura.monthKey}`,
+      descricao: `Pagamento fatura ${cartao.nome} · ${pagFatura.monthKey}`,
       valor: v,
       categoria: categorias?.find(c => /cart[ãa]o|fatura/i.test(c.nome))?.nome || categorias?.filter(c => c.tipo === "despesa")?.[0]?.nome || "Outros",
       conta: conta.nome,
       data: pagFatura.data,
       compensado: true,
-      obs: `Pagamento de fatura — ${pagFatura.parcelasDoMes.length} parcela(s) cobertas`,
+      ...(ehImportada ? { origem: "fatura-pagamento" } : {}),
+      obs: ehImportada
+        ? "Pagamento da fatura (baixa) — os itens importados é que contam como despesa"
+        : `Pagamento de fatura — ${pagFatura.parcelasDoMes.length} parcela(s) cobertas`,
     };
 
     // 2. Debita conta
@@ -420,12 +425,14 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         : c));
     }
 
-    // 4. Aplica nas transações:
-    //    - importada: marca os itens pendentes da fatura como pagos
-    //    - não importada: adiciona a transação consolidada de pagamento
+    // 4. Aplica nas transações: adiciona a baixa (pagamento) e, na importada,
+    //    marca também os itens da fatura como pagos.
     if (ehImportada) {
-      setTransacoes((transacoes || []).map(t =>
-        idsPagar.has(t.id) ? { ...t, compensado: true, conta: t.conta || conta.nome } : t));
+      setTransacoes([
+        novaTransacao,
+        ...(transacoes || []).map(t =>
+          idsPagar.has(t.id) ? { ...t, compensado: true, conta: t.conta || conta.nome } : t),
+      ]);
     } else {
       setTransacoes([novaTransacao, ...transacoes]);
     }

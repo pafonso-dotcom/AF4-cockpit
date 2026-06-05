@@ -151,6 +151,9 @@ export function getDespesasDoMes(mesISO, state = {}, escopo) {
     // Planejamento) já são contados pela própria fixa/parcela/dívida. A
     // transação "Pagamento para X" carrega o vínculo de origem e é ignorada.
     if (t.origemFixaOcorrenciaId || t.origemParcelamentoId || t.origemDividaId) return;
+    // A baixa do pagamento de fatura importada é só transferência (a despesa
+    // são os itens importados) — não conta como despesa.
+    if (t.origem === "fatura-pagamento") return;
     const status = t.compensado
       ? "paga"
       : (t.data < hoje ? "atrasada" : "pendente");
