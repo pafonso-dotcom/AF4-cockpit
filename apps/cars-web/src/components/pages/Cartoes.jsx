@@ -398,7 +398,8 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
       conta: conta.nome,
       data: pagFatura.data,
       compensado: true,
-      ...(ehImportada ? { origem: "fatura-pagamento" } : {}),
+      cartaoId: pagFatura.cartaoId,
+      ...(ehImportada ? { origem: "fatura-pagamento", faturaCompetencia: pagFatura.monthKey } : {}),
       obs: ehImportada
         ? "Pagamento da fatura (baixa) — os itens importados é que contam como despesa"
         : `Pagamento de fatura — ${pagFatura.parcelasDoMes.length} parcela(s) cobertas`,
@@ -431,7 +432,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
       setTransacoes([
         novaTransacao,
         ...(transacoes || []).map(t =>
-          idsPagar.has(t.id) ? { ...t, compensado: true, conta: t.conta || conta.nome } : t),
+          idsPagar.has(t.id) ? { ...t, compensado: true } : t),
       ]);
     } else {
       setTransacoes([novaTransacao, ...transacoes]);
@@ -447,6 +448,73 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           setContas(backupContas);
           setTransacoes(backupTransacoes);
           setParcelamentos(backupParcelamentos);
+        },
+      },
+    });
+  };
+
+  // Estorna o pagamento de uma fatura importada: devolve o valor à conta,
+  // remove a baixa, volta os itens a pendentes, desmarca as parcelas do mês e
+  // marca a fatura como NÃO paga. Os lançamentos importados são mantidos.
+  const estornarFatura = async (cartao) => {
+    const fi = cartao?.faturaImportada;
+    if (!fi || !fi.paga) { toast.info("Esta fatura não está paga."); return; }
+    const comp = fi.competencia;
+
+    // Baixa(s) do pagamento desta fatura (origem fatura-pagamento + cartão + competência).
+    const pagamentos = (transacoes || []).filter(t =>
+      t.origem === "fatura-pagamento" && t.cartaoId === cartao.id &&
+      (t.faturaCompetencia === comp || String(t.data || "").slice(0, 7) === comp));
+    const totalDevolver = pagamentos.reduce((s, t) => s + (Number(t.valor) || 0), 0);
+
+    const ok = await confirm({
+      title: `Estornar pagamento da fatura de ${cartao.nome}?`,
+      body: `Devolve ${fmt(totalDevolver)} à conta, volta os itens a pendentes e marca a fatura como NÃO paga. Os lançamentos importados são mantidos.`,
+      danger: true, confirmLabel: "Estornar",
+    });
+    if (!ok) return;
+
+    const backup = { contas, transacoes, parcelamentos, cartoes };
+
+    // 1. Devolve o valor à(s) conta(s) da baixa e remove a baixa.
+    const ajustes = {};
+    pagamentos.forEach(t => { if (t.conta) ajustes[t.conta] = (ajustes[t.conta] || 0) + (Number(t.valor) || 0); });
+    if (Object.keys(ajustes).length && typeof setContas === "function") {
+      setContas((contas || []).map(c => ajustes[c.nome] ? { ...c, saldo: (Number(c.saldo) || 0) + ajustes[c.nome] } : c));
+    }
+    const pagIds = new Set(pagamentos.map(t => t.id));
+
+    // 2. Volta os itens importados deste cartão/competência a PENDENTES e remove a baixa.
+    setTransacoes((transacoes || [])
+      .filter(t => !pagIds.has(t.id))
+      .map(t => (
+        String(t.origem || "").startsWith("fatura-") && t.origem !== "fatura-pagamento" &&
+        t.cartaoId === cartao.id && String(t.data || "").slice(0, 7) === comp
+      ) ? { ...t, compensado: false } : t));
+
+    // 3. Desmarca as parcelas do mês que tinham sido pagas pela fatura.
+    const { parcelasDoMes } = parcelasDaCompetencia(cartao.id, comp);
+    const porParc = {};
+    parcelasDoMes.forEach(pp => { (porParc[pp.parcId] = porParc[pp.parcId] || []).push(pp.parcN); });
+    if (Object.keys(porParc).length) {
+      setParcelamentos((parcelamentos || []).map(p => {
+        if (!porParc[p.id]) return p;
+        const rem = new Set(porParc[p.id]);
+        return { ...p, parcelasPagas: (p.parcelasPagas || []).filter(n => !rem.has(n)) };
+      }));
+    }
+
+    // 4. Marca a fatura como NÃO paga (volta o botão "Pagar fatura").
+    setCartoes((cartoes || []).map(c => c.id === cartao.id && c.faturaImportada
+      ? { ...c, faturaImportada: { ...c.faturaImportada, paga: false } }
+      : c));
+
+    toast.success(`Pagamento da fatura de ${cartao.nome} estornado · ${fmt(totalDevolver)} devolvido.`, {
+      duration: 6000,
+      action: {
+        label: "Desfazer", onClick: () => {
+          setContas(backup.contas); setTransacoes(backup.transacoes);
+          setParcelamentos(backup.parcelamentos); setCartoes(backup.cartoes);
         },
       },
     });
@@ -575,15 +643,17 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         Pagar fatura
                       </button>
                     ) : fiPaga ? (
-                      <span style={{
-                        flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 700,
-                        letterSpacing: ".05em", textTransform: "uppercase",
-                        borderRadius: 4, background: `${T.green}22`, border: `1px solid ${T.green}`,
-                        color: T.green, textAlign: "center",
-                        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
-                      }}>
-                        <Check size={11} /> Fatura paga
-                      </span>
+                      <button onClick={(e) => { e.stopPropagation(); estornarFatura(c); }}
+                        title="Estornar o pagamento desta fatura"
+                        style={{
+                          flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 700,
+                          letterSpacing: ".05em", textTransform: "uppercase",
+                          borderRadius: 4, background: `${T.green}22`, border: `1px solid ${T.green}`,
+                          color: T.green, cursor: "pointer",
+                          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+                        }}>
+                        <Check size={11} /> Paga · estornar
+                      </button>
                     ) : null}
                     <button onClick={(e) => { e.stopPropagation(); setForm(c); }}
                             style={{

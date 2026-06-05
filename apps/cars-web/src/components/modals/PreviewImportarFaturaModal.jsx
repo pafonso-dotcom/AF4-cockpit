@@ -159,8 +159,10 @@ export default function PreviewImportarFaturaModal({
       const cat = item.categoria_sugerida || "Outros";
 
       if (item.tipo === "vista") {
-        // Entra como PENDENTE (não debita agora). Vira "paga" e debita o saldo
-        // só quando a fatura for paga em Cartões → "Pagar fatura".
+        // Item da fatura = COMPRA DO CARTÃO. Fica SEM conta bancária (não entra
+        // no extrato do banco nem debita saldo) — quem debita o banco é a baixa
+        // única "Pagamento fatura" (valor integral). Serve só para o detalhe e
+        // categoria nas Transações.
         novasTransacoes.push({
           id: uid(),
           tipo: "despesa",
@@ -168,7 +170,7 @@ export default function PreviewImportarFaturaModal({
           valor,
           data: dataPagto,
           categoria: cat,
-          conta: contaNome,
+          conta: "",
           cartaoId: cartaoSelecionado || null,
           compensado: false,
           fixa: false,
