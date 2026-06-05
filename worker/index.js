@@ -39,6 +39,38 @@ export default {
       return handleRecibo(request, env);
     }
 
+    // Índices da bolsa via Yahoo Finance (proxy server-side — sem CORS, sem
+    // token). Devolve no formato compatível com brapi (results[]).
+    if (url.pathname === "/api/indices") {
+      const symbols = ["^BVSP", "^GSPC", "^IXIC"];
+      const nomes = { "^BVSP": "IBOVESPA", "^GSPC": "S&P 500", "^IXIC": "NASDAQ" };
+      try {
+        const results = await Promise.all(symbols.map(async (sym) => {
+          try {
+            const r = await fetch(
+              `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`,
+              { headers: { "User-Agent": "Mozilla/5.0" } }
+            );
+            const j = await r.json();
+            const meta = j?.chart?.result?.[0]?.meta || {};
+            const price = meta.regularMarketPrice;
+            const prev = meta.chartPreviousClose ?? meta.previousClose;
+            const changePercent = (price != null && prev) ? ((price - prev) / prev) * 100 : 0;
+            return {
+              symbol: sym,
+              shortName: nomes[sym] || sym,
+              longName: nomes[sym] || sym,
+              regularMarketPrice: price,
+              regularMarketChangePercent: changePercent,
+            };
+          } catch { return null; }
+        }));
+        return json({ results: results.filter(x => x && x.regularMarketPrice != null) });
+      } catch (e) {
+        return json({ results: [], error: String(e && e.message || e) }, 502);
+      }
+    }
+
     // Endpoints /api/* antigos (state/keys) foram removidos — sync agora
     // é via GitHub Gist direto do cliente. Devolve 410 Gone pra qualquer
     // chamada residual.
