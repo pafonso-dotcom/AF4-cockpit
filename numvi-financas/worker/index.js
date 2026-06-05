@@ -80,7 +80,7 @@ export default {
     // key como secret (SUPABASE_SERVICE_ROLE_KEY). Valida que o chamador é
     // gestor pelo token dele antes de devolver qualquer coisa.
     if (url.pathname === "/api/usuarios" && request.method === "GET") {
-      const SUPA = env.SUPABASE_URL || "https://maqlnsivmreagpkhbkbn.supabase.co";
+      const SUPA = env.SUPABASE_URL || "https://strmepleobfjyrsowwmo.supabase.co";
       const SERVICE = env.SUPABASE_SERVICE_ROLE_KEY;
       if (!SERVICE) return json({ error: "Servidor sem SUPABASE_SERVICE_ROLE_KEY." }, 500);
       const token = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");

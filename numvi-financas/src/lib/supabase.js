@@ -7,23 +7,19 @@
 import { createClient } from "@supabase/supabase-js";
 import { VARIANT, TABLE_STATE, TABLE_KEYS } from "./brand.js";
 
-// Credenciais do projeto Supabase. A anon key é pública por design —
-// vai no bundle do cliente de qualquer forma, e a segurança real vem
-// das policies RLS no banco.
+// Credenciais do projeto Supabase. A chave publishable/anon é pública por
+// design — vai no bundle do cliente de qualquer forma, e a segurança real
+// vem das policies RLS no banco.
 //
-// Por agora, pessoal e comercial PARTILHAM o mesmo projeto Supabase
-// (limite de 2 projetos grátis por conta). A separação dos dados é feita
-// por TABELAS distintas (ver brand.js: numvi_state vs numvi_com_state) +
-// RLS por usuário. Quando o comercial migrar para um projeto dedicado,
-// basta definir VITE_SUPABASE_URL/KEY no build comercial — env vence.
-//
-// Projeto pessoal: maqlnsivmreagpkhbkbn (us-west-1)
-// Migrado em 2026-05-25 do projeto antigo (rffxplwshwfjnedefvqg).
-const PESSOAL_URL = "https://maqlnsivmreagpkhbkbn.supabase.co";
-const PESSOAL_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1hcWxuc2l2bXJlYWdwa2hia2JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NzQ4NjMsImV4cCI6MjA5NTA1MDg2M30.eMWAkJca6TQ1J8728IoQ3MnWdq37uHAlA4ybiCwdOkQ";
+// Este projeto (numvi-financas) é o COMERCIAL e usa um Supabase DEDICADO,
+// totalmente separado do pessoal (Aurum, que fica em maqlnsivmreagpkhbkbn).
+//   Projeto comercial: strmepleobfjyrsowwmo (South America · São Paulo)
+//   Tabelas: numvi_com_state / numvi_com_keys (ver brand.js) + RLS por usuário.
+const COMERCIAL_URL = "https://strmepleobfjyrsowwmo.supabase.co";
+const COMERCIAL_KEY = "sb_publishable_EMigeDgm-UBHTCoeEsGruA_m-ipgtyc";
 
-const URL = import.meta.env.VITE_SUPABASE_URL || PESSOAL_URL;
-const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || PESSOAL_KEY;
+const URL = import.meta.env.VITE_SUPABASE_URL || COMERCIAL_URL;
+const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || COMERCIAL_KEY;
 
 export const supabaseConfigured = !!(URL && KEY);
 
