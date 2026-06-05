@@ -664,7 +664,7 @@ export default function AReceberEDividas({
             </button>
             <button className="btn-gold" onClick={() => setForm({
               id: null, tipo: "dividas", nome: "", valor: "", vencimento: "",
-              categoria: "Outros", obs: "", parcela: "",
+              categoria: "Outros", escopo: "pessoal", obs: "", parcela: "",
               parcelar: false, numParcelas: 3, modoValor: "total",
             })}>
               <Plus size={13} className="inline mr-1.5" /> Compromisso
@@ -1022,6 +1022,13 @@ export default function AReceberEDividas({
                 <option key={c.id} value={c.nome}>{c.nome}</option>
               ))}
               <option value="Outros">Outros</option>
+            </select>
+          </Field>
+
+          <Field label="Escopo" hint="Pessoal ou Negócio — separa nas estatísticas">
+            <select value={form.escopo || "pessoal"} onChange={e => setForm({ ...form, escopo: e.target.value })}>
+              <option value="pessoal">👤 Pessoal</option>
+              <option value="negocio">🏢 Negócio</option>
             </select>
           </Field>
 

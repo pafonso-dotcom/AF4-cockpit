@@ -436,7 +436,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                     title="Remove cópias de parcela e pagamentos vazios criados por importações antigas">
               <Trash2 size={12} className="inline mr-2" />Limpar duplicados
             </button>
-            <button className="btn-ghost" onClick={() => setParcForm({ id: null, descricao: "", dataCompra: todayISO(), dataPrimeira: todayISO(), cartaoId: cartoes[0]?.id || "", valorTotal: "", totalParcelas: "", categoria: "", parcelasPagas: [] })}>
+            <button className="btn-ghost" onClick={() => setParcForm({ id: null, descricao: "", dataCompra: todayISO(), dataPrimeira: todayISO(), cartaoId: cartoes[0]?.id || "", valorTotal: "", totalParcelas: "", categoria: "", escopo: "pessoal", parcelasPagas: [] })}>
               <Plus size={12} className="inline mr-2" />Parcelamento
             </button>
             <button className="btn-gold" onClick={() => setForm({ id: null, nome: "", banco: "outro", limite: "", vencimento: 5, fechamento: 28, tipo: "principal", tags: [], ativo: true })}>
@@ -924,6 +924,12 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
               {(categorias || []).filter(c => c.tipo !== "receita").map(c => (
                 <option key={c.id} value={c.nome}>{c.nome}</option>
               ))}
+            </select>
+          </Field>
+          <Field label="Escopo" hint="Pessoal ou Negócio — separa nas estatísticas">
+            <select value={parcForm.escopo || "pessoal"} onChange={e => setParcForm({ ...parcForm, escopo: e.target.value })}>
+              <option value="pessoal">👤 Pessoal</option>
+              <option value="negocio">🏢 Negócio</option>
             </select>
           </Field>
           <div className="grid grid-cols-2 gap-3">
