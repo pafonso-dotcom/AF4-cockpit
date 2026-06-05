@@ -315,22 +315,22 @@ export default function DespesasFixas({
             return (
               <div key={occ.id} style={{
                 background: v.bg, border: `1px solid ${v.border}55`, borderLeft: `4px solid ${v.border}`,
-                borderRadius: 10, padding: "7px 12px",
-                display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+                borderRadius: 10, padding: "4px 10px",
+                display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
               }}>
                 <div style={{
-                  width: 34, height: 34, borderRadius: 8,
+                  width: 26, height: 26, borderRadius: 7,
                   background: cat ? `${cat.cor}22` : T.bgSoft,
                   color: cat ? cat.cor : T.muted,
                   display: "grid", placeItems: "center", flexShrink: 0,
-                  fontSize: 14, fontWeight: 700,
+                  fontSize: 13, fontWeight: 700,
                 }}>
-                  <Repeat size={16} />
+                  <Repeat size={13} />
                 </div>
 
                 <div style={{ flex: 1, minWidth: 200 }}>
-                  <div style={{ color: T.ink, fontSize: 14, fontWeight: 600 }}>{fixa.descricao}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3, fontSize: 11, color: T.muted, flexWrap: "wrap" }}>
+                  <div style={{ color: T.ink, fontSize: 13, fontWeight: 600 }}>{fixa.descricao}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 1, fontSize: 11, color: T.muted, flexWrap: "wrap" }}>
                     <span style={{
                       padding: "1px 7px", background: cat ? `${cat.cor}22` : T.bgSoft,
                       color: cat ? cat.cor : T.muted, borderRadius: 4,
@@ -342,10 +342,10 @@ export default function DespesasFixas({
                 </div>
 
                 <div style={{ minWidth: 110, textAlign: "right" }}>
-                  <div className="num" style={{ color: isPaga ? T.green : T.red, fontFamily: T.serif, fontSize: 17, fontWeight: 600 }}>
+                  <div className="num" style={{ color: isPaga ? T.green : T.red, fontFamily: T.serif, fontSize: 14.5, fontWeight: 600 }}>
                     {hidden ? "•••" : fmt(occ.valorPago ?? occ.valor)}
                   </div>
-                  <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>
+                  <div style={{ fontSize: 10, color: T.muted, marginTop: 0 }}>
                     {isPaga
                       ? `Pago ${(occ.dataPagamento || "").slice(8,10)}/${(occ.dataPagamento || "").slice(5,7)}`
                       : `Vence ${occ.dataVencimento.slice(8,10)}/${occ.dataVencimento.slice(5,7)}`}
@@ -358,7 +358,7 @@ export default function DespesasFixas({
                       title="Marcar como paga"
                       style={{
                         background: T.green, color: T.bg, border: "none",
-                        padding: "8px 14px", fontSize: 11, letterSpacing: ".08em",
+                        padding: "5px 11px", fontSize: 11, letterSpacing: ".08em",
                         textTransform: "uppercase", fontWeight: 600, cursor: "pointer",
                         borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 5,
                       }}>
@@ -376,7 +376,7 @@ export default function DespesasFixas({
                     <button onClick={() => desfazerPagamento(occ)}
                       title="Desmarcar pagamento"
                       style={{ background: "transparent", color: T.muted,
-                               border: `1px solid ${T.border}`, padding: "7px 9px",
+                               border: `1px solid ${T.border}`, padding: "5px 8px",
                                borderRadius: 6, cursor: "pointer", fontSize: 10 }}>
                       ↶
                     </button>
@@ -385,14 +385,14 @@ export default function DespesasFixas({
                   <button onClick={() => { setEditingFixa(fixa); setModalNovaFixaOpen(true); }}
                     title="Editar fixa"
                     style={{ background: "transparent", color: T.muted,
-                             border: `1px solid ${T.border}`, padding: "8px 10px",
+                             border: `1px solid ${T.border}`, padding: "5px 8px",
                              borderRadius: 6, cursor: "pointer" }}>
                     <Edit3 size={12} />
                   </button>
                   <button onClick={() => handleExcluirFixa(fixa)}
                     title="Excluir fixa"
                     style={{ background: "transparent", color: T.red,
-                             border: `1px solid ${T.red}55`, padding: "8px 10px",
+                             border: `1px solid ${T.red}55`, padding: "5px 8px",
                              borderRadius: 6, cursor: "pointer" }}>
                     <Trash2 size={12} />
                   </button>

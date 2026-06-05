@@ -31,6 +31,7 @@ const TIPO_LABEL = {
  */
 export default function ControleAnual({
   transacoes = [],
+  setTransacoes,
   dividas = [],
   fixaOcorrencias = [],
   setFixaOcorrencias,
@@ -171,21 +172,57 @@ export default function ControleAnual({
       parcRemover.push(...ord.slice(1));
     });
 
-    const total = fixasRemover.length + parcRemover.length;
+    // Transações de pagamento contando EM DOBRO: "Pagamento para X" (despesa
+    // compensada, SEM vínculo de origem) que casa com uma ocorrência de fixa
+    // paga OU uma dívida paga no mesmo mês. Em vez de apagar (o que bagunçaria
+    // o saldo), VINCULAMOS a transação à origem — aí o agregador para de somar
+    // duas vezes e o saldo continua igual.
+    const semVinculo = (transacoes || []).filter(t =>
+      t.tipo === "despesa" && t.compensado &&
+      !t.origemFixaOcorrenciaId && !t.origemParcelamentoId && !t.origemDividaId &&
+      /^pagamento para /i.test(t.descricao || ""));
+    const vincFixa = [];   // { txId, occId }
+    const vincDivida = []; // { txId, dividaId }
+    const usados = new Set();
+    for (const t of semVinculo) {
+      const alvo = norm((t.descricao || "").replace(/^pagamento para /i, ""));
+      const mes = (t.data || "").slice(0, 7);
+      const valorTx = Number(t.valor) || 0;
+      // tenta casar com fixa paga no mês
+      const fixaMatch = (fixas || []).find(f => norm(f.descricao) === alvo);
+      let casou = false;
+      if (fixaMatch) {
+        const occ = (fixaOcorrencias || []).find(o =>
+          o.fixaId === fixaMatch.id && o.mes === mes && o.status === "paga" &&
+          !usados.has(o.id) &&
+          Math.abs((Number(o.valorPago ?? o.valor) || 0) - valorTx) < 0.02);
+        if (occ) { vincFixa.push({ txId: t.id, occId: occ.id }); usados.add(occ.id); casou = true; }
+      }
+      // senão tenta casar com dívida paga no mês
+      if (!casou) {
+        const div = (dividas || []).find(d =>
+          d.pago && norm(d.nome) === alvo && (d.vencimento || "").startsWith(mes) &&
+          !usados.has(d.id) && Math.abs((Number(d.valor) || 0) - valorTx) < 0.02);
+        if (div) { vincDivida.push({ txId: t.id, dividaId: div.id }); usados.add(div.id); }
+      }
+    }
+    const totalVinc = vincFixa.length + vincDivida.length;
+
+    const total = fixasRemover.length + parcRemover.length + totalVinc;
     if (total === 0) {
-      toast.info("Nenhuma duplicada encontrada no controle anual.");
+      toast.info("Nenhuma duplicidade encontrada no controle anual.");
       return;
     }
     const ok = await confirm({
-      title: `Remover ${total} duplicada${total === 1 ? "" : "s"}?`,
-      body: `Encontrei ${fixasRemover.length} fixa(s) e ${parcRemover.length} parcelamento(s) repetidos. Mantém uma de cada e remove as cópias. Tem Desfazer.`,
-      danger: true, confirmLabel: "Remover",
+      title: `Corrigir ${total} duplicidade${total === 1 ? "" : "s"}?`,
+      body: `Encontrei ${fixasRemover.length} fixa(s) e ${parcRemover.length} parcelamento(s) repetidos (removo as cópias) e ${totalVinc} pagamento(s) contando em dobro (vinculo à origem, sem mexer no saldo). Tem Desfazer.`,
+      danger: true, confirmLabel: "Corrigir",
     });
     if (!ok) return;
 
     const fixaIds = new Set(fixasRemover.map(f => f.id));
     const parcIds = new Set(parcRemover.map(p => p.id));
-    const backupFixas = fixas, backupOcc = fixaOcorrencias, backupParc = parcelamentos;
+    const backupFixas = fixas, backupOcc = fixaOcorrencias, backupParc = parcelamentos, backupTx = transacoes;
 
     if (typeof setFixas === "function") setFixas((fixas || []).filter(f => !fixaIds.has(f.id)));
     if (typeof setFixaOcorrencias === "function") {
@@ -193,7 +230,16 @@ export default function ControleAnual({
     }
     if (typeof setParcelamentos === "function") setParcelamentos((parcelamentos || []).filter(p => !parcIds.has(p.id)));
 
-    toast.success(`${total} duplicada${total === 1 ? "" : "s"} removida${total === 1 ? "" : "s"}.`, {
+    if (totalVinc > 0 && typeof setTransacoes === "function") {
+      const mapFixa = new Map(vincFixa.map(v => [v.txId, v.occId]));
+      const mapDiv = new Map(vincDivida.map(v => [v.txId, v.dividaId]));
+      setTransacoes((transacoes || []).map(t =>
+        mapFixa.has(t.id) ? { ...t, origemFixaOcorrenciaId: mapFixa.get(t.id) }
+        : mapDiv.has(t.id) ? { ...t, origemDividaId: mapDiv.get(t.id) }
+        : t));
+    }
+
+    toast.success(`${total} duplicidade${total === 1 ? "" : "s"} corrigida${total === 1 ? "" : "s"}.`, {
       duration: 6000,
       action: {
         label: "Desfazer",
@@ -201,6 +247,7 @@ export default function ControleAnual({
           if (setFixas) setFixas(backupFixas);
           if (setFixaOcorrencias) setFixaOcorrencias(backupOcc);
           if (setParcelamentos) setParcelamentos(backupParc);
+          if (setTransacoes) setTransacoes(backupTx);
         },
       },
     });
@@ -230,9 +277,9 @@ export default function ControleAnual({
             <button onClick={copiarTabela} className="btn-ghost" title="Copiar para Excel/Sheets">
               <ClipboardCopy size={13} className="inline mr-1.5" /> Copiar
             </button>
-            <button onClick={removerDuplicadas} className="btn-ghost" title="Remove fixas e parcelamentos repetidos"
+            <button onClick={removerDuplicadas} className="btn-ghost" title="Remove fixas/parcelamentos repetidos e corrige pagamentos contados em dobro"
                     style={{ color: T.red, borderColor: `${T.red}55` }}>
-              <Trash2 size={13} className="inline mr-1.5" /> Remover duplicadas
+              <Trash2 size={13} className="inline mr-1.5" /> Excluir duplicidade
             </button>
           </div>
         }
