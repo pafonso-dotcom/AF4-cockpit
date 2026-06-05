@@ -217,7 +217,7 @@ export default function Dashboard({
         <KpiBlock label="Total em Contas" value={mask(fmt(totalContas))} sub={`${contas.length} contas ativas`} icon={Wallet} cor={T.green} />
         <KpiBlock label="Investimentos" value={mask(fmt(totalInvest))} sub="rentabilidade" icon={PieIcon} cor={T.green} variation={rentInvest} />
         <KpiBlock label="Receitas este mês" value={mask(fmt(receitasMes))} sub="vs mês anterior" icon={TrendingUp} cor={T.green} variation={momReceitas} />
-        <KpiBlock label="Despesas este mês" value={mask(fmt(despesasMes))} sub="vs mês anterior" icon={TrendingDown} cor={T.red} variation={momDespesas} negativeGood />
+        <DespesasKpiBlock resumo={despesasResumo} hidden={hidden} />
       </section>
 
       {/* Evolução do patrimônio (mesmo gráfico dos Relatórios, com benchmark CDI) */}
@@ -225,11 +225,10 @@ export default function Dashboard({
 
       {/* Mid row */}
       <section className="dash-mid-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
         <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
-        <DespesasMesCard resumo={despesasResumo} hidden={hidden} onSeeAll={() => onTabChange?.("transacoes")} />
       </section>
 
       {/* Bottom row */}
@@ -384,6 +383,34 @@ function AlocacaoCard({ data, total, hidden, onSeeAll }) {
         </div>
       </div>
       )}
+    </div>
+  );
+}
+
+// Versão compacta (3 linhas) para o slot da linha de KPIs — igual ao AF4.
+function DespesasKpiBlock({ resumo, hidden }) {
+  const { total = 0, pagas = 0, aPagar = 0 } = resumo || {};
+  const linhas = [
+    { l: "Desp. total",    v: total,  c: T.ink },
+    { l: "Desp. paga",     v: pagas,  c: T.green },
+    { l: "Desp. a pagar",  v: aPagar, c: T.red },
+  ];
+  return (
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14, minHeight: 110 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <span style={{ fontSize: 11, color: T.muted }}>Despesas este mês</span>
+        <TrendingDown size={14} style={{ color: T.red }} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {linhas.map(x => (
+          <div key={x.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+            <span style={{ fontSize: 11, color: T.muted }}>{x.l}</span>
+            <span className="num" style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 600, color: x.c, whiteSpace: "nowrap" }}>
+              {hidden ? "•••" : fmt(x.v)}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
