@@ -55,10 +55,11 @@ export default function PreviewImportarFaturaModal({
   const [contaSelecionada, setContaSelecionada] = useState(contaInicial);
   const [cartaoSelecionado, setCartaoSelecionado] = useState(cartaoInicial);
   const [itens, setItens] = useState(() => (analise.itens || analise.transacoes || []).map((it, idx) => {
-    const tipo = it.tipo || (it.fixa ? "fixa" : "vista");
-    // Parcela OU fixa que já existe entra DESMARCADA por default (evita duplicar)
-    const jaExiste = (tipo === "parcela" && !!matchParcelamento(it, parcelamentos))
-                  || (tipo === "fixa" && !!matchFixaExistente(it, fixas));
+    // Importação só lida com "vista" e "parcela". Assinaturas recorrentes são
+    // criadas manualmente em Despesas Fixas — nunca pela importação de fatura.
+    const tipo = it.tipo === "parcela" ? "parcela" : "vista";
+    // Parcela que já existe entra DESMARCADA por default (evita duplicar)
+    const jaExiste = (tipo === "parcela" && !!matchParcelamento(it, parcelamentos));
     return {
       ...it,
       _idx: idx,
@@ -158,7 +159,8 @@ export default function PreviewImportarFaturaModal({
       const cat = item.categoria_sugerida || "Outros";
 
       if (item.tipo === "vista") {
-        totalDebitado += valor;
+        // Entra como PENDENTE (não debita agora). Vira "paga" e debita o saldo
+        // só quando a fatura for paga em Cartões → "Pagar fatura".
         novasTransacoes.push({
           id: uid(),
           tipo: "despesa",
@@ -168,7 +170,7 @@ export default function PreviewImportarFaturaModal({
           categoria: cat,
           conta: contaNome,
           cartaoId: cartaoSelecionado || null,
-          compensado: true,
+          compensado: false,
           fixa: false,
           obs: `Importado da fatura ${banco}`,
           origem: origemTag,
@@ -485,7 +487,6 @@ export default function PreviewImportarFaturaModal({
                       }}
                       title="Mudar tipo">
                 <option value="vista">À vista</option>
-                <option value="fixa">Fixa</option>
                 <option value="parcela">Parcela</option>
               </select>
 
