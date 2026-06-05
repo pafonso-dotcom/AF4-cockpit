@@ -10,6 +10,10 @@ const IS_COMERCIAL = RAW === "comercial" || RAW === "financas" || RAW === "finan
 const APP_NAME  = IS_COMERCIAL ? "Numvi Finanças" : "Numvi Pessoal";
 const APP_SHORT = IS_COMERCIAL ? "Finanças" : "Pessoal";
 
+// Carimbo de build (data/hora UTC) — muda a cada compilação/deploy. Mostrado
+// no rodapé para confirmar visualmente que o app atualizou para a versão nova.
+const BUILD_ID = new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC";
+
 // Plugin: injeta o nome da variante no título/meta do index.html e reescreve
 // o manifest.webmanifest gerado em dist/ (name + short_name).
 function numviBranding() {
@@ -40,6 +44,9 @@ export default defineConfig({
   // Caminho relativo: funciona tanto em GitHub Pages (sub-pasta
   // /AF4-cockpit/) quanto em domínio próprio na raiz.
   base: "./",
+  define: {
+    __BUILD_ID__: JSON.stringify(BUILD_ID),
+  },
   plugins: [react(), numviBranding()],
   build: {
     outDir: "dist",

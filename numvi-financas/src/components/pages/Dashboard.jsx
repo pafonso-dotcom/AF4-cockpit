@@ -88,7 +88,7 @@ export default function Dashboard({
   const totalInvest = useMemo(() => ativos.reduce((s, a) => s + Number(a.qtd||0) * Number(a.preco||0), 0), [ativos]);
   const patrimonio = totalContas + totalInvest;
   const receitasMes = useMemo(() => transacoes.filter(t => t.tipo === "receita" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
-  const despesasMes = useMemo(() => transacoes.filter(t => t.tipo === "despesa" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
+  const despesasMes = useMemo(() => transacoes.filter(t => t.tipo === "despesa" && t.origem !== "fatura-pagamento" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
 
   const momReceitas = useMemo(() => calcMoMTransacoes(transacoes, { tipo: "receita" }), [transacoes]);
   const momDespesas = useMemo(() => calcMoMTransacoes(transacoes, { tipo: "despesa" }), [transacoes]);
@@ -130,7 +130,7 @@ export default function Dashboard({
   // ===== Gastos por categoria (donut) =====
   const gastosCat = useMemo(() => {
     const m = {};
-    transacoes.filter(t => t.tipo === "despesa" && ehMesAtual(t.data))
+    transacoes.filter(t => t.tipo === "despesa" && t.origem !== "fatura-pagamento" && ehMesAtual(t.data))
       .forEach(t => { const k = t.categoria || "Outros"; m[k] = (m[k] || 0) + Number(t.valor||0); });
     const tot = Object.values(m).reduce((s,v) => s+v, 0) || 1;
     return Object.entries(m).sort((a,b) => b[1]-a[1]).map(([k,v], i) => ({

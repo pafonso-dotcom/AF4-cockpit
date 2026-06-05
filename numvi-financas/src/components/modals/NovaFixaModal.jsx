@@ -33,6 +33,7 @@ export default function NovaFixaModal({ editing, categorias = [], contas = [], o
       valor: "",
       diaVencimento: 5,
       categoria: "",
+      escopo: "pessoal",
       contaPadrao: "",
       obs: "",
       inicioEm: mesAtualISO,
@@ -139,6 +140,13 @@ export default function NovaFixaModal({ editing, categorias = [], contas = [], o
             <option value="">— Selecione —</option>
             {despCats.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
             <option value="Outros">Outros</option>
+          </select>
+        </Field>
+        <Field label="Escopo" hint="Pessoal ou Negócio — separa nas estatísticas">
+          <select value={form.escopo || "pessoal"}
+                  onChange={e => setForm({ ...form, escopo: e.target.value })}>
+            <option value="pessoal">👤 Pessoal</option>
+            <option value="negocio">🏢 Negócio</option>
           </select>
         </Field>
         <Field label="Conta padrão (sugestão)" hint="Pré-seleção ao pagar">

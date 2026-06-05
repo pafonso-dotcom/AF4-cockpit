@@ -20,15 +20,22 @@ export function mesAtual(date = new Date()) {
  */
 function aplicarEscopo(state, escopo) {
   if (!escopo || escopo === "tudo") return state;
-  const contasFiltradas = (state.contas || []).filter(c => (c.escopo || "pessoal") === escopo);
+  const noEscopo = (x) => (x?.escopo || "pessoal") === escopo;
+  const contasFiltradas = (state.contas || []).filter(noEscopo);
   const nomesContas = new Set(contasFiltradas.map(c => c.nome));
   const transacoesFiltradas = (state.transacoes || []).filter(t => nomesContas.has(t.conta));
-  const categoriasFiltradas = (state.categorias || []).filter(c => (c.escopo || "pessoal") === escopo);
+  const categoriasFiltradas = (state.categorias || []).filter(noEscopo);
+  // Fixas, dívidas, parcelamentos e devedores também respeitam o escopo
+  // (default "pessoal" para os antigos) — negócio não entra no pessoal e vice-versa.
   return {
     ...state,
     contas: contasFiltradas,
     transacoes: transacoesFiltradas,
     categorias: categoriasFiltradas,
+    fixas: (state.fixas || []).filter(noEscopo),
+    dividas: (state.dividas || []).filter(noEscopo),
+    parcelamentos: (state.parcelamentos || []).filter(noEscopo),
+    devedores: (state.devedores || []).filter(noEscopo),
   };
 }
 
@@ -41,7 +48,15 @@ export function classificarTransacao(tx, state = {}) {
   if (tx.tipo === "receita") return "ganho";
   if (tx.origemFixaOcorrenciaId) return "fixa";
   if (tx.fixa) return "fixa";
-  if (typeof tx.descricao === "string" && /\d+\s*\/\s*\d+/.test(tx.descricao)) return "parcela";
+  // Parcela só quando o padrão "N/M" é plausível (1..M, M entre 2 e 120) e
+  // está isolado por espaços — evita confundir datas como "31/05" com parcelas.
+  if (typeof tx.descricao === "string") {
+    const m = tx.descricao.match(/(?:^|\s)(\d{1,3})\s*\/\s*(\d{1,3})(?=\s|$)/);
+    if (m) {
+      const a = +m[1], b = +m[2];
+      if (a >= 1 && b >= 2 && a <= b && b <= 120) return "parcela";
+    }
+  }
   const eParcela = (state.parcelamentos || []).some(p =>
     p.descricao && tx.descricao &&
     tx.descricao.toLowerCase().includes(p.descricao.toLowerCase())
@@ -131,8 +146,12 @@ export function getDespesasDoMes(mesISO, state = {}, escopo) {
   (state.transacoes || []).forEach(t => {
     if (t.tipo !== "despesa") return;
     if (!(t.data || "").startsWith(mesISO)) return;
-    // Evita duplicata: se já tem origemFixaOcorrenciaId, a fixa já foi computada
-    if (t.origemFixaOcorrenciaId) return;
+    // Evita duplicata: se a transação foi gerada a partir de uma fixa/parcela/
+    // dívida, essa fonte já foi computada acima — não conta de novo aqui.
+    if (t.origemFixaOcorrenciaId || t.origemParcelamentoId || t.origemDividaId) return;
+    // Pagamento de fatura é uma baixa única na conta (transferência), não uma
+    // despesa nova — as compras da fatura já entram como itens individuais.
+    if (t.origem === "fatura-pagamento") return;
     const status = t.compensado
       ? "paga"
       : (t.data < hoje ? "atrasada" : "pendente");

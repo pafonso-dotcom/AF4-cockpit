@@ -372,11 +372,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     const backupTransacoes = transacoes;
     const backupParcelamentos = parcelamentos;
 
-    // Itens à vista da fatura importada entram PENDENTES no momento da importação.
-    // Ao pagar, eles viram "pagos" (compensado) e o débito do saldo acontece aqui —
-    // o pagamento é tratado como uma transferência, sem criar despesa categorizada
-    // nova (as despesas reais são os próprios itens). Para faturas não importadas
-    // (modelo de parcelas do mês), mantém a transação consolidada de pagamento.
+    // Itens à vista da fatura importada entram PENDENTES na importação. Ao pagar,
+    // viram "pagos" e o débito acontece aqui (como transferência) — sem criar uma
+    // despesa consolidada nova (as despesas reais são os próprios itens),
+    // evitando duplicar nas transações. Faturas não importadas mantêm o modelo.
     const ehImportada = !!pagFatura.faturaImportada;
     const idsPagar = ehImportada
       ? new Set(
@@ -391,17 +390,23 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         )
       : new Set();
 
-    // 1. Cria transação de despesa (só para faturas NÃO importadas)
-    const novaTransacao = ehImportada ? null : {
+    // 1. Cria a transação do PAGAMENTO da fatura (a "baixa" visível na conta).
+    //    Para fatura importada ela é uma transferência (origem "fatura-pagamento")
+    //    e NÃO conta como despesa — os itens importados é que são as despesas.
+    const novaTransacao = {
       id: uid(),
       tipo: "despesa",
-      descricao: `Fatura ${cartao.nome} · ${pagFatura.monthKey}`,
+      descricao: `Pagamento fatura ${cartao.nome} · ${pagFatura.monthKey}`,
       valor: v,
       categoria: categorias?.find(c => /cart[ãa]o|fatura/i.test(c.nome))?.nome || categorias?.filter(c => c.tipo === "despesa")?.[0]?.nome || "Outros",
       conta: conta.nome,
       data: pagFatura.data,
       compensado: true,
-      obs: `Pagamento de fatura — ${pagFatura.parcelasDoMes.length} parcela(s) cobertas`,
+      cartaoId: pagFatura.cartaoId,
+      ...(ehImportada ? { origem: "fatura-pagamento", faturaCompetencia: pagFatura.monthKey } : {}),
+      obs: ehImportada
+        ? "Pagamento da fatura (baixa) — os itens importados é que contam como despesa"
+        : `Pagamento de fatura — ${pagFatura.parcelasDoMes.length} parcela(s) cobertas`,
     };
 
     // 2. Debita conta
@@ -425,14 +430,14 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         : c));
     }
 
-    // 4. Aplica nas transações:
-    //    - importada: marca os itens pendentes da fatura como pagos (compensado)
-    //    - não importada: adiciona a transação consolidada de pagamento
+    // 4. Aplica nas transações: adiciona a baixa (pagamento) e, na importada,
+    //    marca também os itens da fatura como pagos.
     if (ehImportada) {
-      setTransacoes((transacoes || []).map(t =>
-        idsPagar.has(t.id)
-          ? { ...t, compensado: true, conta: t.conta || conta.nome }
-          : t));
+      setTransacoes([
+        novaTransacao,
+        ...(transacoes || []).map(t =>
+          idsPagar.has(t.id) ? { ...t, compensado: true } : t),
+      ]);
     } else {
       setTransacoes([novaTransacao, ...transacoes]);
     }
@@ -452,6 +457,73 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     });
   };
 
+  // Estorna o pagamento de uma fatura importada: devolve o valor à conta,
+  // remove a baixa, volta os itens a pendentes, desmarca as parcelas do mês e
+  // marca a fatura como NÃO paga. Os lançamentos importados são mantidos.
+  const estornarFatura = async (cartao) => {
+    const fi = cartao?.faturaImportada;
+    if (!fi || !fi.paga) { toast.info("Esta fatura não está paga."); return; }
+    const comp = fi.competencia;
+
+    // Baixa(s) do pagamento desta fatura (origem fatura-pagamento + cartão + competência).
+    const pagamentos = (transacoes || []).filter(t =>
+      t.origem === "fatura-pagamento" && t.cartaoId === cartao.id &&
+      (t.faturaCompetencia === comp || String(t.data || "").slice(0, 7) === comp));
+    const totalDevolver = pagamentos.reduce((s, t) => s + (Number(t.valor) || 0), 0);
+
+    const ok = await confirm({
+      title: `Estornar pagamento da fatura de ${cartao.nome}?`,
+      body: `Devolve ${fmt(totalDevolver)} à conta, volta os itens a pendentes e marca a fatura como NÃO paga. Os lançamentos importados são mantidos.`,
+      danger: true, confirmLabel: "Estornar",
+    });
+    if (!ok) return;
+
+    const backup = { contas, transacoes, parcelamentos, cartoes };
+
+    // 1. Devolve o valor à(s) conta(s) da baixa e remove a baixa.
+    const ajustes = {};
+    pagamentos.forEach(t => { if (t.conta) ajustes[t.conta] = (ajustes[t.conta] || 0) + (Number(t.valor) || 0); });
+    if (Object.keys(ajustes).length && typeof setContas === "function") {
+      setContas((contas || []).map(c => ajustes[c.nome] ? { ...c, saldo: (Number(c.saldo) || 0) + ajustes[c.nome] } : c));
+    }
+    const pagIds = new Set(pagamentos.map(t => t.id));
+
+    // 2. Volta os itens importados deste cartão/competência a PENDENTES e remove a baixa.
+    setTransacoes((transacoes || [])
+      .filter(t => !pagIds.has(t.id))
+      .map(t => (
+        String(t.origem || "").startsWith("fatura-") && t.origem !== "fatura-pagamento" &&
+        t.cartaoId === cartao.id && String(t.data || "").slice(0, 7) === comp
+      ) ? { ...t, compensado: false } : t));
+
+    // 3. Desmarca as parcelas do mês que tinham sido pagas pela fatura.
+    const { parcelasDoMes } = parcelasDaCompetencia(cartao.id, comp);
+    const porParc = {};
+    parcelasDoMes.forEach(pp => { (porParc[pp.parcId] = porParc[pp.parcId] || []).push(pp.parcN); });
+    if (Object.keys(porParc).length) {
+      setParcelamentos((parcelamentos || []).map(p => {
+        if (!porParc[p.id]) return p;
+        const rem = new Set(porParc[p.id]);
+        return { ...p, parcelasPagas: (p.parcelasPagas || []).filter(n => !rem.has(n)) };
+      }));
+    }
+
+    // 4. Marca a fatura como NÃO paga (volta o botão "Pagar fatura").
+    setCartoes((cartoes || []).map(c => c.id === cartao.id && c.faturaImportada
+      ? { ...c, faturaImportada: { ...c.faturaImportada, paga: false } }
+      : c));
+
+    toast.success(`Pagamento da fatura de ${cartao.nome} estornado · ${fmt(totalDevolver)} devolvido.`, {
+      duration: 6000,
+      action: {
+        label: "Desfazer", onClick: () => {
+          setContas(backup.contas); setTransacoes(backup.transacoes);
+          setParcelamentos(backup.parcelamentos); setCartoes(backup.cartoes);
+        },
+      },
+    });
+  };
+
   return (
     <div className="fade-up py-8">
       <PageHeader
@@ -464,7 +536,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                     title="Remove cópias de parcela e pagamentos vazios criados por importações antigas">
               <Trash2 size={12} className="inline mr-2" />Limpar duplicados
             </button>
-            <button className="btn-ghost" onClick={() => setParcForm({ id: null, descricao: "", dataCompra: todayISO(), dataPrimeira: todayISO(), cartaoId: cartoes[0]?.id || "", valorTotal: "", totalParcelas: "", categoria: "", parcelasPagas: [] })}>
+            <button className="btn-ghost" onClick={() => setParcForm({ id: null, descricao: "", dataCompra: todayISO(), dataPrimeira: todayISO(), cartaoId: cartoes[0]?.id || "", valorTotal: "", totalParcelas: "", categoria: "", escopo: "pessoal", parcelasPagas: [] })}>
               <Plus size={12} className="inline mr-2" />Parcelamento
             </button>
             <button className="btn-gold" onClick={() => setForm({ id: null, nome: "", banco: "outro", limite: "", vencimento: 5, fechamento: 28, tipo: "principal", tags: [], ativo: true })}>
@@ -575,15 +647,17 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         Pagar fatura
                       </button>
                     ) : fiPaga ? (
-                      <span style={{
-                        flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 700,
-                        letterSpacing: ".05em", textTransform: "uppercase",
-                        borderRadius: 4, background: `${T.green}22`, border: `1px solid ${T.green}`,
-                        color: T.green, textAlign: "center",
-                        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
-                      }}>
-                        <Check size={11} /> Fatura paga
-                      </span>
+                      <button onClick={(e) => { e.stopPropagation(); estornarFatura(c); }}
+                        title="Estornar o pagamento desta fatura"
+                        style={{
+                          flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 700,
+                          letterSpacing: ".05em", textTransform: "uppercase",
+                          borderRadius: 4, background: `${T.green}22`, border: `1px solid ${T.green}`,
+                          color: T.green, cursor: "pointer",
+                          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+                        }}>
+                        <Check size={11} /> Paga · estornar
+                      </button>
                     ) : null}
                     <button onClick={(e) => { e.stopPropagation(); setForm(c); }}
                             style={{
@@ -952,6 +1026,12 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
               {(categorias || []).filter(c => c.tipo !== "receita").map(c => (
                 <option key={c.id} value={c.nome}>{c.nome}</option>
               ))}
+            </select>
+          </Field>
+          <Field label="Escopo" hint="Pessoal ou Negócio — separa nas estatísticas">
+            <select value={parcForm.escopo || "pessoal"} onChange={e => setParcForm({ ...parcForm, escopo: e.target.value })}>
+              <option value="pessoal">👤 Pessoal</option>
+              <option value="negocio">🏢 Negócio</option>
             </select>
           </Field>
           <div className="grid grid-cols-2 gap-3">

@@ -41,6 +41,15 @@ const API = {
     } catch { return null; }
   },
   async indices(token) {
+    // Primário: proxy Yahoo no Worker (sem CORS, sem token, dados ao vivo).
+    try {
+      const r = await fetch("/api/indices");
+      if (r.ok) {
+        const j = await r.json();
+        if (j && Array.isArray(j.results) && j.results.length) return j.results;
+      }
+    } catch { /* cai no fallback brapi */ }
+    // Fallback: brapi (legado — exige token p/ dados completos).
     const url = `https://brapi.dev/api/quote/^BVSP,^GSPC,^IXIC${token ? `?token=${token}` : ""}`;
     try {
       const r = await fetch(url);

@@ -6,6 +6,7 @@ import { parseValorBR } from "../../lib/importExport.js";
 import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
 import { whatsapp } from "../../lib/whatsapp.js";
+import { getDespesasDoMes } from "../../lib/agregador.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
@@ -353,6 +354,15 @@ export default function AReceberEDividas({
       return;
     }
 
+    // Vínculo de origem: pagamento de fixa/parcela/dívida carrega a referência
+    // da fonte, para o agregador NÃO contar a despesa duas vezes (a fonte já é
+    // contada). Sem isto, "Pagamento para LUZ" entrava em Variáveis além da Fixa.
+    const origemLink = isReceber ? {}
+      : baixaForm._origem === "fixa"    && baixaForm._fixaOccId      ? { origemFixaOcorrenciaId: baixaForm._fixaOccId }
+      : baixaForm._origem === "parcela" && baixaForm._parcelamentoId ? { origemParcelamentoId: baixaForm._parcelamentoId }
+      : baixaForm._origem === "divida"                              ? { origemDividaId: baixaForm.itemId }
+      : {};
+
     // 1) Cria transação
     const novaTransacao = {
       id: uid(),
@@ -366,6 +376,7 @@ export default function AReceberEDividas({
       valor,
       compensado: true,
       fixa: false,
+      ...origemLink,
       obs: baixaForm.obs || `Baixa automática${baixaForm.parcela ? ` (${baixaForm.parcela})` : ""}${(isReceber && ehParcial && !quitaTudo) ? " · parcial" : ""}`,
     };
     setTransacoes([novaTransacao, ...transacoes]);
@@ -588,6 +599,69 @@ export default function AReceberEDividas({
   const totalPagarAberto   = somaArr(divAbertas);
   const saldoPrevisto      = totalReceberAberto - totalPagarAberto;
 
+  // Resumo de despesas do mês selecionado: Total a pagar / Pagas / Falta pagar.
+  const resumoPagarMes = useMemo(() => {
+    if (!mesAtivo) return null;
+    const st = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
+    let desp = [];
+    try { desp = getDespesasDoMes(mesAtivo, st); } catch {}
+    const total = desp.reduce((s, d) => s + (Number(d.valor) || 0), 0);
+    const pagas = desp.filter(d => d.status === "paga").reduce((s, d) => s + (Number(d.valor) || 0), 0);
+    return { total, pagas, falta: +(total - pagas).toFixed(2) };
+  }, [mesAtivo, transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes]);
+
+  // Itens JÁ PAGOS do mês (para a vista "Pagas").
+  const pagasMes = useMemo(() => {
+    const st = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
+    const mes = mesAtivo || hoje.slice(0, 7);
+    let desp = [];
+    try { desp = getDespesasDoMes(mes, st); } catch {}
+    return desp.filter(d => d.status === "paga").sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+  }, [mesAtivo, transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, hoje]);
+  const totalPagasMes = useMemo(() => pagasMes.reduce((s, d) => s + (Number(d.valor) || 0), 0), [pagasMes]);
+
+  // Desfazer o pagamento de um item já pago (volta para "A Pagar" e devolve o
+  // valor à conta quando houver transação ligada). Permite retificar.
+  const desfazerPagamento = async (item) => {
+    const ok = await confirm({
+      title: `Desfazer pagamento de "${item.descricao}"?`,
+      body: "O item volta para 'A Pagar' (pendente) e, se tiver baixa em conta, o valor é devolvido. Aí podes corrigir e pagar de novo.",
+      confirmLabel: "Desfazer", danger: true,
+    });
+    if (!ok) return;
+
+    // Devolve saldo + remove a transação de baixa ligada (quando existir).
+    const devolverSaldoEremover = (txId) => {
+      if (!txId) return;
+      const tx = (transacoes || []).find(t => t.id === txId);
+      if (tx && tx.compensado && tx.conta) {
+        setContas((contas || []).map(c => c.nome === tx.conta ? { ...c, saldo: (Number(c.saldo) || 0) + (Number(tx.valor) || 0) } : c));
+      }
+      setTransacoes((transacoes || []).filter(t => t.id !== txId));
+    };
+
+    if (item.fonte === "fixa") {
+      const occ = (fixaOcorrencias || []).find(o => o.id === item.id);
+      devolverSaldoEremover(occ?.transacaoId);
+      setFixaOcorrencias?.((fixaOcorrencias || []).map(o =>
+        o.id === item.id ? { ...o, status: "pendente", dataPagamento: null, valorPago: null, transacaoId: null } : o));
+    } else if (item.fonte === "parcela") {
+      const [parcId, numStr] = String(item.id).split("::");
+      const numero = parseInt(numStr, 10);
+      setParcelamentos?.((parcelamentos || []).map(p =>
+        p.id === parcId ? { ...p, parcelasPagas: (p.parcelasPagas || []).filter(n => n !== numero) } : p));
+    } else if (item.fonte === "divida") {
+      setDividas((dividas || []).map(d => d.id === item.id ? { ...d, pago: false, dataPagamento: null, contaPagamento: null } : d));
+    } else if (item.fonte === "transacao") {
+      const tx = (transacoes || []).find(t => t.id === item.id);
+      if (tx && tx.conta) {
+        setContas((contas || []).map(c => c.nome === tx.conta ? { ...c, saldo: (Number(c.saldo) || 0) + (Number(tx.valor) || 0) } : c));
+      }
+      setTransacoes((transacoes || []).map(t => t.id === item.id ? { ...t, compensado: false } : t));
+    }
+    toast.success(`"${item.descricao}" voltou para A Pagar.`);
+  };
+
   // Recebido / pago no mês corrente (cruza com transações geradas via confirmarBaixa)
   const mesCorrenteISO = hoje.slice(0, 7);
   const baixadosNoMes = (transacoes || []).filter(t =>
@@ -642,7 +716,7 @@ export default function AReceberEDividas({
             </button>
             <button className="btn-gold" onClick={() => setForm({
               id: null, tipo: "dividas", nome: "", valor: "", vencimento: "",
-              categoria: "Outros", obs: "", parcela: "",
+              categoria: "Outros", escopo: "pessoal", obs: "", parcela: "",
               parcelar: false, numParcelas: 3, modoValor: "total",
             })}>
               <Plus size={13} className="inline mr-1.5" /> Compromisso
@@ -825,6 +899,7 @@ export default function AReceberEDividas({
         {[
           { id: "receber", label: `💰 A Receber (${receberMes.length})`, cor: T.green },
           { id: "pagar",   label: `⚠️ A Pagar (${pagarMes.length})`,    cor: T.red   },
+          { id: "pagas",   label: `✅ Pagas (${pagasMes.length})`,       cor: T.green },
         ].map(t => {
           const ativo = vista === t.id;
           return (
@@ -904,6 +979,22 @@ export default function AReceberEDividas({
           )}
         </div>
         )}
+        {vista === "pagar" && resumoPagarMes && (
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            {[
+              { l: "Total a pagar", v: resumoPagarMes.total, c: T.ink },
+              { l: "Pagas",         v: resumoPagarMes.pagas, c: T.green },
+              { l: "Falta pagar",   v: resumoPagarMes.falta, c: T.red },
+            ].map(x => (
+              <div key={x.l} style={{ flex: 1, minWidth: 110, background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                <div style={{ fontSize: 11, color: T.muted }}>{x.l}</div>
+                <div className="num" style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: x.c }}>
+                  {hidden ? "•••" : fmt(x.v)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         {vista === "pagar" && (
         <CompromissoTabela
           titulo="A Pagar"
@@ -946,6 +1037,61 @@ export default function AReceberEDividas({
           showCredor
         />
         )}
+
+        {/* === PAGAS · o que já foi pago === */}
+        {vista === "pagas" && (
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+          <div style={{
+            padding: "16px 18px", borderBottom: `1px solid ${T.border}`,
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
+          }}>
+            <div style={{ fontSize: 14, color: T.ink, fontWeight: 600 }}>
+              ✅ Pagas
+              <span style={{ fontSize: 11.5, color: T.muted, fontWeight: 400, marginLeft: 6 }}>
+                · {mesAtivo ? mesLabel(mesAtivo) : mesLabel(hoje.slice(0, 7))} · {pagasMes.length} {pagasMes.length === 1 ? "item" : "itens"}
+              </span>
+            </div>
+            <div className="num" style={{ fontSize: 16, fontWeight: 700, color: T.green }}>
+              {hidden ? "•••" : fmt(totalPagasMes)}
+            </div>
+          </div>
+          {pagasMes.length === 0 ? (
+            <div style={{ padding: 28, textAlign: "center", color: T.muted, fontSize: 13, fontStyle: "italic" }}>
+              Nada pago neste mês ainda.
+            </div>
+          ) : (
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Pago em</th><th>Nome</th><th>Tipo</th><th>Categoria</th>
+                  <th style={{ textAlign: "right" }}>Valor</th><th style={{ textAlign: "right" }}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pagasMes.map(item => (
+                  <tr key={item.id}>
+                    <td style={{ whiteSpace: "nowrap" }}>{(item.data || "").slice(8, 10)}/{(item.data || "").slice(5, 7)}</td>
+                    <td>{item.descricao}</td>
+                    <td><span style={{ fontSize: 10, color: T.muted, textTransform: "capitalize" }}>{item.fonte}</span></td>
+                    <td><span style={{ fontSize: 11, color: T.muted }}>{item.categoria}</span></td>
+                    <td className="num" style={{ textAlign: "right", color: T.ink }}>{hidden ? "•••" : fmt(item.valor)}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <button onClick={() => desfazerPagamento(item)}
+                        title="Desfazer pagamento (volta para A Pagar para corrigir)"
+                        style={{
+                          background: "transparent", border: `1px solid ${T.border}`, color: T.muted,
+                          borderRadius: 5, padding: "3px 8px", fontSize: 10.5, cursor: "pointer",
+                        }}>
+                        ↩ Desfazer
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        )}
       </div>
 
       {/* Modal Novo/Editar */}
@@ -984,6 +1130,13 @@ export default function AReceberEDividas({
                 <option key={c.id} value={c.nome}>{c.nome}</option>
               ))}
               <option value="Outros">Outros</option>
+            </select>
+          </Field>
+
+          <Field label="Escopo" hint="Pessoal ou Negócio — separa nas estatísticas">
+            <select value={form.escopo || "pessoal"} onChange={e => setForm({ ...form, escopo: e.target.value })}>
+              <option value="pessoal">👤 Pessoal</option>
+              <option value="negocio">🏢 Negócio</option>
             </select>
           </Field>
 

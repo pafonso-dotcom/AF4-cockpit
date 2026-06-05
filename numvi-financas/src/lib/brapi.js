@@ -55,6 +55,22 @@ export async function getHistorico(ticker, range = "6mo", interval = "1d") {
 }
 
 export async function getIndices() {
+  // Primário: proxy Yahoo no Worker (/api/indices) — dados ao vivo, sem CORS
+  // nem token, e com valores corretos (IBOVESPA, S&P 500, NASDAQ).
+  try {
+    const r = await fetch("/api/indices");
+    if (r.ok) {
+      const j = await r.json();
+      if (j && Array.isArray(j.results) && j.results.length) {
+        return j.results.map(x => ({
+          symbol: x.symbol,
+          name: x.longName || x.shortName || x.symbol,
+          price: x.regularMarketPrice,
+          changePercent: x.regularMarketChangePercent,
+        }));
+      }
+    }
+  } catch { /* cai no fallback brapi */ }
   try {
     const data = await brapiFetch("/quote/list?type=index");
     return (data.indexes || data.stocks || []).map(r => ({
