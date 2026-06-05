@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, ArrowRightLeft, Search, Printer, ArrowUp, ArrowDown, Edit3, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, ArrowRightLeft, Search, Printer, ArrowUp, ArrowDown, Edit3, Trash2, Scale } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt } from "../../lib/format.js";
 import { confirm } from "../../lib/confirm.js";
@@ -20,6 +20,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
   const [statusFilter, setStatusFilter] = useState("todas"); // todas | compensadas | pendentes
   const [editCatId, setEditCatId] = useState(null); // id da transação com select de categoria aberto
   const [txModal, setTxModal] = useState(null); // null | { modo: "novo" } | { modo: "editar", tx }
+  const [conferir, setConferir] = useState(null); // null | { valor, data } — modal "Conferir com o banco"
   // Override manual do estado de cada dia. Padrão: só o ÚLTIMO dia de movimento
   // (mais recente) fica aberto; os demais recolhidos. { [dia]: true=aberto }.
   const [diasOverride, setDiasOverride] = useState({});
@@ -34,16 +35,28 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
     return transacoes.filter(t => t.conta === conta.nome);
   }, [transacoes, conta]);
 
-  // Saldo "verdadeiro" = saldoInicial (se houver) + transações compensadas.
-  // Se a conta NÃO tem saldoInicial, o próprio conta.saldo é a referência.
-  const saldoVerdadeiro = useMemo(() => {
-    const compensadas = transacoesDaConta.filter(t => t.compensado);
-    const somaTx = compensadas.reduce(
-      (s, t) => s + (t.tipo === "receita" ? Number(t.valor) || 0 : -(Number(t.valor) || 0)), 0
-    );
-    if (conta.saldoInicial != null) return (Number(conta.saldoInicial) || 0) + somaTx;
-    return Number(conta.saldo) || 0;
-  }, [transacoesDaConta, conta.saldoInicial, conta.saldo]);
+  // Impacto (±) de uma transação no saldo.
+  const impactoTx = (t) => (t.tipo === "receita" ? 1 : -1) * (Number(t.valor) || 0);
+
+  // Âncora do extrato: saldo inicial "efetivo" + soma de TODAS as compensadas.
+  //   - se a conta tem saldoInicial, usa ele;
+  //   - senão, infere a partir do saldo atual menos as compensadas.
+  // Saldo por lançamento, SALDO DO DIA e saldo verdadeiro derivam todos daqui,
+  // pra ficar 100% coerente — é isso que faz o extrato "bater" com o banco.
+  const somaCompensadas = useMemo(
+    () => transacoesDaConta.filter(t => t.compensado).reduce((s, t) => s + impactoTx(t), 0),
+    [transacoesDaConta]
+  );
+  const effectiveInicial = useMemo(
+    () => conta.saldoInicial != null
+      ? (Number(conta.saldoInicial) || 0)
+      : ((Number(conta.saldo) || 0) - somaCompensadas),
+    [conta.saldoInicial, conta.saldo, somaCompensadas]
+  );
+  const saldoVerdadeiro = useMemo(
+    () => effectiveInicial + somaCompensadas,
+    [effectiveInicial, somaCompensadas]
+  );
 
   // Drift entre o saldo guardado (cache) e o verdadeiro. Se houver, o banner
   // mostra o verdadeiro e a gente corrige o cache (uma vez por sessão da tela).
@@ -146,36 +159,63 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
   // ordem cronológica coerente E coincida com a ordem visual da tabela.
   const tieKey = (t) => `${t.data || ""}::${t.id || ""}`;
 
+  // Saldo após cada lançamento compensado: parte da âncora (effectiveInicial) e
+  // soma do mais antigo pro mais novo. Pendentes não entram (não afetam o saldo).
   const saldoPorTransacao = useMemo(() => {
     const map = new Map();
     const compensadasAsc = transacoesDaConta
       .filter(t => t.compensado)
       .sort((a, b) => tieKey(a).localeCompare(tieKey(b))); // antigo → novo (estável)
-
-    // Se a conta tem saldoInicial definido, calcula do mais antigo pro mais novo:
-    //   saldo[n] = saldo[n-1] + (tipo === "receita" ? +valor : -valor)
-    // Senão, fallback: usa conta.saldo como saldo final e volta no tempo.
-    if (conta.saldoInicial != null) {
-      let saldoAcum = parseFloat(conta.saldoInicial) || 0;
-      for (const t of compensadasAsc) {
-        const v = parseFloat(t.valor) || 0;
-        const impacto = t.tipo === "receita" ? v : -v;
-        saldoAcum += impacto;
-        map.set(t.id, saldoAcum);
-      }
-    } else {
-      // Fallback antigo: conta.saldo é o saldo atual; voltamos no tempo.
-      let saldoAcum = parseFloat(conta.saldo) || 0;
-      const compensadasDesc = [...compensadasAsc].reverse();
-      for (const t of compensadasDesc) {
-        map.set(t.id, saldoAcum);
-        const v = parseFloat(t.valor) || 0;
-        const impacto = t.tipo === "receita" ? v : -v;
-        saldoAcum -= impacto;
-      }
+    let saldoAcum = effectiveInicial;
+    for (const t of compensadasAsc) {
+      saldoAcum += impactoTx(t);
+      map.set(t.id, saldoAcum);
     }
     return map;
-  }, [transacoesDaConta, conta.saldo, conta.saldoInicial]);
+  }, [transacoesDaConta, effectiveInicial]);
+
+  // SALDO DO DIA = saldo de fechamento de cada dia (igual ao banco). Considera
+  // todas as compensadas até o fim do dia; só dias com movimento entram no mapa.
+  const saldoDoDiaMap = useMemo(() => {
+    const map = new Map();
+    const compensadasAsc = transacoesDaConta
+      .filter(t => t.compensado)
+      .sort((a, b) => tieKey(a).localeCompare(tieKey(b)));
+    let saldoAcum = effectiveInicial;
+    for (const t of compensadasAsc) {
+      saldoAcum += impactoTx(t);
+      map.set((t.data || "").slice(0, 10), saldoAcum); // último do dia = fechamento
+    }
+    return map;
+  }, [transacoesDaConta, effectiveInicial]);
+
+  // Aplica a conferência com o banco: ancora o saldo inicial pra que o SALDO DO
+  // DIA da data de referência passe a bater com o valor informado pelo banco.
+  const aplicarConferencia = () => {
+    const alvo = parseBR(conferir?.valor);
+    if (!isFinite(alvo)) { toast.error("Informe o saldo que o banco mostra."); return; }
+    const ref = conferir?.data || hoje.toISOString().slice(0, 10);
+    const saldoAppRef = effectiveInicial + transacoesDaConta
+      .filter(t => t.compensado && (t.data || "").slice(0, 10) <= ref)
+      .reduce((s, t) => s + impactoTx(t), 0);
+    const diff = +(alvo - saldoAppRef).toFixed(2);
+    if (Math.abs(diff) <= 0.005) {
+      toast.success("Já está batendo com o banco! 🎉");
+      setConferir(null);
+      return;
+    }
+    const backup = contas;
+    const novoInicial = +(effectiveInicial + diff).toFixed(2);
+    setContas?.((contas || []).map(c => c.nome === conta.nome
+      ? { ...c, saldoInicial: novoInicial, saldo: +(novoInicial + somaCompensadas).toFixed(2) }
+      : c));
+    autoReconciliado.current = true; // evita o auto-reconcile sobrescrever
+    setConferir(null);
+    toast.success(`Saldo ancorado no banco: ${diff > 0 ? "+" : ""}${fmt(diff)}. Agora o extrato bate.`, {
+      duration: 7000,
+      action: { label: "Desfazer", onClick: () => setContas?.(backup) },
+    });
+  };
 
   // KPIs do mês
   const kpisMes = useMemo(() => {
@@ -294,8 +334,34 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                   }}>
             <Printer size={11} /> PDF
           </button>
+          <button onClick={() => setConferir({ valor: "", data: hoje.toISOString().slice(0, 10) })}
+                  title="Comparar com o saldo do banco e ajustar pra bater"
+                  style={{
+                    background: `${T.green}18`, color: T.green,
+                    border: `1px solid ${T.green}`, padding: "8px 12px",
+                    fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
+                    fontWeight: 600, cursor: "pointer", borderRadius: 7,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>
+            <Scale size={11} /> Conferir com o banco
+          </button>
         </div>
       </div>
+
+      {/* Sub-título estilo banco: extrato + período de visualização */}
+      {(() => {
+        const datas = filtradas.map(t => (t.data || "").slice(0, 10)).filter(Boolean).sort();
+        const ini = datas[0], fim = datas[datas.length - 1];
+        const br = (iso) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "—";
+        return (
+          <div style={{ marginBottom: 10, padding: "0 2px" }}>
+            <div style={{ fontSize: 13, color: T.ink, fontWeight: 600 }}>extrato conta / lançamentos</div>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+              período de visualização: {br(ini)} até {br(fim)}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Filtros — uma linha em desktop, colapsa em mobile */}
       <div className="extrato-filtros" style={{
@@ -527,6 +593,22 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                     </div>
                   );
                 })}
+
+                {/* SALDO DO DIA — saldo de fechamento do dia, igual ao banco */}
+                {!recolhido && saldoDoDiaMap.has(grupo.dia) && (
+                  <div style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "9px 14px", borderBottom: `1px solid ${T.border}`,
+                    background: `${T.gold}0d`,
+                  }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted }}>
+                      Saldo do dia
+                    </span>
+                    <span className="num" style={{ fontSize: 14, fontWeight: 700, color: T.ink, fontVariantNumeric: "tabular-nums" }}>
+                      {hidden ? "•••" : fmt(saldoDoDiaMap.get(grupo.dia))}
+                    </span>
+                  </div>
+                )}
               </div>
             );
             });
@@ -546,8 +628,69 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           onClose={() => setTxModal(null)}
         />
       )}
+
+      {/* Modal: Conferir com o banco */}
+      {conferir && (
+        <div onClick={() => setConferir(null)}
+             style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", display: "grid", placeItems: "center", zIndex: 1000, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()}
+               style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 22, width: "100%", maxWidth: 420, boxShadow: `0 12px 44px ${T.bg}` }}>
+            <div style={{ fontFamily: T.serif, fontSize: 18, fontWeight: 600, color: T.ink, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+              <Scale size={17} style={{ color: T.green }} /> Conferir com o banco
+            </div>
+            <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 16, lineHeight: 1.45 }}>
+              Digite o <strong>saldo em conta</strong> que o app do banco mostra. Eu comparo com o cálculo do app e ajusto o saldo inicial pra bater no dia escolhido.
+            </div>
+
+            <label style={{ fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted }}>Saldo no banco (R$)</label>
+            <input autoFocus value={conferir.valor} onChange={e => setConferir({ ...conferir, valor: e.target.value })} placeholder="50.405,57"
+                   style={{ width: "100%", padding: "10px 12px", marginTop: 5, marginBottom: 14, background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 15, borderRadius: 8 }} />
+
+            <label style={{ fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted }}>Data de referência</label>
+            <input type="date" value={conferir.data} onChange={e => setConferir({ ...conferir, data: e.target.value })}
+                   style={{ width: "100%", padding: "10px 12px", marginTop: 5, marginBottom: 4, background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 14, borderRadius: 8 }} />
+
+            {(() => {
+              const alvo = parseBR(conferir.valor);
+              if (!isFinite(alvo)) return null;
+              const ref = conferir.data || hoje.toISOString().slice(0, 10);
+              const saldoAppRef = effectiveInicial + transacoesDaConta
+                .filter(t => t.compensado && (t.data || "").slice(0, 10) <= ref)
+                .reduce((s, t) => s + impactoTx(t), 0);
+              const diff = +(alvo - saldoAppRef).toFixed(2);
+              const bate = Math.abs(diff) <= 0.005;
+              return (
+                <div style={{ fontSize: 12.5, color: bate ? T.green : T.gold, margin: "10px 0 2px", lineHeight: 1.4 }}>
+                  App em <strong>{fmt(saldoAppRef)}</strong> · diferença {diff > 0 ? "+" : ""}{fmt(diff)}
+                  {bate ? " — já bate ✓" : " — vou ajustar o saldo inicial"}
+                </div>
+              );
+            })()}
+
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+              <button onClick={() => setConferir(null)}
+                      style={{ padding: "9px 14px", background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 8, cursor: "pointer", fontSize: 12.5 }}>
+                Cancelar
+              </button>
+              <button onClick={aplicarConferencia}
+                      style={{ padding: "9px 16px", background: T.gold, border: "none", color: T.bg, borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 12.5 }}>
+                Ajustar e bater
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+// Converte texto de valor em número, aceitando formato BR ("50.405,57") e
+// formato simples ("50405.57" / "50405").
+function parseBR(s) {
+  let x = String(s ?? "").trim().replace(/[^\d.,-]/g, "");
+  if (x.includes(",")) x = x.replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(x);
+  return n;
 }
 
 function KPI({ l, v, c }) {
