@@ -18,7 +18,7 @@ const BORDO   = "#9E2B3A"; // vermelho bordô do "N"
 export function NumviMark({ size = 36, bg = "#23272E", gid }) {
   const id = gid || `numvi-${Math.random().toString(36).slice(2, 7)}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" role="img" aria-label="Numvi"
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" role="img" aria-label="AF4"
          xmlns="http://www.w3.org/2000/svg" style={{ display: "block", flexShrink: 0 }}>
       <defs>
         <linearGradient id={id} x1="12" y1="10" x2="52" y2="54" gradientUnits="userSpaceOnUse">
@@ -31,8 +31,10 @@ export function NumviMark({ size = 36, bg = "#23272E", gid }) {
       <rect width="64" height="64" rx="15" fill={bg} />
       {/* anel (moeda / riqueza) */}
       <circle cx="32" cy="32" r="23" fill="none" stroke={`url(#${id})`} strokeWidth="3.2" />
-      {/* "N" no centro — bordô (marca NUMVI Finanças) */}
-      <path d="M23 43 V21 H27.5 L37 35 V21 H41 V43 H36.5 L27 29 V43 Z" fill={BORDO} />
+      {/* "4" no centro (AF4) — bordô, igual à marca */}
+      <text x="32" y="33" textAnchor="middle" dominantBaseline="central"
+            fontFamily="'Nunito', system-ui, sans-serif" fontWeight="800" fontSize="32"
+            fill={BORDO}>4</text>
     </svg>
   );
 }
@@ -52,8 +54,8 @@ export default function Logo({
         fontWeight: 800, fontSize: size, letterSpacing: "-0.01em",
         lineHeight: 1, display: "inline-flex", alignItems: "baseline",
       }}>
-        <span style={{ color: BORDO }}>N</span>
-        <span style={{ color: wordColor }}>umvi</span>
+        <span style={{ color: wordColor }}>AF</span>
+        <span style={{ color: BORDO }}>4</span>
         {sufixo && (
           <span style={{ color: sufixoColor, fontWeight: 500, fontSize: size * 0.6, marginLeft: size * 0.05 }}>
             {sufixo}

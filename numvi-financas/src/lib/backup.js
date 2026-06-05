@@ -52,7 +52,7 @@ export const importBackup = async (file) => {
   }
 
   if (payload.app !== "af4-cockpit") {
-    return { ok: false, error: "Este arquivo não é um backup do NUMVI" };
+    return { ok: false, error: "Este arquivo não é um backup do AF4 finanças" };
   }
 
   if (!payload.data || typeof payload.data !== "object") {

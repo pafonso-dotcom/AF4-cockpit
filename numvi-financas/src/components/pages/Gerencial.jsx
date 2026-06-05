@@ -93,7 +93,7 @@ export default function Gerencial({
   const convidarWhatsApp = () => {
     const url = (config.appUrl || "").trim() || APP_URL;
     const baseMsg = (config.mensagemConvite || "").trim()
-      || "Olá! Te convido pra usar o NUMVI Finanças — sua vida financeira organizada num só lugar. Acesse: {link}";
+      || "Olá! Te convido pra usar o AF4 finanças — sua vida financeira organizada num só lugar. Acesse: {link}";
     const texto = baseMsg.includes("{link}") ? baseMsg.replace("{link}", url) : `${baseMsg} ${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
     toast.success("Convite aberto no WhatsApp.");

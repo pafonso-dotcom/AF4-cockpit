@@ -82,7 +82,7 @@ ${topCat.map(([c, v], i) => `${i + 1}. ${c}: R$ ${v.toFixed(2)}`).join("\n")}
  * Retorna a resposta em texto.
  */
 export async function perguntarAoClaude({ pergunta, historico = [], contextoDados }) {
-  const sistema = `Você é o assistente financeiro do NUMVI Finanças.
+  const sistema = `Você é o assistente financeiro do AF4 finanças.
 Analise os dados do usuário e responda com clareza, em PT-BR.
 
 Princípios:
