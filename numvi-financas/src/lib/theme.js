@@ -1,5 +1,5 @@
 /* ============================================================
-   THEME · NUMVI · 7 paletas escuras + 3 claras (estilo demo v7)
+   THEME · AF4 finanças · 7 paletas escuras + 3 claras (estilo demo v7)
    ============================================================ */
 
 const FONTS = {

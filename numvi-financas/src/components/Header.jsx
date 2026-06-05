@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Logo, { NumviMark } from "./ui/Logo.jsx";
+import Logo, { AF4Mark } from "./ui/Logo.jsx";
 import { BRAND_SUFIXO } from "../lib/brand.js";
 import { forcarAtualizacaoApp } from "../lib/appUpdate.js";
 import { T, THEMES } from "../lib/theme.js";
@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 /**
- * Header NUMVI · v4 (refatorado pra hierarquia clara)
+ * Header AF4 finanças · v4 (refatorado pra hierarquia clara)
  *  Linha 1 (sempre): logo · separador · subtabs (scroll) · separador · quick actions · separador · utility · gap · settings · avatar
  *  Linha 2 (≥640px): módulos (Finanças/Invest)
  *  Mobile (<640px): linha 1 = logo + settings; linha 2 = subtabs scroll
@@ -108,7 +108,7 @@ function HeaderHorizontal({
   // Menu "⋯" agrupa os utilitários (busca/ocultar/tema/atualizar) no topo.
   const [menuUtilAberto, setMenuUtilAberto] = useState(false);
 
-  // NUMVI Finanças: produto só do módulo financeiro (+ Agenda).
+  // AF4 finanças: produto só do módulo financeiro (+ Agenda).
   const TODOS_MODULOS = [
     { id: "financas", label: "Finanças",      icon: Wallet,    desc: "Pessoal" },
   ];
@@ -196,7 +196,7 @@ function HeaderHorizontal({
         padding: "14px 16px",
         display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
       }}>
-        {/* BRAND · marca NUMVI */}
+        {/* BRAND · marca AF4 finanças */}
         <div style={{ display: "flex", alignItems: "center", marginRight: "auto", flexShrink: 0 }}>
           {/* Mobile: só o nome (sem símbolo). Desktop: lockup completo. */}
           <span className="hide-desktop" style={{ fontFamily: "'Nunito', system-ui, sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em" }}>

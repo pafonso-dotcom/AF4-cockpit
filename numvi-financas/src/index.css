@@ -32,7 +32,7 @@
 }
 
 /* ============================================================
-   NUMVI · estilo demo v3 (Poppins · dark · 7 paletas)
+   AF4 finanças · estilo demo v3 (Poppins · dark · 7 paletas)
    ============================================================ */
 
 /* Customização do usuário em "Aparência":
@@ -544,7 +544,7 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .palette-dot { width: 14px !important; height: 14px !important; }
 }
 /* Marca no header: desktop mostra o lockup completo; mobile mostra só o
-   wordmark NUMVI (sem símbolo). */
+   wordmark AF4 finanças (sem símbolo). */
 .hide-desktop { display: none; }
 @media (max-width: 480px) {
   .header-brand-text { display: none !important; }

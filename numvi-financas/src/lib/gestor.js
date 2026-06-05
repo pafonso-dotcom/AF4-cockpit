@@ -1,5 +1,5 @@
 /**
- * Gestor (admin) do produto comercial NUMVI Finanças.
+ * Gestor (admin) do produto comercial AF4 finanças.
  * O gestor vê o painel "Gerencial" e as Configurações; os clientes não.
  *
  * Sobrescreva no build com VITE_GESTOR_EMAILS (lista separada por vírgula).
