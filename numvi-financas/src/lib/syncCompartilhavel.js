@@ -82,15 +82,15 @@ export function tamanho(texto) {
 
 /** Abre WhatsApp Web pra você enviar pra você mesmo */
 export function compartilharWhatsApp(texto) {
-  const preview = `📦 *Backup AF4 finanças* — ${new Date().toLocaleString("pt-BR")}\n\nCole este texto na tela de "Restaurar" do app no outro dispositivo:\n\n${texto}`;
+  const preview = `📦 *Backup NUMVI Finanças* — ${new Date().toLocaleString("pt-BR")}\n\nCole este texto na tela de "Restaurar" do app no outro dispositivo:\n\n${texto}`;
   // Notebookmark wa.me sem número = abre escolher contato
   window.open(`https://wa.me/?text=${encodeURIComponent(preview)}`, "_blank", "noopener,noreferrer");
 }
 
 /** Abre email pré-preenchido com o backup */
 export function compartilharEmail(texto) {
-  const subject = `Backup AF4 finanças · ${new Date().toLocaleDateString("pt-BR")}`;
-  const body = `Backup gerado pelo AF4 finanças.\n\nGuarde este email — basta colar o conteúdo abaixo na tela de "Restaurar" do app em qualquer dispositivo.\n\n---\n\n${texto}`;
+  const subject = `Backup NUMVI Finanças · ${new Date().toLocaleDateString("pt-BR")}`;
+  const body = `Backup gerado pelo NUMVI Finanças.\n\nGuarde este email — basta colar o conteúdo abaixo na tela de "Restaurar" do app em qualquer dispositivo.\n\n---\n\n${texto}`;
   window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, "_blank", "noopener,noreferrer");
 }
 

@@ -19,7 +19,7 @@
 
 const TOKEN_KEY       = "af4:gist-token";
 const GIST_ID_KEY     = "af4:gist-id";        // cache do ID do gist
-const GIST_DESCRIPTION = "AF4 finanças · Dados (gerado automaticamente — não apagar)";
+const GIST_DESCRIPTION = "NUMVI Finanças · Dados (gerado automaticamente — não apagar)";
 const STATE_FILENAME  = "af4-cockpit-state.json";
 const KEYS_FILENAME   = "af4-cockpit-keys.json";
 

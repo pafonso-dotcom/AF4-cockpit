@@ -89,7 +89,7 @@ export default function InstallPWA() {
       </div>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 13, color: T.ink, fontWeight: 600, marginBottom: 3 }}>
-          Instalar AF4 finanças?
+          Instalar NUMVI Finanças?
         </div>
         <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.45, marginBottom: 8 }}>
           {isIOS

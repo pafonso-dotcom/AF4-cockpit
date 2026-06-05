@@ -51,7 +51,7 @@ export function buildContext({ transacoes = [], contas = [], ativos = [], vendas
   const chequesAguardando = cheques.filter(c => c.status === "aguardando").length;
 
   return `
-DADOS DO COCKPIT FINANCEIRO (Paulo Afonso · AF4 Motors · ${hoje})
+DADOS DO PAINEL FINANCEIRO (NUMVI Finanças · ${hoje})
 
 ═══ FINANÇAS PESSOAIS · MÊS ATUAL (${mesAtual}) ═══
 • Receitas: R$ ${rec.toFixed(2)} (mês anterior: R$ ${recAnt.toFixed(2)})
@@ -66,7 +66,7 @@ ${topCat.map(([c, v], i) => `${i + 1}. ${c}: R$ ${v.toFixed(2)}`).join("\n")}
 • Carteira de ativos: R$ ${valorCarteira.toFixed(2)} (investido R$ ${investido.toFixed(2)})
 • Resultado da carteira: R$ ${(valorCarteira - investido).toFixed(2)}
 
-═══ LOJA AF4 MOTORS ═══
+═══ LOJA ═══
 • Vendas no mês: ${vendasMes.length} (faturamento R$ ${fatMes.toFixed(2)} · lucro líquido R$ ${lucroMes.toFixed(2)})
 • Veículos em estoque: ${estoque}
 
@@ -82,7 +82,7 @@ ${topCat.map(([c, v], i) => `${i + 1}. ${c}: R$ ${v.toFixed(2)}`).join("\n")}
  * Retorna a resposta em texto.
  */
 export async function perguntarAoClaude({ pergunta, historico = [], contextoDados }) {
-  const sistema = `Você é o assistente financeiro do AF4 finanças.
+  const sistema = `Você é o assistente financeiro do NUMVI Finanças.
 Analise os dados do usuário e responda com clareza, em PT-BR.
 
 Princípios:

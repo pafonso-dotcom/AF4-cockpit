@@ -1,10 +1,10 @@
-// Aurum Finanças Service Worker — v5
+// NUMVI Finanças Service Worker — v6
 // - Network-first pra navegação (HTML/index) — sempre carrega versão fresca
 // - Cache-first pra assets (JS/CSS/imagens) — performance
 // - /api/* e APIs externas → bypass total (sem cache, sem intercept)
 // Sempre que mudar a UI, bump a versão CACHE pra invalidar tudo do cliente.
 
-const CACHE = "numvi-dedicado-v1789700000";
+const CACHE = "numvi-rebrand-v1796000000";
 const PRECACHE = ["./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {

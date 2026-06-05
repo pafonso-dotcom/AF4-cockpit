@@ -24,7 +24,7 @@ function Manutencao() {
         <div style={{ fontSize: 44, marginBottom: 16 }}>🔧</div>
         <h1 style={{ fontSize: 26, fontWeight: 700, margin: "0 0 10px" }}>Em manutenção</h1>
         <p style={{ fontSize: 15, lineHeight: 1.65, color: "#a8a8b0", margin: 0 }}>
-          O <strong style={{ color: "#E8C25A" }}>AF4 finanças</strong> está passando por ajustes
+          O <strong style={{ color: "#E8C25A" }}>NUMVI Finanças</strong> está passando por ajustes
           e voltará em breve. Obrigado pela paciência.
         </p>
       </div>

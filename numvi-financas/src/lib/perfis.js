@@ -11,8 +11,8 @@ const KEY_PERFIS = "af4:perfis:v1";
 const KEY_ATIVO  = "af4:perfil-ativo:v1";
 
 const PERFIL_PADRAO = {
-  id: "paulo",
-  nome: "Paulo Afonso",
+  id: "principal",
+  nome: "Você",
   email: "",
   cor: "#c9a961",
   role: "admin", // admin | viewer

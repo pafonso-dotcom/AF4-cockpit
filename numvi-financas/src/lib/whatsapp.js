@@ -26,7 +26,7 @@ Lembrando que o cheque Nº {numero} de {valor} vence em {data}.
 
 Qualquer coisa, me avisa.`,
 
-  reciboVenda: `🚗 *Recibo de venda · AF4 Motors*
+  reciboVenda: `🚗 *Recibo de venda*
 
 *Comprador:* {nome}
 *Veículo:* {veiculo}
@@ -34,9 +34,7 @@ Qualquer coisa, me avisa.`,
 *Pagamento:* {pagamento}
 *Data:* {data}
 
-Obrigado pela confiança! Qualquer dúvida, estou à disposição.
-
-📎 AF4 Motors · Tatuí-SP`,
+Obrigado pela confiança! Qualquer dúvida, estou à disposição.`,
 
   agradecimentoVenda: `{nome}, foi um prazer fechar negócio com você! 🤝
 
@@ -46,7 +44,7 @@ Boa estrada e até a próxima!`,
 
   followUpLead: `Olá {nome}!
 
-Aqui é da AF4 Motors. Você demonstrou interesse no {veiculo}, certo?
+Você demonstrou interesse no {veiculo}, certo?
 
 Tô passando pra ver se ainda tá no radar — temos algumas novidades que talvez te interessem.
 
@@ -54,7 +52,7 @@ Quando puder, me dá um sinal!`,
 
   agendamentoVisita: `Olá {nome}!
 
-Confirmando nossa conversa: você passa aqui na AF4 Motors em {data} para ver o {veiculo}.
+Confirmando nossa conversa: você passa aqui em {data} para ver o {veiculo}.
 
 📍 Endereço: [Endereço da loja]
 📞 Telefone: [Telefone]

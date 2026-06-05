@@ -219,7 +219,7 @@ export default function Dashboard({
           border: `1px solid ${T.gold}55`, borderRadius: 14, padding: 20, marginBottom: 16,
         }}>
           <div style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: T.ink, marginBottom: 6 }}>
-            Bem-vindo ao AF4 finanças! 🎉
+            Bem-vindo ao NUMVI Finanças! 🎉
           </div>
           <div style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.5, marginBottom: 14 }}>
             Comece adicionando sua <strong>primeira conta</strong> (banco ou carteira) e lançando
