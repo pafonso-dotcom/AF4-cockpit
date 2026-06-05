@@ -610,6 +610,58 @@ export default function AReceberEDividas({
     return { total, pagas, falta: +(total - pagas).toFixed(2) };
   }, [mesAtivo, transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes]);
 
+  // Itens JÁ PAGOS do mês (para a vista "Pagas").
+  const pagasMes = useMemo(() => {
+    const st = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
+    const mes = mesAtivo || hoje.slice(0, 7);
+    let desp = [];
+    try { desp = getDespesasDoMes(mes, st); } catch {}
+    return desp.filter(d => d.status === "paga").sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+  }, [mesAtivo, transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, hoje]);
+  const totalPagasMes = useMemo(() => pagasMes.reduce((s, d) => s + (Number(d.valor) || 0), 0), [pagasMes]);
+
+  // Desfazer o pagamento de um item já pago (volta para "A Pagar" e devolve o
+  // valor à conta quando houver transação ligada). Permite retificar.
+  const desfazerPagamento = async (item) => {
+    const ok = await confirm({
+      title: `Desfazer pagamento de "${item.descricao}"?`,
+      body: "O item volta para 'A Pagar' (pendente) e, se tiver baixa em conta, o valor é devolvido. Aí podes corrigir e pagar de novo.",
+      confirmLabel: "Desfazer", danger: true,
+    });
+    if (!ok) return;
+
+    // Devolve saldo + remove a transação de baixa ligada (quando existir).
+    const devolverSaldoEremover = (txId) => {
+      if (!txId) return;
+      const tx = (transacoes || []).find(t => t.id === txId);
+      if (tx && tx.compensado && tx.conta) {
+        setContas((contas || []).map(c => c.nome === tx.conta ? { ...c, saldo: (Number(c.saldo) || 0) + (Number(tx.valor) || 0) } : c));
+      }
+      setTransacoes((transacoes || []).filter(t => t.id !== txId));
+    };
+
+    if (item.fonte === "fixa") {
+      const occ = (fixaOcorrencias || []).find(o => o.id === item.id);
+      devolverSaldoEremover(occ?.transacaoId);
+      setFixaOcorrencias?.((fixaOcorrencias || []).map(o =>
+        o.id === item.id ? { ...o, status: "pendente", dataPagamento: null, valorPago: null, transacaoId: null } : o));
+    } else if (item.fonte === "parcela") {
+      const [parcId, numStr] = String(item.id).split("::");
+      const numero = parseInt(numStr, 10);
+      setParcelamentos?.((parcelamentos || []).map(p =>
+        p.id === parcId ? { ...p, parcelasPagas: (p.parcelasPagas || []).filter(n => n !== numero) } : p));
+    } else if (item.fonte === "divida") {
+      setDividas((dividas || []).map(d => d.id === item.id ? { ...d, pago: false, dataPagamento: null, contaPagamento: null } : d));
+    } else if (item.fonte === "transacao") {
+      const tx = (transacoes || []).find(t => t.id === item.id);
+      if (tx && tx.conta) {
+        setContas((contas || []).map(c => c.nome === tx.conta ? { ...c, saldo: (Number(c.saldo) || 0) + (Number(tx.valor) || 0) } : c));
+      }
+      setTransacoes((transacoes || []).map(t => t.id === item.id ? { ...t, compensado: false } : t));
+    }
+    toast.success(`"${item.descricao}" voltou para A Pagar.`);
+  };
+
   // Recebido / pago no mês corrente (cruza com transações geradas via confirmarBaixa)
   const mesCorrenteISO = hoje.slice(0, 7);
   const baixadosNoMes = (transacoes || []).filter(t =>
@@ -847,6 +899,7 @@ export default function AReceberEDividas({
         {[
           { id: "receber", label: `💰 A Receber (${receberMes.length})`, cor: T.green },
           { id: "pagar",   label: `⚠️ A Pagar (${pagarMes.length})`,    cor: T.red   },
+          { id: "pagas",   label: `✅ Pagas (${pagasMes.length})`,       cor: T.green },
         ].map(t => {
           const ativo = vista === t.id;
           return (
@@ -983,6 +1036,61 @@ export default function AReceberEDividas({
           mesLabelTitulo={mesAtivo ? mesLabel(mesAtivo) : "Todos os meses"}
           showCredor
         />
+        )}
+
+        {/* === PAGAS · o que já foi pago === */}
+        {vista === "pagas" && (
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+          <div style={{
+            padding: "16px 18px", borderBottom: `1px solid ${T.border}`,
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
+          }}>
+            <div style={{ fontSize: 14, color: T.ink, fontWeight: 600 }}>
+              ✅ Pagas
+              <span style={{ fontSize: 11.5, color: T.muted, fontWeight: 400, marginLeft: 6 }}>
+                · {mesAtivo ? mesLabel(mesAtivo) : mesLabel(hoje.slice(0, 7))} · {pagasMes.length} {pagasMes.length === 1 ? "item" : "itens"}
+              </span>
+            </div>
+            <div className="num" style={{ fontSize: 16, fontWeight: 700, color: T.green }}>
+              {hidden ? "•••" : fmt(totalPagasMes)}
+            </div>
+          </div>
+          {pagasMes.length === 0 ? (
+            <div style={{ padding: 28, textAlign: "center", color: T.muted, fontSize: 13, fontStyle: "italic" }}>
+              Nada pago neste mês ainda.
+            </div>
+          ) : (
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Pago em</th><th>Nome</th><th>Tipo</th><th>Categoria</th>
+                  <th style={{ textAlign: "right" }}>Valor</th><th style={{ textAlign: "right" }}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pagasMes.map(item => (
+                  <tr key={item.id}>
+                    <td style={{ whiteSpace: "nowrap" }}>{(item.data || "").slice(8, 10)}/{(item.data || "").slice(5, 7)}</td>
+                    <td>{item.descricao}</td>
+                    <td><span style={{ fontSize: 10, color: T.muted, textTransform: "capitalize" }}>{item.fonte}</span></td>
+                    <td><span style={{ fontSize: 11, color: T.muted }}>{item.categoria}</span></td>
+                    <td className="num" style={{ textAlign: "right", color: T.ink }}>{hidden ? "•••" : fmt(item.valor)}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <button onClick={() => desfazerPagamento(item)}
+                        title="Desfazer pagamento (volta para A Pagar para corrigir)"
+                        style={{
+                          background: "transparent", border: `1px solid ${T.border}`, color: T.muted,
+                          borderRadius: 5, padding: "3px 8px", fontSize: 10.5, cursor: "pointer",
+                        }}>
+                        ↩ Desfazer
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
         )}
       </div>
 
