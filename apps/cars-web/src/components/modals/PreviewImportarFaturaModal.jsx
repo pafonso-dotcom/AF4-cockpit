@@ -305,8 +305,8 @@ export default function PreviewImportarFaturaModal({
     }
 
     toast.success(
-      `Fatura importada · ${incluidos.length} itens${conta ? ` em ${contaNome}` : " (banco a definir no pagamento)"}. ` +
-      `${stats.vista} variáveis · ${stats.fixa} fixas · ${stats.parcela} parcelas (${stats.matches} matches).`
+      `Fatura importada · ${incluidos.length} itens (pendentes — debita ao pagar a fatura). ` +
+      `${stats.vista} à vista · ${stats.parcela} parcelas (${stats.matches} matches).`
     );
     onClose?.();
   };
@@ -400,19 +400,21 @@ export default function PreviewImportarFaturaModal({
         </Field>
 
         <div style={{
-          display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+          display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
           gap: 6, marginTop: 12, fontSize: 11, color: T.muted,
         }}>
           <div>📦 <strong style={{ color: T.ink, fontSize: 13 }}>{stats.total}</strong> itens</div>
           <div>🛒 <strong style={{ color: T.muted, fontSize: 13 }}>{stats.vista}</strong> à vista</div>
-          <div>🔁 <strong style={{ color: T.gold, fontSize: 13 }}>{stats.fixa}</strong> fixas</div>
           <div>📱 <strong style={{ color: T.blue || "#60a5fa", fontSize: 13 }}>{stats.parcela}</strong> parcelas{stats.matches > 0 && ` (${stats.matches} matches)`}</div>
         </div>
         <div className="num" style={{
-          marginTop: 8, color: T.red, fontFamily: T.serif,
+          marginTop: 8, color: T.ink, fontFamily: T.serif,
           fontSize: 18, fontWeight: 600,
         }}>
-          Total a debitar: − {fmt(stats.valorTotal)}
+          Total da fatura: {fmt(stats.valorTotal)}
+        </div>
+        <div style={{ marginTop: 4, fontSize: 11, color: T.muted }}>
+          Os itens entram <strong style={{ color: T.gold }}>pendentes</strong> (no cartão) — o banco só é debitado quando pagares a fatura.
         </div>
       </div>
 
@@ -508,11 +510,11 @@ export default function PreviewImportarFaturaModal({
         marginTop: 10, padding: 10, fontSize: 11.5, color: T.muted,
         background: T.bgSoft, borderRadius: 6, lineHeight: 1.5,
       }}>
-        ℹ️ <strong>Fixas</strong> criam 12 ocorrências (jan→dez), com a 1ª já marcada como paga.
+        ℹ️ A importação lança só o que está na fatura — <strong>não cria despesas fixas/recorrentes</strong>. Assinaturas você cadastra manualmente em Despesas Fixas.
         <br />
         ℹ️ <strong>Parcelas com match</strong> só marcam a parcela {analise.vencimento ? `${analise.vencimento.slice(3, 5)}` : "atual"} como paga (não duplica o parcelamento).
         <br />
-        ℹ️ <strong>Parcelas novas</strong> criam o parcelamento já com as 1..N pagas (assumindo que as anteriores vieram em faturas passadas).
+        ℹ️ Os itens entram <strong>pendentes</strong> e só descontam do banco quando pagares a fatura (uma baixa única).
       </div>
 
       <div className="flex gap-3 justify-end mt-5">
