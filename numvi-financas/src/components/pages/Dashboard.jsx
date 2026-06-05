@@ -211,6 +211,34 @@ export default function Dashboard({
         </div>
       </div>
 
+      {/* Primeiro acesso: boas-vindas pra quem ainda não tem nada cadastrado */}
+      {(contas || []).length === 0 && (transacoes || []).length === 0 && (
+        <div style={{
+          background: `linear-gradient(135deg, ${T.gold}1f, ${T.card})`,
+          border: `1px solid ${T.gold}55`, borderRadius: 14, padding: 20, marginBottom: 16,
+        }}>
+          <div style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: T.ink, marginBottom: 6 }}>
+            Bem-vindo ao Numvi Finanças! 🎉
+          </div>
+          <div style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.5, marginBottom: 14 }}>
+            Comece adicionando sua <strong>primeira conta</strong> (banco ou carteira) e lançando
+            suas receitas e despesas. Suas categorias já estão prontas — é só usar.
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={() => onTabChange?.("contas")}
+                    style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 8,
+                             padding: "9px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+              + Adicionar primeira conta
+            </button>
+            <button onClick={() => onTabChange?.("transacoes")}
+                    style={{ background: "transparent", color: T.ink, border: `1px solid ${T.border}`,
+                             borderRadius: 8, padding: "9px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+              Lançar transação
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
 
