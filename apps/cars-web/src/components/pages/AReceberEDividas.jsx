@@ -6,6 +6,7 @@ import { parseValorBR } from "../../lib/importExport.js";
 import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
 import { whatsapp } from "../../lib/whatsapp.js";
+import { getDespesasDoMes } from "../../lib/agregador.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
@@ -598,6 +599,17 @@ export default function AReceberEDividas({
   const totalPagarAberto   = somaArr(divAbertas);
   const saldoPrevisto      = totalReceberAberto - totalPagarAberto;
 
+  // Resumo de despesas do mês selecionado: Total a pagar / Pagas / Falta pagar.
+  const resumoPagarMes = useMemo(() => {
+    if (!mesAtivo) return null;
+    const st = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
+    let desp = [];
+    try { desp = getDespesasDoMes(mesAtivo, st); } catch {}
+    const total = desp.reduce((s, d) => s + (Number(d.valor) || 0), 0);
+    const pagas = desp.filter(d => d.status === "paga").reduce((s, d) => s + (Number(d.valor) || 0), 0);
+    return { total, pagas, falta: +(total - pagas).toFixed(2) };
+  }, [mesAtivo, transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes]);
+
   // Recebido / pago no mês corrente (cruza com transações geradas via confirmarBaixa)
   const mesCorrenteISO = hoje.slice(0, 7);
   const baixadosNoMes = (transacoes || []).filter(t =>
@@ -913,6 +925,22 @@ export default function AReceberEDividas({
             </div>
           )}
         </div>
+        )}
+        {vista === "pagar" && resumoPagarMes && (
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            {[
+              { l: "Total a pagar", v: resumoPagarMes.total, c: T.ink },
+              { l: "Pagas",         v: resumoPagarMes.pagas, c: T.green },
+              { l: "Falta pagar",   v: resumoPagarMes.falta, c: T.red },
+            ].map(x => (
+              <div key={x.l} style={{ flex: 1, minWidth: 110, background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                <div style={{ fontSize: 11, color: T.muted }}>{x.l}</div>
+                <div className="num" style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: x.c }}>
+                  {hidden ? "•••" : fmt(x.v)}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
         {vista === "pagar" && (
         <CompromissoTabela
