@@ -483,7 +483,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                 {/* Cabeçalho do dia (clicável: recolhe/expande os lançamentos) */}
                 <div onClick={() => toggleDia(grupo.dia, abertoPadrao)} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "8px 14px", background: T.bgSoft, borderBottom: `1px solid ${T.border}`,
+                  padding: "5px 14px", background: T.bgSoft, borderBottom: `1px solid ${T.border}`,
                   cursor: "pointer",
                 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -493,8 +493,18 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                     <span style={{ fontSize: 10.5, color: T.faint, textTransform: "capitalize" }}>· {dl.semana}</span>
                     <span style={{ fontSize: 10.5, color: T.faint }}>· {grupo.itens.length} {grupo.itens.length === 1 ? "lançamento" : "lançamentos"}</span>
                   </span>
-                  <span className="num" style={{ fontSize: 11, fontWeight: 600, color: net >= 0 ? T.green : T.red }}>
-                    {hidden ? "•••" : `${net >= 0 ? "+ " : "− "}${fmt(Math.abs(net))}`}
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+                    <span className="num" style={{ fontSize: 11, fontWeight: 600, color: net >= 0 ? T.green : T.red }}>
+                      {hidden ? "•••" : `${net >= 0 ? "+ " : "− "}${fmt(Math.abs(net))}`}
+                    </span>
+                    {saldoDoDiaMap.has(grupo.dia) && (
+                      <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.1 }}>
+                        <span style={{ fontSize: 8.5, color: T.faint, letterSpacing: ".06em", textTransform: "uppercase" }}>saldo do dia</span>
+                        <span className="num" style={{ fontSize: 12.5, fontWeight: 700, color: T.ink, fontVariantNumeric: "tabular-nums" }}>
+                          {hidden ? "•••" : fmt(saldoDoDiaMap.get(grupo.dia))}
+                        </span>
+                      </span>
+                    )}
                   </span>
                 </div>
 
@@ -505,23 +515,23 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                   const corTipo = t.tipo === "receita" ? T.green : T.red;
                   return (
                     <div key={t.id} className="extrato-row" style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "10px 14px", borderBottom: `1px solid ${T.border}`,
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "5px 14px", borderBottom: `1px solid ${T.border}`,
                       opacity: t.compensado ? 1 : 0.7,
                     }}>
                       {/* Ícone entrada/saída */}
                       <span style={{
-                        width: 30, height: 30, borderRadius: "50%",
+                        width: 22, height: 22, borderRadius: "50%",
                         background: `${corTipo}1c`, color: corTipo,
                         display: "grid", placeItems: "center", flexShrink: 0,
                       }}>
-                        {t.tipo === "receita" ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}
+                        {t.tipo === "receita" ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                       </span>
 
                       {/* Descrição + obs + categoria */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                          <span style={{ color: T.ink, fontWeight: 600, fontSize: 13 }}>{t.descricao}</span>
+                          <span style={{ color: T.ink, fontWeight: 600, fontSize: 12.5 }}>{t.descricao}</span>
                           {!t.compensado && (
                             <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 3, background: `${T.gold}22`, color: T.gold, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>Pendente</span>
                           )}
@@ -529,7 +539,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                             <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 3, background: `${T.blue || "#60a5fa"}22`, color: T.blue || "#60a5fa", fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>Fixa</span>
                           )}
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 1, flexWrap: "wrap" }}>
                           {/* Chip de categoria (clicável pra editar) */}
                           {editCatId === t.id ? (
                             <select
@@ -570,15 +580,15 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                         )}
                       </div>
 
-                      {/* Valor + saldo */}
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <div className="num" style={{ color: corTipo, fontWeight: 700, fontSize: 14.5 }}>
-                          {t.tipo === "receita" ? "+ " : "− "}{hidden ? "•••" : fmt(t.valor)}
-                        </div>
-                        <div className="num" style={{ fontSize: 10.5, color: T.faint, marginTop: 1 }}
-                             title={t.compensado ? "Saldo após esta transação" : "Pendentes não afetam o saldo"}>
+                      {/* Valor · saldo (na mesma linha pra ocupar menos altura) */}
+                      <div style={{ textAlign: "right", flexShrink: 0, display: "inline-flex", alignItems: "baseline", gap: 8, whiteSpace: "nowrap" }}>
+                        <span className="num" style={{ fontSize: 9.5, color: T.faint }}
+                              title={t.compensado ? "Saldo após esta transação" : "Pendentes não afetam o saldo"}>
                           {!t.compensado ? "pendente" : `saldo ${hidden ? "•••" : fmt(saldoApos ?? 0)}`}
-                        </div>
+                        </span>
+                        <span className="num" style={{ color: corTipo, fontWeight: 700, fontSize: 13 }}>
+                          {t.tipo === "receita" ? "+ " : "− "}{hidden ? "•••" : fmt(t.valor)}
+                        </span>
                       </div>
 
                       {/* Ações */}
@@ -598,7 +608,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                 {!recolhido && saldoDoDiaMap.has(grupo.dia) && (
                   <div style={{
                     display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: "9px 14px", borderBottom: `1px solid ${T.border}`,
+                    padding: "5px 14px", borderBottom: `1px solid ${T.border}`,
                     background: `${T.gold}0d`,
                   }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted }}>
