@@ -571,23 +571,22 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                               {cat ? cat.nome : "+ categoria"}
                             </button>
                           )}
+                          {t.obs && (
+                            <span style={{ fontSize: 10.5, color: T.muted, fontStyle: "italic", wordBreak: "break-word" }}>
+                              {t.obs}
+                            </span>
+                          )}
                         </div>
-                        {/* Observação em linha própria — visível e completa */}
-                        {t.obs && (
-                          <div style={{ fontSize: 11, color: T.muted, marginTop: 3, lineHeight: 1.35, wordBreak: "break-word" }}>
-                            {t.obs}
-                          </div>
-                        )}
                       </div>
 
-                      {/* Valor · saldo (na mesma linha pra ocupar menos altura) */}
+                      {/* Valor · saldo (mesma linha; valor primeiro e saldo na ponta, igual ao banco) */}
                       <div style={{ textAlign: "right", flexShrink: 0, display: "inline-flex", alignItems: "baseline", gap: 8, whiteSpace: "nowrap" }}>
+                        <span className="num" style={{ color: corTipo, fontWeight: 700, fontSize: 13 }}>
+                          {t.tipo === "receita" ? "+ " : "− "}{hidden ? "•••" : fmt(t.valor)}
+                        </span>
                         <span className="num" style={{ fontSize: 9.5, color: T.faint }}
                               title={t.compensado ? "Saldo após esta transação" : "Pendentes não afetam o saldo"}>
                           {!t.compensado ? "pendente" : `saldo ${hidden ? "•••" : fmt(saldoApos ?? 0)}`}
-                        </span>
-                        <span className="num" style={{ color: corTipo, fontWeight: 700, fontSize: 13 }}>
-                          {t.tipo === "receita" ? "+ " : "− "}{hidden ? "•••" : fmt(t.valor)}
                         </span>
                       </div>
 
