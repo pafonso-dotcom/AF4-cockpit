@@ -4,7 +4,7 @@
 // - /api/* e APIs externas → bypass total (sem cache, sem intercept)
 // Sempre que mudar a UI, bump a versão CACHE pra invalidar tudo do cliente.
 
-const CACHE = "numvi-manutencao-v1789500000";
+const CACHE = "numvi-manut2-v1789600000";
 const PRECACHE = ["./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
