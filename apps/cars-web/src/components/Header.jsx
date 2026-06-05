@@ -249,6 +249,12 @@ function HeaderHorizontal({
                     </button>
                   );
                 })}
+                <div style={{
+                  marginTop: 4, paddingTop: 6, borderTop: `1px solid ${NAV_BORDER}`,
+                  fontSize: 10.5, color: NAV_FAINT, textAlign: "center", fontVariantNumeric: "tabular-nums",
+                }}>
+                  versão {typeof __BUILD_ID__ !== "undefined" ? __BUILD_ID__ : "dev"}
+                </div>
               </div>
             </>
           )}

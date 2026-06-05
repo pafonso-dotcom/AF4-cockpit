@@ -14,6 +14,9 @@ export default function Footer() {
         <div style={{ color: T.muted, fontSize: 14 }} className="italic mt-2">
           “O dinheiro fala — quem registra, escuta.”
         </div>
+        <div style={{ color: T.faint, fontSize: 11, marginTop: 8, fontVariantNumeric: "tabular-nums" }}>
+          versão {typeof __BUILD_ID__ !== "undefined" ? __BUILD_ID__ : "dev"}
+        </div>
       </div>
     </footer>
   );
