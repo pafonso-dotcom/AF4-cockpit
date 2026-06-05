@@ -305,7 +305,7 @@ export default function DespesasFixas({
           {fixas.length === 0 && <div style={{ marginTop: 8 }}>Comece criando uma com o botão <strong>+ Nova fixa</strong>.</div>}
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           {ocorrenciasDoMes.map(occ => {
             const fixa = fixasPorId[occ.fixaId];
             if (!fixa) return null;
@@ -315,7 +315,7 @@ export default function DespesasFixas({
             return (
               <div key={occ.id} style={{
                 background: v.bg, border: `1px solid ${v.border}55`, borderLeft: `4px solid ${v.border}`,
-                borderRadius: 10, padding: "12px 14px",
+                borderRadius: 10, padding: "7px 12px",
                 display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
               }}>
                 <div style={{
