@@ -1,7 +1,7 @@
 /* ============================================================
    FUNDAMENTOS (local) · base de curadoria pessoal + classificação
 
-   Versão do Numvi (app pessoal, 1 usuário). Diferente do Aureus:
+   Versão do AF4 finanças (app pessoal, 1 usuário). Diferente do Aureus:
    - NÃO usa servidor/admin nem service_role. Os fundamentos e a
      metodologia ficam no próprio navegador (localStorage), junto com o
      resto do estado pessoal.

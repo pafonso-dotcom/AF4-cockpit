@@ -14,7 +14,7 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     // Em produção, você poderia mandar para Sentry/LogRocket aqui.
-    console.error("NUMVI crashed:", error, info);
+    console.error("AF4 finanças crashed:", error, info);
   }
 
   reset = () => this.setState({ hasError: false, error: null });

@@ -163,13 +163,13 @@ export default function SincronizacaoModal({ onClose }) {
       {aba === "importar" && (
         <>
           <p style={{ fontSize: 12, color: T.muted, marginBottom: 10, lineHeight: 1.55 }}>
-            Cole abaixo o texto gerado em outro dispositivo (começa com <code style={{ color: T.gold }}>NUMVISYNCv1:</code>).
+            Cole abaixo o texto gerado em outro dispositivo (começa com <code style={{ color: T.gold }}>AF4SYNCv1:</code>).
           </p>
 
           <textarea
             value={textoImport}
             onChange={e => setTextoImport(e.target.value)}
-            placeholder="NUMVISYNCv1:..."
+            placeholder="AF4SYNCv1:..."
             rows={6}
             style={{
               width: "100%", padding: 10,

@@ -4,14 +4,14 @@
    (O app pessoal é o outro deploy, cars-web/af4cockpit.)
    ============================================================ */
 
-// Fixo: este projeto (numvi-financas) é SÓ o produto comercial. O app pessoal
+// Fixo: este projeto é SÓ o produto comercial (AF4 finanças). O app pessoal
 // é um deploy separado (cars-web) com nome próprio — então aqui não há
-// ambiguidade e ignoramos qualquer VITE_NUMVI_VARIANT.
+// ambiguidade sobre a variante.
 export const VARIANT = "comercial";
 
 export const IS_COMERCIAL = VARIANT === "comercial";
 
-// Sufixo cinza ao lado de "Numvi" no cabeçalho / login.
+// Sufixo cinza ao lado de "AF4" no cabeçalho / login.
 export const BRAND_SUFIXO = IS_COMERCIAL ? "·finanças" : "·pessoal";
 
 // Tabelas de dados por variante. Permite que pessoal e comercial coexistam

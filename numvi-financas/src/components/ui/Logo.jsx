@@ -1,22 +1,22 @@
 import React from "react";
 
 /**
- * Marca NUMVI — "dinheiro com visão" (Opção 3: N no anel/moeda).
- * Símbolo: anel dourado (moeda/riqueza) com a inicial "N" no centro.
- * Wordmark: "Numvi" sans-serif bold numa linha — N em bordô, "umvi" dourado,
+ * Marca AF4 finanças — "dinheiro com visão".
+ * Símbolo: anel dourado (moeda/riqueza) com o "4" no centro.
+ * Wordmark: "AF4" sans-serif bold numa linha — "AF" dourado, "4" em bordô,
  * + sufixo descritor cinza opcional (ex.: "·finanças").
  *
- *   <NumviMark size={36} />     → símbolo sozinho (favicon / mobile)
- *   <Logo size={28} sufixo="·finanças" />  → símbolo + "Numvi" + sufixo
+ *   <AF4Mark size={36} />     → símbolo sozinho (favicon / mobile)
+ *   <Logo size={28} sufixo="·finanças" />  → símbolo + "AF4" + sufixo
  */
 
 const GOLD_HI = "#F4D47C";
 const GOLD_MD = "#E8C25A";
 const GOLD_LO = "#B8902E";
-const BORDO   = "#9E2B3A"; // vermelho bordô do "N"
+const BORDO   = "#9E2B3A"; // vermelho bordô do "4"
 
-export function NumviMark({ size = 36, bg = "#23272E", gid }) {
-  const id = gid || `numvi-${Math.random().toString(36).slice(2, 7)}`;
+export function AF4Mark({ size = 36, bg = "#23272E", gid }) {
+  const id = gid || `af4-${Math.random().toString(36).slice(2, 7)}`;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" role="img" aria-label="AF4"
          xmlns="http://www.w3.org/2000/svg" style={{ display: "block", flexShrink: 0 }}>
@@ -48,7 +48,7 @@ export default function Logo({
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: size * 0.4 }}>
-      <NumviMark size={size * 1.3} bg={bg} />
+      <AF4Mark size={size * 1.3} bg={bg} />
       <span style={{
         fontFamily: "'Nunito', system-ui, -apple-system, sans-serif",
         fontWeight: 800, fontSize: size, letterSpacing: "-0.01em",

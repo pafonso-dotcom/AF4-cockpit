@@ -348,7 +348,7 @@ export default function App() {
         savedAt: new Date().toISOString(),
       };
       const m = await createBackup(snapshot, "auto");
-      if (m) console.info(`[NUMVI] Backup automático criado (${m.sizeKb}KB).`);
+      if (m) console.info(`[AF4] Backup automático criado (${m.sizeKb}KB).`);
     };
 
     fazerBackup(); // dispara uma vez ao montar (se tiver passado o intervalo)
