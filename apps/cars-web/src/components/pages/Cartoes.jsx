@@ -771,17 +771,17 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                     </div>
                     {/* Compras do cartão (escondidas quando recolhido) */}
                     {aberto && (
-                    <div className="space-y-4" style={{ marginTop: 8 }}>
+                    <div className="space-y-2" style={{ marginTop: 6 }}>
                     {grupo.itens.map(p => {
               const valorParcela = p.valorTotal / p.totalParcelas;
               const pagas = p.parcelasPagas?.length || 0;
               const pctPago = (pagas / p.totalParcelas) * 100;
               const restante = p.valorTotal - (pagas * valorParcela);
               return (
-                <div key={p.id} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, padding: 16 }}>
-                  <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+                <div key={p.id} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, padding: 10 }}>
+                  <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
                     <div className="flex-1 min-w-[200px]">
-                      <div style={{ color: T.ink, fontSize: 17, fontWeight: 600 }}>{p.descricao}</div>
+                      <div style={{ color: T.ink, fontSize: 14, fontWeight: 600 }}>{p.descricao}</div>
                       <div className="flex gap-2 mt-1 flex-wrap text-xs" style={{ color: T.muted }}>
                         <span style={{ background: `${T.gold}22`, color: T.gold, padding: "2px 8px", letterSpacing: "0.1em", textTransform: "uppercase", fontSize: 10, fontWeight: 500 }}>
                           {cartoes.find(c => c.id === p.cartaoId)?.nome || p.cartaoNome || "Cartão removido"}
@@ -792,7 +792,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="num" style={{ color: T.ink, fontSize: 18, fontWeight: 600 }}>
+                      <div className="num" style={{ color: T.ink, fontSize: 14.5, fontWeight: 600 }}>
                         {hidden ? "•••" : fmt(p.valorTotal)}
                       </div>
                       <div className="num text-xs" style={{ color: T.muted }}>
