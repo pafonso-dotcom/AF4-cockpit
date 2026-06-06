@@ -8,7 +8,6 @@ import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { getKPIsMes, getDespesasDoMes } from "../../lib/agregador.js";
 import { supabase } from "../../lib/supabase.js";
-import EvolucaoPatrimonio from "./Invest/EvolucaoPatrimonio.jsx";
 
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const CORES_CAT = ["#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#84cc16","#6b7280"];
@@ -267,15 +266,12 @@ export default function Dashboard({
         <DespesasKpiBlock resumo={despesasResumo} hidden={hidden} />
       </section>
 
-      {/* Evolução do patrimônio (mesmo gráfico dos Relatórios, com benchmark CDI) */}
-      <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} />
-
       {/* Mid row */}
       <section className="dash-mid-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
-        <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
+        <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoMes} />
         <InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("analiseia")} />
       </section>
 
@@ -283,7 +279,7 @@ export default function Dashboard({
       <section className="dash-bot-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoMes} />
+        <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
         <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
