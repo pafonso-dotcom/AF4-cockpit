@@ -183,11 +183,27 @@ export default function Dashboard({
   }, [transacoes, mesISO]);
 
   // Orçamento do mês = soma dos limites definidos nas categorias de despesa.
-  // Se nenhum limite foi definido, fica 0 (a barra de orçamento não aparece).
   const orcamentoMes = useMemo(() =>
     (categorias || []).filter(c => c.tipo === "despesa")
       .reduce((s, c) => s + (Number(c.limite) || 0), 0),
   [categorias]);
+
+  // Média de despesas dos últimos 3 meses (exclui o mês atual). Serve de base
+  // automática quando o usuário ainda não definiu limites por categoria.
+  const mediaDespesas3m = useMemo(() => {
+    const [ay, am] = mesISO.split("-").map(Number);
+    const totais = [1, 2, 3].map(k => {
+      const d = new Date(ay, am - 1 - k, 1);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      return transacoes.filter(t => t.tipo === "despesa" && (t.data || "").startsWith(iso))
+        .reduce((s, t) => s + (Number(t.valor) || 0), 0);
+    }).filter(v => v > 0);
+    return totais.length ? totais.reduce((a, b) => a + b, 0) / totais.length : 0;
+  }, [transacoes, mesISO]);
+
+  // Base do orçamento: limites manuais se houver; senão a média (3m).
+  const orcamentoBase = orcamentoMes > 0 ? orcamentoMes : mediaDespesas3m;
+  const orcamentoAuto = !(orcamentoMes > 0) && mediaDespesas3m > 0;
 
   // ===== Evolução do patrimônio (mês a mês YTD) =====
   const evolucao = useMemo(() => {
@@ -272,7 +288,7 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
-        <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoMes} />
+        <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
         <InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("analiseia")} />
       </section>
 
@@ -578,7 +594,7 @@ function InsightsCard({ insight, onSeeAll }) {
   );
 }
 
-function GastosCategoriaCard({ data, hidden, orcamento = 0 }) {
+function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = false }) {
   const total = data.reduce((s,d) => s + d.valor, 0);
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
@@ -621,29 +637,44 @@ function GastosCategoriaCard({ data, hidden, orcamento = 0 }) {
       {orcamento > 0 && data.length > 0 && (() => {
         const pct = (total / orcamento) * 100;
         const restante = orcamento - total;
-        const cor = pct >= 100 ? T.red : pct >= 80 ? T.gold : T.green;
+        // Limites manuais alertam cedo (80/100%). Já a média (3m) só alerta
+        // quando o gasto fica claramente acima do normal (110/130%).
+        const warnAt = orcamentoAuto ? 110 : 80;
+        const dangerAt = orcamentoAuto ? 130 : 100;
+        const cor = pct >= dangerAt ? T.red : pct >= warnAt ? T.gold : T.green;
+        const titulo = orcamentoAuto ? "Gasto vs sua média (3 meses)" : "Orçamento do mês";
+        const pctLabel = orcamentoAuto ? "da média" : "usado";
         return (
           <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.border}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5 }}>
-              <span style={{ color: T.muted }}>Orçamento do mês</span>
-              <span style={{ color: cor, fontWeight: 600 }}>{fmtN(Math.min(pct, 999), 0)}% usado</span>
+              <span style={{ color: T.muted }}>{titulo}</span>
+              <span style={{ color: cor, fontWeight: 600 }}>{fmtN(Math.min(pct, 999), 0)}% {pctLabel}</span>
             </div>
             <div style={{ height: 7, background: T.bgSoft, borderRadius: 4, overflow: "hidden" }}>
               <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: cor, borderRadius: 4, transition: "width .6s ease" }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: T.muted, marginTop: 5 }}>
-              <span className="num">{hidden ? "•••" : fmt(total)} / {hidden ? "•••" : fmt(orcamento)}</span>
+              <span className="num">{hidden ? "•••" : fmt(total)} / {hidden ? "•••" : fmt(orcamento)}{orcamentoAuto ? " (média)" : ""}</span>
               <span className="num" style={{ color: restante >= 0 ? T.muted : T.red }}>
-                {restante >= 0 ? `Restam ${hidden ? "•••" : fmt(restante)}` : `Estourou ${hidden ? "•••" : fmt(-restante)}`}
+                {orcamentoAuto
+                  ? (restante >= 0 ? `${hidden ? "•••" : fmt(restante)} abaixo da média` : `${hidden ? "•••" : fmt(-restante)} acima da média`)
+                  : (restante >= 0 ? `Restam ${hidden ? "•••" : fmt(restante)}` : `Estourou ${hidden ? "•••" : fmt(-restante)}`)}
               </span>
             </div>
-            {pct >= 80 && (
+            {pct >= warnAt && (
               <div style={{
                 marginTop: 8, padding: "6px 9px", borderRadius: 6,
                 background: `${cor}1a`, border: `1px solid ${cor}44`, color: cor,
                 fontSize: 10.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 6,
               }}>
-                <AlertCircle size={12} /> {pct >= 100 ? "Orçamento do mês estourado." : "Perto do limite do orçamento."}
+                <AlertCircle size={12} /> {orcamentoAuto
+                  ? (pct >= dangerAt ? "Bem acima da sua média de gastos." : "Acima da sua média de gastos.")
+                  : (pct >= dangerAt ? "Orçamento do mês estourado." : "Perto do limite do orçamento.")}
+              </div>
+            )}
+            {orcamentoAuto && (
+              <div style={{ fontSize: 9.5, color: T.faint, marginTop: 6 }}>
+                Base automática: média dos últimos 3 meses. Defina limites em Categorias para um orçamento próprio.
               </div>
             )}
           </div>
