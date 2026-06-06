@@ -895,7 +895,7 @@ export default function AReceberEDividas({
 
       {/* Toggle: A Receber | A Pagar (escondido quando embutido na tela unificada) */}
       {!somenteReceber && (
-      <div style={{ display: "inline-flex", gap: 0, marginBottom: 12, background: T.bgSoft, padding: 3, borderRadius: 8, border: `1px solid ${T.border}` }}>
+      <div role="tablist" style={{ display: "flex", gap: 2, marginBottom: 12, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
         {[
           { id: "receber", label: `💰 A Receber (${receberMes.length})`, cor: T.green },
           { id: "pagar",   label: `⚠️ A Pagar (${pagarMes.length})`,    cor: T.red   },
@@ -903,13 +903,13 @@ export default function AReceberEDividas({
         ].map(t => {
           const ativo = vista === t.id;
           return (
-            <button key={t.id} onClick={() => setVista(t.id)}
+            <button key={t.id} role="tab" aria-selected={ativo} onClick={() => setVista(t.id)}
               style={{
-                padding: "6px 14px", fontSize: 11.5, fontWeight: ativo ? 700 : 500,
-                background: ativo ? T.card : "transparent",
+                padding: "9px 16px", fontSize: 12.5, fontWeight: ativo ? 700 : 500,
+                background: "transparent",
                 color: ativo ? t.cor : T.muted,
-                border: ativo ? `1px solid ${t.cor}55` : `1px solid transparent`,
-                borderRadius: 6, cursor: "pointer", letterSpacing: ".02em",
+                border: "none", borderBottom: ativo ? `2px solid ${t.cor}` : "2px solid transparent",
+                marginBottom: -1, cursor: "pointer", letterSpacing: ".02em",
                 whiteSpace: "nowrap",
               }}>
               {t.label}

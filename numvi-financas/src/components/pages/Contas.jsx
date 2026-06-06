@@ -234,8 +234,8 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
         </button>
       </div>
 
-      {/* Lista de contas — recolhida por padrão */}
-      <SecaoColapsavel idKey="contas-lista" titulo="Minhas contas" count={contasVisiveis.length} defaultAberto={false}>
+      {/* Lista de contas — aberta por padrão */}
+      <SecaoColapsavel idKey="contas-lista" titulo="Minhas contas" count={contasVisiveis.length} defaultAberto={true}>
       {/* Grid denso · auto-fill 200px+ */}
       <div style={{
         display: "flex", flexDirection: "column", gap: 4,

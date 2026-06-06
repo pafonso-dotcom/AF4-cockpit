@@ -3,6 +3,7 @@ import { T } from "../../lib/theme.js";
 import { fmt } from "../../lib/format.js";
 import { BarChartDouble, BarChart, HorizontalBarList, ReportCard, ReportGrid } from "../ui/Charts.jsx";
 import { toPDF, toCSV, toPNG, hasPNGSupport } from "../../lib/exportRelatorio.js";
+import { toast } from "../../lib/toast.js";
 import { getKPIsMes } from "../../lib/agregador.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import EvolucaoPatrimonio from "./Invest/EvolucaoPatrimonio.jsx";
@@ -386,9 +387,9 @@ function ExportableCard({ id, title, children, footer, csvData, csvName, pngOk }
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <span>{title}</span>
             <div className="no-print" style={{ display: "inline-flex", gap: 4 }}>
-              <ExportBtn label="📄 PDF" onClick={() => toPDF(id)} />
-              <ExportBtn label="📊 CSV" onClick={() => toCSV(csvData, csvName)} />
-              {pngOk && <ExportBtn label="🖼️ PNG" onClick={() => toPNG(id, csvName.replace(".csv", ".png"))} />}
+              <ExportBtn label="📄 PDF" onClick={() => { try { toPDF(id); toast.info("Abrindo impressão — escolha “Salvar como PDF”."); } catch { toast.error("Não foi possível gerar o PDF."); } }} />
+              <ExportBtn label="📊 CSV" onClick={() => { try { toCSV(csvData, csvName); toast.success("CSV baixado."); } catch { toast.error("Não foi possível gerar o CSV."); } }} />
+              {pngOk && <ExportBtn label="🖼️ PNG" onClick={async () => { try { await toPNG(id, csvName.replace(".csv", ".png")); toast.success("Imagem (PNG) baixada."); } catch { toast.error("Não foi possível gerar a imagem."); } }} />}
             </div>
           </div>
         }

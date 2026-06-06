@@ -851,15 +851,15 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         <button key={num} onClick={() => toggleParcela(p, num)}
                           title={`Parcela ${num}ª · ${dataParcela ? `vence ${dataParcela.slice(8,10)}/${dataParcela.slice(5,7)}/${dataParcela.slice(0,4)} · ` : ""}${fmt(valorParcela)}${isAtual ? " · ATUAL" : ""}`}
                           style={{
-                            minWidth: 50, padding: "6px 4px",
+                            minWidth: 54, minHeight: 48, padding: "9px 6px",
                             background: bg, color: fg,
                             border: `1px solid ${cor}`,
-                            borderRadius: 6,
+                            borderRadius: 8,
                             cursor: "pointer",
-                            display: "inline-flex", flexDirection: "column", alignItems: "center",
+                            display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                             fontFamily: T.mono, fontWeight: 600,
                           }}>
-                          <div style={{ fontSize: 13 }}>{paga ? "✅" : isAtual ? "⏰" : "⬜"}</div>
+                          <div style={{ fontSize: 15 }}>{paga ? "✅" : isAtual ? "⏰" : "⬜"}</div>
                           <div style={{ fontSize: 9, marginTop: 2, letterSpacing: ".05em", textTransform: "uppercase" }}>
                             {num}ª {isAtual ? "· hoje" : ""}
                           </div>

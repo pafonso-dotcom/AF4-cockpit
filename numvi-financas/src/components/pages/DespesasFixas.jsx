@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Plus, Edit3, Trash2, Check, AlertCircle, Repeat } from "lucide-react";
+import { Plus, Edit3, Trash2, Check, AlertCircle, Repeat, Clock, Circle } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, todayISO, uid } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
@@ -233,12 +233,12 @@ export default function DespesasFixas({
   // Visual do card baseado no status real
   const visualOcc = (occ) => {
     const sr = statusReal(occ);
-    if (sr === "paga") return { bg: `${T.green}11`, border: T.green, label: "Paga", labelCor: T.green, badgeBg: `${T.green}22` };
-    if (sr === "atrasada") return { bg: `${T.red}11`, border: T.red, label: "Atrasada", labelCor: T.red, badgeBg: `${T.red}22` };
+    if (sr === "paga") return { bg: `${T.green}11`, border: T.green, label: "Paga", labelCor: T.green, badgeBg: `${T.green}22`, icon: Check };
+    if (sr === "atrasada") return { bg: `${T.red}11`, border: T.red, label: "Atrasada", labelCor: T.red, badgeBg: `${T.red}22`, icon: AlertCircle };
     // Próximas (até 3 dias) → amarelo
     const dias = Math.round((new Date(occ.dataVencimento) - new Date(hojeISO)) / 86400000);
-    if (dias >= 0 && dias <= 3) return { bg: `${T.gold}11`, border: T.gold, label: `Vence em ${dias === 0 ? "hoje" : `${dias}d`}`, labelCor: T.gold, badgeBg: `${T.gold}22` };
-    return { bg: T.card, border: T.border, label: "Pendente", labelCor: T.muted, badgeBg: T.bgSoft };
+    if (dias >= 0 && dias <= 3) return { bg: `${T.gold}11`, border: T.gold, label: `Vence em ${dias === 0 ? "hoje" : `${dias}d`}`, labelCor: T.gold, badgeBg: `${T.gold}22`, icon: Clock };
+    return { bg: T.card, border: T.border, label: "Pendente", labelCor: T.muted, badgeBg: T.bgSoft, icon: Circle };
   };
 
   return (
@@ -259,29 +259,34 @@ export default function DespesasFixas({
         }
       />
 
-      {/* Tabs por mês */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 16, overflowX: "auto", paddingBottom: 4 }}>
-        {tabsMeses.map(t => {
-          const ativo = t.iso === mesAtivo;
-          const isCorrente = t.idx === mesAtualIdx;
-          return (
-            <button key={t.iso} onClick={() => setMesAtivo(t.iso)}
-              style={{
-                padding: "8px 14px", fontSize: 11.5, letterSpacing: ".08em",
-                background: ativo ? T.gold : T.bgSoft, color: ativo ? T.bg : T.muted,
-                border: `1px solid ${ativo ? T.gold : T.border}`,
-                borderRadius: 8, cursor: "pointer", fontWeight: ativo ? 600 : 500,
-                whiteSpace: "nowrap", textTransform: "uppercase",
-                display: "inline-flex", alignItems: "center", gap: 5,
-              }}>
-              {isCorrente && "★ "}{MES_NOMES[t.idx]}{t.qtd > 0 && <span style={{
-                fontSize: 9.5, padding: "1px 6px", borderRadius: 100,
-                background: ativo ? T.bg : T.border, color: ativo ? T.gold : T.muted, fontWeight: 600,
-              }}>{t.qtd}</span>}
-            </button>
-          );
-        })}
-      </div>
+      {/* Seletor de mês compacto */}
+      {(() => {
+        const mesIdx = parseInt(mesAtivo.slice(5), 10) - 1;
+        const ano = mesAtivo.slice(0, 4);
+        const isCorrente = mesAtivo === mesAtualISO;
+        const qtd = ocorrenciasDoMes.length;
+        const addMes = (delta) => {
+          const [y, m] = mesAtivo.split("-").map(Number);
+          const d = new Date(y, m - 1 + delta, 1);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        };
+        const navBtn = { background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontSize: 16, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center" };
+        return (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+            <button onClick={() => setMesAtivo(addMes(-1))} aria-label="Mês anterior" style={navBtn}>‹</button>
+            <div style={{ minWidth: 170, textAlign: "center", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <span style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.ink, whiteSpace: "nowrap" }}>
+                {isCorrente && "★ "}{MES_NOMES_LONGOS[mesIdx]} {ano}
+              </span>
+              {qtd > 0 && <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 100, background: T.gold, color: T.bg, fontWeight: 700 }}>{qtd}</span>}
+            </div>
+            <button onClick={() => setMesAtivo(addMes(1))} aria-label="Próximo mês" style={navBtn}>›</button>
+            {!isCorrente && (
+              <button onClick={() => setMesAtivo(mesAtualISO)} style={{ background: "transparent", color: T.gold, border: `1px solid ${T.border}`, borderRadius: 8, padding: "0 12px", height: 34, cursor: "pointer", fontSize: 12 }}>Hoje</button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Resumo do mês: 4 cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
@@ -369,7 +374,8 @@ export default function DespesasFixas({
                       padding: "5px 10px", borderRadius: 5,
                       background: v.badgeBg, color: v.labelCor, fontSize: 10,
                       letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700,
-                    }}>{v.label}</span>
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                    }}><v.icon size={11} /> {v.label}</span>
                   )}
 
                   {isPaga && (
