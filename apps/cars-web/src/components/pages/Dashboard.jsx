@@ -182,6 +182,13 @@ export default function Dashboard({
     }));
   }, [transacoes, mesISO]);
 
+  // Orçamento do mês = soma dos limites definidos nas categorias de despesa.
+  // Se nenhum limite foi definido, fica 0 (a barra de orçamento não aparece).
+  const orcamentoMes = useMemo(() =>
+    (categorias || []).filter(c => c.tipo === "despesa")
+      .reduce((s, c) => s + (Number(c.limite) || 0), 0),
+  [categorias]);
+
   // ===== Evolução do patrimônio (mês a mês YTD) =====
   const evolucao = useMemo(() => {
     const arr = [];
@@ -276,11 +283,11 @@ export default function Dashboard({
       <section className="dash-bot-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <GastosCategoriaCard data={gastosCat} hidden={hidden} />
+        <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoMes} />
         <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
-        <ProjecaoCard projecao={projecao} hidden={hidden} />
+        <ProjecaoCard projecao={projecao} patrimonio={patrimonio} hidden={hidden} />
       </section>
 
       {/* Metas + Pergunte IA */}
@@ -300,6 +307,10 @@ export default function Dashboard({
           .dash-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
         }
       `}</style>
+
+      <ModoFoco patrimonio={patrimonio} receitasMes={receitasMes}
+                despesas={despesasResumo.total} aPagar={despesasResumo.aPagar}
+                metas={metas || []} hidden={hidden} userName={userName} />
     </div>
   );
 }
@@ -307,6 +318,93 @@ export default function Dashboard({
 /* ============================================================
    Sub-componentes
    ============================================================ */
+
+function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, metas = [], hidden, userName }) {
+  const [aberto, setAberto] = useState(false);
+  const sobra = receitasMes - despesas;
+  const meta = metas[0];
+  const metaAlvo = meta ? Number(meta.alvo ?? meta.valorMeta ?? meta.valor ?? 0) : 0;
+  const metaAtual = meta ? Number(meta.atual ?? meta.valorAtual ?? meta.aplicado ?? 0) : 0;
+  const metaPct = metaAlvo > 0 ? Math.min((metaAtual / metaAlvo) * 100, 100) : 0;
+
+  useEffect(() => {
+    if (!aberto) return;
+    const onKey = (e) => { if (e.key === "Escape") setAberto(false); };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [aberto]);
+
+  const linha = (label, valor, cor) => (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 0", borderBottom: `1px solid ${T.border}` }}>
+      <span style={{ fontSize: 13, color: T.muted }}>{label}</span>
+      <span className="num" style={{ fontSize: 18, fontWeight: 600, color: cor || T.ink }}>{hidden ? "•••••" : fmt(valor)}</span>
+    </div>
+  );
+
+  return (
+    <>
+      <button onClick={() => setAberto(true)} aria-label="Modo Foco"
+              className="no-print"
+              style={{
+                position: "fixed", bottom: 20, right: 20, zIndex: 900,
+                background: T.gold, color: T.bg, border: "none", borderRadius: 999,
+                padding: "11px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                boxShadow: "0 8px 24px rgba(0,0,0,.35)", display: "inline-flex", alignItems: "center", gap: 7,
+              }}>
+        🎯 Modo Foco
+      </button>
+
+      {aberto && (
+        <div onClick={(e) => { if (e.target === e.currentTarget) setAberto(false); }}
+             style={{
+               position: "fixed", inset: 0, zIndex: 1000,
+               background: `${T.bg}f2`, backdropFilter: "blur(8px)",
+               display: "grid", placeItems: "center", padding: 24,
+               animation: "rs .25s ease both",
+             }}>
+          <div style={{ width: "100%", maxWidth: 420, textAlign: "center" }}>
+            <div style={{ fontSize: 11, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, marginBottom: 6 }}>
+              {userName ? `Foco · ${userName}` : "Modo Foco"}
+            </div>
+            <div style={{ fontSize: 12, color: T.muted }}>Patrimônio Total</div>
+            <div className="num" style={{ fontFamily: T.serif, fontSize: 42, fontWeight: 700, color: T.ink, margin: "2px 0 18px" }}>
+              {hidden ? "•••••" : fmt(patrimonio)}
+            </div>
+
+            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "4px 18px", textAlign: "left" }}>
+              {linha("Receitas do mês", receitasMes, T.green)}
+              {linha("Despesas do mês", despesas, T.red)}
+              {linha(sobra >= 0 ? "Sobra do mês" : "Déficit do mês", sobra, sobra >= 0 ? T.green : T.red)}
+              {linha("A pagar este mês", aPagar, aPagar > 0 ? T.red : T.muted)}
+            </div>
+
+            {meta && metaAlvo > 0 && (
+              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 16, marginTop: 12, textAlign: "left" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 8 }}>
+                  <span style={{ color: T.muted }}>Meta: {meta.nome || meta.titulo || "—"}</span>
+                  <span style={{ color: T.gold, fontWeight: 600 }}>{fmtN(metaPct, 0)}%</span>
+                </div>
+                <div style={{ height: 7, background: T.bgSoft, borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ width: `${metaPct}%`, height: "100%", background: T.gold, borderRadius: 4 }} />
+                </div>
+              </div>
+            )}
+
+            <button onClick={() => setAberto(false)}
+                    style={{
+                      marginTop: 20, background: "transparent", color: T.muted,
+                      border: `1px solid ${T.border}`, borderRadius: 999,
+                      padding: "9px 22px", fontSize: 12, cursor: "pointer",
+                    }}>
+              Fechar (Esc)
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 function KpiHero({ value, mom, hidden, evolucao }) {
   const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
@@ -477,7 +575,7 @@ function InsightsCard({ insight, onSeeAll }) {
   );
 }
 
-function GastosCategoriaCard({ data, hidden }) {
+function GastosCategoriaCard({ data, hidden, orcamento = 0 }) {
   const total = data.reduce((s,d) => s + d.valor, 0);
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
@@ -517,6 +615,28 @@ function GastosCategoriaCard({ data, hidden }) {
         </div>
       </div>
       )}
+      {orcamento > 0 && data.length > 0 && (() => {
+        const pct = (total / orcamento) * 100;
+        const restante = orcamento - total;
+        const cor = pct >= 100 ? T.red : pct >= 80 ? T.gold : T.green;
+        return (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.border}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5 }}>
+              <span style={{ color: T.muted }}>Orçamento do mês</span>
+              <span style={{ color: cor, fontWeight: 600 }}>{fmtN(Math.min(pct, 999), 0)}% usado</span>
+            </div>
+            <div style={{ height: 7, background: T.bgSoft, borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: cor, borderRadius: 4, transition: "width .6s ease" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: T.muted, marginTop: 5 }}>
+              <span className="num">{hidden ? "•••" : fmt(total)} / {hidden ? "•••" : fmt(orcamento)}</span>
+              <span className="num" style={{ color: restante >= 0 ? T.muted : T.red }}>
+                {restante >= 0 ? `Restam ${hidden ? "•••" : fmt(restante)}` : `Estourou ${hidden ? "•••" : fmt(-restante)}`}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -707,7 +827,17 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
   );
 }
 
-function ProjecaoCard({ projecao, hidden }) {
+function ProjecaoCard({ projecao, patrimonio = 0, hidden }) {
+  // Linha de projeção do patrimônio: parte do valor atual e soma o saldo
+  // previsto de cada mês (tracejada = estimativa).
+  const projPatrim = (() => {
+    let acc = Number(patrimonio) || 0;
+    const pts = [{ label: "Hoje", valor: acc }];
+    projecao.forEach(p => { acc += Number(p.saldo) || 0; pts.push({ label: p.label, valor: acc }); });
+    return pts;
+  })();
+  const fim = projPatrim[projPatrim.length - 1]?.valor ?? 0;
+  const deltaTotal = fim - (Number(patrimonio) || 0);
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 6 }}>
@@ -715,6 +845,32 @@ function ProjecaoCard({ projecao, hidden }) {
         <div style={{ display: "flex", gap: 6 }}>
           <button style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 4, fontSize: 10, cursor: "pointer", color: T.muted }}><FileText size={10}/>PDF</button>
           <button style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 4, fontSize: 10, cursor: "pointer", color: T.muted }}><BarChart3 size={10}/>CSV</button>
+        </div>
+      </div>
+      {/* Projeção do patrimônio (tracejada = estimativa) */}
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+          <span style={{ fontSize: 10, color: T.muted }}>Patrimônio projetado (6 meses)</span>
+          <span className="num" style={{ fontSize: 12, fontWeight: 700, color: deltaTotal >= 0 ? T.green : T.red }}>
+            {hidden ? "•••" : fmt(fim)} <span style={{ fontSize: 9.5, fontWeight: 500 }}>({deltaTotal >= 0 ? "+" : "−"}{hidden ? "•••" : fmt(Math.abs(deltaTotal))})</span>
+          </span>
+        </div>
+        <div style={{ height: 70 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={projPatrim} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+              <defs>
+                <linearGradient id="grad-proj" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={T.blue || "#60a5fa"} stopOpacity={0.25} />
+                  <stop offset="100%" stopColor={T.blue || "#60a5fa"} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="label" tick={{ fontSize: 8.5, fill: T.muted }} interval={0} />
+              <Tooltip contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11 }}
+                       formatter={(v) => [hidden ? "•••" : fmt(v), "Projeção"]} />
+              <Area type="monotone" dataKey="valor" stroke={T.blue || "#60a5fa"} strokeWidth={2}
+                    strokeDasharray="5 4" fill="url(#grad-proj)" dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
