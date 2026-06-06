@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Activity, Plus, Trash2, Edit3, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText, Mic } from "lucide-react";
+import EmptyState from "../ui/EmptyState.jsx";
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
 import { parseValorBR, printHTML } from "../../lib/importExport.js";
@@ -643,9 +644,8 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
           </div>
         )}
         {filtered.length === 0 ? (
-          <div className="p-12 text-center" style={{ color: T.muted, fontStyle: "italic" }}>
-            Nenhuma transação encontrada.
-          </div>
+          <EmptyState icon={Search} title="Nenhuma transação encontrada"
+            message="Ajuste os filtros de período/categoria/conta ou registre uma nova transação." />
         ) : visao === "tabela-mensal" ? (
           <TabelaMensal transacoes={filtered} hidden={hidden} onEdit={setForm} />
         ) : (

@@ -197,13 +197,17 @@ export default function Dashboard({
   // = pagamento de fatura). Paga = compensado · A pagar = não compensado. Assim
   // o "Desp. total" bate com o total do donut e com o relatório.
   const despesasResumo = useMemo(() => {
-    let total = 0, pagas = 0, aPagar = 0;
-    transacoes.filter(t => t.tipo === "despesa" && ehMesAtual(t.data)).forEach(t => {
+    const [ay, am] = mesISO.split("-").map(Number);
+    const dPrev = new Date(ay, am - 2, 1);
+    const mesAntISO = `${dPrev.getFullYear()}-${String(dPrev.getMonth() + 1).padStart(2, "0")}`;
+    let total = 0, pagas = 0, aPagar = 0, totalAnt = 0;
+    transacoes.filter(t => t.tipo === "despesa").forEach(t => {
       const v = Number(t.valor || 0);
-      total += v;
-      if (t.compensado) pagas += v; else aPagar += v;
+      if (ehMesAtual(t.data)) { total += v; if (t.compensado) pagas += v; else aPagar += v; }
+      else if ((t.data || "").startsWith(mesAntISO)) totalAnt += v;
     });
-    return { total, pagas, aPagar };
+    const deltaPct = totalAnt > 0 ? ((total - totalAnt) / totalAnt) * 100 : null;
+    return { total, pagas, aPagar, deltaPct };
   }, [transacoes, mesISO]);
 
   return (
@@ -515,17 +519,23 @@ function AlocacaoCard({ data, total, hidden, onSeeAll }) {
 
 // Versão compacta (3 linhas) para o slot da linha de KPIs — igual ao AF4.
 function DespesasKpiBlock({ resumo, hidden }) {
-  const { total = 0, pagas = 0, aPagar = 0 } = resumo || {};
+  const { total = 0, pagas = 0, aPagar = 0, deltaPct = null } = resumo || {};
   const linhas = [
     { l: "Desp. total",    v: total,  c: T.ink },
     { l: "Desp. paga",     v: pagas,  c: T.green },
     { l: "Desp. a pagar",  v: aPagar, c: T.red },
   ];
+  // Em despesa, gastar MAIS é ruim (vermelho); gastar menos é bom (verde).
+  const piorou = deltaPct != null && deltaPct > 0;
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14, minHeight: 110 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <span style={{ fontSize: 11, color: T.muted }}>Despesas este mês</span>
-        <TrendingDown size={14} style={{ color: T.red }} />
+        {deltaPct != null ? (
+          <span title="vs mês anterior" style={{ fontSize: 10.5, fontWeight: 700, color: piorou ? T.red : T.green, whiteSpace: "nowrap" }}>
+            {piorou ? "▲" : "▼"} {fmtN(Math.abs(deltaPct), 0)}% <span style={{ color: T.faint, fontWeight: 500 }}>vs mês ant.</span>
+          </span>
+        ) : <TrendingDown size={14} style={{ color: T.red }} />}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {linhas.map(x => (
@@ -632,6 +642,15 @@ function GastosCategoriaCard({ data, hidden, orcamento = 0 }) {
                 {restante >= 0 ? `Restam ${hidden ? "•••" : fmt(restante)}` : `Estourou ${hidden ? "•••" : fmt(-restante)}`}
               </span>
             </div>
+            {pct >= 80 && (
+              <div style={{
+                marginTop: 8, padding: "6px 9px", borderRadius: 6,
+                background: `${cor}1a`, border: `1px solid ${cor}44`, color: cor,
+                fontSize: 10.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 6,
+              }}>
+                <AlertCircle size={12} /> {pct >= 100 ? "Orçamento do mês estourado." : "Perto do limite do orçamento."}
+              </div>
+            )}
           </div>
         );
       })()}
