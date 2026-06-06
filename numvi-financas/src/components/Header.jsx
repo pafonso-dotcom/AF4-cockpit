@@ -126,7 +126,6 @@ function HeaderHorizontal({
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
-      { id: "audit",        label: "Histórico",    icon: History },
       // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
       // que ficam escondidas até clicar aqui.
       { id: "inicio",       label: "Agenda",       icon: Calendar, agenda: true },
@@ -549,7 +548,6 @@ function HeaderVertical({
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
-      { id: "audit",        label: "Histórico",    icon: History },
       // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
       // que ficam escondidas até clicar aqui.
       { id: "inicio",       label: "Agenda",       icon: Calendar, agenda: true },

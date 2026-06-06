@@ -381,11 +381,18 @@ export default function ReservaEmergenciaView({
                 </button>
               )}
             </Field>
-            <Field label="Rendimento do CDB (% a.m.)" hint="Padrão: 0.85% (~100% CDI)">
-              <input type="text" inputMode="decimal"
-                     value={taxaCdb}
-                     onChange={e => setTaxaCdb(e.target.value)} />
-            </Field>
+            <details style={{ gridColumn: "1 / -1" }}>
+              <summary style={{ cursor: "pointer", fontSize: 12, color: T.muted, userSelect: "none", padding: "2px 0" }}>
+                Opções avançadas
+              </summary>
+              <div style={{ marginTop: 10, maxWidth: 320 }}>
+                <Field label="Rendimento do CDB (% a.m.)" hint="Padrão: 0.85% (~100% CDI)">
+                  <input type="text" inputMode="decimal"
+                         value={taxaCdb}
+                         onChange={e => setTaxaCdb(e.target.value)} />
+                </Field>
+              </div>
+            </details>
           </div>
 
           {planoConstrucao && !planoConstrucao.excede && (

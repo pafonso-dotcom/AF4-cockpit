@@ -251,11 +251,10 @@ export default function Dashboard({
 
       {/* KPI row */}
       <section className="dash-kpi-grid" style={{
-        display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16,
       }}>
         <KpiHero value={patrimonio} mom={momPatrim} hidden={hidden} evolucao={evolucao} />
         <KpiBlock label="Total em Contas" value={mask(fmt(totalContas))} sub={`${contas.length} contas ativas`} icon={Wallet} cor={T.green} />
-        <KpiBlock label="Investimentos" value={mask(fmt(totalInvest))} sub="rentabilidade" icon={PieIcon} cor={T.green} variation={rentInvest} />
         <KpiBlock label="Receitas este mês" value={mask(fmt(receitasMes))} sub="vs mês anterior" icon={TrendingUp} cor={T.green} variation={momReceitas} />
         <DespesasKpiBlock resumo={despesasResumo} hidden={hidden} />
       </section>
@@ -270,9 +269,8 @@ export default function Dashboard({
 
       {/* Bottom row */}
       <section className="dash-bot-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
         <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
