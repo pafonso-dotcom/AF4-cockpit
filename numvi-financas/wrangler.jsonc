@@ -12,6 +12,11 @@
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    // O worker (main) precisa rodar ANTES dos assets, senão o
+    // not_found_handling (SPA) intercepta /api/* e devolve index.html
+    // (tela em branco) em vez de deixar o worker responder o JSON.
+    // O worker já serve a SPA via env.ASSETS.fetch() para rotas não-/api.
+    "run_worker_first": true
   }
 }
