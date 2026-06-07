@@ -117,7 +117,7 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
     const linhas = filtered.map(t => `<tr>
       <td>${esc(t.data)}</td><td>${esc(t.descricao)}</td><td>${esc(t.categoria)}</td><td>${esc(t.conta)}</td>
       <td class="r ${t.tipo}">${t.tipo === "receita" ? "+ " : "− "}${esc(fmt(t.valor))}</td></tr>`).join("");
-    printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Transações · AF4 finanças</title>
+    printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Transações · Afinanças</title>
 <style>
 body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;margin:24px;color:#111}
 h1{font-size:18px;margin:0}.sub{color:#666;font-size:12px;margin:2px 0 16px}
@@ -127,7 +127,7 @@ th{text-transform:uppercase;font-size:10px;letter-spacing:.08em;color:#666}
 td.r{text-align:right;white-space:nowrap}td.receita{color:#15803d}td.despesa{color:#b91c1c}
 tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
 </style></head><body>
-<h1>AF4 finanças · Transações</h1>
+<h1>Afinanças · Transações</h1>
 <div class="sub">${filtered.length} lançamento(s) · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</div>
 <table>
 <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th style="text-align:right">Valor</th></tr></thead>

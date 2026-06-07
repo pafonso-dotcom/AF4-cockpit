@@ -1,7 +1,7 @@
 {
-  "name": "AF4 finanças · dinheiro com visão",
-  "short_name": "AF4 finanças",
-  "description": "AF4 finanças — controle financeiro, metas e agenda com inteligência.",
+  "name": "Afinanças · dinheiro com visão",
+  "short_name": "Afinanças",
+  "description": "Afinanças — controle financeiro, metas e agenda com inteligência.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

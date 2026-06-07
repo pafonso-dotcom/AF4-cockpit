@@ -51,7 +51,7 @@ export function buildContext({ transacoes = [], contas = [], ativos = [], vendas
   const chequesAguardando = cheques.filter(c => c.status === "aguardando").length;
 
   return `
-DADOS DO PAINEL FINANCEIRO (AF4 finanças · ${hoje})
+DADOS DO PAINEL FINANCEIRO (Afinanças · ${hoje})
 
 ═══ FINANÇAS PESSOAIS · MÊS ATUAL (${mesAtual}) ═══
 • Receitas: R$ ${rec.toFixed(2)} (mês anterior: R$ ${recAnt.toFixed(2)})
@@ -82,7 +82,7 @@ ${topCat.map(([c, v], i) => `${i + 1}. ${c}: R$ ${v.toFixed(2)}`).join("\n")}
  * Retorna a resposta em texto.
  */
 export async function perguntarAoClaude({ pergunta, historico = [], contextoDados }) {
-  const sistema = `Você é o assistente financeiro do AF4 finanças.
+  const sistema = `Você é o assistente financeiro do Afinanças.
 Analise os dados do usuário e responda com clareza, em PT-BR.
 
 Princípios:

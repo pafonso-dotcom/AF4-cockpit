@@ -4,7 +4,7 @@
    (O app pessoal é o outro deploy, cars-web/af4cockpit.)
    ============================================================ */
 
-// Fixo: este projeto é SÓ o produto comercial (AF4 finanças). O app pessoal
+// Fixo: este projeto é SÓ o produto comercial (Afinanças). O app pessoal
 // é um deploy separado (cars-web) com nome próprio — então aqui não há
 // ambiguidade sobre a variante.
 export const VARIANT = "comercial";

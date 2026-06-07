@@ -9,7 +9,7 @@ export default function Footer() {
           <span style={{ fontSize: 18 }} className="italic">finis</span>
         </div>
         <div style={{ color: T.faint, fontSize: 12 }} className="sans tracking-widest uppercase">
-          AF4 finanças · Painel de Comando · Dados persistidos localmente
+          Afinanças · Painel de Comando · Dados persistidos localmente
         </div>
         <div style={{ color: T.muted, fontSize: 14 }} className="italic mt-2">
           “O dinheiro fala — quem registra, escuta.”

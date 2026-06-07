@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 /**
- * Header AF4 finanças · v4 (refatorado pra hierarquia clara)
+ * Header Afinanças · v4 (refatorado pra hierarquia clara)
  *  Linha 1 (sempre): logo · separador · subtabs (scroll) · separador · quick actions · separador · utility · gap · settings · avatar
  *  Linha 2 (≥640px): módulos (Finanças/Invest)
  *  Mobile (<640px): linha 1 = logo + settings; linha 2 = subtabs scroll
@@ -103,7 +103,7 @@ function HeaderHorizontal({
   // Menu "⋯" agrupa os utilitários (busca/ocultar/tema/atualizar) no topo.
   const [menuUtilAberto, setMenuUtilAberto] = useState(false);
 
-  // AF4 finanças: produto só do módulo financeiro (+ Agenda).
+  // Afinanças: produto só do módulo financeiro (+ Agenda).
   const TODOS_MODULOS = [
     { id: "financas", label: "Finanças",      icon: Wallet,    desc: "Pessoal" },
   ];
@@ -190,11 +190,11 @@ function HeaderHorizontal({
         padding: "14px 16px",
         display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
       }}>
-        {/* BRAND · marca AF4 finanças */}
+        {/* BRAND · marca Afinanças */}
         <div style={{ display: "flex", alignItems: "center", marginRight: "auto", flexShrink: 0 }}>
           {/* Mobile: só o nome (sem símbolo). Desktop: lockup completo. */}
-          <span className="hide-desktop" style={{ fontFamily: "'Nunito', system-ui, sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em" }}>
-            <span style={{ color: "#9E2B3A" }}>N</span><span style={{ color: "#E8C25A" }}>umvi</span>
+          <span className="hide-desktop" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em" }}>
+            <span style={{ color: "#9E2B3A" }}>A</span><span style={{ color: "#E8C25A" }}>finanças</span>
           </span>
           <span className="header-brand-text"><Logo size={24} sufixo={BRAND_SUFIXO} /></span>
         </div>
