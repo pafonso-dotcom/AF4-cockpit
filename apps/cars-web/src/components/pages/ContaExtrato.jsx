@@ -467,6 +467,9 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             .extrato-row .acoes { opacity: 0; transition: opacity .12s ease; }
             .extrato-row:hover .acoes { opacity: 1; }
             @media (hover: none) { .extrato-row .acoes { opacity: 1; } }
+            /* No celular o saldo por linha some (é redundante com "Saldo do dia")
+               e libera espaço pra descrição não quebrar em várias linhas. */
+            @media (max-width: 560px) { .extrato-saldo-linha { display: none !important; } }
           `}</style>
           {(() => {
             const grupos = agruparPorDia(filtradas);
@@ -584,7 +587,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                         <span className="num" style={{ color: corTipo, fontWeight: 700, fontSize: 13 }}>
                           {t.tipo === "receita" ? "+ " : "− "}{hidden ? "•••" : fmt(t.valor)}
                         </span>
-                        <span className="num" style={{ fontSize: 9.5, color: T.faint }}
+                        <span className="num extrato-saldo-linha" style={{ fontSize: 9.5, color: T.faint }}
                               title={t.compensado ? "Saldo após esta transação" : "Pendentes não afetam o saldo"}>
                           {!t.compensado ? "pendente" : `saldo ${hidden ? "•••" : fmt(saldoApos ?? 0)}`}
                         </span>
