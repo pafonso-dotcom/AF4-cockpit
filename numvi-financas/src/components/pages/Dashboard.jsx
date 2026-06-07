@@ -420,7 +420,7 @@ function KpiHero({ value, mom, hidden, evolucao }) {
   return (
     <div style={{ background: bg, color: "#fff", borderRadius: 12, padding: 14, position: "relative", overflow: "hidden", minHeight: 110 }}>
       <div style={{ fontSize: 11, color: "#86efac", letterSpacing: ".03em" }}>Patrimônio Total</div>
-      <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 600, marginTop: 6 }}>{hidden ? "•••••" : fmt(value)}</div>
+      <div className="num" style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 700, marginTop: 6 }}>{hidden ? "•••••" : fmt(value)}</div>
       <div style={{ fontSize: 11, color: "#86efac", marginTop: 4 }}>
         {mom >= 0 ? "↗" : "↘"} {fmtN(mom, 2)}%
         <span style={{ color: "rgba(255,255,255,0.55)", marginLeft: 4 }}>vs mês anterior</span>
@@ -449,7 +449,7 @@ function KpiBlock({ label, value, sub, icon: Icon, cor, variation, negativeGood 
   return (
     <Card style={{ position: "relative", minHeight: 110 }}>
       <div style={{ fontSize: 11, color: T.muted }}>{label}</div>
-      <div className="num" style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, marginTop: 6, color: T.ink }}>{value}</div>
+      <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 6, color: T.ink }}>{value}</div>
       {varStr && (
         <div style={{ fontSize: 11, color: positive ? T.green : T.red, marginTop: 4 }}>{varStr}</div>
       )}
@@ -559,7 +559,7 @@ function DespesasKpiBlock({ resumo, hidden }) {
         {linhas.map(x => (
           <div key={x.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
             <span style={{ fontSize: 11, color: T.muted }}>{x.l}</span>
-            <span className="num" style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 600, color: x.c, whiteSpace: "nowrap" }}>
+            <span className="num" style={{ fontFamily: T.serif, fontSize: 15.5, fontWeight: 700, color: x.c, whiteSpace: "nowrap" }}>
               {hidden ? "•••" : fmt(x.v)}
             </span>
           </div>

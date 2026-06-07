@@ -118,11 +118,10 @@ export default function InvestPainel({
 
       {/* Linha 2 */}
       <section className="ip-mid-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1.1fr 1fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <AlocacaoCard data={alocacao} total={t.valor} hidden={hidden} />
         <TopAtivosCard items={topAtivos} hidden={hidden} onAnalisar={onAnalisar} onSeeAll={() => onTabChange?.("carteira")} />
-        <SinaisCTA onClick={() => onAbrirAnaliseCarteira?.()} />
       </section>
 
       {/* Linha 3 */}
@@ -136,10 +135,8 @@ export default function InvestPainel({
 
       {/* Atalhos */}
       <section className="ip-foot-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12,
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12,
       }}>
-        <AtalhoCard label="Análise da Carteira" sub="Varredura técnica de todos os ativos"
-                    icon={BarChart3} cor={T.gold} onClick={() => onAbrirAnaliseCarteira?.()} />
         <AtalhoCard label="Análise IdV" sub="Critérios fundamentalistas"
                     icon={Award} cor={T.green} onClick={() => onAbrirAnaliseIdv?.()} />
         <AtalhoCard label="Pergunte à IA" sub="Tire dúvidas e obtenha análises"
@@ -184,9 +181,9 @@ function Kpi({ label, valor, sub, variation, icon: Icon, cor }) {
   const varStr = num != null ? (num >= 0 ? "↗ +" : "↘ ") + fmtN(num, 2) + "%" : null;
   const positive = num != null && num >= 0;
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14, minHeight: 110, position: "relative" }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, minHeight: 110, position: "relative", boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
       <div style={{ fontSize: 11, color: T.muted }}>{label}</div>
-      <div className="num" style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, marginTop: 6, color: T.ink }}>{valor}</div>
+      <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 6, color: T.ink }}>{valor}</div>
       {varStr && <div style={{ fontSize: 11, color: positive ? T.green : T.red, marginTop: 4 }}>{varStr}</div>}
       {sub && <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{sub}</div>}
       {Icon && (
@@ -200,7 +197,7 @@ function Kpi({ label, valor, sub, variation, icon: Icon, cor }) {
 
 function AlocacaoCard({ data, total, hidden }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
       <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Alocação por Classe</div>
       {data.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos cadastrados.</div>
@@ -209,7 +206,7 @@ function AlocacaoCard({ data, total, hidden }) {
           <div style={{ width: 150, height: 150, position: "relative", flexShrink: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={data} dataKey="valor" cx="50%" cy="50%" innerRadius={48} outerRadius={70} stroke="none">
+                <Pie data={data} dataKey="valor" cx="50%" cy="50%" innerRadius={48} outerRadius={70} stroke="none" cornerRadius={5} paddingAngle={2}>
                   {data.map((d,i) => <Cell key={i} fill={d.cor} />)}
                 </Pie>
               </PieChart>
@@ -238,7 +235,7 @@ function AlocacaoCard({ data, total, hidden }) {
 
 function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Top 5 Ativos</div>
         <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver carteira</button>
@@ -285,7 +282,7 @@ function SinaisCTA({ onClick }) {
 
 function ValorPorClasseCard({ data, hidden }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
       <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Valor por Classe</div>
       {data.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos.</div>
@@ -312,7 +309,7 @@ function ProventosMesesCard({ data, hidden }) {
   const total = data.reduce((s,d) => s+d.total, 0);
   const ehVazio = total === 0;
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Proventos · 12 meses</div>
         <div className="num" style={{ fontSize: 12, color: T.green }}>{hidden ? "•••" : fmt(total)}</div>
@@ -341,7 +338,7 @@ function GainersLosersCard({ topGain, topLoss, hidden, onAnalisar }) {
   const altas = (topGain || []).filter(x => x.pct > 0);
   const baixas = (topLoss || []).filter(x => x.pct < 0);
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
       <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Maiores Variações</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
