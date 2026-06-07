@@ -11,7 +11,8 @@ import { supabase } from "../../lib/supabase.js";
 import Card from "../ui/Card.jsx";
 
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-const CORES_CAT = ["#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#84cc16","#6b7280"];
+// Paleta moderna e harmônica (tons mais suaves, sem primários puros gritando).
+const CORES_CAT = ["#6366f1","#0ea5e9","#22c08b","#f5a623","#f0728a","#a78bfa","#2dd4bf","#fb923c","#94a3b8"];
 const CLASS_LABEL = { acao: "Ações", fii: "FIIs", stock: "Stocks (US)", reit: "REITs (US)", etf: "ETFs", cripto: "Cripto", rf: "Renda Fixa", tesouro: "Tesouro", cdb: "CDB", outro: "Outros" };
 const CLASS_COR = { acao: "#f5a524", fii: "#10b981", stock: "#3b82f6", reit: "#0ea5e9", cripto: "#8b5cf6", rf: "#06b6d4", etf: "#fbbf24", tesouro: "#22c55e", cdb: "#14b8a6", outro: "#9ca3af" };
 
@@ -545,7 +546,7 @@ function AlocacaoCard({ data, total, hidden, onSeeAll }) {
         <div style={{ width: 150, height: 150, position: "relative", flexShrink: 0 }}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={data} dataKey="valor" cx="50%" cy="50%" innerRadius={48} outerRadius={70} stroke="none">
+              <Pie data={data} dataKey="valor" cx="50%" cy="50%" innerRadius={48} outerRadius={70} stroke="none" cornerRadius={5} paddingAngle={2}>
                 {data.map((d,i) => <Cell key={i} fill={d.cor} />)}
               </Pie>
             </PieChart>
@@ -610,7 +611,7 @@ function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = fals
         <div style={{ width: 140, height: 140, position: "relative", flexShrink: 0 }}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={data} dataKey="valor" cx="50%" cy="50%" innerRadius={45} outerRadius={65} stroke="none">
+              <Pie data={data} dataKey="valor" cx="50%" cy="50%" innerRadius={45} outerRadius={65} stroke="none" cornerRadius={5} paddingAngle={2}>
                 {data.map((d,i) => <Cell key={i} fill={d.cor} />)}
               </Pie>
             </PieChart>
@@ -899,7 +900,7 @@ function ProjecaoCard({ projecao, patrimonio = 0, hidden }) {
             {hidden ? "•••" : fmt(fim)} <span style={{ fontSize: 9.5, fontWeight: 500 }}>({deltaTotal >= 0 ? "+" : "−"}{hidden ? "•••" : fmt(Math.abs(deltaTotal))})</span>
           </span>
         </div>
-        <div style={{ height: 70 }}>
+        <div style={{ height: 96 }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={projPatrim} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
               <defs>

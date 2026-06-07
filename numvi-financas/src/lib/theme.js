@@ -3,10 +3,10 @@
    ============================================================ */
 
 const FONTS = {
-  serif: '"Nunito", system-ui, -apple-system, sans-serif',
-  body:  '"Nunito", system-ui, -apple-system, sans-serif',
-  mono:  '"Nunito", ui-monospace, monospace',
-  sans:  '"Nunito", system-ui, -apple-system, sans-serif',
+  serif: '"Inter", "Nunito", system-ui, -apple-system, sans-serif',
+  body:  '"Inter", "Nunito", system-ui, -apple-system, sans-serif',
+  mono:  '"Inter", ui-monospace, monospace',
+  sans:  '"Inter", "Nunito", system-ui, -apple-system, sans-serif',
 };
 
 // Base ESCURA — todas as variantes mudam só o acento
@@ -54,6 +54,14 @@ const THEMES = {
     ink: "#1a1a1f", muted: "#4c4c57", faint: "#76768c",
     gold: "#4a5a8a", goldHi: "#6a7aaa",
     green: "#3c8c5a", red: "#c14a4a", blue: "#3f6a8c", yellow: "#b88c2a",
+  },
+  moderno: {
+    dark: false, id: "moderno", nome: "Moderno", subtitulo: "Cinza minimalista · índigo (SaaS)",
+    bg: "#f4f5f7", bgSoft: "#eceef2", card: "#ffffff", cardHi: "#f8f9fb",
+    border: "#e4e6ec", borderHi: "#cfd3dc",
+    ink: "#14151a", muted: "#5b6172", faint: "#9aa0b0",
+    gold: "#4f46e5", goldHi: "#6366f1",
+    green: "#15a06b", red: "#e0566a", blue: "#3b82f6", yellow: "#d99a2b",
   },
 };
 

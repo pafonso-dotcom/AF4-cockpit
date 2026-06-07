@@ -91,6 +91,13 @@ body { color: var(--text-color, inherit); }
   --ac: #4a5a8a; --ac2: #6a7aaa;
   --sc: #3c8c5a; --dn: #c14a4a; --wn: #b88c2a; --info: #3f6a8c;
 }
+[data-c="moderno"] {
+  --bg: #f4f5f7; --be: #eceef2; --bc: #ffffff; --bc2: #f8f9fb;
+  --bd: #e4e6ec; --bd2: #cfd3dc;
+  --tx: #14151a; --tm: #5b6172; --td: #9aa0b0;
+  --ac: #4f46e5; --ac2: #6366f1;
+  --sc: #15a06b; --dn: #e0566a; --wn: #d99a2b; --info: #3b82f6;
+}
 
 html, body, #root { height: 100%; margin: 0; }
 body {

@@ -84,7 +84,7 @@ export default function App() {
   const [hidden, setHidden] = useState(false);
   const [perfisOpen, setPerfisOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [themeId, setThemeId] = useState("gold");
+  const [themeId, setThemeId] = useState("moderno");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modulesEnabled, setModulesEnabled] = useState({ financas: true, invest: true });
