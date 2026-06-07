@@ -126,8 +126,9 @@ export function ReportCard({ title, children, footer }) {
     <div style={{
       background: T.card,
       border: `1px solid ${T.border}`,
-      borderRadius: 12,
+      borderRadius: 16,
       padding: 18,
+      boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)",
     }}>
       <h4 style={{
         fontSize: 11,
