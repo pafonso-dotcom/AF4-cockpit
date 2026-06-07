@@ -58,6 +58,16 @@ const API = {
       return j.results || null;
     } catch { return null; }
   },
+  // Lista o universo de FIIs (type=fund) na BRAPI. Retorna [{stock,name,sector,...}].
+  async fiiList(token) {
+    const url = `https://brapi.dev/api/quote/list?type=fund&sortBy=volume&sortOrder=desc${token ? `&token=${token}` : ""}`;
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`FII list ${r.status}`);
+      const j = await r.json();
+      return j.stocks || j.indexes || null;
+    } catch { return null; }
+  },
   async testBrapi(token) {
     const url = `https://brapi.dev/api/quote/PETR4${token ? `?token=${token}` : ""}`;
     try {

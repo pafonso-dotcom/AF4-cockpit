@@ -5,10 +5,10 @@ import { fetchAdminOverview, adminEmail, definirTrial } from "../../lib/admin.js
 import { carregarFundamentos, carregarMetodologia, salvarMetodologia } from "../../lib/fundamentos.js";
 import { billingEnabled, trialDias } from "../../lib/subscription.js";
 import { toast } from "../../lib/toast.js";
-import { APP_URL } from "../../lib/config.js";
+import { APP_URL, APP_NOME } from "../../lib/config.js";
 
 /**
- * Painel administrativo do Aurum (só admin). Abas:
+ * Painel administrativo do AF.invest (só admin). Abas:
  * Clientes · Curadoria · Assinaturas · Configurações.
  */
 const ABAS = [
@@ -113,7 +113,7 @@ function Clientes({ data, onRecarregar }) {
   };
 
   const convidar = (u) => {
-    const msg = `Olá! 👋 Te convido a conhecer a Aureus — plataforma única de investimentos.\n\nAcesse: ${APP_URL}\n\nCrie sua conta e organize sua carteira com clareza. 🪙`;
+    const msg = `Olá! 👋 Te convido a conhecer a ${APP_NOME} — plataforma única de investimentos.\n\nAcesse: ${APP_URL}\n\nCrie sua conta e organize sua carteira com clareza. 🪙`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 

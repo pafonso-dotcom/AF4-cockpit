@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { TrendingUp, Sparkles, Radar } from "lucide-react";
+import { TrendingUp, Sparkles, Radar, Building2, Award } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 
 import Performance from "./Performance.jsx";
 import AnaliseIdV from "../Trade/AnaliseIdV.jsx";
 import AnaliseCarteira from "./AnaliseCarteira.jsx";
+import RankingFiis from "./RankingFiis.jsx";
+import RankingIdV from "./RankingIdV.jsx";
+import { carregarFundamentos, analisarComIA } from "../../../lib/fundamentos.js";
+import { CRITERIOS_FII } from "../../../lib/criteriosIdV.js";
+
+const CRIT_FII = CRITERIOS_FII.map(c => ({ id: c.id, label: c.label, tipo: c.tipo, opcoes: c.opcoes }));
 
 const VIEWS = [
   { id: "performance",      label: "Performance",          icon: TrendingUp },
+  { id: "ranking-fiis",     label: "Ranking de FIIs",      icon: Building2 },
+  { id: "ativos",           label: "Análise dos ativos",   icon: Award },
   { id: "idv",              label: "Análise IdV",          icon: Sparkles },
   { id: "carteira-analise", label: "Análise da Carteira",  icon: Radar },
 ];
@@ -18,6 +26,7 @@ export default function AnalisesUnificada({
   tradeAnalisesIdV, setTradeAnalisesIdV,
   onAnalisarAtivo,
   apiKeys = {},
+  fundamentos = {}, isAdmin = false, onMudouFundamentos,
   viewInicial,
   onConsumirViewInicial,
 }) {
@@ -68,6 +77,15 @@ export default function AnalisesUnificada({
 
       <div style={{ marginTop: -16 /* compensa o py-8 das páginas internas */ }}>
         {view === "performance"      && <Performance ativos={ativos} hidden={hidden} />}
+        {view === "ranking-fiis"     && (
+          <RankingFiis apiKeys={apiKeys}
+            getFundamentos={() => carregarFundamentos()}
+            preencherIA={isAdmin ? async (ativo) => {
+              await analisarComIA({ ticker: ativo.ticker, classe: "fii", nome: ativo.nome, criterios: CRIT_FII });
+              onMudouFundamentos?.();
+            } : null} />
+        )}
+        {view === "ativos"           && <RankingIdV ativos={ativos} fundamentos={fundamentos} hidden={hidden} isAdmin={isAdmin} onMudou={onMudouFundamentos} />}
         {view === "idv"              && <AnaliseIdV analises={tradeAnalisesIdV} setAnalises={setTradeAnalisesIdV} ativos={ativos} />}
         {view === "carteira-analise" && <AnaliseCarteira ativos={ativos} hidden={hidden} onAnalisar={onAnalisarAtivo} />}
       </div>

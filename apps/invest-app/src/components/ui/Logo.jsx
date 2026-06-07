@@ -2,13 +2,13 @@ import React from "react";
 import { T } from "../../lib/theme.js";
 
 /**
- * Marca do produto Aureus — moeda/anel com "A" (remete ao aureus, moeda de ouro).
+ * Marca do produto AF.invest — moeda/anel com "A" (remete a moeda de ouro).
  * Anel duplo dourado + "A" central. Vetor (SVG): nítido em qualquer tamanho e
  * serve de favicon / ícone PWA.
  */
 export function LogoMark({ size = 28 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="Aureus" style={{ flexShrink: 0 }}>
+    <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="AF.invest" style={{ flexShrink: 0 }}>
       <defs>
         {/* Gradiente ouro da paleta: Ouro Claro → Ouro → Ouro Profundo */}
         <linearGradient id="aurumGold" x1="0" y1="0" x2="0.7" y2="1">
@@ -29,9 +29,9 @@ export function LogoMark({ size = 28 }) {
 }
 
 /**
- * Marca completa: símbolo + "Aureus" + sufixo ".invest".
- * Cores FIXAS da marca (dourado) — não mudam com a paleta, pra manter
- * identidade consistente (o logo vive numa barra de fundo escuro).
+ * Marca completa: símbolo + "AF" + sufixo ".invest" → "AF.invest".
+ * Cores FIXAS da marca: "A" em bordô + "F" dourado — não mudam com a paleta,
+ * pra manter identidade consistente (o logo vive numa barra de fundo escuro).
  */
 export default function Logo({ size = 28, sufixo = true }) {
   return (
@@ -42,8 +42,8 @@ export default function Logo({ size = 28, sufixo = true }) {
           fontFamily: T.serif, fontWeight: 600, fontSize: Math.round(size * 0.72),
           letterSpacing: "-0.01em", lineHeight: 1,
         }}>
-          <span style={{ color: "#a01e2e" }}>A</span>
-          <span style={{ color: "#d4b87a" }}>ureus</span>
+          <span style={{ color: "#8a1626" }}>A</span>
+          <span style={{ color: "#d4b87a" }}>F</span>
         </span>
         {sufixo && (
           <span style={{

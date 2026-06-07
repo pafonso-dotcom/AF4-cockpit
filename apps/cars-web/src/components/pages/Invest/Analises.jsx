@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { TrendingUp, Sparkles, Radar, Award } from "lucide-react";
+import { TrendingUp, Sparkles, Radar, Award, Building2 } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 
@@ -7,9 +7,15 @@ import Performance from "./Performance.jsx";
 import AnaliseIdV from "../Trade/AnaliseIdV.jsx";
 import AnaliseCarteira from "./AnaliseCarteira.jsx";
 import FundamentosIA from "./FundamentosIA.jsx";
+import RankingFiis from "./RankingFiis.jsx";
+import { carregarFundamentos, analisarComIA } from "../../../lib/fundamentosLocal.js";
+import { CRITERIOS_FII } from "../../../lib/criteriosIdV.js";
+
+const CRIT_FII = CRITERIOS_FII.map(c => ({ id: c.id, label: c.label, tipo: c.tipo, opcoes: c.opcoes }));
 
 const VIEWS = [
   { id: "performance",      label: "Performance",          icon: TrendingUp },
+  { id: "ranking-fiis",     label: "Ranking de FIIs",      icon: Building2 },
   { id: "fundamentos",      label: "Fundamentos (IA)",     icon: Award },
   { id: "idv",              label: "Análise IdV",          icon: Sparkles },
   { id: "carteira-analise", label: "Análise da Carteira",  icon: Radar },
@@ -70,6 +76,11 @@ export default function AnalisesUnificada({
 
       <div style={{ marginTop: -16 /* compensa o py-8 das páginas internas */ }}>
         {view === "performance"      && <Performance ativos={ativos} hidden={hidden} />}
+        {view === "ranking-fiis"     && (
+          <RankingFiis apiKeys={apiKeys}
+            getFundamentos={() => carregarFundamentos()}
+            preencherIA={async (ativo) => { await analisarComIA({ ticker: ativo.ticker, classe: "fii", nome: ativo.nome, criterios: CRIT_FII }); }} />
+        )}
         {view === "fundamentos"      && <div className="py-8"><FundamentosIA ativos={ativos} /></div>}
         {view === "idv"              && <AnaliseIdV analises={tradeAnalisesIdV} setAnalises={setTradeAnalisesIdV} ativos={ativos} />}
         {view === "carteira-analise" && <AnaliseCarteira ativos={ativos} hidden={hidden} onAnalisar={onAnalisarAtivo} />}

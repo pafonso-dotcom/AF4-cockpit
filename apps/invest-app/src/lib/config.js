@@ -1,5 +1,5 @@
 /* ============================================================
-   CONFIG · constantes centrais do produto Aureus
+   CONFIG · constantes centrais do produto AF.invest
    ============================================================ */
 
 // Endereço público oficial do app (domínio próprio).
@@ -7,4 +7,4 @@
 export const APP_URL = "https://aureus.inf.br";
 
 // Nome do produto (para textos/convites).
-export const APP_NOME = "Aureus";
+export const APP_NOME = "AF.invest";
