@@ -179,7 +179,7 @@ function HeaderHorizontal({
     <div aria-hidden style={{
       width: 1, height: 24, background: NAV_BORDER, opacity: 0.8,
       margin: "0 4px", flexShrink: 0,
-    }} className="hide-mobile" />
+    }} className="util-cluster" />
   );
 
   return (
@@ -209,8 +209,9 @@ function HeaderHorizontal({
         {/* Quick actions removidas — agora via atalhos de teclado N/V/A.
             Pressione ? pra ver lista de atalhos. */}
 
-        {/* UTILITY · agrupados num único menu "⋯" (alertas fica fora, sempre visível) */}
-        <div className="hide-mobile" style={{ display: "inline-flex", gap: 8, alignItems: "center", position: "relative" }}>
+        {/* UTILITY · sino + menu "⋯". Escondem só em RETRATO no celular; em
+            paisagem (e desktop) aparecem normalmente. */}
+        <div className="util-cluster" style={{ display: "inline-flex", gap: 8, alignItems: "center", position: "relative" }}>
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={utilBtn} iconSize={18} />
           <button onClick={() => setMenuUtilAberto(v => !v)}
                   title="Mais ações" aria-label="Mais ações"
@@ -456,6 +457,10 @@ function HeaderHorizontal({
           border-color: ${T.gold}55 !important;
         }
         .show-mobile { display: none; }
+        /* Sino + menu "⋯": no celular some só em RETRATO; em paisagem reaparece. */
+        @media (max-width: 768px) and (orientation: portrait) {
+          .util-cluster { display: none !important; }
+        }
         @media (max-width: 768px) {
           .hide-mobile { display: none !important; }
           .show-mobile { display: block; }
