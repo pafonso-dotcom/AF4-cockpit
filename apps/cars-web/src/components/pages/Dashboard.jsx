@@ -8,6 +8,7 @@ import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { getKPIsMes, getDespesasDoMes } from "../../lib/agregador.js";
 import { supabase } from "../../lib/supabase.js";
+import Card from "../ui/Card.jsx";
 
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const CORES_CAT = ["#22c55e","#3b82f6","#f59e0b","#ef4444","#a855f7","#06b6d4","#ec4899","#84cc16","#6b7280"];
@@ -451,7 +452,7 @@ function KpiBlock({ label, value, sub, icon: Icon, cor, variation, negativeGood 
   const varStr = num != null ? (num >= 0 ? "↗ +" : "↘ ") + fmtN(num, 2) + "%" : null;
   const positive = negativeGood ? (num != null && num <= 0) : (num != null && num >= 0);
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14, position: "relative", minHeight: 110 }}>
+    <Card style={{ position: "relative", minHeight: 110 }}>
       <div style={{ fontSize: 11, color: T.muted }}>{label}</div>
       <div className="num" style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, marginTop: 6, color: T.ink }}>{value}</div>
       {varStr && (
@@ -463,7 +464,7 @@ function KpiBlock({ label, value, sub, icon: Icon, cor, variation, negativeGood 
           <Icon size={16} style={{ color: cor || T.gold }} />
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -477,7 +478,7 @@ function DespesasKpiBlock({ resumo, hidden }) {
   // Em despesa, gastar MAIS é ruim (vermelho); gastar menos é bom (verde).
   const piorou = deltaPct != null && deltaPct > 0;
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14, minHeight: 110 }}>
+    <Card style={{ minHeight: 110 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <span style={{ fontSize: 11, color: T.muted }}>Despesas este mês</span>
         {deltaPct != null ? (
@@ -496,13 +497,13 @@ function DespesasKpiBlock({ resumo, hidden }) {
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
 
 function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+    <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Contas</div>
         <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver todas</button>
@@ -526,13 +527,13 @@ function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
           <div style={{ padding: 16, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Sem contas cadastradas.</div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
 function AlocacaoCard({ data, total, hidden, onSeeAll }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+    <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Alocação Atual</div>
         <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver carteira</button>
@@ -568,7 +569,7 @@ function AlocacaoCard({ data, total, hidden, onSeeAll }) {
         </div>
       </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -597,7 +598,7 @@ function InsightsCard({ insight, onSeeAll }) {
 function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = false }) {
   const total = data.reduce((s,d) => s + d.valor, 0);
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+    <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Gastos por Categoria</div>
         <div style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px" }}>Este mês</div>
@@ -680,7 +681,7 @@ function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = fals
           </div>
         );
       })()}
-    </div>
+    </Card>
   );
 }
 
@@ -759,7 +760,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
   };
 
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+    <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <HandCoins size={16} style={{ color: T.gold }} />
@@ -866,7 +867,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -882,7 +883,7 @@ function ProjecaoCard({ projecao, patrimonio = 0, hidden }) {
   const fim = projPatrim[projPatrim.length - 1]?.valor ?? 0;
   const deltaTotal = fim - (Number(patrimonio) || 0);
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+    <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 6 }}>
         <div style={{ fontSize: 10, letterSpacing: ".15em", color: T.muted, fontWeight: 600 }}>PROJEÇÃO · MESES A VENCER</div>
         <div style={{ display: "flex", gap: 6 }}>
@@ -931,13 +932,13 @@ function ProjecaoCard({ projecao, patrimonio = 0, hidden }) {
       <div style={{ fontSize: 10, color: T.muted, marginTop: 8, lineHeight: 1.4 }}>
         📅 Baseado em compromissos já agendados (fixas, parcelas, dívidas, devedores) nos próximos 6 meses.
       </div>
-    </div>
+    </Card>
   );
 }
 
 function MetasCard({ metas, hidden, onSeeAll }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+    <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Metas Financeiras</div>
         <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver todas</button>
@@ -965,7 +966,7 @@ function MetasCard({ metas, hidden, onSeeAll }) {
           + Nova Meta
         </button>
       </div>
-    </div>
+    </Card>
   );
 }
 
