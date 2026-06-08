@@ -19,7 +19,7 @@ const NOME_FX = { USDBRL: "Dólar", EURBRL: "Euro" };
 // não devolve o índice (mercado fechado / resposta sem preço / sem token).
 const IBOV_REF = { nome: "Ibovespa", valor: 134820, var: 0, moeda: "pts", sim: true };
 
-export default function IndicesGlobais({ apiKeys = {} }) {
+export default function IndicesGlobais({ apiKeys = {}, excluir = [] }) {
   const [itens, setItens] = useState(null);
 
   useEffect(() => {
@@ -51,7 +51,8 @@ export default function IndicesGlobais({ apiKeys = {} }) {
 
   // Nada carregado ainda → não ocupa espaço; sem dados → esconde.
   if (itens === null) return null;
-  if (itens.length === 0) return null;
+  const visiveis = itens.filter(i => !excluir.includes(i.nome));
+  if (visiveis.length === 0) return null;
 
   const fmtVal = (i) => i.moeda === "R$"
     ? `R$ ${i.valor.toFixed(2)}`
@@ -62,7 +63,7 @@ export default function IndicesGlobais({ apiKeys = {} }) {
       display: "flex", gap: 8, overflowX: "auto", padding: "2px 0 8px",
       WebkitOverflowScrolling: "touch",
     }}>
-      {itens.map((i, idx) => {
+      {visiveis.map((i, idx) => {
         const up = (i.var ?? 0) >= 0;
         const cor = up ? T.green : T.red;
         return (
