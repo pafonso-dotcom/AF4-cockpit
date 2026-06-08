@@ -47,7 +47,9 @@ export default function InvestPainel({
   }), [ativos]);
 
   // ===== Alocação por classe (donut) =====
-  const alocacao = useMemo(() => calcAlocacaoPorClasse(ativos), [ativos]);
+  // Alocação separada por moeda: Brasil (R$) e EUA (US$). Stocks/REITs = EUA.
+  const alocacaoBR = useMemo(() => calcAlocacaoPorClasse(ativos.filter(a => !["stock", "reit"].includes(a?.tipo))), [ativos]);
+  const alocacaoUSA = useMemo(() => calcAlocacaoPorClasse(ativos.filter(a => ["stock", "reit"].includes(a?.tipo))), [ativos]);
 
   // ===== Top 5 ativos por valor =====
   const topAtivos = useMemo(() => {
@@ -139,7 +141,7 @@ export default function InvestPainel({
       <section className="ip-mid-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <AlocacaoCard data={alocacao} total={t.valor} hidden={hidden} />
+        <AlocacaoCard dataBR={alocacaoBR} totalBR={t.valorBR} dataUSA={alocacaoUSA} totalUSA={t.valorUSA} hidden={hidden} fmtUSD={fmtUSD} />
         <TopAtivosCard items={topAtivos} hidden={hidden} onAnalisar={onAnalisar} onSeeAll={() => onTabChange?.("carteira")} />
       </section>
 
@@ -147,7 +149,7 @@ export default function InvestPainel({
       <section className="ip-bot-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <ValorPorClasseCard data={alocacao} hidden={hidden} />
+        <ValorPorClasseCard dataBR={alocacaoBR} dataUSA={alocacaoUSA} hidden={hidden} fmtUSD={fmtUSD} />
         <ProventosMesesCard data={proventos12m} hidden={hidden} />
         <GainersLosersCard topGain={topGain} topLoss={topLoss} hidden={hidden} onAnalisar={onAnalisar} />
       </section>
@@ -225,38 +227,55 @@ function Kpi({ label, valor, sub, variation, icon: Icon, cor }) {
   );
 }
 
-function AlocacaoCard({ data, total, hidden }) {
+function DonutBloco({ titulo, data, total, fmtMoeda, hidden }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginBottom: 8 }}>{titulo}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ width: 130, height: 130, position: "relative", flexShrink: 0 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={data} dataKey="valor" cx="50%" cy="50%" innerRadius={42} outerRadius={62} stroke="none" cornerRadius={5} paddingAngle={2}>
+                {data.map((d,i) => <Cell key={i} fill={d.cor} />)}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 8.5, color: T.muted, letterSpacing: ".15em" }}>TOTAL</div>
+              <div className="num" style={{ fontFamily: T.serif, fontSize: 13, fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmtMoeda(total)}</div>
+            </div>
+          </div>
+        </div>
+        <div style={{ flex: 1, minWidth: 0, fontSize: 11, display: "flex", flexDirection: "column", gap: 5 }}>
+          {data.map((d,i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: d.cor, flexShrink: 0 }} />
+              <span style={{ flex: 1, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.label}</span>
+              <span style={{ color: T.ink }}>{fmtN(d.pct, 0)}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AlocacaoCard({ dataBR = [], totalBR = 0, dataUSA = [], totalUSA = 0, hidden, fmtUSD }) {
+  const semNada = dataBR.length === 0 && dataUSA.length === 0;
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
       <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Alocação por Classe</div>
-      {data.length === 0 ? (
+      {semNada ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos cadastrados.</div>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 150, height: 150, position: "relative", flexShrink: 0 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={data} dataKey="valor" cx="50%" cy="50%" innerRadius={48} outerRadius={70} stroke="none" cornerRadius={5} paddingAngle={2}>
-                  {data.map((d,i) => <Cell key={i} fill={d.cor} />)}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 9, color: T.muted, letterSpacing: ".15em" }}>TOTAL</div>
-                <div className="num" style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 600, color: T.ink }}>{hidden ? "•••" : fmt(total)}</div>
-              </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {dataBR.length > 0 && <DonutBloco titulo="🇧🇷 Brasil · R$" data={dataBR} total={totalBR} fmtMoeda={fmt} hidden={hidden} />}
+          {dataUSA.length > 0 && (
+            <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 12 }}>
+              <DonutBloco titulo="🇺🇸 EUA · US$" data={dataUSA} total={totalUSA} fmtMoeda={fmtUSD} hidden={hidden} />
             </div>
-          </div>
-          <div style={{ flex: 1, minWidth: 0, fontSize: 11, display: "flex", flexDirection: "column", gap: 5 }}>
-            {data.map((d,i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: d.cor, flexShrink: 0 }} />
-                <span style={{ flex: 1, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.label}</span>
-                <span style={{ color: T.ink }}>{fmtN(d.pct, 0)}%</span>
-              </div>
-            ))}
-          </div>
+          )}
         </div>
       )}
     </div>
@@ -310,25 +329,39 @@ function SinaisCTA({ onClick }) {
   );
 }
 
-function ValorPorClasseCard({ data, hidden }) {
+function ValorPorClasseCard({ dataBR = [], dataUSA = [], hidden, fmtUSD }) {
+  const semNada = dataBR.length === 0 && dataUSA.length === 0;
+  const secao = (titulo, data, fmtMoeda) => data.length === 0 ? null : (
+    <div>
+      <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginBottom: 8 }}>{titulo}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {data.map((d,i) => (
+          <div key={i}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
+              <span style={{ color: T.ink, fontWeight: 600 }}>{d.label}</span>
+              <span className="num" style={{ color: T.muted }}>{hidden ? "•••" : fmtMoeda(d.valor)} · {fmtN(d.pct, 1)}%</span>
+            </div>
+            <div style={{ height: 6, background: T.border, borderRadius: 3, overflow: "hidden" }}>
+              <div style={{ width: `${d.pct}%`, height: "100%", background: d.cor }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
       <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Valor por Classe</div>
-      {data.length === 0 ? (
+      {semNada ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos.</div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {data.map((d,i) => (
-            <div key={i}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
-                <span style={{ color: T.ink, fontWeight: 600 }}>{d.label}</span>
-                <span className="num" style={{ color: T.muted }}>{hidden ? "•••" : fmt(d.valor)} · {fmtN(d.pct, 1)}%</span>
-              </div>
-              <div style={{ height: 6, background: T.border, borderRadius: 3, overflow: "hidden" }}>
-                <div style={{ width: `${d.pct}%`, height: "100%", background: d.cor }} />
-              </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {secao("🇧🇷 Brasil · R$", dataBR, fmt)}
+          {dataUSA.length > 0 && (
+            <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 12 }}>
+              {secao("🇺🇸 EUA · US$", dataUSA, fmtUSD)}
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>
