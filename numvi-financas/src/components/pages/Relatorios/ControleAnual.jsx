@@ -438,9 +438,9 @@ function DetalhesGrupos({ linha, hidden }) {
 
   const blocos = [
     { tipo: "fixa",     titulo: TIPO_LABEL.fixa,     items: fixas },
+    { tipo: "ganho",    titulo: TIPO_LABEL.ganho,    items: ganhos },
     { tipo: "variavel", titulo: TIPO_LABEL.variavel, items: variaveis },
     { tipo: "parcela",  titulo: TIPO_LABEL.parcela,  items: parcelas },
-    { tipo: "ganho",    titulo: TIPO_LABEL.ganho,    items: ganhos },
   ];
 
   const todosVazios = blocos.every(b => b.items.length === 0);
