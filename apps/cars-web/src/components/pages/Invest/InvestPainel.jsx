@@ -1,50 +1,11 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, BarChart3, DollarSign, Award } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
-import { API } from "../../../lib/api.js";
 import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, PROVENTO_REGEX } from "../../../lib/invest-constants.js";
 import { calcAlocacaoPorClasse, calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
 import IndicesGlobais from "../IndicesGlobais.jsx";
-
-/** Ibovespa compacto pro topo direito do painel (fallback de referência se offline). */
-function IbovBadge({ apiKeys = {} }) {
-  const [ibov, setIbov] = useState({ valor: 134820, var: 0 });
-  useEffect(() => {
-    let cancel = false;
-    (async () => {
-      try {
-        const ind = await API.indices(apiKeys.brapi);
-        const r = (ind || []).find(x => /BVSP/i.test(x.symbol || ""));
-        const preco = r?.regularMarketPrice ?? r?.regularMarketPreviousClose ?? r?.price ?? r?.close;
-        if (!cancel && preco != null) setIbov({ valor: preco, var: r.regularMarketChangePercent ?? 0 });
-      } catch { /* mantém referência */ }
-    })();
-    return () => { cancel = true; };
-  }, [apiKeys.brapi]);
-  const up = (ibov.var ?? 0) >= 0;
-  const cor = up ? T.green : T.red;
-  return (
-    <div style={{
-      display: "inline-flex", flexDirection: "column", alignItems: "flex-end", gap: 1,
-      background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
-      padding: "8px 14px", boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)",
-    }}>
-      <span style={{ fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
-        Ibovespa
-      </span>
-      <span style={{ display: "inline-flex", alignItems: "baseline", gap: 7 }}>
-        <span className="num" style={{ fontFamily: T.serif, fontSize: 19, fontWeight: 700, color: T.ink }}>
-          {Number(ibov.valor).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
-        </span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: cor, whiteSpace: "nowrap" }}>
-          {up ? "▲" : "▼"} {Math.abs(ibov.var ?? 0).toFixed(2)}%
-        </span>
-      </span>
-    </div>
-  );
-}
 
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 
@@ -130,9 +91,9 @@ export default function InvestPainel({
 
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
-      {/* Header */}
-      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
-        <div>
+      {/* Header — título à esquerda, índices (Ibovespa, S&P, Nasdaq, Dólar, Euro) no topo direito */}
+      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ flexShrink: 0 }}>
           <div style={{ fontSize: 10.5, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, fontWeight: 500 }}>
             Investimentos · Painel
           </div>
@@ -140,11 +101,10 @@ export default function InvestPainel({
             Sua carteira, <em style={{ color: T.gold }}>com clareza.</em>
           </h1>
         </div>
-        <IbovBadge apiKeys={apiKeys} />
+        <div style={{ flex: "1 1 360px", minWidth: 0, display: "flex", justifyContent: "flex-end" }}>
+          <IndicesGlobais apiKeys={apiKeys} />
+        </div>
       </div>
-
-      {/* Índices globais ao vivo (sem Ibovespa — já está no topo direito) */}
-      <IndicesGlobais apiKeys={apiKeys} excluir={["Ibovespa"]} />
 
       {/* KPIs */}
       <section className="ip-kpi-grid" style={{
