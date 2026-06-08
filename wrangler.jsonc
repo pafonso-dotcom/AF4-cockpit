@@ -7,7 +7,7 @@
   //
   // ⚠️ O produto COMERCIAL é um deploy SEPARADO: pasta numvi-financas/
   //    (worker "numvi-financas"). Não confundir os dois.
-  "name": "afinancas-pessoal",
+  "name": "af4cockpit",
   "compatibility_date": "2026-05-22",
   "main": "./worker/index.js",
   "assets": {
