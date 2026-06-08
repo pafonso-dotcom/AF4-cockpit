@@ -7,7 +7,10 @@
   //
   // ⚠️ O produto COMERCIAL é um deploy SEPARADO: pasta numvi-financas/
   //    (worker "numvi-financas"). Não confundir os dois.
-  "name": "afinancas-pessoal",
+  // Nota: o worker mantém o nome "af4cockpit" (URL/deploy atual). Renomear pra
+  // "afinancas-pessoal" exige reconfigurar o projeto no Cloudflare — fazer
+  // depois, com calma, pra não quebrar o deploy.
+  "name": "af4cockpit",
   "compatibility_date": "2026-05-22",
   "main": "./worker/index.js",
   "assets": {
