@@ -1,13 +1,13 @@
 {
-  // Cloudflare Workers para AF4 Cockpit.
-  // Serve a SPA estática + /api/ping (health check).
+  // Cloudflare Worker do app PESSOAL (Afinanças · pessoal).
+  // Serve a SPA estática (apps/cars-web/dist) + /api/ping (health check).
   //
   // Sync de dados entre dispositivos é via GitHub Gist (cliente),
   // então o Worker NÃO precisa de KV namespace nem armazenamento.
-  // Se ainda houver binding KV no painel do Cloudflare (de versão
-  // anterior), pode remover — é só "Settings → Variables and Secrets
-  // → KV namespace bindings → Remove".
-  "name": "af4cockpit",
+  //
+  // ⚠️ O produto COMERCIAL é um deploy SEPARADO: pasta numvi-financas/
+  //    (worker "numvi-financas"). Não confundir os dois.
+  "name": "afinancas-pessoal",
   "compatibility_date": "2026-05-22",
   "main": "./worker/index.js",
   "assets": {

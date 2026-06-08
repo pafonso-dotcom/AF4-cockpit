@@ -1,8 +1,8 @@
 {
-  "name": "af4-financecars",
+  "name": "afinancas-pessoal",
   "version": "2.0.0",
   "private": true,
-  "description": "AF4 Cockpit · Vite SPA wrapper para deploy via turbo",
+  "description": "Afinanças · pessoal — app pessoal (deploy: worker afinancas-pessoal). O comercial é o pacote numvi-financas, à parte.",
   "scripts": {
     "build": "turbo run build",
     "start": "pnpm --filter @repo/cars-web start",
