@@ -15,6 +15,12 @@ import CarteiraSaude from "./Invest/CarteiraSaude.jsx";
 
 const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
 
+// Ativos US (Stocks/REITs) têm preço em DÓLAR — exibidos e somados em US$, à parte.
+const US_TIPOS = new Set(["stock", "reit"]);
+const ehUS = (a) => US_TIPOS.has(a?.tipo);
+const fmtUSD = (v) => "US$ " + (Number(v) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtMoedaAtivo = (a, v) => ehUS(a) ? fmtUSD(v) : fmt(v);
+
 // Segmentos/setores sugeridos por tipo de ativo (B3 + padrões de mercado).
 // "Outros" libera input livre de texto.
 const SEGMENTOS = {
@@ -103,9 +109,14 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
   const filtered = filter === "todos" ? ativos : ativos.filter(a => a.tipo === filter);
 
   const totais = useMemo(() => {
-    const valor = filtered.reduce((s, a) => s + a.qtd * a.preco, 0);
-    const custo = filtered.reduce((s, a) => s + a.qtd * a.pm, 0);
-    return { valor, custo, ganho: valor - custo, pct: custo > 0 ? ((valor - custo) / custo) * 100 : 0 };
+    const calc = (arr) => {
+      const valor = arr.reduce((s, a) => s + a.qtd * a.preco, 0);
+      const custo = arr.reduce((s, a) => s + a.qtd * a.pm, 0);
+      return { valor, custo, ganho: valor - custo, pct: custo > 0 ? ((valor - custo) / custo) * 100 : 0 };
+    };
+    const br = calc(filtered.filter(a => !ehUS(a)));
+    const usa = calc(filtered.filter(a => ehUS(a)));
+    return { ...calc(filtered), br, usa, temUSA: filtered.some(ehUS) };
   }, [filtered]);
 
   // Agrupa ativos por segmento (ordenado por valor decrescente).
@@ -120,7 +131,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
     return [...m.entries()]
       .map(([segmento, items]) => {
         const valor = items.reduce((s, a) => s + (Number(a.qtd) || 0) * (Number(a.preco) || 0), 0);
-        return { segmento, ativos: items, valor, count: items.length };
+        const moedaUS = items.length > 0 && items.every(ehUS);
+        return { segmento, ativos: items, valor, count: items.length, moedaUS };
       })
       .sort((a, b) => b.valor - a.valor);
   }, [filtered]);
@@ -380,13 +392,14 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       <CarteiraSaude ativos={ativos} hidden={hidden} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6 no-print" style={{ background: T.border }}>
-        <StatCard label="Valor Investido" value={hidden ? "•••••" : fmt(totais.custo)} accent={T.muted} icon={DollarSign}
-                  sub={`${filtered.length} ativos`} />
-        <StatCard label="Valor de Mercado" value={hidden ? "•••••" : fmt(totais.valor)} accent={T.gold} icon={Briefcase} />
-        <StatCard label="Resultado" value={hidden ? "•••••" : fmt(totais.ganho)}
-                  accent={totais.ganho >= 0 ? T.green : T.red}
-                  icon={totais.ganho >= 0 ? TrendingUp : TrendingDown}
-                  sub={fmtP(totais.pct)} />
+        <StatCard label="Valor Investido" value={hidden ? "•••••" : fmt(totais.br.custo)} accent={T.muted} icon={DollarSign}
+                  sub={totais.temUSA ? `EUA ${hidden ? "•••" : fmtUSD(totais.usa.custo)}` : `${filtered.length} ativos`} />
+        <StatCard label="Valor de Mercado" value={hidden ? "•••••" : fmt(totais.br.valor)} accent={T.gold} icon={Briefcase}
+                  sub={totais.temUSA ? `EUA ${hidden ? "•••" : fmtUSD(totais.usa.valor)}` : undefined} />
+        <StatCard label="Resultado" value={hidden ? "•••••" : fmt(totais.br.ganho)}
+                  accent={totais.br.ganho >= 0 ? T.green : T.red}
+                  icon={totais.br.ganho >= 0 ? TrendingUp : TrendingDown}
+                  sub={totais.temUSA ? `EUA ${hidden ? "•••" : fmtUSD(totais.usa.ganho)}` : fmtP(totais.br.pct)} />
         <StatCard label="Posições" value={String(filtered.length)} accent={T.blue} icon={Activity}
                   sub={`${filtered.filter(a => a.preco > a.pm).length} no lucro`} />
       </div>
@@ -430,7 +443,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   {grupo.count} {grupo.count === 1 ? "ativo" : "ativos"}
                 </span>
                 <span style={{ color: T.gold, fontSize: 12, fontWeight: 600 }}>
-                  {hidden ? "•••" : fmt(grupo.valor)}
+                  {hidden ? "•••" : (grupo.moedaUS ? fmtUSD(grupo.valor) : fmt(grupo.valor))}
                 </span>
               </button>
               {!fechado && grupo.ativos.map(a => {
@@ -490,7 +503,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                 </div>
                 <div>
                   <div style={{ color: T.muted, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Valor</div>
-                  <div className="num" style={{ color: T.ink, marginTop: 2 }}>{hidden ? "•••" : fmt(valor)}</div>
+                  <div className="num" style={{ color: T.ink, marginTop: 2 }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</div>
                 </div>
               </div>
               <div className="flex gap-2 no-print" onClick={e => e.stopPropagation()}>
@@ -606,7 +619,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                           {grupo.count} {grupo.count === 1 ? "ativo" : "ativos"}
                         </span>
                         <span style={{ color: T.gold, fontSize: 12, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                          {hidden ? "•••" : fmt(grupo.valor)}
+                          {hidden ? "•••" : (grupo.moedaUS ? fmtUSD(grupo.valor) : fmt(grupo.valor))}
                         </span>
                       </div>
                     </td>
@@ -648,7 +661,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     )}
                   </td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmt(investido)}</td>
-                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.ink }}>{hidden ? "•••" : fmt(valor)}</td>
+                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.ink }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: ganho >= 0 ? T.green : T.red }}>
                     {hidden ? "•••" : fmt(ganho)}<br/>
                     <span style={{ fontSize: 11 }}>{fmtP(pct)}</span>
