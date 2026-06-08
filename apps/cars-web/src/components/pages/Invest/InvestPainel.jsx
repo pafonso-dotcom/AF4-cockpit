@@ -17,18 +17,28 @@ export default function InvestPainel({
   const mask = (s) => hidden ? "•••••" : s;
   const hoje = new Date();
 
-  // ===== Totais (custo, valor, resultado, %) =====
+  // ===== Totais (custo, valor, resultado, %) — separados BR (R$) e USA (US$) =====
+  // Ativos US (Stocks/REITs) têm preço em DÓLAR, então NÃO entram na soma em R$.
   const t = useMemo(() => {
-    let custo = 0, valor = 0;
+    const US = new Set(["stock", "reit"]);
+    let custoBR = 0, valorBR = 0, custoUSA = 0, valorUSA = 0;
     ativos.forEach(a => {
       const qtd = Number(a.qtd || 0);
-      custo += qtd * Number(a.pm ?? a.precoMedio ?? 0);
-      valor += qtd * Number(a.preco || 0);
+      const c = qtd * Number(a.pm ?? a.precoMedio ?? 0);
+      const v = qtd * Number(a.preco || 0);
+      if (US.has(a.tipo)) { custoUSA += c; valorUSA += v; }
+      else { custoBR += c; valorBR += v; }
     });
+    const custo = custoBR + custoUSA, valor = valorBR + valorUSA; // legado (não exibido)
     const resultado = valor - custo;
     const pct = custo > 0 ? (resultado / custo) * 100 : 0;
-    return { custo, valor, resultado, pct };
+    const pctBR = custoBR > 0 ? ((valorBR - custoBR) / custoBR) * 100 : 0;
+    const pctUSA = custoUSA > 0 ? ((valorUSA - custoUSA) / custoUSA) * 100 : 0;
+    return { custo, valor, resultado, pct, valorBR, custoBR, pctBR, valorUSA, custoUSA, pctUSA };
   }, [ativos]);
+
+  // Formata em dólar (US$ 1,234.56)
+  const fmtUSD = (v) => "US$ " + (Number(v) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   // ===== Posições / classes únicas =====
   const posicoes = useMemo(() => ({
@@ -117,7 +127,7 @@ export default function InvestPainel({
       <section className="ip-kpi-grid" style={{
         display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 12, marginBottom: 16,
       }}>
-        <KpiHero label="Patrimônio Investido" valor={t.valor} pct={t.pct} hidden={hidden} />
+        <KpiHero valorBR={t.valorBR} pctBR={t.pctBR} valorUSA={t.valorUSA} pctUSA={t.pctUSA} hidden={hidden} fmtUSD={fmtUSD} />
         <Kpi label="Custo Investido" valor={mask(fmt(t.custo))} sub="Total aportado" icon={Wallet} cor={T.muted} />
         <Kpi label="Resultado" valor={mask(fmt(t.resultado))} variation={t.pct} cor={t.resultado >= 0 ? T.green : T.red}
              icon={t.resultado >= 0 ? TrendingUp : TrendingDown} />
@@ -169,18 +179,29 @@ export default function InvestPainel({
    Sub-componentes
    ============================================================ */
 
-function KpiHero({ label, valor, pct, hidden }) {
+function KpiHero({ valorBR, pctBR, valorUSA, pctUSA, hidden, fmtUSD }) {
   const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
+  const temUSA = valorUSA > 0 || valorUSA < 0;
   return (
     <div style={{ background: bg, color: "#fff", borderRadius: 12, padding: 14, minHeight: 110 }}>
-      <div style={{ fontSize: 11, color: "#86efac" }}>{label}</div>
-      <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 600, marginTop: 6 }}>
-        {hidden ? "•••••" : fmt(valor)}
+      <div style={{ fontSize: 11, color: "#86efac" }}>Patrimônio · Brasil</div>
+      <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 4 }}>
+        {hidden ? "•••••" : fmt(valorBR)}
       </div>
-      <div style={{ fontSize: 11, color: pct >= 0 ? "#86efac" : "#fca5a5", marginTop: 4 }}>
-        {pct >= 0 ? "↗" : "↘"} {fmtN(pct, 2)}%
-        <span style={{ color: "rgba(255,255,255,0.55)", marginLeft: 4 }}>rentabilidade total</span>
+      <div style={{ fontSize: 10.5, color: pctBR >= 0 ? "#86efac" : "#fca5a5", marginTop: 2 }}>
+        {pctBR >= 0 ? "↗" : "↘"} {fmtN(pctBR, 2)}% <span style={{ color: "rgba(255,255,255,0.55)" }}>rentab.</span>
       </div>
+      {temUSA && (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
+          <div style={{ fontSize: 10.5, color: "#86efac" }}>Patrimônio · EUA <span style={{ color: "rgba(255,255,255,0.5)" }}>(em dólar)</span></div>
+          <div className="num" style={{ fontFamily: T.serif, fontSize: 17, fontWeight: 700, marginTop: 2 }}>
+            {hidden ? "•••••" : fmtUSD(valorUSA)}
+          </div>
+          <div style={{ fontSize: 10, color: pctUSA >= 0 ? "#86efac" : "#fca5a5", marginTop: 1 }}>
+            {pctUSA >= 0 ? "↗" : "↘"} {fmtN(pctUSA, 2)}% <span style={{ color: "rgba(255,255,255,0.55)" }}>rentab.</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
