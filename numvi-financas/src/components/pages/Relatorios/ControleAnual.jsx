@@ -452,11 +452,16 @@ function DetalhesGrupos({ linha, hidden }) {
     );
   }
 
+  const byTipo = Object.fromEntries(blocos.map(b => [b.tipo, b]));
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
-      {blocos.map(b => (
-        <BlocoTipo key={b.tipo} tipo={b.tipo} titulo={b.titulo} items={b.items} hidden={hidden} />
-      ))}
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14, alignItems: "start" }}>
+      {/* Coluna 1: Fixas com Ganhos logo abaixo (não no fim da tela) */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <BlocoTipo {...byTipo.fixa} hidden={hidden} />
+        <BlocoTipo {...byTipo.ganho} hidden={hidden} />
+      </div>
+      <BlocoTipo {...byTipo.variavel} hidden={hidden} />
+      <BlocoTipo {...byTipo.parcela} hidden={hidden} />
     </div>
   );
 }
