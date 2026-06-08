@@ -64,7 +64,14 @@ export default function InvestPainel({
   const topLoss = useMemo(() => [...variacoes].sort((a,b) => a.pct - b.pct).slice(0, 3), [variacoes]);
 
   // ===== Proventos do mês + série 12m =====
-  const ehProvento = (tx) => tx?.tipo === "receita" && (PROVENTO_REGEX.test(tx.categoria || "") || PROVENTO_REGEX.test(tx.descricao || ""));
+  // Proventos = dividendos/JCP/rendimentos da carteira. Excluímos entradas que
+  // NÃO são provento mesmo que a categoria pareça (ex.: "Saldo no Inter R$ 49 mil",
+  // transferências, PIX, aportes/resgates) — senão inflam o número.
+  const NAO_PROVENTO = /\bsaldo\b|transfer|\btransf\b|\bpix\b|aporte|resgate|d[ée]bito|cr[ée]dito em conta/i;
+  const ehProvento = (tx) =>
+    tx?.tipo === "receita"
+    && (PROVENTO_REGEX.test(tx.categoria || "") || PROVENTO_REGEX.test(tx.descricao || ""))
+    && !NAO_PROVENTO.test(tx.descricao || "");
   const proventosMes = useMemo(() => {
     const mesISO = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}`;
     return transacoes

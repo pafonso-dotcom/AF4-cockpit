@@ -214,19 +214,23 @@ export default function Dashboard({
   // Mesma base do donut/relatório: transações de despesa do mês (inclui "Cartão"
   // = pagamento de fatura). Paga = compensado · A pagar = não compensado. Assim
   // o "Desp. total" bate com o total do donut e com o relatório.
+  // Usa o agregador (getKPIsMes) — mesma base do módulo "A Receber & Dívidas" /
+  // Planejamento. "A pagar" inclui fixas/parcelas/dívidas pendentes.
   const despesasResumo = useMemo(() => {
     const [ay, am] = mesISO.split("-").map(Number);
     const dPrev = new Date(ay, am - 2, 1);
     const mesAntISO = `${dPrev.getFullYear()}-${String(dPrev.getMonth() + 1).padStart(2, "0")}`;
-    let total = 0, pagas = 0, aPagar = 0, totalAnt = 0;
-    transacoes.filter(t => t.tipo === "despesa").forEach(t => {
-      const v = Number(t.valor || 0);
-      if (ehMesAtual(t.data)) { total += v; if (t.compensado) pagas += v; else aPagar += v; }
-      else if ((t.data || "").startsWith(mesAntISO)) totalAnt += v;
-    });
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
+    let kpi = null, kpiAnt = null;
+    try { kpi = getKPIsMes(mesISO, state, escopoAtivo); } catch {}
+    try { kpiAnt = getKPIsMes(mesAntISO, state, escopoAtivo); } catch {}
+    const total = Number(kpi?.totalPrevisto || 0);
+    const pagas = Number(kpi?.totalPago || 0);
+    const aPagar = Number(kpi?.totalPendente || 0) + Number(kpi?.totalAtrasado || 0);
+    const totalAnt = Number(kpiAnt?.totalPrevisto || 0);
     const deltaPct = totalAnt > 0 ? ((total - totalAnt) / totalAnt) * 100 : null;
     return { total, pagas, aPagar, deltaPct };
-  }, [transacoes, mesISO]);
+  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, mesISO, escopoAtivo]);
 
   return (
     <div className="fade-up">
