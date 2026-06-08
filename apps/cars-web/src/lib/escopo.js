@@ -3,11 +3,12 @@
 
 const KEY = "af4:escopo-ativo";
 
-/** Lê escopo ativo do localStorage. Default: "tudo". */
+/** Lê escopo ativo do localStorage. Default: "pessoal" — a conta marcada como
+ *  Negócio NÃO é contabilizada no painel até você trocar o seletor. */
 export function lerEscopo() {
   const v = localStorage.getItem(KEY);
   if (v === "pessoal" || v === "negocio" || v === "tudo") return v;
-  return "tudo";
+  return "pessoal";
 }
 
 /** Salva escopo ativo. */
