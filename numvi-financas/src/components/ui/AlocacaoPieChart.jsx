@@ -28,6 +28,8 @@ export default function AlocacaoPieChart({
             innerRadius={innerRadius}
             outerRadius={outerRadius}
             paddingAngle={2}
+            cornerRadius={5}
+            stroke="none"
           >
             {(data || []).map((p, i) => (
               <Cell key={i} fill={p.cor} stroke="none" />
