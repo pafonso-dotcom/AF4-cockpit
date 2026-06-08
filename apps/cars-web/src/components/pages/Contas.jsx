@@ -6,7 +6,7 @@ import { parseValorBR } from "../../lib/importExport.js";
 import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
 import { calcSaldoConta, reconciliarContas } from "../../lib/saldoConta.js";
-import { filtrarPorEscopo } from "../../lib/escopo.js";
+import { filtrarPorEscopo, detectarEscopoConta } from "../../lib/escopo.js";
 import Field from "../ui/Field.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
 import Modal from "../ui/Modal.jsx";
@@ -142,6 +142,30 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     );
   }, [dessincronizadas, contas, transacoes, setContas]);
 
+  // Detecta pelo nome (Loja, AF4, CNPJ, PJ…) e marca como Negócio — assim some
+  // das somas do painel quando o escopo está em Pessoal.
+  const marcarNegocioAuto = async () => {
+    const candidatas = (contas || []).filter(
+      c => (c.escopo || "pessoal") !== "negocio" && detectarEscopoConta(c) === "negocio"
+    );
+    if (candidatas.length === 0) {
+      toast.info("Nenhuma conta com cara de negócio encontrada. Você pode marcar manualmente em Editar → Escopo.");
+      return;
+    }
+    const ok = await confirm({
+      title: `Marcar ${candidatas.length} conta(s) como Negócio?`,
+      body: `Detectei pelo nome: ${candidatas.map(c => c.nome).join(", ")}. Elas saem das somas do painel (no escopo Pessoal). Tem Desfazer.`,
+      confirmLabel: "Marcar como Negócio",
+    });
+    if (!ok) return;
+    const backup = contas;
+    const ids = new Set(candidatas.map(c => c.id));
+    setContas(contas.map(c => ids.has(c.id) ? { ...c, escopo: "negocio" } : c));
+    toast.success(`${candidatas.length} conta(s) marcada(s) como Negócio.`, {
+      action: { label: "Desfazer", onClick: () => setContas(backup) },
+    });
+  };
+
   const btnSec = {
     background: "transparent", border: `1px solid ${T.border}`,
     padding: "7px 12px", fontFamily: T.sans, fontSize: 11,
@@ -172,6 +196,11 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                   title="Recalcula o saldo de cada conta a partir do saldoInicial + transações"
                   style={btnSec}>
             <RefreshCw size={12} /> Reconciliar
+          </button>
+          <button onClick={marcarNegocioAuto}
+                  title="Detecta contas com nome de empresa (Loja, AF4, CNPJ…) e marca como Negócio"
+                  style={btnSec}>
+            <Building2 size={12} /> Detectar negócio
           </button>
           <button className="btn-gold" style={{ padding: "7px 12px", fontSize: 11 }}
                   onClick={() => setForm({ id: null, nome: "", instituicao: "", tipo: "corrente", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.gold })}>
