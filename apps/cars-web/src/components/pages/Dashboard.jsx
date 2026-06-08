@@ -175,15 +175,19 @@ export default function Dashboard({
   // Mesma base do relatório "Top categorias do mês": transações de despesa do
   // mês atual, agrupadas pela categoria crua (inclui "Cartão" = pagamento de
   // fatura). Assim o donut bate exatamente com o relatório.
+  // Mesma base do card "Despesas este mês" e do módulo A Receber/Dívidas
+  // (agregador, com fatura expandida + fixas/parcelas/dívidas). Assim o total do
+  // donut BATE com o "Desp. total".
   const gastosCat = useMemo(() => {
+    let desp = [];
+    try { desp = getDespesasDoMes(mesISO, stateAgg, escopoAtivo); } catch {}
     const m = {};
-    transacoes.filter(t => t.tipo === "despesa" && ehMesAtual(t.data))
-      .forEach(t => { const k = t.categoria || "Sem categoria"; m[k] = (m[k] || 0) + (Number(t.valor) || 0); });
+    desp.forEach(d => { const k = d.categoria || "Outros"; m[k] = (m[k] || 0) + (Number(d.valor) || 0); });
     const tot = Object.values(m).reduce((s,v) => s+v, 0) || 1;
     return Object.entries(m).sort((a,b) => b[1]-a[1]).map(([k,v], i) => ({
       nome: k, valor: v, pct: (v/tot)*100, cor: CORES_CAT[i % CORES_CAT.length],
     }));
-  }, [transacoes, mesISO]);
+  }, [stateAgg, mesISO, escopoAtivo]);
 
   // Orçamento do mês = soma dos limites definidos nas categorias de despesa.
   const orcamentoMes = useMemo(() =>
