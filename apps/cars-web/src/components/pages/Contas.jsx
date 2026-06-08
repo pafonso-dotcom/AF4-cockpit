@@ -44,10 +44,14 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
       return n;
     });
   };
-  const contasNoEscopo = filtrarPorEscopo(contas || [], escopoAtivo);
+  // A tela Contas mostra TODAS as contas (é onde você gerencia) — inclusive as
+  // de Negócio, com selo. Quem filtra por escopo é o PAINEL/Dashboard.
+  const contasNoEscopo = contas || [];
   const contasVisiveis = ocultarZeradas
     ? contasNoEscopo.filter(c => Math.abs(Number(c.saldo) || 0) > 0.01)
     : contasNoEscopo;
+  const ehNegocio = (c) => (c?.escopo || "pessoal") === "negocio";
+  const totalNegocio = (contas || []).filter(ehNegocio).reduce((s, c) => s + Number(c.saldo || 0), 0);
 
   const save = () => {
     const errs = {};
@@ -249,6 +253,11 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           <span className="num" style={{ fontSize: 10.5, color: T.faint }}>
             · {contas.length} {contas.length === 1 ? "conta" : "contas"}
           </span>
+          {totalNegocio > 0 && (
+            <span className="num" style={{ fontSize: 10.5, color: T.muted }}>
+              · {hidden ? "•••" : fmt(totalNegocio)} em Negócio <span style={{ color: T.faint }}>(fora do painel)</span>
+            </span>
+          )}
         </div>
         <button onClick={toggleOcultarZeradas}
           style={{
@@ -292,7 +301,14 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                    cursor: onContaClick ? "pointer" : "default",
                  }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</span>
+                  {ehNegocio(c) && (
+                    <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      Negócio
+                    </span>
+                  )}
+                </div>
                 {c.instituicao && (
                   <div style={{ fontSize: 10, color: T.muted, fontStyle: "italic" }}>{c.instituicao}</div>
                 )}
