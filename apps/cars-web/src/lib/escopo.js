@@ -20,7 +20,7 @@ export function salvarEscopo(escopo) {
 /** Heurística de detecção automática pelos nomes. */
 export function detectarEscopoConta(conta) {
   const txt = `${conta.nome || ""} ${conta.banco || ""} ${conta.instituicao || ""} ${conta.tipo || ""}`.toLowerCase();
-  const palavrasNegocio = ["loja", "af4", "cnpj", "pj", "empresa", "negocio", "negócio", "comercial"];
+  const palavrasNegocio = ["loja", "af4", "cnpj", "pj", "empresa", "negocio", "negócio", "comercial", "santander", "carros", "carro", "veículo", "veiculo", "motors"];
   if (palavrasNegocio.some(p => txt.includes(p))) return "negocio";
   return "pessoal";
 }
