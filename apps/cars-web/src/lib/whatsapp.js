@@ -26,7 +26,7 @@ Lembrando que o cheque Nº {numero} de {valor} vence em {data}.
 
 Qualquer coisa, me avisa.`,
 
-  reciboVenda: `🚗 *Recibo de venda · AF4 Motors*
+  reciboVenda: `🚗 *Recibo de venda · Afinanças Motors*
 
 *Comprador:* {nome}
 *Veículo:* {veiculo}

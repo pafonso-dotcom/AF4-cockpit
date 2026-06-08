@@ -169,7 +169,7 @@ export default function Mercado({ ativos, apiKeys }) {
           a ler o mercado com calma — atualize quando quiser, e observe os movimentos da sua carteira em perspectiva.
         </div>
         <div className="mt-4" style={{ color: T.faint, fontSize: 12, fontFamily: T.sans, letterSpacing: "0.15em", textTransform: "uppercase" }}>
-          — AF4
+          — Afinanças
         </div>
       </div>
     </div>

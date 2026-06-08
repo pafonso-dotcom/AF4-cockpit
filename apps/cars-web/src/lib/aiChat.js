@@ -53,7 +53,7 @@ export function buildContext({ transacoes = [], contas = [], ativos = [], vendas
   const chequesAguardando = cheques.filter(c => c.status === "aguardando").length;
 
   return `
-DADOS DO COCKPIT FINANCEIRO (Paulo Afonso · AF4 Motors · ${hoje})
+DADOS DO COCKPIT FINANCEIRO (Paulo Afonso · Afinanças Motors · ${hoje})
 
 ═══ FINANÇAS PESSOAIS · MÊS ATUAL (${mesAtual}) ═══
 • Receitas: R$ ${rec.toFixed(2)} (mês anterior: R$ ${recAnt.toFixed(2)})

@@ -198,8 +198,8 @@ function HeaderHorizontal({
         {/* BRAND · marca NUMVI */}
         <div style={{ display: "flex", alignItems: "center", marginRight: "auto", flexShrink: 0 }}>
           {/* Mobile: só o nome (sem símbolo). Desktop: lockup completo. */}
-          <span className="hide-desktop" style={{ fontFamily: "'Nunito', system-ui, sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em" }}>
-            <span style={{ color: "#E8C25A" }}>AF</span><span style={{ color: "#9E2B3A" }}>4</span>
+          <span className="hide-desktop" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em" }}>
+            <span style={{ color: "#9E2B3A" }}>A</span><span style={{ color: "#E8C25A" }}>finanças</span>
           </span>
           <span className="header-brand-text"><Logo size={24} sufixo="·finanças" /></span>
         </div>

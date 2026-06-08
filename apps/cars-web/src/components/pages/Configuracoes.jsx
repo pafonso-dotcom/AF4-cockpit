@@ -729,12 +729,12 @@ function SyncGist() {
         <ol style={{ paddingLeft: 18, fontSize: 12.5, color: T.muted, lineHeight: 1.7 }}>
           <li>
             Abra{" "}
-            <a href="https://github.com/settings/tokens/new?description=AF4%20Cockpit&scopes=gist" target="_blank" rel="noopener noreferrer" style={{ color: T.gold }}>
+            <a href="https://github.com/settings/tokens/new?description=Afinanças&scopes=gist" target="_blank" rel="noopener noreferrer" style={{ color: T.gold }}>
               github.com/settings/tokens/new
             </a>{" "}
             (já vem com o escopo certo marcado)
           </li>
-          <li><strong>Note</strong> (descrição): <em>AF4</em> (ou o que quiser)</li>
+          <li><strong>Note</strong> (descrição): <em>Afinanças</em> (ou o que quiser)</li>
           <li><strong>Expiration</strong>: escolha "No expiration" pra nunca expirar, ou "1 year" pra renovar anualmente</li>
           <li><strong>Select scopes</strong>: marque apenas <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>gist</code> (importante — só esse, mais nada)</li>
           <li>Botão verde "Generate token" no fim</li>

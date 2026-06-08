@@ -1,7 +1,7 @@
 {
-  "name": "AF4 Finanças",
-  "short_name": "AF4",
-  "description": "AF4 — controle financeiro pessoal, investimentos e metas.",
+  "name": "Afinanças",
+  "short_name": "Afinanças",
+  "description": "Afinanças — controle financeiro pessoal, investimentos e metas.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

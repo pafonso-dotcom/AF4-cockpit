@@ -89,8 +89,8 @@ export function compartilharWhatsApp(texto) {
 
 /** Abre email pré-preenchido com o backup */
 export function compartilharEmail(texto) {
-  const subject = `Backup AF4 · ${new Date().toLocaleDateString("pt-BR")}`;
-  const body = `Backup gerado pelo AF4.\n\nGuarde este email — basta colar o conteúdo abaixo na tela de "Restaurar" do app em qualquer dispositivo.\n\n---\n\n${texto}`;
+  const subject = `Backup Afinanças · ${new Date().toLocaleDateString("pt-BR")}`;
+  const body = `Backup gerado pelo Afinanças.\n\nGuarde este email — basta colar o conteúdo abaixo na tela de "Restaurar" do app em qualquer dispositivo.\n\n---\n\n${texto}`;
   window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, "_blank", "noopener,noreferrer");
 }
 
