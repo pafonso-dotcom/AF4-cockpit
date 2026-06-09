@@ -19,6 +19,18 @@ Este monorepo tem dois apps que são tratados como **projetos separados**. Eles
 3. Aceita-se que correções de bugs comuns sejam feitas duas vezes — essa é a
    troca consciente por independência (decisão de 2026-06-09).
 
+## Como pedir gastando menos tokens
+
+O que mais economiza não é a arquitetura, e sim o escopo de cada pedido:
+
+1. **Dizer qual app + qual tela/arquivo.** Ex.: "no comercial, no campo de valor
+   da Nova Transação". Evita o agente varrer/ler o projeto procurando — essa
+   busca é o que mais consome.
+2. **Um pedido por vez, focado.** Mudanças pequenas e fechadas geram menos
+   leitura de arquivos e menos builds.
+3. **Não espelhar sem necessidade.** Mexer em um app só (ver regra acima) já
+   corta pela metade as operações de arquivo por mudança.
+
 ## Build / deploy
 
 - Build pessoal: `pnpm --filter @repo/cars-web build`
