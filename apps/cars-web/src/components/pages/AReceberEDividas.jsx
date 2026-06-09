@@ -21,13 +21,13 @@ import Field from "../ui/Field.jsx";
 export default function AReceberEDividas({
   devedores = [], setDevedores,
   dividas = [], setDividas,
-  fixas = [],
+  fixas = [], setFixas,
   fixaOcorrencias = [], setFixaOcorrencias,
   parcelamentos = [], setParcelamentos,
   cartoes = [],
   contas = [], setContas,
   transacoes = [], setTransacoes,
-  categorias = [],
+  categorias = [], setCategorias,
   metas = [], setMetas,
   hidden,
   somenteReceber = false, // quando true, esconde o lado "A Pagar" (usado na tela unificada)
@@ -101,6 +101,11 @@ export default function AReceberEDividas({
     delete data.parcelar;
     delete data.numParcelas;
     delete data.modoValor;
+    // Campos auxiliares do modal (criação inline de categoria/filha) — não persistem.
+    delete data._criarCat;
+    delete data._catNome;
+    delete data._criarSub;
+    delete data._subNome;
 
     // Edição → comportamento simples: atualiza só esta entrada (não regenera parcelas)
     if (form.id) {
@@ -109,12 +114,20 @@ export default function AReceberEDividas({
       // Ocorrência de Despesa Fixa: edita só ESTA ocorrência (valor/vencimento).
       // O template da fixa e as demais ocorrências ficam intactos.
       if (form._origem === "fixa" && form._fixaOccId) {
+        // Valor/vencimento: só esta ocorrência (o mês editado).
         setFixaOcorrencias?.((fixaOcorrencias || []).map(o =>
           o.id === form._fixaOccId
             ? { ...o, valor, ...(form.vencimento ? { dataVencimento: form.vencimento } : {}) }
             : o
         ));
-        toast.success("Ocorrência atualizada (só este mês).");
+        // Categoria/subcategoria: muda a FIXA inteira (vale para todos os meses).
+        const occ = (fixaOcorrencias || []).find(o => o.id === form._fixaOccId);
+        const fixaId = occ?.fixaId;
+        if (fixaId && setFixas) {
+          setFixas((fixas || []).map(f =>
+            f.id === fixaId ? { ...f, categoria: form.categoria, subcategoria: form.subcategoria || "" } : f));
+        }
+        toast.success("Atualizado — categoria/subcategoria valem para todos os meses da fixa.");
         setForm(null);
         return;
       }
@@ -123,7 +136,7 @@ export default function AReceberEDividas({
       if (form._origem === "transacao" && form._transacaoId) {
         setTransacoes?.((transacoes || []).map(t =>
           t.id === form._transacaoId
-            ? { ...t, descricao: form.nome, valor, categoria: form.categoria,
+            ? { ...t, descricao: form.nome, valor, categoria: form.categoria, subcategoria: form.subcategoria || "",
                 ...(form.vencimento ? { vencimento: form.vencimento } : {}), obs: form.obs }
             : t
         ));
@@ -181,6 +194,45 @@ export default function AReceberEDividas({
     }
     toast.success("Cadastrado.");
     setForm(null);
+  };
+
+  /* ===== Categoria / subcategoria (filha) — usar e criar no próprio modal ===== */
+  // Tipo de categoria conforme o lado (receber → receita; pagar → despesa).
+  const tipoCatForm = form ? (form.tipo === "receber" ? "receita" : "despesa") : "despesa";
+  // Categoria selecionada no form e suas filhas.
+  const catObjForm = form ? (categorias || []).find(c => c.nome === form.categoria && c.tipo === tipoCatForm) : null;
+  const subsForm = catObjForm?.subcategorias || [];
+
+  const criarCategoria = (nomeRaw) => {
+    const nm = (nomeRaw || "").trim();
+    if (!nm) return;
+    const existe = (categorias || []).find(c => (c.nome || "").toLowerCase() === nm.toLowerCase() && c.tipo === tipoCatForm);
+    if (existe) {
+      toast.info(`Categoria "${nm}" já existe — selecionada.`);
+      setForm(f => ({ ...f, categoria: existe.nome, subcategoria: "", _criarCat: false, _catNome: "" }));
+      return;
+    }
+    if (!setCategorias) { toast.error("Não foi possível criar categoria aqui."); return; }
+    const nova = { id: uid(), nome: nm, tipo: tipoCatForm, escopo: form.escopo || "pessoal", cor: T.gold, limite: null, subcategorias: [] };
+    setCategorias([...(categorias || []), nova]);
+    setForm(f => ({ ...f, categoria: nm, subcategoria: "", _criarCat: false, _catNome: "" }));
+    toast.success(`Categoria "${nm}" criada.`);
+  };
+
+  const criarSubcategoria = (nomeRaw) => {
+    const nm = (nomeRaw || "").trim();
+    if (!nm) return;
+    if (!catObjForm) { toast.error("Escolha (ou crie) a categoria primeiro."); return; }
+    if ((catObjForm.subcategorias || []).some(s => (s.nome || "").toLowerCase() === nm.toLowerCase())) {
+      toast.info(`Subcategoria "${nm}" já existe — selecionada.`);
+      setForm(f => ({ ...f, subcategoria: nm, _criarSub: false, _subNome: "" }));
+      return;
+    }
+    if (!setCategorias) { toast.error("Não foi possível criar subcategoria aqui."); return; }
+    setCategorias((categorias || []).map(c =>
+      c.id === catObjForm.id ? { ...c, subcategorias: [...(c.subcategorias || []), { id: uid(), nome: nm }] } : c));
+    setForm(f => ({ ...f, subcategoria: nm, _criarSub: false, _subNome: "" }));
+    toast.success(`Subcategoria "${nm}" criada em ${catObjForm.nome}.`);
   };
 
   const excluir = async (item, tipo) => {
@@ -474,6 +526,7 @@ export default function AReceberEDividas({
           valor: Number(o.valor || 0),
           vencimento: o.dataVencimento,
           categoria: fixa?.categoria || "Despesas fixas",
+          subcategoria: fixa?.subcategoria || "",
           obs: `Ref. ${o.mes}`,
           pago: false,
           credor: fixa?.credor || "",
@@ -541,6 +594,7 @@ export default function AReceberEDividas({
         valor: Number(t.valor || 0),
         vencimento: t.vencimento || t.data,
         categoria: t.categoria || "Outros",
+        subcategoria: t.subcategoria || "",
         obs: t.obs || "",
         pago: false,
         credor: "",
@@ -1122,13 +1176,59 @@ export default function AReceberEDividas({
                      onChange={e => setForm({ ...form, vencimento: e.target.value })} />
             </Field>
           </div>
-          <Field label="Categoria">
-            <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>
-              {categorias.filter(c => c.tipo === (form.tipo === "receber" ? "receita" : "despesa")).map(c => (
-                <option key={c.id} value={c.nome}>{c.nome}</option>
-              ))}
-              <option value="Outros">Outros</option>
-            </select>
+          <Field label="Categoria" hint="Escolha uma ou crie na hora com “+ nova”.">
+            {form._criarCat ? (
+              <div style={{ display: "flex", gap: 6 }}>
+                <input autoFocus value={form._catNome || ""} placeholder="Nome da nova categoria"
+                       onChange={e => setForm({ ...form, _catNome: e.target.value })}
+                       onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); criarCategoria(form._catNome); } }}
+                       style={{ flex: 1 }} />
+                <button type="button" className="btn-gold" style={{ padding: "0 12px", fontSize: 12 }}
+                        onClick={() => criarCategoria(form._catNome)}>Criar</button>
+                <button type="button" className="btn-ghost" style={{ padding: "0 10px", fontSize: 12 }}
+                        onClick={() => setForm({ ...form, _criarCat: false, _catNome: "" })}>✕</button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 6 }}>
+                <select value={form.categoria} style={{ flex: 1 }}
+                        onChange={e => setForm({ ...form, categoria: e.target.value, subcategoria: "" })}>
+                  {categorias.filter(c => c.tipo === (form.tipo === "receber" ? "receita" : "despesa")).map(c => (
+                    <option key={c.id} value={c.nome}>{c.nome}</option>
+                  ))}
+                  <option value="Outros">Outros</option>
+                </select>
+                <button type="button" className="btn-ghost" style={{ padding: "0 10px", fontSize: 12, whiteSpace: "nowrap" }}
+                        onClick={() => setForm({ ...form, _criarCat: true, _catNome: "" })}>+ nova</button>
+              </div>
+            )}
+          </Field>
+
+          <Field label="Subcategoria (filha)" hint="Opcional. Aparece no relatório no lugar da categoria.">
+            {form._criarSub ? (
+              <div style={{ display: "flex", gap: 6 }}>
+                <input autoFocus value={form._subNome || ""} placeholder={`Nova filha de ${form.categoria || "categoria"}`}
+                       onChange={e => setForm({ ...form, _subNome: e.target.value })}
+                       onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); criarSubcategoria(form._subNome); } }}
+                       style={{ flex: 1 }} />
+                <button type="button" className="btn-gold" style={{ padding: "0 12px", fontSize: 12 }}
+                        onClick={() => criarSubcategoria(form._subNome)}>Criar</button>
+                <button type="button" className="btn-ghost" style={{ padding: "0 10px", fontSize: 12 }}
+                        onClick={() => setForm({ ...form, _criarSub: false, _subNome: "" })}>✕</button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 6 }}>
+                <select value={form.subcategoria || ""} style={{ flex: 1 }}
+                        onChange={e => setForm({ ...form, subcategoria: e.target.value })}>
+                  <option value="">— Nenhuma —</option>
+                  {subsForm.map(s => <option key={s.id} value={s.nome}>{s.nome}</option>)}
+                </select>
+                <button type="button" className="btn-ghost" style={{ padding: "0 10px", fontSize: 12, whiteSpace: "nowrap" }}
+                        title={catObjForm ? "" : "Selecione/crie a categoria primeiro"}
+                        onClick={() => { if (!catObjForm) { toast.error("Escolha ou crie a categoria primeiro."); return; } setForm({ ...form, _criarSub: true, _subNome: "" }); }}>
+                  + nova filha
+                </button>
+              </div>
+            )}
           </Field>
 
           <Field label="Escopo" hint="Pessoal ou Negócio — separa nas estatísticas">

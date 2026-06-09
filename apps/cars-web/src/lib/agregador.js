@@ -97,6 +97,7 @@ export function getDespesasDoMes(mesISO, state = {}, escopo) {
       valor: Number(o.valorPago ?? o.valor) || 0,
       status,
       categoria: getFixaCategoria(o.fixaId, state),
+      subcategoria: getFixaSubcategoria(o.fixaId, state),
     });
   });
 
@@ -393,4 +394,8 @@ function getFixaDescricao(fixaId, state) {
 function getFixaCategoria(fixaId, state) {
   const f = (state.fixas || []).find(x => x.id === fixaId);
   return f?.categoria || "Outros";
+}
+function getFixaSubcategoria(fixaId, state) {
+  const f = (state.fixas || []).find(x => x.id === fixaId);
+  return f?.subcategoria || "";
 }
