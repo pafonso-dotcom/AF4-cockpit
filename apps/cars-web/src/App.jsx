@@ -85,6 +85,23 @@ import NegocioPainel from "./components/pages/Negocio/NegocioPainel.jsx";
 import NegocioVeiculos from "./components/pages/Negocio/Veiculos.jsx";
 import NegocioServicos from "./components/pages/Negocio/Servicos.jsx";
 import NegocioClientes from "./components/pages/Negocio/Clientes.jsx";
+import Lembretes from "./components/pages/Lembretes.jsx";
+import Conversa  from "./components/pages/Conversa.jsx";
+import Treino    from "./components/pages/Treino.jsx";
+import { EXERCICIOS_BASE } from "./lib/exerciciosBase.js";
+
+function ConversaFABInput({ onAbrirCompleto }) {
+  return (
+    <div>
+      <p style={{ fontSize: 11, color: T.muted, margin: "0 0 8px" }}>
+        Clique para abrir a conversa completa.
+      </p>
+      <button className="btn-gold" style={{ width: "100%" }} onClick={onAbrirCompleto}>
+        Abrir Conversa
+      </button>
+    </div>
+  );
+}
 
 export default function App() {
   const [modulo, setModulo] = useState(() => {
@@ -110,6 +127,7 @@ export default function App() {
   const [marketStatus, setMarketStatus] = useState({ at: null, mode: "sim", okCount: 0, total: 0 });
   const [cartaoAberto, setCartaoAberto] = useState(null);
   const [contaAberta, setContaAberta] = useState(null);
+  const [conversaFABOpen, setConversaFABOpen] = useState(false);
 
   applyTheme(themeId);
 
@@ -141,6 +159,11 @@ export default function App() {
   const [tarefas, setTarefas] = useState([]);
   // Sugestões de melhorias do próprio app (aba Agenda → Sugestões).
   const [sugestoes, setSugestoes] = useState([]);
+  const [lembretes,         setLembretes]         = useState([]);
+  const [conversaHistorico, setConversaHistorico] = useState([]);
+  const [exerciciosDB,      setExerciciosDB]      = useState([]);
+  const [treinoTemplates,   setTreinoTemplates]   = useState([]);
+  const [treinos,           setTreinos]           = useState([]);
   // Histórico do patrimônio (snapshot diário do total = ativos + contas).
   // Array de { data: "YYYY-MM-DD", totalAtivos, totalContas, total }.
   const [patrimonioHistorico, setPatrimonioHistorico] = useState([]);
@@ -241,6 +264,14 @@ export default function App() {
         setIdeias(data.ideias || []);
         setTarefas(data.tarefas || []);
         setSugestoes(data.sugestoes || []);
+        setLembretes(data.lembretes || []);
+        setConversaHistorico(data.conversaHistorico || []);
+        setExerciciosDB(prev => {
+          if (data.exerciciosDB && data.exerciciosDB.length > 0) return data.exerciciosDB;
+          return prev;
+        });
+        setTreinoTemplates(data.treinoTemplates || []);
+        setTreinos(data.treinos || []);
         setPatrimonioHistorico(data.patrimonioHistorico || []);
         setNegocioVeiculos(data.negocioVeiculos || []);
         setNegocioVendasVeiculos(data.negocioVendasVeiculos || []);
@@ -328,6 +359,10 @@ export default function App() {
         // Não trava o app: loga e segue — o finally libera o loading.
         console.error("Falha ao aplicar dados carregados:", e);
       } finally {
+        setExerciciosDB(prev => {
+          if (prev.length > 0) return prev;
+          return EXERCICIOS_BASE;
+        });
         setLoading(false);
       }
     })();
@@ -346,6 +381,7 @@ export default function App() {
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       caixaNegocio, negocioBancos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
+      lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
       themeId,
     });
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas,
@@ -356,6 +392,7 @@ export default function App() {
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       caixaNegocio, negocioBancos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
+      lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
       themeId, loading]);
 
   useEffect(() => {
@@ -982,6 +1019,31 @@ export default function App() {
             {tab === "diario" && (
               <Diario diario={diario} setDiario={setDiario} />
             )}
+            {tab === "lembretes" && (
+              <Lembretes lembretes={lembretes} setLembretes={setLembretes} />
+            )}
+            {tab === "conversa" && (
+              <Conversa
+                conversaHistorico={conversaHistorico}
+                setConversaHistorico={setConversaHistorico}
+                transacoes={transacoes} setTransacoes={setTransacoes}
+                categorias={categorias}
+                agenda={agenda} setAgenda={setAgenda}
+                tarefas={tarefas} setTarefas={setTarefas}
+                lembretes={lembretes} setLembretes={setLembretes}
+                treinos={treinos}
+                apiKeys={apiKeys}
+                hidden={hidden}
+              />
+            )}
+            {tab === "treino" && (
+              <Treino
+                treinos={treinos} setTreinos={setTreinos}
+                exerciciosDB={exerciciosDB} setExerciciosDB={setExerciciosDB}
+                treinoTemplates={treinoTemplates} setTreinoTemplates={setTreinoTemplates}
+                apiKeys={apiKeys}
+              />
+            )}
           </div>
         )}
 
@@ -1204,6 +1266,41 @@ export default function App() {
       />
       {["analise-carteira", "trade-ativo"].includes(tab) && !tradeOnboardingVisto && (
         <OnboardingTradeModal onClose={() => setTradeOnboardingVisto(true)} />
+      )}
+      {modulo === "financas" && tab !== "conversa" && (
+        <>
+          <button
+            onClick={() => setConversaFABOpen(o => !o)}
+            style={{
+              position: "fixed", bottom: 80, right: 20, zIndex: 200,
+              width: 50, height: 50, borderRadius: "50%",
+              background: T.gold, color: T.bg, border: "none",
+              boxShadow: "0 4px 16px rgba(0,0,0,.35)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", fontSize: 22,
+            }}
+            title="Conversa rápida"
+          >
+            💬
+          </button>
+          {conversaFABOpen && (
+            <div style={{
+              position: "fixed", bottom: 140, right: 20, zIndex: 200,
+              width: 320, background: T.card,
+              border: `1px solid ${T.border}`, borderRadius: 12,
+              padding: 14, boxShadow: "0 8px 32px rgba(0,0,0,.4)",
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: T.gold, marginBottom: 8 }}>Conversa rápida</div>
+              <ConversaFABInput
+                onEnviar={(texto) => {
+                  setConversaFABOpen(false);
+                  setTab("conversa");
+                }}
+                onAbrirCompleto={() => { setConversaFABOpen(false); setTab("conversa"); }}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );
