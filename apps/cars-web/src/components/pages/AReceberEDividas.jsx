@@ -21,7 +21,7 @@ import Field from "../ui/Field.jsx";
 export default function AReceberEDividas({
   devedores = [], setDevedores,
   dividas = [], setDividas,
-  fixas = [],
+  fixas = [], setFixas,
   fixaOcorrencias = [], setFixaOcorrencias,
   parcelamentos = [], setParcelamentos,
   cartoes = [],
@@ -114,12 +114,20 @@ export default function AReceberEDividas({
       // Ocorrência de Despesa Fixa: edita só ESTA ocorrência (valor/vencimento).
       // O template da fixa e as demais ocorrências ficam intactos.
       if (form._origem === "fixa" && form._fixaOccId) {
+        // Valor/vencimento: só esta ocorrência (o mês editado).
         setFixaOcorrencias?.((fixaOcorrencias || []).map(o =>
           o.id === form._fixaOccId
             ? { ...o, valor, ...(form.vencimento ? { dataVencimento: form.vencimento } : {}) }
             : o
         ));
-        toast.success("Ocorrência atualizada (só este mês).");
+        // Categoria/subcategoria: muda a FIXA inteira (vale para todos os meses).
+        const occ = (fixaOcorrencias || []).find(o => o.id === form._fixaOccId);
+        const fixaId = occ?.fixaId;
+        if (fixaId && setFixas) {
+          setFixas((fixas || []).map(f =>
+            f.id === fixaId ? { ...f, categoria: form.categoria, subcategoria: form.subcategoria || "" } : f));
+        }
+        toast.success("Atualizado — categoria/subcategoria valem para todos os meses da fixa.");
         setForm(null);
         return;
       }
@@ -518,6 +526,7 @@ export default function AReceberEDividas({
           valor: Number(o.valor || 0),
           vencimento: o.dataVencimento,
           categoria: fixa?.categoria || "Despesas fixas",
+          subcategoria: fixa?.subcategoria || "",
           obs: `Ref. ${o.mes}`,
           pago: false,
           credor: fixa?.credor || "",
