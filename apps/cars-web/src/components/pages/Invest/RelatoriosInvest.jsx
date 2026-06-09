@@ -2,8 +2,31 @@ import React, { useMemo, useState } from "react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import { BarChart, HorizontalBarList, ReportCard, ReportGrid } from "../../ui/Charts.jsx";
-import { calendarioProventos } from "../../../lib/invest-metrics.js";
+import { PROVENTO_REGEX } from "../../../lib/invest-constants.js";
 import PdfCarteira from "./PdfCarteira.jsx";
+
+const MESES_PT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+// Últimos 12 meses (do mais antigo pro atual), com iso "YYYY-MM" e fim do mês.
+function ultimos12Meses() {
+  const out = [];
+  const now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear(), m = d.getMonth();
+    out.push({
+      label: MESES_PT[m],
+      iso: `${y}-${String(m + 1).padStart(2, "0")}`,
+      fimMes: new Date(y, m + 1, 0).toISOString().slice(0, 10),
+    });
+  }
+  return out;
+}
+// Não é provento: saldo/transferência/PIX/aporte/resgate (evita inflar).
+const NAO_PROVENTO = /\bsaldo\b|transfer|\btransf\b|\bpix\b|aporte|resgate/i;
+const ehProvento = (tx) =>
+  tx?.tipo === "receita"
+  && (PROVENTO_REGEX.test(tx.categoria || "") || PROVENTO_REGEX.test(tx.descricao || ""))
+  && !NAO_PROVENTO.test(tx.descricao || "");
 
 // Ativos US (Stocks/REITs) têm preço em DÓLAR — somados/exibidos em US$ à parte.
 const US_TIPOS = new Set(["stock", "reit"]);
@@ -14,7 +37,7 @@ const fmtMoedaAtivo = (a, v) => ehUS(a) ? fmtUSD(v) : fmt(v);
 /**
  * Relatórios de Investimentos.
  */
-export default function RelatoriosInvest({ ativos = [], proventos: proventosProp = [], operacoes = [], hidden }) {
+export default function RelatoriosInvest({ ativos = [], transacoes = [], patrimonioHistorico = [], proventos: proventosProp = [], operacoes = [], hidden }) {
   const [pdfAberto, setPdfAberto] = useState(false);
   // Patrimônio atual — separado por moeda (Brasil R$ vs EUA US$).
   const valorBR = ativos.filter(a => !ehUS(a)).reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
@@ -22,16 +45,21 @@ export default function RelatoriosInvest({ ativos = [], proventos: proventosProp
   const valorAtual = valorBR + valorUSA; // só pra base da evolução simulada
   const custo = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.pm ?? a.precoMedio ?? a.preco ?? 0), 0);
 
-  // Evolução simulada do patrimônio (12 meses)
+  // Evolução REAL do patrimônio (12 meses) — a partir dos snapshots gravados.
+  // Pra cada mês usa o último snapshot até o fim do mês (carry-forward).
+  const meses12 = useMemo(() => ultimos12Meses(), []);
   const evolucao = useMemo(() => {
-    const meses = ["Jun","Jul","Ago","Set","Out","Nov","Dez","Jan","Fev","Mar","Abr","Mai"];
-    const base = custo > 0 ? custo : valorAtual * 0.85;
-    return meses.map((m, i) => {
-      // Crescimento gradual + ruído
-      const fator = 1 + (i * 0.014) + (Math.sin(i * 0.7) * 0.02);
-      return { label: m, value: base * fator };
+    const ordenado = [...(patrimonioHistorico || [])]
+      .filter(p => p && p.data != null)
+      .sort((a, b) => (a.data || "").localeCompare(b.data || ""));
+    let ultimo = 0;
+    return meses12.map(({ label, fimMes }) => {
+      const ate = ordenado.filter(p => (p.data || "") <= fimMes);
+      if (ate.length) ultimo = Number(ate[ate.length - 1].total) || ultimo;
+      return { label, value: ultimo };
     });
-  }, [valorAtual, custo]);
+  }, [patrimonioHistorico, meses12]);
+  const temEvolucao = (patrimonioHistorico || []).length >= 2;
 
   // Top 5 posições
   const top5 = useMemo(() =>
@@ -50,17 +78,17 @@ export default function RelatoriosInvest({ ativos = [], proventos: proventosProp
     [ativos, hidden]
   );
 
-  // Proventos 12 meses (simulados a partir do calendário)
-  const proventosCalc = useMemo(() => calendarioProventos(ativos), [ativos]);
-  const proventosMensais = useMemo(() => {
-    const meses = ["Jun","Jul","Ago","Set","Out","Nov","Dez","Jan","Fev","Mar","Abr","Mai"];
-    const totalProj = proventosCalc.reduce((s, p) => s + (p.total || 0), 0);
-    const mediaMes = totalProj / 3 || 1000;
-    return meses.map(m => ({
-      label: m,
-      value: mediaMes * (0.7 + Math.random() * 0.6),
-    }));
-  }, [proventosCalc]);
+  // Proventos REAIS dos últimos 12 meses — soma das receitas de provento/
+  // dividendo/rendimento (excluindo Saldo/Transferência/PIX) por mês.
+  const proventosMensais = useMemo(() =>
+    meses12.map(({ label, iso }) => ({
+      label,
+      value: (transacoes || [])
+        .filter(t => ehProvento(t) && (t.data || "").startsWith(iso))
+        .reduce((s, t) => s + (Number(t.valor) || 0), 0),
+    })),
+    [transacoes, meses12]
+  );
 
   const totalProventos12m = proventosMensais.reduce((s, m) => s + m.value, 0);
 
@@ -116,11 +144,18 @@ export default function RelatoriosInvest({ ativos = [], proventos: proventosProp
             <>📈 Atual · Brasil <strong style={{ color: T.green }}>{hidden ? "•••" : fmt(valorBR)}</strong>{valorUSA !== 0 && <> · EUA <strong style={{ color: T.green }}>{hidden ? "•••" : fmtUSD(valorUSA)}</strong></>}</>
           }
         >
-          <BarChart
-            data={evolucao}
-            color={T.gold}
-            formatValue={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v.toFixed(0)}
-          />
+          {temEvolucao ? (
+            <BarChart
+              data={evolucao}
+              color={T.gold}
+              formatValue={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v.toFixed(0)}
+            />
+          ) : (
+            <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 12.5 }}>
+              Ainda sem histórico suficiente. Os snapshots do patrimônio vão sendo
+              gravados ao longo do tempo — volte depois pra ver a evolução real.
+            </div>
+          )}
         </ReportCard>
 
         <ReportCard title="Top 5 Posições">

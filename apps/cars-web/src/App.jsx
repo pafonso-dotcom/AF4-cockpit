@@ -1117,7 +1117,7 @@ export default function App() {
                 transacoes={transacoes} setTransacoes={setTransacoes}
               />
             )}
-            {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} proventos={[]} operacoes={[]} hidden={hidden} />}
+            {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} transacoes={transacoes} patrimonioHistorico={patrimonioHistorico} proventos={[]} operacoes={[]} hidden={hidden} />}
             {tab === "mercado" && (
               <div className="px-6 md:px-10">
                 <Mercado ativos={ativos} apiKeys={apiKeys} />
