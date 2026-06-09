@@ -5,13 +5,21 @@ import { BarChart, HorizontalBarList, ReportCard, ReportGrid } from "../../ui/Ch
 import { calendarioProventos } from "../../../lib/invest-metrics.js";
 import PdfCarteira from "./PdfCarteira.jsx";
 
+// Ativos US (Stocks/REITs) têm preço em DÓLAR — somados/exibidos em US$ à parte.
+const US_TIPOS = new Set(["stock", "reit"]);
+const ehUS = (a) => US_TIPOS.has(a?.tipo);
+const fmtUSD = (v) => "US$ " + (Number(v) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtMoedaAtivo = (a, v) => ehUS(a) ? fmtUSD(v) : fmt(v);
+
 /**
  * Relatórios de Investimentos.
  */
 export default function RelatoriosInvest({ ativos = [], proventos: proventosProp = [], operacoes = [], hidden }) {
   const [pdfAberto, setPdfAberto] = useState(false);
-  // Patrimônio atual
-  const valorAtual = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
+  // Patrimônio atual — separado por moeda (Brasil R$ vs EUA US$).
+  const valorBR = ativos.filter(a => !ehUS(a)).reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
+  const valorUSA = ativos.filter(a => ehUS(a)).reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
+  const valorAtual = valorBR + valorUSA; // só pra base da evolução simulada
   const custo = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.pm ?? a.precoMedio ?? a.preco ?? 0), 0);
 
   // Evolução simulada do patrimônio (12 meses)
@@ -28,14 +36,18 @@ export default function RelatoriosInvest({ ativos = [], proventos: proventosProp
   // Top 5 posições
   const top5 = useMemo(() =>
     [...ativos]
-      .map(a => ({
-        label: a.ticker || a.nome || "—",
-        value: Number(a.qtd || 0) * Number(a.preco || 0),
-      }))
+      .map(a => {
+        const value = Number(a.qtd || 0) * Number(a.preco || 0);
+        return {
+          label: a.ticker || a.nome || "—",
+          value,
+          valorLabel: hidden ? "•••" : fmtMoedaAtivo(a, value),
+        };
+      })
       .sort((a, b) => b.value - a.value)
       .slice(0, 5)
       .map(p => ({ ...p, color: T.gold })),
-    [ativos]
+    [ativos, hidden]
   );
 
   // Proventos 12 meses (simulados a partir do calendário)
@@ -101,7 +113,7 @@ export default function RelatoriosInvest({ ativos = [], proventos: proventosProp
         <ReportCard
           title="Evolução do Patrimônio (12 meses)"
           footer={
-            <>📈 Total atual: <strong style={{ color: T.green }}>{hidden ? "•••" : fmt(valorAtual)}</strong></>
+            <>📈 Atual · Brasil <strong style={{ color: T.green }}>{hidden ? "•••" : fmt(valorBR)}</strong>{valorUSA !== 0 && <> · EUA <strong style={{ color: T.green }}>{hidden ? "•••" : fmtUSD(valorUSA)}</strong></>}</>
           }
         >
           <BarChart

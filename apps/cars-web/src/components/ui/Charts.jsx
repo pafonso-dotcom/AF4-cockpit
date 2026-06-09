@@ -110,7 +110,7 @@ export function HorizontalBarList({ data, formatValue }) {
                 transition: "width .3s",
               }} />
             </div>
-            <div style={{ textAlign: "right", color: T.muted, fontVariantNumeric: "tabular-nums" }}>{fmt(d.value)}</div>
+            <div style={{ textAlign: "right", color: T.muted, fontVariantNumeric: "tabular-nums" }}>{d.valorLabel != null ? d.valorLabel : fmt(d.value)}</div>
           </div>
         );
       })}

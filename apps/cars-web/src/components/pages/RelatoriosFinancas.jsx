@@ -4,7 +4,7 @@ import { fmt } from "../../lib/format.js";
 import { BarChartDouble, BarChart, HorizontalBarList, ReportCard, ReportGrid } from "../ui/Charts.jsx";
 import { toPDF, toCSV, toPNG, hasPNGSupport } from "../../lib/exportRelatorio.js";
 import { toast } from "../../lib/toast.js";
-import { getKPIsMes } from "../../lib/agregador.js";
+import { getKPIsMes, getDespesasDoMes } from "../../lib/agregador.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import EvolucaoPatrimonio from "./Invest/EvolucaoPatrimonio.jsx";
 
@@ -47,19 +47,23 @@ export default function RelatoriosFinancas({
   }, [transacoes]);
 
   // ===== Top categorias do mês =====
+  // Usa o agregador (getDespesasDoMes) — MESMA base do donut do painel (fatura
+  // expandida + fixas/parcelas/dívidas), pra os números baterem entre as telas.
   const topCategorias = useMemo(() => {
     const mes = new Date().toISOString().slice(0, 7);
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores };
+    let desp = [];
+    try { desp = getDespesasDoMes(mes, state, escopoAtivo); } catch {}
     const mapa = {};
-    transacoes.filter(t => t.tipo === "despesa" && (t.data || "").startsWith(mes))
-      .forEach(t => {
-        const cat = t.categoria || "Sem categoria";
-        mapa[cat] = (mapa[cat] || 0) + Number(t.valor || 0);
-      });
+    desp.forEach(d => {
+      const cat = d.categoria || "Sem categoria";
+      mapa[cat] = (mapa[cat] || 0) + (Number(d.valor) || 0);
+    });
     return Object.entries(mapa)
       .map(([label, value]) => ({ label, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 7);
-  }, [transacoes]);
+  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, escopoAtivo]);
 
   // ===== Tendência por categoria (6 meses) =====
   // Pra cada categoria de despesa: total por mês + variação do mês atual vs média
