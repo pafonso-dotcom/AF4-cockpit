@@ -9,6 +9,9 @@ import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { printHTML } from "../../lib/importExport.js";
 
 const MESES_PROJ = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+// Agrupamento da projeção por origem do compromisso.
+const FONTE_LABEL = { fixa: "Fixas", parcela: "Parcelas", divida: "Dívidas", transacao: "Avulsas previstas" };
+const FONTE_ORDEM = ["fixa", "parcela", "divida", "transacao"];
 import EvolucaoPatrimonio from "./Invest/EvolucaoPatrimonio.jsx";
 
 /**
@@ -175,53 +178,74 @@ export default function RelatoriosFinancas({
     return out;
   }, []);
 
-  const projecaoCat = useMemo(() => {
+  const projecao = useMemo(() => {
     const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores };
-    const map = {};
+    const map = {}; // chave: `${fonte}||${categoria}`
     proximosMeses.forEach(m => {
       let desp = [];
       try { desp = getDespesasDoMes(m.iso, state, escopoAtivo); } catch {}
       desp.forEach(d => {
+        const fonte = FONTE_LABEL[d.fonte] ? d.fonte : "transacao";
         const cat = d.categoria || "Outros";
-        (map[cat] = map[cat] || {});
-        map[cat][m.iso] = (map[cat][m.iso] || 0) + (Number(d.valor) || 0);
+        const key = `${fonte}||${cat}`;
+        const r = map[key] || (map[key] = { fonte, cat, porMes: {}, total: 0 });
+        const v = Number(d.valor) || 0;
+        r.porMes[m.iso] = (r.porMes[m.iso] || 0) + v;
+        r.total += v;
       });
     });
-    const rows = Object.entries(map)
-      .map(([cat, porMes]) => ({ cat, porMes, total: proximosMeses.reduce((s, m) => s + (porMes[m.iso] || 0), 0) }))
-      .filter(r => r.total > 0)
-      .sort((a, b) => b.total - a.total);
-    const totaisMes = proximosMeses.map(m => rows.reduce((s, r) => s + (r.porMes[m.iso] || 0), 0));
-    const totalGeral = rows.reduce((s, r) => s + r.total, 0);
-    return { rows, totaisMes, totalGeral };
+    const n = proximosMeses.length || 1;
+    const todas = Object.values(map).filter(r => r.total > 0).map(r => ({ ...r, media: r.total / n }));
+    // Agrupa por fonte (Fixas, Parcelas, Dívidas, Avulsas), com subtotais.
+    const grupos = FONTE_ORDEM.map(fonte => {
+      const rows = todas.filter(r => r.fonte === fonte).sort((a, b) => b.total - a.total);
+      if (!rows.length) return null;
+      const subTotal = rows.reduce((s, r) => s + r.total, 0);
+      const subPorMes = proximosMeses.map(m => rows.reduce((s, r) => s + (r.porMes[m.iso] || 0), 0));
+      return { fonte, label: FONTE_LABEL[fonte], rows, subTotal, subMedia: subTotal / n, subPorMes };
+    }).filter(Boolean);
+    const totaisMes = proximosMeses.map(m => todas.reduce((s, r) => s + (r.porMes[m.iso] || 0), 0));
+    const totalGeral = todas.reduce((s, r) => s + r.total, 0);
+    return { grupos, totaisMes, totalGeral, media: totalGeral / n, vazio: todas.length === 0 };
   }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, escopoAtivo, proximosMeses]);
 
-  // Imprime a projeção numa única folha A4 (paisagem).
+  const periodoLabel = proximosMeses.length
+    ? `${proximosMeses[0].label} a ${proximosMeses[proximosMeses.length - 1].label}` : "";
+
+  // Imprime a projeção (agrupada) numa única folha A4 (paisagem).
   const imprimirProjecao = () => {
     const esc = (s) => String(s ?? "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+    const cel = (v) => v ? esc(fmt(v)) : "—";
     const ths = proximosMeses.map(m => `<th>${esc(m.label)}</th>`).join("");
-    const corpo = projecaoCat.rows.map(r =>
-      `<tr><td class="cat">${esc(r.cat)}</td>${proximosMeses.map(m => `<td class="n">${r.porMes[m.iso] ? esc(fmt(r.porMes[m.iso])) : "—"}</td>`).join("")}<td class="n tot">${esc(fmt(r.total))}</td></tr>`
-    ).join("");
-    const rodape = `<tr class="tfoot"><td>TOTAL</td>${proximosMeses.map((m, i) => `<td class="n">${esc(fmt(projecaoCat.totaisMes[i]))}</td>`).join("")}<td class="n">${esc(fmt(projecaoCat.totalGeral))}</td></tr>`;
+    const corpo = projecao.grupos.map(g => {
+      const linhas = g.rows.map(r =>
+        `<tr><td class="cat">${esc(r.cat)}</td>${proximosMeses.map(m => `<td class="n">${cel(r.porMes[m.iso])}</td>`).join("")}<td class="n">${esc(fmt(r.media))}</td><td class="n tot">${esc(fmt(r.total))}</td></tr>`
+      ).join("");
+      const sub = `<tr class="sub"><td>${esc(g.label)} · subtotal</td>${g.subPorMes.map(v => `<td class="n">${cel(v)}</td>`).join("")}<td class="n">${esc(fmt(g.subMedia))}</td><td class="n">${esc(fmt(g.subTotal))}</td></tr>`;
+      const head = `<tr class="grp"><td colspan="${proximosMeses.length + 3}">${esc(g.label)}</td></tr>`;
+      return head + linhas + sub;
+    }).join("");
+    const rodape = `<tr class="tfoot"><td>TOTAL GERAL</td>${proximosMeses.map((m, i) => `<td class="n">${cel(projecao.totaisMes[i])}</td>`).join("")}<td class="n">${esc(fmt(projecao.media))}</td><td class="n">${esc(fmt(projecao.totalGeral))}</td></tr>`;
     printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Projeção · Meses a Vencer</title>
 <style>
-@page { size: A4 landscape; margin: 10mm; }
+@page { size: A4 landscape; margin: 9mm; }
 body { font-family:-apple-system,Segoe UI,Roboto,sans-serif; color:#111; margin:0; }
-h1 { font-size:16px; margin:0 0 2px; }
-.sub { color:#666; font-size:11px; margin:0 0 10px; }
-table { width:100%; border-collapse:collapse; font-size:11px; }
-th,td { padding:4px 7px; border-bottom:1px solid #ddd; }
-th { text-transform:uppercase; font-size:9px; letter-spacing:.05em; color:#666; text-align:right; }
+h1 { font-size:15px; margin:0 0 2px; }
+.sub-head { color:#666; font-size:10.5px; margin:0 0 8px; }
+table { width:100%; border-collapse:collapse; font-size:10.5px; }
+th,td { padding:3px 6px; border-bottom:1px solid #e5e5e5; }
+th { text-transform:uppercase; font-size:8.5px; letter-spacing:.04em; color:#666; text-align:right; }
 th:first-child, td.cat { text-align:left; }
+td.cat { padding-left:14px; }
 td.n { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
 td.tot { font-weight:700; }
-.tfoot td { font-weight:700; border-top:2px solid #111; border-bottom:none; }
-tr:nth-child(even) td { background:#fafafa; }
+tr.grp td { background:#f1ede6; font-weight:700; text-transform:uppercase; font-size:9px; letter-spacing:.05em; border-bottom:1px solid #d8cfbf; }
+tr.sub td { font-weight:600; border-top:1px solid #ccc; background:#faf8f4; }
+.tfoot td { font-weight:700; border-top:2px solid #111; border-bottom:none; font-size:11px; }
 </style></head><body>
 <h1>Projeção · Meses a Vencer — por categoria</h1>
-<div class="sub">Compromissos previstos (despesas fixas, parcelas e dívidas) dos próximos 6 meses · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</div>
-<table><thead><tr><th>Categoria</th>${ths}<th>Total</th></tr></thead>
+<div class="sub-head">Compromissos previstos (fixas, parcelas, dívidas e despesas avulsas) · ${esc(periodoLabel)} · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</div>
+<table><thead><tr><th>Categoria</th>${ths}<th>Média/mês</th><th>Total</th></tr></thead>
 <tbody>${corpo}${rodape}</tbody></table>
 </body></html>`);
   };
@@ -242,44 +266,64 @@ tr:nth-child(even) td { background:#fafafa; }
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
           <div>
             <div style={{ fontSize: 11, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Projeção · Meses a vencer</div>
-            <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.ink }}>Por categoria — próximos 6 meses</div>
+            <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.ink }}>Por categoria · {periodoLabel}</div>
           </div>
           <button onClick={imprimirProjecao} className="btn-gold" style={{ padding: "8px 14px", fontSize: 12 }}>
             🖨️ Imprimir (A4 · 1 folha)
           </button>
         </div>
-        {projecaoCat.rows.length === 0 ? (
+        {projecao.vazio ? (
           <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 12.5 }}>
             Sem compromissos previstos (fixas, parcelas, dívidas) nos próximos 6 meses.
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table className="tbl" style={{ width: "100%", minWidth: 720, fontSize: 12 }}>
+            <table className="tbl" style={{ width: "100%", minWidth: 760, fontSize: 12 }}>
               <thead>
                 <tr>
                   <th style={{ textAlign: "left" }}>Categoria</th>
                   {proximosMeses.map(m => <th key={m.iso} style={{ textAlign: "right" }}>{m.label}</th>)}
+                  <th style={{ textAlign: "right" }}>Média/mês</th>
                   <th style={{ textAlign: "right" }}>Total</th>
                 </tr>
               </thead>
               <tbody>
-                {projecaoCat.rows.map(r => (
-                  <tr key={r.cat}>
-                    <td style={{ color: T.ink, fontWeight: 500 }}>{r.cat}</td>
-                    {proximosMeses.map(m => (
-                      <td key={m.iso} className="num" style={{ textAlign: "right", color: r.porMes[m.iso] ? T.muted : T.faint }}>
-                        {r.porMes[m.iso] ? (hidden ? "•••" : fmt(r.porMes[m.iso])) : "—"}
+                {projecao.grupos.map(g => (
+                  <React.Fragment key={g.fonte}>
+                    <tr>
+                      <td colSpan={proximosMeses.length + 3} style={{ background: T.bgSoft, color: T.ink, fontWeight: 700, textTransform: "uppercase", fontSize: 10, letterSpacing: ".08em", padding: "6px 8px" }}>
+                        {g.label}
                       </td>
+                    </tr>
+                    {g.rows.map((r, idx) => (
+                      <tr key={r.cat}>
+                        <td style={{ color: T.ink, fontWeight: idx === 0 ? 700 : 500, paddingLeft: 14 }}>{r.cat}</td>
+                        {proximosMeses.map(m => (
+                          <td key={m.iso} className="num" style={{ textAlign: "right", color: r.porMes[m.iso] ? T.muted : T.faint }}>
+                            {r.porMes[m.iso] ? (hidden ? "•••" : fmt(r.porMes[m.iso])) : "—"}
+                          </td>
+                        ))}
+                        <td className="num" style={{ textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmt(r.media)}</td>
+                        <td className="num" style={{ textAlign: "right", color: T.ink, fontWeight: 700 }}>{hidden ? "•••" : fmt(r.total)}</td>
+                      </tr>
                     ))}
-                    <td className="num" style={{ textAlign: "right", color: T.ink, fontWeight: 700 }}>{hidden ? "•••" : fmt(r.total)}</td>
-                  </tr>
+                    <tr>
+                      <td style={{ fontWeight: 600, color: T.muted, fontSize: 11.5, paddingLeft: 14, borderTop: `1px solid ${T.border}` }}>{g.label} · subtotal</td>
+                      {g.subPorMes.map((v, i) => (
+                        <td key={i} className="num" style={{ textAlign: "right", fontWeight: 600, color: T.muted, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : (v ? fmt(v) : "—")}</td>
+                      ))}
+                      <td className="num" style={{ textAlign: "right", fontWeight: 600, color: T.muted, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : fmt(g.subMedia)}</td>
+                      <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : fmt(g.subTotal)}</td>
+                    </tr>
+                  </React.Fragment>
                 ))}
                 <tr style={{ borderTop: `2px solid ${T.border}` }}>
-                  <td style={{ fontWeight: 700, color: T.ink, textTransform: "uppercase", fontSize: 10.5, letterSpacing: ".05em" }}>Total</td>
+                  <td style={{ fontWeight: 700, color: T.ink, textTransform: "uppercase", fontSize: 10.5, letterSpacing: ".05em" }}>Total geral</td>
                   {proximosMeses.map((m, i) => (
-                    <td key={m.iso} className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(projecaoCat.totaisMes[i])}</td>
+                    <td key={m.iso} className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(projecao.totaisMes[i])}</td>
                   ))}
-                  <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.gold }}>{hidden ? "•••" : fmt(projecaoCat.totalGeral)}</td>
+                  <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(projecao.media)}</td>
+                  <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.gold }}>{hidden ? "•••" : fmt(projecao.totalGeral)}</td>
                 </tr>
               </tbody>
             </table>
