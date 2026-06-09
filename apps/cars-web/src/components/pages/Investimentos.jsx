@@ -163,6 +163,11 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
     return { qtd, pm, preco, investido, mercado, ganho, pct };
   }, [form]);
 
+  // Moeda do formulário de edição (US$ para Stocks/REITs, R$ para os demais).
+  const formUS = !!form && ehUS({ tipo: form.tipo });
+  const moedaForm = formUS ? "US$" : "R$";
+  const fmtF = formUS ? fmtUSD : fmt;
+
   const [formErrors, setFormErrors] = useState({});
 
   const save = () => {
@@ -477,7 +482,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                 </div>
                 <div className="text-right shrink-0 ml-2">
                   <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 14, fontWeight: 600 }}>
-                    {hidden ? "•••" : fmt(ganho)}
+                    {hidden ? "•••" : fmtMoedaAtivo(a, ganho)}
                   </div>
                   <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 11 }}>
                     {fmtP(pct)}
@@ -487,11 +492,11 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
               <div className="grid grid-cols-3 gap-2 text-xs mb-3" style={{ paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
                 <div>
                   <div style={{ color: T.muted, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>PM</div>
-                  <div className="num" style={{ color: T.muted, marginTop: 2 }}>{hidden ? "•••" : fmt(a.pm)}</div>
+                  <div className="num" style={{ color: T.muted, marginTop: 2 }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.pm)}</div>
                 </div>
                 <div>
                   <div style={{ color: T.muted, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Preço</div>
-                  <div className="num" style={{ color: T.gold, marginTop: 2 }}>{hidden ? "•••" : fmt(a.preco)}</div>
+                  <div className="num" style={{ color: T.gold, marginTop: 2 }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.preco)}</div>
                   {Number.isFinite(Number(a.variacao24h)) && (
                     <div className="num" style={{
                       fontSize: 10, marginTop: 2,
@@ -648,9 +653,9 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     )}
                   </td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.ink }}>{fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)}</td>
-                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmt(a.pm)}</td>
+                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.pm)}</td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.gold }}>
-                    {hidden ? "•••" : fmt(a.preco)}
+                    {hidden ? "•••" : fmtMoedaAtivo(a, a.preco)}
                     {Number.isFinite(Number(a.variacao24h)) && (
                       <div style={{
                         fontSize: 10, marginTop: 2,
@@ -660,10 +665,10 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                       </div>
                     )}
                   </td>
-                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmt(investido)}</td>
+                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmtMoedaAtivo(a, investido)}</td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.ink }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: ganho >= 0 ? T.green : T.red }}>
-                    {hidden ? "•••" : fmt(ganho)}<br/>
+                    {hidden ? "•••" : fmtMoedaAtivo(a, ganho)}<br/>
                     <span style={{ fontSize: 11 }}>{fmtP(pct)}</span>
                   </td>
                   <td className="no-print" style={{ padding: "14px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
@@ -749,10 +754,10 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
             <Field label="Quantidade">
               <input type="number" step="0.00000001" value={form.qtd} onChange={e => setForm({ ...form, qtd: e.target.value })} placeholder="8" />
             </Field>
-            <Field label="Preço Médio (R$/unid)">
+            <Field label={`Preço Médio (${moedaForm}/unid)`}>
               <input type="number" step="0.01" value={form.pm} onChange={e => setForm({ ...form, pm: e.target.value })} placeholder="106,85" />
             </Field>
-            <Field label="Preço Atual (R$/unid)">
+            <Field label={`Preço Atual (${moedaForm}/unid)`}>
               <div style={{ display: "flex", gap: 4 }}>
                 <input type="number" step="0.01" value={form.preco} onChange={e => setForm({ ...form, preco: e.target.value })} placeholder="120,00" style={{ flex: 1 }} />
                 <button type="button" onClick={fetchPrice} disabled={!form.ticker || fetchingPrice}
@@ -765,7 +770,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
           </div>
 
           {/* Atalho: VALOR APLICADO TOTAL → calcula PM automático */}
-          <Field label="Valor aplicado total (R$) — opcional">
+          <Field label={`Valor aplicado total (${moedaForm}) — opcional`}>
             <div style={{ display: "flex", gap: 6 }}>
               <input
                 type="number" step="0.01"
@@ -798,12 +803,12 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
               <div className="label-eyebrow mb-2">Resumo da posição</div>
               <div className="grid grid-cols-2 gap-y-2 text-sm">
                 <span style={{ color: T.muted }}>Valor investido</span>
-                <span className="num text-right" style={{ color: T.ink }}>{formPreview.qtd} × {fmt(formPreview.pm)} = <strong>{fmt(formPreview.investido)}</strong></span>
+                <span className="num text-right" style={{ color: T.ink }}>{formPreview.qtd} × {fmtF(formPreview.pm)} = <strong>{fmtF(formPreview.investido)}</strong></span>
                 <span style={{ color: T.muted }}>Valor de mercado</span>
-                <span className="num text-right" style={{ color: T.gold }}>{formPreview.qtd} × {fmt(formPreview.preco)} = <strong>{fmt(formPreview.mercado)}</strong></span>
+                <span className="num text-right" style={{ color: T.gold }}>{formPreview.qtd} × {fmtF(formPreview.preco)} = <strong>{fmtF(formPreview.mercado)}</strong></span>
                 <span style={{ color: T.muted, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>Saldo</span>
                 <span className="num text-right" style={{ color: formPreview.ganho >= 0 ? T.green : T.red, paddingTop: 8, borderTop: `1px solid ${T.border}`, fontWeight: 600 }}>
-                  {fmt(formPreview.ganho)} · {fmtP(formPreview.pct)}
+                  {fmtF(formPreview.ganho)} · {fmtP(formPreview.pct)}
                 </span>
               </div>
               {Math.abs(formPreview.pct) > 200 && (
