@@ -20,6 +20,12 @@ export default defineConfig({
     // Padrão "modules" do Vite assume Safari 15+, deixando iPads
     // antigos com tela branca por causa de sintaxe nao suportada.
     target: ["es2017", "safari12"],
+    rollupOptions: {
+      // @anthropic-ai/sdk é importado dinamicamente em conversaParser.js
+      // apenas quando o usuário fornece uma API key. Externalizar evita erro
+      // de build por módulo não instalado.
+      external: ["@anthropic-ai/sdk"],
+    },
   },
   preview: {
     // Permite acesso via domínio (nginx → localhost:3004)
