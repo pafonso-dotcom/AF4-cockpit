@@ -9,6 +9,7 @@ import { confirm } from "../../lib/confirm.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
+import MoneyInput from "../ui/MoneyInput.jsx";
 import ImportExportModal from "../modals/ImportExportModal.jsx";
 import ImportarExtrato from "../modals/ImportarExtrato.jsx";
 import OCRComprovante from "../modals/OCRComprovante.jsx";
@@ -43,7 +44,7 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
     if (pendingTransacao?.editId) {
       const t = transacoes.find(x => x.id === pendingTransacao.editId);
       if (t) {
-        setForm({ ...t, valor: String(t.valor ?? "") });
+        setForm({ ...t, valor: t.valor == null || t.valor === "" ? "" : parseValorBR(t.valor) });
       }
       clearPendingTransacao?.();
       return;
@@ -293,9 +294,8 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
     if (!form.descricao?.trim()) errs.descricao = "Descrição é obrigatória";
     else if (form.descricao.length > 200) errs.descricao = "Máximo 200 caracteres";
 
-    // parseValorBR aceita: 1500, 1500,00, 1.500,00, R$ 1.234,56, negativos
-    const v = parseValorBR(form.valor);
-    if (form.valor == null || form.valor === "" || isNaN(v)) errs.valor = "Informe um valor numérico (ex.: 1500 ou 1.500,00)";
+    const v = Number(form.valor) || 0;
+    if (form.valor == null || form.valor === "") errs.valor = "Informe um valor numérico (ex.: 1500 ou 1.500,00)";
     else if (v <= 0) errs.valor = "Valor deve ser positivo";
 
     if (!form.categoria) errs.categoria = "Selecione uma categoria";
@@ -727,7 +727,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                           }}>
                     {t.compensado ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
                   </button>
-                  <button onClick={() => setForm(t)} aria-label="Editar"
+                  <button onClick={() => setForm({ ...t, valor: t.valor == null || t.valor === "" ? "" : parseValorBR(t.valor) })} aria-label="Editar"
                           style={{ color: T.muted, padding: 3, background: "transparent", border: "none", cursor: "pointer" }}>
                     <Edit3 size={12} />
                   </button>
@@ -760,11 +760,8 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
           <Field label="Descrição" required error={formErrors.descricao}>
             <input value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} placeholder="Ex.: Salário, Mercado…" />
           </Field>
-          <Field label="Valor (R$)" required error={formErrors.valor} hint="Aceita 1500 · 1500,00 · 1.500,00 · R$ 1.234,56">
-            <input type="text" inputMode="decimal" autoComplete="off"
-                   value={form.valor == null ? "" : String(form.valor)}
-                   onChange={e => setForm({ ...form, valor: e.target.value })}
-                   placeholder="Ex.: 1.500,00 ou 1500" />
+          <Field label="Valor (R$)" required error={formErrors.valor} hint="Só números · centavos automáticos">
+            <MoneyInput value={form.valor} onChange={v => setForm({ ...form, valor: v })} />
           </Field>
           <Field label="Categoria" required error={formErrors.categoria}>
             <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value, subcategoria: "" })}>

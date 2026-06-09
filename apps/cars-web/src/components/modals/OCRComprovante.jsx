@@ -8,6 +8,7 @@ import { audit } from "../../lib/auditLog.js";
 import { toast } from "../../lib/toast.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
+import MoneyInput from "../ui/MoneyInput.jsx";
 
 export default function OCRComprovante({
   contas, categorias,
@@ -74,7 +75,7 @@ export default function OCRComprovante({
       setForma({
         tipo: result.tipo || "despesa",
         descricao: result.descricao || "",
-        valor: String(result.valor || 0).replace(".", ","),
+        valor: Number(result.valor) || 0,
         data: result.data || todayISO(),
         categoria: result.categoria || "Outros",
         subcategoria: result.subcategoria || "",
@@ -92,7 +93,7 @@ export default function OCRComprovante({
 
   const confirmar = () => {
     if (!forma.descricao || !forma.valor) { toast.error("Descrição e valor obrigatórios."); return; }
-    const valorNum = parseFloat(String(forma.valor).replace(",", ".")) || 0;
+    const valorNum = Number(forma.valor) || 0;
     if (valorNum <= 0) { toast.error("Valor inválido."); return; }
     const sufixo = `OCR ${forma._fonte || "recibo"}`;
     const tx = {
@@ -173,7 +174,7 @@ export default function OCRComprovante({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field label="Descrição *"><input type="text" value={forma.descricao} onChange={e => setForma({ ...forma, descricao: e.target.value })} /></Field>
-            <Field label="Valor (R$) *"><input type="text" inputMode="decimal" value={forma.valor} onChange={e => setForma({ ...forma, valor: e.target.value })} /></Field>
+            <Field label="Valor (R$) *"><MoneyInput value={forma.valor} onChange={v => setForma({ ...forma, valor: v })} /></Field>
             <Field label="Data"><input type="date" value={forma.data} onChange={e => setForma({ ...forma, data: e.target.value })} /></Field>
             <Field label="Tipo">
               <select value={forma.tipo} onChange={e => setForma({ ...forma, tipo: e.target.value })}>

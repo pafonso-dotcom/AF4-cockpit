@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
-import { parseValorBR } from "../../lib/importExport.js";
 import { toast } from "../../lib/toast.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
+import MoneyInput from "../ui/MoneyInput.jsx";
 
 export default function TransferenciaModal({ contas, setContas, transacoes, setTransacoes, categorias, onClose }) {
   const [form, setForm] = useState({
@@ -18,7 +18,7 @@ export default function TransferenciaModal({ contas, setContas, transacoes, setT
 
   const contaOrigem = contas?.find(c => c.nome === form.origem);
   const contaDestino = contas?.find(c => c.nome === form.destino);
-  const valor = parseValorBR(form.valor) || 0;
+  const valor = Number(form.valor) || 0;
 
   const transferir = () => {
     if (!form.origem || !form.destino) {
@@ -119,10 +119,8 @@ export default function TransferenciaModal({ contas, setContas, transacoes, setT
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Valor (R$)" hint="Aceita 500 · 500,00 · 1.500,00">
-          <input type="text" inputMode="decimal" value={form.valor}
-                 onChange={e => setForm({ ...form, valor: e.target.value })}
-                 placeholder="Ex.: 500,00" />
+        <Field label="Valor (R$)" hint="Só números · centavos automáticos">
+          <MoneyInput value={form.valor} onChange={v => setForm({ ...form, valor: v })} />
         </Field>
         <Field label="Data">
           <input type="date" value={form.data}
