@@ -14,7 +14,7 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     // Em produção, você poderia mandar para Sentry/LogRocket aqui.
-    console.error("Afinanças crashed:", error, info);
+    console.error("NUMVI Finanças crashed:", error, info);
   }
 
   reset = () => this.setState({ hasError: false, error: null });
@@ -39,7 +39,7 @@ export default class ErrorBoundary extends React.Component {
             color: T.gold, fontSize: 11, letterSpacing: "0.3em",
             textTransform: "uppercase", fontWeight: 500, marginBottom: 16,
           }}>
-            Erro · Afinanças
+            Erro · NUMVI Finanças
           </div>
           <h1 style={{
             fontFamily: T.serif, fontSize: 36, color: T.ink,

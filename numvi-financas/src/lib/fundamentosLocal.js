@@ -1,7 +1,7 @@
 /* ============================================================
    FUNDAMENTOS (local) · base de curadoria pessoal + classificação
 
-   Versão do Afinanças (app pessoal, 1 usuário). Diferente do Aureus:
+   Versão do NUMVI Finanças (app pessoal, 1 usuário). Diferente do Aureus:
    - NÃO usa servidor/admin nem service_role. Os fundamentos e a
      metodologia ficam no próprio navegador (localStorage), junto com o
      resto do estado pessoal.

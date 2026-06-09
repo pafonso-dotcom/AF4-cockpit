@@ -1,5 +1,5 @@
 /**
- * Gestor (admin) do produto comercial Afinanças.
+ * Gestor (admin) do produto comercial NUMVI Finanças.
  * O gestor vê o painel "Gerencial" e as Configurações; os clientes não.
  *
  * Sobrescreva no build com VITE_GESTOR_EMAILS (lista separada por vírgula).
