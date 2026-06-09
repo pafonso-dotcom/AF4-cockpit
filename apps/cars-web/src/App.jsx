@@ -978,6 +978,8 @@ export default function App() {
                 agenda={agenda} tarefas={tarefas} ideias={ideias}
                 compras={compras} metas={metas}
                 setTab={setTab}
+                lembretes={lembretes}
+                treinos={treinos}
               />
             )}
             {tab === "notas" && (
