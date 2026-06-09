@@ -1,7 +1,12 @@
 # Design · Lógica compartilhada entre os apps (`packages/core`)
 
+> ⚠️ **SUPERADO em 2026-06-09.** Esta abordagem foi descartada. Decidiu-se manter
+> os dois apps **independentes** (sem código compartilhado). Ver
+> `2026-06-09-apps-independentes-decisao.md` e o `CLAUDE.md` na raiz.
+> Documento mantido só como registro histórico.
+
 **Data:** 2026-06-09
-**Status:** Aprovado (design) — aguardando plano de implementação
+**Status:** SUPERADO — não implementar
 
 ## Problema
 
