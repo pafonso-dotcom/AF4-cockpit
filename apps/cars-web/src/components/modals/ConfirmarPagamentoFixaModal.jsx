@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { Check } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, todayISO } from "../../lib/format.js";
-import { parseValorBR } from "../../lib/importExport.js";
 import { toast } from "../../lib/toast.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
+import MoneyInput from "../ui/MoneyInput.jsx";
 
 const MES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
@@ -33,12 +33,12 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
   })();
 
   const [dataPagto, setDataPagto] = useState(hojeISO);
-  const [valorPagoStr, setValorPagoStr] = useState(String(ocorrencia.valor ?? ""));
+  const [valorPagoForm, setValorPagoForm] = useState(ocorrencia.valor ?? "");
   const [lancarNoBanco, setLancarNoBanco] = useState(lancarDefault);
   const contaInicial = fixa?.contaPadrao || (contas && contas[0]?.nome) || "";
   const [conta, setConta] = useState(contaInicial);
 
-  const valorPago = parseValorBR(valorPagoStr);
+  const valorPago = Number(valorPagoForm) || 0;
 
   const [m, a] = (() => {
     const [an, mn] = (ocorrencia.mes || "").split("-");
@@ -46,7 +46,7 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
   })();
 
   const confirmar = () => {
-    if (isNaN(valorPago) || valorPago <= 0) {
+    if (valorPago <= 0) {
       toast.error("Valor pago inválido.");
       return;
     }
@@ -84,9 +84,8 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
           <input type="date" value={dataPagto}
                  onChange={e => setDataPagto(e.target.value)} />
         </Field>
-        <Field label="Valor pago (R$)" required hint="Aceita 1500 · 1.500,00">
-          <input type="text" inputMode="decimal" value={valorPagoStr}
-                 onChange={e => setValorPagoStr(e.target.value)} />
+        <Field label="Valor pago (R$)" required hint="Só números · centavos automáticos">
+          <MoneyInput value={valorPagoForm} onChange={setValorPagoForm} />
         </Field>
       </div>
 

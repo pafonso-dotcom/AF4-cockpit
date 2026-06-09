@@ -5,7 +5,7 @@ import { fmt, fmtN, uid, todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import { gerarOcorrencias } from "../../lib/fixas.js";
-import { parseValorBR } from "../../lib/importExport.js";
+import MoneyInput from "../ui/MoneyInput.jsx";
 import { valorCdbHoje, getCdiAnual } from "../../lib/cdbMeta.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
@@ -279,7 +279,7 @@ export default function Metas({
   const confirmarResgate = () => {
     const m = resgate.meta;
     const cofre = cofreDe(m);
-    const valor = parseValorBR(resgate.valor) || 0;
+    const valor = Number(resgate.valor) || 0;
     const disponivel = Number(cofre?.saldo) || 0;
     if (!cofre) { toast.error("Esta meta ainda não tem cofrinho (faça ao menos um aporte)."); return; }
     if (!(valor > 0)) { toast.error("Informe um valor válido."); return; }
@@ -479,7 +479,7 @@ export default function Metas({
                     {setContas && setTransacoes && (
                       <button onClick={() => setResgate({
                                 meta: m, modo: "usar",
-                                valor: String(saldoCofre),
+                                valor: saldoCofre,
                                 categoria: categorias.filter(c => c.tipo === "despesa")[0]?.nome || "Outros",
                                 contaDestino: (contas || []).find(c => c.nome !== cofre.nome)?.nome || "",
                                 obs: "",
@@ -668,7 +668,7 @@ export default function Metas({
       {resgate && (() => {
         const cofre = cofreDe(resgate.meta);
         const disponivel = Number(cofre?.saldo) || 0;
-        const valor = parseValorBR(resgate.valor) || 0;
+        const valor = Number(resgate.valor) || 0;
         const invalido = !(valor > 0) || valor > disponivel + 0.005;
         const isUsar = resgate.modo === "usar";
         return (
@@ -701,9 +701,7 @@ export default function Metas({
             </div>
 
             <Field label="Valor (R$)" required hint={`Máx. ${fmt(disponivel)}`}>
-              <input type="text" inputMode="decimal" value={resgate.valor}
-                     onChange={e => setResgate({ ...resgate, valor: e.target.value })}
-                     placeholder={String(disponivel)} />
+              <MoneyInput value={resgate.valor} onChange={v => setResgate({ ...resgate, valor: v })} />
             </Field>
 
             {isUsar ? (

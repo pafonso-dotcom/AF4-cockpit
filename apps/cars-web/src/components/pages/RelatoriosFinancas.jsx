@@ -4,8 +4,18 @@ import { fmt } from "../../lib/format.js";
 import { BarChartDouble, BarChart, HorizontalBarList, ReportCard, ReportGrid } from "../ui/Charts.jsx";
 import { toPDF, toCSV, toPNG, hasPNGSupport } from "../../lib/exportRelatorio.js";
 import { toast } from "../../lib/toast.js";
-import { getKPIsMes, getDespesasDoMes } from "../../lib/agregador.js";
+import { getKPIsMes, getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
+import { printHTML } from "../../lib/importExport.js";
+
+const MESES_PROJ = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+// Agrupamento da projeção por origem do compromisso.
+const FONTE_LABEL = { fixa: "Fixas", parcela: "Parcelas", divida: "Dívidas", transacao: "Avulsas previstas" };
+const FONTE_ORDEM = ["fixa", "parcela", "divida", "transacao"];
+// Fonte arredondada (nativa em Apple via ui-rounded / SF Pro Rounded; cai pra system-ui fora).
+const FONTE_ARRED = 'ui-rounded, "SF Pro Rounded", "Hiragino Maru Gothic ProN", "Varela Round", "Nunito", system-ui, -apple-system, sans-serif';
+// Equivalente para a janela de impressão.
+const FONTE_ARRED_PRINT = "ui-rounded,'SF Pro Rounded','Varela Round','Nunito',system-ui,-apple-system,Segoe UI,Roboto,sans-serif";
 import EvolucaoPatrimonio from "./Invest/EvolucaoPatrimonio.jsx";
 
 /**
@@ -161,6 +171,130 @@ export default function RelatoriosFinancas({
     return meses;
   }, [transacoes, fixas, fixaOcorrencias, parcelamentos, dividas, devedores]);
 
+  // ===== Projeção · Meses a vencer — por categoria (matriz categoria × mês) =====
+  const proximosMeses = useMemo(() => {
+    const out = [];
+    const now = new Date();
+    for (let i = 1; i <= 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      out.push({ iso: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: `${MESES_PROJ[d.getMonth()]}/${String(d.getFullYear()).slice(2)}` });
+    }
+    return out;
+  }, []);
+
+  const projecao = useMemo(() => {
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores };
+    const map = {}; // chave: `${fonte}||${categoria}`
+    proximosMeses.forEach(m => {
+      let desp = [];
+      try { desp = getDespesasDoMes(m.iso, state, escopoAtivo); } catch {}
+      desp.forEach(d => {
+        const fonte = FONTE_LABEL[d.fonte] ? d.fonte : "transacao";
+        const cat = d.categoria || "Outros";
+        const key = `${fonte}||${cat}`;
+        const r = map[key] || (map[key] = { fonte, cat, porMes: {}, total: 0 });
+        const v = Number(d.valor) || 0;
+        r.porMes[m.iso] = (r.porMes[m.iso] || 0) + v;
+        r.total += v;
+      });
+    });
+    const n = proximosMeses.length || 1;
+    const todas = Object.values(map).filter(r => r.total > 0).map(r => ({ ...r, media: r.total / n }));
+    // Agrupa por fonte (Fixas, Parcelas, Dívidas, Avulsas), com subtotais.
+    const grupos = FONTE_ORDEM.map(fonte => {
+      const rows = todas.filter(r => r.fonte === fonte).sort((a, b) => b.total - a.total);
+      if (!rows.length) return null;
+      const subTotal = rows.reduce((s, r) => s + r.total, 0);
+      const subPorMes = proximosMeses.map(m => rows.reduce((s, r) => s + (r.porMes[m.iso] || 0), 0));
+      return { fonte, label: FONTE_LABEL[fonte], rows, subTotal, subMedia: subTotal / n, subPorMes };
+    }).filter(Boolean);
+    const totaisMes = proximosMeses.map(m => todas.reduce((s, r) => s + (r.porMes[m.iso] || 0), 0));
+    const totalGeral = todas.reduce((s, r) => s + r.total, 0);
+
+    // ===== A receber (entradas previstas) — por categoria =====
+    const recMap = {};
+    proximosMeses.forEach(m => {
+      let gan = [];
+      try { gan = getGanhosDoMes(m.iso, state, escopoAtivo); } catch {}
+      gan.forEach(g => {
+        const cat = g.categoria || "Receita";
+        const r = recMap[cat] || (recMap[cat] = { cat, porMes: {}, total: 0 });
+        const v = Number(g.valor) || 0;
+        r.porMes[m.iso] = (r.porMes[m.iso] || 0) + v;
+        r.total += v;
+      });
+    });
+    const recRows = Object.values(recMap).filter(r => r.total > 0)
+      .map(r => ({ ...r, media: r.total / n })).sort((a, b) => b.total - a.total);
+    const receber = recRows.length ? {
+      rows: recRows,
+      subPorMes: proximosMeses.map(m => recRows.reduce((s, r) => s + (r.porMes[m.iso] || 0), 0)),
+      subTotal: recRows.reduce((s, r) => s + r.total, 0),
+      subMedia: recRows.reduce((s, r) => s + r.total, 0) / n,
+    } : null;
+
+    // ===== Saldo previsto (entradas − saídas) =====
+    const saldoMes = proximosMeses.map((m, i) => (receber ? receber.subPorMes[i] : 0) - totaisMes[i]);
+    const saldoTotal = (receber ? receber.subTotal : 0) - totalGeral;
+
+    return { grupos, totaisMes, totalGeral, media: totalGeral / n, receber, saldoMes, saldoTotal, saldoMedia: saldoTotal / n, vazio: todas.length === 0 && !receber };
+  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, escopoAtivo, proximosMeses]);
+
+  const periodoLabel = proximosMeses.length
+    ? `${proximosMeses[0].label} a ${proximosMeses[proximosMeses.length - 1].label}` : "";
+
+  // Imprime a projeção (agrupada) numa única folha A4 (paisagem).
+  const imprimirProjecao = () => {
+    const esc = (s) => String(s ?? "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+    const cel = (v) => v ? esc(fmt(v)) : "—";
+    const ths = proximosMeses.map(m => `<th>${esc(m.label)}</th>`).join("");
+    const corpo = projecao.grupos.map(g => {
+      const linhas = g.rows.map(r =>
+        `<tr><td class="cat">${esc(r.cat)}</td>${proximosMeses.map(m => `<td class="n">${cel(r.porMes[m.iso])}</td>`).join("")}<td class="n">${esc(fmt(r.media))}</td><td class="n tot">${esc(fmt(r.total))}</td></tr>`
+      ).join("");
+      const sub = `<tr class="sub"><td>${esc(g.label)} · subtotal</td>${g.subPorMes.map(v => `<td class="n">${cel(v)}</td>`).join("")}<td class="n">${esc(fmt(g.subMedia))}</td><td class="n">${esc(fmt(g.subTotal))}</td></tr>`;
+      const head = `<tr class="grp"><td colspan="${proximosMeses.length + 3}">${esc(g.label)}</td></tr>`;
+      return head + linhas + sub;
+    }).join("");
+    const rodape = `<tr class="tfoot"><td>TOTAL SAÍDAS</td>${proximosMeses.map((m, i) => `<td class="n">${cel(projecao.totaisMes[i])}</td>`).join("")}<td class="n">${esc(fmt(projecao.media))}</td><td class="n">${esc(fmt(projecao.totalGeral))}</td></tr>`;
+    let receberHtml = "";
+    if (projecao.receber) {
+      const r = projecao.receber;
+      const linhas = r.rows.map(x =>
+        `<tr><td class="cat">${esc(x.cat)}</td>${proximosMeses.map(m => `<td class="n">${cel(x.porMes[m.iso])}</td>`).join("")}<td class="n">${esc(fmt(x.media))}</td><td class="n tot">${esc(fmt(x.total))}</td></tr>`
+      ).join("");
+      const sub = `<tr class="sub"><td>A receber · subtotal</td>${r.subPorMes.map(v => `<td class="n">${cel(v)}</td>`).join("")}<td class="n">${esc(fmt(r.subMedia))}</td><td class="n">${esc(fmt(r.subTotal))}</td></tr>`;
+      receberHtml = `<tr class="grp grp-rec"><td colspan="${proximosMeses.length + 3}">A receber (entradas previstas)</td></tr>${linhas}${sub}`;
+    }
+    const saldo = `<tr class="saldo"><td>SALDO PREVISTO</td>${projecao.saldoMes.map(v => `<td class="n ${v < 0 ? "neg" : "pos"}">${esc(fmt(v))}</td>`).join("")}<td class="n">${esc(fmt(projecao.saldoMedia))}</td><td class="n ${projecao.saldoTotal < 0 ? "neg" : "pos"}">${esc(fmt(projecao.saldoTotal))}</td></tr>`;
+    printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Projeção · Meses a Vencer</title>
+<style>
+@page { size: A4 landscape; margin: 9mm; }
+body { font-family:${FONTE_ARRED_PRINT}; color:#111; margin:0; }
+h1 { font-size:15px; margin:0 0 2px; }
+.sub-head { color:#666; font-size:10.5px; margin:0 0 8px; }
+table { width:100%; border-collapse:collapse; font-size:10.5px; }
+th,td { padding:3px 6px; border-bottom:1px solid #e5e5e5; }
+th { text-transform:uppercase; font-size:8.5px; letter-spacing:.04em; color:#666; text-align:right; }
+th:first-child, td.cat { text-align:left; }
+td.cat { padding-left:14px; }
+td.n { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+td.tot { font-weight:700; }
+tr.grp td { background:#f1ede6; font-weight:700; text-transform:uppercase; font-size:9px; letter-spacing:.05em; border-bottom:1px solid #d8cfbf; }
+tr.grp-rec td { background:#e9f0ea; border-bottom:1px solid #cfe0d2; }
+tr.sub td { font-weight:600; border-top:1px solid #ccc; background:#faf8f4; }
+.tfoot td { font-weight:700; border-top:2px solid #111; border-bottom:none; font-size:11px; }
+tr.saldo td { font-weight:700; border-top:1px solid #111; border-bottom:none; font-size:11px; background:#fbfaf7; }
+td.pos { color:#1f7a44; }
+td.neg { color:#b3261e; }
+</style></head><body>
+<h1>Projeção · Meses a Vencer — por categoria</h1>
+<div class="sub-head">Saídas previstas (fixas, parcelas, dívidas, avulsas) e entradas a receber · ${esc(periodoLabel)} · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</div>
+<table><thead><tr><th>Categoria</th>${ths}<th>Média/mês</th><th>Total</th></tr></thead>
+<tbody>${corpo}${rodape}${receberHtml}${saldo}</tbody></table>
+</body></html>`);
+  };
+
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
       <div className="eb">Finanças · Relatórios</div>
@@ -170,6 +304,115 @@ export default function RelatoriosFinancas({
       {/* Evolução do patrimônio (snapshot diário) — visão de longo prazo */}
       <div style={{ marginTop: 16 }}>
         <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} />
+      </div>
+
+      {/* Projeção · Meses a vencer — por categoria (matriz, imprime em 1 folha A4) */}
+      <div style={{ marginTop: 16, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)", fontFamily: FONTE_ARRED }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+          <div>
+            <div style={{ fontSize: 11, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Projeção · Meses a vencer</div>
+            <div style={{ fontFamily: FONTE_ARRED, fontSize: 17, fontWeight: 700, color: T.ink }}>Por categoria · {periodoLabel}</div>
+          </div>
+          <button onClick={imprimirProjecao} className="btn-gold" style={{ padding: "8px 14px", fontSize: 12 }}>
+            🖨️ Imprimir (A4 · 1 folha)
+          </button>
+        </div>
+        {projecao.vazio ? (
+          <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 12.5 }}>
+            Sem compromissos previstos (fixas, parcelas, dívidas) nos próximos 6 meses.
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table className="tbl" style={{ width: "100%", minWidth: 760, fontSize: 12 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left" }}>Categoria</th>
+                  {proximosMeses.map(m => <th key={m.iso} style={{ textAlign: "right" }}>{m.label}</th>)}
+                  <th style={{ textAlign: "right" }}>Média/mês</th>
+                  <th style={{ textAlign: "right" }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projecao.grupos.map(g => (
+                  <React.Fragment key={g.fonte}>
+                    <tr>
+                      <td colSpan={proximosMeses.length + 3} style={{ background: T.bgSoft, color: T.ink, fontWeight: 700, textTransform: "uppercase", fontSize: 10, letterSpacing: ".08em", padding: "6px 8px" }}>
+                        {g.label}
+                      </td>
+                    </tr>
+                    {g.rows.map((r, idx) => (
+                      <tr key={r.cat}>
+                        <td style={{ color: T.ink, fontWeight: idx === 0 ? 700 : 500, paddingLeft: 14 }}>{r.cat}</td>
+                        {proximosMeses.map(m => (
+                          <td key={m.iso} className="num" style={{ textAlign: "right", color: r.porMes[m.iso] ? T.muted : T.faint }}>
+                            {r.porMes[m.iso] ? (hidden ? "•••" : fmt(r.porMes[m.iso])) : "—"}
+                          </td>
+                        ))}
+                        <td className="num" style={{ textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmt(r.media)}</td>
+                        <td className="num" style={{ textAlign: "right", color: T.ink, fontWeight: 700 }}>{hidden ? "•••" : fmt(r.total)}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td style={{ fontWeight: 600, color: T.muted, fontSize: 11.5, paddingLeft: 14, borderTop: `1px solid ${T.border}` }}>{g.label} · subtotal</td>
+                      {g.subPorMes.map((v, i) => (
+                        <td key={i} className="num" style={{ textAlign: "right", fontWeight: 600, color: T.muted, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : (v ? fmt(v) : "—")}</td>
+                      ))}
+                      <td className="num" style={{ textAlign: "right", fontWeight: 600, color: T.muted, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : fmt(g.subMedia)}</td>
+                      <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : fmt(g.subTotal)}</td>
+                    </tr>
+                  </React.Fragment>
+                ))}
+                <tr style={{ borderTop: `2px solid ${T.border}` }}>
+                  <td style={{ fontWeight: 700, color: T.ink, textTransform: "uppercase", fontSize: 10.5, letterSpacing: ".05em" }}>Total saídas</td>
+                  {proximosMeses.map((m, i) => (
+                    <td key={m.iso} className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(projecao.totaisMes[i])}</td>
+                  ))}
+                  <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(projecao.media)}</td>
+                  <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.gold }}>{hidden ? "•••" : fmt(projecao.totalGeral)}</td>
+                </tr>
+
+                {projecao.receber && (
+                  <>
+                    <tr>
+                      <td colSpan={proximosMeses.length + 3} style={{ background: "rgba(31,122,68,.08)", color: T.ink, fontWeight: 700, textTransform: "uppercase", fontSize: 10, letterSpacing: ".08em", padding: "6px 8px" }}>
+                        A receber (entradas previstas)
+                      </td>
+                    </tr>
+                    {projecao.receber.rows.map((r, idx) => (
+                      <tr key={r.cat}>
+                        <td style={{ color: T.ink, fontWeight: idx === 0 ? 700 : 500, paddingLeft: 14 }}>{r.cat}</td>
+                        {proximosMeses.map(m => (
+                          <td key={m.iso} className="num" style={{ textAlign: "right", color: r.porMes[m.iso] ? T.muted : T.faint }}>
+                            {r.porMes[m.iso] ? (hidden ? "•••" : fmt(r.porMes[m.iso])) : "—"}
+                          </td>
+                        ))}
+                        <td className="num" style={{ textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmt(r.media)}</td>
+                        <td className="num" style={{ textAlign: "right", color: T.ink, fontWeight: 700 }}>{hidden ? "•••" : fmt(r.total)}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td style={{ fontWeight: 600, color: T.muted, fontSize: 11.5, paddingLeft: 14, borderTop: `1px solid ${T.border}` }}>A receber · subtotal</td>
+                      {projecao.receber.subPorMes.map((v, i) => (
+                        <td key={i} className="num" style={{ textAlign: "right", fontWeight: 600, color: T.muted, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : (v ? fmt(v) : "—")}</td>
+                      ))}
+                      <td className="num" style={{ textAlign: "right", fontWeight: 600, color: T.muted, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : fmt(projecao.receber.subMedia)}</td>
+                      <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : fmt(projecao.receber.subTotal)}</td>
+                    </tr>
+                  </>
+                )}
+
+                <tr style={{ borderTop: `2px solid ${T.ink}` }}>
+                  <td style={{ fontWeight: 700, color: T.ink, textTransform: "uppercase", fontSize: 10.5, letterSpacing: ".05em" }}>Saldo previsto</td>
+                  {projecao.saldoMes.map((v, i) => (
+                    <td key={i} className="num" style={{ textAlign: "right", fontWeight: 700, color: v < 0 ? "#b3261e" : "#1f7a44" }}>{hidden ? "•••" : fmt(v)}</td>
+                  ))}
+                  <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(projecao.saldoMedia)}</td>
+                  <td className="num" style={{ textAlign: "right", fontWeight: 700, color: projecao.saldoTotal < 0 ? "#b3261e" : "#1f7a44" }}>{hidden ? "•••" : fmt(projecao.saldoTotal)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <ReportGrid>

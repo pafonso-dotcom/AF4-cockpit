@@ -7,6 +7,7 @@ import { audit } from "../../lib/auditLog.js";
 import { toast } from "../../lib/toast.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
+import MoneyInput from "../ui/MoneyInput.jsx";
 
 /**
  * Modal de transação por voz.
@@ -109,7 +110,7 @@ export default function VoiceTransacao({ contas, categorias, transacoes, setTran
       setForma({
         tipo: result.tipo || "despesa",
         descricao: result.descricao || "",
-        valor: String(result.valor ?? 0).replace(".", ","),
+        valor: Number(result.valor) || 0,
         data: result.data || todayISO(),
         categoria: result.categoria || "Outros",
         conta: result.conta || contas[0]?.nome || "",
@@ -124,7 +125,7 @@ export default function VoiceTransacao({ contas, categorias, transacoes, setTran
 
   const confirmar = () => {
     if (!forma.descricao || !forma.valor) { toast.error("Descrição e valor obrigatórios."); return; }
-    const valorNum = parseFloat(String(forma.valor).replace(",", ".")) || 0;
+    const valorNum = Number(forma.valor) || 0;
     if (valorNum <= 0) { toast.error("Valor inválido."); return; }
     const tx = {
       id: uid(), tipo: forma.tipo, descricao: forma.descricao,
@@ -245,8 +246,7 @@ export default function VoiceTransacao({ contas, categorias, transacoes, setTran
                 onChange={e => setForma({ ...forma, descricao: e.target.value })} />
             </Field>
             <Field label="Valor (R$) *">
-              <input type="text" inputMode="decimal" value={forma.valor}
-                onChange={e => setForma({ ...forma, valor: e.target.value })} />
+              <MoneyInput value={forma.valor} onChange={v => setForma({ ...forma, valor: v })} />
             </Field>
             <Field label="Data">
               <input type="date" value={forma.data}

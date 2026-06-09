@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Plus, Trash2, Edit3, Check, X, MessageCircle } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
-import { parseValorBR } from "../../lib/importExport.js";
+import MoneyInput from "../ui/MoneyInput.jsx";
 import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
 import { whatsapp } from "../../lib/whatsapp.js";
@@ -80,8 +80,8 @@ export default function AReceberEDividas({
   /* ===== Salvar novo/editar ===== */
   const save = () => {
     if (!form.nome?.trim()) { toast.error("Nome obrigatório."); return; }
-    const valor = parseValorBR(form.valor);
-    if (isNaN(valor) || valor <= 0) { toast.error("Valor inválido."); return; }
+    const valor = Number(form.valor) || 0;
+    if (valor <= 0) { toast.error("Valor inválido."); return; }
 
     // Determina N de parcelas: prioriza UI nova (form.parcelar + form.numParcelas),
     // mas mantém compat com string "1/N" no campo "parcela".
@@ -259,7 +259,7 @@ export default function AReceberEDividas({
 
     // Valor da baixa: no parcial usa valorParcial; senão o saldo em aberto/valor do form
     let valor = ehParcial
-      ? parseFloat((baixaForm.valorParcial || "").toString().replace(",", "."))
+      ? (Number(baixaForm.valorParcial) || 0)
       : (parseFloat(baixaForm.valor) || 0);
 
     if (ehParcial) {
@@ -967,7 +967,7 @@ export default function AReceberEDividas({
                       jaRecebido,
                       valorTotalOriginal: parseFloat(d.valor) || 0,
                       parcial: false,
-                      valorParcial: String(saldoAberto),
+                      valorParcial: saldoAberto,
                     });
                   }}
                   onEditar={() => setForm({ ...d, tipo: "receber" })}
@@ -1114,10 +1114,8 @@ export default function AReceberEDividas({
             </Field>
           )}
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Valor (R$)" required hint="Aceita 1500 · 1.500,00">
-              <input type="text" inputMode="decimal" value={form.valor}
-                     onChange={e => setForm({ ...form, valor: e.target.value })}
-                     placeholder="1.500,00" />
+            <Field label="Valor (R$)" required hint="Só números · centavos automáticos">
+              <MoneyInput value={form.valor} onChange={v => setForm({ ...form, valor: v })} />
             </Field>
             <Field label="Vencimento">
               <input type="date" value={form.vencimento}
@@ -1171,7 +1169,7 @@ export default function AReceberEDividas({
         const saldoAberto = parseFloat(baixaForm.saldoAberto) || (parseFloat(baixaForm.valor) || 0);
         const jaRecebido = parseFloat(baixaForm.jaRecebido) || 0;
         const ehParcial = isReceber && baixaForm.parcial;
-        const valorParcialNum = parseFloat((baixaForm.valorParcial || "").toString().replace(",", ".")) || 0;
+        const valorParcialNum = Number(baixaForm.valorParcial) || 0;
         // Valor efetivo da baixa exibido no resumo
         const valor = ehParcial ? valorParcialNum : (parseFloat(baixaForm.valor) || 0);
         const parcialInvalido = ehParcial && (!(valorParcialNum > 0) || valorParcialNum > saldoAberto + 0.005);
@@ -1227,7 +1225,7 @@ export default function AReceberEDividas({
                          onChange={e => setBaixaForm({
                            ...baixaForm,
                            parcial: e.target.checked,
-                           valorParcial: e.target.checked ? String(saldoAberto) : baixaForm.valorParcial,
+                           valorParcial: e.target.checked ? saldoAberto : baixaForm.valorParcial,
                          })}
                          style={{ width: 18, height: 18, accentColor: T.green, flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
@@ -1243,9 +1241,8 @@ export default function AReceberEDividas({
                 {ehParcial && (
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px dashed ${T.border}` }}>
                     <Field label="Valor a receber agora (R$)" required hint={`Máx. ${fmt(saldoAberto)} (saldo em aberto)`}>
-                      <input type="text" inputMode="decimal" value={baixaForm.valorParcial}
-                             onChange={e => setBaixaForm({ ...baixaForm, valorParcial: e.target.value })}
-                             placeholder={String(saldoAberto)} />
+                      <MoneyInput value={baixaForm.valorParcial}
+                                  onChange={v => setBaixaForm({ ...baixaForm, valorParcial: v })} />
                     </Field>
                     {parcialInvalido ? (
                       <div style={{ fontSize: 11, color: T.red, marginTop: 4 }}>
@@ -1368,7 +1365,7 @@ function ParcelarBlock({ form, setForm }) {
   const isReceber = form.tipo === "receber";
   const ativo = !!form.parcelar;
   const n = Math.max(1, Math.min(96, parseInt(form.numParcelas, 10) || 1));
-  const valorTotal = parseValorBR(form.valor) || 0;
+  const valorTotal = Number(form.valor) || 0;
   const valorPorPar = form.modoValor === "total" && n > 0 ? valorTotal / n : valorTotal;
   const totalGerado = form.modoValor === "total" ? valorTotal : valorTotal * n;
 

@@ -88,7 +88,9 @@ export function parseOFX(text) {
     if (!dataRaw || !valorRaw) continue;
 
     const data = `${dataRaw.slice(0, 4)}-${dataRaw.slice(4, 6)}-${dataRaw.slice(6, 8)}`;
-    const valor = parseFloat(valorRaw);
+    // parseValorBR (não parseFloat): alguns bancos BR gravam TRNAMT com vírgula
+    // decimal ("-150,50"), e parseFloat cortaria os centavos.
+    const valor = parseValorBR(valorRaw);
 
     transacoes.push({
       _id: fitid || `${data}-${valor}-${transacoes.length}`,
@@ -137,22 +139,34 @@ function parseLineCSV(line, delim) {
   return result;
 }
 
+// Converte qualquer texto de valor (BR ou US) em número, PRESERVANDO os
+// centavos. Lida com: "1.234,56" (BR), "1,234.56" (US), "150,50", "150.50",
+// "1.234" (milhar BR sem centavos), "(150,00)" e "150,00 D" (negativos).
 function parseValorBR(v) {
   if (typeof v === "number") return v;
   if (!v) return 0;
-  // Remove R$, espaços, parênteses (que indicam negativo)
-  let s = String(v).trim();
-  const negativo = s.includes("(") || s.startsWith("-") || s.includes("D");
-  s = s.replace(/[R$\s()D]/gi, "").replace(/^-/, "");
-  // Troca vírgula decimal
-  if (s.includes(",") && s.includes(".")) {
-    // 1.234,56 → 1234.56
-    s = s.replace(/\./g, "").replace(",", ".");
-  } else if (s.includes(",")) {
-    s = s.replace(",", ".");
+  const orig = String(v).trim();
+  // Negativo: parênteses, sinal "-" ou marcação "D" (débito) dos extratos BR.
+  const negativo = /^\(.*\)$/.test(orig) || /^-/.test(orig) || /(^|\s)D($|\s)/i.test(orig);
+  // Sobra só dígitos, vírgula e ponto.
+  let s = orig.replace(/[^\d,.]/g, "");
+  if (!s) return 0;
+  const temVirgula = s.includes(",");
+  const temPonto = s.includes(".");
+  if (temVirgula && temPonto) {
+    // O separador que aparecer por ÚLTIMO é o decimal.
+    if (s.lastIndexOf(",") > s.lastIndexOf(".")) s = s.replace(/\./g, "").replace(",", "."); // BR: 1.234,56
+    else s = s.replace(/,/g, ""); // US: 1,234.56
+  } else if (temVirgula) {
+    s = s.replace(",", "."); // 150,50 → 150.50
+  } else if (temPonto) {
+    // Só ponto: é decimal se houver um único ponto com 1–2 casas (150.5 / 150.50).
+    // Caso contrário é separador de milhar (1.234 / 1.234.567) e deve sair.
+    const partes = s.split(".");
+    if (partes.length > 2 || (partes[1] || "").length === 3) s = s.replace(/\./g, "");
   }
   const n = parseFloat(s) || 0;
-  return negativo ? -n : n;
+  return negativo ? -Math.abs(n) : n;
 }
 
 function parseDataBR(d) {
@@ -199,11 +213,26 @@ export function parseCSV(text) {
 
   const transacoes = [];
   for (let i = 1; i < linhas.length; i++) {
-    const cols = parseLineCSV(linhas[i], delim);
+    let cols = parseLineCSV(linhas[i], delim);
     if (cols.length < 2) continue;
 
+    // Arquivo separado por vírgula em que o valor usa vírgula decimal: "150,50"
+    // vira duas colunas ["150","50"] e os centavos somem. Quando a linha tem
+    // exatamente 1 coluna a mais que o cabeçalho e o trecho após o valor são
+    // 1–2 dígitos, juntamos de volta (e corrigimos o índice da descrição).
+    let iDesc = idxDesc;
+    if (delim === "," && cols.length === header.length + 1
+        && /^\d+$/.test(cols[idxValor] || "") && /^\d{1,2}$/.test(cols[idxValor + 1] || "")) {
+      cols = [
+        ...cols.slice(0, idxValor),
+        `${cols[idxValor]},${cols[idxValor + 1]}`,
+        ...cols.slice(idxValor + 2),
+      ];
+      if (iDesc > idxValor) iDesc -= 1; // descrição depois do valor deslocou 1
+    }
+
     const data = parseDataBR(cols[idxData]);
-    const desc = idxDesc >= 0 ? cols[idxDesc] : "Transação";
+    const desc = iDesc >= 0 ? cols[iDesc] : "Transação";
     const valor = parseValorBR(cols[idxValor]);
 
     if (!data || !valor) continue;

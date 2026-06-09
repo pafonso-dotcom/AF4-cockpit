@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, todayISO } from "../../lib/format.js";
-import { parseValorBR } from "../../lib/importExport.js";
 import { toast } from "../../lib/toast.js";
 import { gerarOcorrencias } from "../../lib/fixas.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
+import MoneyInput from "../ui/MoneyInput.jsx";
 
 const MES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
@@ -27,7 +27,7 @@ export default function NovaFixaModal({ editing, categorias = [], contas = [], o
   const mesAtualISO = `${anoAtual}-${String(mesAtualIdx + 1).padStart(2, "0")}`;
 
   const [form, setForm] = useState(() => {
-    if (editing) return { ...editing, valor: String(editing.valor ?? "") };
+    if (editing) return { ...editing, valor: editing.valor ?? "" };
     return {
       descricao: "",
       valor: "",
@@ -59,8 +59,8 @@ export default function NovaFixaModal({ editing, categorias = [], contas = [], o
   const validar = () => {
     const e = {};
     if (!form.descricao?.trim()) e.descricao = "Descrição obrigatória";
-    const v = parseValorBR(form.valor);
-    if (form.valor == null || form.valor === "" || isNaN(v) || v <= 0) {
+    const v = Number(form.valor) || 0;
+    if (form.valor == null || form.valor === "" || v <= 0) {
       e.valor = "Valor obrigatório (ex: 1500 ou 1.500,00)";
     }
     const dia = parseInt(form.diaVencimento, 10);
@@ -75,7 +75,7 @@ export default function NovaFixaModal({ editing, categorias = [], contas = [], o
       toast.error("Verifique os campos destacados.");
       return;
     }
-    const valorNum = parseValorBR(form.valor);
+    const valorNum = Number(form.valor) || 0;
     const fixaData = {
       ...form,
       valor: valorNum,
@@ -122,10 +122,8 @@ export default function NovaFixaModal({ editing, categorias = [], contas = [], o
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Valor (R$)" required error={errs.valor} hint="Aceita 1500 · 1.500,00">
-          <input type="text" inputMode="decimal" value={form.valor}
-                 onChange={e => setForm({ ...form, valor: e.target.value })}
-                 placeholder="2.200,00" />
+        <Field label="Valor (R$)" required error={errs.valor} hint="Só números · centavos automáticos">
+          <MoneyInput value={form.valor} onChange={v => setForm({ ...form, valor: v })} />
         </Field>
         <Field label="Dia de vencimento" required error={errs.diaVencimento} hint="1 a 31">
           <input type="number" min="1" max="31" value={form.diaVencimento}

@@ -1,7 +1,25 @@
 import { describe, it, expect } from "vitest";
-import { fmt, fmtN, fmtP, uid, todayISO, simulateTick } from "../format.js";
+import { fmt, fmtN, fmtP, uid, todayISO, simulateTick, digitosParaValor } from "../format.js";
 
 describe("format helpers", () => {
+  describe("digitosParaValor (máscara caixa)", () => {
+    it("trata os 2 últimos dígitos como centavos", () => {
+      expect(digitosParaValor("150050")).toBe(1500.5);
+      expect(digitosParaValor("1500")).toBe(15);
+      expect(digitosParaValor("99")).toBe(0.99);
+      expect(digitosParaValor("1")).toBe(0.01);
+    });
+    it("ignora tudo que não é dígito", () => {
+      expect(digitosParaValor("R$ 1.500,50")).toBe(1500.5);
+      expect(digitosParaValor("abc")).toBe(0);
+    });
+    it("vazio/null viram 0", () => {
+      expect(digitosParaValor("")).toBe(0);
+      expect(digitosParaValor(null)).toBe(0);
+      expect(digitosParaValor(undefined)).toBe(0);
+    });
+  });
+
   describe("fmt (currency)", () => {
     it("formats Brazilian Real by default", () => {
       expect(fmt(1234.56)).toMatch(/R\$\s?1\.234,56/);

@@ -18,6 +18,14 @@ export const uid = () =>
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);
 
+/* Máscara de moeda "estilo caixa": pega só os dígitos digitados e trata os
+   2 últimos como centavos. Ex.: "150050" → 1500.50, "1500" → 15.00, "" → 0. */
+export const digitosParaValor = (str) => {
+  const digits = String(str ?? "").replace(/\D/g, "");
+  if (!digits) return 0;
+  return parseInt(digits, 10) / 100;
+};
+
 /* Simulação de variação de preço (fallback quando APIs não respondem) */
 export const simulateTick = (preco, vol = 0.015) => {
   const drift = (Math.random() - 0.5) * 2 * vol;
