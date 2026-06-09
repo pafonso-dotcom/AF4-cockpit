@@ -190,7 +190,8 @@ export default function RelatoriosFinancas({
       try { desp = getDespesasDoMes(m.iso, state, escopoAtivo); } catch {}
       desp.forEach(d => {
         const fonte = FONTE_LABEL[d.fonte] ? d.fonte : "transacao";
-        const cat = d.categoria || "Outros";
+        // Se o lançamento tem subcategoria (filha), mostra o nome dela no lugar da categoria.
+        const cat = (d.subcategoria || "").trim() || d.categoria || "Outros";
         const key = `${fonte}||${cat}`;
         const r = map[key] || (map[key] = { fonte, cat, porMes: {}, total: 0 });
         const v = Number(d.valor) || 0;
@@ -217,7 +218,7 @@ export default function RelatoriosFinancas({
       let gan = [];
       try { gan = getGanhosDoMes(m.iso, state, escopoAtivo); } catch {}
       gan.forEach(g => {
-        const cat = g.categoria || "Receita";
+        const cat = (g.subcategoria || "").trim() || g.categoria || "Receita";
         const r = recMap[cat] || (recMap[cat] = { cat, porMes: {}, total: 0 });
         const v = Number(g.valor) || 0;
         r.porMes[m.iso] = (r.porMes[m.iso] || 0) + v;

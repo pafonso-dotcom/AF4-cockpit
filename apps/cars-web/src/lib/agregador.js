@@ -167,6 +167,7 @@ export function getDespesasDoMes(mesISO, state = {}, escopo) {
       valor: Number(t.valor) || 0,
       status,
       categoria: t.categoria || "Outros",
+      subcategoria: t.subcategoria || "",
     });
   });
 
@@ -211,6 +212,7 @@ export function getGanhosDoMes(mesISO, state = {}, escopo) {
       data: t.data, valor: Number(t.valor) || 0,
       status: t.compensado ? "paga" : "pendente",
       categoria: t.categoria || "Receita",
+      subcategoria: t.subcategoria || "",
     });
   });
 
