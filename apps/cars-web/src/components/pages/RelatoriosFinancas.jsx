@@ -190,8 +190,10 @@ export default function RelatoriosFinancas({
       try { desp = getDespesasDoMes(m.iso, state, escopoAtivo); } catch {}
       desp.forEach(d => {
         const fonte = FONTE_LABEL[d.fonte] ? d.fonte : "transacao";
-        // Se o lançamento tem subcategoria (filha), mostra o nome dela no lugar da categoria.
-        const cat = (d.subcategoria || "").trim() || d.categoria || "Outros";
+        // Com subcategoria (filha), mostra "Pai › Filha"; senão só a categoria.
+        const base = d.categoria || "Outros";
+        const sub = (d.subcategoria || "").trim();
+        const cat = sub ? `${base} › ${sub}` : base;
         const key = `${fonte}||${cat}`;
         const r = map[key] || (map[key] = { fonte, cat, porMes: {}, total: 0 });
         const v = Number(d.valor) || 0;
@@ -218,7 +220,9 @@ export default function RelatoriosFinancas({
       let gan = [];
       try { gan = getGanhosDoMes(m.iso, state, escopoAtivo); } catch {}
       gan.forEach(g => {
-        const cat = (g.subcategoria || "").trim() || g.categoria || "Receita";
+        const baseG = g.categoria || "Receita";
+        const subG = (g.subcategoria || "").trim();
+        const cat = subG ? `${baseG} › ${subG}` : baseG;
         const r = recMap[cat] || (recMap[cat] = { cat, porMes: {}, total: 0 });
         const v = Number(g.valor) || 0;
         r.porMes[m.iso] = (r.porMes[m.iso] || 0) + v;
