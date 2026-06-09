@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { X, Check } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { todayISO, uid } from "../../lib/format.js";
-import { parseValorBR } from "../../lib/importExport.js";
 import { toast } from "../../lib/toast.js";
+import MoneyInput from "../ui/MoneyInput.jsx";
 
 // Impacto da transação no saldo da conta (0 se pendente).
 function signed(t) {
@@ -25,7 +25,7 @@ export default function NovaTransacaoModal({
   onClose,
 }) {
   const [form, setForm] = useState(() => transacaoEdit
-    ? { ...transacaoEdit, valor: String(transacaoEdit.valor ?? "") }
+    ? { ...transacaoEdit, valor: transacaoEdit.valor ?? "" }
     : {
         id: null, tipo: "despesa", valor: "", descricao: "", categoria: "",
         conta: contaFixa?.nome || contas[0]?.nome || "",
@@ -37,8 +37,8 @@ export default function NovaTransacaoModal({
 
   const salvar = () => {
     if (!form.descricao?.trim()) { toast.error("Descrição é obrigatória."); return; }
-    const v = parseValorBR(form.valor);
-    if (form.valor === "" || form.valor == null || isNaN(v) || v <= 0) {
+    const v = Number(form.valor) || 0;
+    if (form.valor === "" || form.valor == null || v <= 0) {
       toast.error("Informe um valor positivo (ex.: 1.500,00).");
       return;
     }
@@ -137,9 +137,7 @@ export default function NovaTransacaoModal({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
           <div>
             <div style={lbl}>Valor (R$)</div>
-            <input type="text" inputMode="decimal" value={form.valor}
-                   onChange={e => set("valor", e.target.value)}
-                   placeholder="1.500,00" style={inp} />
+            <MoneyInput value={form.valor} onChange={v => set("valor", v)} style={inp} />
           </div>
           <div>
             <div style={lbl}>Data</div>
