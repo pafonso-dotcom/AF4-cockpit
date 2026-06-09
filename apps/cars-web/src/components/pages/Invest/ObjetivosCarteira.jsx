@@ -412,6 +412,17 @@ export default function ObjetivosCarteira({
         </div>
       )}
 
+      {/* Plano deste mês */}
+      <PlanoDeMes
+        tree={tree}
+        distribuicaoAporte={distribuicaoAporte}
+        valorPorNo={valorPorNo}
+        valorAlvo={valorAlvo}
+        aporteN={aporteN}
+        hidden={hidden}
+        onSugerir={(n, v) => abrirSugestao(n, v)}
+      />
+
       {/* Modal Editar/Adicionar nó */}
       {editando && (
         <EditNoModal
@@ -598,122 +609,117 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
   if (modo === "org") {
     return (
       <div style={{
-        background: `linear-gradient(135deg, ${corStatus}22, ${T.card})`,
-        border: `1px solid ${corStatus}`,
-        borderRadius: 6,
-        padding: 6, minWidth: 108, maxWidth: 132,
-        position: "relative",
+        background: T.card,
+        border: `1px solid ${T.border}`,
+        borderTop: `3px solid ${corStatus}`,
+        borderRadius: 10,
+        padding: "12px 14px",
+        minWidth: 160, maxWidth: 220,
+        boxShadow: `0 2px 8px ${corStatus}18`,
       }}>
-        {/* Botão editar — canto sup esq */}
-        <button onClick={() => onEditar(node)} title="Editar"
-                style={{
-                  position: "absolute", top: -6, left: -6,
-                  width: 15, height: 15, borderRadius: "50%",
-                  background: T.card, border: `1px solid ${T.border}`,
-                  color: T.muted, cursor: "pointer",
-                  display: "grid", placeItems: "center",
-                }}>
-          <Edit3 size={8} />
-        </button>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+        {/* Header: ícone + label + % + status */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
           <div style={{
-            width: 18, height: 18, borderRadius: 4,
+            width: 34, height: 34, borderRadius: 8, flexShrink: 0,
             background: `${corClasse}22`, color: corClasse,
-            display: "grid", placeItems: "center", flexShrink: 0,
+            display: "grid", placeItems: "center",
           }}>
-            <Icon size={9} />
+            <Icon size={16} />
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, color: T.ink, lineHeight: 1.15 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.ink, lineHeight: 1.25 }}>
               {node.label}
             </div>
-            <div className="num" style={{ fontSize: 12, color: T.gold, fontWeight: 700, lineHeight: 1.1 }}>
+            <div className="num" style={{ fontSize: 14, color: T.gold, fontWeight: 700, lineHeight: 1.2 }}>
               {Number(node.percent).toFixed(1)}%
             </div>
           </div>
+          {noAlvo && <CheckCircle2 size={15} style={{ color: T.green, flexShrink: 0, marginTop: 2 }} />}
         </div>
 
+        {/* Barra de progresso + valores */}
         {alvo > 0 && (
           <>
-            <div style={{ height: 2, background: T.border, borderRadius: 999, overflow: "hidden", marginTop: 2 }}>
-              <div style={{ width: `${pctAlvo}%`, height: "100%", background: corStatus, transition: "width .4s" }} />
+            <div style={{ height: 8, background: T.border, borderRadius: 999, overflow: "hidden" }}>
+              <div style={{
+                width: `${pctAlvo}%`, height: "100%",
+                background: corStatus, borderRadius: 999,
+                transition: "width .4s",
+              }} />
             </div>
-            <div style={{ fontSize: 8.5, color: T.muted, marginTop: 3, textAlign: "center", lineHeight: 1.2 }}>
-              {hidden ? "•••" : fmt(atual)} / {hidden ? "•••" : fmt(alvo)}
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5, fontSize: 11, color: T.muted }}>
+              <span>{hidden ? "•••" : fmt(atual)}</span>
+              <span style={{ color: T.faint }}>{hidden ? "•••" : fmt(alvo)}</span>
             </div>
             {!noAlvo && (
-              <div style={{ fontSize: 8.5, color: corStatus, marginTop: 1, textAlign: "center", fontWeight: 600 }}>
-                {abaixo ? `Falta ${hidden ? "•••" : fmt(-diff)}` : `Sobra ${hidden ? "•••" : fmt(diff)}`}
-              </div>
-            )}
-            {noAlvo && (
-              <div style={{ fontSize: 8.5, color: T.green, marginTop: 1, textAlign: "center", fontWeight: 600 }}>
-                <CheckCircle2 size={8} className="inline mr-1" /> No alvo
+              <div style={{ fontSize: 11.5, color: corStatus, fontWeight: 700, textAlign: "center", marginTop: 3 }}>
+                {abaixo ? `↓ falta ${hidden ? "•••" : fmt(-diff)}` : `↑ sobra ${hidden ? "•••" : fmt(diff)}`}
               </div>
             )}
           </>
         )}
 
-        {/* Aporte sugerido + botão IA — só pra folhas com aporte > 0 */}
+        {/* Aporte sugerido + botão IA */}
         {!temFilhos && temAporte && (
           <div style={{
-            marginTop: 4, padding: "3px 5px",
-            background: `${T.gold}15`, border: `1px solid ${T.gold}55`,
-            borderRadius: 4,
+            marginTop: 10, padding: "8px 10px",
+            background: `${T.gold}12`, border: `1px solid ${T.gold}55`,
+            borderRadius: 7,
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <span style={{ fontSize: 8, color: T.gold, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <span style={{ fontSize: 9.5, color: T.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em" }}>
                 Aportar
               </span>
-              <span style={{ fontSize: 8, color: T.faint }}>
-                {pctDoAporte.toFixed(0)}%
-              </span>
+              <span style={{ fontSize: 9.5, color: T.faint }}>{pctDoAporte.toFixed(0)}%</span>
             </div>
-            <div className="num" style={{ fontSize: 10.5, fontWeight: 700, color: T.gold, lineHeight: 1.1, marginTop: 1 }}>
+            <div className="num" style={{ fontSize: 15, color: T.gold, fontWeight: 700, marginBottom: 6, lineHeight: 1 }}>
               {hidden ? "•••" : fmt(aporteSugerido)}
             </div>
             <button onClick={() => onSugerir(node, aporteSugerido)} title="Sugerir ticker com IA"
                     style={{
-                      marginTop: 3, width: "100%",
-                      background: T.gold, color: T.bg,
-                      border: "none", padding: "2px 4px",
-                      fontSize: 8.5, fontWeight: 700, borderRadius: 3,
+                      width: "100%", background: T.gold, color: T.bg,
+                      border: "none", padding: "5px 8px",
+                      fontSize: 10.5, fontWeight: 700, borderRadius: 5,
                       cursor: "pointer", letterSpacing: ".03em",
-                      display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
                     }}>
-              <Sparkles size={7} /> IA
+              <Sparkles size={10} /> Sugerir com IA
             </button>
           </div>
         )}
 
-        {/* Sem aporte mensal mas abaixo do alvo: botão IA simples */}
+        {/* Sem aporte mas abaixo do alvo: botão IA */}
         {!temFilhos && !temAporte && abaixo && (
-          <button onClick={() => onSugerir(node)} title="Sugerir aporte com IA"
+          <button onClick={() => onSugerir(node)}
                   style={{
-                    marginTop: 4, width: "100%",
-                    background: `${T.gold}22`, color: T.gold,
-                    border: `1px solid ${T.gold}55`, padding: "2px 5px",
-                    fontSize: 9, fontWeight: 700, borderRadius: 4,
+                    marginTop: 8, width: "100%",
+                    background: `${T.gold}15`, color: T.gold,
+                    border: `1px solid ${T.gold}55`, padding: "5px 8px",
+                    fontSize: 10.5, fontWeight: 700, borderRadius: 5,
                     cursor: "pointer",
-                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
                   }}>
-            <Sparkles size={8} /> IA aporte
+            <Sparkles size={10} /> IA aporte
           </button>
         )}
 
-        {/* Ações no rodapé */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 2, marginTop: 4, paddingTop: 3, borderTop: `1px dashed ${T.border}` }}>
-          <button onClick={() => onVer && onVer(node)} title="Ver ativos deste objetivo"
-                  style={iconBtnStyle(T.gold)}>
-            <Eye size={9} />
+        {/* Footer de ações */}
+        <div style={{
+          display: "flex", justifyContent: "center", gap: 6,
+          marginTop: 10, paddingTop: 8, borderTop: `1px dashed ${T.border}`,
+        }}>
+          <button onClick={() => onVer && onVer(node)} title="Ver ativos" style={iconBtnStyle(T.muted)}>
+            <Eye size={13} />
           </button>
           <button onClick={() => onAdicionarFilho(node)} title="Adicionar filho" style={iconBtnStyle(T.muted)}>
-            <Plus size={9} />
+            <Plus size={13} />
+          </button>
+          <button onClick={() => onEditar(node)} title="Editar" style={iconBtnStyle(T.muted)}>
+            <Edit3 size={13} />
           </button>
           <button onClick={() => onExcluir(node)} title="Excluir" disabled={temFilhos}
                   style={{ ...iconBtnStyle(T.red), opacity: temFilhos ? 0.3 : 1 }}>
-            <Trash2 size={9} />
+            <Trash2 size={13} />
           </button>
         </div>
       </div>
@@ -943,6 +949,105 @@ function caminhoNo(node, tree) {
     partes.unshift(cur.label);
   }
   return partes.join(" → ");
+}
+
+/* ============================================================
+   PlanoDeMes — distribuição do aporte mensal por folha
+   ============================================================ */
+function PlanoDeMes({ tree, distribuicaoAporte, valorPorNo, valorAlvo, aporteN, hidden, onSugerir }) {
+  if (aporteN <= 0) return null;
+
+  const folhas = tree
+    .filter(n => !tree.some(c => c.parentId === n.id))
+    .filter(n => (distribuicaoAporte.get(n.id) || 0) > 0.5)
+    .sort((a, b) => (distribuicaoAporte.get(b.id) || 0) - (distribuicaoAporte.get(a.id) || 0));
+
+  if (folhas.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "10px 14px", marginBottom: 12,
+        background: `${T.gold}10`, border: `1px solid ${T.gold}40`,
+        borderLeft: `3px solid ${T.gold}`, borderRadius: 8,
+      }}>
+        <Target size={15} style={{ color: T.gold, flexShrink: 0 }} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: T.gold, textTransform: "uppercase", letterSpacing: ".08em" }}>
+          Plano deste mês
+        </span>
+        <span style={{ fontSize: 11.5, color: T.muted }}>
+          — distribuição de {fmt(aporteN)}
+        </span>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {folhas.map(node => {
+          const sugerido = distribuicaoAporte.get(node.id) || 0;
+          const pctAporte = (sugerido / aporteN) * 100;
+          const cor = corDaClasse(node.classeMatch);
+          const Icon = iconeDaClasse(node.classeMatch);
+          const atual = valorPorNo.get(node.id) || 0;
+          const alvo = valorAlvo.get(node.id) || 0;
+          const pctAlvoAtual = alvo > 0 ? Math.min(100, (atual / alvo) * 100) : 0;
+
+          return (
+            <div key={node.id} style={{
+              background: T.card, border: `1px solid ${T.border}`,
+              borderLeft: `3px solid ${cor}`, borderRadius: 8,
+              padding: "12px 14px",
+              display: "grid", gridTemplateColumns: "auto 1fr auto",
+              gap: 12, alignItems: "center",
+            }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 9,
+                background: `${cor}20`, color: cor,
+                display: "grid", placeItems: "center", flexShrink: 0,
+              }}>
+                <Icon size={17} />
+              </div>
+
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 600, color: T.ink }}>{node.label}</span>
+                  <span style={{
+                    fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                    background: `${cor}18`, color: cor, fontWeight: 700,
+                  }}>
+                    {pctAporte.toFixed(0)}% do aporte
+                  </span>
+                </div>
+                <div style={{ height: 6, background: T.border, borderRadius: 999, overflow: "hidden" }}>
+                  <div style={{
+                    width: `${pctAporte}%`, height: "100%",
+                    background: cor, borderRadius: 999, transition: "width .4s",
+                  }} />
+                </div>
+                <div style={{ fontSize: 10.5, color: T.faint, marginTop: 4 }}>
+                  meta: {hidden ? "•••" : fmt(alvo)} · alocado {pctAlvoAtual.toFixed(0)}%
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+                <div className="num" style={{ fontSize: 17, fontWeight: 700, color: T.gold }}>
+                  {hidden ? "•••" : fmt(sugerido)}
+                </div>
+                <button onClick={() => onSugerir(node, sugerido)}
+                        style={{
+                          background: T.gold, color: T.bg, border: "none",
+                          padding: "5px 10px", fontSize: 10.5, fontWeight: 700,
+                          borderRadius: 5, cursor: "pointer",
+                          display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
+                        }}>
+                  <Sparkles size={9} /> IA
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 /* ============================================================
