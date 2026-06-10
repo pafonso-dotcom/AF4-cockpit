@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   Dumbbell, Plus, Check, Edit3, Trash2, ChevronLeft, ChevronRight,
-  Sparkles, X, Save, Bike, Zap,
+  Sparkles, X, Save, Bike, Zap, Trophy, TrendingUp, TrendingDown, Minus,
 } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { uid, todayISO } from "../../lib/format.js";
@@ -51,6 +51,102 @@ function miniCalendario(mesOffset, treinos) {
   return { label, primeiroDia, totalDias, treinosPorDia, ano, mes };
 }
 
+// 1RM estimado (fórmula de Epley): carga * (1 + reps/30).
+const estimar1RM = (carga, reps) => Math.round((Number(carga) || 0) * (1 + (Number(reps) || 0) / 30));
+
+const dataCurta = (iso) => {
+  try { return new Date(iso + "T00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
+  catch { return iso; }
+};
+
+// Recordes pessoais (PRs) e progressão de carga, derivados do histórico de treinos.
+// Só musculação (onde a carga importa). Para cada exercício: maior carga (peso ×
+// reps + data), 1RM estimado, e a série de carga máxima por sessão (progressão).
+function calcRecordes(treinos, exerciciosDB) {
+  const nomeDe = (id) => exerciciosDB.find(e => e.id === id)?.nome || "Exercício";
+  const sorted = [...treinos].sort((a, b) => (a.data || "").localeCompare(b.data || ""));
+  const porEx = {};
+  sorted.forEach(s => {
+    if (s.modalidade && s.modalidade !== "musculacao") return;
+    (s.exerciciosFeitos || []).forEach(ef => {
+      const series = (ef.series || []).filter(se => (Number(se.carga) || 0) > 0);
+      if (!series.length) return;
+      const exId = ef.exercicioId;
+      const r = porEx[exId] || (porEx[exId] = { exId, nome: nomeDe(exId), prCarga: 0, prReps: 0, prData: null, e1rm: 0, sessoes: [] });
+      let maxCargaSessao = 0;
+      series.forEach(se => {
+        const c = Number(se.carga) || 0, reps = Number(se.reps) || 0;
+        if (c > maxCargaSessao) maxCargaSessao = c;
+        const e1 = estimar1RM(c, reps);
+        if (e1 > r.e1rm) r.e1rm = e1;
+        if (c > r.prCarga) { r.prCarga = c; r.prReps = reps; r.prData = s.data; }
+      });
+      r.sessoes.push({ data: s.data, maxCarga: maxCargaSessao });
+    });
+  });
+  return Object.values(porEx)
+    .filter(r => r.prCarga > 0)
+    .map(r => {
+      const n = r.sessoes.length;
+      const atual = r.sessoes[n - 1]?.maxCarga || 0;
+      const anterior = n > 1 ? r.sessoes[n - 2]?.maxCarga || 0 : null;
+      const delta = anterior != null ? atual - anterior : 0;
+      const novoPR = atual >= r.prCarga && r.sessoes[n - 1]?.data === r.prData;
+      return { ...r, atual, anterior, delta, novoPR };
+    })
+    .sort((a, b) => b.prCarga - a.prCarga);
+}
+
+// Mini gráfico de barras da progressão de carga (últimas N sessões).
+function Sparkline({ valores, cor }) {
+  const vals = valores.slice(-8);
+  const max = Math.max(...vals, 1);
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 28 }}>
+      {vals.map((v, i) => (
+        <div key={i} title={`${v} kg`} style={{
+          width: 6, height: `${Math.max(10, (v / max) * 100)}%`,
+          background: i === vals.length - 1 ? cor : `${cor}66`, borderRadius: 1,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+function RecordeCard({ r, cor }) {
+  const TrendIcon = r.delta > 0 ? TrendingUp : r.delta < 0 ? TrendingDown : Minus;
+  const trendCor = r.delta > 0 ? "#34d399" : r.delta < 0 ? "#f87171" : T.muted;
+  return (
+    <div style={{
+      background: T.card, border: `1px solid ${r.novoPR ? `${T.gold}66` : T.border}`,
+      borderLeft: `3px solid ${cor}`, borderRadius: 8, padding: "10px 14px",
+      display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+    }}>
+      <div style={{ flex: "1 1 160px", minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, display: "flex", alignItems: "center", gap: 6 }}>
+          {r.nome}
+          {r.novoPR && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 9.5, fontWeight: 700, color: T.gold, background: `${T.gold}1a`, padding: "1px 6px", borderRadius: 100 }}>
+              <Trophy size={10} /> novo PR
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+          PR <strong style={{ color: T.ink }}>{r.prCarga} kg</strong> × {r.prReps} · {dataCurta(r.prData)} · 1RM est. {r.e1rm} kg
+        </div>
+      </div>
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: trendCor, fontWeight: 600, flexShrink: 0 }}>
+        <TrendIcon size={14} />
+        {r.atual} kg
+        {r.anterior != null && r.delta !== 0 && (
+          <span style={{ fontSize: 10, opacity: .8 }}>({r.delta > 0 ? "+" : ""}{r.delta})</span>
+        )}
+      </div>
+      <Sparkline valores={r.sessoes.map(s => s.maxCarga)} cor={cor} />
+    </div>
+  );
+}
+
 export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], setExerciciosDB, treinoTemplates = [], setTreinoTemplates, apiKeys = {} }) {
   const [mesOffset, setMesOffset] = useState(0);
   const [sessaoModal, setSessaoModal] = useState(false);
@@ -61,6 +157,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
 
   const sessoesHoje = useMemo(() => treinos.filter(t => t.data === hoje), [treinos, hoje]);
   const ultimos = useMemo(() => [...treinos].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 10), [treinos]);
+  const recordes = useMemo(() => calcRecordes(treinos, exerciciosDB), [treinos, exerciciosDB]);
   const cal = useMemo(() => miniCalendario(mesOffset, treinos), [mesOffset, treinos]);
 
   const iniciarTreino = (template) => {
@@ -209,6 +306,20 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
           <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#fbbf24", marginRight: 4 }} />Parcial</span>
         </div>
       </div>
+
+      {/* Recordes & Progressão (PRs) — musculação */}
+      {recordes.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+            <Trophy size={12} style={{ color: T.gold }} /> Recordes & Progressão
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {recordes.map(r => (
+              <RecordeCard key={r.exId} r={r} cor={MODALIDADE_COR.musculacao} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Histórico */}
       {ultimos.length > 0 && (
