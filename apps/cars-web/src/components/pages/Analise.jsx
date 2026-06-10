@@ -6,7 +6,7 @@ import { fmt, fmtN } from "../../lib/format.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import StatCard from "../ui/StatCard.jsx";
 
-const CLASS_LABEL = { acao: "Ações", fii: "FIIs", stock: "Stocks (US)", reit: "REITs (US)", etf: "ETFs", cripto: "Cripto", tesouro: "Tesouro", cdb: "CDB" };
+const CLASS_LABEL = { acao: "Ações", fii: "FIIs", stock: "Stocks (US)", reit: "REITs (US)", etf: "ETFs", cripto: "Cripto", tesouro: "Tesouro", cdb: "CDB", capitalSocial: "Capital Social" };
 
 // Parâmetros plausíveis por classe: retorno médio anual, volatilidade e cor.
 const CLASS_PARAMS = {
@@ -18,6 +18,7 @@ const CLASS_PARAMS = {
   cripto:  { mean: 0.30, vol: 0.70, cor: "#8b5cf6" },
   tesouro: { mean: 0.11, vol: 0.05, cor: "#22c55e" },
   cdb:     { mean: 0.105, vol: 0.03, cor: "#14b8a6" },
+  capitalSocial: { mean: 0.10, vol: 0.03, cor: "#0d9488" },
 };
 
 const seededRandom = (seed) => {

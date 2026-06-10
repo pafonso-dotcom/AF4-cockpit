@@ -104,6 +104,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
     { v: "stock", l: "Stocks (US)" }, { v: "reit", l: "REITs (US)" },
     { v: "etf", l: "ETFs" },
     { v: "cripto", l: "Cripto" }, { v: "tesouro", l: "Tesouro" }, { v: "cdb", l: "CDB" },
+    { v: "capitalSocial", l: "Capital Social" },
   ];
 
   const filtered = filter === "todos" ? ativos : ativos.filter(a => a.tipo === filter);

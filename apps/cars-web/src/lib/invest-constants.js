@@ -17,6 +17,7 @@ export const ASSET_CLASS_LABELS = {
   rf: "Renda Fixa",
   tesouro: "Tesouro",
   cdb: "CDB",
+  capitalSocial: "Capital Social",
   outro: "Outros",
 };
 
@@ -30,6 +31,7 @@ export const ASSET_CLASS_COLORS = {
   rf: "#06b6d4",
   tesouro: "#22c55e",
   cdb: "#14b8a6",
+  capitalSocial: "#0d9488",
   outro: "#9ca3af",
 };
 

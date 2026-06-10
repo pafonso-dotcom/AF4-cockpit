@@ -252,7 +252,7 @@ function KpiCell({ label, valor, cor }) {
 }
 
 function LinhaAtivo({ ativo, r, hidden, onAnalisar }) {
-  const moeda = ativo.tipo === "acao" || ativo.tipo === "fii" ? "R$" : "US$";
+  const moeda = (ativo.tipo === "stock" || ativo.tipo === "reit") ? "US$" : "R$";
   const corClasse = ASSET_CLASS_COLORS[ativo.tipo] || "#9ca3af";
   const d = r?.data;
   const dir = d?.direcao || "";
