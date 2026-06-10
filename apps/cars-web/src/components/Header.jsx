@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Logo, { NumviMark } from "./ui/Logo.jsx";
 import { forcarAtualizacaoApp } from "../lib/appUpdate.js";
 import { T, THEMES } from "../lib/theme.js";
@@ -46,6 +46,22 @@ export const AGENDA_TABS = [
   { id: "sugestoes",  label: "Sugestões",    icon: Lightbulb },
 ];
 const AGENDA_TAB_IDS = new Set(AGENDA_TABS.map(t => t.id));
+
+/* ===== Ordem das abas (arrastar pra reordenar) — persistida por grupo em localStorage ===== */
+const TAB_ORDER_KEY = "af4.taborder.v1";
+function loadTabOrders() {
+  try { return JSON.parse(localStorage.getItem(TAB_ORDER_KEY) || "{}") || {}; } catch { return {}; }
+}
+// Reordena `items` (com .id) conforme a lista de ids salva. Abas novas (sem ordem
+// salva) vão pro fim na ordem original; ids que não existem mais são ignorados.
+function aplicarOrdem(items, ordem) {
+  if (!Array.isArray(ordem) || !ordem.length) return items;
+  const porId = new Map(items.map(it => [it.id, it]));
+  const out = [];
+  ordem.forEach(id => { if (porId.has(id)) { out.push(porId.get(id)); porId.delete(id); } });
+  items.forEach(it => { if (porId.has(it.id)) out.push(it); });
+  return out;
+}
 
 /* Toggle global de escopo · Pessoal / Negócio / Tudo */
 function EscopoToggle({ escopoAtivo = "tudo", onEscopoChange, compact }) {
@@ -159,7 +175,35 @@ function HeaderHorizontal({
     ],
   };
 
-  const subtabs = SUBTABS[modulo] || SUBTABS.financas;
+  // ===== Reordenação por arrastar (módulo + agenda) =====
+  const [tabOrders, setTabOrders] = useState(loadTabOrders);
+  const dragRef = useRef({ grupo: null, id: null });
+  const salvarOrdens = (next) => {
+    setTabOrders(next);
+    try { localStorage.setItem(TAB_ORDER_KEY, JSON.stringify(next)); } catch {}
+  };
+  // Move o item arrastado para a posição do item sob o cursor, dentro do MESMO grupo.
+  const reordenar = (grupo, itens, overId) => {
+    const { grupo: gFrom, id: fromId } = dragRef.current;
+    if (gFrom !== grupo || !fromId || fromId === overId) return;
+    const ids = itens.map(i => i.id);
+    const fromIdx = ids.indexOf(fromId);
+    const toIdx = ids.indexOf(overId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    ids.splice(toIdx, 0, ids.splice(fromIdx, 1)[0]);
+    salvarOrdens({ ...tabOrders, [grupo]: ids });
+  };
+  // Props de drag pra cada botão de aba.
+  const dragProps = (grupo, itens, id) => ({
+    draggable: true,
+    onDragStart: (e) => { dragRef.current = { grupo, id }; e.dataTransfer.effectAllowed = "move"; },
+    onDragOver: (e) => { if (dragRef.current.grupo === grupo) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; } },
+    onDrop: (e) => { e.preventDefault(); reordenar(grupo, itens, id); dragRef.current = { grupo: null, id: null }; },
+    onDragEnd: () => { dragRef.current = { grupo: null, id: null }; },
+  });
+
+  const subtabs = aplicarOrdem(SUBTABS[modulo] || SUBTABS.financas, tabOrders[`mod:${modulo}`]);
+  const agendaTabs = aplicarOrdem(AGENDA_TABS, tabOrders.agenda);
 
   // Cores fixas pro nav: o fundo do nav é SEMPRE escuro (rgba(10,10,12,.92)),
   // então o texto precisa ser SEMPRE claro — independente do tema (Pérola, Papel, Linho).
@@ -341,7 +385,8 @@ function HeaderHorizontal({
             return (
               <button key={st.id}
                 onClick={() => setTab(st.id)}
-                title={st.label}
+                title={`${st.label} — arraste para reordenar`}
+                {...dragProps(`mod:${modulo}`, subtabs, st.id)}
                 style={{
                   position: "relative",
                   padding: "9px 12px",
@@ -351,7 +396,7 @@ function HeaderHorizontal({
                   borderBottom: `2px solid ${active ? T.gold : "transparent"}`,
                   fontSize: 13.5, letterSpacing: ".01em", fontWeight: 500,
                   display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
-                  cursor: "pointer", transition: "color .15s, background .15s, border-color .15s",
+                  cursor: "grab", transition: "color .15s, background .15s, border-color .15s",
                   fontFamily: "'Nunito', system-ui, sans-serif", borderRadius: "6px 6px 0 0",
                 }}>
                 <Icon size={13} /> {st.label}
@@ -381,17 +426,18 @@ function HeaderHorizontal({
             <span style={{ fontSize: 9.5, color: NAV_FAINT, letterSpacing: ".2em", textTransform: "uppercase", whiteSpace: "nowrap", paddingRight: 4 }}>
               Agenda ·
             </span>
-            {AGENDA_TABS.map(st => {
+            {agendaTabs.map(st => {
               const Icon = st.icon;
               const active = tab === st.id;
               return (
-                <button key={st.id} onClick={() => setTab(st.id)} title={st.label}
+                <button key={st.id} onClick={() => setTab(st.id)} title={`${st.label} — arraste para reordenar`}
+                  {...dragProps("agenda", agendaTabs, st.id)}
                   style={{
                     padding: "5px 12px", borderRadius: 14,
                     background: active ? `${T.gold}22` : NAV_SOFT,
                     color: active ? T.gold : NAV_MUTED,
                     border: `1px solid ${active ? T.gold : NAV_BORDER}`,
-                    fontSize: 11.5, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap",
+                    fontSize: 11.5, fontWeight: 500, cursor: "grab", whiteSpace: "nowrap",
                     fontFamily: T.sans, display: "inline-flex", alignItems: "center", gap: 6,
                   }}>
                   <Icon size={12} /> {st.label}
