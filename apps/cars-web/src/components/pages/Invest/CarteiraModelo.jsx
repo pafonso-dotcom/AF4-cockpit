@@ -19,6 +19,7 @@ import {
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN, uid } from "../../../lib/format.js";
 import { parseValorBR } from "../../../lib/importExport.js";
+import { semCapitalSocial } from "../../../lib/invest-constants.js";
 import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import {
@@ -45,7 +46,7 @@ const COR_CLASSE = {
 };
 
 export default function CarteiraModelo({
-  ativos = [],
+  ativos: ativosProp = [],
   carteirasModeloCustom,
   setCarteirasModeloCustom,
   modeloAtivoId,
@@ -53,6 +54,7 @@ export default function CarteiraModelo({
   hidden,
   apiKeys = {},
 }) {
+  const ativos = semCapitalSocial(ativosProp); // Capital Social fora do rebalanceamento
   const todosModelos = useMemo(
     () => [...MODELOS_BUILTIN, ...(carteirasModeloCustom || [])],
     [carteirasModeloCustom]

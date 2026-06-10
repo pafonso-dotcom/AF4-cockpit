@@ -25,6 +25,7 @@ export default function CarteiraSaude({ ativos = [], hidden }) {
 
   const stats = useMemo(() => {
     const ativosValidos = (ativos || []).filter(a => {
+      if (a?.tipo === "capitalSocial") return false; // fora dos cálculos de saúde/alocação
       const v = Number(a.qtd || 0) * Number(a.preco || 0);
       return v > 0;
     });

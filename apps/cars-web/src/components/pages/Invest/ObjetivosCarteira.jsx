@@ -28,6 +28,7 @@ import {
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN, uid } from "../../../lib/format.js";
 import { parseValorBR } from "../../../lib/importExport.js";
+import { semCapitalSocial } from "../../../lib/invest-constants.js";
 import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import PageHeader from "../../ui/PageHeader.jsx";
@@ -61,12 +62,13 @@ const CLASSES_DISPONIVEIS = [
 ];
 
 export default function ObjetivosCarteira({
-  ativos = [],
+  ativos: ativosProp = [],
   objetivosCarteira,
   setObjetivosCarteira,
   hidden,
   apiKeys = {},
 }) {
+  const ativos = semCapitalSocial(ativosProp); // Capital Social fora dos objetivos
   const tree = (objetivosCarteira && objetivosCarteira.length > 0) ? objetivosCarteira : DEFAULT_TREE;
   const [editando, setEditando] = useState(null); // node sendo editado
   const [sugestaoOpen, setSugestaoOpen] = useState(false);
