@@ -6,6 +6,7 @@ import PageHeader from "../ui/PageHeader.jsx";
 
 export default function PergunteAoClaude({
   apiKey,
+  onSaveKey,
   transacoes, contas, ativos, vendas, veiculos,
   devedores, dividas, cheques,
 }) {
@@ -13,6 +14,8 @@ export default function PergunteAoClaude({
   const [historico, setHistorico] = useState([]);
   const [pensando, setPensando] = useState(false);
   const [erro, setErro] = useState("");
+  const [keyInput, setKeyInput] = useState("");
+  const [keyVisible, setKeyVisible] = useState(false);
   const scrollRef = useRef();
   const inputRef = useRef();
 
@@ -82,15 +85,43 @@ export default function PergunteAoClaude({
 
       {!apiKey && (
         <div style={{
-          padding: 18, marginBottom: 16, borderRadius: 8,
+          padding: 16, marginBottom: 16, borderRadius: 8,
           background: `${T.yellow}11`, border: `1px solid ${T.yellow}`,
-          display: "flex", gap: 12, alignItems: "center",
         }}>
-          <KeyRound size={18} style={{ color: T.yellow, flexShrink: 0 }} />
-          <div style={{ flex: 1, fontSize: 12.5, color: T.muted, lineHeight: 1.55 }}>
-            <strong style={{ color: T.yellow }}>Chave da Anthropic API não configurada.</strong>
-            <br />Para usar o chat IA, abra <strong>Configurações</strong> e cole sua chave (começa com <code>sk-ant-...</code>).
-            Você pode obter uma em <a href="https://console.anthropic.com/" target="_blank" rel="noreferrer" style={{ color: T.gold }}>console.anthropic.com</a>.
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 12 }}>
+            <KeyRound size={18} style={{ color: T.yellow, flexShrink: 0, marginTop: 1 }} />
+            <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.55 }}>
+              <strong style={{ color: T.yellow }}>Chave da Anthropic API não configurada.</strong>
+              {" "}Cole sua chave abaixo (começa com <code>sk-ant-...</code>) ou obtenha uma em{" "}
+              <a href="https://console.anthropic.com/" target="_blank" rel="noreferrer" style={{ color: T.gold }}>console.anthropic.com</a>.
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ position: "relative", flex: 1 }}>
+              <input
+                type={keyVisible ? "text" : "password"}
+                value={keyInput}
+                onChange={e => setKeyInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && keyInput.trim()) { onSaveKey(keyInput.trim()); setKeyInput(""); } }}
+                placeholder="sk-ant-..."
+                style={{
+                  width: "100%", fontSize: 13, padding: "8px 36px 8px 10px",
+                  border: `1px solid ${T.border}`, borderRadius: 6,
+                  background: T.bg, color: T.ink, boxSizing: "border-box",
+                }}
+              />
+              <button onClick={() => setKeyVisible(v => !v)}
+                style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 11 }}>
+                {keyVisible ? "🙈" : "👁"}
+              </button>
+            </div>
+            <button
+              onClick={() => { if (keyInput.trim()) { onSaveKey(keyInput.trim()); setKeyInput(""); } }}
+              disabled={!keyInput.trim()}
+              className="btn-gold"
+              style={{ padding: "8px 16px", opacity: keyInput.trim() ? 1 : 0.5 }}>
+              Salvar
+            </button>
           </div>
         </div>
       )}
