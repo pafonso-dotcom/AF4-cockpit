@@ -647,9 +647,13 @@ export default function AReceberEDividas({
   };
 
   const somaArr = (arr) => arr.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
+  // Quanto ainda FALTA receber de um item (total − já recebido parcial).
+  const aReceberDe = (d) => Math.max(0, (parseFloat(d.valor) || 0) - (parseFloat(d.valorRecebido) || 0));
+  const somaAReceber = (arr) => arr.reduce((s, d) => s + aReceberDe(d), 0);
 
   // ===== Visão Geral · todos os meses =====
-  const totalReceberAberto = somaArr(devAbertos);
+  // "A receber" usa o saldo em aberto (desconta o que já foi recebido parcialmente).
+  const totalReceberAberto = somaAReceber(devAbertos);
   const totalPagarAberto   = somaArr(divAbertas);
   const saldoPrevisto      = totalReceberAberto - totalPagarAberto;
 
@@ -782,7 +786,7 @@ export default function AReceberEDividas({
 
       {/* ===== Visão geral · todos os meses ===== */}
       {(() => {
-        const totalReceber = devAbertos.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
+        const totalReceber = devAbertos.reduce((s, d) => s + aReceberDe(d), 0);
         const totalPagar   = divAbertas.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
         const saldoPrevisto = totalReceber - totalPagar;
         // Recebido/pago no mês corrente — soma das baixas (transações origemLoja: cheque-compensado / itens marcados)
@@ -995,7 +999,7 @@ export default function AReceberEDividas({
               color: T.green, fontSize: 16, fontWeight: 600,
               fontFamily: T.serif, letterSpacing: "-.01em",
             }}>
-              {hidden ? "•••" : fmt(receberMes.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0))}
+              {hidden ? "•••" : fmt(receberMes.reduce((s, d) => s + aReceberDe(d), 0))}
             </div>
           </div>
 
