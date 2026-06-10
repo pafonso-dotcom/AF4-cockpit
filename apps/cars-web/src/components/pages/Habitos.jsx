@@ -20,14 +20,17 @@ function dataMenosDias(n) {
 function calcStreak(diasFeitos) {
   if (!diasFeitos) return 0;
   let count = 0;
-  // Conta dias consecutivos a partir de hoje (ou ontem se hoje não tem)
+  // Conta dias consecutivos a partir de hoje (ou ontem se hoje está vazio).
+  // "skip" (folga) NÃO quebra o streak, mas também não soma — apenas pula.
   let d = 0;
-  // Se hoje não tá marcado, começa a contar a partir de ontem
   if (!diasFeitos[dataMenosDias(0)]) d = 1;
-  while (diasFeitos[dataMenosDias(d)]) {
-    count++;
-    d++;
-    if (count > 999) break; // safety
+  let passos = 0;
+  while (passos < 1000) {
+    const v = diasFeitos[dataMenosDias(d)];
+    if (v === true) { count++; d++; }
+    else if (v === "skip") { d++; } // folga: pula sem contar e sem quebrar
+    else break;
+    passos++;
   }
   return count;
 }
@@ -43,6 +46,7 @@ export default function Habitos({ habitos = [], setHabitos }) {
       icone: ICONES_SUGERIDOS[0],
       cor: CORES_SUGERIDAS[0],
       meta: "",
+      horario: "",
       diasFeitos: {},
     });
     setFormErrors({});
@@ -66,6 +70,7 @@ export default function Habitos({ habitos = [], setHabitos }) {
       icone: form.icone || "🎯",
       cor: form.cor || CORES_SUGERIDAS[0],
       meta: form.meta ? parseInt(form.meta, 10) : null,
+      horario: form.horario || null,
       diasFeitos: form.diasFeitos || {},
       createdAt: form.createdAt || agora,
       updatedAt: agora,
@@ -96,9 +101,13 @@ export default function Habitos({ habitos = [], setHabitos }) {
     });
   };
 
+  // Ciclo de estados ao clicar no dia: vazio → feito → folga → vazio.
+  // "folga" (skip) preserva o streak sem contar como dia feito.
   const toggleDia = (h, dataISO) => {
     const novosDias = { ...(h.diasFeitos || {}) };
-    if (novosDias[dataISO]) delete novosDias[dataISO];
+    const atual = novosDias[dataISO];
+    if (atual === true) novosDias[dataISO] = "skip";
+    else if (atual === "skip") delete novosDias[dataISO];
     else novosDias[dataISO] = true;
     setHabitos(habitos.map(x => x.id === h.id
       ? { ...x, diasFeitos: novosDias, updatedAt: new Date().toISOString() }
@@ -164,6 +173,7 @@ export default function Habitos({ habitos = [], setHabitos }) {
                         </span>
                       )}
                       {h.meta && <span>Meta: {h.meta}/dia</span>}
+                      {h.horario && <span>⏰ {h.horario}</span>}
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
@@ -176,15 +186,18 @@ export default function Habitos({ habitos = [], setHabitos }) {
                 <div className="habitos-dias" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
                   {ultimos7.map(iso => {
                     const lbl = labelDia(iso);
-                    const feito = !!h.diasFeitos?.[iso];
+                    const val = h.diasFeitos?.[iso];
+                    const feito = val === true;
+                    const folga = val === "skip";
                     const hoje = ehHoje(iso);
                     return (
                       <button key={iso} onClick={() => toggleDia(h, iso)}
                         className="habitos-dia-btn"
+                        title={`${lbl.dia} ${lbl.data} · clique: vazio → feito → folga`}
                         style={{
-                          background: feito ? h.cor : T.bgSoft,
+                          background: feito ? h.cor : (folga ? `${h.cor}22` : T.bgSoft),
                           color: feito ? "#fff" : T.muted,
-                          border: hoje ? `2px solid ${h.cor}` : `1px solid ${T.border}`,
+                          border: hoje ? `2px solid ${h.cor}` : (folga ? `1px dashed ${h.cor}88` : `1px solid ${T.border}`),
                           borderRadius: 6,
                           padding: "8px 4px",
                           cursor: "pointer",
@@ -195,7 +208,7 @@ export default function Habitos({ habitos = [], setHabitos }) {
                           {lbl.dia}
                         </span>
                         <span className="habitos-dia-num" style={{ fontSize: 14, fontWeight: 600 }}>
-                          {feito ? <Check size={14} /> : lbl.data}
+                          {feito ? <Check size={14} /> : (folga ? "–" : lbl.data)}
                         </span>
                       </button>
                     );
@@ -254,11 +267,17 @@ export default function Habitos({ habitos = [], setHabitos }) {
               </div>
             </Field>
           </div>
-          <Field label="Meta diária (opcional, ex.: 8 copos)">
-            <input type="number" min="1" value={form.meta}
-                   onChange={e => setForm({ ...form, meta: e.target.value })}
-                   placeholder="Ex.: 8" />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Meta diária (opcional)" hint="Ex.: 8 copos">
+              <input type="number" min="1" value={form.meta}
+                     onChange={e => setForm({ ...form, meta: e.target.value })}
+                     placeholder="Ex.: 8" />
+            </Field>
+            <Field label="Horário (opcional)" hint="Quando costuma fazer.">
+              <input type="time" value={form.horario || ""}
+                     onChange={e => setForm({ ...form, horario: e.target.value })} />
+            </Field>
+          </div>
           <div className="flex gap-3 mt-2 flex-wrap">
             <button className="btn-gold" onClick={salvar}>Salvar</button>
             <button className="btn-ghost" onClick={() => { setForm(null); setFormErrors({}); }}>Cancelar</button>
