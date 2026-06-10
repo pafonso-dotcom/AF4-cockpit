@@ -735,14 +735,16 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
   })();
 
   const abertos = devedores.filter(d => !d.recebido);
-  const total = abertos.reduce((s, d) => s + (Number(d.valor) || 0), 0);
+  // Quanto ainda FALTA receber (desconta recebimentos parciais já feitos).
+  const restanteDe = (d) => Math.max(0, (Number(d.valor) || 0) - (Number(d.valorRecebido) || 0));
+  const total = abertos.reduce((s, d) => s + restanteDe(d), 0);
 
   const atrasados = abertos.filter(d => d.vencimento && d.vencimento < hoje);
   const hojeArr   = abertos.filter(d => d.vencimento === hoje);
   const semana    = abertos.filter(d => d.vencimento && d.vencimento > hoje && d.vencimento <= fimSemana);
   const mes       = abertos.filter(d => d.vencimento && d.vencimento > fimSemana && d.vencimento <= fimMes);
 
-  const somar = (arr) => arr.reduce((s, d) => s + (Number(d.valor) || 0), 0);
+  const somar = (arr) => arr.reduce((s, d) => s + restanteDe(d), 0);
 
   const buckets = [
     { id: "atrasado", label: "Atrasados", icon: AlertCircle, cor: T.red,   itens: atrasados, valor: somar(atrasados) },
