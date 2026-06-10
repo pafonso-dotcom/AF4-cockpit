@@ -36,3 +36,9 @@ export const ASSET_CLASS_COLORS = {
 };
 
 export const PROVENTO_REGEX = /provent|dividend|rendiment|juros sobre|jcp\b/i;
+
+// Capital Social: conta no patrimônio, mas fica FORA dos cálculos de estratégia
+// (alocação, saúde, rebalanceamento, objetivos, simulação — os "bots").
+export const CAPITAL_SOCIAL_TIPO = "capitalSocial";
+export const semCapitalSocial = (ativos = []) =>
+  (ativos || []).filter(a => a?.tipo !== CAPITAL_SOCIAL_TIPO);

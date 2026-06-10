@@ -3,6 +3,7 @@ import { Activity, Briefcase, TrendingUp, TrendingDown, Coins } from "lucide-rea
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN } from "../../lib/format.js";
+import { semCapitalSocial } from "../../lib/invest-constants.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import StatCard from "../ui/StatCard.jsx";
 
@@ -27,7 +28,8 @@ const seededRandom = (seed) => {
   return () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
 };
 
-export default function Analise({ ativos, transacoes, hidden }) {
+export default function Analise({ ativos: ativosProp, transacoes, hidden }) {
+  const ativos = semCapitalSocial(ativosProp); // Capital Social fora da simulação
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const years = useMemo(() => Array.from({ length: 5 }, (_, i) => currentYear - 4 + i), [currentYear]);

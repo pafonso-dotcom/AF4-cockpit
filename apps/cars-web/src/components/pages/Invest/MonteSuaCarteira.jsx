@@ -3,7 +3,7 @@ import { Sparkles } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import AlocacaoPieChart from "../../ui/AlocacaoPieChart.jsx";
-import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS } from "../../../lib/invest-constants.js";
+import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, semCapitalSocial } from "../../../lib/invest-constants.js";
 import { calcAlocacaoPorClasse } from "../../../lib/invest-utils.js";
 import {
   ATALHOS_MIX,
@@ -56,7 +56,8 @@ const HINT_OBJETIVO = {
   reserva:     "Tesouro · CDB · liquidez",
 };
 
-export default function MonteSuaCarteira({ ativos = [], apiKey = null }) {
+export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = null }) {
+  const ativos = semCapitalSocial(ativosProp); // Capital Social fora do rebalanceamento
   const [valor, setValor] = useState(DEFAULT_VALOR);
   const [mix, setMix]     = useState(DEFAULT_MIX);
   const [modo, setModo]   = useState("manual"); // "manual" | "ia"
