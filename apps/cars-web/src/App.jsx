@@ -899,6 +899,7 @@ export default function App() {
               <div className="px-6 md:px-10">
                 <PergunteAoClaude
                   apiKey={apiKeys.anthropic}
+                  onSaveKey={(k) => setApiKeys(prev => ({ ...prev, anthropic: k }))}
                   transacoes={transacoes} contas={contas} ativos={ativos}
                   devedores={devedores} dividas={dividas}
                 />
