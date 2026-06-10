@@ -49,6 +49,7 @@ function prazoLbl(iso) {
 
 export default function AgendaInicio({
   agenda = [], tarefas = [], ideias = [], compras = [], metas = [],
+  lembretes = [], treinos = [],
   setTab,
 }) {
   const perfil = getPerfilAtivo();
@@ -95,6 +96,23 @@ export default function AgendaInicio({
 
   return (
     <div className="fade-up agenda-inicio">
+      {/* Conversa rápida */}
+      <div style={{
+        background: `${T.gold}10`, border: `1px solid ${T.gold}44`,
+        borderLeft: `3px solid ${T.gold}`, borderRadius: 10,
+        padding: "12px 14px", marginBottom: 20,
+        display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
+      }} onClick={() => setTab("conversa")}>
+        <span style={{ fontSize: 22 }}>💬</span>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: T.gold }}>Conversa</div>
+          <div style={{ fontSize: 11.5, color: T.muted }}>
+            Registre gastos, tarefas e eventos em linguagem natural
+          </div>
+        </div>
+        <ChevronRight size={16} style={{ color: T.gold, marginLeft: "auto" }} />
+      </div>
+
       {/* HERO · saudação */}
       <div className="agenda-hero">
         <div>

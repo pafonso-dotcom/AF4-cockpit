@@ -13,6 +13,7 @@ import {
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
   BookOpen, Repeat, MoreHorizontal, RotateCw, LogOut,
+  Bell, Dumbbell,
 } from "lucide-react";
 
 /**
@@ -34,6 +35,9 @@ export const AGENDA_TABS = [
   { id: "calendario", label: "Calendário",   icon: Calendar },
   { id: "notas",      label: "Compromissos", icon: StickyNote },
   { id: "tarefas",    label: "Tarefas",      icon: CheckSquare },
+  { id: "lembretes",  label: "Lembretes",    icon: Bell },
+  { id: "conversa",   label: "Conversa",     icon: MessageCircle },
+  { id: "treino",     label: "Treino",       icon: Dumbbell },
   { id: "metas",      label: "Metas",        icon: Target },
   { id: "compras",    label: "Compras",      icon: Tag },
   { id: "habitos",    label: "Hábitos",      icon: Repeat },
