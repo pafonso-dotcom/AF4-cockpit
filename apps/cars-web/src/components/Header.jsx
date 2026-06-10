@@ -193,6 +193,36 @@ function HeaderHorizontal({
     ids.splice(toIdx, 0, ids.splice(fromIdx, 1)[0]);
     salvarOrdens({ ...tabOrders, [grupo]: ids });
   };
+  // Move uma aba uma posição pra esquerda (-1) ou direita (+1) — alternativa
+  // ao arrastar, melhor no celular (toque). Usado pelas setas ◀▶ da aba ativa.
+  const moverAba = (grupo, itens, id, dir) => {
+    const ids = itens.map(i => i.id);
+    const idx = ids.indexOf(id);
+    const alvo = idx + dir;
+    if (idx < 0 || alvo < 0 || alvo >= ids.length) return;
+    [ids[idx], ids[alvo]] = [ids[alvo], ids[idx]];
+    salvarOrdens({ ...tabOrders, [grupo]: ids });
+  };
+  // Renderiza as setas de reordenar dentro da aba ativa (spans, não <button>,
+  // pra não aninhar botões). Para a propagação pra não re-navegar.
+  const renderSetas = (grupo, itens, id) => {
+    const idx = itens.findIndex(i => i.id === id);
+    const seta = (dir, char, label, off) => (
+      <span role="button" aria-label={label} title={label}
+        onClick={(e) => { e.stopPropagation(); moverAba(grupo, itens, id, dir); }}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{ cursor: "pointer", padding: "0 3px", fontSize: 11, lineHeight: 1, opacity: off ? 0.25 : 0.85, userSelect: "none" }}>
+        {char}
+      </span>
+    );
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 1, marginLeft: 4 }}>
+        {seta(-1, "◀", "Mover para a esquerda", idx <= 0)}
+        {seta(+1, "▶", "Mover para a direita", idx >= itens.length - 1)}
+      </span>
+    );
+  };
+
   // Props de drag pra cada botão de aba.
   const dragProps = (grupo, itens, id) => ({
     draggable: true,
@@ -410,6 +440,7 @@ function HeaderHorizontal({
                     fontWeight: 700,
                   }}>{pending}</span>
                 )}
+                {active && renderSetas(`mod:${modulo}`, subtabs, st.id)}
               </button>
             );
           })}
@@ -441,6 +472,7 @@ function HeaderHorizontal({
                     fontFamily: T.sans, display: "inline-flex", alignItems: "center", gap: 6,
                   }}>
                   <Icon size={12} /> {st.label}
+                  {active && renderSetas("agenda", agendaTabs, st.id)}
                 </button>
               );
             })}
