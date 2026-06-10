@@ -103,7 +103,7 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
           <input type="checkbox" checked={lancarNoBanco}
                  onChange={e => setLancarNoBanco(e.target.checked)}
                  style={{ accentColor: T.gold, marginTop: 3 }} />
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: T.ink, fontSize: 13, fontWeight: 600 }}>
               Sim, lançar como transação no extrato bancário
             </div>
@@ -123,7 +123,7 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
                 </select>
               </div>
             )}
-            <div style={{ fontSize: 11.5, color: T.muted, marginTop: 8, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 11.5, color: T.muted, marginTop: 8, lineHeight: 1.5, overflowWrap: "break-word" }}>
               {lancarNoBanco
                 ? <>→ Será criada uma transação de <strong>despesa {fmt(valorPago || 0)}</strong> em <strong>{conta || "(conta)"}</strong> no dia {dataPagto}, debitando o saldo.</>
                 : <>→ A fixa só será marcada como paga aqui, sem afetar o extrato bancário.</>}
