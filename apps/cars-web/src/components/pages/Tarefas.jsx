@@ -12,13 +12,14 @@ import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
 
 const PRIORIDADES = [
-  { id: "alta",  label: "Alta",  cor: "#f87171" },
-  { id: "media", label: "Média", cor: "#fbbf24" },
-  { id: "baixa", label: "Baixa", cor: "#60a5fa" },
+  { id: "urgente", label: "Urgente", cor: "#dc2626" },
+  { id: "alta",    label: "Alta",    cor: "#f87171" },
+  { id: "media",   label: "Média",   cor: "#fbbf24" },
+  { id: "baixa",   label: "Baixa",   cor: "#60a5fa" },
 ];
 
-const prioMeta = (id) => PRIORIDADES.find(p => p.id === id) || PRIORIDADES[1];
-const prioOrder = { alta: 0, media: 1, baixa: 2 };
+const prioMeta = (id) => PRIORIDADES.find(p => p.id === id) || PRIORIDADES[2];
+const prioOrder = { urgente: 0, alta: 1, media: 2, baixa: 3 };
 
 function diasAteHoje(iso) {
   if (!iso) return null;
@@ -87,6 +88,7 @@ export default function Tarefas({ tarefas = [], setTarefas }) {
       ...form,
       titulo: form.titulo.trim(),
       projeto: form.projeto?.trim() || null,
+      subcategoria: form.subcategoria?.trim() || null,
       prazo: form.prazo || null,
     };
     if (form.id && tarefas.find(x => x.id === form.id)) {
@@ -237,11 +239,18 @@ export default function Tarefas({ tarefas = [], setTarefas }) {
                      onChange={e => setForm({ ...form, prazo: e.target.value })} />
             </Field>
           </div>
-          <Field label="Projeto (opcional)" hint="Agrupa tarefas relacionadas.">
-            <input value={form.projeto || ""}
-                   onChange={e => setForm({ ...form, projeto: e.target.value })}
-                   placeholder="Ex.: Site novo, Curso React" />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Projeto / Categoria" hint="Agrupa tarefas relacionadas.">
+              <input value={form.projeto || ""}
+                     onChange={e => setForm({ ...form, projeto: e.target.value })}
+                     placeholder="Ex.: Site novo, Casa" />
+            </Field>
+            <Field label="Subcategoria (opcional)" hint="Dentro do projeto/categoria.">
+              <input value={form.subcategoria || ""}
+                     onChange={e => setForm({ ...form, subcategoria: e.target.value })}
+                     placeholder="Ex.: Frontend, Cozinha" />
+            </Field>
+          </div>
           <div className="flex gap-3 mt-6">
             <button className="btn-gold" onClick={salvar}>Salvar</button>
             <button className="btn-ghost" onClick={() => setForm(null)}>Cancelar</button>
@@ -299,7 +308,7 @@ function TarefaRow({ tarefa, onToggle, onEdit, onExcluir }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
           {tarefa.projeto && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, color: T.muted }}>
-              <Folder size={11} /> {tarefa.projeto}
+              <Folder size={11} /> {tarefa.projeto}{tarefa.subcategoria ? ` › ${tarefa.subcategoria}` : ""}
             </span>
           )}
           {prazo && (
