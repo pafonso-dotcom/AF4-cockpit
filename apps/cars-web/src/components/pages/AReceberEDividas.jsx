@@ -106,6 +106,7 @@ export default function AReceberEDividas({
     delete data._catNome;
     delete data._criarSub;
     delete data._subNome;
+    delete data._aplicarEm;
 
     // Edição → comportamento simples: atualiza só esta entrada (não regenera parcelas)
     if (form.id) {
@@ -145,12 +146,38 @@ export default function AReceberEDividas({
         return;
       }
 
+      // Parcelado: aplica os campos comuns ao grupo conforme "Aplicar mudança em".
+      const escopo = form._aplicarEm || "esta";
+      const grupo = single.grupoParcelamento;
+      const aplicaGrupo = grupo && escopo !== "esta";
+      // Campos compartilhados entre parcelas (NÃO mexe no vencimento de cada uma nem na label "X/Y").
+      const comuns = {
+        nome: single.nome, valor, categoria: single.categoria, subcategoria: single.subcategoria,
+        credor: single.credor, telefone: single.telefone, combinado: single.combinado,
+        escopo: single.escopo, obs: single.obs,
+      };
+      const noEscopo = (d) => {
+        if (escopo === "todas") return true;
+        // "futuras": só as parcelas com vencimento depois desta
+        return d.vencimento && single.vencimento && d.vencimento > single.vencimento;
+      };
+
       if (form.tipo === "receber") {
-        setDevedores(devedores.map(d => d.id === form.id ? single : d));
+        setDevedores(devedores.map(d => {
+          if (d.id === form.id) return single;
+          if (!aplicaGrupo || d.grupoParcelamento !== grupo || d.recebido) return d;
+          return noEscopo(d) ? { ...d, ...comuns } : d;
+        }));
       } else {
-        setDividas(dividas.map(d => d.id === form.id ? single : d));
+        setDividas(dividas.map(d => {
+          if (d.id === form.id) return single;
+          if (!aplicaGrupo || d.grupoParcelamento !== grupo || d.pago) return d;
+          return noEscopo(d) ? { ...d, ...comuns } : d;
+        }));
       }
-      toast.success("Atualizado.");
+      toast.success(aplicaGrupo
+        ? (escopo === "todas" ? "Aplicado a todas as parcelas pendentes." : "Aplicado a esta e às próximas parcelas.")
+        : "Atualizado.");
       setForm(null);
       return;
     }
@@ -1259,6 +1286,30 @@ export default function AReceberEDividas({
             <textarea value={form.obs} onChange={e => setForm({ ...form, obs: e.target.value })}
                       rows={2} placeholder="Detalhes, combinado…" />
           </Field>
+
+          {/* Parcelado: aplicar a mudança a várias parcelas de uma vez */}
+          {form.id && form.grupoParcelamento && (
+            <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 8, padding: 12, marginTop: 4 }}>
+              <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 13, color: T.ink }}>Aplicar mudança em:</div>
+              {[
+                { v: "esta",    l: "Só esta parcela" },
+                { v: "futuras", l: "Esta e as próximas parcelas (pendentes)" },
+                { v: "todas",   l: "Todas as parcelas pendentes do grupo" },
+              ].map(opt => (
+                <label key={opt.v} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", cursor: "pointer" }}>
+                  <input type="radio" name="aplicar-em-receber"
+                         checked={(form._aplicarEm || "esta") === opt.v}
+                         onChange={() => setForm({ ...form, _aplicarEm: opt.v })}
+                         style={{ accentColor: T.gold }} />
+                  <span style={{ fontSize: 12.5, color: T.ink }}>{opt.l}</span>
+                </label>
+              ))}
+              <div style={{ fontSize: 11, color: T.muted, marginTop: 6, fontStyle: "italic" }}>
+                Aplica valor, categoria e descrição. O vencimento de cada parcela e as já recebidas/pagas são preservados.
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3 justify-end mt-4">
             <button className="btn-ghost" onClick={() => setForm(null)}>Cancelar</button>
             <button className="btn-gold" onClick={save}>Salvar</button>
