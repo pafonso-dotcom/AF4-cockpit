@@ -112,7 +112,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
   const totais = useMemo(() => {
     const calc = (arr) => {
       const valor = arr.reduce((s, a) => s + a.qtd * a.preco, 0);
-      const custo = arr.reduce((s, a) => s + a.qtd * a.pm, 0);
+      // Capital Social entra no valor (patrimônio), mas não gera resultado (custo = valor).
+      const custo = arr.reduce((s, a) => s + (a.tipo === "capitalSocial" ? a.qtd * a.preco : a.qtd * a.pm), 0);
       return { valor, custo, ganho: valor - custo, pct: custo > 0 ? ((valor - custo) / custo) * 100 : 0 };
     };
     const br = calc(filtered.filter(a => !ehUS(a)));
@@ -482,12 +483,18 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   )}
                 </div>
                 <div className="text-right shrink-0 ml-2">
-                  <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 14, fontWeight: 600 }}>
-                    {hidden ? "•••" : fmtMoedaAtivo(a, ganho)}
-                  </div>
-                  <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 11 }}>
-                    {fmtP(pct)}
-                  </div>
+                  {a.tipo === "capitalSocial" ? (
+                    <div className="num" style={{ color: T.muted, fontSize: 12, fontStyle: "italic" }}>manual</div>
+                  ) : (
+                    <>
+                      <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 14, fontWeight: 600 }}>
+                        {hidden ? "•••" : fmtMoedaAtivo(a, ganho)}
+                      </div>
+                      <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 11 }}>
+                        {fmtP(pct)}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2 text-xs mb-3" style={{ paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
@@ -668,9 +675,13 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   </td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmtMoedaAtivo(a, investido)}</td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.ink }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</td>
-                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: ganho >= 0 ? T.green : T.red }}>
-                    {hidden ? "•••" : fmtMoedaAtivo(a, ganho)}<br/>
-                    <span style={{ fontSize: 11 }}>{fmtP(pct)}</span>
+                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: a.tipo === "capitalSocial" ? T.muted : (ganho >= 0 ? T.green : T.red) }}>
+                    {a.tipo === "capitalSocial" ? (
+                      <span style={{ fontStyle: "italic" }}>manual</span>
+                    ) : (
+                      <>{hidden ? "•••" : fmtMoedaAtivo(a, ganho)}<br/>
+                      <span style={{ fontSize: 11 }}>{fmtP(pct)}</span></>
+                    )}
                   </td>
                   <td className="no-print" style={{ padding: "14px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     <button onClick={e => { e.stopPropagation(); setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" }); }}

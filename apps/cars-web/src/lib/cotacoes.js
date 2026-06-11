@@ -13,8 +13,10 @@ export async function atualizarCarteira(ativos) {
     return { cotacoes: {}, timestamp: new Date().toISOString(), erros: [] };
   }
 
-  const tickersBR = ativos.filter(a => detectarFonte(a.ticker || a.symbol) === "brapi").map(a => a.ticker || a.symbol);
-  const tickersCripto = ativos.filter(a => detectarFonte(a.ticker || a.symbol) === "binance").map(a => a.ticker || a.symbol);
+  // Capital Social é 100% manual — nunca busca cotação de mercado.
+  const negociaveis = ativos.filter(a => a.tipo !== "capitalSocial");
+  const tickersBR = negociaveis.filter(a => detectarFonte(a.ticker || a.symbol) === "brapi").map(a => a.ticker || a.symbol);
+  const tickersCripto = negociaveis.filter(a => detectarFonte(a.ticker || a.symbol) === "binance").map(a => a.ticker || a.symbol);
 
   const promises = [];
   if (tickersBR.length) promises.push(getQuotes(tickersBR).catch(e => ({ erro: e.message, fonte: "brapi" })));
