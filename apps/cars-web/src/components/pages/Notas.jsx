@@ -74,6 +74,7 @@ export default function Notas({ agenda = [], setAgenda, notasLegacy = [], setNot
   const [formErrors, setFormErrors] = useState({});
   const [quickAdd, setQuickAdd] = useState("");
   const [mostrarPassados, setMostrarPassados] = useState(false);
+  const [mostrarConcluidos, setMostrarConcluidos] = useState(false);
 
   // Migração de Notas legadas → Agenda (uma vez)
   useEffect(() => {
@@ -111,21 +112,24 @@ export default function Notas({ agenda = [], setAgenda, notasLegacy = [], setNot
         || (e.local || "").toLowerCase().includes(q));
   }, [agenda, filtroCat, busca]);
 
-  // Separa em: pinned, futuros (próximos), passados
-  const { pinned, futuros, passados } = useMemo(() => {
+  // Separa em: pinned, futuros (próximos), passados e concluídos (feitos → recolhidos no fim)
+  const { pinned, futuros, passados, concluidos } = useMemo(() => {
     const hojeISO = todayISO();
     const p = [];
     const f = [];
     const pas = [];
+    const con = [];
     eventosFiltrados.forEach(e => {
-      if (e.pinned) p.push(e);
+      if (e.status === "feito") con.push(e);          // finalizado → some pro fim (recolhido)
+      else if (e.pinned) p.push(e);
       else if (!e.data || e.data >= hojeISO) f.push(e);
       else pas.push(e);
     });
     p.sort((a, b) => (a.data || "9999").localeCompare(b.data || "9999") || (a.horario || "").localeCompare(b.horario || ""));
     f.sort((a, b) => (a.data || "9999").localeCompare(b.data || "9999") || (a.horario || "").localeCompare(b.horario || ""));
     pas.sort((a, b) => (b.data || "").localeCompare(a.data || ""));
-    return { pinned: p, futuros: f, passados: pas };
+    con.sort((a, b) => (b.updatedAt || b.data || "").localeCompare(a.updatedAt || a.data || ""));
+    return { pinned: p, futuros: f, passados: pas, concluidos: con };
   }, [eventosFiltrados]);
 
   const novoEvento = (preset = {}) => {
@@ -338,7 +342,7 @@ export default function Notas({ agenda = [], setAgenda, notasLegacy = [], setNot
       </div>
 
       {/* Lista de eventos agrupada */}
-      {pinned.length === 0 && futuros.length === 0 && passados.length === 0 ? (
+      {pinned.length === 0 && futuros.length === 0 && passados.length === 0 && concluidos.length === 0 ? (
         <EmptyState onCriar={() => novoEvento()} temEventos={agenda.length > 0} />
       ) : (
         <>
@@ -366,6 +370,27 @@ export default function Notas({ agenda = [], setAgenda, notasLegacy = [], setNot
               </button>
               {mostrarPassados && (
                 <SectionList title="" eventos={passados}
+                             onEdit={editarEvento} onPin={togglePin} onFeito={toggleFeito} onExcluir={excluir}
+                             dimmed />
+              )}
+            </>
+          )}
+          {concluidos.length > 0 && (
+            <>
+              <button
+                onClick={() => setMostrarConcluidos(!mostrarConcluidos)}
+                style={{
+                  background: "transparent", border: "none", color: T.muted,
+                  fontSize: 12, fontWeight: 600, letterSpacing: ".05em",
+                  textTransform: "uppercase", cursor: "pointer",
+                  margin: "20px 0 10px", padding: "8px 0",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}>
+                <ChevronDown size={14} style={{ transform: mostrarConcluidos ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform .2s" }} />
+                ✓ Finalizados ({concluidos.length})
+              </button>
+              {mostrarConcluidos && (
+                <SectionList title="" eventos={concluidos}
                              onEdit={editarEvento} onPin={togglePin} onFeito={toggleFeito} onExcluir={excluir}
                              dimmed />
               )}
