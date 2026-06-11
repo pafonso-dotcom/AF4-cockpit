@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import {
   Dumbbell, Plus, Check, Edit3, Trash2, ChevronLeft, ChevronRight,
   Sparkles, X, Save, Bike, Zap, Trophy, TrendingUp, TrendingDown, Minus,
+  Image as ImageIcon,
 } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { uid, todayISO } from "../../lib/format.js";
@@ -144,6 +145,80 @@ function RecordeCard({ r, cor }) {
       </div>
       <Sparkline valores={r.sessoes.map(s => s.maxCarga)} cor={cor} />
     </div>
+  );
+}
+
+// Comprime uma imagem (foto da câmera/galeria) pra um JPEG pequeno (data-URI),
+// pra não pesar a sincronização dos dados. Redimensiona pro maior lado = maxDim.
+function comprimirImagem(file, maxDim = 360, quality = 0.6) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const im = new window.Image();
+      im.onload = () => {
+        let { width, height } = im;
+        if (width >= height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+        else if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(im, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      im.onerror = reject;
+      im.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Miniatura + editor da imagem de execução de um exercício (banco de imagens).
+// A imagem fica no exercício (exerciciosDB), então aparece em toda sessão/template
+// que use esse exercício. Aceita link (URL) ou foto (comprimida).
+function ExImagem({ exercicio, setExerciciosDB, size = 38 }) {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState(exercicio?.imagem || "");
+  if (!exercicio || !setExerciciosDB) return null;
+  const img = exercicio.imagem;
+  const salvar = (valor) => {
+    setExerciciosDB(prev => (prev || []).map(e => e.id === exercicio.id ? { ...e, imagem: valor || "" } : e));
+  };
+  const onFile = async (file) => {
+    if (!file) return;
+    try {
+      const dataUri = await comprimirImagem(file);
+      salvar(dataUri); setUrl(dataUri); setOpen(false);
+      toast.success("Imagem do exercício salva.");
+    } catch { toast.error("Não consegui processar a imagem."); }
+  };
+  return (
+    <>
+      <button onClick={(e) => { e.stopPropagation(); setOpen(true); }} title="Imagem de execução"
+        style={{
+          width: size, height: size, borderRadius: 8, flexShrink: 0, padding: 0, overflow: "hidden",
+          border: `1px ${img ? "solid" : "dashed"} ${T.border}`, background: T.bg, cursor: "pointer",
+          display: "grid", placeItems: "center",
+        }}>
+        {img ? <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+             : <ImageIcon size={16} style={{ color: T.muted }} />}
+      </button>
+      {open && (
+        <Modal title={`Imagem · ${exercicio.nome || "exercício"}`} onClose={() => setOpen(false)}>
+          {img && <img src={img} alt="" style={{ width: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 8, marginBottom: 12, background: T.bgSoft }} />}
+          <Field label="Link da imagem/GIF (URL)" hint="Cole o endereço de uma figura/animação de execução.">
+            <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." />
+          </Field>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            <button className="btn-gold" onClick={() => { salvar(url.trim()); setOpen(false); }}>Usar link</button>
+            <label className="btn-ghost" style={{ cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+              📷 Subir foto
+              <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => onFile(e.target.files?.[0])} />
+            </label>
+            {img && <button className="btn-ghost" onClick={() => { salvar(""); setUrl(""); setOpen(false); }}>Remover</button>}
+          </div>
+        </Modal>
+      )}
+    </>
   );
 }
 
@@ -542,8 +617,11 @@ function SessaoCard({ sessao, exerciciosDB, ativa, onToggleAtiva, onAtualizar, o
             const ex = exerciciosDB.find(e => e.id === ef.exercicioId);
             return (
               <div key={ei} style={{ marginBottom: 14, padding: "10px 12px", background: T.bgSoft, borderRadius: 8, border: `1px solid ${T.border}` }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, marginBottom: 8 }}>
-                  {ex?.nome || ef.exercicioId}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  {ex && <ExImagem exercicio={ex} setExerciciosDB={setExerciciosDB} />}
+                  <div style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>
+                    {ex?.nome || ef.exercicioId}
+                  </div>
                 </div>
                 {sessao.modalidade === "musculacao" ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -691,6 +769,7 @@ function TemplateModal({ templates, exerciciosDB, setExerciciosDB, onSalvar, onE
             const exBase = exerciciosDB.find(e => e.id === ex.exercicioId);
             return (
               <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6, padding: "6px 10px", background: T.bgSoft, borderRadius: 6 }}>
+                {exBase && <ExImagem exercicio={exBase} setExerciciosDB={setExerciciosDB} size={32} />}
                 <span style={{ flex: 1, fontSize: 12, color: T.ink }}>{exBase?.nome || ex.exercicioId}</span>
                 <input type="number" min="1" value={ex.series} onChange={e => setForm(f => ({ ...f, exercicios: f.exercicios.map((x, xi) => xi === i ? { ...x, series: Number(e.target.value) } : x) }))}
                   style={{ width: 40, fontSize: 12, padding: "2px 5px", border: `1px solid ${T.border}`, borderRadius: 4, background: T.bg }} />
