@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Dumbbell, Plus, Check, Edit3, Trash2, ChevronLeft, ChevronRight,
   Sparkles, X, Save, Bike, Zap, Trophy, TrendingUp, TrendingDown, Minus,
@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { uid, todayISO } from "../../lib/format.js";
+import { carregarCatalogo, equipamentoPT } from "../../lib/exercicioCatalogo.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import PageHeader from "../ui/PageHeader.jsx";
@@ -226,6 +227,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
   const [mesOffset, setMesOffset] = useState(0);
   const [sessaoModal, setSessaoModal] = useState(false);
   const [templateModal, setTemplateModal] = useState(false);
+  const [bancoModal, setBancoModal] = useState(false);
   const [iaModal, setIaModal] = useState(false);
   const [sessaoAtiva, setSessaoAtiva] = useState(null);
   const hoje = todayISO();
@@ -291,6 +293,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
         sub="Musculação, corrida e ciclismo. Registre seus treinos e acompanhe a evolução."
         action={
           <div style={{ display: "flex", gap: 6 }}>
+            <button className="btn-ghost" onClick={() => setBancoModal(true)}>Banco</button>
             <button className="btn-ghost" onClick={() => setTemplateModal(true)}>Templates</button>
             <button className="btn-gold" onClick={() => setSessaoModal(true)}>
               <Plus size={13} className="inline mr-1" /> Iniciar treino
@@ -525,6 +528,15 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
             setTreinoTemplates(prev => prev.filter(t => t.id !== id));
           }}
           onClose={() => setTemplateModal(false)}
+        />
+      )}
+
+      {/* Modal: Banco aberto de exercícios */}
+      {bancoModal && (
+        <BancoExerciciosModal
+          exerciciosDB={exerciciosDB}
+          setExerciciosDB={setExerciciosDB}
+          onClose={() => setBancoModal(false)}
         />
       )}
     </div>
@@ -921,6 +933,105 @@ Retorne APENAS JSON válido no formato:
           <div className="flex gap-3 justify-end">
             <button className="btn-ghost" onClick={() => setPreview(null)}>Gerar outro</button>
             <button className="btn-gold" onClick={() => onSalvar(preview)}>Usar este treino</button>
+          </div>
+        </>
+      )}
+    </Modal>
+  );
+}
+
+/* ---- BancoExerciciosModal: catálogo aberto (free-exercise-db) ---- */
+function BancoExerciciosModal({ exerciciosDB, setExerciciosDB, onClose }) {
+  const [estado, setEstado] = useState("carregando"); // carregando | ok | erro
+  const [todos, setTodos] = useState([]);
+  const [busca, setBusca] = useState("");
+  const [grupo, setGrupo] = useState("todos");
+  const [equip, setEquip] = useState("todos");
+  const [limite, setLimite] = useState(40);
+
+  useEffect(() => {
+    let vivo = true;
+    carregarCatalogo()
+      .then(data => { if (vivo) { setTodos(data); setEstado("ok"); } })
+      .catch(() => { if (vivo) setEstado("erro"); });
+    return () => { vivo = false; };
+  }, []);
+
+  const grupos = useMemo(() => ["todos", ...Array.from(new Set(todos.map(e => e.grupoMuscular).filter(Boolean))).sort()], [todos]);
+  const equips = useMemo(() => ["todos", ...Array.from(new Set(todos.map(e => e.equipamento).filter(Boolean))).sort()], [todos]);
+
+  const filtrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return todos.filter(e =>
+      (grupo === "todos" || e.grupoMuscular === grupo) &&
+      (equip === "todos" || e.equipamento === equip) &&
+      (!q || e.nome.toLowerCase().includes(q))
+    );
+  }, [todos, busca, grupo, equip]);
+
+  const jaTem = (e) => (exerciciosDB || []).some(x => x.id === e.id || (x.nome || "").toLowerCase() === e.nome.toLowerCase());
+
+  const adicionar = (e) => {
+    if (jaTem(e)) { toast.info("Esse exercício já está no seu banco."); return; }
+    setExerciciosDB(prev => [...(prev || []), {
+      id: e.id, nome: e.nome, grupoMuscular: e.grupoMuscular,
+      equipamento: e.equipamento, modalidade: e.modalidade,
+      imagem: e.imagem, isCustom: false,
+    }]);
+    toast.success(`"${e.nome}" adicionado ao seu banco.`);
+  };
+
+  const selSty = { fontSize: 12, padding: "6px 8px", border: `1px solid ${T.border}`, borderRadius: 6, background: T.bg, color: T.ink };
+
+  return (
+    <Modal title="Banco de exercícios" onClose={onClose} wide>
+      {estado === "carregando" && (
+        <div style={{ padding: 30, textAlign: "center", color: T.muted, fontSize: 13 }}>Carregando catálogo aberto…</div>
+      )}
+      {estado === "erro" && (
+        <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 12.5 }}>
+          Não consegui carregar o catálogo agora (precisa de internet). Tente de novo mais tarde — você pode criar exercícios manualmente e anexar a imagem.
+        </div>
+      )}
+      {estado === "ok" && (
+        <>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+            <input value={busca} onChange={e => { setBusca(e.target.value); setLimite(40); }}
+              placeholder="Buscar exercício…" style={{ ...selSty, flex: "1 1 180px", minWidth: 160 }} />
+            <select value={grupo} onChange={e => { setGrupo(e.target.value); setLimite(40); }} style={selSty}>
+              {grupos.map(g => <option key={g} value={g}>{g === "todos" ? "Todos os grupos" : g}</option>)}
+            </select>
+            <select value={equip} onChange={e => { setEquip(e.target.value); setLimite(40); }} style={selSty}>
+              {equips.map(g => <option key={g} value={g}>{g === "todos" ? "Todo equipamento" : equipamentoPT(g)}</option>)}
+            </select>
+          </div>
+          <div style={{ fontSize: 11, color: T.muted, marginBottom: 8 }}>{filtrados.length} exercício(s) · catálogo aberto (domínio público)</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: "55vh", overflowY: "auto" }}>
+            {filtrados.slice(0, limite).map(e => {
+              const tem = jaTem(e);
+              return (
+                <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", background: T.bgSoft, borderRadius: 8, border: `1px solid ${T.border}` }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: T.bg, display: "grid", placeItems: "center" }}>
+                    {e.imagem ? <img src={e.imagem} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Dumbbell size={16} style={{ color: T.muted }} />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: T.ink, fontWeight: 600 }}>{e.nome}</div>
+                    <div style={{ fontSize: 10.5, color: T.muted }}>{e.grupoMuscular}{e.equipamento ? ` · ${equipamentoPT(e.equipamento)}` : ""}{e.nivel ? ` · ${e.nivel}` : ""}</div>
+                  </div>
+                  <button onClick={() => adicionar(e)} disabled={tem}
+                    style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 6, cursor: tem ? "default" : "pointer",
+                      background: tem ? "transparent" : `${T.green}22`, color: tem ? T.muted : T.green, border: `1px solid ${tem ? T.border : T.green}` }}>
+                    {tem ? "✓ no banco" : "+ Adicionar"}
+                  </button>
+                </div>
+              );
+            })}
+            {filtrados.length > limite && (
+              <button className="btn-ghost" onClick={() => setLimite(l => l + 40)} style={{ marginTop: 4 }}>
+                Mostrar mais ({filtrados.length - limite})
+              </button>
+            )}
+            {filtrados.length === 0 && <div style={{ padding: 16, textAlign: "center", color: T.muted, fontSize: 12.5 }}>Nada encontrado.</div>}
           </div>
         </>
       )}
