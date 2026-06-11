@@ -482,9 +482,13 @@ export default function ObjetivosCarteira({
         .obj-card-actions { opacity: 0; transition: opacity .15s; }
         .obj-card:hover .obj-card-actions { opacity: 1; }
 
-        @media (max-width: 900px) {
+        @media (max-width: 600px) {
           .objetivos-split { flex-direction: column; }
           .objetivos-split-plan { flex: 1 1 auto; width: 100%; position: static; min-width: 0; }
+        }
+        @media (max-width: 900px) {
+          /* Painel um pouco mais estreito pra árvore e plano caberem lado a lado. */
+          .objetivos-split-plan { flex: 0 0 260px; min-width: 220px; }
           .obj-card-actions { opacity: 1; }
         }
         @media (max-width: 768px) {
