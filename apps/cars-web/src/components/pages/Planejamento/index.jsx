@@ -6,7 +6,6 @@ import CardsGrid from "./CardsGrid.jsx";
 import PagarReceber from "./PagarReceber.jsx";
 import AnualView from "./AnualView.jsx";
 import ParcelasView from "./ParcelasView.jsx";
-import PrevisaoView from "./PrevisaoView.jsx";
 import AtencaoView from "./AtencaoView.jsx";
 import ReservaEmergenciaView from "./ReservaEmergenciaView.jsx";
 import DespesasFixas from "../DespesasFixas.jsx";
@@ -29,7 +28,6 @@ export default function Planejamento(props) {
     anual: AnualView,
     recebiveis: PagarReceber,
     parcelas: ParcelasView,
-    previsao: PrevisaoView,
     atencao: AtencaoView,
     reserva: ReservaEmergenciaView,
     fixas: DespesasFixas,
