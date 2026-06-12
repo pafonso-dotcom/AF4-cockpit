@@ -11,14 +11,12 @@ import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
 import MoneyInput from "../ui/MoneyInput.jsx";
 import ImportExportModal from "../modals/ImportExportModal.jsx";
-import ImportarExtrato from "../modals/ImportarExtrato.jsx";
 import OCRComprovante from "../modals/OCRComprovante.jsx";
 import VoiceTransacao from "../modals/VoiceTransacao.jsx";
 
 export default function Transacoes({ transacoes, setTransacoes, categorias, contas, setContas, ativos, totais, hidden, pendingTransacao, clearPendingTransacao, parcelamentos, cartoes, apiKey, escopoAtivo = "tudo" }) {
   const [form, setForm] = useState(null);
   const [ieOpen, setIeOpen] = useState(false);
-  const [importExtratoOpen, setImportExtratoOpen] = useState(false);
   const [ocrOpen, setOcrOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [filterTipo, setFilterTipo] = useState("todas");
@@ -431,18 +429,6 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                     title="Tirar foto do comprovante (OCR via Gemini Vision)">
               <Camera size={12} />
               <span>Foto</span>
-            </button>
-            <button onClick={() => setImportExtratoOpen(true)}
-                    style={{
-                      background: `${T.green}22`, color: T.green,
-                      border: `1px solid ${T.green}`,
-                      padding: "10px 16px", fontFamily: T.sans, fontSize: 12,
-                      letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500,
-                      cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-                    }}
-                    title="Importar extrato OFX/CSV do banco">
-              <Upload size={12} />
-              <span>Extrato banco</span>
             </button>
             <button onClick={() => setIeOpen(true)}
                     style={{
@@ -936,14 +922,6 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
           contas={contas} setContas={setContas}
           categorias={categorias} ativos={ativos} totais={totais}
           parcelamentos={parcelamentos} cartoes={cartoes}
-        />
-      )}
-
-      {importExtratoOpen && (
-        <ImportarExtrato
-          contas={contas} categorias={categorias}
-          transacoes={transacoes} setTransacoes={setTransacoes}
-          onClose={() => setImportExtratoOpen(false)}
         />
       )}
 

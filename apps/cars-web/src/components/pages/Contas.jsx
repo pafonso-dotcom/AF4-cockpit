@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { Plus, Trash2, Edit3, Building2, Receipt, ArrowRightLeft, ChevronRight, RefreshCw, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Edit3, Building2, Receipt, ArrowRightLeft, ChevronRight, RefreshCw, AlertCircle, Eye, EyeOff, Upload } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid } from "../../lib/format.js";
 import { parseValorBR } from "../../lib/importExport.js";
@@ -12,10 +12,12 @@ import ColorPicker from "../ui/ColorPicker.jsx";
 import Modal from "../ui/Modal.jsx";
 import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
 import TransferenciaModal from "../modals/TransferenciaModal.jsx";
+import ImportarExtrato from "../modals/ImportarExtrato.jsx";
 
 export default function Contas({ contas, setContas, hidden, onCreateTransacao, onContaClick, contaAtiva, transacoes, setTransacoes, categorias, escopoAtivo = "tudo" }) {
   const [form, setForm] = useState(null);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [importExtratoOpen, setImportExtratoOpen] = useState(false);
   const tipos = [
     { v: "corrente", l: "Conta Corrente" },
     { v: "poupanca", l: "Poupança" },
@@ -205,6 +207,10 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                   title="Detecta contas com nome de empresa (Loja, AF4, CNPJ…) e marca como Negócio"
                   style={btnSec}>
             <Building2 size={12} /> Detectar negócio
+          </button>
+          <button onClick={() => setImportExtratoOpen(true)} title="Importar extrato OFX/CSV do banco"
+                  style={{ ...btnSec, color: T.green, borderColor: `${T.green}88` }}>
+            <Upload size={12} /> Extrato banco
           </button>
           <button className="btn-gold" style={{ padding: "7px 12px", fontSize: 11 }}
                   onClick={() => setForm({ id: null, nome: "", instituicao: "", tipo: "corrente", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.gold })}>
@@ -427,6 +433,14 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           setTransacoes={setTransacoes}
           categorias={categorias}
           onClose={() => setTransferOpen(false)}
+        />
+      )}
+
+      {importExtratoOpen && (
+        <ImportarExtrato
+          contas={contas} categorias={categorias}
+          transacoes={transacoes} setTransacoes={setTransacoes}
+          onClose={() => setImportExtratoOpen(false)}
         />
       )}
     </div>
