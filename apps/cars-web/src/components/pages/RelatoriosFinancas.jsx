@@ -284,26 +284,26 @@ export default function RelatoriosFinancas({
     const ths = proximosMeses.map(m => `<th>${esc(m.label)}</th>`).join("");
     const corpo = projecao.grupos.map(g => {
       const linhas = g.rows.map(r =>
-        `<tr><td class="cat">${esc(r.cat)}</td>${proximosMeses.map(m => `<td class="n">${cel(r.porMes[m.iso])}</td>`).join("")}<td class="n">${esc(fmt(r.media))}</td><td class="n tot">${esc(fmt(r.total))}</td></tr>`
+        `<tr><td class="cat">${esc(r.cat)}</td>${proximosMeses.map(m => `<td class="n">${cel(r.porMes[m.iso])}</td>`).join("")}<td class="n tot">${esc(fmt(r.total))}</td></tr>`
       ).join("");
-      const sub = `<tr class="sub"><td>${esc(g.label)} · subtotal</td>${g.subPorMes.map(v => `<td class="n">${cel(v)}</td>`).join("")}<td class="n">${esc(fmt(g.subMedia))}</td><td class="n">${esc(fmt(g.subTotal))}</td></tr>`;
+      const sub = `<tr class="sub"><td>${esc(g.label)} · subtotal</td>${g.subPorMes.map(v => `<td class="n">${cel(v)}</td>`).join("")}<td class="n">${esc(fmt(g.subTotal))}</td></tr>`;
       const head = `<tr class="grp"><td colspan="${proximosMeses.length + 3}">${esc(g.label)}</td></tr>`;
       return head + linhas + sub;
     }).join("");
-    const rodape = `<tr class="tfoot"><td>TOTAL SAÍDAS</td>${proximosMeses.map((m, i) => `<td class="n">${cel(projecao.totaisMes[i])}</td>`).join("")}<td class="n">${esc(fmt(projecao.media))}</td><td class="n">${esc(fmt(projecao.totalGeral))}</td></tr>`;
+    const rodape = `<tr class="tfoot"><td>TOTAL SAÍDAS</td>${proximosMeses.map((m, i) => `<td class="n">${cel(projecao.totaisMes[i])}</td>`).join("")}<td class="n">${esc(fmt(projecao.totalGeral))}</td></tr>`;
     let receberHtml = "";
     if (projecao.receber) {
       const r = projecao.receber;
       const linhas = r.rows.map(x =>
-        `<tr><td class="cat">${esc(x.cat)}</td>${proximosMeses.map(m => `<td class="n">${cel(x.porMes[m.iso])}</td>`).join("")}<td class="n">${esc(fmt(x.media))}</td><td class="n tot">${esc(fmt(x.total))}</td></tr>`
+        `<tr><td class="cat">${esc(x.cat)}</td>${proximosMeses.map(m => `<td class="n">${cel(x.porMes[m.iso])}</td>`).join("")}<td class="n tot">${esc(fmt(x.total))}</td></tr>`
       ).join("");
-      const sub = `<tr class="sub"><td>A receber · subtotal</td>${r.subPorMes.map(v => `<td class="n">${cel(v)}</td>`).join("")}<td class="n">${esc(fmt(r.subMedia))}</td><td class="n">${esc(fmt(r.subTotal))}</td></tr>`;
+      const sub = `<tr class="sub"><td>A receber · subtotal</td>${r.subPorMes.map(v => `<td class="n">${cel(v)}</td>`).join("")}<td class="n">${esc(fmt(r.subTotal))}</td></tr>`;
       receberHtml = `<tr class="grp grp-rec"><td colspan="${proximosMeses.length + 3}">A receber (entradas previstas)</td></tr>${linhas}${sub}`;
     }
-    const linhaSaldo = (label, cen) => `<tr class="saldo"><td>${esc(label)} · início ${esc(fmt(cen.saldoInicial))}</td>${cen.porMes.map(v => `<td class="n ${v < 0 ? "neg" : "pos"}">${esc(fmt(v))}</td>`).join("")}<td class="n">—</td><td class="n ${cen.saldoFinal < 0 ? "neg" : "pos"}">${esc(fmt(cen.saldoFinal))}</td></tr>`;
+    const linhaSaldo = (label, cen) => `<tr class="saldo"><td>${esc(label)} · início ${esc(fmt(cen.saldoInicial))}</td>${cen.porMes.map(v => `<td class="n ${v < 0 ? "neg" : "pos"}">${esc(fmt(v))}</td>`).join("")}<td class="n ${cen.saldoFinal < 0 ? "neg" : "pos"}">${esc(fmt(cen.saldoFinal))}</td></tr>`;
     const saldo = linhaSaldo("SALDO PREVISTO · PESSOAL", cenarios.pessoal)
       + linhaSaldo("SALDO PREVISTO · PESSOAL + NEGÓCIO", cenarios.tudo)
-      + (cenarios.bensTotal > 0 ? `<tr><td>BENS (à parte)</td>${proximosMeses.map(() => '<td class="n">—</td>').join("")}<td class="n">—</td><td class="n">${esc(fmt(cenarios.bensTotal))}</td></tr>` : "");
+      + (cenarios.bensTotal > 0 ? `<tr><td>BENS (à parte)</td>${proximosMeses.map(() => '<td class="n">—</td>').join("")}<td class="n">${esc(fmt(cenarios.bensTotal))}</td></tr>` : "");
     printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Projeção · Meses a Vencer</title>
 <style>
 @page { size: A4 landscape; margin: 9mm; }
@@ -327,7 +327,7 @@ td.neg { color:#b3261e; }
 </style></head><body>
 <h1>Projeção · Meses a Vencer — por categoria</h1>
 <div class="sub-head">Saídas previstas (fixas, parcelas, dívidas, avulsas) e entradas a receber · ${esc(periodoLabel)} · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</div>
-<table><thead><tr><th>Categoria</th>${ths}<th>Média/mês</th><th>Total</th></tr></thead>
+<table><thead><tr><th>Categoria</th>${ths}<th>Total</th></tr></thead>
 <tbody>${corpo}${rodape}${receberHtml}${saldo}</tbody></table>
 </body></html>`);
   };
@@ -365,7 +365,6 @@ td.neg { color:#b3261e; }
                 <tr>
                   <th style={{ textAlign: "left" }}>Categoria</th>
                   {proximosMeses.map(m => <th key={m.iso} style={{ textAlign: "right" }}>{m.label}</th>)}
-                  <th style={{ textAlign: "right" }}>Média/mês</th>
                   <th style={{ textAlign: "right" }}>Total</th>
                 </tr>
               </thead>
@@ -373,7 +372,7 @@ td.neg { color:#b3261e; }
                 {projecao.grupos.map(g => (
                   <React.Fragment key={g.fonte}>
                     <tr>
-                      <td colSpan={proximosMeses.length + 3} style={{ background: T.bgSoft, color: T.ink, fontWeight: 700, textTransform: "uppercase", fontSize: 10, letterSpacing: ".08em", padding: "6px 8px" }}>
+                      <td colSpan={proximosMeses.length + 2} style={{ background: T.bgSoft, color: T.ink, fontWeight: 700, textTransform: "uppercase", fontSize: 10, letterSpacing: ".08em", padding: "6px 8px" }}>
                         {g.label}
                       </td>
                     </tr>
@@ -385,7 +384,6 @@ td.neg { color:#b3261e; }
                             {r.porMes[m.iso] ? (hidden ? "•••" : fmt(r.porMes[m.iso])) : "—"}
                           </td>
                         ))}
-                        <td className="num" style={{ textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmt(r.media)}</td>
                         <td className="num" style={{ textAlign: "right", color: T.ink, fontWeight: 700 }}>{hidden ? "•••" : fmt(r.total)}</td>
                       </tr>
                     ))}
@@ -394,7 +392,6 @@ td.neg { color:#b3261e; }
                       {g.subPorMes.map((v, i) => (
                         <td key={i} className="num" style={{ textAlign: "right", fontWeight: 600, color: T.muted, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : (v ? fmt(v) : "—")}</td>
                       ))}
-                      <td className="num" style={{ textAlign: "right", fontWeight: 600, color: T.muted, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : fmt(g.subMedia)}</td>
                       <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : fmt(g.subTotal)}</td>
                     </tr>
                   </React.Fragment>
@@ -404,14 +401,13 @@ td.neg { color:#b3261e; }
                   {proximosMeses.map((m, i) => (
                     <td key={m.iso} className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(projecao.totaisMes[i])}</td>
                   ))}
-                  <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(projecao.media)}</td>
                   <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.gold }}>{hidden ? "•••" : fmt(projecao.totalGeral)}</td>
                 </tr>
 
                 {projecao.receber && (
                   <>
                     <tr>
-                      <td colSpan={proximosMeses.length + 3} style={{ background: "rgba(31,122,68,.08)", color: T.ink, fontWeight: 700, textTransform: "uppercase", fontSize: 10, letterSpacing: ".08em", padding: "6px 8px" }}>
+                      <td colSpan={proximosMeses.length + 2} style={{ background: "rgba(31,122,68,.08)", color: T.ink, fontWeight: 700, textTransform: "uppercase", fontSize: 10, letterSpacing: ".08em", padding: "6px 8px" }}>
                         A receber (entradas previstas)
                       </td>
                     </tr>
@@ -423,7 +419,6 @@ td.neg { color:#b3261e; }
                             {r.porMes[m.iso] ? (hidden ? "•••" : fmt(r.porMes[m.iso])) : "—"}
                           </td>
                         ))}
-                        <td className="num" style={{ textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmt(r.media)}</td>
                         <td className="num" style={{ textAlign: "right", color: T.ink, fontWeight: 700 }}>{hidden ? "•••" : fmt(r.total)}</td>
                       </tr>
                     ))}
@@ -432,7 +427,6 @@ td.neg { color:#b3261e; }
                       {projecao.receber.subPorMes.map((v, i) => (
                         <td key={i} className="num" style={{ textAlign: "right", fontWeight: 600, color: T.muted, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : (v ? fmt(v) : "—")}</td>
                       ))}
-                      <td className="num" style={{ textAlign: "right", fontWeight: 600, color: T.muted, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : fmt(projecao.receber.subMedia)}</td>
                       <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : fmt(projecao.receber.subTotal)}</td>
                     </tr>
                   </>
@@ -453,7 +447,6 @@ td.neg { color:#b3261e; }
                     {sc.cen.porMes.map((v, i) => (
                       <td key={i} className="num" style={{ textAlign: "right", fontWeight: 700, color: v < 0 ? "#b3261e" : "#1f7a44" }}>{hidden ? "•••" : fmt(v)}</td>
                     ))}
-                    <td className="num" style={{ textAlign: "right", color: T.faint }}>—</td>
                     <td className="num" style={{ textAlign: "right", fontWeight: 700, color: sc.cen.saldoFinal < 0 ? "#b3261e" : "#1f7a44" }}>{hidden ? "•••" : fmt(sc.cen.saldoFinal)}</td>
                   </tr>
                 ))}
@@ -463,7 +456,6 @@ td.neg { color:#b3261e; }
                       Bens (à parte, fora do saldo)
                     </td>
                     {proximosMeses.map((m, i) => <td key={i} className="num" style={{ textAlign: "right", color: T.faint }}>—</td>)}
-                    <td className="num" style={{ textAlign: "right", color: T.faint }}>—</td>
                     <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(cenarios.bensTotal)}</td>
                   </tr>
                 )}
