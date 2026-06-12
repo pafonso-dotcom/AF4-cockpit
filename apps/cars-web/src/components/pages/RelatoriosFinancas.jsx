@@ -245,6 +245,35 @@ export default function RelatoriosFinancas({
     return { grupos, totaisMes, totalGeral, media: totalGeral / n, receber, saldoMes, saldoTotal, saldoMedia: saldoTotal / n, vazio: todas.length === 0 && !receber };
   }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, escopoAtivo, proximosMeses]);
 
+  // ===== Cenários de Saldo previsto =====
+  // Parte do SALDO ATUAL das contas e acumula (A receber − Saídas) mês a mês.
+  // Dois cenários: Pessoal (só contas/dados pessoais) e Pessoal + Negócio (tudo).
+  // A conta "bem" (imóvel/veículo/patrimônio físico) fica fora do saldo líquido.
+  const ehBem = (c) => /\bbem\b|\bbens\b|im[oó]ve|ve[ií]cul|autom[oó]ve|\bcarro\b|patrim/i.test(c?.nome || "");
+  const cenarios = useMemo(() => {
+    const stateRaw = { transacoes: transacoesRaw, contas: contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores };
+    const cenario = (escopo) => {
+      const contasEsc = filtrarPorEscopo(contasRaw || [], escopo).filter(c => !ehBem(c));
+      const saldoInicial = contasEsc.reduce((s, c) => s + (Number(c.saldo) || 0), 0);
+      let acc = saldoInicial;
+      const porMes = proximosMeses.map(m => {
+        let saidas = 0, receber = 0;
+        try { saidas = getDespesasDoMes(m.iso, stateRaw, escopo).reduce((s, d) => s + (Number(d.valor) || 0), 0); } catch {}
+        try { receber = getGanhosDoMes(m.iso, stateRaw, escopo).reduce((s, g) => s + (Number(g.valor) || 0), 0); } catch {}
+        acc += receber - saidas;
+        return acc;
+      });
+      return { saldoInicial, porMes, saldoFinal: porMes[porMes.length - 1] ?? saldoInicial };
+    };
+    const bens = (contasRaw || []).filter(ehBem);
+    return {
+      pessoal: cenario("pessoal"),
+      tudo: cenario("tudo"),
+      bensTotal: bens.reduce((s, c) => s + (Number(c.saldo) || 0), 0),
+      bensNomes: bens.map(c => c.nome).join(", "),
+    };
+  }, [transacoesRaw, contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, proximosMeses]);
+
   const periodoLabel = proximosMeses.length
     ? `${proximosMeses[0].label} a ${proximosMeses[proximosMeses.length - 1].label}` : "";
 
@@ -271,7 +300,10 @@ export default function RelatoriosFinancas({
       const sub = `<tr class="sub"><td>A receber · subtotal</td>${r.subPorMes.map(v => `<td class="n">${cel(v)}</td>`).join("")}<td class="n">${esc(fmt(r.subMedia))}</td><td class="n">${esc(fmt(r.subTotal))}</td></tr>`;
       receberHtml = `<tr class="grp grp-rec"><td colspan="${proximosMeses.length + 3}">A receber (entradas previstas)</td></tr>${linhas}${sub}`;
     }
-    const saldo = `<tr class="saldo"><td>SALDO PREVISTO</td>${projecao.saldoMes.map(v => `<td class="n ${v < 0 ? "neg" : "pos"}">${esc(fmt(v))}</td>`).join("")}<td class="n">${esc(fmt(projecao.saldoMedia))}</td><td class="n ${projecao.saldoTotal < 0 ? "neg" : "pos"}">${esc(fmt(projecao.saldoTotal))}</td></tr>`;
+    const linhaSaldo = (label, cen) => `<tr class="saldo"><td>${esc(label)} · início ${esc(fmt(cen.saldoInicial))}</td>${cen.porMes.map(v => `<td class="n ${v < 0 ? "neg" : "pos"}">${esc(fmt(v))}</td>`).join("")}<td class="n">—</td><td class="n ${cen.saldoFinal < 0 ? "neg" : "pos"}">${esc(fmt(cen.saldoFinal))}</td></tr>`;
+    const saldo = linhaSaldo("SALDO PREVISTO · PESSOAL", cenarios.pessoal)
+      + linhaSaldo("SALDO PREVISTO · PESSOAL + NEGÓCIO", cenarios.tudo)
+      + (cenarios.bensTotal > 0 ? `<tr><td>BENS (à parte)</td>${proximosMeses.map(() => '<td class="n">—</td>').join("")}<td class="n">—</td><td class="n">${esc(fmt(cenarios.bensTotal))}</td></tr>` : "");
     printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Projeção · Meses a Vencer</title>
 <style>
 @page { size: A4 landscape; margin: 9mm; }
@@ -406,14 +438,35 @@ td.neg { color:#b3261e; }
                   </>
                 )}
 
-                <tr style={{ borderTop: `2px solid ${T.ink}` }}>
-                  <td style={{ fontWeight: 700, color: T.ink, textTransform: "uppercase", fontSize: 10.5, letterSpacing: ".05em" }}>Saldo previsto</td>
-                  {projecao.saldoMes.map((v, i) => (
-                    <td key={i} className="num" style={{ textAlign: "right", fontWeight: 700, color: v < 0 ? "#b3261e" : "#1f7a44" }}>{hidden ? "•••" : fmt(v)}</td>
-                  ))}
-                  <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(projecao.saldoMedia)}</td>
-                  <td className="num" style={{ textAlign: "right", fontWeight: 700, color: projecao.saldoTotal < 0 ? "#b3261e" : "#1f7a44" }}>{hidden ? "•••" : fmt(projecao.saldoTotal)}</td>
-                </tr>
+                {/* Saldo previsto · 2 cenários — parte do saldo atual das contas e acumula (receber − saídas). */}
+                {[
+                  { label: "Saldo previsto · Pessoal", cen: cenarios.pessoal },
+                  { label: "Saldo previsto · Pessoal + Negócio", cen: cenarios.tudo },
+                ].map((sc, idx) => (
+                  <tr key={sc.label} style={{ borderTop: idx === 0 ? `2px solid ${T.ink}` : "none" }}>
+                    <td style={{ fontWeight: 700, color: T.ink, fontSize: 10.5, letterSpacing: ".03em" }}>
+                      {sc.label}
+                      <span style={{ display: "block", fontSize: 9, color: T.muted, fontWeight: 400 }}>
+                        início {hidden ? "•••" : fmt(sc.cen.saldoInicial)}
+                      </span>
+                    </td>
+                    {sc.cen.porMes.map((v, i) => (
+                      <td key={i} className="num" style={{ textAlign: "right", fontWeight: 700, color: v < 0 ? "#b3261e" : "#1f7a44" }}>{hidden ? "•••" : fmt(v)}</td>
+                    ))}
+                    <td className="num" style={{ textAlign: "right", color: T.faint }}>—</td>
+                    <td className="num" style={{ textAlign: "right", fontWeight: 700, color: sc.cen.saldoFinal < 0 ? "#b3261e" : "#1f7a44" }}>{hidden ? "•••" : fmt(sc.cen.saldoFinal)}</td>
+                  </tr>
+                ))}
+                {cenarios.bensTotal > 0 && (
+                  <tr>
+                    <td style={{ fontWeight: 600, color: T.muted, fontSize: 10.5 }} title={cenarios.bensNomes}>
+                      Bens (à parte, fora do saldo)
+                    </td>
+                    {proximosMeses.map((m, i) => <td key={i} className="num" style={{ textAlign: "right", color: T.faint }}>—</td>)}
+                    <td className="num" style={{ textAlign: "right", color: T.faint }}>—</td>
+                    <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(cenarios.bensTotal)}</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
