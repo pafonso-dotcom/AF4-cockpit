@@ -1,0 +1,76 @@
+name: Deploy LOTOAI to GitHub Pages
+
+# Builda o LOTOAI APP PRO mobile e publica em GitHub Pages.
+# Antes do primeiro run, ative em: Settings → Pages → Source: GitHub Actions
+#
+# Triggers:
+# - Push em qualquer arquivo do app
+# - Manual via workflow_dispatch (botão "Run workflow" no GitHub UI)
+
+on:
+  push:
+    branches:
+      - main
+      - claude/lotoai-app-pro-mobile-8AiS8
+    paths:
+      - 'apps/lotoai-mobile/**'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/deploy-lotoai-pages.yml'
+  workflow_dispatch:
+
+# Permissões necessárias para o GITHUB_TOKEN do action
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Evita runs concorrentes; cancela o anterior se chegar um novo
+concurrency:
+  group: pages-lotoai
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build LOTOAI
+        run: pnpm --filter @repo/lotoai-mobile build
+
+      - name: Add SPA 404 fallback
+        run: cp apps/lotoai-mobile/dist/index.html apps/lotoai-mobile/dist/404.html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./apps/lotoai-mobile/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
