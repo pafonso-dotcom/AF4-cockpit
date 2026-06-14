@@ -6,9 +6,12 @@ import { analisarJogo, NUMEROS, custoAposta } from "../../lib/lotofacil.js";
 import { salvarJogos } from "../../lib/supabase.js";
 
 const ESTRATEGIAS = [
-  { id: "ponderado",  nome: "IA Ponderada", hint: "Frequência + atraso" },
-  { id: "balanceado", nome: "Balanceada",   hint: "Pares 7–8 alvo" },
-  { id: "aleatorio",  nome: "Aleatória",    hint: "Surpresinha pura" },
+  { id: "zonas",         nome: "Zonas + Primos", hint: "8 de 1–15 + 7 de 16–25 · primos primeiro" },
+  { id: "estratificado", nome: "Estratificada",  hint: "Cobre estratos do espaço (max P(prêmio))" },
+  { id: "bayesiano",     nome: "Bayesiana",      hint: "Posterior Beta · prior Beta(15,10)" },
+  { id: "ponderado",     nome: "IA Ponderada",   hint: "Frequência + atraso" },
+  { id: "balanceado",    nome: "Balanceada",     hint: "Pares 7–8 alvo" },
+  { id: "aleatorio",     nome: "Aleatória",      hint: "Surpresinha pura" },
 ];
 
 export default function GerarJogos({ historico }) {
@@ -53,7 +56,7 @@ export default function GerarJogos({ historico }) {
       <section className="card space-y-4">
         <div>
           <label className="text-xs uppercase tracking-wider text-white/40">Estratégia</label>
-          <div className="grid grid-cols-3 gap-2 mt-2">
+          <div className="grid grid-cols-2 gap-2 mt-2">
             {ESTRATEGIAS.map(e => (
               <button
                 key={e.id}

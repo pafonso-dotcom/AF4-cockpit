@@ -48,14 +48,30 @@ export function frias(historico, n = 8) {
  * Defaults vêm do grid search sobre 500 concursos reais (ver
  * data/grid-top.json e RELATORIO-EXECUTIVO.md):
  *   wFreq=0.7, wAtraso=0.0, janela=100 → menor prejuízo no backtest (-29.67%).
+ *
+ * Modo bayesiano (bayesian=true): usa posterior Beta(α0+sucessos, β0+falhas)
+ * com prior Beta(15, 10) que favorece P=0.6 (P teórica = 15/25). Mais
+ * rigoroso pra janelas curtas; em janelas longas converge pra frequência.
  */
-export function scores(historico, { pesoFreq = 0.7, pesoAtraso = 0.0, janela = 100 } = {}) {
+export function scores(historico, { pesoFreq = 0.7, pesoAtraso = 0.0, janela = 100, bayesian = false } = {}) {
   const fonte = janela > 0 && historico.length > janela ? historico.slice(-janela) : historico;
-  const f = frequencias(fonte);
   const a = atrasos(historico);
-  const maxF = Math.max(...Object.values(f), 1);
   const maxA = Math.max(...Object.values(a), 1);
   const out = {};
+
+  if (bayesian) {
+    const N = fonte.length;
+    const sucessos = Object.fromEntries(NUMEROS.map(n => [n, 0]));
+    for (const s of fonte) for (const n of s) sucessos[n]++;
+    for (const n of NUMEROS) {
+      const pBay = (15 + sucessos[n]) / (25 + N);
+      out[n] = pBay * pesoFreq + (a[n] / maxA) * pesoAtraso;
+    }
+    return out;
+  }
+
+  const f = frequencias(fonte);
+  const maxF = Math.max(...Object.values(f), 1);
   for (const n of NUMEROS) {
     out[n] = (f[n] / maxF) * pesoFreq + (a[n] / maxA) * pesoAtraso;
   }
