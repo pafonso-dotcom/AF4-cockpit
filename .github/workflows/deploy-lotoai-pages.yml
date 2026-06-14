@@ -1,11 +1,16 @@
 name: Deploy LOTOAI to GitHub Pages
 
-# Builda o LOTOAI APP PRO mobile e publica em GitHub Pages.
-# Antes do primeiro run, ative em: Settings → Pages → Source: GitHub Actions
+# Builda o LOTOAI APP PRO mobile e publica na branch gh-pages-lotoai.
+# O GitHub Pages serve direto dessa branch (sem precisar de permissões
+# admin extras que actions/deploy-pages exige).
+#
+# Pre-req único no GitHub UI (Settings → Pages):
+#   Source: "Deploy from a branch"
+#   Branch: "gh-pages-lotoai" / "(root)"
 #
 # Triggers:
-# - Push em qualquer arquivo do app
-# - Manual via workflow_dispatch (botão "Run workflow" no GitHub UI)
+# - Push em arquivos do app
+# - Manual via workflow_dispatch
 
 on:
   push:
@@ -18,19 +23,15 @@ on:
       - '.github/workflows/deploy-lotoai-pages.yml'
   workflow_dispatch:
 
-# Permissões necessárias para o GITHUB_TOKEN do action
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write   # pra push na branch gh-pages-lotoai
 
-# Evita runs concorrentes; cancela o anterior se chegar um novo
 concurrency:
   group: pages-lotoai
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -38,8 +39,7 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        # version vem do "packageManager" do package.json — não passar explicitamente
-        # pra evitar ERR_PNPM_BAD_PM_VERSION
+        # versão vem do "packageManager" do package.json
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -53,28 +53,21 @@ jobs:
       - name: Build LOTOAI
         run: pnpm --filter @repo/lotoai-mobile build
 
-      - name: Add SPA 404 fallback
-        run: cp apps/lotoai-mobile/dist/index.html apps/lotoai-mobile/dist/404.html
+      - name: SPA 404 fallback + Jekyll bypass
+        run: |
+          cp apps/lotoai-mobile/dist/index.html apps/lotoai-mobile/dist/404.html
+          touch apps/lotoai-mobile/dist/.nojekyll
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+      - name: Publish to gh-pages-lotoai branch
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          # Ativa o GitHub Pages no repo automaticamente se ainda não estiver
-          # (evita o erro "Get Pages site failed: Not Found")
-          enablement: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./apps/lotoai-mobile/dist
+          publish_branch: gh-pages-lotoai
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: |
+            deploy: ${{ github.event.head_commit.message || 'manual trigger' }}
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./apps/lotoai-mobile/dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+            source: ${{ github.sha }}
