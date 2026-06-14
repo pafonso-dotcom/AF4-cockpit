@@ -38,8 +38,8 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
+        # version vem do "packageManager" do package.json — não passar explicitamente
+        # pra evitar ERR_PNPM_BAD_PM_VERSION
 
       - name: Setup Node
         uses: actions/setup-node@v4
