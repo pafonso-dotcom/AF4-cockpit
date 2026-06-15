@@ -25,6 +25,16 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     { v: "cripto", l: "Carteira Cripto" },
     { v: "carteira", l: "Carteira Física" },
   ];
+  // Moedas — Real (padrão) ou conta do exterior (moeda estrangeira).
+  const moedas = [
+    { v: "BRL", l: "🇧🇷 Real (R$)" },
+    { v: "USD", l: "🇺🇸 Dólar (US$)" },
+    { v: "EUR", l: "🇪🇺 Euro (€)" },
+    { v: "GBP", l: "🇬🇧 Libra (£)" },
+    { v: "CHF", l: "🇨🇭 Franco suíço (CHF)" },
+    { v: "ARS", l: "🇦🇷 Peso argentino (ARS)" },
+  ];
+  const ehBRL = (c) => !(c?.moeda) || c.moeda === "BRL";
 
   const [formErrors, setFormErrors] = useState({});
 
@@ -53,7 +63,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     ? contasNoEscopo.filter(c => Math.abs(Number(c.saldo) || 0) > 0.01)
     : contasNoEscopo;
   const ehNegocio = (c) => (c?.escopo || "pessoal") === "negocio";
-  const totalNegocio = (contas || []).filter(ehNegocio).reduce((s, c) => s + Number(c.saldo || 0), 0);
+  const totalNegocio = (contas || []).filter(c => ehNegocio(c) && ehBRL(c)).reduce((s, c) => s + Number(c.saldo || 0), 0);
 
   const save = () => {
     const errs = {};
@@ -97,7 +107,12 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     setFormErrors({});
   };
 
-  const total = contas.reduce((s, c) => s + Number(c.saldo || 0), 0);
+  // Total em R$ considera só contas em Real; as do exterior somam por moeda à parte.
+  const total = contas.filter(ehBRL).reduce((s, c) => s + Number(c.saldo || 0), 0);
+  const totaisExterior = {};
+  contas.filter(c => !ehBRL(c)).forEach(c => {
+    totaisExterior[c.moeda] = (totaisExterior[c.moeda] || 0) + Number(c.saldo || 0);
+  });
 
   // Detecta contas dessincronizadas (saldo armazenado != saldo calculado por transações)
   const dessincronizadas = useMemo(() => {
@@ -213,7 +228,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             <Upload size={12} /> Extrato banco
           </button>
           <button className="btn-gold" style={{ padding: "7px 12px", fontSize: 11 }}
-                  onClick={() => setForm({ id: null, nome: "", instituicao: "", tipo: "corrente", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.gold })}>
+                  onClick={() => setForm({ id: null, nome: "", instituicao: "", tipo: "corrente", moeda: "BRL", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.gold })}>
             <Plus size={13} className="inline mr-1.5" />Nova Conta
           </button>
         </div>
@@ -264,6 +279,11 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               · {hidden ? "•••" : fmt(totalNegocio)} em Negócio <span style={{ color: T.faint }}>(fora do painel)</span>
             </span>
           )}
+          {Object.entries(totaisExterior).map(([m, v]) => (
+            <span key={m} className="num" style={{ fontSize: 10.5, color: T.muted }}>
+              · {hidden ? "•••" : fmt(v, m)} <span style={{ color: T.faint }}>(exterior)</span>
+            </span>
+          ))}
         </div>
         <button onClick={toggleOcultarZeradas}
           style={{
@@ -322,7 +342,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               <div className="num" style={{
                 fontFamily: T.serif, fontSize: 15, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap",
               }}>
-                {hidden ? "•••" : fmt(c.saldo)}
+                {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
               </div>
               <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
                       aria-label={exp ? "Recolher" : "Mais ações"}
@@ -399,13 +419,18 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               {tipos.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
             </select>
           </Field>
+          <Field label="Moeda" hint="Real para contas no Brasil; outra moeda = conta do exterior.">
+            <select value={form.moeda || "BRL"} onChange={e => setForm({ ...form, moeda: e.target.value })}>
+              {moedas.map(m => <option key={m.v} value={m.v}>{m.l}</option>)}
+            </select>
+          </Field>
           <Field label="Escopo" hint="Pessoal ou Negócio — separação financeira">
             <select value={form.escopo || "pessoal"} onChange={e => setForm({ ...form, escopo: e.target.value })}>
               <option value="pessoal">👤 Pessoal</option>
               <option value="negocio">🏢 Negócio</option>
             </select>
           </Field>
-          <Field label="Saldo atual (R$)" error={formErrors.saldo} hint="O mesmo que aparece no app do banco. Aceita: 1500 · 1.500,00 · R$ 1.234,56 · negativo pra dívida">
+          <Field label={`Saldo atual (${form.moeda && form.moeda !== "BRL" ? form.moeda : "R$"})`} error={formErrors.saldo} hint="O mesmo que aparece no app do banco. Aceita: 1500 · 1.500,00 · negativo pra dívida">
             <input
               type="text"
               inputMode="decimal"
