@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { CreditCard, Calendar, TrendingUp, TrendingDown, Plus, Trash2, Edit3, Check, Repeat, ChevronDown, ChevronUp } from "lucide-react";
+import { CreditCard, Calendar, TrendingUp, TrendingDown, Plus, Trash2, Edit3, Check, Repeat, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, uid, todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
@@ -10,6 +10,7 @@ import Field from "../ui/Field.jsx";
 import StatCard from "../ui/StatCard.jsx";
 import Modal from "../ui/Modal.jsx";
 import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
+import AnaliseFatura from "./AnaliseFatura.jsx";
 
 // ===== Helpers compartilhados de parcelas =====
 // Mantidos no nível do módulo pra que o cálculo do "valor a pagar" do cartão
@@ -66,7 +67,8 @@ function valorAPagarMes(cartao, parcelamentos = [], monthKey = mesAtualKey()) {
   return fiTotal > 0 ? fiTotal : faturaMensalDoCartao(cartao, parcelamentos, monthKey);
 }
 
-export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, fixas = [], setFixas, fixaOcorrencias = [], setFixaOcorrencias, categorias, hidden, onCartaoClick, cartaoAtivo }) {
+export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, fixas = [], setFixas, fixaOcorrencias = [], setFixaOcorrencias, categorias, setCategorias, apiKeys = {}, hidden, onCartaoClick, cartaoAtivo }) {
+  const [analiseAberta, setAnaliseAberta] = useState(false);
   const [form, setForm] = useState(null);
   const [parcForm, setParcForm] = useState(null);
   const [pagFatura, setPagFatura] = useState(null); // { cartaoId, valor, contaNome, data }
@@ -520,6 +522,32 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     });
   };
 
+  // Análise IA (fatura) embutida no módulo Cartões.
+  if (analiseAberta) {
+    return (
+      <div className="fade-up py-8">
+        <button onClick={() => setAnaliseAberta(false)}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", marginBottom: 12,
+            background: T.card, border: `1px solid ${T.border}`, borderRadius: 7, fontSize: 11, fontWeight: 600,
+            color: T.muted, cursor: "pointer", letterSpacing: ".05em", textTransform: "uppercase",
+          }}>
+          ← Voltar aos Cartões
+        </button>
+        <AnaliseFatura
+          categorias={categorias} setCategorias={setCategorias}
+          transacoes={transacoes} setTransacoes={setTransacoes}
+          contas={contas} setContas={setContas}
+          cartoes={cartoes} setCartoes={setCartoes}
+          fixas={fixas} setFixas={setFixas}
+          fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
+          parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
+          apiKeys={apiKeys} hidden={hidden}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="fade-up py-8">
       <PageHeader
@@ -528,6 +556,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         sub="Limites, fechamentos e parcelamentos sob controle."
         action={
           <div className="flex gap-2 flex-wrap">
+            <button className="btn-ghost" onClick={() => setAnaliseAberta(true)}
+                    title="Analisar fatura do cartão com IA (Gemini)">
+              <Sparkles size={12} className="inline mr-2" />Análise IA
+            </button>
             <button className="btn-ghost" onClick={limparDuplicadosFatura}
                     title="Remove cópias de parcela e pagamentos vazios criados por importações antigas">
               <Trash2 size={12} className="inline mr-2" />Limpar duplicados
