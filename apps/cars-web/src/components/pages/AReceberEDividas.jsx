@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Plus, Trash2, Edit3, Check, X, MessageCircle } from "lucide-react";
+import { Plus, Trash2, Edit3, Check, X, MessageCircle, MoreHorizontal } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
 import MoneyInput from "../ui/MoneyInput.jsx";
@@ -1910,122 +1910,79 @@ function corDoNome(nome = "") {
 }
 
 export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, dueLabel }) {
+  const [menu, setMenu] = useState(false);
   const due = dueLabel ? dueLabel(d.vencimento) : null;
   const isOver = due?.status === "over";
   const isWarn = due?.status === "warn";
   const inicial = (d.nome || "?").trim().charAt(0).toUpperCase();
-  const borderL = isOver ? `3px solid ${T.red}` : isWarn ? `3px solid ${T.gold}` : `1px solid ${T.border}`;
+  const cor = corDoNome(d.nome || "?");
+  const borderL = isOver ? `3px solid ${T.red}` : isWarn ? `3px solid ${T.gold}` : `3px solid ${cor}`;
   // Recebimento parcial (backward-compat: valorRecebido undefined → 0)
   const valorTotal = parseFloat(d.valor) || 0;
   const jaRecebido = parseFloat(d.valorRecebido) || 0;
   const temParcial = jaRecebido > 0 && jaRecebido < valorTotal;
   const faltaReceber = Math.max(0, valorTotal - jaRecebido);
   const pctRecebido = valorTotal > 0 ? Math.min(100, (jaRecebido / valorTotal) * 100) : 0;
+  const meta = [due && d.vencimento ? due.txt : "", d.combinado || d.obs || ""].filter(Boolean).join(" · ");
+  const itemMenu = { background: "transparent", border: "none", cursor: "pointer", padding: "9px 12px", display: "flex", alignItems: "center", gap: 9, width: "100%", fontSize: 12.5, textAlign: "left", color: T.ink };
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 10,
-      padding: "8px 11px",
-      background: T.card,
-      border: `1px solid ${T.border}`,
-      borderLeft: borderL,
-      borderRadius: 7,
-      flexWrap: "wrap",
+      padding: "7px 10px", background: T.card,
+      border: `1px solid ${T.border}`, borderLeft: borderL, borderRadius: 9,
     }}>
       <div style={{
-        width: 30, height: 30, borderRadius: "50%",
-        background: corDoNome(d.nome || "?"),
-        color: "#fff", display: "grid", placeItems: "center",
-        fontWeight: 700, fontSize: 12, flexShrink: 0,
+        width: 32, height: 32, borderRadius: "50%", background: cor,
+        color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 13, flexShrink: 0,
       }}>{inicial}</div>
 
-      <div style={{ flex: 1, minWidth: 160 }}>
-        <div style={{ color: T.ink, fontSize: 12.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-          {d.nome}
-          {isOver && (
-            <span style={{
-              fontSize: 8.5, padding: "1px 5px", borderRadius: 100,
-              background: `${T.red}22`, color: T.red, letterSpacing: ".08em",
-              textTransform: "uppercase", fontWeight: 700,
-            }}>Vencido</span>
-          )}
-          {isWarn && (
-            <span style={{
-              fontSize: 8.5, padding: "1px 5px", borderRadius: 100,
-              background: `${T.gold}22`, color: T.gold, letterSpacing: ".08em",
-              textTransform: "uppercase", fontWeight: 700,
-            }}>Em 3 dias</span>
-          )}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color: T.ink, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.nome}</span>
+          {isOver && <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 100, background: `${T.red}22`, color: T.red, letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>vencido</span>}
+          {isWarn && <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>3 dias</span>}
         </div>
-        {(d.obs || d.criadoEm || d.dataEmprestimo) && (
-          <div style={{ fontSize: 10, color: T.muted, marginTop: 1 }}>
-            {d.obs || ""}{d.obs && (d.criadoEm || d.dataEmprestimo) && " · "}
-            {d.dataEmprestimo || d.criadoEm || ""}
+        {meta && (
+          <div style={{ fontSize: 10.5, color: (due && d.vencimento) ? due.cor : T.muted, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {meta}
+          </div>
+        )}
+        {temParcial && (
+          <div style={{ height: 4, borderRadius: 100, background: `${T.green}22`, overflow: "hidden", marginTop: 5 }}>
+            <div style={{ width: `${pctRecebido}%`, height: "100%", background: T.green, transition: "width .25s ease" }} />
           </div>
         )}
       </div>
 
-      <div style={{ minWidth: 100, textAlign: "right" }}>
-        <div className="num" style={{ color: T.green, fontFamily: T.serif, fontSize: 14, fontWeight: 600 }}>
-          {hidden ? "•••" : fmt(d.valor)}
+      <div style={{ textAlign: "right", flexShrink: 0 }}>
+        <div className="num" style={{ color: T.green, fontFamily: T.serif, fontSize: 15, fontWeight: 600, lineHeight: 1.1 }}>
+          {hidden ? "•••" : fmt(temParcial ? faltaReceber : d.valor)}
         </div>
-        {d.combinado && (
-          <div style={{ fontSize: 9.5, color: T.muted, fontStyle: "italic", marginTop: 1 }}>
-            {d.combinado}
-          </div>
-        )}
-        {due && d.vencimento && !d.combinado && (
-          <div style={{ fontSize: 9.5, color: due.cor, marginTop: 1 }}>
-            {due.txt}
-          </div>
-        )}
+        {temParcial && <div style={{ fontSize: 9, color: T.muted }}>falta · de {hidden ? "•••" : fmt(valorTotal)}</div>}
       </div>
 
-      <div style={{ display: "inline-flex", gap: 4, flexShrink: 0 }}>
-        <button onClick={() => onBaixa(d)} title="✓ Receber"
-          style={{ background: "transparent", color: T.green, border: `1px solid ${T.green}55`,
-                   padding: "5px 7px", borderRadius: 5, cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
-          <Check size={12} />
-        </button>
-        <button onClick={() => onWhats(d)} title="WhatsApp"
-          style={{ background: "transparent", color: "#25D366", border: `1px solid #25D36655`,
-                   padding: "5px 7px", borderRadius: 5, cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
-          <MessageCircle size={12} />
-        </button>
-        <button onClick={() => onEditar(d)} title="Editar"
-          style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`,
-                   padding: "5px 7px", borderRadius: 5, cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
-          <Edit3 size={12} />
-        </button>
-        <button onClick={() => onExcluir(d)} title="Excluir"
-          style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`,
-                   padding: "5px 7px", borderRadius: 5, cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
-          <Trash2 size={12} />
-        </button>
-      </div>
+      <button onClick={() => onBaixa(d)} title="Receber"
+        style={{ background: T.green, color: "#fff", border: "none", borderRadius: 7, padding: "7px 11px",
+                 cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
+        <Check size={13} /> Receber
+      </button>
 
-      {/* Recebimento parcial — barra de progresso + falta (ocupa linha própria) */}
-      {temParcial && (
-        <div style={{ flexBasis: "100%", marginTop: 2 }}>
-          <div style={{
-            height: 5, borderRadius: 100, overflow: "hidden",
-            background: `${T.green}22`, border: `1px solid ${T.green}33`,
-          }}>
-            <div style={{
-              width: `${pctRecebido}%`, height: "100%",
-              background: T.green, borderRadius: 100,
-              transition: "width .25s ease",
-            }} />
-          </div>
-          <div style={{ fontSize: 9.5, color: T.muted, marginTop: 3, display: "flex", justifyContent: "space-between", gap: 6 }}>
-            <span className="num">
-              Recebido {hidden ? "•••" : fmt(jaRecebido)} de {hidden ? "•••" : fmt(valorTotal)}
-            </span>
-            <span className="num" style={{ color: T.green, fontWeight: 600 }}>
-              falta {hidden ? "•••" : fmt(faltaReceber)}
-            </span>
-          </div>
-        </div>
-      )}
+      <div style={{ position: "relative", flexShrink: 0 }}>
+        <button onClick={() => setMenu(v => !v)} title="Mais ações"
+          style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 7, padding: "6px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+          <MoreHorizontal size={14} />
+        </button>
+        {menu && (
+          <>
+            <div onClick={() => setMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+            <div style={{ position: "absolute", right: 0, top: "112%", zIndex: 50, background: T.card, border: `1px solid ${T.border}`, borderRadius: 9, boxShadow: `0 8px 24px ${T.bg}66`, minWidth: 156, overflow: "hidden" }}>
+              <button style={itemMenu} onClick={() => { setMenu(false); onWhats(d); }}><MessageCircle size={14} color="#25D366" /> WhatsApp</button>
+              <button style={itemMenu} onClick={() => { setMenu(false); onEditar(d); }}><Edit3 size={14} /> Editar</button>
+              <button style={{ ...itemMenu, color: T.red, borderTop: `1px solid ${T.border}` }} onClick={() => { setMenu(false); onExcluir(d); }}><Trash2 size={14} /> Excluir</button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
