@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { Plus, Trash2, Edit3, Check, X, MessageCircle, MoreHorizontal } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
@@ -855,7 +855,7 @@ export default function AReceberEDividas({
       })()}
 
       {/* Painel de alertas — Vermelho · Amarelo · Verde */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+      <div className="grid grid-cols-3 gap-2 mb-3">
         <AlertCard
           cor={T.red}
           titulo="Vencidos"
@@ -866,6 +866,7 @@ export default function AReceberEDividas({
           actions={countOver > 0 ? [
             {
               label: "📱 Cobrar / Lembrar",
+              icon: "📱",
               title: "Disparar mensagens no WhatsApp para todos os itens vencidos",
               onClick: () => {
                 const todos = [...totaisAlerta.over.receber, ...totaisAlerta.over.pagar];
@@ -882,6 +883,7 @@ export default function AReceberEDividas({
             },
             {
               label: "✓ Marcar pago / receber",
+              icon: "✓",
               title: "Abre o modal de baixa para o item vencido mais antigo",
               onClick: () => {
                 const proximo = [...totaisAlerta.over.receber, ...totaisAlerta.over.pagar]
@@ -1685,37 +1687,31 @@ function VisaoCard({ label, valor, sub, cor, small }) {
 
 function AlertCard({ cor, titulo, count, valor, sub, icone, actions }) {
   return (
-    <div style={{
+    <div title={sub} style={{
       background: T.card,
       border: `1px solid ${cor}55`,
       borderLeft: `3px solid ${cor}`,
       borderRadius: 8,
-      padding: 10,
+      padding: "6px 8px",
+      display: "flex", alignItems: "center", gap: 7, minWidth: 0,
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-        <span style={{ fontSize: 13 }}>{icone}</span>
-        <div className="label-eyebrow" style={{ color: cor, fontSize: 9 }}>{titulo}</div>
-      </div>
-      <div className="num" style={{ fontSize: 17, fontWeight: 400, color: cor, lineHeight: 1.1 }}>
-        {count} {count === 1 ? "item" : "itens"}
-      </div>
-      {valor != null && (
-        <div className="num" style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
-          {fmt(valor)}
+      <span style={{ fontSize: 14, flexShrink: 0 }}>{icone}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="label-eyebrow" style={{ color: cor, fontSize: 8, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{titulo}</div>
+        <div className="num" style={{ fontSize: 13, fontWeight: 600, color: cor, lineHeight: 1.2, whiteSpace: "nowrap" }}>
+          {count}{valor != null ? ` · ${fmt(valor)}` : ""}
         </div>
-      )}
-      <div style={{ fontSize: 10, color: T.faint, marginTop: 4 }}>{sub}</div>
+      </div>
       {actions && actions.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12, paddingTop: 10, borderTop: `1px dashed ${cor}33` }}>
+        <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
           {actions.map(a => (
             <button key={a.label} onClick={a.onClick} title={a.title}
               style={{
                 background: `${cor}22`, color: cor,
                 border: `1px solid ${cor}55`, borderRadius: 6,
-                padding: "5px 10px", fontSize: 10.5, fontWeight: 600,
-                letterSpacing: ".05em", cursor: "pointer", whiteSpace: "nowrap",
+                padding: "4px 6px", fontSize: 12, cursor: "pointer", lineHeight: 1,
               }}>
-              {a.label}
+              {a.icon || a.label}
             </button>
           ))}
         </div>
@@ -1911,6 +1907,18 @@ function corDoNome(nome = "") {
 
 export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, dueLabel }) {
   const [menu, setMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState(null);
+  const btnRef = useRef(null);
+  // Abre o menu em posição fixa (não é cortado por overflow) e pra cima quando
+  // não cabe embaixo (últimos itens da lista).
+  const abrirMenu = () => {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) {
+      const cabeAbaixo = window.innerHeight - r.bottom > 150;
+      setMenuPos({ left: Math.max(8, r.right - 156), top: cabeAbaixo ? r.bottom + 4 : r.top - 4, baixo: cabeAbaixo });
+    }
+    setMenu(v => !v);
+  };
   const due = dueLabel ? dueLabel(d.vencimento) : null;
   const isOver = due?.status === "over";
   const isWarn = due?.status === "warn";
@@ -1967,15 +1975,20 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
         <Check size={13} /> Receber
       </button>
 
-      <div style={{ position: "relative", flexShrink: 0 }}>
-        <button onClick={() => setMenu(v => !v)} title="Mais ações"
+      <div style={{ flexShrink: 0 }}>
+        <button ref={btnRef} onClick={abrirMenu} title="Mais ações"
           style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 7, padding: "6px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
           <MoreHorizontal size={14} />
         </button>
-        {menu && (
+        {menu && menuPos && (
           <>
-            <div onClick={() => setMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-            <div style={{ position: "absolute", right: 0, top: "112%", zIndex: 50, background: T.card, border: `1px solid ${T.border}`, borderRadius: 9, boxShadow: `0 8px 24px ${T.bg}66`, minWidth: 156, overflow: "hidden" }}>
+            <div onClick={() => setMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 1000 }} />
+            <div style={{
+              position: "fixed", left: menuPos.left, top: menuPos.top,
+              transform: menuPos.baixo ? "none" : "translateY(-100%)",
+              zIndex: 1001, background: T.card, border: `1px solid ${T.border}`, borderRadius: 9,
+              boxShadow: `0 8px 24px ${T.bg}66`, minWidth: 156, overflow: "hidden",
+            }}>
               <button style={itemMenu} onClick={() => { setMenu(false); onWhats(d); }}><MessageCircle size={14} color="#25D366" /> WhatsApp</button>
               <button style={itemMenu} onClick={() => { setMenu(false); onEditar(d); }}><Edit3 size={14} /> Editar</button>
               <button style={{ ...itemMenu, color: T.red, borderTop: `1px solid ${T.border}` }} onClick={() => { setMenu(false); onExcluir(d); }}><Trash2 size={14} /> Excluir</button>
