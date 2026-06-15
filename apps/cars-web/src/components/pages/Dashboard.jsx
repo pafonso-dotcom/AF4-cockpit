@@ -3,6 +3,7 @@ import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, Ar
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN } from "../../lib/format.js";
+import { somaContasBRL } from "../../lib/cambio.js";
 import { gerarInsights } from "../../lib/intelligence.js";
 import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
@@ -86,7 +87,7 @@ export default function Dashboard({
   const mesISO = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}`;
   const ehMesAtual = (data) => (data || "").startsWith(mesISO);
 
-  const totalContas = useMemo(() => contas.reduce((s, c) => s + Number(c.saldo || 0), 0), [contas]);
+  const totalContas = useMemo(() => somaContasBRL(contas), [contas]);
   const totalInvest = useMemo(() => ativos.reduce((s, a) => s + Number(a.qtd||0) * Number(a.preco||0), 0), [ativos]);
   const patrimonio = totalContas + totalInvest;
   const receitasMes = useMemo(() => transacoes.filter(t => t.tipo === "receita" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);

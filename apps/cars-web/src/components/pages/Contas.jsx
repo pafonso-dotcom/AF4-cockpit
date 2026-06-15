@@ -7,6 +7,7 @@ import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
 import { calcSaldoConta, reconciliarContas } from "../../lib/saldoConta.js";
 import { filtrarPorEscopo, detectarEscopoConta } from "../../lib/escopo.js";
+import { somaContasBRL, semCotacao, buscarCotacao } from "../../lib/cambio.js";
 import Field from "../ui/Field.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
 import Modal from "../ui/Modal.jsx";
@@ -63,7 +64,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     ? contasNoEscopo.filter(c => Math.abs(Number(c.saldo) || 0) > 0.01)
     : contasNoEscopo;
   const ehNegocio = (c) => (c?.escopo || "pessoal") === "negocio";
-  const totalNegocio = (contas || []).filter(c => ehNegocio(c) && ehBRL(c)).reduce((s, c) => s + Number(c.saldo || 0), 0);
+  const totalNegocio = somaContasBRL((contas || []).filter(ehNegocio));
 
   const save = () => {
     const errs = {};
@@ -94,7 +95,9 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     );
     const saldoAtual = saldoParsed;
     const saldoInicial = +(saldoAtual - somaTx).toFixed(2);
-    const formNormalizado = { ...form, saldoInicial, saldo: saldoAtual };
+    // Cotação só pra conta do exterior (R$ por 1 unidade); aceita vírgula.
+    const cotacaoNum = (form.moeda && form.moeda !== "BRL") ? (parseValorBR(form.cotacao) || 0) : null;
+    const formNormalizado = { ...form, saldoInicial, saldo: saldoAtual, cotacao: cotacaoNum };
 
     if (form.id && contas.find(c => c.id === form.id)) {
       setContas(contas.map(c => c.id === form.id ? formNormalizado : c));
@@ -107,12 +110,9 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     setFormErrors({});
   };
 
-  // Total em R$ considera só contas em Real; as do exterior somam por moeda à parte.
-  const total = contas.filter(ehBRL).reduce((s, c) => s + Number(c.saldo || 0), 0);
-  const totaisExterior = {};
-  contas.filter(c => !ehBRL(c)).forEach(c => {
-    totaisExterior[c.moeda] = (totaisExterior[c.moeda] || 0) + Number(c.saldo || 0);
-  });
+  // Total em R$ — contas do exterior convertidas pela cotação de cada uma.
+  const total = somaContasBRL(contas);
+  const contasSemCotacao = contas.filter(semCotacao);
 
   // Detecta contas dessincronizadas (saldo armazenado != saldo calculado por transações)
   const dessincronizadas = useMemo(() => {
@@ -228,7 +228,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             <Upload size={12} /> Extrato banco
           </button>
           <button className="btn-gold" style={{ padding: "7px 12px", fontSize: 11 }}
-                  onClick={() => setForm({ id: null, nome: "", instituicao: "", tipo: "corrente", moeda: "BRL", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.gold })}>
+                  onClick={() => setForm({ id: null, nome: "", instituicao: "", tipo: "corrente", moeda: "BRL", cotacao: "", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.gold })}>
             <Plus size={13} className="inline mr-1.5" />Nova Conta
           </button>
         </div>
@@ -279,11 +279,11 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               · {hidden ? "•••" : fmt(totalNegocio)} em Negócio <span style={{ color: T.faint }}>(fora do painel)</span>
             </span>
           )}
-          {Object.entries(totaisExterior).map(([m, v]) => (
-            <span key={m} className="num" style={{ fontSize: 10.5, color: T.muted }}>
-              · {hidden ? "•••" : fmt(v, m)} <span style={{ color: T.faint }}>(exterior)</span>
+          {contasSemCotacao.length > 0 && (
+            <span className="num" style={{ fontSize: 10.5, color: T.gold }}>
+              · ⚠ {contasSemCotacao.length} conta(s) do exterior sem cotação (não somam)
             </span>
-          ))}
+          )}
         </div>
         <button onClick={toggleOcultarZeradas}
           style={{
@@ -424,6 +424,24 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               {moedas.map(m => <option key={m.v} value={m.v}>{m.l}</option>)}
             </select>
           </Field>
+          {form.moeda && form.moeda !== "BRL" && (
+            <Field label={`Cotação (R$ por 1 ${form.moeda})`} hint="Usada pra converter o saldo pro patrimônio em R$.">
+              <div style={{ display: "flex", gap: 6 }}>
+                <input type="text" inputMode="decimal" style={{ flex: 1 }}
+                       value={form.cotacao == null ? "" : String(form.cotacao)}
+                       onChange={e => setForm({ ...form, cotacao: e.target.value })}
+                       placeholder="Ex.: 5,40" />
+                <button type="button" className="btn-ghost" style={{ whiteSpace: "nowrap", fontSize: 11 }}
+                        onClick={async () => {
+                          const r = await buscarCotacao(form.moeda);
+                          if (r) { setForm(f => ({ ...f, cotacao: r })); toast.success(`Cotação ${form.moeda}→BRL: ${fmt(r)}`); }
+                          else toast.error("Não consegui buscar a cotação agora. Digite manualmente.");
+                        }}>
+                  ⟳ Atualizar
+                </button>
+              </div>
+            </Field>
+          )}
           <Field label="Escopo" hint="Pessoal ou Negócio — separação financeira">
             <select value={form.escopo || "pessoal"} onChange={e => setForm({ ...form, escopo: e.target.value })}>
               <option value="pessoal">👤 Pessoal</option>
