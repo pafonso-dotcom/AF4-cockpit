@@ -914,7 +914,8 @@ export default function App() {
                          transacoes={transacoes} setTransacoes={setTransacoes}
                          fixas={fixas} setFixas={setFixas}
                          fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
-                         categorias={categorias}
+                         categorias={categorias} setCategorias={setCategorias}
+                         apiKeys={apiKeys}
                          hidden={hidden}
                          cartaoAtivo={cartaoAberto}
                          onCartaoClick={setCartaoAberto} />

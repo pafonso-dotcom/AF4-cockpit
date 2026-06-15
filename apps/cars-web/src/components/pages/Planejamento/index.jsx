@@ -92,12 +92,12 @@ export default function Planejamento(props) {
           onClick={() => setAtalhosAbertos(v => !v)}
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,
-            background: "transparent", border: "none", cursor: "pointer",
-            color: T.muted, fontSize: 11, fontWeight: 700, letterSpacing: ".1em",
-            textTransform: "uppercase", padding: "4px 0",
+            background: `${T.gold}1a`, border: `1px solid ${T.gold}66`, cursor: "pointer",
+            color: T.gold, fontSize: 12.5, fontWeight: 700, letterSpacing: ".04em",
+            padding: "8px 14px", borderRadius: 999,
           }}>
           <span style={{ display: "inline-block", transform: atalhosAbertos ? "rotate(90deg)" : "none", transition: "transform .15s" }}>▸</span>
-          Atalhos rápidos
+          ⚡ Atalhos rápidos
         </button>
         {atalhosAbertos && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8, paddingLeft: 14 }}>
