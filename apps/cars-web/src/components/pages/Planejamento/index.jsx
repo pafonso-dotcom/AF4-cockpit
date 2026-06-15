@@ -19,6 +19,7 @@ export default function Planejamento(props) {
   const { hidden, tab } = props;
   const [cardAberto, setCardAberto] = useState(null);
   const [voltouAoHub, setVoltouAoHub] = useState(false);
+  const [atalhosAbertos, setAtalhosAbertos] = useState(false); // atalhos ocultos (pai → filhos)
   // Ao trocar de aba no menu, reseta a navegação interna do Planejamento.
   useEffect(() => { setCardAberto(null); setVoltouAoHub(false); }, [tab]);
 
@@ -83,6 +84,41 @@ export default function Planejamento(props) {
         <p style={{ fontSize: 12, color: T.muted, marginTop: 6, fontStyle: "italic" }}>
           Toque em um card para ver os detalhes completos.
         </p>
+      </div>
+
+      {/* Atalhos ocultos (pai → filhos) — vão direto pra cada tela individual */}
+      <div style={{ marginBottom: 16 }}>
+        <button
+          onClick={() => setAtalhosAbertos(v => !v)}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            background: "transparent", border: "none", cursor: "pointer",
+            color: T.muted, fontSize: 11, fontWeight: 700, letterSpacing: ".1em",
+            textTransform: "uppercase", padding: "4px 0",
+          }}>
+          <span style={{ display: "inline-block", transform: atalhosAbertos ? "rotate(90deg)" : "none", transition: "transform .15s" }}>▸</span>
+          Atalhos rápidos
+        </button>
+        {atalhosAbertos && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8, paddingLeft: 14 }}>
+            {[
+              { l: "💰 A Receber",     id: "recebiveis:receber" },
+              { l: "⚠️ A Pagar",       id: "recebiveis:pagar" },
+              { l: "🔁 Despesa Fixa",  id: "fixas" },
+              { l: "💳 Parcelas",      id: "parcelas" },
+            ].map(a => (
+              <button key={a.id} onClick={() => setCardAberto(a.id)}
+                style={{
+                  padding: "7px 14px", borderRadius: 999, cursor: "pointer",
+                  background: `${T.gold}14`, color: T.ink,
+                  border: `1px solid ${T.gold}55`, fontSize: 12.5, fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}>
+                {a.l}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <ResumoExecutivo {...props} onAbrir={setCardAberto} />
