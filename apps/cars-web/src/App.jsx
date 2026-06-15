@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 
 import { T, applyTheme, THEMES } from "./lib/theme.js";
 import { simulateTick, uid } from "./lib/format.js";
+import { somaContasBRL } from "./lib/cambio.js";
 import { loadAll, saveAll, loadKeys, saveKeys, flushSave } from "./lib/storage.js";
 import { API, COIN_MAP } from "./lib/api.js";
 import { generateRecurringForCurrentMonth } from "./lib/recorrencia.js";
@@ -467,7 +468,7 @@ export default function App() {
     if (loading) return;
     const hoje = new Date().toISOString().slice(0, 10);
     const totalAtivos = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
-    const totalContas = contas.reduce((s, c) => s + Number(c.saldo || 0), 0);
+    const totalContas = somaContasBRL(contas);
     // Total aportado = custo dos ativos (qtd × preço médio). Permite comparar
     // o valor de mercado com o que foi efetivamente investido.
     const totalAportado = ativos.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.pm ?? a.precoMedio ?? 0), 0);
@@ -570,7 +571,7 @@ export default function App() {
   const totais = useMemo(() => {
     const receitas = transacoes.filter(t => t.tipo === "receita").reduce((s, t) => s + Number(t.valor || 0), 0);
     const despesas = transacoes.filter(t => t.tipo === "despesa").reduce((s, t) => s + Number(t.valor || 0), 0);
-    const saldoContas = contas.reduce((s, c) => s + Number(c.saldo || 0), 0);
+    const saldoContas = somaContasBRL(contas);
     const carteira = ativos.reduce((s, a) => s + a.qtd * a.preco, 0);
     const custo = ativos.reduce((s, a) => s + a.qtd * a.pm, 0);
     const rendimento = carteira - custo;
