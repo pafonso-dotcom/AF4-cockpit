@@ -67,15 +67,22 @@ export default function Proventos({
   const [comprarForm, setComprarForm] = useState(null);
   const [historicoAberto, setHistoricoAberto] = useState(false);
 
-  // Agrupar por mês
+  // Agrupar por mês — dentro do mês, os já recebidos (baixados) vão pro fim
+  // (arquivados), deixando os pendentes em cima.
   const porMes = useMemo(() => {
     const map = {};
     proventos.forEach(p => {
       const k = p.data.slice(0, 7);
       (map[k] ||= []).push(p);
     });
+    Object.values(map).forEach(lista => lista.sort((a, b) => {
+      const ra = proventosRecebidos[a.id] ? 1 : 0;
+      const rb = proventosRecebidos[b.id] ? 1 : 0;
+      if (ra !== rb) return ra - rb;            // pendentes primeiro, recebidos por último
+      return (a.data || "").localeCompare(b.data || "");
+    }));
     return Object.entries(map).sort();
-  }, [proventos]);
+  }, [proventos, proventosRecebidos]);
 
   const hoje = new Date();
   const mesAtual = hoje.toISOString().slice(0, 7);
