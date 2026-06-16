@@ -15,7 +15,7 @@ const DARK_BASE = {
   // Base grafite (#23272E) em vez de quase-preto — fundo mais elegante,
   // mantendo a hierarquia de profundidade (bg < bgSoft < card < cardHi).
   bg: "#23272E", bgSoft: "#282c34", card: "#2d323b", cardHi: "#333945",
-  border: "#3a3f4a", borderHi: "#474d5a",
+  border: "#343a44", borderHi: "#3f4550",
   ink: "#f5f5f7", muted: "#a3a8b3", faint: "#6e7480",
   green: "#4ade80", red: "#f87171", blue: "#60a5fa", yellow: "#fbbf24",
 };
