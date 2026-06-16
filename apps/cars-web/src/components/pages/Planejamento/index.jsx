@@ -40,7 +40,7 @@ export default function Planejamento(props) {
   };
 
   return (
-    <div className="fade-up py-8 px-6">
+    <div className="fade-up py-6 px-3 sm:px-6">
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 10, letterSpacing: ".2em", color: T.faint, textTransform: "uppercase", fontWeight: 600 }}>
           Finanças
