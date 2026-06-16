@@ -21,17 +21,20 @@ export default function ResumoExecutivo({
   const state = { transacoes, devedores, dividas, fixas, fixaOcorrencias, parcelamentos };
   const kpis = useMemo(() => getKPIsMes(mes, state), [mes, transacoes, devedores, dividas, fixas, fixaOcorrencias, parcelamentos]);
 
-  // A Receber: devedores em aberto que vencem no mês + receitas pendentes
+  // A Receber: SÓ recebíveis em aberto que vencem no mês (ou sem vencimento),
+  // pelo valor que AINDA falta receber (desconta recebimentos parciais).
+  // NÃO soma kpis.totalGanhos — esse já inclui esses mesmos devedores (contava
+  // em dobro) e ainda receitas já lançadas, que são renda, não "a receber".
   const aReceber = useMemo(() => {
+    const restante = (d) => Math.max(0, (parseFloat(d.valor) || 0) - (parseFloat(d.valorRecebido) || 0));
     const devedoresMes = devedores.filter(d =>
       !d.recebido && (!d.vencimento || d.vencimento.startsWith(mes))
     );
-    const totalDevedores = devedoresMes.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
     return {
-      total: totalDevedores + kpis.totalGanhos,
-      qtd: devedoresMes.length + kpis.qtdGanhos,
+      total: devedoresMes.reduce((s, d) => s + restante(d), 0),
+      qtd: devedoresMes.length,
     };
-  }, [mes, devedores, kpis]);
+  }, [mes, devedores]);
 
   // Parcelas: agora filtradas pelo mês selecionado (vem do agregador)
   const parcelasInfo = useMemo(
@@ -55,7 +58,10 @@ export default function ResumoExecutivo({
     return fixasAlerta.length + dividasAlerta.length;
   }, [mes, fixaOcorrencias, dividas]);
 
-  const balanco = aReceber.total - kpis.totalPrevisto;
+  // Balanço previsto do mês = renda prevista (ganhos: receitas + recebíveis do
+  // mês, via agregador) − despesas previstas. Usa totalGanhos (não o card
+  // "A Receber", que agora é só recebíveis em aberto) pra não ficar negativo à toa.
+  const balanco = kpis.totalGanhos - kpis.totalPrevisto;
 
   // Navegação de mês
   const prevMes = () => {
