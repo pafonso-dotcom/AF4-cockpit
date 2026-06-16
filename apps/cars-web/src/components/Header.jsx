@@ -537,10 +537,8 @@ function HeaderHorizontal({
           border-color: ${T.gold}55 !important;
         }
         .show-mobile { display: none; }
-        /* Sino + menu "⋯": no celular some só em RETRATO; em paisagem reaparece. */
-        @media (max-width: 768px) and (orientation: portrait) {
-          .util-cluster { display: none !important; }
-        }
+        /* Sino + menu "⋯" aparecem também no celular em retrato (utilitários: buscar,
+           ocultar valores, tema, atualizar). Em telas bem estreitas, a linha quebra. */
         @media (max-width: 768px) {
           .hide-mobile { display: none !important; }
           .show-mobile { display: block; }
