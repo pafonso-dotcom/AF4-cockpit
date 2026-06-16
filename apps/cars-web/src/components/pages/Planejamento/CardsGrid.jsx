@@ -47,9 +47,11 @@ export default function CardsGrid({
       .reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
     const balancoAno = receitasAno - despesasAno - dividasPagasAno;
 
-    // Recebíveis
+    // Recebíveis em aberto, pelo valor que AINDA falta receber (desconta
+    // recebimentos parciais) — consistente com a Visão Executiva e o Dashboard.
     const aReceber = devedores.filter(d => !d.recebido);
-    const totalReceber = aReceber.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
+    const totalReceber = aReceber.reduce((s, d) =>
+      s + Math.max(0, (parseFloat(d.valor) || 0) - (parseFloat(d.valorRecebido) || 0)), 0);
 
     // Parcelas
     const parcelasAtivas = parcelamentos.filter(p => (p.parcelasPagas?.length || 0) < p.totalParcelas);
