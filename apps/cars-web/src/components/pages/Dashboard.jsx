@@ -18,6 +18,11 @@ const CORES_CAT = ["#6366f1","#0ea5e9","#22c08b","#f5a623","#f0728a","#a78bfa","
 // claro ao escuro. Luminosidades relacionadas (sem neon aleatório) deixam o
 // donut legível e elegante, reforçando "fatias da mesma coisa".
 const CORES_GASTOS = ["#38BDF8","#0EA5E9","#0284C7","#0369A1","#075985","#0C4A6E"];
+// Âmbar para negativos/alertas no painel (estilo Optio) — substitui o vermelho.
+// Tom fixo que funciona bem em temas escuros e claros.
+const AMBER = "#f0a05a";
+// hex (#rrggbb) + alpha → #rrggbbaa, pra barras com opacidade decrescente.
+const hexA = (hex, a) => `${hex}${Math.round(Math.max(0, Math.min(1, a)) * 255).toString(16).padStart(2, "0")}`;
 const CLASS_LABEL = { acao: "Ações", fii: "FIIs", stock: "Stocks (US)", reit: "REITs (US)", etf: "ETFs", cripto: "Cripto", rf: "Renda Fixa", tesouro: "Tesouro", cdb: "CDB", capitalSocial: "Capital Social", outro: "Outros" };
 const CLASS_COR = { acao: "#f5a524", fii: "#10b981", stock: "#3b82f6", reit: "#0ea5e9", cripto: "#8b5cf6", rf: "#06b6d4", etf: "#fbbf24", tesouro: "#22c55e", cdb: "#14b8a6", capitalSocial: "#0d9488", outro: "#9ca3af" };
 
@@ -316,25 +321,23 @@ export default function Dashboard({
       {/* ===== ZONA 2 · Fluxo do mês (o que entrou vs o que saiu) ===== */}
       <FluxoMes
         saldo={saldoMes} saldoDelta={saldoDeltaPct}
-        receitas={receitasMes} receitasDelta={momReceitas}
-        despesas={despesasResumo}
+        receitas={receitasMes}
+        despesas={despesasResumo.total} despesasAPagar={despesasResumo.aPagar}
         hidden={hidden}
       />
 
       {/* ===== ZONA 3 · Onde está o dinheiro (snapshot patrimonial) ===== */}
       <PatrimonioSnapshot
-        patrimonio={patrimonio} momPatrim={momPatrim} evolucao={evolucao}
+        patrimonio={patrimonio} momPatrim={momPatrim}
         totalContas={totalContas} numContas={contas.length}
         totalInvest={totalInvest} rentInvest={rentInvest}
         hidden={hidden}
       />
+      <CatBarras data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
       <section className="dash-z3-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10,
       }}>
-        <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
         <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
-      </section>
-      <section style={{ marginBottom: 16 }}>
         <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
       </section>
 
@@ -460,161 +463,169 @@ function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, m
   );
 }
 
+/* Tokens de tipografia/estilo do painel (estilo Optio, mas tema-aware) */
+const PANEL_MONO = () => T.mono || T.serif;
+const labelStyle = { fontSize: 9, textTransform: "uppercase", letterSpacing: ".08em", color: T.faint, fontWeight: 600 };
+// Cards sem borda — profundidade vem do contraste fundo×card (não de bordas).
+const panelCard = { background: T.card, borderRadius: 20, padding: 16 };
+const nestedCard = { background: T.bgSoft, borderRadius: 14, padding: 12 };
+const deltaStr = (n) => `${n >= 0 ? "↗ +" : "↘ "}${fmtN(Math.abs(n), 1)}%`;
+
 /* ====================== ZONA 1 · Alerta crítico ====================== */
 function AlertaBanner({ gastoMes, media, diferenca, percentualAcima, hidden, onVerGastos }) {
   const m = (v) => hidden ? "•••" : fmt(v);
   return (
     <div style={{
-      background: `${T.red}14`, border: `1px solid ${T.red}55`, borderLeft: `4px solid ${T.red}`,
-      borderRadius: 16, padding: 14, marginBottom: 16,
-      display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap",
+      background: T.dark ? "#15110c" : `${AMBER}12`, border: `1px solid ${AMBER}33`,
+      borderRadius: 18, padding: "13px 15px", marginBottom: 12,
+      display: "flex", alignItems: "flex-start", gap: 10,
     }}>
-      <div style={{ width: 38, height: 38, borderRadius: 12, background: `${T.red}22`, display: "grid", placeItems: "center", flexShrink: 0 }}>
-        <AlertTriangle size={20} style={{ color: T.red }} />
-      </div>
-      <div style={{ flex: 1, minWidth: 200 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: T.ink }}>
-          Gastos {fmtN(percentualAcima, 0)}% acima da sua média histórica
+      <AlertTriangle size={14} style={{ color: AMBER, marginTop: 1, flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 600, color: AMBER, lineHeight: 1.35 }}>
+          gastos {fmtN(percentualAcima, 0)}% acima da média histórica
         </div>
-        <div style={{ fontSize: 11.5, color: T.muted, marginTop: 3 }}>
-          Este mês: <b className="num" style={{ color: T.red }}>{m(gastoMes)}</b>
-          {" · "}média 3 meses: <span className="num">{m(media)}</span>
-          {" · "}diferença: <span className="num" style={{ color: T.red, fontWeight: 600 }}>+{m(diferenca)}</span>
+        <div className="num" style={{ fontSize: 9.5, marginTop: 3, color: `${AMBER}aa` }}>
+          {m(gastoMes)} este mês · média 3m: {m(media)} · dif: +{m(diferenca)}
         </div>
       </div>
       <button onClick={onVerGastos} style={{
-        background: T.red, color: "#fff", border: "none", borderRadius: 10,
-        padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+        background: "transparent", border: "none", color: `${AMBER}bb`,
+        fontSize: 9.5, textDecoration: "underline", cursor: "pointer",
+        flexShrink: 0, alignSelf: "flex-start", padding: 0,
       }}>
-        Ver gastos →
+        ver →
       </button>
     </div>
   );
 }
 
 /* ====================== ZONA 2 · Fluxo do mês ====================== */
-function FluxoMes({ saldo, saldoDelta, receitas, receitasDelta, despesas, hidden }) {
-  const mono = T.mono || T.serif;
+function FluxoMes({ saldo, saldoDelta, receitas, despesas, despesasAPagar, hidden }) {
+  const mono = PANEL_MONO();
   const pos = saldo >= 0;
-  const cor = pos ? T.green : T.red;
-  const label = { fontSize: 11, textTransform: "uppercase", letterSpacing: ".12em", color: T.muted, fontWeight: 600 };
-  const deltaStr = (n) => (n == null ? null : `${n >= 0 ? "↗ +" : "↘ "}${fmtN(Math.abs(n), 1)}%`);
-  const { total = 0, pagas = 0, aPagar = 0 } = despesas || {};
+  const corSaldo = pos ? T.green : AMBER;
   return (
-    <section className="dash-fluxo-grid" style={{
-      display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", gap: 12, marginBottom: 16,
-    }}>
-      {/* Saldo do mês — hero da zona */}
-      <Card style={{ display: "flex", flexDirection: "column", justifyContent: "center", minHeight: 138, borderLeft: `3px solid ${cor}` }}>
-        <div style={label}>Saldo do Mês</div>
-        <div className="num" style={{ fontFamily: mono, fontSize: 38, fontWeight: 700, color: cor, lineHeight: 1.05, marginTop: 8 }}>
-          {hidden ? "•••••" : (pos ? "" : "− ") + fmt(Math.abs(saldo))}
-        </div>
-        {saldoDelta != null && (
-          <div className="num" style={{ fontFamily: mono, fontSize: 12, color: saldoDelta >= 0 ? T.green : T.red, marginTop: 6 }}>
-            {deltaStr(saldoDelta)} <span style={{ color: T.muted, fontWeight: 400 }}>vs mês anterior</span>
-          </div>
-        )}
-        <div style={{ fontSize: 11, color: T.faint, marginTop: 6 }}>Receitas − despesas previstas do mês</div>
-      </Card>
+    <div style={{ ...panelCard, padding: 18, marginBottom: 10 }}>
+      {/* Saldo = receitas − despesas previstas */}
+      <div style={labelStyle}>saldo do mês</div>
+      <div className="num" style={{ fontFamily: mono, fontSize: 30, fontWeight: 700, letterSpacing: "-0.03em", color: corSaldo, lineHeight: 1, marginTop: 8 }}>
+        {hidden ? "•••••" : (pos ? "+ " : "− ") + fmt(Math.abs(saldo))}
+      </div>
+      <div style={{ fontSize: 10, color: T.faint, marginTop: 7 }}>
+        {pos ? "fluxo positivo" : "fluxo negativo"}
+        {saldoDelta != null ? ` · ${deltaStr(saldoDelta)} vs mês ant.` : ""}
+      </div>
 
-      {/* Receitas */}
-      <Card style={{ display: "flex", flexDirection: "column", justifyContent: "center", minHeight: 138 }}>
-        <div style={label}>Receitas</div>
-        <div className="num" style={{ fontFamily: mono, fontSize: 22, fontWeight: 700, color: T.ink, marginTop: 8 }}>
-          {hidden ? "•••••" : fmt(receitas)}
-        </div>
-        {receitasDelta != null && (
-          <div className="num" style={{ fontFamily: mono, fontSize: 12, color: receitasDelta >= 0 ? T.green : T.red, marginTop: 6 }}>
-            {deltaStr(receitasDelta)} <span style={{ color: T.faint, fontWeight: 400 }}>vs mês ant.</span>
-          </div>
-        )}
-      </Card>
-
-      {/* Despesas — pago vs a pagar (duas linhas empilhadas) */}
-      <Card style={{ display: "flex", flexDirection: "column", justifyContent: "center", minHeight: 138 }}>
-        <div style={label}>Despesas</div>
-        <div className="num" style={{ fontFamily: mono, fontSize: 22, fontWeight: 700, color: T.ink, marginTop: 8 }}>
-          {hidden ? "•••••" : fmt(total)}
-        </div>
-        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 11.5 }}>
-            <span style={{ color: T.muted }}>Pago</span>
-            <span className="num" style={{ fontFamily: mono, color: T.green }}>{hidden ? "•••" : fmt(pagas)}</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 11.5 }}>
-            <span style={{ color: T.muted }}>A pagar</span>
-            <span className="num" style={{ fontFamily: mono, color: aPagar > 0 ? T.red : T.muted }}>{hidden ? "•••" : fmt(aPagar)}</span>
+      {/* Mini cards internos (fundo mais fundo = profundidade) */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 14 }}>
+        <div style={nestedCard}>
+          <div style={{ ...labelStyle, marginBottom: 6 }}>receitas</div>
+          <div className="num" style={{ fontFamily: mono, fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", color: T.green }}>
+            {hidden ? "•••••" : fmt(receitas)}
           </div>
         </div>
-      </Card>
-    </section>
+        <div style={nestedCard}>
+          <div style={{ ...labelStyle, marginBottom: 6 }}>despesas</div>
+          <div className="num" style={{ fontFamily: mono, fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", color: AMBER }}>
+            {hidden ? "•••••" : fmt(despesas)}
+          </div>
+          {despesasAPagar > 0 && (
+            <div className="num" style={{ fontSize: 9, color: T.faint, marginTop: 4 }}>
+              a pagar {hidden ? "•••" : fmt(despesasAPagar)}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
 /* ====================== ZONA 3 · Snapshot patrimonial ====================== */
-function PatrimonioSnapshot({ patrimonio, momPatrim, evolucao, totalContas, numContas, totalInvest, rentInvest, hidden }) {
-  const mono = T.mono || T.serif;
-  const label = { fontSize: 11, textTransform: "uppercase", letterSpacing: ".08em", color: T.muted, fontWeight: 600 };
-  const valor = { fontFamily: mono, fontSize: 24, fontWeight: 700, color: T.ink, marginTop: 8 };
-  const deltaStr = (n) => `${n >= 0 ? "↗ +" : "↘ "}${fmtN(Math.abs(n), 1)}%`;
+function PatrimonioSnapshot({ patrimonio, momPatrim, totalContas, numContas, totalInvest, rentInvest, hidden }) {
+  const mono = PANEL_MONO();
+  const valor = { fontFamily: mono, fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", color: T.ink, marginTop: 6 };
+  const cards = [
+    { label: "patrimônio", val: patrimonio, sub: deltaStr(momPatrim), cor: momPatrim >= 0 ? T.green : AMBER },
+    { label: "em contas",  val: totalContas, sub: `${numContas} ${numContas === 1 ? "conta" : "contas"}`, cor: T.faint },
+    { label: "investido",  val: totalInvest, sub: deltaStr(rentInvest), cor: rentInvest >= 0 ? T.green : AMBER },
+  ];
   return (
-    <section className="dash-snap-grid" style={{
-      display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
-    }}>
-      {/* Patrimônio Total — com sparkline sutil */}
-      <Card style={{ position: "relative", overflow: "hidden", minHeight: 120 }}>
-        <div style={label}>Patrimônio Total</div>
-        <div className="num" style={valor}>{hidden ? "•••••" : fmt(patrimonio)}</div>
-        {momPatrim != null && (
-          <div className="num" style={{ fontFamily: mono, fontSize: 11.5, color: momPatrim >= 0 ? T.green : T.red, marginTop: 6 }}>
-            {deltaStr(momPatrim)} <span style={{ color: T.faint, fontWeight: 400 }}>vs mês ant.</span>
-          </div>
-        )}
-        <div style={{ position: "absolute", right: 0, bottom: 0, left: 0, height: 34, opacity: 0.3, pointerEvents: "none" }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={evolucao}>
-              <defs>
-                <linearGradient id="grad-snap" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={T.green} stopOpacity={0.6} />
-                  <stop offset="100%" stopColor={T.green} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <Area type="monotone" dataKey="saldo" stroke={T.green} fill="url(#grad-snap)" strokeWidth={1.5} />
-            </AreaChart>
-          </ResponsiveContainer>
+    <div className="dash-snap-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+      {cards.map(c => (
+        <div key={c.label} style={{ ...panelCard, borderRadius: 18, padding: 14 }}>
+          <div style={labelStyle}>{c.label}</div>
+          <div className="num" style={valor}>{hidden ? "•••••" : fmt(c.val)}</div>
+          <div className="num" style={{ fontFamily: mono, fontSize: 9, marginTop: 4, color: c.cor }}>{c.sub}</div>
         </div>
-      </Card>
+      ))}
+    </div>
+  );
+}
 
-      {/* Em Contas */}
-      <Card style={{ minHeight: 120 }}>
-        <div style={label}>Em Contas</div>
-        <div className="num" style={valor}>{hidden ? "•••••" : fmt(totalContas)}</div>
-        <div style={{ fontSize: 11, color: T.faint, marginTop: 6 }}>
-          {numContas} {numContas === 1 ? "conta ativa" : "contas ativas"}
-        </div>
-      </Card>
-
-      {/* Investido */}
-      <Card style={{ minHeight: 120 }}>
-        <div style={label}>Investido</div>
-        <div className="num" style={valor}>{hidden ? "•••••" : fmt(totalInvest)}</div>
-        {rentInvest != null && (
-          <div className="num" style={{ fontFamily: mono, fontSize: 11.5, color: rentInvest >= 0 ? T.green : T.red, marginTop: 6 }}>
-            {deltaStr(rentInvest)} <span style={{ color: T.faint, fontWeight: 400 }}>rentabilidade</span>
+/* Gastos por categoria — barras horizontais (teal/verde com opacidade
+   decrescente), no lugar da pizza. Mantém o rodapé de orçamento/média. */
+function CatBarras({ data, hidden, orcamento = 0, orcamentoAuto = false }) {
+  const mono = PANEL_MONO();
+  const total = data.reduce((s, d) => s + d.valor, 0);
+  const max = data[0]?.valor || 1;
+  const visiveis = data.slice(0, 6);
+  return (
+    <div style={{ ...panelCard, marginBottom: 10 }}>
+      <div style={{ ...labelStyle, marginBottom: 13 }}>gastos por categoria</div>
+      {data.length === 0 ? (
+        <div style={{ padding: 16, textAlign: "center", color: T.faint, fontSize: 11, fontStyle: "italic" }}>Nenhuma despesa este mês.</div>
+      ) : visiveis.map((cat, i) => {
+        const opacity = Math.max(0.25, 0.85 - i * 0.12);
+        const pct = (cat.valor / max) * 100;
+        return (
+          <div key={cat.nome} style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: i === visiveis.length - 1 ? 0 : 9 }}>
+            <span style={{ fontSize: 10, width: 80, flexShrink: 0, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cat.nome}</span>
+            <div style={{ flex: 1, height: 4, borderRadius: 999, background: T.bgSoft, overflow: "hidden" }}>
+              <div style={{ width: `${pct}%`, height: "100%", borderRadius: 999, background: hexA(T.green, opacity) }} />
+            </div>
+            <span className="num" style={{ fontFamily: mono, fontSize: 10, width: 64, textAlign: "right", flexShrink: 0, color: T.muted }}>{hidden ? "•••" : fmt(cat.valor)}</span>
           </div>
-        )}
-      </Card>
-    </section>
+        );
+      })}
+      {orcamento > 0 && data.length > 0 && (() => {
+        const pct = (total / orcamento) * 100;
+        const restante = orcamento - total;
+        const warnAt = orcamentoAuto ? 110 : 80;
+        const dangerAt = orcamentoAuto ? 130 : 100;
+        const cor = pct >= warnAt ? AMBER : T.green;
+        const titulo = orcamentoAuto ? "gasto vs sua média (3m)" : "orçamento do mês";
+        const pctLabel = orcamentoAuto ? "da média" : "usado";
+        return (
+          <div style={{ marginTop: 14, paddingTop: 13, borderTop: `0.5px solid ${T.border}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, marginBottom: 6 }}>
+              <span style={{ color: T.muted, textTransform: "uppercase", letterSpacing: ".06em" }}>{titulo}</span>
+              <span className="num" style={{ color: cor, fontWeight: 600 }}>{fmtN(Math.min(pct, 999), 0)}% {pctLabel}</span>
+            </div>
+            <div style={{ height: 4, background: T.bgSoft, borderRadius: 999, overflow: "hidden" }}>
+              <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: hexA(cor, 0.6), borderRadius: 999, transition: "width .6s ease" }} />
+            </div>
+            <div className="num" style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: T.faint, marginTop: 5 }}>
+              <span>{hidden ? "•••" : fmt(total)} / {hidden ? "•••" : fmt(orcamento)}{orcamentoAuto ? " (média)" : ""}</span>
+              <span style={{ color: restante >= 0 ? T.faint : AMBER }}>
+                {orcamentoAuto
+                  ? (restante >= 0 ? `${hidden ? "•••" : fmt(restante)} abaixo` : `${hidden ? "•••" : fmt(-restante)} acima`)
+                  : (restante >= 0 ? `restam ${hidden ? "•••" : fmt(restante)}` : `estourou ${hidden ? "•••" : fmt(-restante)}`)}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
   );
 }
 
 function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
   return (
-    <Card>
+    <Card style={{ border: "none", borderRadius: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Contas</div>
-        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver todas</button>
+        <div style={labelStyle}>contas</div>
+        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 10, cursor: "pointer" }}>ver todas →</button>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
         {contas.slice(0, 4).map(c => (
@@ -641,10 +652,10 @@ function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
 
 function AlocacaoCard({ data, total, hidden, onSeeAll }) {
   return (
-    <Card>
+    <Card style={{ border: "none", borderRadius: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Alocação Atual</div>
-        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver carteira</button>
+        <div style={labelStyle}>alocação atual</div>
+        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 10, cursor: "pointer" }}>ver carteira →</button>
       </div>
       {data.length === 0 ? (
         <div style={{ padding: 32, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Nenhum ativo na carteira.</div>
@@ -703,95 +714,6 @@ function InsightsCard({ insight, onSeeAll }) {
   );
 }
 
-function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = false }) {
-  const total = data.reduce((s,d) => s + d.valor, 0);
-  return (
-    <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Gastos por Categoria</div>
-        <div style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 11, padding: "3px 8px" }}>Este mês</div>
-      </div>
-      {data.length === 0 ? (
-        <div style={{ padding: 24, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Nenhuma despesa este mês.</div>
-      ) : (
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <div style={{ width: 140, height: 140, position: "relative", flexShrink: 0 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={data} dataKey="valor" cx="50%" cy="50%" innerRadius={45} outerRadius={65} stroke="none" cornerRadius={5} paddingAngle={2}>
-                {data.map((d,i) => <Cell key={i} fill={d.cor} />)}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 9, color: T.muted, letterSpacing: ".15em" }}>TOTAL</div>
-              <div className="num" style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 600, color: T.ink }}>{hidden ? "•••" : fmt(total)}</div>
-              <div style={{ fontSize: 9, color: T.muted }}>100%</div>
-            </div>
-          </div>
-        </div>
-        <div style={{ flex: 1, minWidth: 140, fontSize: 11, display: "flex", flexDirection: "column", gap: 5 }}>
-          {data.slice(0, 6).map((d,i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: d.cor, flexShrink: 0 }} />
-              <span style={{ flex: 1, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.nome}</span>
-              <span style={{ color: T.ink }}>{fmtN(d.pct, 0)}%</span>
-              <span className="num" style={{ color: T.muted, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(d.valor)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      )}
-      {orcamento > 0 && data.length > 0 && (() => {
-        const pct = (total / orcamento) * 100;
-        const restante = orcamento - total;
-        // Limites manuais alertam cedo (80/100%). Já a média (3m) só alerta
-        // quando o gasto fica claramente acima do normal (110/130%).
-        const warnAt = orcamentoAuto ? 110 : 80;
-        const dangerAt = orcamentoAuto ? 130 : 100;
-        const cor = pct >= dangerAt ? T.red : pct >= warnAt ? T.gold : T.green;
-        const titulo = orcamentoAuto ? "Gasto vs sua média (3 meses)" : "Orçamento do mês";
-        const pctLabel = orcamentoAuto ? "da média" : "usado";
-        return (
-          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.border}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5 }}>
-              <span style={{ color: T.muted }}>{titulo}</span>
-              <span style={{ color: cor, fontWeight: 600 }}>{fmtN(Math.min(pct, 999), 0)}% {pctLabel}</span>
-            </div>
-            <div style={{ height: 7, background: T.bgSoft, borderRadius: 4, overflow: "hidden" }}>
-              <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: cor, borderRadius: 4, transition: "width .6s ease" }} />
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: T.muted, marginTop: 5 }}>
-              <span className="num">{hidden ? "•••" : fmt(total)} / {hidden ? "•••" : fmt(orcamento)}{orcamentoAuto ? " (média)" : ""}</span>
-              <span className="num" style={{ color: restante >= 0 ? T.muted : T.red }}>
-                {orcamentoAuto
-                  ? (restante >= 0 ? `${hidden ? "•••" : fmt(restante)} abaixo da média` : `${hidden ? "•••" : fmt(-restante)} acima da média`)
-                  : (restante >= 0 ? `Restam ${hidden ? "•••" : fmt(restante)}` : `Estourou ${hidden ? "•••" : fmt(-restante)}`)}
-              </span>
-            </div>
-            {pct >= warnAt && (
-              <div style={{
-                marginTop: 8, padding: "6px 9px", borderRadius: 11,
-                background: `${cor}1a`, border: `1px solid ${cor}44`, color: cor,
-                fontSize: 10.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 6,
-              }}>
-                <AlertCircle size={12} /> {orcamentoAuto
-                  ? (pct >= dangerAt ? "Bem acima da sua média de gastos." : "Acima da sua média de gastos.")
-                  : (pct >= dangerAt ? "Orçamento do mês estourado." : "Perto do limite do orçamento.")}
-              </div>
-            )}
-            {orcamentoAuto && (
-              <div style={{ fontSize: 9.5, color: T.faint, marginTop: 6 }}>
-                Base automática: média dos últimos 3 meses. Defina limites em Categorias para um orçamento próprio.
-              </div>
-            )}
-          </div>
-        );
-      })()}
-    </Card>
-  );
-}
 
 function EvolucaoCard({ data, valor, momAno, hidden }) {
   return (
@@ -860,7 +782,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
   const somar = (arr) => arr.reduce((s, d) => s + restanteDe(d), 0);
 
   const buckets = [
-    { id: "atrasado", label: "Atrasados", icon: AlertCircle, cor: T.red,   itens: atrasados, valor: somar(atrasados) },
+    { id: "atrasado", label: "Atrasados", icon: AlertCircle, cor: AMBER,   itens: atrasados, valor: somar(atrasados) },
     { id: "hoje",     label: "Vence hoje", icon: Clock,       cor: T.gold,  itens: hojeArr,   valor: somar(hojeArr) },
     { id: "semana",   label: "Esta semana", icon: Calendar,   cor: T.blue || "#60a5fa", itens: semana, valor: somar(semana) },
     { id: "mes",      label: "Este mês",   icon: Calendar,    cor: T.green, itens: mes,       valor: somar(mes) },
@@ -880,28 +802,29 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
   };
 
   return (
-    <Card>
+    <Card style={{ border: "none" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <HandCoins size={16} style={{ color: T.gold }} />
-          <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>A Receber</div>
-        </div>
-        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.gold, fontSize: 11, cursor: "pointer" }}>
-          Ver tudo
+        <div style={{ ...labelStyle }}>a receber</div>
+        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.gold, fontSize: 10, cursor: "pointer" }}>
+          ver tudo →
         </button>
       </div>
 
-      <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 600, color: T.ink, lineHeight: 1.1 }}>
+      <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", color: T.ink, lineHeight: 1.1 }}>
         {hidden ? "•••••" : fmt(total)}
       </div>
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginTop: 6 }}>
         <span style={{
-          display: "inline-block", fontSize: 10.5, color: T.muted,
-          background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 999, padding: "2px 9px",
+          display: "inline-flex", alignItems: "center", gap: 5, fontSize: 9.5, color: T.muted,
+          background: T.bgSoft, borderRadius: 999, padding: "3px 9px",
         }}>
+          <HandCoins size={10} />
           {abertos.length} {abertos.length === 1 ? "conta em aberto" : "contas em aberto"}
           {prazoMedio != null ? ` · prazo médio: ${prazoMedio} ${prazoMedio === 1 ? "dia" : "dias"}` : ""}
         </span>
+      </div>
+      <div style={{ fontSize: 9, color: T.faint, marginTop: 8, marginBottom: 12, lineHeight: 1.4 }}>
+        total de parcelas futuras — não é saldo disponível
       </div>
 
       {abertos.length === 0 ? (
@@ -948,7 +871,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
                       <div style={{ color: T.ink, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {d.nome}
                       </div>
-                      <div style={{ fontSize: 9.5, color: atrasado ? T.red : T.muted }}>
+                      <div style={{ fontSize: 9.5, color: atrasado ? AMBER : T.muted }}>
                         {atrasado ? "atrasado · " : ""}{formatarVenc(d.vencimento)}
                       </div>
                     </div>
@@ -969,10 +892,10 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
           marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.border}`,
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <div style={{ fontSize: 9.5, color: T.red, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <div style={{ fontSize: 9.5, color: AMBER, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: 5 }}>
               <AlertCircle size={11} /> A pagar hoje
             </div>
-            <div className="num" style={{ fontSize: 12, fontWeight: 700, color: T.red }}>
+            <div className="num" style={{ fontSize: 12, fontWeight: 700, color: AMBER }}>
               {hidden ? "•••" : fmt(aPagarHoje.reduce((s, p) => s + (Number(p.valor) || 0), 0))}
             </div>
           </div>
@@ -981,7 +904,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
               <div style={{ color: T.ink, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
                 {p.nome}
               </div>
-              <div className="num" style={{ color: T.red, fontWeight: 600, marginLeft: 8, flexShrink: 0 }}>
+              <div className="num" style={{ color: AMBER, fontWeight: 600, marginLeft: 8, flexShrink: 0 }}>
                 {hidden ? "•••" : fmt(Number(p.valor) || 0)}
               </div>
             </div>
@@ -1009,35 +932,31 @@ function ProjecaoCard({ projecao, patrimonio = 0, hidden }) {
   const fim = projPatrim[projPatrim.length - 1]?.valor ?? 0;
   const deltaTotal = fim - (Number(patrimonio) || 0);
   return (
-    <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 6 }}>
-        <div style={{ fontSize: 10, letterSpacing: ".15em", color: T.muted, fontWeight: 600 }}>PROJEÇÃO · MESES A VENCER</div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 4, fontSize: 10, cursor: "pointer", color: T.muted }}><FileText size={10}/>PDF</button>
-          <button style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 4, fontSize: 10, cursor: "pointer", color: T.muted }}><BarChart3 size={10}/>CSV</button>
-        </div>
-      </div>
+    <Card style={{ border: "none" }}>
+      <div style={{ ...labelStyle, marginBottom: 7 }}>projeção · 6 meses</div>
       {/* Projeção do patrimônio (tracejada = estimativa) */}
       <div style={{ marginBottom: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: T.muted }}>Patrimônio projetado (6 meses)</span>
-          <span className="num" style={{ fontSize: 12, fontWeight: 700, color: deltaTotal >= 0 ? T.green : T.red }}>
-            {hidden ? "•••" : fmt(fim)} <span style={{ fontSize: 9.5, fontWeight: 500 }}>({deltaTotal >= 0 ? "+" : "−"}{hidden ? "•••" : fmt(Math.abs(deltaTotal))})</span>
+          <span className="num" style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em", color: T.green }}>
+            {hidden ? "•••" : fmt(fim)}
+          </span>
+          <span className="num" style={{ fontSize: 9.5, color: deltaTotal >= 0 ? T.green : AMBER }}>
+            {deltaTotal >= 0 ? "+" : "−"}{hidden ? "•••" : fmt(Math.abs(deltaTotal))} projetado
           </span>
         </div>
-        <div style={{ height: 96 }}>
+        <div style={{ height: 90 }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={projPatrim} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
               <defs>
                 <linearGradient id="grad-proj" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={T.blue || "#60a5fa"} stopOpacity={0.25} />
-                  <stop offset="100%" stopColor={T.blue || "#60a5fa"} stopOpacity={0} />
+                  <stop offset="0%" stopColor={T.green} stopOpacity={0.22} />
+                  <stop offset="100%" stopColor={T.green} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="label" tick={{ fontSize: 8.5, fill: T.muted }} interval={0} />
+              <XAxis dataKey="label" tick={{ fontSize: 8.5, fill: T.faint }} interval={0} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11 }}
                        formatter={(v) => [hidden ? "•••" : fmt(v), "Projeção"]} />
-              <Area type="monotone" dataKey="valor" stroke={T.blue || "#60a5fa"} strokeWidth={2}
+              <Area type="monotone" dataKey="valor" stroke={hexA(T.green, 0.7)} strokeWidth={2}
                     strokeDasharray="5 4" fill="url(#grad-proj)" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
@@ -1045,18 +964,18 @@ function ProjecaoCard({ projecao, patrimonio = 0, hidden }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
         {projecao.map(p => (
-          <div key={p.label} style={{ background: T.bgSoft, borderRadius: 11, padding: 8, borderTop: `2px solid ${T.green}` }}>
-            <div style={{ fontSize: 9.5, letterSpacing: ".1em", color: T.muted, fontWeight: 600 }}>{p.label}</div>
+          <div key={p.label} style={{ background: T.bgSoft, borderRadius: 11, padding: 8 }}>
+            <div style={{ fontSize: 9, letterSpacing: ".06em", color: T.faint, fontWeight: 600, textTransform: "uppercase" }}>{p.label}</div>
             <div className="num" style={{ fontSize: 11, color: T.green }}>+ {hidden ? "•••" : fmt(p.receita)}</div>
-            <div className="num" style={{ fontSize: 11, color: T.red }}>− {hidden ? "•••" : fmt(p.despesa)}</div>
-            <div className="num" style={{ fontSize: 12, fontWeight: 700, color: p.saldo >= 0 ? T.green : T.red, marginTop: 2, paddingTop: 4, borderTop: `1px solid ${T.border}` }}>
+            <div className="num" style={{ fontSize: 11, color: AMBER }}>− {hidden ? "•••" : fmt(p.despesa)}</div>
+            <div className="num" style={{ fontSize: 12, fontWeight: 700, color: p.saldo >= 0 ? T.green : AMBER, marginTop: 2, paddingTop: 4, borderTop: `0.5px solid ${T.border}` }}>
               = {p.saldo >= 0 ? "+ " : "− "}{hidden ? "•••" : fmt(Math.abs(p.saldo))}
             </div>
           </div>
         ))}
       </div>
-      <div style={{ fontSize: 10, color: T.muted, marginTop: 8, lineHeight: 1.4 }}>
-        📅 Baseado em compromissos já agendados (fixas, parcelas, dívidas, devedores) nos próximos 6 meses.
+      <div style={{ fontSize: 9, color: T.faint, marginTop: 8, lineHeight: 1.4 }}>
+        baseado em compromissos agendados (fixas, parcelas, dívidas, devedores) nos próximos 6 meses
       </div>
     </Card>
   );
