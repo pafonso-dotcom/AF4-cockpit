@@ -7,9 +7,9 @@ import DespesasFixas from "../DespesasFixas.jsx";
 import ControleAnual from "../Relatorios/ControleAnual.jsx";
 
 /**
- * Centro de Controle — um RESUMO fixo no topo (totais de A Receber e Fixas,
- * sempre visível) e os módulos OCULTOS: cada seção abre só ao clicar
- * (acordeão, uma por vez), em largura total. Sem "Visão Executiva".
+ * Centro de Controle — cada seção mostra uma VISÃO GERAL simples sempre visível
+ * (recebido/pago · pendente · atrasado · total previsto) e o detalhe abre só ao
+ * clicar (acordeão, uma seção por vez). Sem "Visão Executiva".
  */
 export default function Planejamento(props) {
   const { devedores = [], fixas = [], fixaOcorrencias = [], hidden } = props;
@@ -17,33 +17,56 @@ export default function Planejamento(props) {
 
   const toggle = (id) => setAberto(prev => (prev === id ? null : id));
 
-  // ===== Resumo fixo (sempre visível) =====
+  // A Receber · todos os meses: recebido / pendente / atrasado / total previsto.
   const resumoReceber = useMemo(() => {
-    const abertos = devedores.filter(d => !d.recebido);
-    const total = abertos.reduce((s, d) => s + Math.max(0, (Number(d.valor) || 0) - (Number(d.valorRecebido) || 0)), 0);
-    return { total, qtd: abertos.length };
+    const hoje = new Date().toISOString().slice(0, 10);
+    let recebido = 0, pendente = 0, atrasado = 0;
+    devedores.forEach(d => {
+      const valor = Number(d.valor) || 0;
+      const vr = Number(d.valorRecebido) || 0;
+      if (d.recebido) { recebido += vr > 0 ? vr : valor; return; }
+      recebido += vr; // recebimentos parciais já contam como "recebido"
+      const restante = Math.max(0, valor - vr);
+      if (restante <= 0) return;
+      if (d.vencimento && d.vencimento < hoje) atrasado += restante;
+      else pendente += restante;
+    });
+    return { recebido, pendente, atrasado, total: recebido + pendente + atrasado };
   }, [devedores]);
 
+  // Despesas Fixas · mês: já pago / pendente / atrasado / total previsto.
   const resumoFixas = useMemo(() => {
-    const mes = new Date().toISOString().slice(0, 7);
+    const hoje = new Date().toISOString().slice(0, 10);
+    const mes = hoje.slice(0, 7);
     const existe = (id) => fixas.some(f => f.id === id);
-    const occ = fixaOcorrencias.filter(o => o.mes === mes && existe(o.fixaId));
-    const total = occ.reduce((s, o) => s + (Number(o.valorPago ?? o.valor) || 0), 0);
-    const aPagar = occ.filter(o => o.status !== "paga").length;
-    return { total, qtd: occ.length, aPagar };
+    let pago = 0, pendente = 0, atrasado = 0;
+    fixaOcorrencias.forEach(o => {
+      if (o.mes !== mes || !existe(o.fixaId)) return;
+      if (o.status === "paga") pago += Number(o.valorPago ?? o.valor) || 0;
+      else if ((o.dataVencimento || "") < hoje) atrasado += Number(o.valor) || 0;
+      else pendente += Number(o.valor) || 0;
+    });
+    return { pago, pendente, atrasado, total: pago + pendente + atrasado };
   }, [fixas, fixaOcorrencias]);
 
-  const ResumoCard = ({ label, valor, sub, cor }) => (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px 14px", borderLeft: `3px solid ${cor}` }}>
-      <div style={{ fontSize: 9, letterSpacing: ".12em", textTransform: "uppercase", color: T.faint, fontWeight: 700 }}>{label}</div>
-      <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 20, fontWeight: 700, color: cor, marginTop: 5, lineHeight: 1.05 }}>
-        {hidden ? "•••••" : fmt(valor)}
+  // Mini visão geral (4 números) — sempre visível, acima do detalhe da seção.
+  const VisaoGeral = ({ legenda, itens }) => (
+    <div style={{ borderTop: `1px solid ${T.border}`, padding: "10px 16px 12px" }}>
+      <div style={{ fontSize: 8.5, letterSpacing: ".14em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 8 }}>{legenda}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(72px, 1fr))", gap: 8 }}>
+        {itens.map(it => (
+          <div key={it.lbl}>
+            <div style={{ fontSize: 8.5, letterSpacing: ".05em", textTransform: "uppercase", color: T.faint, fontWeight: 700 }}>{it.lbl}</div>
+            <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 13.5, fontWeight: 700, color: it.cor, marginTop: 3, whiteSpace: "nowrap" }}>
+              {hidden ? "•••" : fmt(it.v)}
+            </div>
+          </div>
+        ))}
       </div>
-      <div style={{ fontSize: 9.5, color: T.faint, marginTop: 3 }}>{sub}</div>
     </div>
   );
 
-  const Secao = ({ id, titulo, children }) => {
+  const Secao = ({ id, titulo, overview, children }) => {
     const on = aberto === id;
     return (
       <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
@@ -59,6 +82,7 @@ export default function Planejamento(props) {
           </span>
           <ChevronDown size={18} style={{ color: on ? T.gold : T.muted, transform: on ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
         </button>
+        {overview}
         {on && (
           <div style={{ padding: "0 16px 16px", overflowX: "auto" }}>
             {children}
@@ -82,30 +106,44 @@ export default function Planejamento(props) {
         </p>
       </div>
 
-      {/* Resumo fixo — sempre visível */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-        <ResumoCard
-          label="A Receber"
-          valor={resumoReceber.total}
-          cor={T.green}
-          sub={`${resumoReceber.qtd} ${resumoReceber.qtd === 1 ? "em aberto" : "em aberto"}`}
-        />
-        <ResumoCard
-          label="Despesas Fixas (mês)"
-          valor={resumoFixas.total}
-          cor={T.gold}
-          sub={`${resumoFixas.aPagar} a pagar de ${resumoFixas.qtd}`}
-        />
-      </div>
-
-      {/* Módulos ocultos — abrem ao clicar */}
+      {/* Módulos — visão geral sempre visível; detalhe abre ao clicar */}
       <div style={{ marginTop: 4 }}>
-        <Secao id="areceber" titulo="A Receber & Dívidas">
+        <Secao
+          id="areceber"
+          titulo="A Receber & Dívidas"
+          overview={
+            <VisaoGeral
+              legenda="Visão geral · todos os meses"
+              itens={[
+                { lbl: "Recebido", v: resumoReceber.recebido, cor: T.green },
+                { lbl: "Pendente", v: resumoReceber.pendente, cor: T.gold },
+                { lbl: "Atrasado", v: resumoReceber.atrasado, cor: T.red },
+                { lbl: "Total previsto", v: resumoReceber.total, cor: T.ink },
+              ]}
+            />
+          }
+        >
           <AReceberEDividas {...props} embed />
         </Secao>
-        <Secao id="fixas" titulo="Despesas Fixas">
+
+        <Secao
+          id="fixas"
+          titulo="Despesas Fixas"
+          overview={
+            <VisaoGeral
+              legenda="Visão geral · mês"
+              itens={[
+                { lbl: "Já pago", v: resumoFixas.pago, cor: T.green },
+                { lbl: "Pendente", v: resumoFixas.pendente, cor: T.gold },
+                { lbl: "Atrasado", v: resumoFixas.atrasado, cor: T.red },
+                { lbl: "Total previsto", v: resumoFixas.total, cor: T.ink },
+              ]}
+            />
+          }
+        >
           <DespesasFixas {...props} embed />
         </Secao>
+
         <Secao id="anual" titulo="Controle Anual">
           <ControleAnual {...props} embed />
         </Secao>
