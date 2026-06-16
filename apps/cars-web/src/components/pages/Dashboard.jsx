@@ -14,6 +14,8 @@ import Card from "../ui/Card.jsx";
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 // Paleta moderna e harmônica (tons mais suaves, sem primários puros gritando).
 const CORES_CAT = ["#6366f1","#0ea5e9","#22c08b","#f5a623","#f0728a","#a78bfa","#2dd4bf","#fb923c","#94a3b8"];
+// Cor única das barras horizontais do dashboard — teal estilo Optio.
+const BAR_COR = "#4DD9C0";
 const CLASS_LABEL = { acao: "Ações", fii: "FIIs", stock: "Stocks (US)", reit: "REITs (US)", etf: "ETFs", cripto: "Cripto", rf: "Renda Fixa", tesouro: "Tesouro", cdb: "CDB", capitalSocial: "Capital Social", outro: "Outros" };
 const CLASS_COR = { acao: "#f5a524", fii: "#10b981", stock: "#3b82f6", reit: "#0ea5e9", cripto: "#8b5cf6", rf: "#06b6d4", etf: "#fbbf24", tesouro: "#22c55e", cdb: "#14b8a6", capitalSocial: "#0d9488", outro: "#9ca3af" };
 
@@ -559,7 +561,7 @@ function AlocacaoCard({ data, total, hidden, onSeeAll }) {
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
                 <span style={{ width: 92, flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.label}</span>
                 <div style={{ flex: 1, height: 8, borderRadius: 6, background: T.bgSoft, overflow: "hidden" }}>
-                  <div style={{ width: `${w}%`, height: "100%", borderRadius: 6, background: T.gold, transition: "width .5s ease" }} />
+                  <div style={{ width: `${w}%`, height: "100%", borderRadius: 6, background: BAR_COR, transition: "width .5s ease" }} />
                 </div>
                 <span style={{ width: 32, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.ink }}>{fmtN(d.pct, 0)}%</span>
                 <span className="num" style={{ width: 78, textAlign: "right", flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(d.valor)}</span>
@@ -613,7 +615,7 @@ function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = fals
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
               <span style={{ width: 92, flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.nome}</span>
               <div style={{ flex: 1, height: 8, borderRadius: 6, background: T.bgSoft, overflow: "hidden" }}>
-                <div style={{ width: `${w}%`, height: "100%", borderRadius: 6, background: T.gold, transition: "width .5s ease" }} />
+                <div style={{ width: `${w}%`, height: "100%", borderRadius: 6, background: BAR_COR, transition: "width .5s ease" }} />
               </div>
               <span style={{ width: 32, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.ink }}>{fmtN(d.pct, 0)}%</span>
               <span className="num" style={{ width: 78, textAlign: "right", flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(d.valor)}</span>
