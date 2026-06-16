@@ -872,7 +872,8 @@ export default function AReceberEDividas({
         );
       })()}
 
-      {/* Painel de alertas — Vermelho · Amarelo · Verde */}
+      {/* Painel de alertas — Vermelho · Amarelo · Verde (oculto quando embutido) */}
+      {!embed && (
       <div className="grid grid-cols-3 gap-2 mb-3">
         <AlertCard
           cor={T.red}
@@ -945,6 +946,7 @@ export default function AReceberEDividas({
           icone="🟢"
         />
       </div>
+      )}
 
       {/* Tabs por mês */}
       <div style={{ display: "flex", gap: 4, marginBottom: 10, overflowX: "auto", paddingBottom: 3 }}>
