@@ -559,7 +559,7 @@ function AlocacaoCard({ data, total, hidden, onSeeAll }) {
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
                 <span style={{ width: 92, flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.label}</span>
                 <div style={{ flex: 1, height: 8, borderRadius: 6, background: T.bgSoft, overflow: "hidden" }}>
-                  <div style={{ width: `${w}%`, height: "100%", borderRadius: 6, background: d.cor, transition: "width .5s ease" }} />
+                  <div style={{ width: `${w}%`, height: "100%", borderRadius: 6, background: T.gold, transition: "width .5s ease" }} />
                 </div>
                 <span style={{ width: 32, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.ink }}>{fmtN(d.pct, 0)}%</span>
                 <span className="num" style={{ width: 78, textAlign: "right", flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(d.valor)}</span>
@@ -613,7 +613,7 @@ function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = fals
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
               <span style={{ width: 92, flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.nome}</span>
               <div style={{ flex: 1, height: 8, borderRadius: 6, background: T.bgSoft, overflow: "hidden" }}>
-                <div style={{ width: `${w}%`, height: "100%", borderRadius: 6, background: d.cor, transition: "width .5s ease" }} />
+                <div style={{ width: `${w}%`, height: "100%", borderRadius: 6, background: T.gold, transition: "width .5s ease" }} />
               </div>
               <span style={{ width: 32, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.ink }}>{fmtN(d.pct, 0)}%</span>
               <span className="num" style={{ width: 78, textAlign: "right", flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(d.valor)}</span>
