@@ -32,6 +32,7 @@ const TIPO_LABEL = {
 export default function ControleAnual({
   transacoes = [],
   setTransacoes,
+  contas = [],
   dividas = [],
   fixaOcorrencias = [],
   setFixaOcorrencias,
@@ -40,6 +41,7 @@ export default function ControleAnual({
   parcelamentos = [],
   setParcelamentos,
   devedores = [],
+  escopoAtivo = "tudo",
   hidden,
 }) {
   const hoje = todayISO();
@@ -49,10 +51,14 @@ export default function ControleAnual({
   const [ano, setAno] = useState(anoCorrente);
   const [mesExpandido, setMesExpandido] = useState(null); // 0-11 ou null
 
-  const state = { transacoes, fixas, fixaOcorrencias, parcelamentos, dividas, devedores };
+  // Inclui `contas` no state: o aplicarEscopo precisa delas pra mapear quais
+  // transações pertencem ao escopo (Pessoal/Negócio). Sem isso o relatório
+  // mostrava receitas/despesas de TODOS os escopos, sem bater com a tela de
+  // Transações (que é filtrada por escopo).
+  const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores };
   const linhas = useMemo(
-    () => getAnualPorMes(ano, state),
-    [ano, transacoes, fixas, fixaOcorrencias, parcelamentos, dividas, devedores]
+    () => getAnualPorMes(ano, state, escopoAtivo),
+    [ano, transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, escopoAtivo]
   );
 
   const totais = useMemo(() => {
