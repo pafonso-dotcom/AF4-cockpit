@@ -192,7 +192,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     padding: "7px 12px", fontFamily: T.sans, fontSize: 11,
     letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600,
     cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5,
-    borderRadius: 6, color: T.muted, whiteSpace: "nowrap",
+    borderRadius: 11, color: T.muted, whiteSpace: "nowrap",
   };
 
   return (
@@ -238,7 +238,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
       {dessincronizadas.length > 0 && (
         <div style={{
           background: `${T.red}11`, border: `1px solid ${T.red}55`, borderLeft: `4px solid ${T.red}`,
-          borderRadius: 8, padding: "12px 16px", marginBottom: 16,
+          borderRadius: 14, padding: "12px 16px", marginBottom: 16,
           display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
         }}>
           <AlertCircle size={18} style={{ color: T.red, flexShrink: 0 }} />
@@ -261,7 +261,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
       {/* Total compacto */}
       <div style={{
         marginBottom: 10, padding: "8px 12px",
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
         display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
       }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
@@ -313,7 +313,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                  background: ativa ? `${T.gold}10` : T.card,
                  border: `1px solid ${ativa ? T.gold : T.border}`,
                  borderLeft: `3px solid ${c.cor || T.gold}`,
-                 borderRadius: 6, overflow: "hidden",
+                 borderRadius: 11, overflow: "hidden",
                  transition: "all .15s",
                }}>
             {/* Linha principal — pai */}

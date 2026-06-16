@@ -30,7 +30,7 @@ function RelatorioCard({ transacoes, tarefas, lembretes, treinos }) {
   const ultimoTreino = (treinos || []).sort((a, b) => b.data.localeCompare(a.data))[0];
 
   return (
-    <div style={{ background: `${T.gold}10`, border: `1px solid ${T.gold}40`, borderRadius: 10, padding: 14, maxWidth: 320 }}>
+    <div style={{ background: `${T.gold}10`, border: `1px solid ${T.gold}40`, borderRadius: 16, padding: 14, maxWidth: 320 }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: T.gold, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 10 }}>
         Resumo
       </div>
@@ -238,12 +238,12 @@ export default function Conversa({
           onKeyDown={e => e.key === "Enter" && !e.shiftKey && enviar()}
           placeholder='gasto 50 almoço · reunião amanhã 14h · tarefa ligar pro banco'
           disabled={carregando}
-          style={{ flex: 1, fontSize: 13, padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.bg }}
+          style={{ flex: 1, fontSize: 13, padding: "8px 12px", borderRadius: 14, border: `1px solid ${T.border}`, background: T.bg }}
         />
         <button onClick={enviar} disabled={carregando || !input.trim()}
           style={{
             background: T.gold, color: T.bg, border: "none",
-            borderRadius: 8, padding: "8px 14px", cursor: "pointer",
+            borderRadius: 14, padding: "8px 14px", cursor: "pointer",
             display: "flex", alignItems: "center", gap: 5, fontWeight: 700, fontSize: 13,
             opacity: (!input.trim() || carregando) ? 0.5 : 1,
           }}>

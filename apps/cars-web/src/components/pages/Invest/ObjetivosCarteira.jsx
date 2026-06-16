@@ -287,7 +287,7 @@ export default function ObjetivosCarteira({
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10,
       }} className="objetivos-resumo">
         <div style={{
-          background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+          background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
           padding: 10,
         }}>
           <div className="label-eyebrow">
@@ -308,7 +308,7 @@ export default function ObjetivosCarteira({
           background: `linear-gradient(135deg, ${T.gold}11, ${T.card})`,
           border: `1px solid ${T.gold}66`,
           borderLeft: `3px solid ${T.gold}`,
-          borderRadius: 8, padding: 10,
+          borderRadius: 14, padding: 10,
         }}>
           <div className="label-eyebrow" style={{ color: T.gold }}>
             <ArrowRight size={10} className="inline mr-1" />
@@ -337,7 +337,7 @@ export default function ObjetivosCarteira({
         <div style={{
           padding: 12, background: `${T.gold}11`,
           border: `1px solid ${T.gold}55`, borderLeft: `3px solid ${T.gold}`,
-          borderRadius: 8, marginBottom: 14,
+          borderRadius: 14, marginBottom: 14,
         }}>
           <div style={{ fontSize: 11, color: T.gold, fontWeight: 700, marginBottom: 4, letterSpacing: ".05em", textTransform: "uppercase" }}>
             <AlertCircle size={12} className="inline mr-1" /> Atenção
@@ -356,7 +356,7 @@ export default function ObjetivosCarteira({
           {raizes.length === 0 ? (
             <div style={{
               textAlign: "center", padding: "60px 24px",
-              background: T.card, border: `1px dashed ${T.border}`, borderRadius: 12,
+              background: T.card, border: `1px dashed ${T.border}`, borderRadius: 18,
             }}>
               <Target size={36} style={{ color: T.gold, marginBottom: 12 }} />
               <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, margin: "0 0 8px", fontWeight: 600 }}>
@@ -368,7 +368,7 @@ export default function ObjetivosCarteira({
             </div>
           ) : (
             <div style={{
-              background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 10,
+              background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 16,
               padding: 12, overflowX: "auto",
             }}>
               {/* DESKTOP: org-chart visual */}
@@ -643,7 +643,7 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
         background: T.card,
         border: `1px solid ${T.border}`,
         borderTop: `3px solid ${corStatus}`,
-        borderRadius: 10,
+        borderRadius: 16,
         padding: "10px 12px",
         minWidth: 148, maxWidth: 200,
         boxShadow: `0 2px 6px rgba(0,0,0,.12)`,
@@ -663,7 +663,7 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
         {/* Header: ícone + label + % */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, paddingRight: 60 }}>
           <div style={{
-            width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+            width: 28, height: 28, borderRadius: 12, flexShrink: 0,
             background: `${corClasse}22`, color: corClasse,
             display: "grid", placeItems: "center",
           }}>
@@ -706,7 +706,7 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
         {!temFilhos && temAporte && (
           <div style={{
             marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "5px 8px", background: `${T.gold}12`, border: `1px solid ${T.gold}44`, borderRadius: 6,
+            padding: "5px 8px", background: `${T.gold}12`, border: `1px solid ${T.gold}44`, borderRadius: 11,
           }}>
             <div>
               <div style={{ fontSize: 9, color: T.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em" }}>
@@ -752,14 +752,14 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
       background: T.card,
       border: `1px solid ${T.border}`,
       borderLeft: `4px solid ${corStatus}`,
-      borderRadius: 8,
+      borderRadius: 14,
       padding: 12,
       display: "grid",
       gridTemplateColumns: "auto 1fr auto",
       gap: 10, alignItems: "center",
     }}>
       <div style={{
-        width: 32, height: 32, borderRadius: 7,
+        width: 32, height: 32, borderRadius: 12,
         background: `${corClasse}22`, color: corClasse,
         display: "grid", placeItems: "center", flexShrink: 0,
       }}>
@@ -790,7 +790,7 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
             </div>
             {!temFilhos && temAporte && (
               <div style={{
-                marginTop: 6, padding: "5px 8px", borderRadius: 6,
+                marginTop: 6, padding: "5px 8px", borderRadius: 11,
                 background: `${T.gold}15`, border: `1px solid ${T.gold}55`,
                 display: "flex", justifyContent: "space-between", alignItems: "center",
               }}>
@@ -990,7 +990,7 @@ function PlanoDeMes({ tree, distribuicaoAporte, valorPorNo, valorAlvo, aporteN, 
         display: "flex", alignItems: "center", gap: 8,
         padding: "10px 14px", marginBottom: 12,
         background: `${T.gold}10`, border: `1px solid ${T.gold}40`,
-        borderLeft: `3px solid ${T.gold}`, borderRadius: 8,
+        borderLeft: `3px solid ${T.gold}`, borderRadius: 14,
       }}>
         <Target size={15} style={{ color: T.gold, flexShrink: 0 }} />
         <div>
@@ -1016,7 +1016,7 @@ function PlanoDeMes({ tree, distribuicaoAporte, valorPorNo, valorAlvo, aporteN, 
           return (
             <div key={node.id} style={{
               background: T.card, border: `1px solid ${T.border}`,
-              borderLeft: `3px solid ${cor}`, borderRadius: 8,
+              borderLeft: `3px solid ${cor}`, borderRadius: 14,
               padding: "12px 14px",
               display: "grid", gridTemplateColumns: "auto 1fr auto",
               gap: 12, alignItems: "center",
@@ -1106,7 +1106,7 @@ function VerAtivosModal({ node, ativos, valorTotal, hidden, onClose }) {
         padding: 12, marginBottom: 12,
         background: `${cor}11`, border: `1px solid ${cor}44`,
         borderLeft: `3px solid ${cor}`,
-        borderRadius: 8,
+        borderRadius: 14,
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
         <span style={{ fontSize: 11, color: T.muted, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 600 }}>
@@ -1123,7 +1123,7 @@ function VerAtivosModal({ node, ativos, valorTotal, hidden, onClose }) {
       {ordenados.length === 0 ? (
         <div style={{
           textAlign: "center", padding: "40px 24px",
-          background: T.bgSoft, border: `1px dashed ${T.border}`, borderRadius: 10,
+          background: T.bgSoft, border: `1px dashed ${T.border}`, borderRadius: 16,
         }}>
           <Target size={32} style={{ color: T.muted, marginBottom: 10 }} />
           <div style={{ fontSize: 14, color: T.ink, fontWeight: 600, marginBottom: 4 }}>
@@ -1145,7 +1145,7 @@ function VerAtivosModal({ node, ativos, valorTotal, hidden, onClose }) {
               <div key={a.id} style={{
                 background: T.card, border: `1px solid ${T.border}`,
                 borderLeft: `3px solid ${cor}`,
-                borderRadius: 8, padding: "10px 12px",
+                borderRadius: 14, padding: "10px 12px",
                 display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center",
               }}>
                 <div style={{

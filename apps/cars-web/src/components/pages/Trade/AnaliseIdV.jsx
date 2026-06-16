@@ -115,7 +115,7 @@ export default function AnaliseIdV({ analises = [], setAnalises, ativos = [] }) 
           const ativo = classeAtiva === c.id, disp = c.criterios.length > 0;
           return (
             <button key={c.id} onClick={() => disp && setClasseAtiva(c.id)} disabled={!disp}
-              style={{ padding: "7px 14px", fontSize: 11, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", borderRadius: 6,
+              style={{ padding: "7px 14px", fontSize: 11, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", borderRadius: 11,
                 border: `1px solid ${ativo ? T.ink : T.border}`, background: ativo ? T.ink : T.card,
                 color: ativo ? "#fff" : (disp ? T.muted : T.faint), cursor: disp ? "pointer" : "not-allowed", opacity: disp ? 1 : 0.5 }}>
               {c.icon} {c.label}{!disp && " (em breve)"}
@@ -128,10 +128,10 @@ export default function AnaliseIdV({ analises = [], setAnalises, ativos = [] }) 
       <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
         <input value={novoTicker} onChange={e => setNovoTicker(e.target.value)} onKeyDown={e => e.key === "Enter" && adicionar()}
           placeholder={`Ticker (ex: ${classeAtiva === "fii" ? "XPML11" : "ITSA4"})`}
-          style={{ flex: 1, minWidth: 140, padding: "9px 12px", border: `1px solid ${T.border}`, borderRadius: 7, background: T.card, fontSize: 13, color: T.ink }} />
-        <button onClick={adicionar} style={{ padding: "9px 14px", background: T.gold, color: "#fff", border: "none", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Adicionar</button>
-        <button onClick={importarCarteira} style={{ padding: "9px 14px", background: T.card, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}><Briefcase size={14} /> Importar da carteira</button>
-        <button onClick={() => fileRef.current?.click()} style={{ padding: "9px 14px", background: T.green, color: "#fff", border: "none", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}><Upload size={14} /> Importar planilha</button>
+          style={{ flex: 1, minWidth: 140, padding: "9px 12px", border: `1px solid ${T.border}`, borderRadius: 12, background: T.card, fontSize: 13, color: T.ink }} />
+        <button onClick={adicionar} style={{ padding: "9px 14px", background: T.gold, color: "#fff", border: "none", borderRadius: 12, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Adicionar</button>
+        <button onClick={importarCarteira} style={{ padding: "9px 14px", background: T.card, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 12, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}><Briefcase size={14} /> Importar da carteira</button>
+        <button onClick={() => fileRef.current?.click()} style={{ padding: "9px 14px", background: T.green, color: "#fff", border: "none", borderRadius: 12, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}><Upload size={14} /> Importar planilha</button>
         <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={importarPlanilha} />
         <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: T.muted, cursor: "pointer", marginLeft: 4 }}>
           <input type="checkbox" checked={importarTodos} onChange={e => setImportarTodos(e.target.checked)} style={{ width: 14, height: 14, accentColor: T.gold }} />
@@ -146,7 +146,7 @@ export default function AnaliseIdV({ analises = [], setAnalises, ativos = [] }) 
         const sc = analise._sc;
         const grupos = [...new Set(criterios.map(c => c.grupo))];
         return (
-          <div key={analise.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
+          <div key={analise.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
             <div onClick={() => setEditId(expandido ? null : analise.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", cursor: "pointer" }}>
               <div>
                 <span style={{ fontSize: 16, fontWeight: 700, color: T.ink }}>{analise.ticker}</span>
@@ -180,7 +180,7 @@ export default function AnaliseIdV({ analises = [], setAnalises, ativos = [] }) 
                     {criterios.filter(c => c.grupo === g).map(c => {
                       const aval = avaliarCriterio(c, analise.valores[c.id]);
                       return (
-                        <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: T.bgSoft, borderRadius: 7, marginBottom: 4, borderLeft: `3px solid ${COR[aval]}` }}>
+                        <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: T.bgSoft, borderRadius: 12, marginBottom: 4, borderLeft: `3px solid ${COR[aval]}` }}>
                           <span style={{ fontSize: 14 }}>{IC[aval]}</span>
                           <span style={{ flex: 1, fontSize: 12.5, fontWeight: 500, color: T.ink }}>{c.label} <span style={{ fontSize: 10, color: T.faint }}>· {c.hint}</span></span>
                           <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 3, fontWeight: 700, letterSpacing: ".05em",

@@ -68,7 +68,7 @@ export default function Ideias({ ideias = [], setIdeias }) {
 
       {/* Quick add */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
         padding: 12, marginBottom: 12,
       }}>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -103,7 +103,7 @@ export default function Ideias({ ideias = [], setIdeias }) {
       {ideias.length === 0 ? (
         <div style={{
           textAlign: "center", padding: "60px 24px",
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 12,
+          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 18,
         }}>
           <Sparkles size={36} style={{ color: T.gold, marginBottom: 12 }} />
           <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, margin: "0 0 8px", fontWeight: 600 }}>
@@ -182,7 +182,7 @@ function IdeiaCard({ item, onTogglePin, onExcluir, onEditar }) {
       background: T.card,
       border: `1px solid ${T.border}`,
       borderLeft: `3px solid ${item.pinned ? T.gold : T.border}`,
-      borderRadius: 8,
+      borderRadius: 14,
       padding: "10px 12px",
       display: "flex", gap: 10, alignItems: "flex-start",
     }}>

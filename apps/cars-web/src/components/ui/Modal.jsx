@@ -94,7 +94,7 @@ export default function Modal({ title, children, onClose, wide, isDirty = false 
         overflowY: "auto",
         padding: "clamp(18px, 4vw, 32px)",
         position: "relative",
-        borderRadius: 12,
+        borderRadius: 18,
         boxShadow: "0 24px 60px rgba(0,0,0,.6)",
         margin: "auto",
         WebkitOverflowScrolling: "touch",
@@ -108,7 +108,7 @@ export default function Modal({ title, children, onClose, wide, isDirty = false 
                   border: "none", cursor: "pointer", padding: 6,
                   minWidth: 44, minHeight: 44, // área de toque iOS HIG mínima
                   display: "grid", placeItems: "center",
-                  borderRadius: 8, zIndex: 2,
+                  borderRadius: 14, zIndex: 2,
                 }}>
           <X size={22} />
         </button>

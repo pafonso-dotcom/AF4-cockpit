@@ -69,7 +69,7 @@ export default function IndicesGlobais({ apiKeys = {}, excluir = [] }) {
         return (
           <div key={idx} style={{
             flex: "0 0 auto", minWidth: 132, background: T.card,
-            border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 12px",
+            border: `1px solid ${T.border}`, borderRadius: 16, padding: "8px 12px",
           }}>
             <div style={{ fontSize: 10, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
               {i.nome}

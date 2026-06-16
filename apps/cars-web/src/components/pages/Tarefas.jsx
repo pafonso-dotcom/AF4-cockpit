@@ -151,7 +151,7 @@ export default function Tarefas({ tarefas = [], setTarefas }) {
 
       {/* Quick add */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
         padding: 12, marginBottom: 12,
       }}>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -284,7 +284,7 @@ function TarefaRow({ tarefa, onToggle, onEdit, onExcluir }) {
       background: T.card,
       border: `1px solid ${atrasada ? `${T.red}55` : T.border}`,
       borderLeft: `3px solid ${tarefa.concluida ? T.green : prio.cor}`,
-      borderRadius: 10,
+      borderRadius: 16,
       padding: "12px 14px",
       display: "flex", alignItems: "center", gap: 12,
       opacity: tarefa.concluida ? 0.55 : 1,
@@ -381,7 +381,7 @@ function EmptyState() {
   return (
     <div style={{
       textAlign: "center", padding: "60px 24px",
-      background: T.card, border: `1px dashed ${T.border}`, borderRadius: 12,
+      background: T.card, border: `1px dashed ${T.border}`, borderRadius: 18,
     }}>
       <Check size={36} style={{ color: T.gold, marginBottom: 12 }} />
       <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, margin: "0 0 8px", fontWeight: 600 }}>

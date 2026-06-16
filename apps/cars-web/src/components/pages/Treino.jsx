@@ -121,7 +121,7 @@ function RecordeCard({ r, cor }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${r.novoPR ? `${T.gold}66` : T.border}`,
-      borderLeft: `3px solid ${cor}`, borderRadius: 8, padding: "10px 14px",
+      borderLeft: `3px solid ${cor}`, borderRadius: 14, padding: "10px 14px",
       display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
     }}>
       <div style={{ flex: "1 1 160px", minWidth: 0 }}>
@@ -196,7 +196,7 @@ function ExImagem({ exercicio, setExerciciosDB, size = 38 }) {
     <>
       <button onClick={(e) => { e.stopPropagation(); setOpen(true); }} title="Imagem de execução"
         style={{
-          width: size, height: size, borderRadius: 8, flexShrink: 0, padding: 0, overflow: "hidden",
+          width: size, height: size, borderRadius: 14, flexShrink: 0, padding: 0, overflow: "hidden",
           border: `1px ${img ? "solid" : "dashed"} ${T.border}`, background: T.bg, cursor: "pointer",
           display: "grid", placeItems: "center",
         }}>
@@ -205,7 +205,7 @@ function ExImagem({ exercicio, setExerciciosDB, size = 38 }) {
       </button>
       {open && (
         <Modal title={`Imagem · ${exercicio.nome || "exercício"}`} onClose={() => setOpen(false)}>
-          {img && <img src={img} alt="" style={{ width: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 8, marginBottom: 12, background: T.bgSoft }} />}
+          {img && <img src={img} alt="" style={{ width: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 14, marginBottom: 12, background: T.bgSoft }} />}
           <Field label="Link da imagem/GIF (URL)" hint="Cole o endereço de uma figura/animação de execução.">
             <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." />
           </Field>
@@ -310,7 +310,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
         {sessoesHoje.length === 0 ? (
           <div style={{
             textAlign: "center", padding: "32px 24px",
-            background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10,
+            background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
           }}>
             <Dumbbell size={28} style={{ color: T.muted, marginBottom: 8 }} />
             <div style={{ fontSize: 13, color: T.muted }}>
@@ -341,7 +341,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
       </div>
 
       {/* Calendário */}
-      <div style={{ marginBottom: 24, background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 14 }}>
+      <div style={{ marginBottom: 24, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <button onClick={() => setMesOffset(o => o - 1)} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer" }}>
             <ChevronLeft size={16} />
@@ -413,7 +413,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
               return (
                 <div key={s.id} style={{
                   background: T.card, border: `1px solid ${T.border}`,
-                  borderLeft: `3px solid ${cor}`, borderRadius: 8,
+                  borderLeft: `3px solid ${cor}`, borderRadius: 14,
                   padding: "10px 14px", display: "flex", alignItems: "center", gap: 10,
                 }}>
                   <Icon size={16} style={{ color: cor, flexShrink: 0 }} />
@@ -454,7 +454,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
                     <button key={t.id} onClick={() => iniciarTreino(t)}
                       style={{
                         background: T.card, border: `1px solid ${cor}55`,
-                        borderLeft: `3px solid ${cor}`, borderRadius: 8,
+                        borderLeft: `3px solid ${cor}`, borderRadius: 14,
                         padding: "10px 14px", textAlign: "left", cursor: "pointer",
                         display: "flex", justifyContent: "space-between", alignItems: "center",
                       }}>
@@ -478,7 +478,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
                   <button key={m} onClick={() => iniciarSemTemplate(m)}
                     style={{
                       flex: 1, background: `${cor}15`, border: `1px solid ${cor}55`,
-                      borderRadius: 8, padding: "10px 8px", cursor: "pointer",
+                      borderRadius: 14, padding: "10px 8px", cursor: "pointer",
                       display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
                     }}>
                     <Icon size={20} style={{ color: cor }} />
@@ -590,7 +590,7 @@ function SessaoCard({ sessao, exerciciosDB, ativa, onToggleAtiva, onAtualizar, o
   const exerciciosFiltrados = exerciciosDB.filter(e => e.modalidade === sessao.modalidade);
 
   return (
-    <div style={{ background: T.card, border: `1px solid ${cor}55`, borderTop: `3px solid ${cor}`, borderRadius: 10, padding: 14 }}>
+    <div style={{ background: T.card, border: `1px solid ${cor}55`, borderTop: `3px solid ${cor}`, borderRadius: 16, padding: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
         <Icon size={18} style={{ color: cor }} />
         <div style={{ flex: 1 }}>
@@ -603,10 +603,10 @@ function SessaoCard({ sessao, exerciciosDB, ativa, onToggleAtiva, onAtualizar, o
           ? <span style={{ fontSize: 10, padding: "2px 8px", background: `${T.green}22`, color: T.green, borderRadius: 4, fontWeight: 700 }}>✓ Concluído</span>
           : (
             <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={onToggleAtiva} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 11, color: T.muted }}>
+              <button onClick={onToggleAtiva} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 11, padding: "4px 10px", cursor: "pointer", fontSize: 11, color: T.muted }}>
                 {ativa ? "Recolher" : "Expandir"}
               </button>
-              <button onClick={onConcluir} style={{ background: T.green, color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
+              <button onClick={onConcluir} style={{ background: T.green, color: "#fff", border: "none", borderRadius: 11, padding: "4px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
                 Concluir
               </button>
             </div>
@@ -628,7 +628,7 @@ function SessaoCard({ sessao, exerciciosDB, ativa, onToggleAtiva, onAtualizar, o
           {sessao.exerciciosFeitos.map((ef, ei) => {
             const ex = exerciciosDB.find(e => e.id === ef.exercicioId);
             return (
-              <div key={ei} style={{ marginBottom: 14, padding: "10px 12px", background: T.bgSoft, borderRadius: 8, border: `1px solid ${T.border}` }}>
+              <div key={ei} style={{ marginBottom: 14, padding: "10px 12px", background: T.bgSoft, borderRadius: 14, border: `1px solid ${T.border}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                   {ex && <ExImagem exercicio={ex} setExerciciosDB={setExerciciosDB} />}
                   <div style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>
@@ -707,7 +707,7 @@ function SessaoCard({ sessao, exerciciosDB, ativa, onToggleAtiva, onAtualizar, o
                         style={{
                           background: ef.concluido ? T.green : "transparent",
                           border: `2px solid ${ef.concluido ? T.green : T.border}`,
-                          borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 12, fontWeight: 700,
+                          borderRadius: 11, padding: "4px 10px", cursor: "pointer", fontSize: 12, fontWeight: 700,
                           color: ef.concluido ? "#fff" : T.muted,
                         }}>
                         {ef.concluido ? "✓ Feito" : "Marcar feito"}
@@ -721,7 +721,7 @@ function SessaoCard({ sessao, exerciciosDB, ativa, onToggleAtiva, onAtualizar, o
 
           <div style={{ marginTop: 8 }}>
             <select onChange={e => { if (e.target.value) { adicionarExercicio(e.target.value); e.target.value = ""; } }}
-              style={{ fontSize: 12, padding: "6px 10px", border: `1px dashed ${T.gold}`, borderRadius: 6, background: T.bg, color: T.muted, cursor: "pointer", width: "100%" }}>
+              style={{ fontSize: 12, padding: "6px 10px", border: `1px dashed ${T.gold}`, borderRadius: 11, background: T.bg, color: T.muted, cursor: "pointer", width: "100%" }}>
               <option value="">+ Adicionar exercício...</option>
               {exerciciosFiltrados.map(e => (
                 <option key={e.id} value={e.id}>{e.nome} {e.grupoMuscular ? `(${e.grupoMuscular})` : ""}</option>
@@ -780,7 +780,7 @@ function TemplateModal({ templates, exerciciosDB, setExerciciosDB, onSalvar, onE
           {form.exercicios.map((ex, i) => {
             const exBase = exerciciosDB.find(e => e.id === ex.exercicioId);
             return (
-              <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6, padding: "6px 10px", background: T.bgSoft, borderRadius: 6 }}>
+              <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6, padding: "6px 10px", background: T.bgSoft, borderRadius: 11 }}>
                 {exBase && <ExImagem exercicio={exBase} setExerciciosDB={setExerciciosDB} size={32} />}
                 <span style={{ flex: 1, fontSize: 12, color: T.ink }}>{exBase?.nome || ex.exercicioId}</span>
                 <input type="number" min="1" value={ex.series} onChange={e => setForm(f => ({ ...f, exercicios: f.exercicios.map((x, xi) => xi === i ? { ...x, series: Number(e.target.value) } : x) }))}
@@ -796,7 +796,7 @@ function TemplateModal({ templates, exerciciosDB, setExerciciosDB, onSalvar, onE
             );
           })}
           <select onChange={e => { adicionarExToTemplate(e.target.value); e.target.value = ""; }}
-            style={{ fontSize: 12, padding: "6px 10px", border: `1px dashed ${T.gold}`, borderRadius: 6, background: T.bg, color: T.muted, cursor: "pointer", width: "100%", marginTop: 4 }}>
+            style={{ fontSize: 12, padding: "6px 10px", border: `1px dashed ${T.gold}`, borderRadius: 11, background: T.bg, color: T.muted, cursor: "pointer", width: "100%", marginTop: 4 }}>
             <option value="">+ Adicionar exercício...</option>
             {exerciciosFiltrados.map(e => (
               <option key={e.id} value={e.id}>{e.nome}{e.grupoMuscular ? ` (${e.grupoMuscular})` : ""}</option>
@@ -822,7 +822,7 @@ function TemplateModal({ templates, exerciciosDB, setExerciciosDB, onSalvar, onE
         return (
           <div key={t.id} style={{
             background: T.card, border: `1px solid ${T.border}`,
-            borderLeft: `3px solid ${cor}`, borderRadius: 8,
+            borderLeft: `3px solid ${cor}`, borderRadius: 14,
             padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, marginBottom: 8,
           }}>
             <div style={{ flex: 1 }}>
@@ -907,7 +907,7 @@ Retorne APENAS JSON válido no formato:
               onChange={e => setPrompt(e.target.value)}
               placeholder="Ex.: treino de peito e tríceps, tenho 1h, nível intermediário"
               rows={3}
-              style={{ width: "100%", fontSize: 13, padding: "8px 10px", borderRadius: 6, border: `1px solid ${T.border}`, background: T.bg, resize: "vertical" }}
+              style={{ width: "100%", fontSize: 13, padding: "8px 10px", borderRadius: 11, border: `1px solid ${T.border}`, background: T.bg, resize: "vertical" }}
             />
           </Field>
           <div className="flex gap-3 justify-end mt-4">
@@ -919,7 +919,7 @@ Retorne APENAS JSON válido no formato:
         </>
       ) : (
         <>
-          <div style={{ background: T.card, border: `1px solid ${T.gold}55`, borderRadius: 8, padding: 12, marginBottom: 14 }}>
+          <div style={{ background: T.card, border: `1px solid ${T.gold}55`, borderRadius: 14, padding: 12, marginBottom: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: T.ink, marginBottom: 6 }}>{preview.nome}</div>
             {preview.exercicios.map((ex, i) => {
               const exBase = exerciciosDB.find(e => e.id === ex.exercicioId);
@@ -981,7 +981,7 @@ function BancoExerciciosModal({ exerciciosDB, setExerciciosDB, onClose }) {
     toast.success(`"${e.nome}" adicionado ao seu banco.`);
   };
 
-  const selSty = { fontSize: 12, padding: "6px 8px", border: `1px solid ${T.border}`, borderRadius: 6, background: T.bg, color: T.ink };
+  const selSty = { fontSize: 12, padding: "6px 8px", border: `1px solid ${T.border}`, borderRadius: 11, background: T.bg, color: T.ink };
 
   return (
     <Modal title="Banco de exercícios" onClose={onClose} wide>
@@ -1010,8 +1010,8 @@ function BancoExerciciosModal({ exerciciosDB, setExerciciosDB, onClose }) {
             {filtrados.slice(0, limite).map(e => {
               const tem = jaTem(e);
               return (
-                <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", background: T.bgSoft, borderRadius: 8, border: `1px solid ${T.border}` }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: T.bg, display: "grid", placeItems: "center" }}>
+                <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", background: T.bgSoft, borderRadius: 14, border: `1px solid ${T.border}` }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 11, overflow: "hidden", flexShrink: 0, background: T.bg, display: "grid", placeItems: "center" }}>
                     {e.imagem ? <img src={e.imagem} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Dumbbell size={16} style={{ color: T.muted }} />}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -1019,7 +1019,7 @@ function BancoExerciciosModal({ exerciciosDB, setExerciciosDB, onClose }) {
                     <div style={{ fontSize: 10.5, color: T.muted }}>{e.grupoMuscular}{e.equipamento ? ` · ${equipamentoPT(e.equipamento)}` : ""}{e.nivel ? ` · ${e.nivel}` : ""}</div>
                   </div>
                   <button onClick={() => adicionar(e)} disabled={tem}
-                    style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 6, cursor: tem ? "default" : "pointer",
+                    style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 11, cursor: tem ? "default" : "pointer",
                       background: tem ? "transparent" : `${T.green}22`, color: tem ? T.muted : T.green, border: `1px solid ${tem ? T.border : T.green}` }}>
                     {tem ? "✓ no banco" : "+ Adicionar"}
                   </button>

@@ -429,7 +429,7 @@ function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, m
 function KpiHero({ value, mom, hidden, evolucao }) {
   const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
   return (
-    <div style={{ background: bg, color: "#fff", borderRadius: 12, padding: 14, position: "relative", overflow: "hidden", minHeight: 110 }}>
+    <div style={{ background: bg, color: "#fff", borderRadius: 18, padding: 14, position: "relative", overflow: "hidden", minHeight: 110 }}>
       <div style={{ fontSize: 11, color: "#86efac", letterSpacing: ".03em" }}>Patrimônio Total</div>
       <div className="num" style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 700, marginTop: 6 }}>{hidden ? "•••••" : fmt(value)}</div>
       <div style={{ fontSize: 11, color: "#86efac", marginTop: 4 }}>
@@ -518,7 +518,7 @@ function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
         {contas.slice(0, 4).map(c => (
           <button key={c.id} onClick={() => onContaClick?.(c)}
             style={{ background: "transparent", border: "none", padding: "9px 0", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left", borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: c.cor || T.gold, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 14, background: c.cor || T.gold, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
               {(c.instituicao || c.nome || "?").slice(0,1).toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -582,7 +582,7 @@ function AlocacaoCard({ data, total, hidden, onSeeAll }) {
 function InsightsCard({ insight, onSeeAll }) {
   const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
   return (
-    <div style={{ background: bg, color: "#fff", borderRadius: 12, padding: 16, display: "flex", flexDirection: "column" }}>
+    <div style={{ background: bg, color: "#fff", borderRadius: 18, padding: 16, display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
           🤖 Insights da IA
@@ -594,7 +594,7 @@ function InsightsCard({ insight, onSeeAll }) {
           || "Acompanhe aqui análises automáticas dos seus gastos, receitas e tendências."}
       </div>
       <button onClick={onSeeAll}
-              style={{ background: "rgba(255,255,255,0.1)", border: `1px solid rgba(255,255,255,0.2)`, color: "#fff", padding: "8px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", alignSelf: "flex-start" }}>
+              style={{ background: "rgba(255,255,255,0.1)", border: `1px solid rgba(255,255,255,0.2)`, color: "#fff", padding: "8px 12px", borderRadius: 11, fontSize: 12, cursor: "pointer", alignSelf: "flex-start" }}>
         Ver análise completa →
       </button>
     </div>
@@ -607,7 +607,7 @@ function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = fals
     <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Gastos por Categoria</div>
-        <div style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px" }}>Este mês</div>
+        <div style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 11, padding: "3px 8px" }}>Este mês</div>
       </div>
       {data.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Nenhuma despesa este mês.</div>
@@ -670,7 +670,7 @@ function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = fals
             </div>
             {pct >= warnAt && (
               <div style={{
-                marginTop: 8, padding: "6px 9px", borderRadius: 6,
+                marginTop: 8, padding: "6px 9px", borderRadius: 11,
                 background: `${cor}1a`, border: `1px solid ${cor}44`, color: cor,
                 fontSize: 10.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 6,
               }}>
@@ -693,10 +693,10 @@ function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = fals
 
 function EvolucaoCard({ data, valor, momAno, hidden }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Evolução do Patrimônio</div>
-        <div style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px" }}>Este ano</div>
+        <div style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 11, padding: "3px 8px" }}>Este ano</div>
       </div>
       <div className="num" style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: T.ink }}>{hidden ? "•••••" : fmt(valor)}</div>
       <div style={{ fontSize: 11, color: momAno >= 0 ? T.green : T.red, marginBottom: 8 }}>
@@ -800,7 +800,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
                 <div key={b.id} style={{
                   background: ativo ? `${b.cor}11` : T.bgSoft,
                   border: `1px solid ${ativo ? `${b.cor}55` : T.border}`,
-                  borderRadius: 8, padding: "8px 10px",
+                  borderRadius: 14, padding: "8px 10px",
                   display: "flex", flexDirection: "column", gap: 2,
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: ativo ? b.cor : T.faint, fontWeight: 600, letterSpacing: ".03em" }}>
@@ -927,7 +927,7 @@ function ProjecaoCard({ projecao, patrimonio = 0, hidden }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
         {projecao.map(p => (
-          <div key={p.label} style={{ background: T.bgSoft, borderRadius: 6, padding: 8, borderTop: `2px solid ${T.green}` }}>
+          <div key={p.label} style={{ background: T.bgSoft, borderRadius: 11, padding: 8, borderTop: `2px solid ${T.green}` }}>
             <div style={{ fontSize: 9.5, letterSpacing: ".1em", color: T.muted, fontWeight: 600 }}>{p.label}</div>
             <div className="num" style={{ fontSize: 11, color: T.green }}>+ {hidden ? "•••" : fmt(p.receita)}</div>
             <div className="num" style={{ fontSize: 11, color: T.red }}>− {hidden ? "•••" : fmt(p.despesa)}</div>
@@ -957,7 +957,7 @@ function MetasCard({ metas, hidden, onSeeAll }) {
           const atual = Number(m.atual ?? m.valorAtual ?? m.aplicado ?? 0);
           const pct = meta > 0 ? Math.min(100, (atual / meta) * 100) : 0;
           return (
-            <div key={m.id} style={{ background: T.bgSoft, borderRadius: 8, padding: 10 }}>
+            <div key={m.id} style={{ background: T.bgSoft, borderRadius: 14, padding: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: T.ink, marginBottom: 2 }}>{m.nome || m.titulo || "Meta"}</div>
               <div style={{ fontSize: 10, color: T.muted, marginBottom: 6 }}>
                 <span className="num">{hidden ? "•••" : fmt(atual)}</span> / <span className="num">{hidden ? "•••" : fmt(meta)}</span>
@@ -970,7 +970,7 @@ function MetasCard({ metas, hidden, onSeeAll }) {
           );
         })}
         <button onClick={onSeeAll}
-                style={{ background: "transparent", border: `2px dashed ${T.border}`, borderRadius: 8, padding: 10, color: T.muted, fontSize: 12, cursor: "pointer", minHeight: 70 }}>
+                style={{ background: "transparent", border: `2px dashed ${T.border}`, borderRadius: 14, padding: 10, color: T.muted, fontSize: 12, cursor: "pointer", minHeight: 70 }}>
           + Nova Meta
         </button>
       </div>
@@ -981,8 +981,8 @@ function MetasCard({ metas, hidden, onSeeAll }) {
 function PergunteIACard({ onClick }) {
   return (
     <button onClick={onClick}
-            style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
-      <div style={{ width: 36, height: 36, borderRadius: 8, background: `${T.green}22`, display: "grid", placeItems: "center", flexShrink: 0 }}>
+            style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 14, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
+      <div style={{ width: 36, height: 36, borderRadius: 14, background: `${T.green}22`, display: "grid", placeItems: "center", flexShrink: 0 }}>
         <Sparkles size={18} style={{ color: T.green }} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -1016,7 +1016,7 @@ function Top3DoDia({ agenda = [], onAbrir }) {
     <div style={{
       background: T.card, border: `1px solid ${T.gold}55`,
       borderLeft: `4px solid ${T.gold}`,
-      borderRadius: 10, padding: 14, marginBottom: 16,
+      borderRadius: 16, padding: 14, marginBottom: 16,
     }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <div style={{ fontSize: 11, color: T.gold, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" }}>

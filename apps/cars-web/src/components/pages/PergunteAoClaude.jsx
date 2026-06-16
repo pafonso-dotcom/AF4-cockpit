@@ -85,7 +85,7 @@ export default function PergunteAoClaude({
 
       {!apiKey && (
         <div style={{
-          padding: 16, marginBottom: 16, borderRadius: 8,
+          padding: 16, marginBottom: 16, borderRadius: 14,
           background: `${T.yellow}11`, border: `1px solid ${T.yellow}`,
         }}>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 12 }}>
@@ -106,7 +106,7 @@ export default function PergunteAoClaude({
                 placeholder="sk-ant-..."
                 style={{
                   width: "100%", fontSize: 13, padding: "8px 36px 8px 10px",
-                  border: `1px solid ${T.border}`, borderRadius: 6,
+                  border: `1px solid ${T.border}`, borderRadius: 11,
                   background: T.bg, color: T.ink, boxSizing: "border-box",
                 }}
               />
@@ -129,7 +129,7 @@ export default function PergunteAoClaude({
       {/* Chat container */}
       <div style={{
         background: T.card, border: `1px solid ${T.border}`,
-        borderRadius: 10, padding: 0, overflow: "hidden",
+        borderRadius: 16, padding: 0, overflow: "hidden",
         display: "flex", flexDirection: "column",
         minHeight: "60vh", maxHeight: "75vh",
       }}>
@@ -158,7 +158,7 @@ export default function PergunteAoClaude({
                           style={{
                             padding: "10px 12px", textAlign: "left",
                             background: T.bgSoft, border: `1px solid ${T.border}`,
-                            color: T.ink, fontSize: 11.5, borderRadius: 7,
+                            color: T.ink, fontSize: 11.5, borderRadius: 12,
                             cursor: apiKey ? "pointer" : "not-allowed",
                             transition: "all .2s",
                             opacity: !apiKey ? 0.5 : 1,
@@ -192,7 +192,7 @@ export default function PergunteAoClaude({
           {erro && (
             <div style={{
               padding: 11, background: `${T.red}22`,
-              border: `1px solid ${T.red}`, borderRadius: 7,
+              border: `1px solid ${T.red}`, borderRadius: 12,
               fontSize: 11.5, color: T.red,
               display: "flex", alignItems: "center", gap: 8,
             }}>
@@ -223,7 +223,7 @@ export default function PergunteAoClaude({
             style={{
               flex: 1, padding: "10px 12px",
               background: T.card, color: T.ink,
-              border: `1px solid ${T.border}`, borderRadius: 7,
+              border: `1px solid ${T.border}`, borderRadius: 12,
               fontSize: 13, resize: "vertical", maxHeight: 120,
               fontFamily: T.body, outline: "none",
             }}

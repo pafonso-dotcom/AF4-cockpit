@@ -339,7 +339,7 @@ export default function PreviewImportarFaturaModal({
         <div style={{
           background: "#FFF6E0",
           border: "1px solid #BA7517",
-          borderRadius: 8,
+          borderRadius: 14,
           padding: "12px 14px",
           marginBottom: 14,
           display: "flex",
@@ -364,7 +364,7 @@ export default function PreviewImportarFaturaModal({
       <div style={{
         padding: 14, marginBottom: 14,
         background: `linear-gradient(135deg, ${T.gold}11, transparent)`,
-        border: `1px solid ${T.gold}55`, borderRadius: 8,
+        border: `1px solid ${T.gold}55`, borderRadius: 14,
       }}>
         {cartoes.length > 0 && (
           <Field label="Cartão da fatura" required hint="Qual cartão gerou essa fatura">
@@ -431,7 +431,7 @@ export default function PreviewImportarFaturaModal({
               padding: "0 10px", marginBottom: 4, minHeight: 44, boxSizing: "border-box",
               background: T.card, border: `1px solid ${matchBanner ? (T.blue || "#60a5fa") + "66" : T.border}`,
               borderLeft: `3px solid ${cor}`,
-              borderRadius: 6, opacity: opacidade,
+              borderRadius: 11, opacity: opacidade,
             }}>
               <input type="checkbox" checked={item._incluir}
                      onChange={() => toggleItem(item._idx)}
@@ -508,7 +508,7 @@ export default function PreviewImportarFaturaModal({
       {/* Avisos */}
       <div style={{
         marginTop: 10, padding: 10, fontSize: 11.5, color: T.muted,
-        background: T.bgSoft, borderRadius: 6, lineHeight: 1.5,
+        background: T.bgSoft, borderRadius: 11, lineHeight: 1.5,
       }}>
         ℹ️ A importação lança só o que está na fatura — <strong>não cria despesas fixas/recorrentes</strong>. Assinaturas você cadastra manualmente em Despesas Fixas.
         <br />
@@ -522,7 +522,7 @@ export default function PreviewImportarFaturaModal({
         <button onClick={confirmar}
           style={{
             background: T.gold, color: T.bg, border: "none",
-            padding: "10px 16px", borderRadius: 7, fontSize: 12,
+            padding: "10px 16px", borderRadius: 12, fontSize: 12,
             letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 600,
             cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
           }}>

@@ -162,7 +162,7 @@ export default function AnaliseCarteira({ ativos = [], hidden, onAnalisar }) {
 
       {/* Filtros */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
         padding: 12, marginBottom: 14, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center",
       }}>
         <div style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
@@ -187,7 +187,7 @@ export default function AnaliseCarteira({ ativos = [], hidden, onAnalisar }) {
       </div>
 
       {/* Tabela */}
-      <div className="analise-tabela-wrap" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+      <div className="analise-tabela-wrap" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div className="analise-tabela-scroll" style={{ overflowX: "auto" }}>
           <div className="analise-tabela-inner" style={{ minWidth: 620 }}>
             <div style={{
@@ -243,7 +243,7 @@ function KpiCell({ label, valor, cor }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${cor}`, borderRadius: 8, padding: 12,
+      borderLeft: `3px solid ${cor}`, borderRadius: 14, padding: 12,
     }}>
       <div style={{ fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>{label}</div>
       <div className="num" style={{ fontFamily: T.serif, fontSize: 22, color: cor, fontWeight: 600, marginTop: 5, lineHeight: 1.1 }}>{valor}</div>

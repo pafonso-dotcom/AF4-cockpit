@@ -402,7 +402,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
             ].map(t => (
               <button key={t.v} onClick={() => { setMode(t.v); setError(""); }}
                 style={{
-                  padding: "9px 14px", borderRadius: 8,
+                  padding: "9px 14px", borderRadius: 14,
                   border: `1px solid ${mode === t.v ? T.gold : T.border}`,
                   background: mode === t.v ? `${T.gold}1f` : T.card,
                   color: mode === t.v ? T.gold : T.muted,
@@ -479,7 +479,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                           width: "100%", resize: "vertical", minHeight: 240,
                           fontFamily: T.mono, fontSize: 13, padding: 14,
                           background: T.bgSoft, border: `1px solid ${T.border}`,
-                          color: T.ink, borderRadius: 8, lineHeight: 1.6,
+                          color: T.ink, borderRadius: 14, lineHeight: 1.6,
                         }} />
               <div style={{ color: T.faint, fontSize: 11, marginTop: 8, fontStyle: "italic" }}>
                 💡 Dica: no PDF da fatura, Ctrl+A → Ctrl+C e cole aqui.
@@ -522,22 +522,22 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                         <td style={{ padding: "8px 6px" }}>
                           <input type="date" value={r.data}
                             onChange={e => updateManualRow(r.id, { data: e.target.value })}
-                            style={{ width: "100%", padding: "7px 9px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 6, color: T.ink, fontSize: 12 }} />
+                            style={{ width: "100%", padding: "7px 9px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 11, color: T.ink, fontSize: 12 }} />
                         </td>
                         <td style={{ padding: "8px 6px" }}>
                           <input value={r.descricao} placeholder="Ex: Pão de Açúcar"
                             onChange={e => updateManualRow(r.id, { descricao: e.target.value })}
-                            style={{ width: "100%", padding: "7px 9px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 6, color: T.ink, fontSize: 12 }} />
+                            style={{ width: "100%", padding: "7px 9px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 11, color: T.ink, fontSize: 12 }} />
                         </td>
                         <td style={{ padding: "8px 6px" }}>
                           <input type="number" step="0.01" value={r.valor} placeholder="0,00"
                             onChange={e => updateManualRow(r.id, { valor: e.target.value })}
-                            style={{ width: 110, padding: "7px 9px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 6, color: T.ink, fontSize: 12, textAlign: "right" }} />
+                            style={{ width: 110, padding: "7px 9px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 11, color: T.ink, fontSize: 12, textAlign: "right" }} />
                         </td>
                         <td style={{ padding: "8px 6px" }}>
                           <select value={r.categoria_sugerida}
                             onChange={e => updateManualRow(r.id, { categoria_sugerida: e.target.value })}
-                            style={{ width: "100%", padding: "7px 9px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 6, color: T.ink, fontSize: 12 }}>
+                            style={{ width: "100%", padding: "7px 9px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 11, color: T.ink, fontSize: 12 }}>
                             {categoriasDespesa.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
                         </td>

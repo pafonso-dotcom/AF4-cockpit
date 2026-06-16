@@ -315,7 +315,7 @@ export default function Veiculos({
       {/* Lista */}
       {listaFiltrada.length === 0 ? (
         <div style={{
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10,
+          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
           padding: 60, textAlign: "center", color: T.muted, fontStyle: "italic",
         }}>
           <Car size={28} style={{ color: T.muted, marginBottom: 10 }} />
@@ -428,7 +428,7 @@ export default function Veiculos({
             </Field>
           </div>
           <div style={{
-            background: `${T.muted}11`, padding: 10, borderRadius: 6, fontSize: 11.5,
+            background: `${T.muted}11`, padding: 10, borderRadius: 11, fontSize: 11.5,
             color: T.muted, fontStyle: "italic", marginTop: 4,
           }}>
             Esse custo soma no custo total do veículo (afeta o lucro da venda). Não cria
@@ -452,7 +452,7 @@ export default function Veiculos({
         return (
           <Modal title={`Vender ${v.modelo}${v.placa ? ` (${v.placa})` : ""}`}
                  onClose={() => setVendaForm(null)}>
-            <div style={{ padding: 10, background: T.bgSoft, borderRadius: 6, marginBottom: 14, fontSize: 12 }}>
+            <div style={{ padding: 10, background: T.bgSoft, borderRadius: 11, marginBottom: 14, fontSize: 12 }}>
               <Row label="Custo total acumulado" value={fmt(custoTotal)} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -476,7 +476,7 @@ export default function Veiculos({
               </select>
             </Field>
             <div style={{
-              padding: "10px 12px", marginBottom: 4, borderRadius: 6,
+              padding: "10px 12px", marginBottom: 4, borderRadius: 11,
               background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
               fontSize: 12, color: T.muted,
             }}>
@@ -493,7 +493,7 @@ export default function Veiculos({
             </Field>
             {valor > 0 && (
               <div style={{
-                padding: 12, marginTop: 4, borderRadius: 6,
+                padding: 12, marginTop: 4, borderRadius: 11,
                 background: lucro >= 0 ? `${T.green}11` : `${T.red}11`,
                 border: `1px solid ${lucro >= 0 ? T.green : T.red}33`,
               }}>
@@ -548,7 +548,7 @@ function VeiculoCard({
       background: T.card,
       border: `1px solid ${T.border}`,
       borderLeft: `3px solid ${v.vendido ? T.green : T.gold}`,
-      borderRadius: 8, padding: 14,
+      borderRadius: 14, padding: 14,
     }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <button onClick={onToggle} style={{
@@ -678,7 +678,7 @@ function VeiculoCard({
           )}
 
           {v.vendido && venda && (
-            <div style={{ marginTop: 14, padding: 10, background: `${T.green}11`, borderRadius: 6, border: `1px solid ${T.green}33` }}>
+            <div style={{ marginTop: 14, padding: 10, background: `${T.green}11`, borderRadius: 11, border: `1px solid ${T.green}33` }}>
               <div className="label-eyebrow" style={{ marginBottom: 6, color: T.green }}>Venda</div>
               <Row label="Data" value={venda.dataVenda.split("-").reverse().join("/")} />
               <Row label="Valor" value={hidden ? "•••" : fmt(venda.valorVenda)} />

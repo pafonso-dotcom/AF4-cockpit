@@ -274,7 +274,7 @@ export default function Despesas(props) {
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "8px 14px", marginBottom: 16,
             background: T.card, border: `1px solid ${T.border}`,
-            borderRadius: 7, fontSize: 11, fontWeight: 600,
+            borderRadius: 12, fontSize: 11, fontWeight: 600,
             color: T.muted, cursor: "pointer",
             letterSpacing: ".05em", textTransform: "uppercase",
           }}>
@@ -319,7 +319,7 @@ export default function Despesas(props) {
         {mes !== mesAtual() && (
           <button onClick={irHoje} style={{
             padding: "6px 12px", background: T.gold, color: T.bg, border: "none",
-            borderRadius: 6, fontSize: 10, fontWeight: 600, letterSpacing: ".05em",
+            borderRadius: 11, fontSize: 10, fontWeight: 600, letterSpacing: ".05em",
             textTransform: "uppercase", cursor: "pointer", marginLeft: 4,
           }}>Hoje</button>
         )}
@@ -334,7 +334,7 @@ export default function Despesas(props) {
           return (
             <button key={i} onClick={() => setMesIdx(i)}
               style={{
-                padding: "6px 10px", borderRadius: 6,
+                padding: "6px 10px", borderRadius: 11,
                 background: ativo ? T.gold : T.bgSoft,
                 color: ativo ? T.bg : T.muted,
                 border: `1px solid ${ativo ? T.gold : T.border}`,
@@ -378,7 +378,7 @@ export default function Despesas(props) {
       {/* Lista agrupada por categoria */}
       {grupos.length === 0 ? (
         <div style={{
-          background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
+          background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
           padding: "40px 20px", textAlign: "center", color: T.muted, fontStyle: "italic",
         }}>
           Sem despesas neste filtro para {MES_NOMES_LONGOS[mesIdx]}/{ano}.
@@ -410,7 +410,7 @@ function Kpi({ lbl, val, qtd, cor, hidden }) {
   return (
     <div style={{
       background: T.card, padding: "12px 14px",
-      borderRadius: 8, borderLeft: `3px solid ${cor}`,
+      borderRadius: 14, borderLeft: `3px solid ${cor}`,
       border: `1px solid ${T.border}`,
     }}>
       <div style={{
@@ -446,7 +446,7 @@ function FiltroChip({ label, qtd, ativo, cor, onClick }) {
       }}>
       {label}
       <span style={{
-        fontSize: 9.5, padding: "1px 6px", borderRadius: 10,
+        fontSize: 9.5, padding: "1px 6px", borderRadius: 16,
         background: ativo ? cor : T.border,
         color: ativo ? T.bg : T.muted, fontWeight: 700,
       }}>{qtd}</span>
@@ -463,7 +463,7 @@ function GrupoCategoria({ grupo, categorias, hidden, onPagar }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
-      borderRadius: 10, overflow: "hidden",
+      borderRadius: 16, overflow: "hidden",
     }}>
       {/* Header do grupo */}
       <div onClick={() => setAberto(!aberto)}
@@ -560,6 +560,6 @@ function GrupoCategoria({ grupo, categorias, hidden, onPagar }) {
 const navBtn = {
   width: 30, height: 30, padding: 0,
   background: T.bgSoft, border: `1px solid ${T.border}`,
-  color: T.muted, borderRadius: 6, cursor: "pointer",
+  color: T.muted, borderRadius: 11, cursor: "pointer",
   display: "inline-flex", alignItems: "center", justifyContent: "center",
 };

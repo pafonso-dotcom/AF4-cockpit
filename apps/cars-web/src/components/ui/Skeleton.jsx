@@ -41,7 +41,7 @@ export function SkeletonRow({ icon = true }) {
 
 export function SkeletonCard({ h = 100 }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, padding: 14, borderRadius: 8 }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, padding: 14, borderRadius: 14 }}>
       <Skeleton w={80} h={10} />
       <div style={{ height: 8 }} />
       <Skeleton w="60%" h={h * 0.25} />

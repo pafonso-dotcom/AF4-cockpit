@@ -185,7 +185,7 @@ function KpiHero({ valorBR, pctBR, valorUSA, pctUSA, hidden, fmtUSD }) {
   const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
   const temUSA = valorUSA > 0 || valorUSA < 0;
   return (
-    <div style={{ background: bg, color: "#fff", borderRadius: 12, padding: 14, minHeight: 110 }}>
+    <div style={{ background: bg, color: "#fff", borderRadius: 18, padding: 14, minHeight: 110 }}>
       <div style={{ fontSize: 11, color: "#86efac" }}>Patrimônio · Brasil</div>
       <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 4 }}>
         {hidden ? "•••••" : fmt(valorBR)}
@@ -295,7 +295,7 @@ function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
         ) : items.map(({ ativo, valor, rentab }) => (
           <button key={ativo.id} onClick={() => onAnalisar?.(ativo)}
             style={{ width: "100%", background: "transparent", border: "none", padding: "8px 0", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", textAlign: "left", borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: ASSET_CLASS_COLORS[ativo.tipo] || T.gold, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 10, flexShrink: 0 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 11, background: ASSET_CLASS_COLORS[ativo.tipo] || T.gold, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 10, flexShrink: 0 }}>
               {String(ativo.ticker || "?").slice(0, 2).toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -316,13 +316,13 @@ function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
 function SinaisCTA({ onClick }) {
   const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
   return (
-    <div style={{ background: bg, color: "#fff", borderRadius: 12, padding: 16, display: "flex", flexDirection: "column" }}>
+    <div style={{ background: bg, color: "#fff", borderRadius: 18, padding: 16, display: "flex", flexDirection: "column" }}>
       <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>🤖 Análise da Carteira</div>
       <div style={{ flex: 1, fontSize: 13, lineHeight: 1.5, marginBottom: 14, color: "rgba(255,255,255,0.85)" }}>
         Varredura técnica completa — RSI, MACD, tendência e score 0-100 para cada ativo da carteira. Sinais de compra, venda e neutro em uma única tela.
       </div>
       <button onClick={onClick}
-              style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", padding: "8px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", alignSelf: "flex-start" }}>
+              style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", padding: "8px 12px", borderRadius: 11, fontSize: 12, cursor: "pointer", alignSelf: "flex-start" }}>
         Abrir análise →
       </button>
     </div>
@@ -438,8 +438,8 @@ function GainersLosersCard({ topGain, topLoss, hidden, onAnalisar }) {
 function AtalhoCard({ label, sub, icon: Icon, cor, onClick }) {
   return (
     <button onClick={onClick}
-            style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
-      <div style={{ width: 40, height: 40, borderRadius: 8, background: `${cor}22`, display: "grid", placeItems: "center", flexShrink: 0 }}>
+            style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 14, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
+      <div style={{ width: 40, height: 40, borderRadius: 14, background: `${cor}22`, display: "grid", placeItems: "center", flexShrink: 0 }}>
         <Icon size={20} style={{ color: cor }} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>

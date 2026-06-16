@@ -33,7 +33,7 @@ export default function SecaoColapsavel({ idKey, titulo, count, defaultAberto = 
     <div style={{ marginBottom: 10 }}>
       <div style={{
         display: "flex", alignItems: "center", gap: 8,
-        padding: "8px 10px", borderRadius: 6,
+        padding: "8px 10px", borderRadius: 11,
         background: T.bgSoft, border: `1px solid ${T.border}`,
         cursor: "pointer",
       }} onClick={toggle}>

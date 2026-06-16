@@ -43,7 +43,7 @@ export default function AlertCenter({
       <div style={{
         position: "fixed", top: 62, right: 14, zIndex: 1001,
         width: "min(380px, calc(100vw - 28px))", maxHeight: "75vh",
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
         boxShadow: "0 12px 40px rgba(0,0,0,.35)", display: "flex", flexDirection: "column",
         overflow: "hidden",
       }}>

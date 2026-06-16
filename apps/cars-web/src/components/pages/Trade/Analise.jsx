@@ -250,12 +250,12 @@ Retorne EXATAMENTE este JSON (sem markdown):
 
       {/* Controles */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
         padding: 14, marginBottom: 16, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center",
       }}>
         <select value={selectedKey} onChange={e => setSelectedKey(e.target.value)}
                 style={{ flex: "0 0 260px", padding: "8px 11px", background: T.bgSoft,
-                         border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 6 }}>
+                         border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }}>
           {itens.length === 0 && <option value="">Nenhum ativo disponível</option>}
           {(() => {
             const cripto = itens.filter(it => it.fonte === "binance");
@@ -312,14 +312,14 @@ Retorne EXATAMENTE este JSON (sem markdown):
           </div>
 
           {/* Mini candle chart SVG */}
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 16, marginBottom: 16 }}>
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
             <div className="label-eyebrow" style={{ marginBottom: 10 }}>Últimos 100 períodos · {intervalo}</div>
             <CandleChartSVG candles={dados.candles} ema20={dados.ema20} ema50={dados.ema50} />
           </div>
 
           {/* Breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 14 }}>
+            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
               <div className="label-eyebrow" style={{ marginBottom: 10 }}>Indicadores</div>
               {[
                 ["RSI (14)", dados.rsi?.toFixed(2), dados.breakdown?.rsi],
@@ -344,7 +344,7 @@ Retorne EXATAMENTE este JSON (sem markdown):
 
             <div style={{
               background: `linear-gradient(135deg, ${T.gold}11, transparent)`,
-              border: `1px solid ${T.gold}55`, borderRadius: 10, padding: 14,
+              border: `1px solid ${T.gold}55`, borderRadius: 16, padding: 14,
               display: "flex", flexDirection: "column",
             }}>
               <div className="label-eyebrow" style={{ color: T.gold, marginBottom: 10 }}>✨ Análise IA</div>
@@ -416,7 +416,7 @@ function Kpi({ label, valor, sub, cor }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${cor}`, borderRadius: 8, padding: 12,
+      borderLeft: `3px solid ${cor}`, borderRadius: 14, padding: 12,
     }}>
       <div style={{ fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
                     color: T.muted, fontWeight: 600 }}>{label}</div>

@@ -49,7 +49,7 @@ export default function SettingsModal({ apiKeys, setApiKeys, onClose }) {
                   display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div style={{ background: T.card, border: `1px solid ${T.borderHi}`, maxWidth: 640, width: "100%",
                     maxHeight: "90vh", overflowY: "auto", padding: 32, position: "relative",
-                    borderRadius: 12, boxShadow: "0 24px 60px rgba(0,0,0,.6)" }}>
+                    borderRadius: 18, boxShadow: "0 24px 60px rgba(0,0,0,.6)" }}>
         <button onClick={onClose}
                 style={{ position: "absolute", top: 16, right: 16, color: T.muted,
                          background: "transparent", border: "none", cursor: "pointer", padding: 4 }}>
@@ -189,7 +189,7 @@ function AtualizarAppBlock() {
     <div style={{
       marginTop: 18, padding: 14,
       border: `1px dashed ${T.border}`, background: T.bgSoft,
-      borderRadius: 7,
+      borderRadius: 12,
     }}>
       <div className="label-eyebrow" style={{ color: T.muted, marginBottom: 6 }}>
         🔄 Atualizar app
@@ -213,7 +213,7 @@ function SyncBlock() {
       <div style={{
         marginTop: 18, padding: 14,
         border: `1px dashed ${T.border}`, background: T.bgSoft,
-        borderRadius: 7,
+        borderRadius: 12,
       }}>
         <div className="label-eyebrow" style={{ color: T.muted, marginBottom: 6 }}>
           📲 Sincronizar entre dispositivos
@@ -272,7 +272,7 @@ function NotificationsBlock() {
       marginTop: 18, padding: 14,
       border: `1px ${cfg.habilitada && perm === "granted" ? "solid" : "dashed"} ${cfg.habilitada && perm === "granted" ? T.gold : T.border}`,
       background: cfg.habilitada && perm === "granted" ? `${T.gold}11` : T.bgSoft,
-      borderRadius: 7,
+      borderRadius: 12,
     }}>
       <div className="label-eyebrow" style={{ color: cfg.habilitada && perm === "granted" ? T.gold : T.muted, marginBottom: 6 }}>
         🔔 Notificações de Vencimentos
@@ -364,7 +364,7 @@ function MarketPollingBlock() {
   };
 
   return (
-    <div style={{ marginTop: 18, padding: 14, border: `1px solid ${T.border}`, background: T.bgSoft, borderRadius: 7 }}>
+    <div style={{ marginTop: 18, padding: 14, border: `1px solid ${T.border}`, background: T.bgSoft, borderRadius: 12 }}>
       <div className="label-eyebrow" style={{ marginBottom: 6 }}>
         Atualização automática de cotações
       </div>
@@ -375,7 +375,7 @@ function MarketPollingBlock() {
               style={{
                 width: "100%", padding: "8px 10px",
                 background: T.card, color: T.ink,
-                border: `1px solid ${T.border}`, borderRadius: 6,
+                border: `1px solid ${T.border}`, borderRadius: 11,
                 fontSize: 13, fontFamily: "inherit", cursor: "pointer",
               }}>
         {POLLING_OPTIONS.map(o => (
@@ -558,7 +558,7 @@ function AutoBackupsList() {
   };
 
   return (
-    <div style={{ marginTop: 16, padding: 12, border: `1px solid ${T.border}`, borderRadius: 7 }}>
+    <div style={{ marginTop: 16, padding: 12, border: `1px solid ${T.border}`, borderRadius: 12 }}>
       <div className="label-eyebrow" style={{ marginBottom: 8 }}>Backups da sua conta · últimos 5</div>
       <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 10, fontStyle: "italic" }}>
         A cada 6h o cockpit envia um snapshot da sua conta pro servidor (isolado dos outros usuários via RLS). Pode restaurar qualquer um a qualquer momento, de qualquer dispositivo.
@@ -602,7 +602,7 @@ function AutoBackupsList() {
       )}
 
       <button onClick={criarAgora} disabled={busy}
-        style={{ marginTop: 10, background: "transparent", color: T.muted, border: `1px solid ${T.border}`, padding: "7px 12px", fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.5 : 1, borderRadius: 6 }}>
+        style={{ marginTop: 10, background: "transparent", color: T.muted, border: `1px solid ${T.border}`, padding: "7px 12px", fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.5 : 1, borderRadius: 11 }}>
         {busy ? "Trabalhando…" : "+ Criar backup agora"}
       </button>
 

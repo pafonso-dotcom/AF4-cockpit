@@ -48,7 +48,7 @@ export default function PrevisaoView(props) {
       </div>
 
       {/* Seletor de horizonte */}
-      <div style={{ display: "inline-flex", gap: 0, marginBottom: 16, background: T.bgSoft, padding: 3, borderRadius: 8, border: `1px solid ${T.border}` }}>
+      <div style={{ display: "inline-flex", gap: 0, marginBottom: 16, background: T.bgSoft, padding: 3, borderRadius: 14, border: `1px solid ${T.border}` }}>
         {[3, 6, 12].map(h => {
           const ativo = horizonte === h;
           return (
@@ -58,7 +58,7 @@ export default function PrevisaoView(props) {
                 background: ativo ? T.card : "transparent",
                 color: ativo ? T.gold : T.muted,
                 border: ativo ? `1px solid ${T.gold}55` : "1px solid transparent",
-                borderRadius: 6, cursor: "pointer",
+                borderRadius: 11, cursor: "pointer",
               }}>
               {h} meses
             </button>
@@ -81,7 +81,7 @@ export default function PrevisaoView(props) {
       {/* Aviso se ficar negativo */}
       {ficaNegativo && (
         <div style={{
-          padding: "10px 14px", marginBottom: 14, borderRadius: 8,
+          padding: "10px 14px", marginBottom: 14, borderRadius: 14,
           background: `${T.red}11`, border: `1px solid ${T.red}55`,
           fontSize: 12.5, color: T.ink,
         }}>
@@ -92,7 +92,7 @@ export default function PrevisaoView(props) {
       )}
 
       {/* Gráfico de linha */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 14, marginBottom: 14 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, marginBottom: 14 }}>
         <div className="label-eyebrow" style={{ marginBottom: 8 }}>Evolução do saldo</div>
         <div style={{ width: "100%", height: 220 }}>
           <ResponsiveContainer>
@@ -113,7 +113,7 @@ export default function PrevisaoView(props) {
       </div>
 
       {/* Tabela mês a mês */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto auto auto", gap: 8,
                       padding: "9px 14px", background: T.bgSoft, borderBottom: `1px solid ${T.border}`,
                       fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 700 }}>

@@ -104,7 +104,7 @@ export default function PomodoroFloat() {
         maxWidth: 320, marginLeft: "auto",
         background: T.card,
         border: `2px solid ${cor}`,
-        borderRadius: 12,
+        borderRadius: 18,
         padding: 16,
         boxShadow: "0 8px 24px rgba(0,0,0,.35)",
         zIndex: 55,

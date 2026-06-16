@@ -80,7 +80,7 @@ export default function AuditLog() {
           <button key={f.id} onClick={() => setFiltro(f.id)}
                   style={{
                     padding: "6px 11px", fontSize: 10.5, letterSpacing: ".1em",
-                    textTransform: "uppercase", fontWeight: 500, borderRadius: 6,
+                    textTransform: "uppercase", fontWeight: 500, borderRadius: 11,
                     background: filtro === f.id ? `${T.gold}22` : "transparent",
                     color: filtro === f.id ? T.gold : T.muted,
                     border: `1px solid ${filtro === f.id ? T.gold : T.border}`,
@@ -93,12 +93,12 @@ export default function AuditLog() {
           <Search size={12} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: T.muted }} />
           <input value={busca} onChange={e => setBusca(e.target.value)}
                  placeholder="Buscar…"
-                 style={{ width: "100%", padding: "6px 10px 6px 28px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 6 }} />
+                 style={{ width: "100%", padding: "6px 10px 6px 28px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }} />
         </div>
       </div>
 
       {entries.length === 0 ? (
-        <div style={{ padding: 60, textAlign: "center", color: T.muted, fontStyle: "italic", border: `1px dashed ${T.border}`, borderRadius: 10 }}>
+        <div style={{ padding: 60, textAlign: "center", color: T.muted, fontStyle: "italic", border: `1px dashed ${T.border}`, borderRadius: 16 }}>
           <History size={32} style={{ opacity: 0.4, margin: "0 auto 12px" }} /><br />
           Nenhuma alteração registrada ainda.<br />
           <span style={{ fontSize: 11 }}>Conforme você usa o cockpit, suas ações aparecerão aqui.</span>

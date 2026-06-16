@@ -174,11 +174,11 @@ export default function ReservaEmergenciaView({
 
       {/* ===== Input do custo mensal ===== */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
         padding: 16, marginBottom: 14,
       }}>
         {/* Toggle modo */}
-        <div style={{ display: "flex", gap: 4, marginBottom: 14, background: T.bgSoft, padding: 3, borderRadius: 8 }}>
+        <div style={{ display: "flex", gap: 4, marginBottom: 14, background: T.bgSoft, padding: 3, borderRadius: 14 }}>
           {[
             { id: "total",     label: "💰 Valor Total" },
             { id: "detalhado", label: "📋 Gastos Detalhados" },
@@ -192,7 +192,7 @@ export default function ReservaEmergenciaView({
                         border: ativo ? `1px solid ${T.border}` : "1px solid transparent",
                         color: ativo ? T.ink : T.muted,
                         fontSize: 12, fontWeight: ativo ? 700 : 500,
-                        borderRadius: 6, cursor: "pointer",
+                        borderRadius: 11, cursor: "pointer",
                       }}>
                 {t.label}
               </button>
@@ -233,7 +233,7 @@ export default function ReservaEmergenciaView({
             {custoMensal > 0 && (
               <div style={{
                 marginTop: 10, padding: 10, background: `${T.gold}11`,
-                border: `1px solid ${T.gold}44`, borderRadius: 7,
+                border: `1px solid ${T.gold}44`, borderRadius: 12,
                 display: "flex", justifyContent: "space-between", alignItems: "center",
                 fontSize: 13,
               }}>
@@ -249,7 +249,7 @@ export default function ReservaEmergenciaView({
 
       {/* ===== Multiplicador de meses ===== */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
         padding: 16, marginBottom: 14,
       }}>
         <div className="label-eyebrow" style={{ marginBottom: 10 }}>
@@ -267,7 +267,7 @@ export default function ReservaEmergenciaView({
                         background: ativo ? `${p.cor}22` : T.bgSoft,
                         border: `1px solid ${ativo ? p.cor : T.border}`,
                         color: ativo ? p.cor : T.muted,
-                        borderRadius: 8, cursor: "pointer",
+                        borderRadius: 14, cursor: "pointer",
                         display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
                       }}>
                 <span className="num" style={{ fontSize: 18, fontWeight: 700 }}>
@@ -299,7 +299,7 @@ export default function ReservaEmergenciaView({
         <div style={{
           background: `linear-gradient(135deg, ${T.gold}11, ${T.card})`,
           border: `1px solid ${T.gold}66`,
-          borderRadius: 12,
+          borderRadius: 18,
           padding: 18, marginBottom: 14,
         }}>
           <div style={{
@@ -352,7 +352,7 @@ export default function ReservaEmergenciaView({
       {/* ===== Plano de construção ===== */}
       {custoMensal > 0 && !reservaCompleta && (
         <div style={{
-          background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
+          background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
           padding: 16, marginBottom: 14,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -393,7 +393,7 @@ export default function ReservaEmergenciaView({
               padding: 12, background: `${T.green}11`,
               border: `1px solid ${T.green}44`,
               borderLeft: `3px solid ${T.green}`,
-              borderRadius: 8,
+              borderRadius: 14,
             }}>
               <div style={{ fontSize: 13, color: T.ink, marginBottom: 6 }}>
                 Em <strong className="num" style={{ color: T.green, fontSize: 17 }}>
@@ -419,7 +419,7 @@ export default function ReservaEmergenciaView({
           {planoConstrucao?.excede && (
             <div style={{
               padding: 12, background: `${T.red}11`,
-              border: `1px solid ${T.red}44`, borderRadius: 8,
+              border: `1px solid ${T.red}44`, borderRadius: 14,
               fontSize: 12.5, color: T.red,
             }}>
               <AlertCircle size={13} className="inline mr-1" />
@@ -440,7 +440,7 @@ export default function ReservaEmergenciaView({
       {custoMensal === 0 && (
         <div style={{
           textAlign: "center", padding: "40px 24px",
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 12,
+          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 18,
         }}>
           <Shield size={36} style={{ color: T.gold, marginBottom: 12 }} />
           <h3 style={{ fontFamily: T.serif, fontSize: 18, color: T.ink, margin: "0 0 8px", fontWeight: 600 }}>

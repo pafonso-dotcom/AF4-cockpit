@@ -829,7 +829,7 @@ export default function AReceberEDividas({
         return (
           <div style={{
             border: `1px solid ${T.gold}66`,
-            borderRadius: 10,
+            borderRadius: 16,
             padding: 10,
             marginBottom: 12,
             background: `linear-gradient(135deg, ${T.gold}08, transparent)`,
@@ -939,7 +939,7 @@ export default function AReceberEDividas({
                 padding: "5px 10px", fontSize: 10.5, letterSpacing: ".05em",
                 background: ativo ? T.gold : T.bgSoft, color: ativo ? T.bg : T.muted,
                 border: `1px solid ${ativo ? T.gold : T.border}`,
-                borderRadius: 6, cursor: "pointer", fontWeight: ativo ? 700 : 500,
+                borderRadius: 11, cursor: "pointer", fontWeight: ativo ? 700 : 500,
                 whiteSpace: "nowrap", textTransform: "uppercase",
                 display: "inline-flex", alignItems: "center", gap: 6,
               }}>
@@ -964,7 +964,7 @@ export default function AReceberEDividas({
                 padding: "5px 10px", fontSize: 10.5, letterSpacing: ".05em",
                 background: ativo ? T.gold : T.bgSoft, color: ativo ? T.bg : T.muted,
                 border: `1px solid ${ativo ? T.gold : T.border}`,
-                borderRadius: 6, cursor: "pointer", fontWeight: ativo ? 700 : 500,
+                borderRadius: 11, cursor: "pointer", fontWeight: ativo ? 700 : 500,
                 whiteSpace: "nowrap", textTransform: "uppercase",
                 display: "inline-flex", alignItems: "center", gap: 6,
               }}>
@@ -1010,7 +1010,7 @@ export default function AReceberEDividas({
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {/* === A RECEBER · cards === */}
         {vista === "receber" && (
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
           <div style={{
             padding: "16px 18px", borderBottom: `1px solid ${T.border}`,
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
@@ -1073,7 +1073,7 @@ export default function AReceberEDividas({
               { l: "Pagas",         v: resumoPagarMes.pagas, c: T.green },
               { l: "Falta pagar",   v: resumoPagarMes.falta, c: T.red },
             ].map(x => (
-              <div key={x.l} style={{ flex: 1, minWidth: 110, background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+              <div key={x.l} style={{ flex: 1, minWidth: 110, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "10px 12px" }}>
                 <div style={{ fontSize: 11, color: T.muted }}>{x.l}</div>
                 <div className="num" style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: x.c }}>
                   {hidden ? "•••" : fmt(x.v)}
@@ -1127,7 +1127,7 @@ export default function AReceberEDividas({
 
         {/* === PAGAS · o que já foi pago === */}
         {vista === "pagas" && (
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
           <div style={{
             padding: "16px 18px", borderBottom: `1px solid ${T.border}`,
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
@@ -1291,7 +1291,7 @@ export default function AReceberEDividas({
 
           {/* Parcelado: aplicar a mudança a várias parcelas de uma vez */}
           {form.id && form.grupoParcelamento && (
-            <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 8, padding: 12, marginTop: 4 }}>
+            <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12, marginTop: 4 }}>
               <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 13, color: T.ink }}>Aplicar mudança em:</div>
               {[
                 { v: "esta",    l: "Só esta parcela" },
@@ -1343,7 +1343,7 @@ export default function AReceberEDividas({
               : (isReceber ? `Receber de ${baixaForm.nome}` : `Pagar para ${baixaForm.nome}`)}
             onClose={() => setBaixaForm(null)}
           >
-            <div style={{ padding: 12, background: T.bgSoft, borderRadius: 7, fontSize: 12.5, marginBottom: ehParcial || (isReceber && jaRecebido > 0) ? 12 : 18 }}>
+            <div style={{ padding: 12, background: T.bgSoft, borderRadius: 12, fontSize: 12.5, marginBottom: ehParcial || (isReceber && jaRecebido > 0) ? 12 : 18 }}>
               <div style={{ display: "flex", justifyContent: "space-between", color: T.muted }}>
                 <span>{ehParcial ? "Valor desta baixa:" : "Valor:"}</span>
                 <span className="num" style={{ color: isReceber ? T.green : T.red, fontWeight: 600, fontSize: 16 }}>
@@ -1375,7 +1375,7 @@ export default function AReceberEDividas({
                 background: T.bgSoft,
                 border: `1px solid ${ehParcial ? T.green : T.border}`,
                 borderLeft: `3px solid ${ehParcial ? T.green : T.border}`,
-                borderRadius: 8, padding: 12, marginBottom: 14,
+                borderRadius: 14, padding: 12, marginBottom: 14,
               }}>
                 <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}>
                   <input type="checkbox" checked={!!baixaForm.parcial}
@@ -1407,7 +1407,7 @@ export default function AReceberEDividas({
                       </div>
                     ) : (
                       <div style={{
-                        padding: 8, marginTop: 8, borderRadius: 6, fontSize: 11.5,
+                        padding: 8, marginTop: 8, borderRadius: 11, fontSize: 11.5,
                         background: `${T.green}11`, border: `1px solid ${T.green}33`, color: T.muted,
                         display: "flex", justifyContent: "space-between",
                       }}>
@@ -1439,7 +1439,7 @@ export default function AReceberEDividas({
                 padding: 10, marginBottom: 12,
                 background: `${isReceber ? T.green : T.red}11`,
                 border: `1px solid ${isReceber ? T.green : T.red}33`,
-                borderRadius: 6, fontSize: 11.5, color: T.muted,
+                borderRadius: 11, fontSize: 11.5, color: T.muted,
               }}>
                 Saldo {hidden ? "•••" : fmt(saldoAtual)} → <strong style={{ color: isReceber ? T.green : T.red }}>{hidden ? "•••" : fmt(saldoFinal)}</strong>
               </div>
@@ -1464,7 +1464,7 @@ export default function AReceberEDividas({
             <div style={{
               padding: 10, marginTop: 12,
               background: `${T.green}11`, border: `1px solid ${T.green}33`,
-              borderRadius: 6, fontSize: 11, color: T.green, lineHeight: 1.6,
+              borderRadius: 11, fontSize: 11, color: T.green, lineHeight: 1.6,
             }}>
               {ehAporteMeta ? (
                 <>
@@ -1491,7 +1491,7 @@ export default function AReceberEDividas({
                   background: (ehAporteMeta || isReceber) ? T.green : T.red, color: (ehAporteMeta || isReceber) ? T.bg : "#fff",
                   border: "none", padding: "10px 18px",
                   fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase",
-                  fontWeight: 600, cursor: parcialInvalido ? "not-allowed" : "pointer", borderRadius: 7,
+                  fontWeight: 600, cursor: parcialInvalido ? "not-allowed" : "pointer", borderRadius: 12,
                   opacity: parcialInvalido ? 0.5 : 1,
                 }}
                 onClick={confirmarBaixa}
@@ -1558,7 +1558,7 @@ function ParcelarBlock({ form, setForm }) {
       background: T.bgSoft,
       border: `1px solid ${ativo ? T.gold : T.border}`,
       borderLeft: `3px solid ${ativo ? T.gold : T.border}`,
-      borderRadius: 8,
+      borderRadius: 14,
       padding: 12,
       marginBottom: 14,
     }}>
@@ -1604,7 +1604,7 @@ function ParcelarBlock({ form, setForm }) {
               padding: 10, marginBottom: 10,
               background: `${T.gold}11`,
               border: `1px solid ${T.gold}44`,
-              borderRadius: 6, fontSize: 12, color: T.ink,
+              borderRadius: 11, fontSize: 12, color: T.ink,
               display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6,
             }}>
               <span>
@@ -1628,7 +1628,7 @@ function ParcelarBlock({ form, setForm }) {
               </div>
               <div style={{
                 maxHeight: 180, overflowY: "auto",
-                background: T.card, border: `1px solid ${T.border}`, borderRadius: 6,
+                background: T.card, border: `1px solid ${T.border}`, borderRadius: 11,
               }}>
                 {preview.map((p, i) => (
                   <div key={p.parcela} style={{
@@ -1665,7 +1665,7 @@ function VisaoCard({ label, valor, sub, cor, small }) {
   return (
     <div style={{
       padding: "9px 11px", background: T.card,
-      border: `1px solid ${T.border}`, borderRadius: 7,
+      border: `1px solid ${T.border}`, borderRadius: 12,
       borderLeft: `3px solid ${cor || T.border}`,
     }}>
       <div style={{
@@ -1691,7 +1691,7 @@ function AlertCard({ cor, titulo, count, valor, sub, icone, actions }) {
       background: T.card,
       border: `1px solid ${cor}55`,
       borderLeft: `3px solid ${cor}`,
-      borderRadius: 8,
+      borderRadius: 14,
       padding: "6px 8px",
       display: "flex", alignItems: "center", gap: 7, minWidth: 0,
     }}>
@@ -1708,7 +1708,7 @@ function AlertCard({ cor, titulo, count, valor, sub, icone, actions }) {
             <button key={a.label} onClick={a.onClick} title={a.title}
               style={{
                 background: `${cor}22`, color: cor,
-                border: `1px solid ${cor}55`, borderRadius: 6,
+                border: `1px solid ${cor}55`, borderRadius: 11,
                 padding: "4px 6px", fontSize: 12, cursor: "pointer", lineHeight: 1,
               }}>
               {a.icon || a.label}
@@ -1730,7 +1730,7 @@ function CompromissoTabela({
   const labelAcao = isReceber ? "Receber" : "Pagar";
 
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
       <div style={{
         padding: "10px 14px", borderBottom: `1px solid ${T.border}`,
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap",
@@ -1970,14 +1970,14 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
       </div>
 
       <button onClick={() => onBaixa(d)} title="Receber"
-        style={{ background: T.green, color: "#fff", border: "none", borderRadius: 7, padding: "7px 11px",
+        style={{ background: T.green, color: "#fff", border: "none", borderRadius: 12, padding: "7px 11px",
                  cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
         <Check size={13} /> Receber
       </button>
 
       <div style={{ flexShrink: 0 }}>
         <button ref={btnRef} onClick={abrirMenu} title="Mais ações"
-          style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 7, padding: "6px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+          style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "6px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
           <MoreHorizontal size={14} />
         </button>
         {menu && menuPos && (

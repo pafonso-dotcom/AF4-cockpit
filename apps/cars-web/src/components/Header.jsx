@@ -73,7 +73,7 @@ function EscopoToggle({ escopoAtivo = "tudo", onEscopoChange, compact }) {
   return (
     <div style={{
       display: "inline-flex", gap: 2, padding: 2,
-      background: "rgba(255,255,255,.06)", borderRadius: 6,
+      background: "rgba(255,255,255,.06)", borderRadius: 11,
       marginRight: compact ? 6 : 10,
     }}>
       {opcoes.map(esc => {
@@ -246,7 +246,7 @@ function HeaderHorizontal({
   const utilBtn = {
     width: 40, height: 40, padding: 0,
     background: NAV_SOFT, border: `1px solid ${NAV_BORDER}`,
-    color: NAV_MUTED, borderRadius: 10, cursor: "pointer",
+    color: NAV_MUTED, borderRadius: 16, cursor: "pointer",
     display: "inline-flex", alignItems: "center", justifyContent: "center",
     transition: "background .15s, color .15s, border-color .15s",
   };
@@ -299,7 +299,7 @@ function HeaderHorizontal({
               <div onClick={() => setMenuUtilAberto(false)} style={{ position: "fixed", inset: 0, zIndex: 90 }} />
               <div style={{
                 position: "absolute", right: 0, top: "calc(100% + 8px)", zIndex: 91,
-                background: "#2d323b", border: `1px solid ${NAV_BORDER}`, borderRadius: 10,
+                background: "#2d323b", border: `1px solid ${NAV_BORDER}`, borderRadius: 16,
                 padding: 6, minWidth: 190, boxShadow: "0 12px 28px rgba(0,0,0,.4)",
                 display: "flex", flexDirection: "column", gap: 2,
               }}>
@@ -316,7 +316,7 @@ function HeaderHorizontal({
                     <button key={it.lbl} onClick={it.on}
                       style={{
                         display: "flex", alignItems: "center", gap: 10, padding: "9px 11px",
-                        background: "transparent", border: "none", borderRadius: 7, cursor: "pointer",
+                        background: "transparent", border: "none", borderRadius: 12, cursor: "pointer",
                         color: it.danger ? "#f87171" : NAV_INK, fontSize: 13, textAlign: "left", fontFamily: T.sans, width: "100%",
                         borderTop: it.danger ? `1px solid ${NAV_BORDER}` : "none", marginTop: it.danger ? 2 : 0,
                       }}
@@ -382,7 +382,7 @@ function HeaderHorizontal({
                 if (firstTab) setTab(firstTab);
               }}
                 style={{
-                  padding: "9px 16px", borderRadius: 8,
+                  padding: "9px 16px", borderRadius: 14,
                   background: active ? "rgba(255,255,255,0.10)" : "transparent",
                   color: active ? NAV_INK : NAV_MUTED,
                   border: `1px solid ${active ? NAV_BORDER : "transparent"}`,
@@ -574,7 +574,7 @@ function QuickBtn({ children, onClick, title, bg, fg, labelHide }) {
       style={{
         padding: "9px 14px",
         background: bg,
-        color: fg, border: "none", borderRadius: 10,
+        color: fg, border: "none", borderRadius: 16,
         fontSize: 11.5, letterSpacing: ".08em", textTransform: "uppercase",
         fontWeight: 600, cursor: "pointer",
         display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
@@ -711,7 +711,7 @@ function HeaderVertical({
                 <React.Fragment key={m.id}>
                   <button onClick={() => abrirModulo(m)}
                     style={{
-                      padding: "8px 10px", borderRadius: 7,
+                      padding: "8px 10px", borderRadius: 12,
                       background: ativo ? "rgba(255,255,255,0.08)" : "transparent",
                       color: ativo ? T.gold : NAV_INK,
                       fontWeight: ativo ? 600 : 400, fontSize: 13,
@@ -815,7 +815,7 @@ function HeaderVertical({
         <button
           onClick={() => { setModulo("config"); setTab("cfg-aparencia"); }}
           style={{
-            padding: "8px 10px", borderRadius: 7,
+            padding: "8px 10px", borderRadius: 12,
             background: modulo === "config" ? `${T.gold}22` : "rgba(255,255,255,0.05)",
             color: modulo === "config" ? T.gold : NAV_MUTED,
             border: "none", cursor: "pointer", textAlign: "left",
@@ -893,6 +893,6 @@ const vertUtilBtn = {
   width: 32, height: 32, padding: 0,
   background: "rgba(255,255,255,0.05)",
   border: `1px solid rgba(255,255,255,0.08)`,
-  color: "#a8a8b0", borderRadius: 7, cursor: "pointer",
+  color: "#a8a8b0", borderRadius: 12, cursor: "pointer",
   display: "inline-flex", alignItems: "center", justifyContent: "center",
 };

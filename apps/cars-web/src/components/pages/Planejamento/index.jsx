@@ -52,7 +52,7 @@ export default function Planejamento(props) {
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "8px 14px", marginBottom: 16,
             background: T.card, border: `1px solid ${T.border}`,
-            borderRadius: 7, fontSize: 11, fontWeight: 600,
+            borderRadius: 12, fontSize: 11, fontWeight: 600,
             color: T.muted, cursor: "pointer",
             letterSpacing: ".05em", textTransform: "uppercase",
           }}

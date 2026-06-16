@@ -529,7 +529,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         <button onClick={() => setAnaliseAberta(false)}
           style={{
             display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", marginBottom: 12,
-            background: T.card, border: `1px solid ${T.border}`, borderRadius: 7, fontSize: 11, fontWeight: 600,
+            background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, fontSize: 11, fontWeight: 600,
             color: T.muted, cursor: "pointer", letterSpacing: ".05em", textTransform: "uppercase",
           }}>
           ← Voltar aos Cartões
@@ -617,7 +617,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                    background: ativaCard ? `${T.gold}10` : T.card,
                    border: `1px solid ${ativaCard ? T.gold : T.border}`,
                    borderLeft: `4px solid ${brand.bg}`,
-                   borderRadius: 6, overflow: "hidden",
+                   borderRadius: 11, overflow: "hidden",
                    transition: "all .15s",
                  }}>
               {/* Linha principal — pai */}
@@ -886,7 +886,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                             minWidth: 54, minHeight: 48, padding: "9px 6px",
                             background: bg, color: fg,
                             border: `1px solid ${cor}`,
-                            borderRadius: 8,
+                            borderRadius: 14,
                             cursor: "pointer",
                             display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                             fontFamily: T.mono, fontWeight: 600,
@@ -991,7 +991,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
               </div>
               {/* Live preview */}
               <div style={{
-                marginTop: 12, padding: 14, height: 90, borderRadius: 8,
+                marginTop: 12, padding: 14, height: 90, borderRadius: 14,
                 background: form.bandeiraCustom?.bg || "transparent",
                 color: form.bandeiraCustom?.fgColor || "#fff",
                 display: "flex", flexDirection: "column", justifyContent: "space-between",

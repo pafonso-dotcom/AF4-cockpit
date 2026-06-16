@@ -74,7 +74,7 @@ export default function Watchlist({ tradeWatchlist, setTradeWatchlist }) {
         <div style={{
           padding: "10px 14px", marginBottom: 14,
           background: `${T.gold}11`, border: `1px dashed ${T.gold}55`,
-          borderRadius: 7, fontSize: 12, color: T.muted,
+          borderRadius: 12, fontSize: 12, color: T.muted,
         }}>
           ⓘ Usando watchlist padrão (15 criptos). Qualquer adição/remoção materializa a lista personalizada.
         </div>
@@ -84,11 +84,11 @@ export default function Watchlist({ tradeWatchlist, setTradeWatchlist }) {
         {lista.map(w => (
           <div key={w.symbol} style={{
             background: T.card, border: `1px solid ${T.border}`,
-            borderRadius: 8, padding: "10px 14px",
+            borderRadius: 14, padding: "10px 14px",
             display: "flex", alignItems: "center", gap: 12,
           }}>
             <div style={{
-              width: 32, height: 32, borderRadius: 7, background: T.bgSoft,
+              width: 32, height: 32, borderRadius: 12, background: T.bgSoft,
               display: "grid", placeItems: "center",
               color: T.gold, fontWeight: 700, fontSize: 14,
               flexShrink: 0,
@@ -104,7 +104,7 @@ export default function Watchlist({ tradeWatchlist, setTradeWatchlist }) {
               style={{
                 background: "transparent", color: T.red,
                 border: `1px solid ${T.red}55`, padding: "6px 10px",
-                borderRadius: 6, cursor: "pointer",
+                borderRadius: 11, cursor: "pointer",
               }}>
               <Trash2 size={12} />
             </button>
@@ -129,7 +129,7 @@ export default function Watchlist({ tradeWatchlist, setTradeWatchlist }) {
                    onChange={e => setNovo({ ...novo, display: e.target.value })}
                    placeholder="BTC/USDT" />
           </Field>
-          <div style={{ padding: 10, marginTop: 8, fontSize: 11, color: T.muted, background: T.bgSoft, borderRadius: 6 }}>
+          <div style={{ padding: 10, marginTop: 8, fontSize: 11, color: T.muted, background: T.bgSoft, borderRadius: 11 }}>
             ℹ️ Use apenas symbols válidos da Binance (terminando em USDT é mais seguro). Liste em
             <a href="https://binance.com" target="_blank" rel="noopener noreferrer" style={{ color: T.gold, marginLeft: 4 }}>binance.com</a>.
           </div>

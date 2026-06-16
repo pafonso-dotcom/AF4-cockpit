@@ -16,7 +16,7 @@ export default function PlaceholderNegocio({ eyebrow, titulo, sub, roadmap = [] 
       <PageHeader eyebrow={eyebrow} title={titulo} sub={sub} />
 
       <div style={{
-        background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10,
+        background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
         padding: 32, textAlign: "center", marginBottom: 16,
       }}>
         <div style={{
@@ -32,7 +32,7 @@ export default function PlaceholderNegocio({ eyebrow, titulo, sub, roadmap = [] 
       </div>
 
       {roadmap.length > 0 && (
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 20 }}>
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20 }}>
           <div className="label-eyebrow" style={{ marginBottom: 12 }}>Próximos passos</div>
           <ul style={{ display: "grid", gap: 10, paddingLeft: 0, listStyle: "none" }}>
             {roadmap.map((item, i) => (

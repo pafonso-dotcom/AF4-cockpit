@@ -100,7 +100,7 @@ export default function Compras({ compras = [], setCompras }) {
 
       {/* Quick add */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
         padding: 12, marginBottom: 14,
       }}>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -152,7 +152,7 @@ export default function Compras({ compras = [], setCompras }) {
         <div style={{
           display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14,
         }}>
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 12px" }}>
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 12px" }}>
             <div style={{ fontSize: 10, color: T.muted, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 600 }}>
               A comprar
             </div>
@@ -161,7 +161,7 @@ export default function Compras({ compras = [], setCompras }) {
             </div>
             <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>{pendentes.length} {pendentes.length === 1 ? "item" : "itens"}</div>
           </div>
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 12px" }}>
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 12px" }}>
             <div style={{ fontSize: 10, color: T.muted, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 600 }}>
               Já comprado
             </div>
@@ -177,7 +177,7 @@ export default function Compras({ compras = [], setCompras }) {
       {pendentes.length === 0 && comprados.length === 0 ? (
         <div style={{
           textAlign: "center", padding: "60px 24px",
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 12,
+          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 18,
         }}>
           <ShoppingCart size={36} style={{ color: T.gold, marginBottom: 12 }} />
           <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, margin: "0 0 8px", fontWeight: 600 }}>
@@ -226,7 +226,7 @@ function CompraRow({ item, onToggle, onExcluir, setPreco, setQtd }) {
       background: item.checked ? T.bgSoft : T.card,
       border: `1px solid ${T.border}`,
       borderLeft: `4px solid ${cat.cor}`,
-      borderRadius: 8,
+      borderRadius: 14,
       padding: "10px 12px",
       display: "flex", alignItems: "center", gap: 10,
       opacity: item.checked ? 0.55 : 1,

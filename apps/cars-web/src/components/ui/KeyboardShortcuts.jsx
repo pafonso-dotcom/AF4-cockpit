@@ -113,7 +113,7 @@ function HelpModal({ onClose }) {
     <div onClick={onClose}
          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 1050, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div onClick={e => e.stopPropagation()}
-           style={{ background: T.card, border: `1px solid ${T.borderHi}`, maxWidth: 520, width: "100%", padding: 32, position: "relative", borderRadius: 12, boxShadow: "0 24px 60px rgba(0,0,0,.6)" }}>
+           style={{ background: T.card, border: `1px solid ${T.borderHi}`, maxWidth: 520, width: "100%", padding: 32, position: "relative", borderRadius: 18, boxShadow: "0 24px 60px rgba(0,0,0,.6)" }}>
         <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, color: T.muted, background: "transparent", border: "none", cursor: "pointer", padding: 4 }}>
           <X size={20} />
         </button>
@@ -234,7 +234,7 @@ function CommandPalette({ onClose, setTab, transacoes, contas, ativos, cartoes }
     <div onClick={onClose}
          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 1050, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "10vh 16px 16px" }}>
       <div onClick={e => e.stopPropagation()}
-           style={{ background: T.card, border: `1px solid ${T.borderHi}`, maxWidth: 600, width: "100%", borderRadius: 12, boxShadow: "0 24px 60px rgba(0,0,0,.6)" }}>
+           style={{ background: T.card, border: `1px solid ${T.borderHi}`, maxWidth: 600, width: "100%", borderRadius: 18, boxShadow: "0 24px 60px rgba(0,0,0,.6)" }}>
         <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: `1px solid ${T.border}` }}>
           <Search size={18} style={{ color: T.muted }} />
           <input

@@ -82,7 +82,7 @@ export default function EvolucaoPatrimonio({ historico = [], hidden }) {
 
   return (
     <div className="no-print" style={{
-      background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+      background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
       padding: 14, marginBottom: 18,
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>

@@ -238,7 +238,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         <button onClick={onVoltar}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "6px 12px", borderRadius: 7,
+                  padding: "6px 12px", borderRadius: 12,
                   background: "transparent", border: `1px solid ${T.border}`,
                   color: T.muted, fontSize: 11, cursor: "pointer", marginBottom: 14,
                   letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500,
@@ -255,7 +255,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         boxShadow: `0 6px 20px ${T.bg}66`,
       }}>
         <div className="conta-hero-icon" style={{
-          width: 56, height: 56, borderRadius: 12,
+          width: 56, height: 56, borderRadius: 18,
           display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0,
           background: "rgba(0,0,0,.2)",
         }}>🏦</div>
@@ -306,7 +306,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                     background: `${conta.cor || T.gold}22`, color: conta.cor || T.gold,
                     border: `1px solid ${conta.cor || T.gold}`, padding: "8px 12px",
                     fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                    fontWeight: 600, cursor: "pointer", borderRadius: 7,
+                    fontWeight: 600, cursor: "pointer", borderRadius: 12,
                     display: "inline-flex", alignItems: "center", gap: 6,
                   }}>
             <Plus size={11} /> Nova transação
@@ -317,7 +317,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                       background: "transparent", color: T.gold,
                       border: `1px solid ${T.gold}`, padding: "8px 12px",
                       fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                      fontWeight: 600, cursor: "pointer", borderRadius: 7,
+                      fontWeight: 600, cursor: "pointer", borderRadius: 12,
                       display: "inline-flex", alignItems: "center", gap: 6,
                     }}>
               <ArrowRightLeft size={11} /> Transferir
@@ -329,7 +329,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                     background: "transparent", color: T.muted,
                     border: `1px solid ${T.border}`, padding: "8px 12px",
                     fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                    fontWeight: 600, cursor: "pointer", borderRadius: 7,
+                    fontWeight: 600, cursor: "pointer", borderRadius: 12,
                     display: "inline-flex", alignItems: "center", gap: 6,
                   }}>
             <Printer size={11} /> PDF
@@ -340,7 +340,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                     background: `${T.green}18`, color: T.green,
                     border: `1px solid ${T.green}`, padding: "8px 12px",
                     fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                    fontWeight: 600, cursor: "pointer", borderRadius: 7,
+                    fontWeight: 600, cursor: "pointer", borderRadius: 12,
                     display: "inline-flex", alignItems: "center", gap: 6,
                   }}>
             <Scale size={11} /> Conferir com o banco
@@ -370,13 +370,13 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         gap: 8, marginBottom: 8, alignItems: "center",
       }}>
         <select value={periodo} onChange={e => setPeriodo(e.target.value)}
-                style={{ padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 6 }}>
+                style={{ padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }}>
           <option value="mes">Período · este mês</option>
           <option value="3meses">Período · últimos 3 meses</option>
           <option value="tudo">Período · tudo</option>
         </select>
         <select value={tipo} onChange={e => setTipo(e.target.value)}
-                style={{ padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 6 }}>
+                style={{ padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }}>
           <option value="todos">Tipo · todos</option>
           <option value="receita">Tipo · receitas</option>
           <option value="despesa">Tipo · despesas</option>
@@ -386,7 +386,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           <input
             value={busca} onChange={e => setBusca(e.target.value)}
             placeholder="Buscar descrição, observação, categoria…"
-            style={{ width: "100%", padding: "8px 11px 8px 32px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 6 }}
+            style={{ width: "100%", padding: "8px 11px 8px 32px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }}
           />
         </div>
         <div style={{ fontSize: 11, color: T.muted, letterSpacing: ".05em", whiteSpace: "nowrap" }}>
@@ -455,12 +455,12 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
       {filtradas.length === 0 ? (
         <div style={{
           padding: 60, textAlign: "center", color: T.muted, fontStyle: "italic",
-          border: `1px dashed ${T.border}`, borderRadius: 10, background: T.card,
+          border: `1px dashed ${T.border}`, borderRadius: 16, background: T.card,
         }}>
           Nenhum lançamento {busca ? `para "${busca}"` : "no período selecionado"}.
         </div>
       ) : (
-        <div className="extrato-lista" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden", boxShadow: `0 1px 3px ${T.bg}55` }}>
+        <div className="extrato-lista" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, overflow: "hidden", boxShadow: `0 1px 3px ${T.bg}55` }}>
           <style>{`
             .extrato-row { transition: background .12s ease; }
             .extrato-row:hover { background: ${T.gold}10; }
@@ -656,11 +656,11 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
 
             <label style={{ fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted }}>Saldo no banco (R$)</label>
             <input autoFocus value={conferir.valor} onChange={e => setConferir({ ...conferir, valor: e.target.value })} placeholder="50.405,57"
-                   style={{ width: "100%", padding: "10px 12px", marginTop: 5, marginBottom: 14, background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 15, borderRadius: 8 }} />
+                   style={{ width: "100%", padding: "10px 12px", marginTop: 5, marginBottom: 14, background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 15, borderRadius: 14 }} />
 
             <label style={{ fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted }}>Data de referência</label>
             <input type="date" value={conferir.data} onChange={e => setConferir({ ...conferir, data: e.target.value })}
-                   style={{ width: "100%", padding: "10px 12px", marginTop: 5, marginBottom: 4, background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 14, borderRadius: 8 }} />
+                   style={{ width: "100%", padding: "10px 12px", marginTop: 5, marginBottom: 4, background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 14, borderRadius: 14 }} />
 
             {(() => {
               const alvo = parseBR(conferir.valor);
@@ -681,11 +681,11 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
 
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
               <button onClick={() => setConferir(null)}
-                      style={{ padding: "9px 14px", background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 8, cursor: "pointer", fontSize: 12.5 }}>
+                      style={{ padding: "9px 14px", background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 14, cursor: "pointer", fontSize: 12.5 }}>
                 Cancelar
               </button>
               <button onClick={aplicarConferencia}
-                      style={{ padding: "9px 16px", background: T.gold, border: "none", color: T.bg, borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 12.5 }}>
+                      style={{ padding: "9px 16px", background: T.gold, border: "none", color: T.bg, borderRadius: 14, cursor: "pointer", fontWeight: 600, fontSize: 12.5 }}>
                 Ajustar e bater
               </button>
             </div>
@@ -759,6 +759,6 @@ const iconBtn = {
   color: "inherit",
   cursor: "pointer",
   padding: 6,
-  borderRadius: 6,
+  borderRadius: 11,
   marginLeft: 4,
 };

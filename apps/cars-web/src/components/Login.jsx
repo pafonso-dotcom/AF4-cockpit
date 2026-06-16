@@ -175,7 +175,7 @@ const labelStyle = {
 const inputStyle = {
   width: "100%", padding: "11px 12px",
   background: "var(--be)", color: "var(--tx)",
-  border: "1px solid var(--bd)", borderRadius: 8,
+  border: "1px solid var(--bd)", borderRadius: 14,
   fontSize: 14, fontFamily: "inherit", outline: "none",
 };
 
@@ -184,7 +184,7 @@ const alertErr = {
   background: "color-mix(in srgb, var(--dn) 12%, transparent)",
   color: "var(--dn)",
   border: "1px solid color-mix(in srgb, var(--dn) 30%, transparent)",
-  borderRadius: 8,
+  borderRadius: 14,
 };
 
 const alertOk = {
@@ -192,7 +192,7 @@ const alertOk = {
   background: "color-mix(in srgb, var(--sc) 12%, transparent)",
   color: "var(--sc)",
   border: "1px solid color-mix(in srgb, var(--sc) 30%, transparent)",
-  borderRadius: 8,
+  borderRadius: 14,
 };
 
 function traduzir(msg) {

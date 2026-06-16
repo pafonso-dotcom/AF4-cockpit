@@ -61,7 +61,7 @@ export default function StatCard({ label, value, accent, icon: Icon, sub, toolti
       {tooltip && showTip && (
         <div style={{
           position: "absolute", top: "100%", left: 12, right: 12, marginTop: 4,
-          background: T.ink, color: T.bg, padding: "8px 11px", borderRadius: 6,
+          background: T.ink, color: T.bg, padding: "8px 11px", borderRadius: 11,
           fontSize: 11, lineHeight: 1.5, zIndex: 10,
           boxShadow: "0 8px 24px rgba(0,0,0,.5)",
           maxWidth: 280,

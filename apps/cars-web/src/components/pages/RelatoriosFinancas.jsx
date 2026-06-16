@@ -569,7 +569,7 @@ td.neg { color:#b3261e; }
           }}>
             {projecaoReal.map(m => (
               <div key={m.label} style={{
-                background: T.bgSoft, padding: 9, borderRadius: 6,
+                background: T.bgSoft, padding: 9, borderRadius: 11,
                 borderTop: `3px solid ${m.saldo >= 0 ? T.green : T.red}`,
               }}>
                 <div style={{
@@ -617,7 +617,7 @@ td.neg { color:#b3261e; }
                 const cor = sobe ? T.red : cai ? T.green : T.muted;
                 const max = Math.max(...l.serie, 1);
                 return (
-                  <div key={l.cat} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "center", padding: "6px 8px", background: T.bgSoft, borderRadius: 6 }}>
+                  <div key={l.cat} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "center", padding: "6px 8px", background: T.bgSoft, borderRadius: 11 }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 12, color: T.ink, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.cat}</div>
                       {/* Sparkline simples (6 barrinhas) */}
@@ -659,7 +659,7 @@ td.neg { color:#b3261e; }
           ) : (
             <div style={{ display: "grid", gap: 4 }}>
               {maioresGastos.map((g, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 8, alignItems: "center", padding: "6px 8px", background: T.bgSoft, borderRadius: 6 }}>
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 8, alignItems: "center", padding: "6px 8px", background: T.bgSoft, borderRadius: 11 }}>
                   <span style={{ fontSize: 10, color: T.faint, fontFamily: T.mono, width: 16, textAlign: "center" }}>{i + 1}</span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 12, color: T.ink, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.descricao}</div>

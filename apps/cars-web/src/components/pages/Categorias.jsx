@@ -128,7 +128,7 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
             const pctTotal = totalLimite > 0 ? Math.min(100, (totalGasto / totalLimite) * 100) : 0;
             const corTot = pctTotal >= 100 ? T.red : pctTotal >= 80 ? T.gold : T.green;
             return (
-              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 7, padding: "10px 12px", marginBottom: 8 }}>
+              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 12px", marginBottom: 8 }}>
                 <div className="flex justify-between text-xs mb-1" style={{ color: T.muted }}>
                   <span>Total orçado · {mesOrcLabel}</span>
                   <span className="num">{hidden ? "•••" : `${fmt(totalGasto)} de ${fmt(totalLimite)}`}</span>
@@ -147,7 +147,7 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
               const estado = pct >= 100 ? "estourado" : pct >= 80 ? "alerta" : "ok";
               const corEstado = estado === "estourado" ? T.red : estado === "alerta" ? T.gold : T.green;
               return (
-                <div key={c.id} style={{ background: T.card, border: `1px solid ${T.border}`, padding: 11, position: "relative", overflow: "hidden", borderRadius: 7 }}>
+                <div key={c.id} style={{ background: T.card, border: `1px solid ${T.border}`, padding: 11, position: "relative", overflow: "hidden", borderRadius: 12 }}>
                   <div style={{ position: "absolute", top: 0, left: 0, height: 3, width: `${pct}%`, background: c.cor, transition: "width 0.6s" }} />
                   <div className="flex items-start justify-between mb-1.5 mt-0.5">
                     <div className="flex items-center gap-2 min-w-0">
@@ -195,7 +195,7 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
       {/* Toggle Receitas | Despesas */}
       <div style={{
         display: "inline-flex", gap: 0, marginBottom: 12,
-        background: T.bgSoft, padding: 3, borderRadius: 8, border: `1px solid ${T.border}`,
+        background: T.bgSoft, padding: 3, borderRadius: 14, border: `1px solid ${T.border}`,
       }}>
         {[
           { id: "receita", label: `Receitas (${receitas.length})`, cor: T.green },
@@ -209,7 +209,7 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
                 background: ativo ? T.card : "transparent",
                 color: ativo ? t.cor : T.muted,
                 border: ativo ? `1px solid ${t.cor}55` : `1px solid transparent`,
-                borderRadius: 6, cursor: "pointer",
+                borderRadius: 11, cursor: "pointer",
               }}>
               {t.label}
             </button>
@@ -295,7 +295,7 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
                   textAlign: "left",
                   background: T.bgSoft,
                   border: `1px solid ${T.border}`,
-                  borderRadius: 10,
+                  borderRadius: 16,
                   padding: 14,
                   cursor: "pointer",
                   transition: "all 0.15s",
@@ -443,7 +443,7 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
   const total = raizes.reduce((s, c) => s + valorComFilhas(c), 0);
 
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, padding: 14, borderRadius: 8 }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, padding: 14, borderRadius: 14 }}>
       <div className="flex items-baseline justify-between mb-2">
         <h3 style={{ fontFamily: T.serif, fontSize: 16, color: T.ink, fontWeight: 600 }}>{titulo}</h3>
         <div className="num text-sm" style={{ color: accent }}>{hidden ? "•••" : fmt(total)}</div>
@@ -612,7 +612,7 @@ function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {},
               style={{
                 flex: 1, padding: "6px 10px", fontSize: 12,
                 background: T.bgSoft, border: `1px solid ${T.border}`,
-                borderRadius: 6, color: T.ink,
+                borderRadius: 11, color: T.ink,
               }} />
             <button onClick={addSub} className="btn-gold" style={{ padding: "6px 12px", fontSize: 10 }}>
               Add

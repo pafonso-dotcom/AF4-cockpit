@@ -67,7 +67,7 @@ export default function CommandPalette({ open, onClose, onNavigate }) {
       <div style={{
         width: "100%", maxWidth: 540,
         background: T.card, border: `1px solid ${T.borderHi}`,
-        borderRadius: 12, boxShadow: "0 24px 60px rgba(0,0,0,.5)",
+        borderRadius: 18, boxShadow: "0 24px 60px rgba(0,0,0,.5)",
         overflow: "hidden", display: "flex", flexDirection: "column",
         maxHeight: "70vh",
       }}>
@@ -110,7 +110,7 @@ export default function CommandPalette({ open, onClose, onNavigate }) {
                   style={{
                     width: "100%", textAlign: "left", cursor: "pointer",
                     display: "flex", alignItems: "center", gap: 10,
-                    padding: "9px 12px", borderRadius: 7, border: "none",
+                    padding: "9px 12px", borderRadius: 12, border: "none",
                     background: ativo ? `${T.gold}22` : "transparent",
                     color: T.ink,
                   }}>

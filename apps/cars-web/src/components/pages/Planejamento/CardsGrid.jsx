@@ -106,7 +106,7 @@ export default function CardsGrid({
           gridColumn: "1 / -1",
           background: `linear-gradient(135deg, ${T.gold}11, ${T.card})`,
           border: `1px solid ${T.gold}55`,
-          borderRadius: 12, padding: 18, cursor: "pointer",
+          borderRadius: 18, padding: 18, cursor: "pointer",
           transition: "all .2s",
         }}
         onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 6px 18px ${T.gold}22`; }}
@@ -114,7 +114,7 @@ export default function CardsGrid({
       >
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 10 }}>
           <div style={{
-            width: 44, height: 44, borderRadius: 10,
+            width: 44, height: 44, borderRadius: 16,
             background: T.bgSoft, display: "grid", placeItems: "center",
           }}>
             <Calendar size={22} color={T.gold} />
@@ -190,7 +190,7 @@ function CardReserva({ onClick, stats, hidden }) {
         gridColumn: "1 / -1",
         background: T.card, border: `1px solid ${pronta ? T.green + "66" : T.border}`,
         borderLeft: `3px solid ${pronta ? T.green : T.gold}`,
-        borderRadius: 10, padding: 16, cursor: "pointer",
+        borderRadius: 16, padding: 16, cursor: "pointer",
         transition: "all .2s",
       }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 4px 12px ${T.gold}22`; }}
@@ -198,7 +198,7 @@ function CardReserva({ onClick, stats, hidden }) {
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
         <div style={{
-          width: 40, height: 40, borderRadius: 10,
+          width: 40, height: 40, borderRadius: 16,
           background: T.bgSoft, display: "grid", placeItems: "center", flexShrink: 0,
         }}>
           <Shield size={20} color={pronta ? T.green : T.gold} />
@@ -248,7 +248,7 @@ function Mini({ lbl, val, cor }) {
   return (
     <div style={{
       padding: "10px 12px", background: T.card,
-      border: `1px solid ${T.border}`, borderRadius: 7,
+      border: `1px solid ${T.border}`, borderRadius: 12,
     }}>
       <div className="num" style={{ color: cor, fontSize: 13.5, fontWeight: 600 }}>{val}</div>
       <div style={{ fontSize: 10, color: T.muted, marginTop: 2, letterSpacing: ".05em" }}>{lbl}</div>
@@ -279,7 +279,7 @@ function CardMenor({ onClick, icon, titulo, sub, valor, valorCor }) {
       onClick={onClick}
       style={{
         background: T.card, border: `1px solid ${T.border}`,
-        borderRadius: 10, padding: 16, cursor: "pointer",
+        borderRadius: 16, padding: 16, cursor: "pointer",
         transition: "all .2s",
       }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = T.gold; e.currentTarget.style.boxShadow = `0 4px 12px ${T.gold}22`; }}
@@ -287,7 +287,7 @@ function CardMenor({ onClick, icon, titulo, sub, valor, valorCor }) {
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
         <div style={{
-          width: 40, height: 40, borderRadius: 10,
+          width: 40, height: 40, borderRadius: 16,
           background: T.bgSoft, display: "grid", placeItems: "center",
           flexShrink: 0,
         }}>

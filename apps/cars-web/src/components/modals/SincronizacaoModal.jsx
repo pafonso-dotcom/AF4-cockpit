@@ -101,7 +101,7 @@ export default function SincronizacaoModal({ onClose }) {
       {aba === "exportar" && (
         <>
           <div style={{
-            background: T.bgSoft, padding: 12, borderRadius: 7,
+            background: T.bgSoft, padding: 12, borderRadius: 12,
             fontSize: 11.5, color: T.muted, marginBottom: 12, lineHeight: 1.55,
           }}>
             <strong style={{ color: T.gold }}>Como funciona:</strong>
@@ -116,7 +116,7 @@ export default function SincronizacaoModal({ onClose }) {
           <div style={{
             padding: 10, marginBottom: 12,
             background: T.card, border: `1px solid ${T.border}`,
-            borderRadius: 7, fontSize: 11, color: T.muted,
+            borderRadius: 12, fontSize: 11, color: T.muted,
             display: "flex", justifyContent: "space-between",
           }}>
             <span>📦 Backup gerado</span>
@@ -127,7 +127,7 @@ export default function SincronizacaoModal({ onClose }) {
                     style={{
                       width: "100%", padding: 10, height: 100,
                       background: T.bgSoft, color: T.faint,
-                      border: `1px solid ${T.border}`, borderRadius: 6,
+                      border: `1px solid ${T.border}`, borderRadius: 11,
                       fontSize: 10, fontFamily: "monospace",
                       resize: "vertical", outline: "none",
                       wordBreak: "break-all",
@@ -142,7 +142,7 @@ export default function SincronizacaoModal({ onClose }) {
                     style={{
                       background: "#25D366", color: "#fff", border: "none",
                       padding: "10px 14px", fontSize: 11, fontWeight: 600,
-                      letterSpacing: ".1em", textTransform: "uppercase", borderRadius: 7,
+                      letterSpacing: ".1em", textTransform: "uppercase", borderRadius: 12,
                       cursor: "pointer", display: "inline-flex",
                       alignItems: "center", justifyContent: "center", gap: 6,
                     }}>
@@ -154,7 +154,7 @@ export default function SincronizacaoModal({ onClose }) {
             </button>
           </div>
 
-          <div style={{ marginTop: 14, padding: 10, background: T.bgSoft, borderRadius: 6, fontSize: 10.5, color: T.faint, lineHeight: 1.55 }}>
+          <div style={{ marginTop: 14, padding: 10, background: T.bgSoft, borderRadius: 11, fontSize: 10.5, color: T.faint, lineHeight: 1.55 }}>
             <strong style={{ color: T.gold }}>💡 Dica:</strong> envie pelo WhatsApp pro seu próprio número. Ele fica salvo no seu chat de "Conversa consigo mesmo" e você acessa em qualquer dispositivo logado.
           </div>
         </>
@@ -174,7 +174,7 @@ export default function SincronizacaoModal({ onClose }) {
             style={{
               width: "100%", padding: 10,
               background: T.bgSoft, color: T.ink,
-              border: `1px solid ${T.border}`, borderRadius: 6,
+              border: `1px solid ${T.border}`, borderRadius: 11,
               fontSize: 11, fontFamily: "monospace",
               resize: "vertical", outline: "none",
               wordBreak: "break-all",
@@ -196,7 +196,7 @@ export default function SincronizacaoModal({ onClose }) {
             <div style={{
               marginTop: 14, padding: 10,
               background: `${T.red}22`, color: T.red,
-              border: `1px solid ${T.red}`, borderRadius: 6,
+              border: `1px solid ${T.red}`, borderRadius: 11,
               fontSize: 12, display: "flex", alignItems: "center", gap: 8,
             }}>
               <AlertCircle size={14} /> {erroImport}
@@ -204,7 +204,7 @@ export default function SincronizacaoModal({ onClose }) {
           )}
 
           {previewImport && (
-            <div style={{ marginTop: 14, padding: 14, background: T.card, border: `1px solid ${T.gold}`, borderRadius: 7 }}>
+            <div style={{ marginTop: 14, padding: 14, background: T.card, border: `1px solid ${T.gold}`, borderRadius: 12 }}>
               <div className="label-eyebrow" style={{ color: T.gold, marginBottom: 8 }}>
                 ✓ Backup válido detectado
               </div>

@@ -459,7 +459,7 @@ export default function Proventos({
         background: `linear-gradient(135deg, ${T.gold}11, ${T.card})`,
         border: `1px solid ${T.gold}55`,
         borderLeft: `3px solid ${T.gold}`,
-        borderRadius: 12, padding: 16, marginBottom: 14,
+        borderRadius: 18, padding: 16, marginBottom: 14,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
           <div>
@@ -526,7 +526,7 @@ export default function Proventos({
                       display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10,
                       alignItems: "center",
                       padding: "8px 10px", marginBottom: 4,
-                      background: T.bgSoft, borderRadius: 6,
+                      background: T.bgSoft, borderRadius: 11,
                       borderLeft: `2px solid ${positivo ? T.green : T.red}`,
                     }}>
                       <div style={{ fontSize: 10.5, color: T.muted, fontFamily: T.mono, minWidth: 56 }}>
@@ -576,7 +576,7 @@ export default function Proventos({
       {porMes.length === 0 ? (
         <div style={{
           padding: 40, textAlign: "center",
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10,
+          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
           color: T.muted, fontSize: 13,
         }}>
           Adicione ações e FIIs para ver o calendário de proventos.
@@ -588,7 +588,7 @@ export default function Proventos({
           </div>
           <div style={{
             background: T.card, border: `1px solid ${T.border}`,
-            borderRadius: 10, overflow: "hidden",
+            borderRadius: 16, overflow: "hidden",
           }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
               <thead>
@@ -777,7 +777,7 @@ export default function Proventos({
             return total > 0 ? (
               <div style={{
                 padding: 10, marginTop: 4, background: `${T.green}11`,
-                border: `1px solid ${T.green}33`, borderRadius: 6,
+                border: `1px solid ${T.green}33`, borderRadius: 11,
                 fontSize: 12.5, color: T.muted, display: "flex", justifyContent: "space-between",
               }}>
                 <span>Total previsto:</span>
@@ -807,7 +807,7 @@ export default function Proventos({
         return (
           <Modal title={`Baixar ${p.ticker} (${p.tipo})`} onClose={() => setBaixaForm(null)}>
             <div style={{
-              padding: 12, background: T.bgSoft, borderRadius: 7,
+              padding: 12, background: T.bgSoft, borderRadius: 12,
               fontSize: 12, marginBottom: 14,
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", color: T.muted, marginBottom: 4 }}>
@@ -849,7 +849,7 @@ export default function Proventos({
                             padding: "10px 12px",
                             background: ativo ? `${T.gold}22` : T.bgSoft,
                             border: `1px solid ${ativo ? T.gold : T.border}`,
-                            borderRadius: 7, cursor: "pointer", textAlign: "left",
+                            borderRadius: 12, cursor: "pointer", textAlign: "left",
                             display: "flex", alignItems: "flex-start", gap: 10,
                           }}>
                     <div style={{
@@ -899,7 +899,7 @@ export default function Proventos({
                 {ativoDestino && precoAtivo > 0 && (
                   <div style={{
                     padding: 10, background: `${T.green}11`,
-                    border: `1px solid ${T.green}33`, borderRadius: 6,
+                    border: `1px solid ${T.green}33`, borderRadius: 11,
                     fontSize: 11.5, color: T.muted, marginBottom: 10,
                   }}>
                     Vai comprar <strong className="num" style={{ color: T.green }}>
@@ -934,7 +934,7 @@ export default function Proventos({
       {transferirForm && (
         <Modal title="Transferir da Carteira de Proventos" onClose={() => setTransferirForm(null)}>
           <div style={{
-            padding: 12, background: T.bgSoft, borderRadius: 7,
+            padding: 12, background: T.bgSoft, borderRadius: 12,
             fontSize: 12, marginBottom: 14,
           }}>
             Saldo disponível: <strong className="num" style={{ color: T.gold, fontSize: 16 }}>
@@ -956,7 +956,7 @@ export default function Proventos({
           </Field>
           <div style={{
             padding: 10, background: `${T.green}11`, border: `1px solid ${T.green}33`,
-            borderRadius: 6, fontSize: 11.5, color: T.green, marginTop: 8,
+            borderRadius: 11, fontSize: 11.5, color: T.green, marginTop: 8,
           }}>
             ✓ Cria transação de receita "Transferência da Carteira de Proventos"<br />
             ✓ Aumenta saldo da conta destino<br />
@@ -980,7 +980,7 @@ export default function Proventos({
         return (
           <Modal title="Reinvestir saldo da Carteira" onClose={() => setComprarForm(null)}>
             <div style={{
-              padding: 12, background: T.bgSoft, borderRadius: 7,
+              padding: 12, background: T.bgSoft, borderRadius: 12,
               fontSize: 12, marginBottom: 14,
             }}>
               Saldo disponível: <strong className="num" style={{ color: T.gold, fontSize: 16 }}>
@@ -1005,7 +1005,7 @@ export default function Proventos({
             {ativoSel && preco > 0 && (
               <div style={{
                 padding: 10, background: `${T.green}11`, border: `1px solid ${T.green}33`,
-                borderRadius: 6, fontSize: 11.5, color: T.muted, marginTop: 8,
+                borderRadius: 11, fontSize: 11.5, color: T.muted, marginTop: 8,
               }}>
                 Vai comprar <strong className="num" style={{ color: T.green }}>
                   {qtdCompravel.toFixed(6)} {ativoSel.ticker}
@@ -1032,7 +1032,7 @@ function Kpi({ label, valor, sub, cor }) {
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
       borderLeft: `3px solid ${cor || T.gold}`,
-      borderRadius: 10, padding: 12,
+      borderRadius: 16, padding: 12,
     }}>
       <div className="label-eyebrow">{label}</div>
       <div className="num" style={{
