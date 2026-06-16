@@ -366,7 +366,7 @@ function HeaderHorizontal({
 
       {/* ============== LINHA 2 · módulos (sempre visível, scroll horizontal no mobile) ============== */}
       <div className="hdr-modules-row" style={{
-        background: NAV_SOFT, borderTop: `1px solid ${NAV_BORDER}`, padding: "0 16px",
+        background: "transparent", borderTop: `1px solid ${NAV_BORDER}`, padding: "0 16px",
       }}>
         <div data-subnav style={{
           maxWidth: 1280, margin: "0 auto",

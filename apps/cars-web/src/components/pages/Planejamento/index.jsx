@@ -1,27 +1,18 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { T } from "../../../lib/theme.js";
-import ResumoExecutivo from "./ResumoExecutivo.jsx";
 import AReceberEDividas from "../AReceberEDividas.jsx";
 import DespesasFixas from "../DespesasFixas.jsx";
 import ControleAnual from "../Relatorios/ControleAnual.jsx";
 
 /**
- * Centro de Controle — informação geral no topo (sempre visível) e os módulos
- * OCULTOS por padrão: cada seção abre só ao clicar (acordeão, uma por vez).
- * Isso evita estourar a tela e deixa o resumo limpo.
+ * Centro de Controle — os módulos ficam OCULTOS por padrão: cada seção abre
+ * só ao clicar (acordeão, uma por vez), em largura total. Sem "Visão Executiva".
  */
 export default function Planejamento(props) {
   const [aberto, setAberto] = useState(null); // "areceber" | "fixas" | "anual" | null
 
   const toggle = (id) => setAberto(prev => (prev === id ? null : id));
-  // KPIs do topo também abrem a seção correspondente.
-  const mapaKpi = {
-    "recebiveis:receber": "areceber",
-    "recebiveis:pagar": "areceber",
-    fixas: "fixas",
-    anual: "anual",
-  };
 
   const Secao = ({ id, titulo, children }) => {
     const on = aberto === id;
@@ -61,9 +52,6 @@ export default function Planejamento(props) {
           Toque numa seção para abrir os detalhes.
         </p>
       </div>
-
-      {/* Informação geral (sempre visível) + seletor de mês */}
-      <ResumoExecutivo {...props} onAbrir={(d) => { const s = mapaKpi[d]; if (s) setAberto(s); }} />
 
       {/* Módulos ocultos — abrem ao clicar */}
       <div style={{ marginTop: 4 }}>
