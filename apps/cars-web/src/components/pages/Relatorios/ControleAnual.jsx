@@ -42,6 +42,7 @@ export default function ControleAnual({
   setParcelamentos,
   devedores = [],
   escopoAtivo = "tudo",
+  embed = false,
   hidden,
 }) {
   const hoje = todayISO();
@@ -260,7 +261,8 @@ export default function ControleAnual({
   };
 
   return (
-    <div className="fade-up py-8 px-6">
+    <div className={embed ? "" : "fade-up py-8 px-6"}>
+      {!embed && (
       <PageHeader
         eyebrow="Finanças · Relatórios"
         title={<>Controle <em>Anual.</em></>}
@@ -290,6 +292,7 @@ export default function ControleAnual({
           </div>
         }
       />
+      )}
 
       <div className="print-area" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "auto" }}>
         <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 900 }}>
