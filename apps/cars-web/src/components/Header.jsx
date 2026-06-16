@@ -138,7 +138,7 @@ function HeaderHorizontal({
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "transacoes",   label: "Transações",   icon: Receipt },
-      { id: "planejamento", label: "Planejamento", icon: Target },
+      { id: "planejamento", label: "Centro de controle", icon: Target },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
@@ -366,7 +366,7 @@ function HeaderHorizontal({
 
       {/* ============== LINHA 2 · módulos (sempre visível, scroll horizontal no mobile) ============== */}
       <div className="hdr-modules-row" style={{
-        background: NAV_SOFT, borderTop: `1px solid ${NAV_BORDER}`, padding: "0 16px",
+        background: "transparent", borderTop: `1px solid ${NAV_BORDER}`, padding: "0 16px",
       }}>
         <div data-subnav style={{
           maxWidth: 1280, margin: "0 auto",
@@ -622,7 +622,7 @@ function HeaderVertical({
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "transacoes",   label: "Transações",   icon: Receipt },
-      { id: "planejamento", label: "Planejamento", icon: Target },
+      { id: "planejamento", label: "Centro de controle", icon: Target },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
