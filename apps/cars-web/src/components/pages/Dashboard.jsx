@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState } from "react";
-import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar } from "lucide-react";
+import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, AlertTriangle, Clock, Calendar } from "lucide-react";
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN } from "../../lib/format.js";
@@ -14,6 +14,10 @@ import Card from "../ui/Card.jsx";
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 // Paleta moderna e harmônica (tons mais suaves, sem primários puros gritando).
 const CORES_CAT = ["#6366f1","#0ea5e9","#22c08b","#f5a623","#f0728a","#a78bfa","#2dd4bf","#fb923c","#94a3b8"];
+// Gastos por categoria: paleta sequencial de uma única família (azul-céu), do
+// claro ao escuro. Luminosidades relacionadas (sem neon aleatório) deixam o
+// donut legível e elegante, reforçando "fatias da mesma coisa".
+const CORES_GASTOS = ["#38BDF8","#0EA5E9","#0284C7","#0369A1","#075985","#0C4A6E"];
 const CLASS_LABEL = { acao: "Ações", fii: "FIIs", stock: "Stocks (US)", reit: "REITs (US)", etf: "ETFs", cripto: "Cripto", rf: "Renda Fixa", tesouro: "Tesouro", cdb: "CDB", capitalSocial: "Capital Social", outro: "Outros" };
 const CLASS_COR = { acao: "#f5a524", fii: "#10b981", stock: "#3b82f6", reit: "#0ea5e9", cripto: "#8b5cf6", rf: "#06b6d4", etf: "#fbbf24", tesouro: "#22c55e", cdb: "#14b8a6", capitalSocial: "#0d9488", outro: "#9ca3af" };
 
@@ -132,8 +136,19 @@ export default function Dashboard({
     const aPagar = Number(kpi?.totalPendente || 0) + Number(kpi?.totalAtrasado || 0);
     const totalAnt = Number(kpiAnt?.totalPrevisto || 0);
     const deltaPct = totalAnt > 0 ? ((total - totalAnt) / totalAnt) * 100 : null;
-    return { total, pagas, aPagar, deltaPct };
+    return { total, pagas, aPagar, deltaPct, totalAnt };
   }, [stateAgg, mesISO, mesAnteriorISO, escopoAtivo]);
+
+  // Saldo do mês (hero da Zona 2) = receitas − despesas previstas.
+  const receitasMesAnterior = useMemo(() =>
+    transacoes.filter(t => t.tipo === "receita" && (t.data || "").startsWith(mesAnteriorISO))
+      .reduce((s, t) => s + Number(t.valor || 0), 0),
+  [transacoes, mesAnteriorISO]);
+  const saldoMes = receitasMes - despesasResumo.total;
+  const saldoMesAnterior = receitasMesAnterior - (despesasResumo.totalAnt || 0);
+  const saldoDeltaPct = saldoMesAnterior !== 0
+    ? ((saldoMes - saldoMesAnterior) / Math.abs(saldoMesAnterior)) * 100
+    : null;
 
   const momReceitas = useMemo(() => calcMoMTransacoes(transacoes, { tipo: "receita" }), [transacoes]);
   const momDespesas = useMemo(() => calcMoMTransacoes(transacoes, { tipo: "despesa" }), [transacoes]);
@@ -186,7 +201,7 @@ export default function Dashboard({
     desp.forEach(d => { const k = d.categoria || "Outros"; m[k] = (m[k] || 0) + (Number(d.valor) || 0); });
     const tot = Object.values(m).reduce((s,v) => s+v, 0) || 1;
     return Object.entries(m).sort((a,b) => b[1]-a[1]).map(([k,v], i) => ({
-      nome: k, valor: v, pct: (v/tot)*100, cor: CORES_CAT[i % CORES_CAT.length],
+      nome: k, valor: v, pct: (v/tot)*100, cor: CORES_GASTOS[i % CORES_GASTOS.length],
     }));
   }, [stateAgg, mesISO, escopoAtivo]);
 
@@ -212,6 +227,19 @@ export default function Dashboard({
   // Base do orçamento: limites manuais se houver; senão a média (3m).
   const orcamentoBase = orcamentoMes > 0 ? orcamentoMes : mediaDespesas3m;
   const orcamentoAuto = !(orcamentoMes > 0) && mediaDespesas3m > 0;
+
+  // ===== Zona 1 · Alerta crítico =====
+  // Só dispara quando o gasto do mês passa de 1,5× a média dos últimos 3 meses.
+  const alerta = useMemo(() => {
+    const gastoMes = despesasResumo.total;
+    const media = mediaDespesas3m;
+    if (!(media > 0) || !(gastoMes > media * 1.5)) return null;
+    return {
+      gastoMes, media,
+      diferenca: gastoMes - media,
+      percentualAcima: ((gastoMes - media) / media) * 100,
+    };
+  }, [despesasResumo.total, mediaDespesas3m]);
 
   // ===== Evolução do patrimônio (mês a mês YTD) =====
   const evolucao = useMemo(() => {
@@ -277,37 +305,47 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* Top 3 do dia */}
+      {/* Próximos compromissos — mantido logo abaixo da saudação */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
 
-      {/* KPI row */}
-      <section className="dash-kpi-grid" style={{
-        display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 12, marginBottom: 16,
-      }}>
-        <KpiHero value={patrimonio} mom={momPatrim} hidden={hidden} evolucao={evolucao} />
-        <KpiBlock label="Total em Contas" value={mask(fmt(totalContas))} sub={`${contas.length} contas ativas`} icon={Wallet} cor={T.green} />
-        <KpiBlock label="Investimentos" value={mask(fmt(totalInvest))} sub="rentabilidade" icon={PieIcon} cor={T.green} variation={rentInvest} />
-        <KpiBlock label="Receitas este mês" value={mask(fmt(receitasMes))} sub="vs mês anterior" icon={TrendingUp} cor={T.green} variation={momReceitas} />
-        <DespesasKpiBlock resumo={despesasResumo} hidden={hidden} />
-      </section>
+      {/* ===== ZONA 1 · Alerta crítico (o que exige ação agora) ===== */}
+      {alerta && (
+        <AlertaBanner {...alerta} hidden={hidden} onVerGastos={() => onTabChange?.("transacoes")} />
+      )}
 
-      {/* Mid row */}
-      <section className="dash-mid-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 12, marginBottom: 16,
+      {/* ===== ZONA 2 · Fluxo do mês (o que entrou vs o que saiu) ===== */}
+      <FluxoMes
+        saldo={saldoMes} saldoDelta={saldoDeltaPct}
+        receitas={receitasMes} receitasDelta={momReceitas}
+        despesas={despesasResumo}
+        hidden={hidden}
+      />
+
+      {/* ===== ZONA 3 · Onde está o dinheiro (snapshot patrimonial) ===== */}
+      <PatrimonioSnapshot
+        patrimonio={patrimonio} momPatrim={momPatrim} evolucao={evolucao}
+        totalContas={totalContas} numContas={contas.length}
+        totalInvest={totalInvest} rentInvest={rentInvest}
+        hidden={hidden}
+      />
+      <section className="dash-z3-grid" style={{
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
         <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
+        <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
+      </section>
+      <section style={{ marginBottom: 16 }}>
+        <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
       </section>
 
-      {/* Bottom row */}
-      <section className="dash-bot-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
+      {/* ===== ZONA 4 · Projeção e contexto ===== */}
+      <section className="dash-z4-grid" style={{
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
+        <ProjecaoCard projecao={projecao} patrimonio={patrimonio} hidden={hidden} />
         <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
-        <ProjecaoCard projecao={projecao} patrimonio={patrimonio} hidden={hidden} />
       </section>
 
       {/* Metas + Pergunte IA */}
@@ -320,11 +358,7 @@ export default function Dashboard({
 
       <style>{`
         @media (max-width: 1024px) {
-          .dash-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
-          .dash-mid-grid, .dash-bot-grid, .dash-metas-grid { grid-template-columns: 1fr !important; }
-        }
-        @media (max-width: 380px) {
-          .dash-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+          .dash-fluxo-grid, .dash-snap-grid, .dash-z3-grid, .dash-z4-grid, .dash-metas-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
@@ -426,84 +460,152 @@ function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, m
   );
 }
 
-function KpiHero({ value, mom, hidden, evolucao }) {
-  const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
+/* ====================== ZONA 1 · Alerta crítico ====================== */
+function AlertaBanner({ gastoMes, media, diferenca, percentualAcima, hidden, onVerGastos }) {
+  const m = (v) => hidden ? "•••" : fmt(v);
   return (
-    <div style={{ background: bg, color: "#fff", borderRadius: 18, padding: 14, position: "relative", overflow: "hidden", minHeight: 110 }}>
-      <div style={{ fontSize: 11, color: "#86efac", letterSpacing: ".03em" }}>Patrimônio Total</div>
-      <div className="num" style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 700, marginTop: 6 }}>{hidden ? "•••••" : fmt(value)}</div>
-      <div style={{ fontSize: 11, color: "#86efac", marginTop: 4 }}>
-        {mom >= 0 ? "↗" : "↘"} {fmtN(mom, 2)}%
-        <span style={{ color: "rgba(255,255,255,0.55)", marginLeft: 4 }}>vs mês anterior</span>
+    <div style={{
+      background: `${T.red}14`, border: `1px solid ${T.red}55`, borderLeft: `4px solid ${T.red}`,
+      borderRadius: 16, padding: 14, marginBottom: 16,
+      display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap",
+    }}>
+      <div style={{ width: 38, height: 38, borderRadius: 12, background: `${T.red}22`, display: "grid", placeItems: "center", flexShrink: 0 }}>
+        <AlertTriangle size={20} style={{ color: T.red }} />
       </div>
-      <div style={{ position: "absolute", right: 0, bottom: 0, left: 0, height: 46, opacity: 0.6, pointerEvents: "none" }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={evolucao}>
-            <defs>
-              <linearGradient id="grad-hero" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22c55e" stopOpacity={0.7} />
-                <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <Area type="monotone" dataKey="saldo" stroke="#22c55e" fill="url(#grad-hero)" strokeWidth={1.5} />
-          </AreaChart>
-        </ResponsiveContainer>
+      <div style={{ flex: 1, minWidth: 200 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: T.ink }}>
+          Gastos {fmtN(percentualAcima, 0)}% acima da sua média histórica
+        </div>
+        <div style={{ fontSize: 11.5, color: T.muted, marginTop: 3 }}>
+          Este mês: <b className="num" style={{ color: T.red }}>{m(gastoMes)}</b>
+          {" · "}média 3 meses: <span className="num">{m(media)}</span>
+          {" · "}diferença: <span className="num" style={{ color: T.red, fontWeight: 600 }}>+{m(diferenca)}</span>
+        </div>
       </div>
+      <button onClick={onVerGastos} style={{
+        background: T.red, color: "#fff", border: "none", borderRadius: 10,
+        padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+      }}>
+        Ver gastos →
+      </button>
     </div>
   );
 }
 
-function KpiBlock({ label, value, sub, icon: Icon, cor, variation, negativeGood }) {
-  const num = typeof variation === "number" ? variation : null;
-  const varStr = num != null ? (num >= 0 ? "↗ +" : "↘ ") + fmtN(num, 2) + "%" : null;
-  const positive = negativeGood ? (num != null && num <= 0) : (num != null && num >= 0);
+/* ====================== ZONA 2 · Fluxo do mês ====================== */
+function FluxoMes({ saldo, saldoDelta, receitas, receitasDelta, despesas, hidden }) {
+  const mono = T.mono || T.serif;
+  const pos = saldo >= 0;
+  const cor = pos ? T.green : T.red;
+  const label = { fontSize: 11, textTransform: "uppercase", letterSpacing: ".12em", color: T.muted, fontWeight: 600 };
+  const deltaStr = (n) => (n == null ? null : `${n >= 0 ? "↗ +" : "↘ "}${fmtN(Math.abs(n), 1)}%`);
+  const { total = 0, pagas = 0, aPagar = 0 } = despesas || {};
   return (
-    <Card style={{ position: "relative", minHeight: 110 }}>
-      <div style={{ fontSize: 11, color: T.muted }}>{label}</div>
-      <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 6, color: T.ink }}>{value}</div>
-      {varStr && (
-        <div style={{ fontSize: 11, color: positive ? T.green : T.red, marginTop: 4 }}>{varStr}</div>
-      )}
-      {sub && <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{sub}</div>}
-      {Icon && (
-        <div style={{ position: "absolute", top: 14, right: 14, width: 32, height: 32, borderRadius: "50%", background: `${cor || T.gold}1f`, display: "grid", placeItems: "center" }}>
-          <Icon size={16} style={{ color: cor || T.gold }} />
+    <section className="dash-fluxo-grid" style={{
+      display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", gap: 12, marginBottom: 16,
+    }}>
+      {/* Saldo do mês — hero da zona */}
+      <Card style={{ display: "flex", flexDirection: "column", justifyContent: "center", minHeight: 138, borderLeft: `3px solid ${cor}` }}>
+        <div style={label}>Saldo do Mês</div>
+        <div className="num" style={{ fontFamily: mono, fontSize: 38, fontWeight: 700, color: cor, lineHeight: 1.05, marginTop: 8 }}>
+          {hidden ? "•••••" : (pos ? "" : "− ") + fmt(Math.abs(saldo))}
         </div>
-      )}
-    </Card>
+        {saldoDelta != null && (
+          <div className="num" style={{ fontFamily: mono, fontSize: 12, color: saldoDelta >= 0 ? T.green : T.red, marginTop: 6 }}>
+            {deltaStr(saldoDelta)} <span style={{ color: T.muted, fontWeight: 400 }}>vs mês anterior</span>
+          </div>
+        )}
+        <div style={{ fontSize: 11, color: T.faint, marginTop: 6 }}>Receitas − despesas previstas do mês</div>
+      </Card>
+
+      {/* Receitas */}
+      <Card style={{ display: "flex", flexDirection: "column", justifyContent: "center", minHeight: 138 }}>
+        <div style={label}>Receitas</div>
+        <div className="num" style={{ fontFamily: mono, fontSize: 22, fontWeight: 700, color: T.ink, marginTop: 8 }}>
+          {hidden ? "•••••" : fmt(receitas)}
+        </div>
+        {receitasDelta != null && (
+          <div className="num" style={{ fontFamily: mono, fontSize: 12, color: receitasDelta >= 0 ? T.green : T.red, marginTop: 6 }}>
+            {deltaStr(receitasDelta)} <span style={{ color: T.faint, fontWeight: 400 }}>vs mês ant.</span>
+          </div>
+        )}
+      </Card>
+
+      {/* Despesas — pago vs a pagar (duas linhas empilhadas) */}
+      <Card style={{ display: "flex", flexDirection: "column", justifyContent: "center", minHeight: 138 }}>
+        <div style={label}>Despesas</div>
+        <div className="num" style={{ fontFamily: mono, fontSize: 22, fontWeight: 700, color: T.ink, marginTop: 8 }}>
+          {hidden ? "•••••" : fmt(total)}
+        </div>
+        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 11.5 }}>
+            <span style={{ color: T.muted }}>Pago</span>
+            <span className="num" style={{ fontFamily: mono, color: T.green }}>{hidden ? "•••" : fmt(pagas)}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 11.5 }}>
+            <span style={{ color: T.muted }}>A pagar</span>
+            <span className="num" style={{ fontFamily: mono, color: aPagar > 0 ? T.red : T.muted }}>{hidden ? "•••" : fmt(aPagar)}</span>
+          </div>
+        </div>
+      </Card>
+    </section>
   );
 }
 
-function DespesasKpiBlock({ resumo, hidden }) {
-  const { total = 0, pagas = 0, aPagar = 0, deltaPct = null } = resumo || {};
-  const linhas = [
-    { l: "Desp. total",    v: total,  c: T.ink },
-    { l: "Desp. paga",     v: pagas,  c: T.green },
-    { l: "Desp. a pagar",  v: aPagar, c: T.red },
-  ];
-  // Em despesa, gastar MAIS é ruim (vermelho); gastar menos é bom (verde).
-  const piorou = deltaPct != null && deltaPct > 0;
+/* ====================== ZONA 3 · Snapshot patrimonial ====================== */
+function PatrimonioSnapshot({ patrimonio, momPatrim, evolucao, totalContas, numContas, totalInvest, rentInvest, hidden }) {
+  const mono = T.mono || T.serif;
+  const label = { fontSize: 11, textTransform: "uppercase", letterSpacing: ".08em", color: T.muted, fontWeight: 600 };
+  const valor = { fontFamily: mono, fontSize: 24, fontWeight: 700, color: T.ink, marginTop: 8 };
+  const deltaStr = (n) => `${n >= 0 ? "↗ +" : "↘ "}${fmtN(Math.abs(n), 1)}%`;
   return (
-    <Card style={{ minHeight: 110 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <span style={{ fontSize: 11, color: T.muted }}>Despesas este mês</span>
-        {deltaPct != null ? (
-          <span title="vs mês anterior" style={{ fontSize: 10.5, fontWeight: 700, color: piorou ? T.red : T.green, whiteSpace: "nowrap" }}>
-            {piorou ? "▲" : "▼"} {fmtN(Math.abs(deltaPct), 0)}% <span style={{ color: T.faint, fontWeight: 500 }}>vs mês ant.</span>
-          </span>
-        ) : <TrendingDown size={14} style={{ color: T.red }} />}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {linhas.map(x => (
-          <div key={x.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 11, color: T.muted }}>{x.l}</span>
-            <span className="num" style={{ fontFamily: T.serif, fontSize: 15.5, fontWeight: 700, color: x.c, whiteSpace: "nowrap" }}>
-              {hidden ? "•••" : fmt(x.v)}
-            </span>
+    <section className="dash-snap-grid" style={{
+      display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
+    }}>
+      {/* Patrimônio Total — com sparkline sutil */}
+      <Card style={{ position: "relative", overflow: "hidden", minHeight: 120 }}>
+        <div style={label}>Patrimônio Total</div>
+        <div className="num" style={valor}>{hidden ? "•••••" : fmt(patrimonio)}</div>
+        {momPatrim != null && (
+          <div className="num" style={{ fontFamily: mono, fontSize: 11.5, color: momPatrim >= 0 ? T.green : T.red, marginTop: 6 }}>
+            {deltaStr(momPatrim)} <span style={{ color: T.faint, fontWeight: 400 }}>vs mês ant.</span>
           </div>
-        ))}
-      </div>
-    </Card>
+        )}
+        <div style={{ position: "absolute", right: 0, bottom: 0, left: 0, height: 34, opacity: 0.3, pointerEvents: "none" }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={evolucao}>
+              <defs>
+                <linearGradient id="grad-snap" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={T.green} stopOpacity={0.6} />
+                  <stop offset="100%" stopColor={T.green} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <Area type="monotone" dataKey="saldo" stroke={T.green} fill="url(#grad-snap)" strokeWidth={1.5} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+
+      {/* Em Contas */}
+      <Card style={{ minHeight: 120 }}>
+        <div style={label}>Em Contas</div>
+        <div className="num" style={valor}>{hidden ? "•••••" : fmt(totalContas)}</div>
+        <div style={{ fontSize: 11, color: T.faint, marginTop: 6 }}>
+          {numContas} {numContas === 1 ? "conta ativa" : "contas ativas"}
+        </div>
+      </Card>
+
+      {/* Investido */}
+      <Card style={{ minHeight: 120 }}>
+        <div style={label}>Investido</div>
+        <div className="num" style={valor}>{hidden ? "•••••" : fmt(totalInvest)}</div>
+        {rentInvest != null && (
+          <div className="num" style={{ fontFamily: mono, fontSize: 11.5, color: rentInvest >= 0 ? T.green : T.red, marginTop: 6 }}>
+            {deltaStr(rentInvest)} <span style={{ color: T.faint, fontWeight: 400 }}>rentabilidade</span>
+          </div>
+        )}
+      </Card>
+    </section>
   );
 }
 
@@ -740,6 +842,16 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
   const restanteDe = (d) => Math.max(0, (Number(d.valor) || 0) - (Number(d.valorRecebido) || 0));
   const total = abertos.reduce((s, d) => s + restanteDe(d), 0);
 
+  // Contexto pro número grande (que é cumulativo): prazo médio até o vencimento
+  // dos recebíveis em aberto, em dias. Desambigua "por que esse total é alto".
+  const comVenc = abertos.filter(d => d.vencimento);
+  const prazoMedio = comVenc.length
+    ? Math.round(comVenc.reduce((s, d) => {
+        const dias = (new Date(d.vencimento + "T00:00:00") - new Date(hoje + "T00:00:00")) / 86400000;
+        return s + Math.max(0, dias);
+      }, 0) / comVenc.length)
+    : null;
+
   const atrasados = abertos.filter(d => d.vencimento && d.vencimento < hoje);
   const hojeArr   = abertos.filter(d => d.vencimento === hoje);
   const semana    = abertos.filter(d => d.vencimento && d.vencimento > hoje && d.vencimento <= fimSemana);
@@ -782,8 +894,14 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
       <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 600, color: T.ink, lineHeight: 1.1 }}>
         {hidden ? "•••••" : fmt(total)}
       </div>
-      <div style={{ fontSize: 11, color: T.muted, marginBottom: 12 }}>
-        {abertos.length} {abertos.length === 1 ? "recebível em aberto" : "recebíveis em aberto"}
+      <div style={{ marginBottom: 12 }}>
+        <span style={{
+          display: "inline-block", fontSize: 10.5, color: T.muted,
+          background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 999, padding: "2px 9px",
+        }}>
+          {abertos.length} {abertos.length === 1 ? "conta em aberto" : "contas em aberto"}
+          {prazoMedio != null ? ` · prazo médio: ${prazoMedio} ${prazoMedio === 1 ? "dia" : "dias"}` : ""}
+        </span>
       </div>
 
       {abertos.length === 0 ? (
