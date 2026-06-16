@@ -53,11 +53,11 @@ export default function Planejamento(props) {
   const VisaoGeral = ({ legenda, itens }) => (
     <div style={{ borderTop: `1px solid ${T.border}`, padding: "10px 16px 12px" }}>
       <div style={{ fontSize: 8.5, letterSpacing: ".14em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 8 }}>{legenda}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(72px, 1fr))", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))", gap: 8 }}>
         {itens.map(it => (
-          <div key={it.lbl}>
+          <div key={it.lbl} style={{ background: T.bgSoft, borderRadius: 12, padding: "10px 11px", borderLeft: `3px solid ${it.cor}` }}>
             <div style={{ fontSize: 8.5, letterSpacing: ".05em", textTransform: "uppercase", color: T.faint, fontWeight: 700 }}>{it.lbl}</div>
-            <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 13.5, fontWeight: 700, color: it.cor, marginTop: 3, whiteSpace: "nowrap" }}>
+            <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 14, fontWeight: 700, color: it.cor, marginTop: 4, whiteSpace: "nowrap" }}>
               {hidden ? "•••" : fmt(it.v)}
             </div>
           </div>

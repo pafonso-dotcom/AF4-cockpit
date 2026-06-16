@@ -291,7 +291,9 @@ export default function DespesasFixas({
         );
       })()}
 
-      {/* Resumo do mês: 4 cards */}
+      {/* Resumo do mês: 4 cards — escondido quando embutido (o Centro de
+          Controle já mostra a visão geral fixa no topo da seção). */}
+      {!embed && (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <ResumoCard label="Total previsto" valor={hidden ? "•••" : fmt(resumo.previsto)}
                     sub={`${resumo.total} ${resumo.total === 1 ? "fixa" : "fixas"}`} cor={T.muted} />
@@ -302,6 +304,7 @@ export default function DespesasFixas({
         <ResumoCard label="⚠ Atrasado" valor={hidden ? "•••" : fmt(resumo.atrasado)}
                     sub={`${resumo.qtdAtrasadas} ${resumo.qtdAtrasadas === 1 ? "atrasada" : "atrasadas"}`} cor={T.red} />
       </div>
+      )}
 
       {/* Lista de cards das fixas do mês */}
       {ocorrenciasDoMes.length === 0 ? (
