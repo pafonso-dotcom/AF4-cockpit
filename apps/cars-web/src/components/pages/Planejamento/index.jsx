@@ -17,10 +17,12 @@ export default function Planejamento(props) {
 
   const toggle = (id) => setAberto(prev => (prev === id ? null : id));
 
-  // A Receber · todos os meses: recebido / pendente / atrasado / total previsto.
+  // A Receber: recebido (todos) / pendente (vence no MÊS corrente) / atrasado
+  // (todos vencidos) / total previsto (tudo: recebido + tudo em aberto).
   const resumoReceber = useMemo(() => {
     const hoje = new Date().toISOString().slice(0, 10);
-    let recebido = 0, pendente = 0, atrasado = 0;
+    const mes = hoje.slice(0, 7);
+    let recebido = 0, pendenteMes = 0, atrasado = 0, abertoTotal = 0;
     devedores.forEach(d => {
       const valor = Number(d.valor) || 0;
       const vr = Number(d.valorRecebido) || 0;
@@ -28,10 +30,12 @@ export default function Planejamento(props) {
       recebido += vr; // recebimentos parciais já contam como "recebido"
       const restante = Math.max(0, valor - vr);
       if (restante <= 0) return;
+      abertoTotal += restante;
       if (d.vencimento && d.vencimento < hoje) atrasado += restante;
-      else pendente += restante;
+      else if (!d.vencimento || d.vencimento.slice(0, 7) === mes) pendenteMes += restante;
+      // vencimentos de meses futuros não entram em "pendente (mês)"
     });
-    return { recebido, pendente, atrasado, total: recebido + pendente + atrasado };
+    return { recebido, pendente: pendenteMes, atrasado, total: recebido + abertoTotal };
   }, [devedores]);
 
   // Despesas Fixas · mês: já pago / pendente / atrasado / total previsto.
@@ -116,7 +120,7 @@ export default function Planejamento(props) {
               legenda="Visão geral · todos os meses"
               itens={[
                 { lbl: "Recebido", v: resumoReceber.recebido, cor: T.green },
-                { lbl: "Pendente", v: resumoReceber.pendente, cor: T.gold },
+                { lbl: "Pendente (mês)", v: resumoReceber.pendente, cor: T.gold },
                 { lbl: "Atrasado", v: resumoReceber.atrasado, cor: T.red },
                 { lbl: "Total previsto", v: resumoReceber.total, cor: T.ink },
               ]}
