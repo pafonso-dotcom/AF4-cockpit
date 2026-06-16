@@ -812,8 +812,8 @@ export default function AReceberEDividas({
       />
       )}
 
-      {/* ===== Visão geral · todos os meses ===== */}
-      {(() => {
+      {/* ===== Visão geral · todos os meses (oculta quando embutido) ===== */}
+      {!embed && (() => {
         const totalReceber = devAbertos.reduce((s, d) => s + aReceberDe(d), 0);
         const totalPagar   = divAbertas.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
         const saldoPrevisto = totalReceber - totalPagar;
