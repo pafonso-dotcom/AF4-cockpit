@@ -386,7 +386,7 @@ function HeaderHorizontal({
                   background: active ? "rgba(255,255,255,0.10)" : "transparent",
                   color: active ? NAV_INK : NAV_MUTED,
                   border: `1px solid ${active ? NAV_BORDER : "transparent"}`,
-                  fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: active ? 700 : 600,
+                  fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500,
                   display: "flex", alignItems: "center", gap: 7, whiteSpace: "nowrap",
                   cursor: "pointer", transition: "all .2s", fontFamily: T.sans,
                 }}>
@@ -422,7 +422,7 @@ function HeaderHorizontal({
                   color: active ? T.gold : NAV_MUTED,
                   borderTop: "none", borderLeft: "none", borderRight: "none",
                   borderBottom: `2px solid ${active ? T.gold : "transparent"}`,
-                  fontSize: 13, letterSpacing: ".01em", fontWeight: active ? 600 : 400,
+                  fontSize: 13.5, letterSpacing: ".01em", fontWeight: 500,
                   display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
                   cursor: "grab", transition: "color .15s, background .15s, border-color .15s",
                   fontFamily: "'Nunito', system-ui, sans-serif", borderRadius: "6px 6px 0 0",
