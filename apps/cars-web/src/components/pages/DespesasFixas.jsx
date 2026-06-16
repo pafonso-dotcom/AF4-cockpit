@@ -244,7 +244,13 @@ export default function DespesasFixas({
 
   return (
     <div className={embed ? "" : "fade-up py-8 px-6"}>
-      {!embed && (
+      {embed ? (
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+          <button className="btn-gold" onClick={() => { setEditingFixa(null); setModalNovaFixaOpen(true); }}>
+            <Plus size={14} className="inline mr-1.5" /> Nova fixa
+          </button>
+        </div>
+      ) : (
       <PageHeader
         eyebrow="Finanças · Recorrência"
         title={<>Despesas <em>Fixas.</em></>}

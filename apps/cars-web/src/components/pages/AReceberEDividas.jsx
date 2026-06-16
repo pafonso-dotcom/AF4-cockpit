@@ -776,7 +776,24 @@ export default function AReceberEDividas({
 
   return (
     <div className={(embed || somenteReceber) ? "" : "fade-up py-8 px-6"}>
-      {embed ? null : somenteReceber ? (
+      {embed ? (
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+          <button className="btn-ghost" onClick={() => setForm({
+            id: null, tipo: "receber", nome: "", valor: "", vencimento: "",
+            categoria: "Outros", obs: "", parcela: "",
+            parcelar: false, numParcelas: 3, modoValor: "total",
+          })}>
+            <Plus size={13} className="inline mr-1.5" /> Recebimento
+          </button>
+          <button className="btn-gold" onClick={() => setForm({
+            id: null, tipo: "dividas", nome: "", valor: "", vencimento: "",
+            categoria: "Outros", escopo: "pessoal", obs: "", parcela: "",
+            parcelar: false, numParcelas: 3, modoValor: "total",
+          })}>
+            <Plus size={13} className="inline mr-1.5" /> Compromisso
+          </button>
+        </div>
+      ) : somenteReceber ? (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
           <button className="btn-ghost" onClick={() => setForm({
             id: null, tipo: "receber", nome: "", valor: "", vencimento: "",
