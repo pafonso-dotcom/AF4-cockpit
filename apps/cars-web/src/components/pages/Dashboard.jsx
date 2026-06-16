@@ -612,33 +612,20 @@ function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = fals
       {data.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Nenhuma despesa este mês.</div>
       ) : (
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <div style={{ width: 140, height: 140, position: "relative", flexShrink: 0 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={data} dataKey="valor" cx="50%" cy="50%" innerRadius={45} outerRadius={65} stroke="none" cornerRadius={5} paddingAngle={2}>
-                {data.map((d,i) => <Cell key={i} fill={d.cor} />)}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 9, color: T.muted, letterSpacing: ".15em" }}>TOTAL</div>
-              <div className="num" style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 600, color: T.ink }}>{hidden ? "•••" : fmt(total)}</div>
-              <div style={{ fontSize: 9, color: T.muted }}>100%</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        {data.slice(0, 6).map((d,i) => {
+          const w = (d.valor / (data[0]?.valor || 1)) * 100;
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <span style={{ width: 92, flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.nome}</span>
+              <div style={{ flex: 1, height: 8, borderRadius: 6, background: T.bgSoft, overflow: "hidden" }}>
+                <div style={{ width: `${w}%`, height: "100%", borderRadius: 6, background: d.cor, transition: "width .5s ease" }} />
+              </div>
+              <span style={{ width: 32, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.ink }}>{fmtN(d.pct, 0)}%</span>
+              <span className="num" style={{ width: 78, textAlign: "right", flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(d.valor)}</span>
             </div>
-          </div>
-        </div>
-        <div style={{ flex: 1, minWidth: 140, fontSize: 11, display: "flex", flexDirection: "column", gap: 5 }}>
-          {data.slice(0, 6).map((d,i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: d.cor, flexShrink: 0 }} />
-              <span style={{ flex: 1, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.nome}</span>
-              <span style={{ color: T.ink }}>{fmtN(d.pct, 0)}%</span>
-              <span className="num" style={{ color: T.muted, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(d.valor)}</span>
-            </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
       )}
       {orcamento > 0 && data.length > 0 && (() => {
