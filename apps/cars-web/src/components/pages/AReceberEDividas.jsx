@@ -32,6 +32,7 @@ export default function AReceberEDividas({
   hidden,
   somenteReceber = false, // quando true, esconde o lado "A Pagar" (usado na tela unificada)
   vistaInicial = "receber", // "receber" | "pagar" — qual lado abre por padrão
+  embed = false, // quando true, some o cabeçalho de página (usado no hub de Planejamento)
 }) {
   const [form, setForm] = useState(null);        // {tipo, ...} novo/editar
   const [baixaForm, setBaixaForm] = useState(null); // baixa de um item
@@ -774,8 +775,8 @@ export default function AReceberEDividas({
   };
 
   return (
-    <div className={somenteReceber ? "" : "fade-up py-8 px-6"}>
-      {somenteReceber ? (
+    <div className={(embed || somenteReceber) ? "" : "fade-up py-8 px-6"}>
+      {embed ? null : somenteReceber ? (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
           <button className="btn-ghost" onClick={() => setForm({
             id: null, tipo: "receber", nome: "", valor: "", vencimento: "",

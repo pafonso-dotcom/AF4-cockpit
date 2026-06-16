@@ -26,6 +26,7 @@ export default function DespesasFixas({
   contas = [],
   transacoes = [],
   setTransacoes,
+  embed = false,
   hidden,
 }) {
   const hojeISO = todayISO();
@@ -242,7 +243,8 @@ export default function DespesasFixas({
   };
 
   return (
-    <div className="fade-up py-8 px-6">
+    <div className={embed ? "" : "fade-up py-8 px-6"}>
+      {!embed && (
       <PageHeader
         eyebrow="Finanças · Recorrência"
         title={<>Despesas <em>Fixas.</em></>}
@@ -258,6 +260,7 @@ export default function DespesasFixas({
           </div>
         }
       />
+      )}
 
       {/* Seletor de mês compacto */}
       {(() => {
