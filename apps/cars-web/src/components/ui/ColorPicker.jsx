@@ -34,7 +34,7 @@ export default function ColorPicker({ value, onChange }) {
             onClick={() => onChange(c)}
             onKeyDown={e => onKey(e, i)}
             style={{
-              width: 32, height: 32, background: c, borderRadius: 6,
+              width: 32, height: 32, background: c, borderRadius: 11,
               border: sel ? `2px solid ${T.ink}` : `1px solid ${T.border}`,
               cursor: "pointer", padding: 0,
               display: "grid", placeItems: "center",

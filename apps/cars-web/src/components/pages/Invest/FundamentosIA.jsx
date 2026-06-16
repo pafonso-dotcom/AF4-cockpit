@@ -83,11 +83,11 @@ export default function FundamentosIA({ ativos = [] }) {
       </div>
 
       {linhas.length === 0 ? (
-        <div style={{ padding: 40, textAlign: "center", color: T.muted, fontStyle: "italic", border: `1px dashed ${T.border}`, borderRadius: 12, background: T.card }}>
+        <div style={{ padding: 40, textAlign: "center", color: T.muted, fontStyle: "italic", border: `1px dashed ${T.border}`, borderRadius: 18, background: T.card }}>
           Nenhum ativo dessa classe ainda. Cadastre um ativo e clique em "Analisar com IA".
         </div>
       ) : (
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
@@ -159,7 +159,7 @@ function MetodologiaEditor() {
   const salvar = () => { salvarMetodologia(classe, texto); toast.success("Metodologia salva."); };
 
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16 }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 16 }}>
       <button onClick={() => setAberto(a => !a)}
               style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "transparent", border: "none", cursor: "pointer", color: T.ink, textAlign: "left" }}>
         <BookOpen size={18} style={{ color: T.gold }} />
@@ -185,7 +185,7 @@ function MetodologiaEditor() {
           </div>
           <textarea value={texto} onChange={e => setTexto(e.target.value)} rows={7}
             placeholder={"Ex.: Priorizo FIIs de tijolo com DY ≥ 8%, vacância < 10%, P/VP entre 0,8 e 1,1, e bom histórico de gestão…"}
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 13, resize: "vertical", lineHeight: 1.5 }} />
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 14, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 13, resize: "vertical", lineHeight: 1.5 }} />
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
             <button onClick={salvar} style={btnGold()}>Salvar metodologia</button>
           </div>
@@ -301,6 +301,6 @@ function Campo({ label, hint, children }) {
 
 const th = (a) => ({ padding: "9px 11px", textAlign: a, fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 600 });
 const td = () => ({ padding: "9px 11px", verticalAlign: "middle" });
-const inp = { padding: "8px 10px", borderRadius: 7, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 13, width: "100%" };
-const btnGold = () => ({ background: T.gold, color: "#1a1407", border: "none", padding: "9px 16px", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer" });
-const btnGhost = () => ({ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, padding: "9px 16px", borderRadius: 8, fontSize: 13, cursor: "pointer" });
+const inp = { padding: "8px 10px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 13, width: "100%" };
+const btnGold = () => ({ background: T.gold, color: "#1a1407", border: "none", padding: "9px 16px", borderRadius: 14, fontWeight: 700, fontSize: 13, cursor: "pointer" });
+const btnGhost = () => ({ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, padding: "9px 16px", borderRadius: 14, fontSize: 13, cursor: "pointer" });

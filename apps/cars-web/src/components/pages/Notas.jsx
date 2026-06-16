@@ -308,7 +308,7 @@ export default function Notas({ agenda = [], setAgenda, notasLegacy = [], setNot
             style={{
               width: "100%", padding: "9px 10px 9px 32px",
               background: T.card, border: `1px solid ${T.border}`,
-              color: T.ink, fontSize: 13, borderRadius: 6,
+              color: T.ink, fontSize: 13, borderRadius: 11,
             }}
           />
         </div>
@@ -499,7 +499,7 @@ function StatBox({ label, value, cor, destaque }) {
     <div style={{
       background: destaque ? `${cor}15` : T.card,
       border: `1px solid ${destaque ? `${cor}55` : T.border}`,
-      borderRadius: 8, padding: "10px 12px",
+      borderRadius: 14, padding: "10px 12px",
     }}>
       <div style={{ fontSize: 10, color: T.muted, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 600 }}>
         {label}
@@ -542,7 +542,7 @@ function EventoCard({ ev, onEdit, onPin, onFeito, onExcluir, dimmed }) {
       background: `${meta.cor}0d`,
       border: `1px solid ${meta.cor}33`,
       borderLeft: `4px solid ${meta.cor}`,
-      borderRadius: 8,
+      borderRadius: 14,
       padding: "12px 14px",
       display: "grid",
       gridTemplateColumns: "auto 1fr auto",
@@ -657,7 +657,7 @@ function EmptyState({ onCriar, temEventos }) {
   return (
     <div style={{
       textAlign: "center", padding: "64px 24px",
-      background: T.card, border: `1px dashed ${T.border}`, borderRadius: 12,
+      background: T.card, border: `1px dashed ${T.border}`, borderRadius: 18,
     }}>
       <div style={{
         width: 60, height: 60, margin: "0 auto 16px",

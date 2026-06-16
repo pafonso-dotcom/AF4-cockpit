@@ -322,7 +322,7 @@ export default function Calendario({
         </div>
         <div className="flex items-center gap-2">
           {/* Toggle de vista */}
-          <div style={{ display: "inline-flex", gap: 0, background: T.bgSoft, padding: 3, borderRadius: 8, border: `1px solid ${T.border}` }}>
+          <div style={{ display: "inline-flex", gap: 0, background: T.bgSoft, padding: 3, borderRadius: 14, border: `1px solid ${T.border}` }}>
             {[{ id: "mes", l: "Mês" }, { id: "semana", l: "Semana" }, { id: "dia", l: "Dia" }].map(o => {
               const ativo = vista === o.id;
               return (
@@ -331,7 +331,7 @@ export default function Calendario({
                     padding: "5px 12px", fontSize: 11, fontWeight: ativo ? 700 : 500,
                     background: ativo ? T.card : "transparent", color: ativo ? T.gold : T.muted,
                     border: ativo ? `1px solid ${T.gold}55` : "1px solid transparent",
-                    borderRadius: 6, cursor: "pointer",
+                    borderRadius: 11, cursor: "pointer",
                   }}>{o.l}</button>
               );
             })}
@@ -462,7 +462,7 @@ export default function Calendario({
                           background: `${meta.cor}0d`,
                           border: `1px solid ${meta.cor}33`,
                           borderLeft: `4px solid ${meta.cor}`,
-                          padding: 12, borderRadius: 6,
+                          padding: 12, borderRadius: 11,
                           display: "flex", alignItems: "flex-start", gap: 10,
                           opacity: feito ? 0.55 : 1,
                         }}>

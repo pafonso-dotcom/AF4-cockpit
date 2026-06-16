@@ -99,7 +99,7 @@ export default function AgendaInicio({
       {/* Conversa rápida */}
       <div style={{
         background: `${T.gold}10`, border: `1px solid ${T.gold}44`,
-        borderLeft: `3px solid ${T.gold}`, borderRadius: 10,
+        borderLeft: `3px solid ${T.gold}`, borderRadius: 16,
         padding: "12px 14px", marginBottom: 20,
         display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
       }} onClick={() => setTab("conversa")}>
@@ -239,7 +239,7 @@ export default function AgendaInicio({
             {(ideias || []).filter(i => i.pinned).slice(0, 4).map(i => (
               <div key={i.id} onClick={() => go("ideias")}
                    style={{
-                     padding: "8px 10px", background: T.bgSoft, borderRadius: 6,
+                     padding: "8px 10px", background: T.bgSoft, borderRadius: 11,
                      borderLeft: `3px solid ${T.gold}`, cursor: "pointer",
                      fontSize: 12.5, color: T.ink, lineHeight: 1.4,
                      display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
@@ -309,7 +309,7 @@ function KpiCard({ icon: Icon, cor, valor, label, subtitle, onClick }) {
     <button onClick={onClick}
             className="kpi-card"
             style={{
-              background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
+              background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
               padding: "14px 14px", textAlign: "left", cursor: "pointer",
               display: "flex", flexDirection: "column", gap: 8,
               transition: "border-color .15s, transform .15s",
@@ -346,7 +346,7 @@ function KpiCard({ icon: Icon, cor, valor, label, subtitle, onClick }) {
 function SectionCard({ titulo, acao, vazio, vazioMsg, vazioIcone: VazioIcone, children }) {
   return (
     <div style={{
-      background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
+      background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
       padding: "14px 16px",
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -381,7 +381,7 @@ function EventoRow({ ev, onClick }) {
     <div onClick={onClick}
          style={{
            display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12,
-           padding: "9px 10px", borderRadius: 8,
+           padding: "9px 10px", borderRadius: 14,
            background: T.bgSoft, borderLeft: `3px solid ${cat.cor}`,
            cursor: "pointer",
          }}>
@@ -411,7 +411,7 @@ function TarefaMiniRow({ t, onClick }) {
     <div onClick={onClick}
          style={{
            display: "flex", alignItems: "center", gap: 10,
-           padding: "9px 10px", borderRadius: 8,
+           padding: "9px 10px", borderRadius: 14,
            background: T.bgSoft,
            borderLeft: `3px solid ${PRIO_COR[t.prioridade] || T.gold}`,
            cursor: "pointer",

@@ -187,7 +187,7 @@ export default function VoiceTransacao({ contas, categorias, transacoes, setTran
       {step === "recorded" && audioUrl && (
         <div style={{ padding: "10px 0" }}>
           <div style={{
-            background: T.bgSoft, borderRadius: 10, padding: 16,
+            background: T.bgSoft, borderRadius: 16, padding: 16,
             display: "flex", alignItems: "center", gap: 14, marginBottom: 16,
           }}>
             <button onClick={toggleTocar} style={{
@@ -235,7 +235,7 @@ export default function VoiceTransacao({ contas, categorias, transacoes, setTran
         <>
           <div style={{
             padding: 12, marginBottom: 14, background: `${T.green}11`,
-            border: `1px solid ${T.green}`, borderRadius: 7,
+            border: `1px solid ${T.green}`, borderRadius: 12,
             display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: T.green,
           }}>
             <CheckCircle2 size={14} /> Dados extraídos! Revise e ajuste se precisar.
@@ -320,7 +320,7 @@ function ErroBox({ texto }) {
   return (
     <div style={{
       marginTop: 14, padding: 10, background: `${T.red}22`, color: T.red,
-      border: `1px solid ${T.red}`, borderRadius: 6, fontSize: 12,
+      border: `1px solid ${T.red}`, borderRadius: 11, fontSize: 12,
       display: "flex", alignItems: "center", gap: 8,
     }}>
       <AlertCircle size={14} /> {texto}

@@ -270,7 +270,7 @@ export default function DespesasFixas({
           const d = new Date(y, m - 1 + delta, 1);
           return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
         };
-        const navBtn = { background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 8, width: 34, height: 34, cursor: "pointer", fontSize: 16, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center" };
+        const navBtn = { background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 14, width: 34, height: 34, cursor: "pointer", fontSize: 16, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center" };
         return (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
             <button onClick={() => setMesAtivo(addMes(-1))} aria-label="Mês anterior" style={navBtn}>‹</button>
@@ -282,7 +282,7 @@ export default function DespesasFixas({
             </div>
             <button onClick={() => setMesAtivo(addMes(1))} aria-label="Próximo mês" style={navBtn}>›</button>
             {!isCorrente && (
-              <button onClick={() => setMesAtivo(mesAtualISO)} style={{ background: "transparent", color: T.gold, border: `1px solid ${T.border}`, borderRadius: 8, padding: "0 12px", height: 34, cursor: "pointer", fontSize: 12 }}>Hoje</button>
+              <button onClick={() => setMesAtivo(mesAtualISO)} style={{ background: "transparent", color: T.gold, border: `1px solid ${T.border}`, borderRadius: 14, padding: "0 12px", height: 34, cursor: "pointer", fontSize: 12 }}>Hoje</button>
             )}
           </div>
         );
@@ -304,7 +304,7 @@ export default function DespesasFixas({
       {ocorrenciasDoMes.length === 0 ? (
         <div style={{
           padding: 50, textAlign: "center", color: T.muted, fontStyle: "italic",
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10,
+          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
         }}>
           Nenhuma despesa fixa em {MES_NOMES_LONGOS[parseInt(mesAtivo.slice(5), 10) - 1]}/{mesAtivo.slice(0, 4)}.
           {fixas.length === 0 && <div style={{ marginTop: 8 }}>Comece criando uma com o botão <strong>+ Nova fixa</strong>.</div>}
@@ -320,11 +320,11 @@ export default function DespesasFixas({
             return (
               <div key={occ.id} style={{
                 background: v.bg, border: `1px solid ${v.border}55`, borderLeft: `4px solid ${v.border}`,
-                borderRadius: 10, padding: "4px 10px",
+                borderRadius: 16, padding: "4px 10px",
                 display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
               }}>
                 <div style={{
-                  width: 26, height: 26, borderRadius: 7,
+                  width: 26, height: 26, borderRadius: 12,
                   background: cat ? `${cat.cor}22` : T.bgSoft,
                   color: cat ? cat.cor : T.muted,
                   display: "grid", placeItems: "center", flexShrink: 0,
@@ -365,7 +365,7 @@ export default function DespesasFixas({
                         background: T.green, color: T.bg, border: "none",
                         padding: "5px 11px", fontSize: 11, letterSpacing: ".08em",
                         textTransform: "uppercase", fontWeight: 600, cursor: "pointer",
-                        borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 5,
+                        borderRadius: 11, display: "inline-flex", alignItems: "center", gap: 5,
                       }}>
                       <Check size={11} /> Pagar
                     </button>
@@ -383,7 +383,7 @@ export default function DespesasFixas({
                       title="Desmarcar pagamento"
                       style={{ background: "transparent", color: T.muted,
                                border: `1px solid ${T.border}`, padding: "5px 8px",
-                               borderRadius: 6, cursor: "pointer", fontSize: 10 }}>
+                               borderRadius: 11, cursor: "pointer", fontSize: 10 }}>
                       ↶
                     </button>
                   )}
@@ -392,14 +392,14 @@ export default function DespesasFixas({
                     title="Editar fixa"
                     style={{ background: "transparent", color: T.muted,
                              border: `1px solid ${T.border}`, padding: "5px 8px",
-                             borderRadius: 6, cursor: "pointer" }}>
+                             borderRadius: 11, cursor: "pointer" }}>
                     <Edit3 size={12} />
                   </button>
                   <button onClick={() => handleExcluirFixa(fixa)}
                     title="Excluir fixa"
                     style={{ background: "transparent", color: T.red,
                              border: `1px solid ${T.red}55`, padding: "5px 8px",
-                             borderRadius: 6, cursor: "pointer" }}>
+                             borderRadius: 11, cursor: "pointer" }}>
                     <Trash2 size={12} />
                   </button>
                 </div>
@@ -443,7 +443,7 @@ function ResumoCard({ label, valor, sub, cor }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${cor}`, borderRadius: 8, padding: 14,
+      borderLeft: `3px solid ${cor}`, borderRadius: 14, padding: 14,
     }}>
       <div style={{
         fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",

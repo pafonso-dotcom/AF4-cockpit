@@ -165,7 +165,7 @@ Retorne EXATAMENTE este JSON (sem markdown):
       {sinais.length === 0 ? (
         <div style={{
           padding: 60, textAlign: "center", color: T.muted, fontStyle: "italic",
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10,
+          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
         }}>
           {loading
             ? "Buscando dados da Binance…"
@@ -199,7 +199,7 @@ function KpiCard({ label, valor, sub, cor }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${cor}`, borderRadius: 8, padding: 14,
+      borderLeft: `3px solid ${cor}`, borderRadius: 14, padding: 14,
     }}>
       <div style={{
         fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
@@ -227,11 +227,11 @@ function SinalCard({ s, explicacao, explicando, onExplicar }) {
   if (s.erro) {
     return (
       <div style={{
-        background: T.card, border: `1px dashed ${T.red}55`, borderRadius: 10,
+        background: T.card, border: `1px dashed ${T.red}55`, borderRadius: 16,
         padding: "10px 14px", display: "flex", alignItems: "center", gap: 12,
         opacity: 0.6,
       }}>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: T.bgSoft,
+        <div style={{ width: 32, height: 32, borderRadius: 14, background: T.bgSoft,
                       display: "grid", placeItems: "center", fontSize: 16 }}>
           {s.icon}
         </div>
@@ -246,13 +246,13 @@ function SinalCard({ s, explicacao, explicando, onExplicar }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${s.score >= 70 ? T.gold + "66" : T.border}`,
-      borderLeft: `4px solid ${scoreCor}`, borderRadius: 10,
+      borderLeft: `4px solid ${scoreCor}`, borderRadius: 16,
     }}>
       <div style={{
         padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
       }}>
         <div style={{
-          width: 36, height: 36, borderRadius: 8, background: T.bgSoft,
+          width: 36, height: 36, borderRadius: 14, background: T.bgSoft,
           display: "grid", placeItems: "center", flexShrink: 0,
           fontSize: 18, fontWeight: 700, color: T.gold,
         }}>{s.icon}</div>
@@ -291,7 +291,7 @@ function SinalCard({ s, explicacao, explicando, onExplicar }) {
           style={{
             background: explicacao && !explicacao.erro ? `${T.gold}22` : "transparent",
             color: T.gold, border: `1px solid ${T.gold}55`,
-            padding: "6px 11px", borderRadius: 6, fontSize: 10.5, fontWeight: 600,
+            padding: "6px 11px", borderRadius: 11, fontSize: 10.5, fontWeight: 600,
             letterSpacing: ".05em", cursor: explicando ? "wait" : "pointer",
             display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
           }}>
@@ -317,7 +317,7 @@ function SinalCard({ s, explicacao, explicando, onExplicar }) {
         <div style={{
           margin: "0 14px 14px", padding: 12,
           background: `${T.gold}11`, border: `1px solid ${T.gold}55`,
-          borderRadius: 8,
+          borderRadius: 14,
         }}>
           <div style={{
             display: "flex", alignItems: "center", gap: 6, marginBottom: 6,
@@ -347,7 +347,7 @@ function SinalCard({ s, explicacao, explicando, onExplicar }) {
       {explicacao && explicacao.erro && (
         <div style={{
           margin: "0 14px 14px", padding: 10, fontSize: 11,
-          background: `${T.red}11`, color: T.red, borderRadius: 6,
+          background: `${T.red}11`, color: T.red, borderRadius: 11,
         }}>
           ✗ {explicacao.erro}
         </div>

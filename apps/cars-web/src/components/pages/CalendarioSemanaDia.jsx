@@ -56,7 +56,7 @@ export default function CalendarioSemanaDia({ modo, refDate, eventos = [], catMe
   const alturaPx = (dur) => Math.max(22, ((Number(dur) || 60) / 60) * PX_HORA);
 
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden" }}>
       {/* Cabeçalho dos dias */}
       <div style={{ display: "grid", gridTemplateColumns: `48px repeat(${dias.length}, 1fr)`, borderBottom: `1px solid ${T.border}` }}>
         <div style={{ background: T.bgSoft }} />

@@ -125,7 +125,7 @@ export default function AtencaoView({
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div style={{
           background: T.card, borderLeft: `3px solid ${T.red}`,
-          border: `1px solid ${T.red}33`, borderRadius: 8, padding: 14,
+          border: `1px solid ${T.red}33`, borderRadius: 14, padding: 14,
         }}>
           <div style={{ fontSize: 9.5, letterSpacing: ".15em", color: T.muted, textTransform: "uppercase", fontWeight: 700 }}>
             🔴 Vencidos
@@ -139,7 +139,7 @@ export default function AtencaoView({
         </div>
         <div style={{
           background: T.card, borderLeft: `3px solid ${T.gold}`,
-          border: `1px solid ${T.gold}33`, borderRadius: 8, padding: 14,
+          border: `1px solid ${T.gold}33`, borderRadius: 14, padding: 14,
         }}>
           <div style={{ fontSize: 9.5, letterSpacing: ".15em", color: T.muted, textTransform: "uppercase", fontWeight: 700 }}>
             🟡 Próximos 3 dias
@@ -157,7 +157,7 @@ export default function AtencaoView({
       {itens.length === 0 ? (
         <div style={{
           padding: 60, textAlign: "center", color: T.muted, fontStyle: "italic",
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10,
+          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
         }}>
           🎉 Nenhum item crítico. Tudo em dia!
         </div>
@@ -170,7 +170,7 @@ export default function AtencaoView({
                 background: it.atrasado ? `${T.red}11` : `${T.gold}11`,
                 border: `1px solid ${it.atrasado ? T.red : T.gold}55`,
                 borderLeft: `4px solid ${it.atrasado ? T.red : T.gold}`,
-                borderRadius: 8, padding: "12px 14px",
+                borderRadius: 14, padding: "12px 14px",
                 display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
               }}>
                 <span style={{
@@ -198,7 +198,7 @@ export default function AtencaoView({
                 <button onClick={() => irPara(it.tipo)}
                   style={{
                     background: "transparent", color: cor,
-                    border: `1px solid ${cor}55`, borderRadius: 6,
+                    border: `1px solid ${cor}55`, borderRadius: 11,
                     padding: "7px 12px", fontSize: 10.5, fontWeight: 600,
                     letterSpacing: ".05em", textTransform: "uppercase", cursor: "pointer",
                     whiteSpace: "nowrap",

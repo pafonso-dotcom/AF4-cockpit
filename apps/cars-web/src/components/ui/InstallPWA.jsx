@@ -75,13 +75,13 @@ export default function InstallPWA() {
            position: "fixed", bottom: 16, right: 16, left: 16,
            maxWidth: 380, marginLeft: "auto",
            background: T.card, border: `1px solid ${T.gold}`,
-           borderRadius: 10, padding: 14,
+           borderRadius: 16, padding: 14,
            boxShadow: "0 12px 32px rgba(0,0,0,.4)",
            zIndex: 999, display: "flex", gap: 12,
            animation: "fadeUp .3s ease-out",
          }}>
       <div style={{
-        width: 36, height: 36, borderRadius: 8,
+        width: 36, height: 36, borderRadius: 14,
         background: `linear-gradient(135deg, ${T.gold}, ${T.goldHi})`,
         color: T.bg, display: "grid", placeItems: "center", flexShrink: 0,
       }}>

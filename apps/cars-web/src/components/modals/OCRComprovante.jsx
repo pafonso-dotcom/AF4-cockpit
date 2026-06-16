@@ -118,7 +118,7 @@ export default function OCRComprovante({
               <div onDrop={onDrop} onDragOver={e => e.preventDefault()}
                    onClick={() => fileRef.current?.click()}
                    style={{
-                     border: `2px dashed ${T.border}`, borderRadius: 12,
+                     border: `2px dashed ${T.border}`, borderRadius: 18,
                      padding: "40px 20px", textAlign: "center", cursor: "pointer",
                      background: T.bgSoft, transition: "all .2s",
                    }}
@@ -134,8 +134,8 @@ export default function OCRComprovante({
             </>
           ) : (
             <>
-              <div style={{ background: T.bgSoft, borderRadius: 8, padding: 14, marginBottom: 14, textAlign: "center" }}>
-                <img src={imagem.preview} alt="Preview" style={{ maxWidth: "100%", maxHeight: 400, borderRadius: 6, display: "block", margin: "0 auto" }} />
+              <div style={{ background: T.bgSoft, borderRadius: 14, padding: 14, marginBottom: 14, textAlign: "center" }}>
+                <img src={imagem.preview} alt="Preview" style={{ maxWidth: "100%", maxHeight: 400, borderRadius: 11, display: "block", margin: "0 auto" }} />
                 <div style={{ fontSize: 11, color: T.muted, marginTop: 8 }}>{imagem.file.name} · {Math.round(imagem.file.size / 1024)} KB</div>
               </div>
               <div className="flex gap-3">
@@ -147,7 +147,7 @@ export default function OCRComprovante({
             </>
           )}
           {erro && (
-            <div style={{ marginTop: 14, padding: 10, background: `${T.red}22`, color: T.red, border: `1px solid ${T.red}`, borderRadius: 6, fontSize: 12, display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ marginTop: 14, padding: 10, background: `${T.red}22`, color: T.red, border: `1px solid ${T.red}`, borderRadius: 11, fontSize: 12, display: "flex", alignItems: "center", gap: 8 }}>
               <AlertCircle size={14} /> {erro}
             </div>
           )}
@@ -164,7 +164,7 @@ export default function OCRComprovante({
 
       {step === "revisar" && forma && (
         <>
-          <div style={{ padding: 12, marginBottom: 14, background: `${T.green}11`, border: `1px solid ${T.green}`, borderRadius: 7, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: T.green, flexWrap: "wrap" }}>
+          <div style={{ padding: 12, marginBottom: 14, background: `${T.green}11`, border: `1px solid ${T.green}`, borderRadius: 12, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: T.green, flexWrap: "wrap" }}>
             <CheckCircle2 size={14} /> Dados extraídos! Revise antes de criar.
             {forma._fonte && (
               <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.muted }}>

@@ -119,7 +119,7 @@ export default function RelatoriosInvest({ ativos = [], transacoes = [], patrimo
       <div style={{
         display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap",
         padding: 14, marginTop: 12, marginBottom: 6,
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
       }}>
         <div style={{ flex: 1, minWidth: 220 }}>
           <div style={{ fontSize: 11, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, marginBottom: 4 }}>

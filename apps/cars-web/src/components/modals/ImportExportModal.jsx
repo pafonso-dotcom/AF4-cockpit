@@ -34,7 +34,7 @@ export default function ImportExportModal({ onClose, transacoes, setTransacoes, 
         maxWidth: 720, width: "100%",
         maxHeight: "92vh", overflowY: "auto",
         padding: 32, position: "relative",
-        borderRadius: 12,
+        borderRadius: 18,
         boxShadow: "0 24px 60px rgba(0,0,0,.6)",
       }}>
         <button onClick={onClose} aria-label="Fechar"

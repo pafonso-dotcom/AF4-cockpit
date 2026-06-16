@@ -22,7 +22,7 @@ export default function OnboardingTradeModal({ onClose }) {
       <div style={{
         padding: 12, fontSize: 11.5, color: T.muted,
         background: `${T.gold}11`, border: `1px solid ${T.gold}55`,
-        borderRadius: 6, lineHeight: 1.5,
+        borderRadius: 11, lineHeight: 1.5,
       }}>
         🪙 Watchlist padrão tem 15 criptos (BTC, ETH, SOL, etc.). Você pode adicionar/remover em
         <strong style={{ color: T.gold }}> AF4 Trade → Watchlist</strong>.
@@ -32,7 +32,7 @@ export default function OnboardingTradeModal({ onClose }) {
         <button onClick={onClose}
           style={{
             background: T.gold, color: T.bg, border: "none",
-            padding: "10px 18px", borderRadius: 7, fontSize: 12,
+            padding: "10px 18px", borderRadius: 12, fontSize: 12,
             letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 600,
             cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
           }}>

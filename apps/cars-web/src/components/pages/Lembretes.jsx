@@ -124,7 +124,7 @@ export default function Lembretes({ lembretes = [], setLembretes }) {
       />
 
       {lembretes.filter(l => !l.concluido).length === 0 && (
-        <div style={{ textAlign: "center", padding: "60px 24px", background: T.card, border: `1px dashed ${T.border}`, borderRadius: 12 }}>
+        <div style={{ textAlign: "center", padding: "60px 24px", background: T.card, border: `1px dashed ${T.border}`, borderRadius: 18 }}>
           <Bell size={36} style={{ color: T.gold, marginBottom: 12 }} />
           <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, margin: "0 0 8px", fontWeight: 600 }}>
             Sem lembretes
@@ -164,7 +164,7 @@ function LembreteCard({ lembrete: l, onConcluir, onEditar, onExcluir }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${T.gold}`, borderRadius: 8,
+      borderLeft: `3px solid ${T.gold}`, borderRadius: 14,
       padding: "10px 14px",
       display: "flex", alignItems: "center", gap: 12,
     }}>

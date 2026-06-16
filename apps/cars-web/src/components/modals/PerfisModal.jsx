@@ -77,7 +77,7 @@ export default function PerfisModal({ onClose }) {
               <div key={p.id} style={{
                 background: isAtivo ? `${p.cor}11` : T.card,
                 border: `${isAtivo ? "2px" : "1px"} solid ${isAtivo ? p.cor : T.border}`,
-                borderRadius: 8, padding: 12,
+                borderRadius: 14, padding: 12,
                 display: "flex", alignItems: "center", gap: 12,
               }}>
                 <div style={{
@@ -139,7 +139,7 @@ export default function PerfisModal({ onClose }) {
           <Plus size={13} /> Novo perfil
         </button>
 
-        <div style={{ marginTop: 16, padding: 12, background: T.bgSoft, borderRadius: 7, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
+        <div style={{ marginTop: 16, padding: 12, background: T.bgSoft, borderRadius: 12, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
           <strong style={{ color: T.gold }}>Como cada role acessa:</strong>
           <ul style={{ margin: "5px 0 0 18px", padding: 0 }}>
             <li><strong>Admin</strong> · vê tudo, edita tudo. Recomendado pra você.</li>
@@ -170,7 +170,7 @@ export default function PerfisModal({ onClose }) {
             </select>
           </Field>
 
-          <div style={{ marginTop: 10, padding: 10, background: T.bgSoft, borderRadius: 6, fontSize: 11, color: T.muted }}>
+          <div style={{ marginTop: 10, padding: 10, background: T.bgSoft, borderRadius: 11, fontSize: 11, color: T.muted }}>
             <strong style={{ color: roles[form.role].cor }}>{roles[form.role].label}</strong> verá:&nbsp;
             {Object.entries(roles[form.role].permissoes).filter(([, v]) => v).map(([k]) => k).join(", ") || "nenhum módulo"}
           </div>

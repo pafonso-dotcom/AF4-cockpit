@@ -85,7 +85,7 @@ export default function ResumoExecutivo({
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
-      borderRadius: 10, padding: 16, marginBottom: 18,
+      borderRadius: 16, padding: 16, marginBottom: 18,
     }}>
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -143,7 +143,7 @@ export default function ResumoExecutivo({
             title={clicavel ? `Abrir ${k.lbl}` : undefined}
             style={{
               background: T.bgSoft, padding: "12px 14px",
-              borderRadius: 8, borderLeft: `3px solid ${k.cor}`,
+              borderRadius: 14, borderLeft: `3px solid ${k.cor}`,
               cursor: clicavel ? "pointer" : "default",
               transition: "all .15s",
             }}>

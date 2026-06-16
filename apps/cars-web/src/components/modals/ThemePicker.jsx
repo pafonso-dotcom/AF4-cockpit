@@ -180,7 +180,7 @@ export default function ThemePicker({ themeId, setThemeId, onClose }) {
                     cursor: "pointer",
                   }}>
                   <span style={{
-                    width: 14, height: 14, borderRadius: 7,
+                    width: 14, height: 14, borderRadius: 12,
                     background: c.preview,
                     border: c.v === null ? `1px dashed ${T.muted}` : "none",
                   }} />

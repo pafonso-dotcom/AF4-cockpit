@@ -174,7 +174,7 @@ export default function ImportarExtrato({
 
         {parsing ? (
           <div style={{
-            border: `2px dashed ${T.gold}`, borderRadius: 12,
+            border: `2px dashed ${T.gold}`, borderRadius: 18,
             padding: "40px 20px", textAlign: "center",
             background: T.bgSoft,
           }}>
@@ -190,7 +190,7 @@ export default function ImportarExtrato({
         <div onDrop={onDrop} onDragOver={onDragOver}
              onClick={() => fileRef.current?.click()}
              style={{
-               border: `2px dashed ${T.border}`, borderRadius: 12,
+               border: `2px dashed ${T.border}`, borderRadius: 18,
                padding: "40px 20px", textAlign: "center", cursor: "pointer",
                background: T.bgSoft, transition: "all .2s",
              }}
@@ -217,14 +217,14 @@ export default function ImportarExtrato({
             marginTop: 14, padding: 10,
             background: `${T.red}22`, color: T.red,
             border: `1px solid ${T.red}`,
-            borderRadius: 6, fontSize: 12,
+            borderRadius: 11, fontSize: 12,
             display: "flex", alignItems: "center", gap: 8,
           }}>
             <AlertCircle size={14} /> {erro}
           </div>
         )}
 
-        <div style={{ marginTop: 18, padding: 12, background: T.bgSoft, borderRadius: 6, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
+        <div style={{ marginTop: 18, padding: 12, background: T.bgSoft, borderRadius: 11, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
           <strong style={{ color: T.gold }}>Como funciona:</strong>
           <ol style={{ margin: "6px 0 0 18px", padding: 0 }}>
             <li>Sistema lê e detecta automaticamente o banco</li>
@@ -272,7 +272,7 @@ export default function ImportarExtrato({
         </div>
       </div>
 
-      <div style={{ maxHeight: "50vh", overflowY: "auto", border: `1px solid ${T.border}`, borderRadius: 7 }}>
+      <div style={{ maxHeight: "50vh", overflowY: "auto", border: `1px solid ${T.border}`, borderRadius: 12 }}>
         {parsed.transacoes.map(t => {
           const edits = edicoes[t._id] || {};
           const sel = selecionadas.has(t._id);
@@ -331,7 +331,7 @@ export default function ImportarExtrato({
         })}
       </div>
 
-      <div style={{ marginTop: 14, padding: 10, background: T.bgSoft, borderRadius: 6, fontSize: 11, color: T.muted }}>
+      <div style={{ marginTop: 14, padding: 10, background: T.bgSoft, borderRadius: 11, fontSize: 11, color: T.muted }}>
         <strong style={{ color: T.gold }}>{selecionadas.size}</strong> de {parsed.transacoes.length} marcadas para importar.
         {qtdDuplicadas > 0 && (
           <span style={{ color: T.yellow || "#f59e0b", marginLeft: 8 }}>

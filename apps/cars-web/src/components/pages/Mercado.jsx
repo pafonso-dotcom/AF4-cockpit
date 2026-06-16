@@ -107,7 +107,7 @@ export default function Mercado({ ativos, apiKeys }) {
           <button onClick={() => setTick(t => t + 1)} disabled={liveLoading}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "8px 14px", borderRadius: 7, cursor: liveLoading ? "wait" : "pointer",
+              padding: "8px 14px", borderRadius: 12, cursor: liveLoading ? "wait" : "pointer",
               background: "transparent", border: `1px solid ${T.gold}`, color: T.gold,
               fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
               fontFamily: T.sans,

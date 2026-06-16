@@ -36,7 +36,7 @@ export default function KpiCard({
     return (
       <div style={{
         background: T.card, border: `1px solid ${T.border}`,
-        borderLeft: `3px solid ${corFinal}`, borderRadius: 12, padding: 12,
+        borderLeft: `3px solid ${corFinal}`, borderRadius: 18, padding: 12,
         boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)",
       }}>
         <div style={{

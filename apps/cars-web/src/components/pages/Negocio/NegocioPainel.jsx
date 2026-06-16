@@ -75,11 +75,11 @@ export default function NegocioPainel({
           style={{
             width: "100%", textAlign: "left", cursor: "pointer",
             background: T.card, border: `1px solid ${T.border}`,
-            borderLeft: `3px solid ${T.gold}`, borderRadius: 8, padding: 16,
+            borderLeft: `3px solid ${T.gold}`, borderRadius: 14, padding: 16,
             display: "flex", alignItems: "center", gap: 14,
           }}>
           <span style={{
-            width: 44, height: 44, borderRadius: 10,
+            width: 44, height: 44, borderRadius: 16,
             background: `${T.gold}22`, color: T.gold,
             display: "grid", placeItems: "center", flexShrink: 0,
           }}>
@@ -100,11 +100,11 @@ export default function NegocioPainel({
 
         <div style={{
           background: T.card, border: `1px solid ${T.border}`,
-          borderLeft: `3px solid ${T.blue || "#60a5fa"}`, borderRadius: 8, padding: 16,
+          borderLeft: `3px solid ${T.blue || "#60a5fa"}`, borderRadius: 14, padding: 16,
           display: "flex", alignItems: "center", gap: 14,
         }}>
           <span style={{
-            width: 44, height: 44, borderRadius: 10,
+            width: 44, height: 44, borderRadius: 16,
             background: `${T.blue || "#60a5fa"}22`, color: T.blue || "#60a5fa",
             display: "grid", placeItems: "center", flexShrink: 0,
           }}>
@@ -151,7 +151,7 @@ export default function NegocioPainel({
       {caixaModalAberto && (
         <Modal title="Caixa do Negócio · histórico" onClose={() => setCaixaModalAberto(false)}>
           <div style={{
-            padding: 12, marginBottom: 14, borderRadius: 6,
+            padding: 12, marginBottom: 14, borderRadius: 11,
             background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
@@ -168,7 +168,7 @@ export default function NegocioPainel({
           {historico.length === 0 ? (
             <div style={{
               padding: 28, fontSize: 12, color: T.faint, fontStyle: "italic", textAlign: "center",
-              background: T.bgSoft, borderRadius: 6,
+              background: T.bgSoft, borderRadius: 11,
             }}>
               Nenhuma movimentação ainda. Vendas de veículos, serviços e faturas recorrentes vão aparecer aqui.
             </div>
@@ -227,12 +227,12 @@ function Atalho({ icon: Icon, label, sub, cor, onClick }) {
     <button onClick={onClick} style={{
       background: T.card, border: `1px solid ${T.border}`,
       borderLeft: `3px solid ${cor}`,
-      borderRadius: 8, padding: 16, cursor: "pointer",
+      borderRadius: 14, padding: 16, cursor: "pointer",
       textAlign: "left", display: "flex", gap: 12, alignItems: "center",
       transition: "border-color .15s",
     }}>
       <span style={{
-        width: 36, height: 36, borderRadius: 8,
+        width: 36, height: 36, borderRadius: 14,
         background: `${cor}22`, color: cor,
         display: "grid", placeItems: "center", flexShrink: 0,
       }}>

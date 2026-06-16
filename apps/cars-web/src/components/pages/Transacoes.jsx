@@ -461,7 +461,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
       />
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-4" style={{ background: T.card, border: `1px solid ${T.border}`, padding: 10, borderRadius: 6 }}>
+      <div className="flex flex-wrap gap-2 mb-4" style={{ background: T.card, border: `1px solid ${T.border}`, padding: 10, borderRadius: 11 }}>
         <div className="flex items-center gap-2 flex-1 min-w-[180px] max-w-[320px]" style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 5, padding: "0 10px" }}>
           <Search size={13} style={{ color: T.muted, flexShrink: 0 }} />
           <input style={{ border: "none", background: "transparent", flex: 1, padding: "6px 0", fontSize: 12.5 }}
@@ -1039,7 +1039,7 @@ function TabelaMensal({ transacoes, hidden, onEdit }) {
                 background: ativo ? T.gold : "transparent",
                 color: ativo ? T.bg : T.muted,
                 border: `1px solid ${ativo ? T.gold : T.border}`,
-                borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap",
+                borderRadius: 11, cursor: "pointer", whiteSpace: "nowrap",
                 fontWeight: ativo ? 600 : 500, textTransform: "uppercase",
               }}>
               {isCorrente && "★ "}{MESES_NOMES[idx]}

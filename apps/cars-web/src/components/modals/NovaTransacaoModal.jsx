@@ -82,7 +82,7 @@ export default function NovaTransacaoModal({
   const catsDoTipo = categorias.filter(c => c.tipo === form.tipo);
 
   const lbl = { fontSize: 10, color: T.muted, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", marginBottom: 4 };
-  const inp = { width: "100%", padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 6 };
+  const inp = { width: "100%", padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 };
 
   return (
     <div onClick={onClose} style={{
@@ -90,7 +90,7 @@ export default function NovaTransacaoModal({
       display: "grid", placeItems: "center", zIndex: 1000, padding: 16,
     }}>
       <div onClick={e => e.stopPropagation()} style={{ maxHeight: "90vh", overflowY: "auto",
-        background: T.card, borderRadius: 12, padding: 22,
+        background: T.card, borderRadius: 18, padding: 22,
         width: "100%", maxWidth: 460, border: `1px solid ${T.border}`,
         maxHeight: "90vh", overflowY: "auto",
       }}>
@@ -116,7 +116,7 @@ export default function NovaTransacaoModal({
             return (
               <button key={tp} onClick={() => set("tipo", tp)}
                 style={{
-                  padding: "8px", borderRadius: 6, cursor: "pointer",
+                  padding: "8px", borderRadius: 11, cursor: "pointer",
                   border: `1px solid ${ativo ? cor : T.border}`,
                   background: ativo ? `${cor}22` : "transparent",
                   color: ativo ? cor : T.muted,
@@ -196,12 +196,12 @@ export default function NovaTransacaoModal({
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{
             padding: "8px 14px", background: "transparent", border: `1px solid ${T.border}`,
-            color: T.muted, borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer",
+            color: T.muted, borderRadius: 11, fontSize: 11, fontWeight: 600, cursor: "pointer",
             letterSpacing: ".05em", textTransform: "uppercase",
           }}>Cancelar</button>
           <button onClick={salvar} style={{
             padding: "8px 14px", background: T.gold, color: T.bg, border: "none",
-            borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer",
+            borderRadius: 11, fontSize: 11, fontWeight: 600, cursor: "pointer",
             letterSpacing: ".05em", textTransform: "uppercase",
             display: "inline-flex", alignItems: "center", gap: 6,
           }}>

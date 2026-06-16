@@ -35,13 +35,13 @@ export default function Historico({ tradeHistorico = [], setTradeHistorico }) {
       {tradeHistorico.length === 0 ? (
         <div style={{
           padding: 60, textAlign: "center", color: T.muted, fontStyle: "italic",
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10,
+          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
         }}>
           <HistoryIcon size={32} style={{ color: T.muted, marginBottom: 10 }} />
           <div>Nenhuma varredura ainda. Vá ao Radar e clique "Atualizar".</div>
         </div>
       ) : (
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "auto" }}>
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "auto" }}>
           <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 400 }}>
             <thead>
               <tr style={{ background: T.bgSoft }}>

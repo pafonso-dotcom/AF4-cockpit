@@ -111,7 +111,7 @@ export default function Clientes({
 
       {/* Busca */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
         padding: 10, marginBottom: 14, display: "flex", alignItems: "center", gap: 10,
       }}>
         <Search size={15} style={{ color: T.muted, flexShrink: 0 }} />
@@ -129,7 +129,7 @@ export default function Clientes({
       {/* Lista */}
       {listaFiltrada.length === 0 ? (
         <div style={{
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10,
+          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
           padding: 60, textAlign: "center", color: T.muted, fontStyle: "italic",
         }}>
           <User size={28} style={{ color: T.muted, marginBottom: 10 }} />
@@ -198,7 +198,7 @@ function ClienteCard({ cliente: c, stats, hidden, onEditar, onExcluir }) {
 
   return (
     <div style={{
-      background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+      background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
       padding: 14,
     }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>

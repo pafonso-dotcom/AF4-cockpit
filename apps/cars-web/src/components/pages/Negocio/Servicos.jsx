@@ -1070,7 +1070,7 @@ export default function Servicos({
                       title="Ver e cobrar todas as faturas em aberto"
                       style={{
                         background: `${T.red}18`, border: `1px solid ${T.red}`, color: T.red,
-                        padding: "8px 14px", borderRadius: 6, cursor: "pointer",
+                        padding: "8px 14px", borderRadius: 11, cursor: "pointer",
                         fontFamily: T.sans, fontSize: 12, fontWeight: 600,
                         display: "inline-flex", alignItems: "center", gap: 6,
                       }}>
@@ -1106,7 +1106,7 @@ export default function Servicos({
 
       {/* CONTROLE ANUAL · A RECEBER E A PAGAR */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
         padding: 14, marginBottom: 14,
       }}>
         <button onClick={() => setAnualExpandido(v => !v)}
@@ -1131,7 +1131,7 @@ export default function Servicos({
 
       {/* BANCO DO SERVIÇO · contas próprias */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
         padding: 14, marginBottom: 14,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
@@ -1194,7 +1194,7 @@ export default function Servicos({
 
       {/* FINANCEIRO · CAIXA DO NEGÓCIO */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
         padding: 14, marginBottom: 14,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
@@ -1257,7 +1257,7 @@ export default function Servicos({
 
             {/* Extrato */}
             {financeiro.movs.length > 0 && (
-              <div style={{ border: `1px solid ${T.border}`, borderRadius: 6, overflow: "hidden" }}>
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 11, overflow: "hidden" }}>
                 {financeiro.movs.slice(0, 200).map((h, i) => {
                   const v = Number(h.valor || 0);
                   const entrada = v >= 0;
@@ -1295,7 +1295,7 @@ export default function Servicos({
 
       {/* CATÁLOGO */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
         padding: 14, marginBottom: 14,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -1398,7 +1398,7 @@ export default function Servicos({
 
       {/* CONTRATOS RECORRENTES */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
         padding: 14, marginBottom: 14,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
@@ -1468,7 +1468,7 @@ export default function Servicos({
                   <div key={c.id} style={{
                     display: "grid",
                     gridTemplateColumns: "1fr auto auto auto",
-                    gap: 10, alignItems: "center", padding: "10px 12px", borderRadius: 6,
+                    gap: 10, alignItems: "center", padding: "10px 12px", borderRadius: 11,
                     background: T.bgSoft, opacity: inativo ? 0.55 : 1,
                     borderLeft: `3px solid ${faturadoEsteMes ? T.green : T.gold}`,
                   }}>
@@ -1584,7 +1584,7 @@ export default function Servicos({
 
       {/* COLABORADORES */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
         padding: 14, marginBottom: 14,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
@@ -1726,7 +1726,7 @@ export default function Servicos({
 
       {vendasFiltradas.length === 0 ? (
         <div style={{
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10,
+          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
           padding: 60, textAlign: "center", color: T.muted, fontStyle: "italic",
         }}>
           <Wrench size={28} style={{ color: T.muted, marginBottom: 10 }} />
@@ -1816,7 +1816,7 @@ export default function Servicos({
                       return (
                         <span key={id} style={{
                           display: "inline-flex", alignItems: "center", gap: 6,
-                          padding: "3px 4px 3px 9px", borderRadius: 12,
+                          padding: "3px 4px 3px 9px", borderRadius: 18,
                           background: `${T.gold}22`, border: `1px solid ${T.gold}66`,
                           fontSize: 11.5, color: T.ink, fontWeight: 500,
                         }}>
@@ -1826,7 +1826,7 @@ export default function Servicos({
                                   style={{
                                     display: "inline-flex", alignItems: "center", justifyContent: "center",
                                     background: "transparent", border: "none", cursor: "pointer",
-                                    color: T.muted, padding: 0, width: 16, height: 16, borderRadius: 8,
+                                    color: T.muted, padding: 0, width: 16, height: 16, borderRadius: 14,
                                   }}>
                             <X size={11} />
                           </button>
@@ -1897,7 +1897,7 @@ export default function Servicos({
               </select>
             </Field>
             <div style={{
-              padding: "10px 12px", marginBottom: 4, borderRadius: 6,
+              padding: "10px 12px", marginBottom: 4, borderRadius: 11,
               background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
               fontSize: 12, color: T.muted,
             }}>
@@ -1917,7 +1917,7 @@ export default function Servicos({
             </Field>
             {valor > 0 && (
               <div style={{
-                padding: 12, marginTop: 4, borderRadius: 6,
+                padding: 12, marginTop: 4, borderRadius: 11,
                 background: lucro >= 0 ? `${T.green}11` : `${T.red}11`,
                 border: `1px solid ${lucro >= 0 ? T.green : T.red}33`,
               }}>
@@ -1965,7 +1965,7 @@ export default function Servicos({
                     return (
                       <span key={id} style={{
                         display: "inline-flex", alignItems: "center", gap: 6,
-                        padding: "3px 4px 3px 9px", borderRadius: 12,
+                        padding: "3px 4px 3px 9px", borderRadius: 18,
                         background: `${T.gold}22`, border: `1px solid ${T.gold}66`,
                         fontSize: 11.5, color: T.ink, fontWeight: 500,
                       }}>
@@ -1975,7 +1975,7 @@ export default function Servicos({
                                 style={{
                                   display: "inline-flex", alignItems: "center", justifyContent: "center",
                                   background: "transparent", border: "none", cursor: "pointer",
-                                  color: T.muted, padding: 0, width: 16, height: 16, borderRadius: 8,
+                                  color: T.muted, padding: 0, width: 16, height: 16, borderRadius: 14,
                                 }}>
                           <X size={11} />
                         </button>
@@ -2046,7 +2046,7 @@ export default function Servicos({
               <div style={{
                 marginTop: -6, marginBottom: 4, padding: "8px 10px",
                 background: `${T.blue || "#60a5fa"}11`, border: `1px solid ${T.blue || "#60a5fa"}33`,
-                borderRadius: 6, fontSize: 11.5, color: T.muted,
+                borderRadius: 11, fontSize: 11.5, color: T.muted,
               }}>
                 📅 Encerra em <strong style={{ color: T.ink }}>{fimLabel}</strong>
                 {" · "}Total previsto: <strong className="num" style={{ color: T.ink }}>{fmt(total)}</strong>
@@ -2071,7 +2071,7 @@ export default function Servicos({
             </Field>
           </div>
           <div style={{
-            padding: "10px 12px", marginTop: 4, borderRadius: 6,
+            padding: "10px 12px", marginTop: 4, borderRadius: 11,
             background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
             fontSize: 12, color: T.muted,
           }}>
@@ -2099,7 +2099,7 @@ export default function Servicos({
             </span>
           </label>
           <div style={{
-            marginTop: 10, padding: "8px 10px", borderRadius: 6,
+            marginTop: 10, padding: "8px 10px", borderRadius: 11,
             background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
             fontSize: 11.5, color: T.muted, lineHeight: 1.5,
           }}>
@@ -2199,7 +2199,7 @@ export default function Servicos({
                 <button key={o.id} onClick={() => setRelatorioAba(o.id)}
                   style={{
                     padding: "6px 16px", fontSize: 11, letterSpacing: ".05em", textTransform: "uppercase",
-                    borderRadius: 6, cursor: "pointer", fontWeight: 700,
+                    borderRadius: 11, cursor: "pointer", fontWeight: 700,
                     background: relatorioAba === o.id ? `${T.gold}22` : "transparent",
                     border: `1px solid ${relatorioAba === o.id ? T.gold : T.border}`,
                     color: relatorioAba === o.id ? T.gold : T.muted,
@@ -2476,7 +2476,7 @@ export default function Servicos({
                 {cobrancasPorCliente.grupos.map((g, gi) => (
                   <div key={g.clienteId || `sem-${gi}`} style={{
                     background: T.bgSoft, border: `1px solid ${T.border}`,
-                    borderLeft: `3px solid ${T.red}`, borderRadius: 8, padding: 12,
+                    borderLeft: `3px solid ${T.red}`, borderRadius: 14, padding: 12,
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
                       <div style={{ minWidth: 0 }}>
@@ -2573,7 +2573,7 @@ function VendaRow({ venda: v, cliente, instalador, servicos = [], hidden,
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
       borderLeft: `3px solid ${corBorda}`,
-      borderRadius: 8, padding: 12,
+      borderRadius: 14, padding: 12,
       display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: 12, alignItems: "center",
     }}>
       <div style={{ color: T.faint, fontFamily: T.mono, fontSize: 11 }}>
@@ -2711,7 +2711,7 @@ function FaturaDocModal({ venda: v, cliente, servicos = [], onClose }) {
          }}>
       <div onClick={e => e.stopPropagation()}
            style={{ width: "min(560px, 100%)", maxHeight: "92vh", overflowY: "auto",
-                    background: "#fff", borderRadius: 10 }}>
+                    background: "#fff", borderRadius: 16 }}>
         {/* Documento (isolado na impressão) */}
         <div id="fatura-doc-print" style={{ padding: 28, color: "#111", background: "#fff", fontFamily: "Georgia, serif" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #111", paddingBottom: 12, marginBottom: 16 }}>
@@ -2745,7 +2745,7 @@ function FaturaDocModal({ venda: v, cliente, servicos = [], onClose }) {
             {cliente?.telefone && <div style={{ fontSize: 12, color: "#555" }}>{cliente.telefone}</div>}
           </div>
 
-          <div style={{ border: "1px solid #ddd", borderRadius: 6, padding: 14, marginBottom: 16 }}>
+          <div style={{ border: "1px solid #ddd", borderRadius: 11, padding: 14, marginBottom: 16 }}>
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{v.nome}</div>
             {itens.length > 0 && (
               <ul style={{ margin: "0 0 8px 18px", padding: 0, fontSize: 12.5, color: "#444" }}>
@@ -2783,7 +2783,7 @@ function FaturaDocModal({ venda: v, cliente, servicos = [], onClose }) {
 
 function FinTotal({ label, valor, cor, hidden }) {
   return (
-    <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 6, padding: "8px 10px" }}>
+    <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 11, padding: "8px 10px" }}>
       <div style={{ fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, marginBottom: 3 }}>
         {label}
       </div>
@@ -2813,7 +2813,7 @@ function FinanceiroDocModal({ financeiro, periodoLabel, onClose }) {
          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,.6)",
                   display: "grid", placeItems: "center", padding: 20, overflowY: "auto" }}>
       <div onClick={e => e.stopPropagation()}
-           style={{ width: "min(680px, 100%)", maxHeight: "92vh", overflowY: "auto", background: "#fff", borderRadius: 10 }}>
+           style={{ width: "min(680px, 100%)", maxHeight: "92vh", overflowY: "auto", background: "#fff", borderRadius: 16 }}>
         <div id="financeiro-doc-print" style={{ padding: 28, color: "#111", background: "#fff", fontFamily: "Georgia, serif" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #111", paddingBottom: 12, marginBottom: 16 }}>
             <div>

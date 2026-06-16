@@ -801,7 +801,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   }
                   setForm({ ...form, pm: (total / q).toFixed(4) });
                 }}
-                style={{ background: T.gold, color: T.bg, border: "none", padding: "0 14px", cursor: "pointer", fontSize: 11, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", borderRadius: 6 }}>
+                style={{ background: T.gold, color: T.bg, border: "none", padding: "0 14px", cursor: "pointer", fontSize: 11, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", borderRadius: 11 }}>
                 ↻ Calcular PM
               </button>
             </div>

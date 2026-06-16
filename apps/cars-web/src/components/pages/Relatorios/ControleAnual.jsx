@@ -263,7 +263,7 @@ export default function ControleAnual({
           <div className="flex gap-2 flex-wrap no-print">
             <select value={ano} onChange={e => setAno(parseInt(e.target.value))}
                     style={{ padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`,
-                             color: T.ink, fontSize: 12, borderRadius: 6 }}>
+                             color: T.ink, fontSize: 12, borderRadius: 11 }}>
               {[anoCorrente - 2, anoCorrente - 1, anoCorrente, anoCorrente + 1, anoCorrente + 2].map(y =>
                 <option key={y} value={y}>{y}</option>
               )}
@@ -285,7 +285,7 @@ export default function ControleAnual({
         }
       />
 
-      <div className="print-area" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "auto" }}>
+      <div className="print-area" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "auto" }}>
         <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 900 }}>
           <thead>
             <tr style={{ background: T.bgSoft }}>

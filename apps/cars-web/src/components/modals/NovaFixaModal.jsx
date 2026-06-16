@@ -182,7 +182,7 @@ export default function NovaFixaModal({ editing, categorias = [], contas = [], o
         <div style={{
           marginTop: 12, padding: 12,
           background: "#3b82f622", border: `1px solid #3b82f655`,
-          borderRadius: 8, fontSize: 12, color: T.ink, lineHeight: 1.5,
+          borderRadius: 14, fontSize: 12, color: T.ink, lineHeight: 1.5,
         }}>
           💡 Serão criadas <strong>{previewN} ocorrências</strong> a partir de {inicioLabel}.
           Cada uma com status <strong>pendente</strong>. Pagamentos não são lançados no banco automaticamente —
@@ -194,7 +194,7 @@ export default function NovaFixaModal({ editing, categorias = [], contas = [], o
         <div style={{
           marginTop: 12, padding: 12,
           background: `${T.gold}11`, border: `1px solid ${T.gold}55`,
-          borderRadius: 8, fontSize: 12, color: T.ink,
+          borderRadius: 14, fontSize: 12, color: T.ink,
         }}>
           <div style={{ fontWeight: 600, marginBottom: 6 }}>Aplicar mudança em:</div>
           {[

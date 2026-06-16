@@ -282,7 +282,7 @@ REGRAS:
         {temAlocacaoAlvo && (
           <div style={{
             padding: 10, background: T.bgSoft, border: `1px solid ${T.border}`,
-            borderLeft: `3px solid ${T.gold}`, borderRadius: 8,
+            borderLeft: `3px solid ${T.gold}`, borderRadius: 14,
           }}>
             <div className="label-eyebrow" style={{ marginBottom: 4 }}>
               Alocação-alvo (Monte sua Carteira)
@@ -334,7 +334,7 @@ REGRAS:
                             background: ativo ? `${p.cor}22` : T.card,
                             border: `1px solid ${ativo ? p.cor : T.border}`,
                             color: ativo ? p.cor : T.muted,
-                            fontSize: 12, fontWeight: 600, borderRadius: 8,
+                            fontSize: 12, fontWeight: 600, borderRadius: 14,
                             cursor: "pointer", letterSpacing: ".03em",
                             display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3,
                             minWidth: 120,
@@ -380,7 +380,7 @@ REGRAS:
         {erro && (
           <div style={{
             padding: 10, background: `${T.red}11`, border: `1px solid ${T.red}55`,
-            borderRadius: 8, fontSize: 12, color: T.red,
+            borderRadius: 14, fontSize: 12, color: T.red,
           }}>
             <AlertCircle size={12} className="inline mr-1" /> {erro}
           </div>
@@ -390,7 +390,7 @@ REGRAS:
         {resultado?.raw && (
           <div style={{
             padding: 12, background: T.bgSoft, border: `1px solid ${T.border}`,
-            borderRadius: 8, fontSize: 12, color: T.ink, whiteSpace: "pre-wrap",
+            borderRadius: 14, fontSize: 12, color: T.ink, whiteSpace: "pre-wrap",
             maxHeight: 400, overflowY: "auto",
           }}>
             {resultado.raw}
@@ -444,7 +444,7 @@ function ResultadoSugestao({ resultado, valorTotal, onAplicar }) {
           padding: 12, background: `${T.gold}11`,
           border: `1px solid ${T.gold}44`,
           borderLeft: `3px solid ${T.gold}`,
-          borderRadius: 8, fontSize: 13, color: T.ink, lineHeight: 1.5,
+          borderRadius: 14, fontSize: 13, color: T.ink, lineHeight: 1.5,
         }}>
           <Sparkles size={13} className="inline mr-2" style={{ color: T.gold }} />
           {resumo}
@@ -479,7 +479,7 @@ function BlocoAlocacao({ Icon, label, cor, info, valorTotal }) {
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
       borderLeft: `3px solid ${cor}`,
-      borderRadius: 10, padding: 12,
+      borderRadius: 16, padding: 12,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <Icon size={16} style={{ color: cor }} />
@@ -503,7 +503,7 @@ function BlocoAlocacao({ Icon, label, cor, info, valorTotal }) {
 function TopList({ titulo, icone: Icon, cor, itens, onAplicar, classe }) {
   return (
     <div style={{
-      background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
+      background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
       overflow: "hidden",
     }}>
       <div style={{
@@ -544,7 +544,7 @@ function TopList({ titulo, icone: Icon, cor, itens, onAplicar, classe }) {
                     title="Aplicar à projeção"
                     style={{
                       background: "transparent", border: `1px solid ${T.border}`,
-                      color: T.gold, padding: "5px 10px", borderRadius: 6,
+                      color: T.gold, padding: "5px 10px", borderRadius: 11,
                       fontSize: 10.5, fontWeight: 600, cursor: "pointer",
                       display: "inline-flex", alignItems: "center", gap: 4,
                     }}>

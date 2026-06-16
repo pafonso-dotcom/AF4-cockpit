@@ -138,7 +138,7 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
 
       {/* ============ SEÇÃO 1 · QUANTO INVESTIR ============ */}
       <section className="mc-card" style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
         padding: 12, marginBottom: 10,
       }}>
         <div className="label-eyebrow" style={{ marginBottom: 8 }}>
@@ -155,7 +155,7 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
 
       {/* ============ SEÇÃO 2 · MIX DE OBJETIVOS ============ */}
       <section className="mc-card" style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
         padding: 12, marginBottom: 10,
       }}>
         <div className="label-eyebrow" style={{ marginBottom: 8 }}>
@@ -169,7 +169,7 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
             return (
               <button key={a.id} onClick={() => aplicarAtalho(a)}
                 style={{
-                  padding: "5px 11px", borderRadius: 6, cursor: "pointer",
+                  padding: "5px 11px", borderRadius: 11, cursor: "pointer",
                   fontSize: 11.5, fontWeight: 500,
                   background: ativo ? `${T.gold}22` : T.bgSoft,
                   color: ativo ? T.gold : T.ink,
@@ -206,7 +206,7 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
           {/* Alocação resultante: pie + tabela */}
           <div style={{
             background: T.bgSoft, border: `1px solid ${T.border}`,
-            borderRadius: 8, padding: 10,
+            borderRadius: 14, padding: 10,
           }}>
             <div className="label-eyebrow" style={{ marginBottom: 6 }}>
               Alocação resultante
@@ -233,7 +233,7 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
 
       {/* ============ SEÇÃO 3 · Modo Manual / IA ============ */}
       <section className="mc-card" style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
         padding: 12, marginBottom: 10,
       }}>
         <div style={{
@@ -241,7 +241,7 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
           marginBottom: 10, gap: 10, flexWrap: "wrap",
         }}>
           <div className="label-eyebrow">3 · Como preencher</div>
-          <div style={{ display: "inline-flex", gap: 4, background: T.bgSoft, padding: 3, borderRadius: 6, border: `1px solid ${T.border}` }}>
+          <div style={{ display: "inline-flex", gap: 4, background: T.bgSoft, padding: 3, borderRadius: 11, border: `1px solid ${T.border}` }}>
             {[
               { id: "manual", label: "Manual" },
               { id: "ia",     label: "Com IA" },
@@ -284,7 +284,7 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
         background: T.card,
         border: `1px solid ${T.green}`,
         borderLeft: `4px solid ${T.green}`,
-        borderRadius: 8, padding: 12, marginBottom: 10,
+        borderRadius: 14, padding: 12, marginBottom: 10,
       }}>
         <div className="label-eyebrow" style={{ color: T.green, marginBottom: 6 }}>
           4 · Renda mensal estimada
@@ -377,7 +377,7 @@ function ValorSlider({ value, min, max, step, onChange }) {
             style={{
               fontFamily: T.serif, fontSize: 18, fontWeight: 600, color: T.gold,
               textAlign: "right", width: 180, background: T.bgSoft,
-              border: `1px solid ${T.gold}`, borderRadius: 6, padding: "2px 8px",
+              border: `1px solid ${T.gold}`, borderRadius: 11, padding: "2px 8px",
             }}
           />
         ) : (
@@ -525,7 +525,7 @@ function ClasseBreakdown({ tipo, pct, target, atual, tickers }) {
   return (
     <div style={{
       background: T.bgSoft, border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${corClasse}`, borderRadius: 6, padding: 10,
+      borderLeft: `3px solid ${corClasse}`, borderRadius: 11, padding: 10,
     }}>
       {/* Cabeçalho: classe + target + diff */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>

@@ -48,7 +48,7 @@ export default function AtalhosOverlay({ onClose }) {
             style={{
               background: "transparent", border: "none",
               cursor: "pointer", color: T.muted,
-              padding: 6, borderRadius: 6,
+              padding: 6, borderRadius: 11,
             }}>
             <X size={18} />
           </button>
@@ -63,7 +63,7 @@ export default function AtalhosOverlay({ onClose }) {
             }}>
               <span style={{ fontSize: 13, color: T.ink }}>{a.desc}</span>
               <kbd style={{
-                background: T.bgSoft, padding: "4px 12px", borderRadius: 6,
+                background: T.bgSoft, padding: "4px 12px", borderRadius: 11,
                 fontFamily: "monospace", fontSize: 12, fontWeight: 700,
                 color: T.gold, border: `1px solid ${T.border}`,
                 minWidth: 32, textAlign: "center", display: "inline-block",
