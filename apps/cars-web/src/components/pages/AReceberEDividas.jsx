@@ -1940,17 +1940,14 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
   const pctRecebido = valorTotal > 0 ? Math.min(100, (jaRecebido / valorTotal) * 100) : 0;
   const meta = [due && d.vencimento ? due.txt : "", d.combinado || d.obs || ""].filter(Boolean).join(" · ");
   const itemMenu = { background: "transparent", border: "none", cursor: "pointer", padding: "9px 12px", display: "flex", alignItems: "center", gap: 9, width: "100%", fontSize: 12.5, textAlign: "left", color: T.ink };
+  // Cor de status (igual ao card das Fixas): vencido=vermelho, 3 dias=ouro, no prazo=verde.
+  const sc = isOver ? T.red : isWarn ? T.gold : T.green;
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: 10,
-      padding: "7px 10px", background: T.card,
-      border: `1px solid ${T.border}`, borderLeft: borderL, borderRadius: 9,
+      display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+      padding: "4px 10px", background: `${sc}11`,
+      border: `1px solid ${sc}55`, borderLeft: `4px solid ${sc}`, borderRadius: 16,
     }}>
-      <div style={{
-        width: 32, height: 32, borderRadius: "50%", background: cor,
-        color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 13, flexShrink: 0,
-      }}>{inicial}</div>
-
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ color: T.ink, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.nome}</span>
