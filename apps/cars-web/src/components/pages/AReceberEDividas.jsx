@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Plus, Trash2, Edit3, Check, X, MessageCircle, MoreHorizontal } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
@@ -2000,7 +2001,7 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
           style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "6px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
           <MoreHorizontal size={14} />
         </button>
-        {menu && menuPos && (
+        {menu && menuPos && createPortal(
           <>
             <div onClick={() => setMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 1000 }} />
             <div style={{
@@ -2013,7 +2014,8 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
               <button style={itemMenu} onClick={() => { setMenu(false); onEditar(d); }}><Edit3 size={14} /> Editar</button>
               <button style={{ ...itemMenu, color: T.red, borderTop: `1px solid ${T.border}` }} onClick={() => { setMenu(false); onExcluir(d); }}><Trash2 size={14} /> Excluir</button>
             </div>
-          </>
+          </>,
+          document.body
         )}
       </div>
     </div>
