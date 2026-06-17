@@ -413,8 +413,6 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
         }
       />
 
-      <CarteiraSaude ativos={ativos} hidden={hidden} />
-
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6 no-print" style={{ background: T.border }}>
         <StatCard label="Valor Investido" value={hidden ? "•••••" : fmt(totais.br.custo)} accent={T.muted} icon={DollarSign}
                   sub={totais.temUSA ? `EUA ${hidden ? "•••" : fmtUSD(totais.usa.custo)}` : `${filtered.length} ativos`} />
@@ -427,6 +425,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
         <StatCard label="Posições" value={String(filtered.length)} accent={T.blue} icon={Activity}
                   sub={`${filtered.filter(a => a.preco > a.pm).length} no lucro`} />
       </div>
+
+      <CarteiraSaude ativos={ativos} hidden={hidden} />
 
       <div className="flex flex-wrap gap-2 mb-6 no-print">
         {[{ v: "todos", l: "Todos" }, ...tipos].map(t => (
