@@ -92,7 +92,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
         const a = ativos[0];
         setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" });
       } else {
-        setForm({ id: null, ticker: "", nome: "", tipo: "acao", segmento: "", qtd: "", pm: "", preco: "", base: 0 });
+        setForm({ id: null, ticker: "", nome: "", tipo: "acao", segmento: "", conta: "", qtd: "", pm: "", preco: "", base: 0 });
       }
     };
     window.addEventListener("af4:open-new-aporte", handler);
@@ -389,7 +389,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
               <RefreshCw size={12} className={`inline mr-2 ${refreshing ? "spin" : ""}`} />
               {refreshing ? "Atualizando…" : "Atualizar Mercado"}
             </button>
-            <button className="btn-gold" onClick={() => setForm({ id: null, ticker: "", nome: "", tipo: "acao", segmento: "", qtd: "", pm: "", preco: "", base: 0 })}>
+            <button className="btn-gold" onClick={() => setForm({ id: null, ticker: "", nome: "", tipo: "acao", segmento: "", conta: "", qtd: "", pm: "", preco: "", base: 0 })}>
               <Plus size={14} className="inline mr-2" />Novo Ativo
             </button>
           </div>
@@ -762,6 +762,12 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
             </Field>
           </div>
           <SegmentoField form={form} setForm={setForm} />
+          <Field label="Conta / Banco (de onde saiu o pagamento) — opcional">
+            <select value={form.conta || ""} onChange={e => setForm({ ...form, conta: e.target.value })}>
+              <option value="">— nenhuma —</option>
+              {(contas || []).map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+            </select>
+          </Field>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label="Quantidade">
               <input type="number" step="0.00000001" value={form.qtd} onChange={e => setForm({ ...form, qtd: e.target.value })} placeholder="8" />
