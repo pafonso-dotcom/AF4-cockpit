@@ -228,7 +228,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             <Upload size={12} /> Extrato banco
           </button>
           <button className="btn-gold" style={{ padding: "7px 12px", fontSize: 11 }}
-                  onClick={() => setForm({ id: null, nome: "", instituicao: "", tipo: "corrente", moeda: "BRL", cotacao: "", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.gold })}>
+                  onClick={() => setForm({ id: null, nome: "", instituicao: "", tipo: "corrente", moeda: "BRL", cotacao: "", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.gold, appUrl: "" })}>
             <Plus size={13} className="inline mr-1.5" />Nova Conta
           </button>
         </div>
@@ -353,6 +353,19 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             {/* Filhos — ações */}
             {exp && (
               <div style={{ display: "flex", gap: 6, padding: "6px 12px 10px", borderTop: `1px dashed ${T.border}` }}>
+                {c.appUrl && (
+                  <button onClick={(e) => { e.stopPropagation(); window.open(c.appUrl, "_blank", "noopener"); }}
+                    title="Abrir o app/site do banco"
+                    style={{
+                      flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
+                      letterSpacing: ".05em", textTransform: "uppercase",
+                      borderRadius: 4, background: `${T.gold}22`,
+                      border: `1px solid ${T.gold}`, color: T.gold, cursor: "pointer",
+                      display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+                    }}>
+                    🔗 Banco
+                  </button>
+                )}
                 {onCreateTransacao && (
                   <button onClick={(e) => { e.stopPropagation(); onCreateTransacao(c.nome); }}
                     style={{
@@ -413,6 +426,9 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           </Field>
           <Field label="Instituição" required error={formErrors.instituicao}>
             <input value={form.instituicao} onChange={e => setForm({ ...form, instituicao: e.target.value })} placeholder="Ex.: Itaú, Nubank, XP…" />
+          </Field>
+          <Field label="App / site do banco (link)" hint="Opcional — atalho pra abrir o banco numa nova aba. Ex.: https://app.nubank.com.br">
+            <input value={form.appUrl || ""} onChange={e => setForm({ ...form, appUrl: e.target.value })} placeholder="https://…" />
           </Field>
           <Field label="Tipo">
             <select value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>
