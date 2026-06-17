@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useRef } from "react";
-import { createPortal } from "react-dom";
 import { Plus, Trash2, Edit3, Check, X, MessageCircle, MoreHorizontal } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
@@ -1927,19 +1926,6 @@ function corDoNome(nome = "") {
 }
 
 export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, dueLabel }) {
-  const [menu, setMenu] = useState(false);
-  const [menuPos, setMenuPos] = useState(null);
-  const btnRef = useRef(null);
-  // Abre o menu em posição fixa (não é cortado por overflow) e pra cima quando
-  // não cabe embaixo (últimos itens da lista).
-  const abrirMenu = () => {
-    const r = btnRef.current?.getBoundingClientRect();
-    if (r) {
-      const cabeAbaixo = window.innerHeight - r.bottom > 150;
-      setMenuPos({ left: Math.max(8, r.right - 156), top: cabeAbaixo ? r.bottom + 4 : r.top - 4, baixo: cabeAbaixo });
-    }
-    setMenu(v => !v);
-  };
   const due = dueLabel ? dueLabel(d.vencimento) : null;
   const isOver = due?.status === "over";
   const isWarn = due?.status === "warn";
@@ -1996,28 +1982,14 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
         <Check size={13} /> Receber
       </button>
 
-      <div style={{ flexShrink: 0 }}>
-        <button ref={btnRef} onClick={abrirMenu} title="Mais ações"
-          style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "6px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
-          <MoreHorizontal size={14} />
-        </button>
-        {menu && menuPos && createPortal(
-          <>
-            <div onClick={() => setMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 1000 }} />
-            <div style={{
-              position: "fixed", left: menuPos.left, top: menuPos.top,
-              transform: menuPos.baixo ? "none" : "translateY(-100%)",
-              zIndex: 1001, background: T.card, border: `1px solid ${T.border}`, borderRadius: 9,
-              boxShadow: `0 8px 24px ${T.bg}66`, minWidth: 156, overflow: "hidden",
-            }}>
-              <button style={itemMenu} onClick={() => { setMenu(false); onWhats(d); }}><MessageCircle size={14} color="#25D366" /> WhatsApp</button>
-              <button style={itemMenu} onClick={() => { setMenu(false); onEditar(d); }}><Edit3 size={14} /> Editar</button>
-              <button style={{ ...itemMenu, color: T.red, borderTop: `1px solid ${T.border}` }} onClick={() => { setMenu(false); onExcluir(d); }}><Trash2 size={14} /> Excluir</button>
-            </div>
-          </>,
-          document.body
-        )}
-      </div>
+      <button onClick={() => onEditar(d)} title="Editar"
+        style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+        <Edit3 size={14} />
+      </button>
+      <button onClick={() => onExcluir(d)} title="Excluir"
+        style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 10, padding: "6px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+        <Trash2 size={14} />
+      </button>
     </div>
   );
 }
