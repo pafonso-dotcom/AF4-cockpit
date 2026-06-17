@@ -233,19 +233,67 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
 
   return (
     <div className="fade-up py-8 px-6">
-      {/* Voltar — escondido no modo embutido (lista fica ao lado) */}
-      {!embutido && (
-        <button onClick={onVoltar}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "6px 12px", borderRadius: 12,
-                  background: "transparent", border: `1px solid ${T.border}`,
-                  color: T.muted, fontSize: 11, cursor: "pointer", marginBottom: 14,
-                  letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500,
-                }}>
-          <ArrowLeft size={13} /> Voltar para contas
-        </button>
-      )}
+      {/* Linha de topo: Voltar (esq.) + ações Nova transação · PDF · Conferir (dir.) */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+        {!embutido ? (
+          <button onClick={onVoltar}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "6px 12px", borderRadius: 12,
+                    background: "transparent", border: `1px solid ${T.border}`,
+                    color: T.muted, fontSize: 11, cursor: "pointer",
+                    letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500,
+                  }}>
+            <ArrowLeft size={13} /> Voltar para contas
+          </button>
+        ) : <span />}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <button onClick={() => setTxModal({ modo: "novo" })}
+                  style={{
+                    background: `${conta.cor || T.gold}22`, color: conta.cor || T.gold,
+                    border: `1px solid ${conta.cor || T.gold}`, padding: "8px 12px",
+                    fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
+                    fontWeight: 600, cursor: "pointer", borderRadius: 12,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>
+            <Plus size={11} /> Nova transação
+          </button>
+          {onTransferir && (
+            <button onClick={onTransferir}
+                    style={{
+                      background: "transparent", color: T.gold,
+                      border: `1px solid ${T.gold}`, padding: "8px 12px",
+                      fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
+                      fontWeight: 600, cursor: "pointer", borderRadius: 12,
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                    }}>
+              <ArrowRightLeft size={11} /> Transferir
+            </button>
+          )}
+          <button onClick={() => window.print()}
+                  title="Imprimir ou salvar como PDF"
+                  style={{
+                    background: "transparent", color: T.muted,
+                    border: `1px solid ${T.border}`, padding: "8px 12px",
+                    fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
+                    fontWeight: 600, cursor: "pointer", borderRadius: 12,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>
+            <Printer size={11} /> PDF
+          </button>
+          <button onClick={() => setConferir({ valor: "", data: hoje.toISOString().slice(0, 10) })}
+                  title="Comparar com o saldo do banco e ajustar pra bater"
+                  style={{
+                    background: `${T.green}18`, color: T.green,
+                    border: `1px solid ${T.green}`, padding: "8px 12px",
+                    fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
+                    fontWeight: 600, cursor: "pointer", borderRadius: 12,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}>
+            <Scale size={11} /> Conferir com o banco
+          </button>
+        </div>
+      </div>
 
       {/* Banner estilo cartão: gradiente por banco + nome + saldo */}
       <div className="conta-hero" style={{
@@ -300,73 +348,25 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         <KPI l="Saídas (mês)"   v={hidden ? "•••" : `− ${fmt(kpisMes.saidas)}`}   c={T.red} />
         <KPI l="Saldo previsto fim do mês" v={hidden ? "•••" : fmt(kpisMes.saldoPrev)} c={T.gold} />
 
-        <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <button onClick={() => setTxModal({ modo: "novo" })}
-                  style={{
-                    background: `${conta.cor || T.gold}22`, color: conta.cor || T.gold,
-                    border: `1px solid ${conta.cor || T.gold}`, padding: "8px 12px",
-                    fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                    fontWeight: 600, cursor: "pointer", borderRadius: 12,
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                  }}>
-            <Plus size={11} /> Nova transação
-          </button>
-          {onTransferir && (
-            <button onClick={onTransferir}
-                    style={{
-                      background: "transparent", color: T.gold,
-                      border: `1px solid ${T.gold}`, padding: "8px 12px",
-                      fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                      fontWeight: 600, cursor: "pointer", borderRadius: 12,
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                    }}>
-              <ArrowRightLeft size={11} /> Transferir
-            </button>
-          )}
-          <button onClick={() => window.print()}
-                  title="Imprimir ou salvar como PDF"
-                  style={{
-                    background: "transparent", color: T.muted,
-                    border: `1px solid ${T.border}`, padding: "8px 12px",
-                    fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                    fontWeight: 600, cursor: "pointer", borderRadius: 12,
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                  }}>
-            <Printer size={11} /> PDF
-          </button>
-          <button onClick={() => setConferir({ valor: "", data: hoje.toISOString().slice(0, 10) })}
-                  title="Comparar com o saldo do banco e ajustar pra bater"
-                  style={{
-                    background: `${T.green}18`, color: T.green,
-                    border: `1px solid ${T.green}`, padding: "8px 12px",
-                    fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase",
-                    fontWeight: 600, cursor: "pointer", borderRadius: 12,
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                  }}>
-            <Scale size={11} /> Conferir com o banco
-          </button>
-        </div>
-      </div>
-
-      {/* Sub-título estilo banco: extrato + período de visualização */}
-      {(() => {
-        const datas = filtradas.map(t => (t.data || "").slice(0, 10)).filter(Boolean).sort();
-        const ini = datas[0], fim = datas[datas.length - 1];
-        const br = (iso) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "—";
-        return (
-          <div style={{ marginBottom: 10, padding: "0 2px" }}>
-            <div style={{ fontSize: 13, color: T.ink, fontWeight: 600 }}>extrato conta / lançamentos</div>
-            <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
-              período de visualização: {br(ini)} até {br(fim)}
+        {(() => {
+          const datas = filtradas.map(t => (t.data || "").slice(0, 10)).filter(Boolean).sort();
+          const ini = datas[0], fim = datas[datas.length - 1];
+          const br = (iso) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "—";
+          return (
+            <div style={{ marginLeft: "auto", textAlign: "right" }}>
+              <div style={{ fontSize: 13, color: T.ink, fontWeight: 600 }}>extrato conta / lançamentos</div>
+              <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+                período de visualização: {br(ini)} até {br(fim)}
+              </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
+      </div>
 
       {/* Filtros — uma linha em desktop, colapsa em mobile */}
       <div className="extrato-filtros" style={{
         display: "grid",
-        gridTemplateColumns: "minmax(160px, 0.8fr) minmax(140px, 0.7fr) minmax(220px, 1.4fr) auto",
+        gridTemplateColumns: "minmax(160px, 0.8fr) minmax(140px, 0.7fr) 1fr",
         gap: 8, marginBottom: 8, alignItems: "center",
       }}>
         <select value={periodo} onChange={e => setPeriodo(e.target.value)}
@@ -381,15 +381,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           <option value="receita">Tipo · receitas</option>
           <option value="despesa">Tipo · despesas</option>
         </select>
-        <div style={{ position: "relative" }}>
-          <Search size={13} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: T.muted }} />
-          <input
-            value={busca} onChange={e => setBusca(e.target.value)}
-            placeholder="Buscar descrição, observação, categoria…"
-            style={{ width: "100%", padding: "8px 11px 8px 32px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }}
-          />
-        </div>
-        <div style={{ fontSize: 11, color: T.muted, letterSpacing: ".05em", whiteSpace: "nowrap" }}>
+        <div style={{ fontSize: 11, color: T.muted, letterSpacing: ".05em", whiteSpace: "nowrap", textAlign: "right" }}>
           {filtradas.length} {filtradas.length === 1 ? "lançamento" : "lançamentos"}
         </div>
       </div>

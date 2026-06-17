@@ -228,34 +228,23 @@ function Kpi({ label, valor, sub, variation, icon: Icon, cor }) {
 }
 
 function DonutBloco({ titulo, data, total, fmtMoeda, hidden }) {
+  const max = Math.max(1, ...data.map(d => Number(d.valor) || 0));
   return (
     <div>
-      <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginBottom: 8 }}>{titulo}</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ width: 130, height: 130, position: "relative", flexShrink: 0 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={data} dataKey="valor" cx="50%" cy="50%" innerRadius={42} outerRadius={62} stroke="none" cornerRadius={5} paddingAngle={2}>
-                {data.map((d,i) => <Cell key={i} fill={d.cor} />)}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 8.5, color: T.muted, letterSpacing: ".15em" }}>TOTAL</div>
-              <div className="num" style={{ fontFamily: T.serif, fontSize: 13, fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmtMoeda(total)}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+        <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 700 }}>{titulo}</div>
+        <div className="num" style={{ fontFamily: T.serif, fontSize: 12.5, fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmtMoeda(total)}</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {data.map((d,i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <span style={{ width: 88, flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.label}</span>
+            <div style={{ flex: 1, height: 8, borderRadius: 999, background: T.bgSoft, overflow: "hidden" }}>
+              <div style={{ width: `${(Number(d.valor) / max) * 100}%`, height: "100%", borderRadius: 999, background: d.cor }} />
             </div>
+            <span style={{ width: 36, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.ink }}>{fmtN(d.pct, 0)}%</span>
           </div>
-        </div>
-        <div style={{ flex: 1, minWidth: 0, fontSize: 11, display: "flex", flexDirection: "column", gap: 5 }}>
-          {data.map((d,i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: d.cor, flexShrink: 0 }} />
-              <span style={{ flex: 1, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.label}</span>
-              <span style={{ color: T.ink }}>{fmtN(d.pct, 0)}%</span>
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
     </div>
   );

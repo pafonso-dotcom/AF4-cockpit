@@ -17,7 +17,7 @@ const DARK_BASE = {
   bg: "#23272E", bgSoft: "#282c34", card: "#2d323b", cardHi: "#333945",
   border: "#343a44", borderHi: "#3f4550",
   ink: "#f5f5f7", muted: "#a3a8b3", faint: "#6e7480",
-  green: "#4ade80", red: "#f87171", blue: "#60a5fa", yellow: "#fbbf24",
+  green: "#4ade80", red: "#f87171", blue: "#f97316", yellow: "#fbbf24",
 };
 
 const THEMES = {
