@@ -197,7 +197,24 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       toast.success(`${data.ticker} atualizado.`);
     } else {
       setAtivos([...ativos, { ...data, id: uid() }]);
-      toast.success(`${data.ticker} adicionado à carteira.`);
+      // Se escolheu conta/banco, lança a saída (compra) e debita o saldo dela.
+      const contaPg = (contas || []).find(c => c.nome === form.conta);
+      const totalAplicado = parseFloat(form.valorAplicado) || (data.qtd * data.pm) || 0;
+      if (contaPg && totalAplicado > 0) {
+        if (typeof setTransacoes === "function") {
+          setTransacoes([...(transacoes || []), {
+            id: uid(), tipo: "despesa", descricao: `Compra de ${data.ticker}`,
+            valor: totalAplicado, conta: contaPg.nome, data: todayISO(),
+            categoria: "Investimentos", compensado: true, origem: "investimento",
+          }]);
+        }
+        if (typeof setContas === "function") {
+          setContas(contas.map(c => c.id === contaPg.id ? { ...c, saldo: (Number(c.saldo) || 0) - totalAplicado } : c));
+        }
+        toast.success(`${data.ticker} adicionado · saída de ${fmt(totalAplicado)} em ${contaPg.nome}.`);
+      } else {
+        toast.success(`${data.ticker} adicionado à carteira.`);
+      }
     }
     setForm(null);
     setFormErrors({});
