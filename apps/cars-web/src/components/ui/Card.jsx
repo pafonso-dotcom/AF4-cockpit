@@ -12,10 +12,7 @@ import { T } from "../../lib/theme.js";
  */
 export default function Card({ variant = "default", style, children, ...rest }) {
   const base = {
-    background: T.card, border: `1px solid ${T.border}`,
-    // Acabamento lateral de acento (laranja) em todos os painéis.
-    borderLeft: `3px solid ${T.gold}`,
-    borderRadius: 16, padding: 14,
+    background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14,
     // Sombra suave estilo SaaS (quase imperceptível no escuro, elegante no claro).
     boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)",
   };

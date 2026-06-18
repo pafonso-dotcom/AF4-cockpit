@@ -293,19 +293,19 @@ export default function Dashboard({
         <DespesasKpiBlock resumo={despesasResumo} hidden={hidden} />
       </section>
 
-      {/* Mid row */}
+      {/* Contas · Gastos por Categoria · Alocação Atual (Contas primeiro) */}
       <section className="dash-mid-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
         <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
+        <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
       </section>
 
-      {/* Bottom row */}
+      {/* A Receber + Projeção */}
       <section className="dash-bot-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
         <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
