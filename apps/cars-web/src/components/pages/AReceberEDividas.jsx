@@ -1060,8 +1060,18 @@ export default function AReceberEDividas({
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12 }}>
-              {receberMes.map(d => (
-                <DevedorCard key={d.id} d={d} hidden={hidden} dueLabel={dueLabel}
+              {receberMes.map((d, i) => {
+                const ym = ymOf(d.vencimento) || "—";
+                const prevYm = i > 0 ? (ymOf(receberMes[i - 1].vencimento) || "—") : null;
+                const showHeader = !mesAtivo && ym !== prevYm;
+                return (
+                  <React.Fragment key={d.id}>
+                    {showHeader && (
+                      <div style={{ fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginTop: i === 0 ? 0 : 6 }}>
+                        {ym === "—" ? "Sem data" : mesLabel(ym)}
+                      </div>
+                    )}
+                    <DevedorCard d={d} hidden={hidden} dueLabel={dueLabel}
                   onBaixa={() => {
                     const jaRecebido = parseFloat(d.valorRecebido) || 0;
                     const saldoAberto = Math.max(0, (parseFloat(d.valor) || 0) - jaRecebido);
@@ -1083,7 +1093,9 @@ export default function AReceberEDividas({
                   onExcluir={() => excluir(d, "receber")}
                   onWhats={() => whatsapp.cobrarDevedor(d)}
                 />
-              ))}
+                  </React.Fragment>
+                );
+              })}
             </div>
           )}
         </div>
