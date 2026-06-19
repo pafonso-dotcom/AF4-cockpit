@@ -17,12 +17,12 @@ const DARK_BASE = {
   bg: "#23272E", bgSoft: "#282c34", card: "#2d323b", cardHi: "#333945",
   border: "#343a44", borderHi: "#3f4550",
   ink: "#f5f5f7", muted: "#a3a8b3", faint: "#6e7480",
-  green: "#4ade80", red: "#f87171", blue: "#f97316", yellow: "#fbbf24",
+  green: "#4ade80", red: "#f87171", blue: "#ed9355", yellow: "#fbbf24",
 };
 
 const THEMES = {
   // ----- DARK -----
-  gold:    { ...DARK_BASE, id: "gold",    nome: "Laranja",        subtitulo: "Acento laranja · padrão",   gold: "#f97316", goldHi: "#fb923c" },
+  gold:    { ...DARK_BASE, id: "gold",    nome: "Laranja",        subtitulo: "Acento laranja · padrão",   gold: "#ed9355", goldHi: "#f2ab78" },
   emerald: { ...DARK_BASE, id: "emerald", nome: "Esmeralda",      subtitulo: "Verde profissional",        gold: "#10b981", goldHi: "#34d399" },
   cyan:    { ...DARK_BASE, id: "cyan",    nome: "Cyan",           subtitulo: "Tech moderno",              gold: "#06b6d4", goldHi: "#22d3ee" },
   violet:  { ...DARK_BASE, id: "violet",  nome: "Violeta",        subtitulo: "Sofisticado",               gold: "#8b5cf6", goldHi: "#a78bfa" },

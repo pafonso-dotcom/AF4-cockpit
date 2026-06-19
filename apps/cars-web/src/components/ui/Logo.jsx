@@ -8,9 +8,9 @@ import React from "react";
  *   <Logo size={28} />        → símbolo + "Afinanças"
  */
 
-const GOLD_HI = "#FFB266";
-const GOLD_MD = "#F97316";
-const GOLD_LO = "#C2570A";
+const GOLD_HI = "#F6BC8E";
+const GOLD_MD = "#ED9355";
+const GOLD_LO = "#CF7A3C";
 const BORDO   = "#9E2B3A"; // vermelho bordô do "A"
 
 export function AF4Mark({ size = 36, bg = "#23272E", gid }) {
