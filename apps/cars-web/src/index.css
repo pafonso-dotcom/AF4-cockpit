@@ -64,7 +64,7 @@ body { color: var(--text-color, inherit); }
   --info: #60a5fa;
   --r: 18px;
   /* Sombra suave dos cards — dá profundidade (separação por sombra, não por linha dura). */
-  --card-shadow: 0 2px 6px rgba(0,0,0,.16), 0 12px 30px rgba(0,0,0,.20);
+  --card-shadow: none;
 }
 
 [data-c="gold"]    { --ac: #ed9355; --ac2: #f2ab78; }
@@ -116,10 +116,7 @@ body {
   min-height: 100vh;
 }
 body {
-  background:
-    radial-gradient(1200px 600px at 80% -10%, color-mix(in srgb, var(--ac) 6%, transparent), transparent 60%),
-    radial-gradient(900px 500px at -10% 110%, color-mix(in srgb, var(--ac) 4%, transparent), transparent 70%),
-    var(--bg);
+  background: var(--bg);
 }
 body::before {
   content: '';
