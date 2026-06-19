@@ -539,12 +539,12 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
               <div className="flex gap-2 no-print" onClick={e => e.stopPropagation()}>
                 <button onClick={() => setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" })}
                         aria-label={`Aportar em ${a.ticker}`}
-                        style={{ flex: 1, background: `${T.green}22`, color: T.green, padding: "6px 8px", border: `1px solid ${T.green}`, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
+                        style={{ flex: 1, background: "transparent", color: T.ink, padding: "6px 8px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
                   Aporte
                 </button>
                 <button onClick={() => setVendaForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" })}
                         aria-label={`Vender ${a.ticker}`}
-                        style={{ flex: 1, background: `${T.red}22`, color: T.red, padding: "6px 8px", border: `1px solid ${T.red}`, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
+                        style={{ flex: 1, background: "transparent", color: T.ink, padding: "6px 8px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
                   Venda
                 </button>
                 {onAnalisar && TIPOS_ANALISAVEIS.includes(a.tipo) && (
@@ -703,12 +703,12 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   <td className="no-print" style={{ padding: "14px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     <button onClick={e => { e.stopPropagation(); setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" }); }}
                             title="Novo Aporte"
-                            style={{ background: `${T.green}22`, color: T.green, padding: "4px 8px", border: `1px solid ${T.green}`, marginRight: 4, cursor: "pointer", fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                            style={{ background: "transparent", color: T.ink, padding: "4px 8px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, marginRight: 4, cursor: "pointer", fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
                       <ArrowDownRight size={10} className="inline" /> Aporte
                     </button>
                     <button onClick={e => { e.stopPropagation(); setVendaForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" }); }}
                             title="Venda"
-                            style={{ background: `${T.red}22`, color: T.red, padding: "4px 8px", border: `1px solid ${T.red}`, marginRight: 4, cursor: "pointer", fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                            style={{ background: "transparent", color: T.ink, padding: "4px 8px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, marginRight: 4, cursor: "pointer", fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
                       <ArrowUpRight size={10} className="inline" /> Venda
                     </button>
                     {onAnalisar && TIPOS_ANALISAVEIS.includes(a.tipo) && (
