@@ -1955,6 +1955,11 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ color: T.ink, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.nome}</span>
+          {d.vencimento && (
+            <span style={{ fontSize: 10.5, color: (due && due.cor) || T.muted, fontWeight: 500, flexShrink: 0 }}>
+              {d.vencimento.slice(8, 10)}/{d.vencimento.slice(5, 7)}/{d.vencimento.slice(2, 4)}
+            </span>
+          )}
           {isOver && <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 100, background: `${T.red}22`, color: T.red, letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>vencido</span>}
           {isWarn && <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>3 dias</span>}
         </div>
