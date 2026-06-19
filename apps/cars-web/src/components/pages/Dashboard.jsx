@@ -772,7 +772,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
                       </div>
                     </div>
                     <div className="num" style={{ color: T.ink, fontWeight: 600, marginLeft: 8, flexShrink: 0 }}>
-                      {hidden ? "•••" : fmt(Number(d.valor) || 0)}
+                      {hidden ? "•••" : fmt(restanteDe(d))}
                     </div>
                   </div>
                 );
