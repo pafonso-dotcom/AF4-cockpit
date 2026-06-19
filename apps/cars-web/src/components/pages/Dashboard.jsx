@@ -248,6 +248,15 @@ export default function Dashboard({
       .map(d => ({ id: d.id, nome: d.descricao, valor: Number(d.valor) || 0 }));
   }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, escopoAtivo]);
 
+  // ===== Contas a PAGAR do mês (total + qtd) — pendentes/atrasadas =====
+  const aPagarMes = useMemo(() => {
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
+    let desp = [];
+    try { desp = getDespesasDoMes(mesISO, state, escopoAtivo); } catch {}
+    const ap = desp.filter(d => d.status !== "paga");
+    return { total: ap.reduce((s, d) => s + (Number(d.valor) || 0), 0), qtd: ap.length };
+  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, escopoAtivo, mesISO]);
+
   // ===== Projeção próximos 6 meses =====
   const projecao = useMemo(() => {
     const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
@@ -284,13 +293,12 @@ export default function Dashboard({
 
       {/* KPI row */}
       <section className="dash-kpi-grid" style={{
-        display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16,
       }}>
         <KpiHero value={patrimonio} mom={momPatrim} hidden={hidden} evolucao={evolucao} />
         <KpiBlock label="Total em Contas" value={mask(fmt(totalContas))} sub={`${contas.length} contas ativas`} icon={Wallet} cor={T.green} />
         <KpiBlock label="Investimentos" value={mask(fmt(totalInvest))} sub="rentabilidade" icon={PieIcon} cor={T.green} variation={rentInvest} />
         <KpiBlock label="Receitas este mês" value={mask(fmt(receitasMes))} sub="vs mês anterior" icon={TrendingUp} cor={T.green} variation={momReceitas} />
-        <DespesasKpiBlock resumo={despesasResumo} hidden={hidden} />
       </section>
 
       {/* Contas · Gastos por Categoria · Alocação Atual (Contas primeiro) */}
@@ -306,7 +314,7 @@ export default function Dashboard({
       <section className="dash-bot-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} hidden={hidden}
+        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
         <ProjecaoCard projecao={projecao} patrimonio={patrimonio} hidden={hidden} />
@@ -659,7 +667,7 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVerPagar }) {
+function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, hidden, onSeeAll, onVerPagar }) {
   const hoje = new Date().toISOString().slice(0, 10);
   const fimSemana = (() => {
     const d = new Date();
@@ -685,10 +693,10 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
   const somar = (arr) => arr.reduce((s, d) => s + restanteDe(d), 0);
 
   const buckets = [
-    { id: "atrasado", label: "Atrasados", icon: AlertCircle, cor: T.red,   itens: atrasados, valor: somar(atrasados) },
-    { id: "hoje",     label: "Vence hoje", icon: Clock,       cor: T.gold,  itens: hojeArr,   valor: somar(hojeArr) },
-    { id: "semana",   label: "Esta semana", icon: Calendar,   cor: T.blue || "#60a5fa", itens: semana, valor: somar(semana) },
-    { id: "mes",      label: "Este mês",   icon: Calendar,    cor: T.green, itens: mes,       valor: somar(mes) },
+    { id: "atrasado", label: "Atrasados", icon: AlertCircle, cor: T.red,   qtd: atrasados.length, valor: somar(atrasados) },
+    { id: "hoje",     label: "Vence hoje", icon: Clock,       cor: T.gold,  qtd: hojeArr.length,   valor: somar(hojeArr) },
+    { id: "semana",   label: "Esta semana", icon: Calendar,   cor: T.blue || "#60a5fa", qtd: semana.length, valor: somar(semana) },
+    { id: "apagar",   label: "A pagar · mês", icon: AlertCircle, cor: T.red, qtd: aPagarMes?.qtd || 0, valor: aPagarMes?.total || 0 },
   ];
 
   const proximos = abertos
@@ -732,7 +740,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
             {buckets.map(b => {
               const Icon = b.icon;
-              const ativo = b.itens.length > 0;
+              const ativo = b.qtd > 0;
               return (
                 <div key={b.id} style={{
                   background: ativo ? `${b.cor}11` : T.bgSoft,
@@ -747,7 +755,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], hidden, onSeeAll, onVer
                     {hidden ? "•••" : (ativo ? fmt(b.valor) : "—")}
                   </div>
                   <div style={{ fontSize: 9.5, color: T.muted }}>
-                    {b.itens.length} {b.itens.length === 1 ? "item" : "itens"}
+                    {b.qtd} {b.qtd === 1 ? "item" : "itens"}
                   </div>
                 </div>
               );
