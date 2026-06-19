@@ -44,6 +44,15 @@ export default function IndicesGlobais({ apiKeys = {}, excluir = [] }) {
       } catch { /* silencioso */ }
       // Ibovespa SEMPRE presente (e no topo): se não veio ao vivo, usa referência.
       if (!out.some(i => /ibov/i.test(i.nome))) out.unshift({ ...IBOV_REF });
+      // Taxa Selic (meta % a.a.) — BCB SGS série 432, sem token. Fica logo após o Ibovespa.
+      try {
+        const r = await fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json");
+        if (r.ok) {
+          const j = await r.json();
+          const v = parseFloat(String(j?.[0]?.valor ?? "").replace(",", "."));
+          if (Number.isFinite(v)) out.splice(1, 0, { nome: "Selic", valor: v, moeda: "taxa" });
+        }
+      } catch { /* silencioso */ }
       if (!cancel) setItens(out);
     })();
     return () => { cancel = true; };
@@ -54,7 +63,9 @@ export default function IndicesGlobais({ apiKeys = {}, excluir = [] }) {
   const visiveis = itens.filter(i => !excluir.includes(i.nome));
   if (visiveis.length === 0) return null;
 
-  const fmtVal = (i) => i.moeda === "R$"
+  const fmtVal = (i) => i.moeda === "taxa"
+    ? `${i.valor.toFixed(2).replace(".", ",")}%`
+    : i.moeda === "R$"
     ? `R$ ${i.valor.toFixed(2)}`
     : i.valor.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
 
@@ -77,10 +88,14 @@ export default function IndicesGlobais({ apiKeys = {}, excluir = [] }) {
             <div className="num" style={{ fontSize: 15, fontWeight: 600, color: T.ink, lineHeight: 1.1 }}>
               {fmtVal(i)}
             </div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: cor, marginTop: 2 }}>
-              {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-              {up ? "+" : ""}{(i.var ?? 0).toFixed(2)}%
-            </div>
+            {i.moeda === "taxa" ? (
+              <div style={{ fontSize: 11, fontWeight: 600, color: T.muted, marginTop: 2 }}>meta · ao ano</div>
+            ) : (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: cor, marginTop: 2 }}>
+                {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                {up ? "+" : ""}{(i.var ?? 0).toFixed(2)}%
+              </div>
+            )}
           </div>
         );
       })}
