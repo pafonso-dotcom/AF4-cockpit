@@ -655,8 +655,10 @@ export default function AReceberEDividas({
     return ymOf(item.vencimento) === mesAtivo;
   };
 
-  const receberMes = devAbertos.filter(filtroMes);
-  const pagarMes   = divAbertas.filter(filtroMes);
+  // Ordena por data de vencimento (mais próxima primeiro); sem data vai pro fim.
+  const ordenarPorData = (a, b) => (a.vencimento || "9999-12-31").localeCompare(b.vencimento || "9999-12-31");
+  const receberMes = devAbertos.filter(filtroMes).sort(ordenarPorData);
+  const pagarMes   = divAbertas.filter(filtroMes).sort(ordenarPorData);
 
   // Alertas globais (todos os meses)
   const totaisAlerta = {
