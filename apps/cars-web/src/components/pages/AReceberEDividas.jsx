@@ -1214,12 +1214,6 @@ export default function AReceberEDividas({
                      placeholder="Nome do credor" />
             </Field>
           )}
-          {form.tipo === "receber" && (
-            <Field label="Combinado" hint="Texto livre — ex.: Me pagar em 20/06, Dividido em 2x, Após receber salário">
-              <input value={form.combinado || ""} onChange={e => setForm({ ...form, combinado: e.target.value })}
-                     placeholder="O que foi combinado com o devedor" />
-            </Field>
-          )}
           <div className="grid grid-cols-2 gap-3">
             <Field label="Valor (R$)" required hint="Só números · centavos automáticos">
               <MoneyInput value={form.valor} onChange={v => setForm({ ...form, valor: v })} />
@@ -1294,16 +1288,6 @@ export default function AReceberEDividas({
           {!form.id && (
             <ParcelarBlock form={form} setForm={setForm} />
           )}
-          {form.tipo === "receber" && (
-            <Field label="Combinado (opcional)" hint='Ex.: "Me pagar em 20/06", "Dividido em 2x"'>
-              <input value={form.combinado || ""} onChange={e => setForm({ ...form, combinado: e.target.value })}
-                     placeholder="Combinado de pagamento" />
-            </Field>
-          )}
-          <Field label="Telefone (para WhatsApp)" hint="Opcional. Permite cobrar/avisar com 1 clique.">
-            <input value={form.telefone || ""} onChange={e => setForm({ ...form, telefone: e.target.value })}
-                   placeholder="(15) 99999-9999" />
-          </Field>
           <Field label="Observações">
             <textarea value={form.obs} onChange={e => setForm({ ...form, obs: e.target.value })}
                       rows={2} placeholder="Detalhes, combinado…" />
