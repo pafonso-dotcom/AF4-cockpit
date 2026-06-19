@@ -1067,7 +1067,13 @@ export default function AReceberEDividas({
                 return (
                   <React.Fragment key={d.id}>
                     {showHeader && (
-                      <div style={{ fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginTop: i === 0 ? 0 : 6 }}>
+                      <div style={{
+                        fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase",
+                        color: T.muted, fontWeight: 700,
+                        marginTop: i === 0 ? 0 : 10,
+                        paddingTop: i === 0 ? 0 : 10,
+                        borderTop: i === 0 ? "none" : `1px solid ${T.border}`,
+                      }}>
                         {ym === "—" ? "Sem data" : mesLabel(ym)}
                       </div>
                     )}
