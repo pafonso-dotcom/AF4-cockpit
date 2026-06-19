@@ -147,10 +147,9 @@ export default function InvestPainel({
 
       {/* Linha 3 */}
       <section className="ip-bot-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <ValorPorClasseCard dataBR={alocacaoBR} dataUSA={alocacaoUSA} hidden={hidden} fmtUSD={fmtUSD} />
-        <ProventosMesesCard data={proventos12m} hidden={hidden} />
         <GainersLosersCard topGain={topGain} topLoss={topLoss} hidden={hidden} onAnalisar={onAnalisar} />
       </section>
 
