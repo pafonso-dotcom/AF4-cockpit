@@ -234,7 +234,7 @@ export default function DespesasFixas({
   // Visual do card baseado no status real
   const visualOcc = (occ) => {
     const sr = statusReal(occ);
-    if (sr === "paga") return { bg: `${T.green}11`, border: T.green, label: "Paga", labelCor: T.green, badgeBg: `${T.green}22`, icon: Check };
+    if (sr === "paga") return { bg: T.card, border: T.border, label: "Paga", labelCor: T.green, badgeBg: `${T.green}22`, icon: Check };
     if (sr === "atrasada") return { bg: `${T.red}11`, border: T.red, label: "Atrasada", labelCor: T.red, badgeBg: `${T.red}22`, icon: AlertCircle };
     // Próximas (até 3 dias) → amarelo
     const dias = Math.round((new Date(occ.dataVencimento) - new Date(hojeISO)) / 86400000);
