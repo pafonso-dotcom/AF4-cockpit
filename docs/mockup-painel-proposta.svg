@@ -125,23 +125,30 @@
   <!-- donut alocacao -->
   <g filter="url(#soft)"><rect x="32" y="552" width="389" height="270" rx="16" fill="#2d323b" stroke="#343a44"/></g>
   <text x="52" y="582" font-family="Georgia, serif" font-size="16" font-weight="600" fill="#f5f5f7">Alocação por Classe</text>
-  <g transform="translate(150,700)">
-    <circle r="64" fill="none" stroke="#343a44" stroke-width="22"/>
-    <!-- segments via dasharray (circumference ~ 402) -->
-    <circle r="64" fill="none" stroke="#ed9355" stroke-width="22" stroke-dasharray="169 233" transform="rotate(-90)"/>
-    <circle r="64" fill="none" stroke="#60a5fa" stroke-width="22" stroke-dasharray="101 301" stroke-dashoffset="-169" transform="rotate(-90)"/>
-    <circle r="64" fill="none" stroke="#4ade80" stroke-width="22" stroke-dasharray="72 330" stroke-dashoffset="-270" transform="rotate(-90)"/>
-    <circle r="64" fill="none" stroke="#fbbf24" stroke-width="22" stroke-dasharray="60 342" stroke-dashoffset="-342" transform="rotate(-90)"/>
-    <text x="0" y="-4" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#f5f5f7" text-anchor="middle">42%</text>
-    <text x="0" y="16" font-size="10.5" fill="#a3a8b3" text-anchor="middle">Ações</text>
+  <!-- barras horizontais (formato preferido) -->
+  <g font-size="12">
+    <!-- Ações 42% -->
+    <text x="52" y="636" fill="#f5f5f7" font-weight="600">Ações</text>
+    <text x="401" y="636" fill="#a3a8b3" text-anchor="end">R$ 17.430 · 42%</text>
+    <rect x="52" y="644" width="349" height="9" rx="4.5" fill="#343a44"/>
+    <rect x="52" y="644" width="147" height="9" rx="4.5" fill="#ed9355"/>
+    <!-- FIIs 25% -->
+    <text x="52" y="686" fill="#f5f5f7" font-weight="600">FIIs</text>
+    <text x="401" y="686" fill="#a3a8b3" text-anchor="end">R$ 10.375 · 25%</text>
+    <rect x="52" y="694" width="349" height="9" rx="4.5" fill="#343a44"/>
+    <rect x="52" y="694" width="87" height="9" rx="4.5" fill="#60a5fa"/>
+    <!-- Renda Fixa 18% -->
+    <text x="52" y="736" fill="#f5f5f7" font-weight="600">Renda Fixa</text>
+    <text x="401" y="736" fill="#a3a8b3" text-anchor="end">R$ 7.470 · 18%</text>
+    <rect x="52" y="744" width="349" height="9" rx="4.5" fill="#343a44"/>
+    <rect x="52" y="744" width="63" height="9" rx="4.5" fill="#4ade80"/>
+    <!-- Cripto 15% -->
+    <text x="52" y="786" fill="#f5f5f7" font-weight="600">Cripto</text>
+    <text x="401" y="786" fill="#a3a8b3" text-anchor="end">R$ 6.224 · 15%</text>
+    <rect x="52" y="794" width="349" height="9" rx="4.5" fill="#343a44"/>
+    <rect x="52" y="794" width="52" height="9" rx="4.5" fill="#fbbf24"/>
   </g>
-  <g font-size="11" fill="#a3a8b3">
-    <rect x="250" y="636" width="10" height="10" rx="2" fill="#ed9355"/><text x="268" y="645">Ações 42%</text>
-    <rect x="250" y="660" width="10" height="10" rx="2" fill="#60a5fa"/><text x="268" y="669">FIIs 25%</text>
-    <rect x="250" y="684" width="10" height="10" rx="2" fill="#4ade80"/><text x="268" y="693">Renda Fixa 18%</text>
-    <rect x="250" y="708" width="10" height="10" rx="2" fill="#fbbf24"/><text x="268" y="717">Cripto 15%</text>
-  </g>
-  <text x="410" y="582" font-size="11" fill="#ed9355" text-anchor="end">④ donut c/ centro</text>
+  <text x="410" y="582" font-size="11" fill="#ed9355" text-anchor="end">④ barras horizontais</text>
 
   <!-- gauge meta -->
   <g filter="url(#soft)"><rect x="445" y="552" width="389" height="270" rx="16" fill="#2d323b" stroke="#343a44"/></g>
