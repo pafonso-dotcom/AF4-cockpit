@@ -7,9 +7,8 @@ import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, PROVENTO_REGEX } from "../../..
 import { calcAlocacaoPorClasse, calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
 import { buscarCotacao } from "../../../lib/cambio.js";
 import { CARD_SHADOW } from "../../../lib/styles.js";
+import { MESES_UP as MESES_PT } from "../../../lib/meses.js";
 import IndicesGlobais from "../IndicesGlobais.jsx";
-
-const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 
 export default function InvestPainel({
   ativos = [], transacoes = [], categorias = [],

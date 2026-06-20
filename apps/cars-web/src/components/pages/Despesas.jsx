@@ -5,6 +5,7 @@ import {
   Plane, GraduationCap, Tag, CreditCard,
 } from "lucide-react";
 import { T } from "../../lib/theme.js";
+import { MESES_UP as MES_PILLS, MESES_LONGO as MES_NOMES_LONGOS } from "../../lib/meses.js";
 import { fmt, todayISO, uid } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import PageHeader from "../ui/PageHeader.jsx";
@@ -21,12 +22,6 @@ import BaixaParcelaModal from "../modals/BaixaParcelaModal.jsx";
  * O botão "Gerenciar fixas" abre o gestor antigo (DespesasFixas) sem perder
  * nenhuma funcionalidade de cadastro/edição/pagamento de fixas.
  */
-const MES_NOMES_LONGOS = [
-  "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro",
-];
-const MES_PILLS = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
-
 const TIPO_BADGE = {
   fixa:     { lbl: "Fixa",     cor: "#f59e0b" }, // gold
   variavel: { lbl: "Variável", cor: "#a8a8b0" }, // muted
