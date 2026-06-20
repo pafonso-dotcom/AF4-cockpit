@@ -335,7 +335,8 @@ export default function Dashboard({
       <section className="dash-kpi-grid" style={{
         display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16,
       }}>
-        <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao} />
+        <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
+                 breakdown={{ contas: totalContas, aReceber: aReceberAno, invest: totalInvest, aPagar: aPagarAno }} />
         <KpiBlock label="Total em Contas" value={mask(fmt(totalContas))} sub={`${contas.length} contas ativas`} icon={Wallet} cor={T.green} />
         <KpiBlock label="Investimentos" value={mask(fmt(totalInvest))} sub="rentabilidade" icon={PieIcon} cor={T.green} variation={rentInvest} />
         <KpiBlock label="Receitas este mês" value={mask(fmt(receitasMes))} sub="vs mês anterior" icon={TrendingUp} cor={T.green} variation={momReceitas} />
@@ -476,12 +477,18 @@ function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, m
   );
 }
 
-function KpiHero({ value, mom, hidden, evolucao }) {
+function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
   // Sempre começa oculto; só revela quando o usuário clica no card. O modo
   // privado global (hidden) tem prioridade e mantém oculto.
   const [revelado, setRevelado] = useState(false);
   const visivel = revelado && !hidden;
   const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
+  const Linha = ({ rotulo, v, sinal }) => (
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "rgba(255,255,255,0.75)" }}>
+      <span>{rotulo}</span>
+      <span className="num">{sinal === "-" ? "− " : sinal === "+" ? "+ " : ""}{fmt(v)}</span>
+    </div>
+  );
   return (
     <div onClick={() => setRevelado(v => !v)}
          title={visivel ? "Toque para ocultar" : "Toque para ver"}
@@ -496,6 +503,14 @@ function KpiHero({ value, mom, hidden, evolucao }) {
           <span style={{ color: "rgba(255,255,255,0.55)" }}>toque para revelar</span>
         )}
       </div>
+      {visivel && breakdown && (
+        <div style={{ position: "relative", zIndex: 1, marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.15)", display: "flex", flexDirection: "column", gap: 2 }}>
+          <Linha rotulo="Contas" v={breakdown.contas} sinal="+" />
+          <Linha rotulo="A receber (ano)" v={breakdown.aReceber} sinal="+" />
+          <Linha rotulo="Investimentos" v={breakdown.invest} sinal="+" />
+          <Linha rotulo="A pagar (ano)" v={breakdown.aPagar} sinal="-" />
+        </div>
+      )}
       <div style={{ position: "absolute", right: 0, bottom: 0, left: 0, height: 46, opacity: 0.6, pointerEvents: "none" }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={evolucao}>
