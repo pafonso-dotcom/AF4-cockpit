@@ -26,6 +26,27 @@ function greetingForTime() {
   return "Boa noite";
 }
 
+// Anima um número de 0 até `target` quando `active` vira true (easeOutCubic).
+// Usado pra dar o efeito "count-up" ao revelar valores (Patrimônio, A Receber).
+function useCountUp(target, active, dur = 650) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!active) { setVal(0); return; }
+    const to = Number(target) || 0;
+    let raf, start = null;
+    const tick = (t) => {
+      if (start == null) start = t;
+      const p = Math.min(1, (t - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setVal(to * eased);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, active, dur]);
+  return val;
+}
+
 // Extrai um primeiro nome amigável do usuário Supabase:
 //   user_metadata.full_name / .name → primeira palavra
 //   senão, parte local do email (antes do @), com 1ª letra maiúscula
@@ -483,6 +504,7 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
   // privado global (hidden) tem prioridade e mantém oculto.
   const [revelado, setRevelado] = useState(false);
   const visivel = revelado && !hidden;
+  const animado = useCountUp(value, visivel);
   const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
   const Linha = ({ rotulo, v, sinal }) => (
     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "rgba(255,255,255,0.75)" }}>
@@ -495,7 +517,7 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
          title={visivel ? "Toque para ocultar" : "Toque para ver"}
          style={{ background: bg, color: "#fff", borderRadius: 18, padding: 14, position: "relative", overflow: "hidden", minHeight: 110, cursor: "pointer", userSelect: "none" }}>
       <div style={{ fontSize: 11, color: "#86efac", letterSpacing: ".03em" }}>Patrimônio Total</div>
-      <div className="num" style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 700, marginTop: 6 }}>{visivel ? fmt(value) : "••••••"}</div>
+      <div className="num" style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 700, marginTop: 6 }}>{visivel ? fmt(animado) : "••••••"}</div>
       <div style={{ fontSize: 11, color: "#86efac", marginTop: 4 }}>
         {visivel ? (
           <>{mom >= 0 ? "↗" : "↘"} {fmtN(mom, 2)}%
@@ -824,6 +846,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, hidde
   // Quanto ainda FALTA receber (desconta recebimentos parciais já feitos).
   const restanteDe = (d) => Math.max(0, (Number(d.valor) || 0) - (Number(d.valorRecebido) || 0));
   const total = abertos.reduce((s, d) => s + restanteDe(d), 0);
+  const totalAnimado = useCountUp(total, mostrarTotal && !hidden);
 
   const atrasados = abertos.filter(d => d.vencimento && d.vencimento < hoje);
   const hojeArr   = abertos.filter(d => d.vencimento === hoje);
@@ -867,7 +890,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, hidde
       <div className="num" onClick={() => setMostrarTotal(v => !v)}
         title={mostrarTotal ? "Toque para ocultar" : "Toque para ver"}
         style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 600, color: T.ink, lineHeight: 1.1, cursor: "pointer", userSelect: "none" }}>
-        {(mostrarTotal && !hidden) ? fmt(total) : "•••••"}
+        {(mostrarTotal && !hidden) ? fmt(totalAnimado) : "•••••"}
       </div>
       <div style={{ fontSize: 11, color: T.muted, marginBottom: 12 }}>
         {abertos.length} {abertos.length === 1 ? "recebível em aberto" : "recebíveis em aberto"}
