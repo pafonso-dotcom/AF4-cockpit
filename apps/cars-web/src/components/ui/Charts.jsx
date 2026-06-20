@@ -1,5 +1,6 @@
 import React from "react";
 import { T } from "../../lib/theme.js";
+import { CARD_SHADOW } from "../../lib/styles.js";
 
 /* ============================================================
    CHARTS · componentes de gráfico reutilizáveis (SVG inline)
@@ -128,7 +129,7 @@ export function ReportCard({ title, children, footer }) {
       border: `1px solid ${T.border}`,
       borderRadius: 16,
       padding: 18,
-      boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)",
+      boxShadow: CARD_SHADOW,
     }}>
       <h4 style={{
         fontSize: 11,

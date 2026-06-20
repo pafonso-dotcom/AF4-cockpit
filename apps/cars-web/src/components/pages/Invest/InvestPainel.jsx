@@ -6,6 +6,7 @@ import { fmt, fmtN } from "../../../lib/format.js";
 import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, PROVENTO_REGEX } from "../../../lib/invest-constants.js";
 import { calcAlocacaoPorClasse, calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
 import { buscarCotacao } from "../../../lib/cambio.js";
+import { CARD_SHADOW } from "../../../lib/styles.js";
 import IndicesGlobais from "../IndicesGlobais.jsx";
 
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
@@ -229,7 +230,7 @@ function Kpi({ label, valor, sub, variation, icon: Icon, cor, extra }) {
   const varStr = num != null ? (num >= 0 ? "↗ +" : "↘ ") + fmtN(num, 2) + "%" : null;
   const positive = num != null && num >= 0;
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, minHeight: 110, position: "relative", boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, minHeight: 110, position: "relative", boxShadow: CARD_SHADOW }}>
       <div style={{ fontSize: 11, color: T.muted }}>{label}</div>
       <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 6, color: T.ink }}>{valor}</div>
       {varStr && <div style={{ fontSize: 11, color: positive ? T.green : T.red, marginTop: 4 }}>{varStr}</div>}
@@ -276,7 +277,7 @@ function DonutBloco({ titulo, data, total, fmtMoeda, hidden }) {
 function AlocacaoCard({ dataBR = [], totalBR = 0, dataUSA = [], totalUSA = 0, hidden, fmtUSD }) {
   const semNada = dataBR.length === 0 && dataUSA.length === 0;
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
       <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Alocação por Classe</div>
       {semNada ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos cadastrados.</div>
@@ -296,7 +297,7 @@ function AlocacaoCard({ dataBR = [], totalBR = 0, dataUSA = [], totalUSA = 0, hi
 
 function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Top 5 Ativos</div>
         <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver carteira</button>
@@ -362,7 +363,7 @@ function ValorPorClasseCard({ dataBR = [], dataUSA = [], hidden, fmtUSD }) {
     </div>
   );
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
       <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Valor por Classe</div>
       {semNada ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos.</div>
@@ -384,7 +385,7 @@ function ProventosMesesCard({ data, hidden }) {
   const total = data.reduce((s,d) => s+d.total, 0);
   const ehVazio = total === 0;
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Proventos · 12 meses</div>
         <div className="num" style={{ fontSize: 12, color: T.green }}>{hidden ? "•••" : fmt(total)}</div>
@@ -413,7 +414,7 @@ function GainersLosersCard({ topGain, topLoss, hidden, onAnalisar }) {
   const altas = (topGain || []).filter(x => x.pct > 0);
   const baixas = (topLoss || []).filter(x => x.pct < 0);
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)" }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
       <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Maiores Variações</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>

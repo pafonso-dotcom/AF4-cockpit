@@ -1,5 +1,6 @@
 import React from "react";
 import { T } from "../../lib/theme.js";
+import { CARD_SHADOW, CARD_SHADOW_ELEVATED } from "../../lib/styles.js";
 
 /**
  * Card base reutilizável — padroniza fundo/borda/raio/respiro dos painéis.
@@ -14,11 +15,11 @@ export default function Card({ variant = "default", style, children, ...rest }) 
   const base = {
     background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14,
     // Sombra suave estilo SaaS (quase imperceptível no escuro, elegante no claro).
-    boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)",
+    boxShadow: CARD_SHADOW,
   };
   const variants = {
     default: {},
-    elevated: { boxShadow: "0 10px 28px rgba(16,24,40,.10), 0 2px 6px rgba(16,24,40,.06)" },
+    elevated: { boxShadow: CARD_SHADOW_ELEVATED },
     outlined: { background: "transparent", boxShadow: "none" },
     soft: { background: T.bgSoft, boxShadow: "none" },
   };
