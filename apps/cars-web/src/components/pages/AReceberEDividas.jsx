@@ -1966,13 +1966,14 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
   const sc = isOver ? T.red : isWarn ? T.gold : null;
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-      padding: "4px 10px", background: sc ? `${sc}11` : T.card,
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "8px 10px", background: sc ? `${sc}11` : T.card,
       border: `1px solid ${sc ? `${sc}55` : T.border}`, borderLeft: `4px solid ${sc || T.border}`, borderRadius: 16,
     }}>
+      {/* Esquerda: nome + data + meta */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ color: T.ink, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.nome}</span>
+        <div style={{ color: T.ink, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{d.nome}</span>
           {d.vencimento && (
             <span style={{ fontSize: 10.5, color: (due && due.cor) || T.muted, fontWeight: 500, flexShrink: 0 }}>
               {d.vencimento.slice(8, 10)}/{d.vencimento.slice(5, 7)}/{d.vencimento.slice(2, 4)}
@@ -1993,27 +1994,30 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
         )}
       </div>
 
-      <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <div className="num" style={{ color: T.green, fontFamily: T.serif, fontSize: 15, fontWeight: 600, lineHeight: 1.1 }}>
-          {hidden ? "•••" : fmt(temParcial ? faltaReceber : d.valor)}
+      {/* Direita: valor em cima, ações embaixo */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+        <div style={{ textAlign: "right" }}>
+          <div className="num" style={{ color: T.green, fontFamily: T.serif, fontSize: 14.5, fontWeight: 600, lineHeight: 1.1, whiteSpace: "nowrap" }}>
+            {hidden ? "•••" : fmt(temParcial ? faltaReceber : d.valor)}
+          </div>
+          {temParcial && <div style={{ fontSize: 9, color: T.muted }}>falta · de {hidden ? "•••" : fmt(valorTotal)}</div>}
         </div>
-        {temParcial && <div style={{ fontSize: 9, color: T.muted }}>falta · de {hidden ? "•••" : fmt(valorTotal)}</div>}
+        <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+          <button onClick={() => onBaixa(d)} title="Receber"
+            style={{ background: T.green, color: "#fff", border: "none", borderRadius: 10, padding: "6px 10px",
+                     cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
+            <Check size={12} /> Receber
+          </button>
+          <button onClick={() => onEditar(d)} title="Editar"
+            style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+            <Edit3 size={13} />
+          </button>
+          <button onClick={() => onExcluir(d)} title="Excluir"
+            style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+            <Trash2 size={13} />
+          </button>
+        </div>
       </div>
-
-      <button onClick={() => onBaixa(d)} title="Receber"
-        style={{ background: T.green, color: "#fff", border: "none", borderRadius: 12, padding: "7px 11px",
-                 cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
-        <Check size={13} /> Receber
-      </button>
-
-      <button onClick={() => onEditar(d)} title="Editar"
-        style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
-        <Edit3 size={14} />
-      </button>
-      <button onClick={() => onExcluir(d)} title="Excluir"
-        style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 10, padding: "6px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
-        <Trash2 size={14} />
-      </button>
     </div>
   );
 }
