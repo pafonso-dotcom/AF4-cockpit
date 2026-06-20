@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from "react";
 
 import { T, applyTheme, THEMES } from "./lib/theme.js";
 import { simulateTick, uid } from "./lib/format.js";
@@ -37,59 +37,66 @@ import { useLayout } from "./lib/useLayout.js";
 import AtalhosOverlay from "./components/modals/AtalhosOverlay.jsx";
 import CommandPalette from "./components/ui/CommandPalette.jsx";
 import OnboardingTradeModal from "./components/modals/OnboardingTradeModal.jsx";
-import AnaliseTrade from "./components/pages/Trade/Analise.jsx";
-import AnaliseCarteira from "./components/pages/Invest/AnaliseCarteira.jsx";
-
-import Dashboard from "./components/pages/Dashboard.jsx";
-import Contas from "./components/pages/Contas.jsx";
-import Cartoes from "./components/pages/Cartoes.jsx";
-import Transacoes from "./components/pages/Transacoes.jsx";
-import Calendario from "./components/pages/Calendario.jsx";
-import Categorias from "./components/pages/Categorias.jsx";
-import Metas from "./components/pages/Metas.jsx";
-import Notas from "./components/pages/Notas.jsx";
-import Habitos from "./components/pages/Habitos.jsx";
-import Diario from "./components/pages/Diario.jsx";
-import Compras from "./components/pages/Compras.jsx";
-import Ideias from "./components/pages/Ideias.jsx";
-import Tarefas from "./components/pages/Tarefas.jsx";
-import SugestoesMelhorias from "./components/pages/SugestoesMelhorias.jsx";
-import AgendaInicio from "./components/pages/AgendaInicio.jsx";
 import PomodoroFloat from "./components/PomodoroFloat.jsx";
-import Despesas from "./components/pages/Despesas.jsx";
-import ControleAnual from "./components/pages/Relatorios/ControleAnual.jsx";
-import Planejamento from "./components/pages/Planejamento/index.jsx";
-import AnaliseFatura from "./components/pages/AnaliseFatura.jsx";
-import Investimentos from "./components/pages/Investimentos.jsx";
-import AnaliseIdV from "./components/pages/Trade/AnaliseIdV.jsx";
-import Analise from "./components/pages/Analise.jsx";
-import Mercado from "./components/pages/Mercado.jsx";
-import Simulador from "./components/pages/Simulador.jsx";
-import CalculadoraRenda from "./components/pages/Invest/CalculadoraRenda.jsx";
-import Projecao from "./components/pages/Invest/Projecao.jsx";
-import AnalisesUnificada from "./components/pages/Invest/Analises.jsx";
-import ObjetivosCarteira from "./components/pages/Invest/ObjetivosCarteira.jsx";
-import CarteiraModelo from "./components/pages/Invest/CarteiraModelo.jsx";
-import MonteSuaCarteira from "./components/pages/Invest/MonteSuaCarteira.jsx";
-import InvestPainel from "./components/pages/Invest/InvestPainel.jsx";
-import Performance from "./components/pages/Invest/Performance.jsx";
-import Proventos from "./components/pages/Invest/Proventos.jsx";
-import RelatoriosInvest from "./components/pages/Invest/RelatoriosInvest.jsx";
-import RelatoriosFinancas from "./components/pages/RelatoriosFinancas.jsx";
-import CartaoExtrato from "./components/pages/CartaoExtrato.jsx";
-import ContaExtrato from "./components/pages/ContaExtrato.jsx";
-import AReceberEDividas from "./components/pages/AReceberEDividas.jsx";
-import AuditLog from "./components/pages/AuditLog.jsx";
-import PergunteAoClaude from "./components/pages/PergunteAoClaude.jsx";
-import Configuracoes from "./components/pages/Configuracoes.jsx";
-import NegocioPainel from "./components/pages/Negocio/NegocioPainel.jsx";
-import NegocioVeiculos from "./components/pages/Negocio/Veiculos.jsx";
-import NegocioServicos from "./components/pages/Negocio/Servicos.jsx";
-import NegocioClientes from "./components/pages/Negocio/Clientes.jsx";
-import Lembretes from "./components/pages/Lembretes.jsx";
-import Conversa  from "./components/pages/Conversa.jsx";
-import Treino    from "./components/pages/Treino.jsx";
+
+// Páginas carregadas sob demanda (code-splitting por aba). Cada página vira um
+// chunk próprio, então o bundle inicial não carrega Negócio/Treino/Invest etc.
+// só pra abrir o Dashboard. O <Suspense> que envolve o <main> mostra o fallback
+// enquanto o chunk da aba é baixado.
+const AnaliseTrade = lazy(() => import("./components/pages/Trade/Analise.jsx"));
+const Dashboard = lazy(() => import("./components/pages/Dashboard.jsx"));
+const Contas = lazy(() => import("./components/pages/Contas.jsx"));
+const Cartoes = lazy(() => import("./components/pages/Cartoes.jsx"));
+const Transacoes = lazy(() => import("./components/pages/Transacoes.jsx"));
+const Calendario = lazy(() => import("./components/pages/Calendario.jsx"));
+const Categorias = lazy(() => import("./components/pages/Categorias.jsx"));
+const Metas = lazy(() => import("./components/pages/Metas.jsx"));
+const Notas = lazy(() => import("./components/pages/Notas.jsx"));
+const Habitos = lazy(() => import("./components/pages/Habitos.jsx"));
+const Diario = lazy(() => import("./components/pages/Diario.jsx"));
+const Compras = lazy(() => import("./components/pages/Compras.jsx"));
+const Ideias = lazy(() => import("./components/pages/Ideias.jsx"));
+const Tarefas = lazy(() => import("./components/pages/Tarefas.jsx"));
+const SugestoesMelhorias = lazy(() => import("./components/pages/SugestoesMelhorias.jsx"));
+const AgendaInicio = lazy(() => import("./components/pages/AgendaInicio.jsx"));
+const Despesas = lazy(() => import("./components/pages/Despesas.jsx"));
+const Planejamento = lazy(() => import("./components/pages/Planejamento/index.jsx"));
+const AnaliseFatura = lazy(() => import("./components/pages/AnaliseFatura.jsx"));
+const Investimentos = lazy(() => import("./components/pages/Investimentos.jsx"));
+const Mercado = lazy(() => import("./components/pages/Mercado.jsx"));
+const Simulador = lazy(() => import("./components/pages/Simulador.jsx"));
+const CalculadoraRenda = lazy(() => import("./components/pages/Invest/CalculadoraRenda.jsx"));
+const Projecao = lazy(() => import("./components/pages/Invest/Projecao.jsx"));
+const AnalisesUnificada = lazy(() => import("./components/pages/Invest/Analises.jsx"));
+const ObjetivosCarteira = lazy(() => import("./components/pages/Invest/ObjetivosCarteira.jsx"));
+const CarteiraModelo = lazy(() => import("./components/pages/Invest/CarteiraModelo.jsx"));
+const MonteSuaCarteira = lazy(() => import("./components/pages/Invest/MonteSuaCarteira.jsx"));
+const InvestPainel = lazy(() => import("./components/pages/Invest/InvestPainel.jsx"));
+const Proventos = lazy(() => import("./components/pages/Invest/Proventos.jsx"));
+const RelatoriosInvest = lazy(() => import("./components/pages/Invest/RelatoriosInvest.jsx"));
+const RelatoriosFinancas = lazy(() => import("./components/pages/RelatoriosFinancas.jsx"));
+const CartaoExtrato = lazy(() => import("./components/pages/CartaoExtrato.jsx"));
+const ContaExtrato = lazy(() => import("./components/pages/ContaExtrato.jsx"));
+const AuditLog = lazy(() => import("./components/pages/AuditLog.jsx"));
+const PergunteAoClaude = lazy(() => import("./components/pages/PergunteAoClaude.jsx"));
+const Configuracoes = lazy(() => import("./components/pages/Configuracoes.jsx"));
+const NegocioPainel = lazy(() => import("./components/pages/Negocio/NegocioPainel.jsx"));
+const NegocioVeiculos = lazy(() => import("./components/pages/Negocio/Veiculos.jsx"));
+const NegocioServicos = lazy(() => import("./components/pages/Negocio/Servicos.jsx"));
+const NegocioClientes = lazy(() => import("./components/pages/Negocio/Clientes.jsx"));
+const Lembretes = lazy(() => import("./components/pages/Lembretes.jsx"));
+const Conversa = lazy(() => import("./components/pages/Conversa.jsx"));
+const Treino = lazy(() => import("./components/pages/Treino.jsx"));
 import { EXERCICIOS_BASE } from "./lib/exerciciosBase.js";
+
+// Fallback enquanto o chunk de uma aba (lazy) é baixado.
+function PageFallback() {
+  return (
+    <div style={{ padding: "64px 24px", textAlign: "center", color: T.muted }}>
+      <div style={{ fontFamily: T.serif, color: T.gold, fontSize: 18, fontStyle: "italic" }}>Carregando…</div>
+    </div>
+  );
+}
 
 function ConversaFABInput({ onAbrirCompleto }) {
   return (
@@ -824,6 +831,7 @@ export default function App() {
         className={isVertical ? "pb-24" : ((tab === "planejamento" || tab === "areceber" || tab === "fixas" || tab === "relatorios-anual") ? "pb-24" : "max-w-7xl mx-auto pb-24")}
         style={isVertical ? { marginLeft: 220, maxWidth: "none", transition: "margin-left .2s" } : undefined}
       >
+        <Suspense fallback={<PageFallback />}>
         {/* MÓDULO: FINANÇAS */}
         {modulo === "financas" && (
           <div className="px-6 md:px-10">
@@ -1248,6 +1256,7 @@ export default function App() {
                            await saveAll(cleared, { immediate: true });
                          }} />
         )}
+        </Suspense>
       </main>
 
       <Footer />
