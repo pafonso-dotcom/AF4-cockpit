@@ -83,3 +83,26 @@ export default function KpiCard({
     </div>
   );
 }
+
+/**
+ * KpiInline — KPI compacto, sem borda/sombra, ícone pequeno no canto.
+ * Era reimplementado idêntico em Negocio/Servicos, Negocio/Veiculos e
+ * Planejamento/PrevisaoView; centralizado aqui (mesmo visual).
+ * Props: { label, valor, sub, cor, icon }.
+ */
+export function KpiInline({ label, valor, sub, cor, icon: Icon }) {
+  return (
+    <div style={{ background: T.card, padding: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted }}>
+          {label}
+        </div>
+        {Icon && <Icon size={14} style={{ color: cor || T.gold, opacity: 0.7 }} />}
+      </div>
+      <div style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 500, color: cor || T.ink, fontVariantNumeric: "tabular-nums" }}>
+        {valor}
+      </div>
+      {sub && <div style={{ fontSize: 10.5, color: T.muted, marginTop: 3 }}>{sub}</div>}
+    </div>
+  );
+}
