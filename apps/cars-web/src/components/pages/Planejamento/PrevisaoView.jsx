@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, ReferenceLine } from "recharts";
 import { T } from "../../../lib/theme.js";
+import { KpiInline as Kpi } from "../../ui/KpiCard.jsx";
 import { fmt } from "../../../lib/format.js";
 import { getProjecaoSaldo } from "../../../lib/agregador.js";
 
@@ -146,19 +147,6 @@ export default function PrevisaoView(props) {
         A previsão usa as contas a pagar pendentes (fixas, parcelas, dívidas) e os recebimentos previstos
         (devedores). O que já foi pago/recebido já está no saldo de hoje, então não é contado de novo.
       </div>
-    </div>
-  );
-}
-
-function Kpi({ label, valor, sub, cor, icon: Icon }) {
-  return (
-    <div style={{ background: T.card, padding: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted }}>{label}</div>
-        {Icon && <Icon size={14} style={{ color: cor || T.gold, opacity: 0.7 }} />}
-      </div>
-      <div style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 500, color: cor || T.ink, fontVariantNumeric: "tabular-nums" }}>{valor}</div>
-      {sub && <div style={{ fontSize: 10.5, color: T.muted, marginTop: 3 }}>{sub}</div>}
     </div>
   );
 }
