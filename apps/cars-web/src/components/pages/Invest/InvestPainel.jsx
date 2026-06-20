@@ -1,10 +1,11 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, BarChart3, DollarSign, Award } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
 import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, PROVENTO_REGEX } from "../../../lib/invest-constants.js";
 import { calcAlocacaoPorClasse, calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
+import { buscarCotacao } from "../../../lib/cambio.js";
 import IndicesGlobais from "../IndicesGlobais.jsx";
 
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
@@ -39,6 +40,17 @@ export default function InvestPainel({
 
   // Formata em dólar (US$ 1,234.56)
   const fmtUSD = (v) => "US$ " + (Number(v) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // ===== Cotação do dólar ao vivo (R$ por 1 US$) =====
+  // Usada para mostrar o saldo dos ativos em dólar convertido em real, abaixo
+  // do "Custo Investido". null = ainda carregando / indisponível.
+  const [usdRate, setUsdRate] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    buscarCotacao("USD").then(r => { if (vivo && r) setUsdRate(r); });
+    return () => { vivo = false; };
+  }, []);
+  const valorUSAemBRL = usdRate ? t.valorUSA * usdRate : null;
 
   // ===== Posições / classes únicas =====
   const posicoes = useMemo(() => ({
@@ -130,7 +142,12 @@ export default function InvestPainel({
         display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 12, marginBottom: 16,
       }}>
         <KpiHero valorBR={t.valorBR} pctBR={t.pctBR} valorUSA={t.valorUSA} pctUSA={t.pctUSA} hidden={hidden} fmtUSD={fmtUSD} />
-        <Kpi label="Custo Investido" valor={mask(fmt(t.custo))} sub="Total aportado" icon={Wallet} cor={T.muted} />
+        <Kpi label="Custo Investido" valor={mask(fmt(t.custo))} sub="Total aportado" icon={Wallet} cor={T.muted}
+             extra={t.valorUSA > 0 ? {
+               label: "Ativos em US$ → R$",
+               valor: valorUSAemBRL != null ? mask(fmt(valorUSAemBRL)) : "—",
+               sub: usdRate ? `${fmtUSD(t.valorUSA)} · dólar ${fmt(usdRate)}` : "carregando dólar…",
+             } : null} />
         <Kpi label="Resultado" valor={mask(fmt(t.resultado))} variation={t.pct} cor={t.resultado >= 0 ? T.green : T.red}
              icon={t.resultado >= 0 ? TrendingUp : TrendingDown} />
         <Kpi label="Proventos · mês" valor={mask(fmt(proventosMes))} sub="Receita passiva" icon={DollarSign} cor={T.green} />
@@ -207,7 +224,7 @@ function KpiHero({ valorBR, pctBR, valorUSA, pctUSA, hidden, fmtUSD }) {
   );
 }
 
-function Kpi({ label, valor, sub, variation, icon: Icon, cor }) {
+function Kpi({ label, valor, sub, variation, icon: Icon, cor, extra }) {
   const num = typeof variation === "number" ? variation : null;
   const varStr = num != null ? (num >= 0 ? "↗ +" : "↘ ") + fmtN(num, 2) + "%" : null;
   const positive = num != null && num >= 0;
@@ -217,6 +234,13 @@ function Kpi({ label, valor, sub, variation, icon: Icon, cor }) {
       <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 6, color: T.ink }}>{valor}</div>
       {varStr && <div style={{ fontSize: 11, color: positive ? T.green : T.red, marginTop: 4 }}>{varStr}</div>}
       {sub && <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{sub}</div>}
+      {extra && (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
+          <div style={{ fontSize: 9.5, letterSpacing: ".04em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>{extra.label}</div>
+          <div className="num" style={{ fontFamily: T.serif, fontSize: 15, fontWeight: 700, color: T.ink, marginTop: 1 }}>{extra.valor}</div>
+          {extra.sub && <div style={{ fontSize: 9.5, color: T.muted, marginTop: 1 }}>{extra.sub}</div>}
+        </div>
+      )}
       {Icon && (
         <div style={{ position: "absolute", top: 14, right: 14, width: 32, height: 32, borderRadius: "50%", background: `${cor || T.gold}1f`, display: "grid", placeItems: "center" }}>
           <Icon size={16} style={{ color: cor || T.gold }} />
