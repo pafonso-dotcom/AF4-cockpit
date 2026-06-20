@@ -2004,7 +2004,7 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
         </div>
         <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
           <button onClick={() => onBaixa(d)} title="Receber"
-            style={{ background: T.green, color: "#fff", border: "none", borderRadius: 10, padding: "6px 10px",
+            style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 10, padding: "6px 10px",
                      cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
             <Check size={12} /> Receber
           </button>
