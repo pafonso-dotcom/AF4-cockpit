@@ -3,17 +3,17 @@ import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, BarC
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
-import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, PROVENTO_REGEX } from "../../../lib/invest-constants.js";
+import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS } from "../../../lib/invest-constants.js";
 import { calcAlocacaoPorClasse, calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
 import { buscarCotacao } from "../../../lib/cambio.js";
 import { CARD_SHADOW } from "../../../lib/styles.js";
-import { MESES_UP as MESES_PT } from "../../../lib/meses.js";
 import IndicesGlobais from "../IndicesGlobais.jsx";
 
 export default function InvestPainel({
   ativos = [], transacoes = [], categorias = [],
   hidden, onTabChange, onAnalisar,
   onAbrirAnaliseCarteira, onAbrirAnaliseIdv, apiKeys = {},
+  proventosRecebidos = {},
 }) {
   const mask = (s) => hidden ? "•••••" : s;
   const hoje = new Date();
@@ -87,38 +87,17 @@ export default function InvestPainel({
   const topGain = useMemo(() => [...variacoes].sort((a,b) => b.pct - a.pct).slice(0, 3), [variacoes]);
   const topLoss = useMemo(() => [...variacoes].sort((a,b) => a.pct - b.pct).slice(0, 3), [variacoes]);
 
-  // ===== Proventos do mês + série 12m =====
-  // Proventos = dividendos/JCP/rendimentos da carteira. Excluímos entradas que
-  // NÃO são provento mesmo que a categoria pareça (ex.: "Saldo no Inter R$ 49 mil",
-  // transferências, PIX, aportes/resgates) — senão inflam o número.
-  const NAO_PROVENTO = /\bsaldo\b|transfer|\btransf\b|\bpix\b|aporte|resgate|d[ée]bito|cr[ée]dito em conta/i;
-  const ehProvento = (tx) =>
-    tx?.tipo === "receita"
-    && (PROVENTO_REGEX.test(tx.categoria || "") || PROVENTO_REGEX.test(tx.descricao || ""))
-    && !NAO_PROVENTO.test(tx.descricao || "");
+  // ===== Proventos do mês =====
+  // Fonte: aba Proventos (proventos marcados como recebidos). Cada recebido
+  // guarda { dataBaixa, valor }. Somamos os do mês corrente. Antes isso era
+  // uma heurística por regex nas transações, que inflava o número (pegava
+  // rendimento de poupança/CDB etc).
   const proventosMes = useMemo(() => {
     const mesISO = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}`;
-    return transacoes
-      .filter(tx => ehProvento(tx) && (tx.data || "").startsWith(mesISO))
-      .reduce((s, tx) => s + Number(tx.valor || 0), 0);
-  }, [transacoes]);
-
-  const proventos12m = useMemo(() => {
-    const arr = Array.from({ length: 12 }, (_, i) => {
-      const d = new Date(hoje.getFullYear(), hoje.getMonth() - (11 - i), 1);
-      return {
-        mes: MESES_PT[d.getMonth()],
-        iso: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`,
-        total: 0,
-      };
-    });
-    transacoes.forEach(tx => {
-      if (!ehProvento(tx)) return;
-      const slot = arr.find(s => (tx.data || "").startsWith(s.iso));
-      if (slot) slot.total += Number(tx.valor || 0);
-    });
-    return arr;
-  }, [transacoes]);
+    return Object.values(proventosRecebidos || {})
+      .filter(r => (r?.dataBaixa || "").startsWith(mesISO))
+      .reduce((s, r) => s + (Number(r?.valor) || 0), 0);
+  }, [proventosRecebidos]);
 
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
