@@ -228,7 +228,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             <Upload size={12} /> Extrato banco
           </button>
           <button className="btn-gold" style={{ padding: "7px 12px", fontSize: 11 }}
-                  onClick={() => setForm({ id: null, nome: "", instituicao: "", tipo: "corrente", moeda: "BRL", cotacao: "", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.gold, appUrl: "" })}>
+                  onClick={() => setForm({ id: null, nome: "", instituicao: "", tipo: "corrente", moeda: "BRL", cotacao: "", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.gold, appUrl: "", foraPatrimonio: false })}>
             <Plus size={13} className="inline mr-1.5" />Nova Conta
           </button>
         </div>
@@ -332,6 +332,11 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                   {ehNegocio(c) && (
                     <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", whiteSpace: "nowrap", flexShrink: 0 }}>
                       Negócio
+                    </span>
+                  )}
+                  {c.foraPatrimonio && (
+                    <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, background: T.bgSoft, color: T.muted, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      Fora do patrimônio
                     </span>
                   )}
                 </div>
@@ -464,6 +469,12 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               <option value="negocio">🏢 Negócio</option>
             </select>
           </Field>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", margin: "2px 0 4px", fontSize: 12.5, color: T.ink }}>
+            <input type="checkbox" checked={!!form.foraPatrimonio}
+                   onChange={e => setForm({ ...form, foraPatrimonio: e.target.checked })} />
+            Fora do patrimônio (só controle)
+            <span style={{ fontSize: 11, color: T.muted }}>— não soma no total/patrimônio</span>
+          </label>
           <Field label={`Saldo atual (${form.moeda && form.moeda !== "BRL" ? form.moeda : "R$"})`} error={formErrors.saldo} hint="O mesmo que aparece no app do banco. Aceita: 1500 · 1.500,00 · negativo pra dívida">
             <input
               type="text"

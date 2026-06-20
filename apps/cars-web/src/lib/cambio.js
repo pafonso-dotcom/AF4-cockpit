@@ -13,8 +13,9 @@ export function saldoContaBRL(c) {
 }
 
 // Soma de várias contas convertidas pra BRL.
+// Contas marcadas como `foraPatrimonio` (só controle) NÃO entram na soma.
 export function somaContasBRL(contas = []) {
-  return (contas || []).reduce((s, c) => s + saldoContaBRL(c), 0);
+  return (contas || []).filter(c => !c.foraPatrimonio).reduce((s, c) => s + saldoContaBRL(c), 0);
 }
 
 // Conta do exterior sem cotação definida (precisa de atenção pra entrar no total).
