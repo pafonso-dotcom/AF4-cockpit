@@ -418,7 +418,7 @@ function HeaderHorizontal({
                 style={{
                   position: "relative",
                   padding: "9px 12px",
-                  background: active ? `${T.gold}1a` : "transparent",
+                  background: "transparent",
                   color: active ? T.gold : NAV_MUTED,
                   borderTop: "none", borderLeft: "none", borderRight: "none",
                   borderBottom: `2px solid ${active ? T.gold : "transparent"}`,
