@@ -1,5 +1,6 @@
 import React from "react";
 import { T } from "../../lib/theme.js";
+import { CARD_SHADOW } from "../../lib/styles.js";
 
 /**
  * KpiCard padrão. Substitui implementações inline em InvestPainel,
@@ -37,7 +38,7 @@ export default function KpiCard({
       <div style={{
         background: T.card, border: `1px solid ${T.border}`,
         borderLeft: `3px solid ${corFinal}`, borderRadius: 18, padding: 12,
-        boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)",
+        boxShadow: CARD_SHADOW,
       }}>
         <div style={{
           fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
@@ -56,7 +57,7 @@ export default function KpiCard({
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
       borderRadius: 16, padding: 14, position: "relative", minHeight: 110,
-      boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)",
+      boxShadow: CARD_SHADOW,
     }}>
       <div style={{ fontSize: 11, color: T.muted }}>{label}</div>
       <div className="num" style={{

@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { T } from "../../lib/theme.js";
+import { CARD_SHADOW } from "../../lib/styles.js";
 import { fmt } from "../../lib/format.js";
 import { BarChartDouble, BarChart, HorizontalBarList, ReportCard, ReportGrid } from "../ui/Charts.jsx";
 import { toPDF, toCSV, toPNG, hasPNGSupport } from "../../lib/exportRelatorio.js";
@@ -339,7 +340,7 @@ td.neg { color:#b3261e; }
       <p className="hs">Projeção dos próximos meses por categoria.</p>
 
       {/* Projeção · Meses a vencer — por categoria (matriz, imprime em 1 folha A4) */}
-      <div style={{ marginTop: 16, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)", fontFamily: FONTE_ARRED }}>
+      <div style={{ marginTop: 16, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, boxShadow: CARD_SHADOW, fontFamily: FONTE_ARRED }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
           <div>
             <div style={{ fontSize: 11, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Projeção · Meses a vencer</div>
