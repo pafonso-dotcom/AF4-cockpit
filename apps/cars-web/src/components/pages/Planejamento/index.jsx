@@ -35,7 +35,7 @@ export default function Planejamento(props) {
       else if (!d.vencimento || d.vencimento.slice(0, 7) === mes) pendenteMes += restante;
       // vencimentos de meses futuros não entram em "pendente (mês)"
     });
-    return { recebido, pendente: pendenteMes, atrasado, total: recebido + abertoTotal };
+    return { recebido, pendente: pendenteMes, atrasado, total: recebido + abertoTotal, aReceber: abertoTotal };
   }, [devedores]);
 
   // Despesas Fixas · mês: já pago / pendente / atrasado / total previsto.
@@ -122,7 +122,7 @@ export default function Planejamento(props) {
                 { lbl: "Recebido", v: resumoReceber.recebido, cor: T.green },
                 { lbl: "Pendente (mês)", v: resumoReceber.pendente, cor: T.gold },
                 { lbl: "Atrasado", v: resumoReceber.atrasado, cor: T.red },
-                { lbl: "Total previsto", v: resumoReceber.total, cor: T.ink },
+                { lbl: "Total a receber", v: resumoReceber.aReceber, cor: T.ink },
               ]}
             />
           }
