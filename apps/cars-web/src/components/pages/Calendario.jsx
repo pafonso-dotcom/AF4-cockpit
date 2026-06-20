@@ -5,6 +5,7 @@ import {
   MapPin, Clock, Link2, Briefcase, Plane, Heart, Star, Check,
 } from "lucide-react";
 import { T } from "../../lib/theme.js";
+import { MESES_LONGO } from "../../lib/meses.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
@@ -50,7 +51,7 @@ export default function Calendario({
   // Data de referência para as vistas Semana/Dia (default hoje).
   const [refDate, setRefDate] = useState(new Date());
 
-  const months = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const months = MESES_LONGO;
 
   const showFinanceiro = filterMode === "tudo" || filterMode === "financeiro";
   const showPessoal    = filterMode === "tudo" || filterMode === "pessoal";

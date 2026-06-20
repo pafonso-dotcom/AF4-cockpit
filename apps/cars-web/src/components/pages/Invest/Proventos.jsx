@@ -15,6 +15,7 @@ import {
   ArrowUpRight, ShoppingCart, X, AlertCircle, Sparkles,
 } from "lucide-react";
 import { T } from "../../../lib/theme.js";
+import { MESES_LONGO } from "../../../lib/meses.js";
 import { fmt, uid } from "../../../lib/format.js";
 import { calendarioProventos } from "../../../lib/invest-metrics.js";
 import { toast } from "../../../lib/toast.js";
@@ -25,8 +26,7 @@ import Modal from "../../ui/Modal.jsx";
 
 const nomeMes = (k) => {
   const [y, m] = k.split("-");
-  const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  return `${meses[parseInt(m) - 1]} ${y}`;
+  return `${MESES_LONGO[parseInt(m) - 1]} ${y}`;
 };
 
 export default function Proventos({

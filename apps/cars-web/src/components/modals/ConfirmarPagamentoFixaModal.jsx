@@ -6,8 +6,7 @@ import { toast } from "../../lib/toast.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
 import MoneyInput from "../ui/MoneyInput.jsx";
-
-const MES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+import { MESES_LONGO as MES_NOMES } from "../../lib/meses.js";
 
 const LS_LANCAR_KEY = "fixas-lancar-no-banco";
 
