@@ -821,7 +821,7 @@ export default function App() {
       )}
 
       <main
-        className={isVertical ? "pb-24" : "max-w-7xl mx-auto pb-24"}
+        className={isVertical ? "pb-24" : ((tab === "planejamento" || tab === "areceber" || tab === "fixas" || tab === "relatorios-anual") ? "pb-24" : "max-w-7xl mx-auto pb-24")}
         style={isVertical ? { marginLeft: 220, maxWidth: "none", transition: "margin-left .2s" } : undefined}
       >
         {/* MÓDULO: FINANÇAS */}
