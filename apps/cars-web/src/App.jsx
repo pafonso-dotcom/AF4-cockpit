@@ -7,15 +7,12 @@ import { MESES_LONGO } from "./lib/meses.js";
 import { loadAll, saveAll, loadKeys, saveKeys, flushSave } from "./lib/storage.js";
 import { API, COIN_MAP } from "./lib/api.js";
 import { generateRecurringForCurrentMonth } from "./lib/recorrencia.js";
-import { lerEscopo, salvarEscopo, migrarEscoposAuto } from "./lib/escopo.js";
+import { lerEscopo, salvarEscopo } from "./lib/escopo.js";
+import { aplicarDadosCarregados, aplicarSeeds } from "./lib/appPersistencia.js";
 import { toast } from "./lib/toast.js";
 import { createBackup, shouldAutoBackup } from "./lib/autoBackup.js";
 import { audit } from "./lib/auditLog.js";
 import { checkAndNotify, getConfig as getNotifCfg } from "./lib/notifications.js";
-import {
-  seedContas, seedCategorias, seedTransacoes, seedAtivos, seedMetas,
-  seedCartoes, seedParcelamentos, seedDevedores, seedDividas,
-} from "./lib/seeds.js";
 
 import GlobalStyles from "./components/ui/GlobalStyles.jsx";
 import Footer from "./components/ui/Footer.jsx";
@@ -238,124 +235,22 @@ export default function App() {
         data = null; keys = null;
       }
       try {
-      if (data) {
-        setContas(data.contas || seedContas);
-        setCategorias((data.categorias || seedCategorias).map(c => ({ ...c, limite: c.limite ?? null })));
-        setTransacoes((data.transacoes || seedTransacoes).map(t => ({
-          ...t,
-          compensado: t.compensado ?? true,
-          obs: t.obs ?? "",
-          fixa: t.fixa ?? false,
-          vencimento: t.vencimento ?? null,
-        })));
-        setAtivos(data.ativos || seedAtivos);
-        setMetas(data.metas || seedMetas);
-        setNotas(data.notas || []);
-        setCartoes(data.cartoes || seedCartoes);
-        // Migrate parcelamentos: convert cartaoNome → cartaoId
-        const cartoesData = data.cartoes || seedCartoes;
-        setParcelamentos((data.parcelamentos || seedParcelamentos).map(p => {
-          if (!p.cartaoId && p.cartaoNome) {
-            const c = cartoesData.find(x => x.nome === p.cartaoNome);
-            if (c) return { ...p, cartaoId: c.id };
-          }
-          return p;
-        }));
-        setDevedores(data.devedores || seedDevedores);
-        setDividas(data.dividas || seedDividas);
-        // Migração silenciosa: se backup antigo não tem essas chaves, vira []
-        setFixas(data.fixas || []);
-        setFixaOcorrencias(data.fixaOcorrencias || []);
-        setAgenda(data.agenda || []);
-        setHabitos(data.habitos || []);
-        setDiario(data.diario || []);
-        setCompras(data.compras || []);
-        setIdeias(data.ideias || []);
-        setTarefas(data.tarefas || []);
-        setSugestoes(data.sugestoes || []);
-        setLembretes(data.lembretes || []);
-        setConversaHistorico(data.conversaHistorico || []);
-        setExerciciosDB(prev => {
-          if (data.exerciciosDB && data.exerciciosDB.length > 0) return data.exerciciosDB;
-          return prev;
-        });
-        setTreinoTemplates(data.treinoTemplates || []);
-        setTreinos(data.treinos || []);
-        setPatrimonioHistorico(data.patrimonioHistorico || []);
-        setNegocioVeiculos(data.negocioVeiculos || []);
-        setNegocioVendasVeiculos(data.negocioVendasVeiculos || []);
-        setNegocioServicos(data.negocioServicos || []);
-        setNegocioVendasServicos(data.negocioVendasServicos || []);
-        setNegocioContratos(data.negocioContratos || []);
-        setNegocioClientes(data.negocioClientes || []);
-        setNegocioInstaladores(data.negocioInstaladores || []);
-        setObjetivosCarteira(data.objetivosCarteira || []);
-        setCarteirasModeloCustom(data.carteirasModeloCustom || []);
-        if (data.modeloAtivoId) setModeloAtivoId(data.modeloAtivoId);
-        setCarteiraProventos(data.carteiraProventos || { saldo: 0, historico: [] });
-        setCaixaNegocio(data.caixaNegocio || { saldo: 0, historico: [] });
-        setNegocioBancos(data.negocioBancos || []);
-        setProventosRecebidos(data.proventosRecebidos || {});
-        setProventosIgnorados(data.proventosIgnorados || {});
-        setProventosManuais(data.proventosManuais || []);
-        setTradeWatchlist(data.tradeWatchlist || []);
-        setTradeHistorico(data.tradeHistorico || []);
-        setTradeAnalisesIdV(data.tradeAnalisesIdV || []);
-        setTradeOnboardingVisto(!!data.tradeOnboardingVisto);
-        if (data.themeId && THEMES[data.themeId]) setThemeId(data.themeId);
-        // Migração one-shot: marca contas/categorias antigas com escopo detectado
-        setTimeout(() => {
-          migrarEscoposAuto(
-            { contas: data.contas, categorias: data.categorias },
-            { setContas, setCategorias }
-          );
-        }, 100);
-      } else {
-        setContas(seedContas);
-        setCategorias(seedCategorias);
-        setTransacoes(seedTransacoes);
-        setAtivos(seedAtivos);
-        setMetas(seedMetas);
-        setCartoes(seedCartoes);
-        setParcelamentos(seedParcelamentos.map(p => {
-          if (!p.cartaoId && p.cartaoNome) {
-            const c = seedCartoes.find(x => x.nome === p.cartaoNome);
-            if (c) return { ...p, cartaoId: c.id };
-          }
-          return p;
-        }));
-        setDevedores(seedDevedores);
-        setDividas(seedDividas);
-        setFixas([]);
-        setFixaOcorrencias([]);
-        setAgenda([]);
-        setHabitos([]);
-        setDiario([]);
-        setCompras([]);
-        setIdeias([]);
-        setTarefas([]);
-        setSugestoes([]);
-        setPatrimonioHistorico([]);
-        setNegocioVeiculos([]);
-        setNegocioVendasVeiculos([]);
-        setNegocioServicos([]);
-        setNegocioVendasServicos([]);
-        setNegocioContratos([]);
-        setNegocioClientes([]);
-        setNegocioInstaladores([]);
-        setObjetivosCarteira([]);
-        setCarteirasModeloCustom([]);
-        setCarteiraProventos({ saldo: 0, historico: [] });
-        setCaixaNegocio({ saldo: 0, historico: [] });
-        setNegocioBancos([]);
-        setProventosRecebidos({});
-        setProventosIgnorados({});
-        setProventosManuais([]);
-        setTradeWatchlist([]);
-        setTradeHistorico([]);
-        setTradeAnalisesIdV([]);
-        setTradeOnboardingVisto(false);
-      }
+      const SETTERS = {
+        setContas, setCategorias, setTransacoes, setAtivos, setMetas, setNotas,
+        setCartoes, setParcelamentos, setDevedores, setDividas,
+        setFixas, setFixaOcorrencias, setAgenda, setHabitos, setDiario, setCompras,
+        setIdeias, setTarefas, setSugestoes, setLembretes, setConversaHistorico,
+        setExerciciosDB, setTreinoTemplates, setTreinos, setPatrimonioHistorico,
+        setNegocioVeiculos, setNegocioVendasVeiculos, setNegocioServicos,
+        setNegocioVendasServicos, setNegocioContratos, setNegocioClientes,
+        setNegocioInstaladores, setObjetivosCarteira, setCarteirasModeloCustom,
+        setModeloAtivoId, setCarteiraProventos, setCaixaNegocio, setNegocioBancos,
+        setProventosRecebidos, setProventosIgnorados, setProventosManuais,
+        setTradeWatchlist, setTradeHistorico, setTradeAnalisesIdV,
+        setTradeOnboardingVisto, setThemeId,
+      };
+      if (data) aplicarDadosCarregados(data, SETTERS);
+      else aplicarSeeds(SETTERS);
         if (keys) {
           setApiKeys(prev => ({ ...prev, ...keys }));
           // A chave do Gemini é sincronizada na conta (apiKeys.gemini, vai pra
