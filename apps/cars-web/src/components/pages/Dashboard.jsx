@@ -289,6 +289,26 @@ export default function Dashboard({
     return { total: ap.reduce((s, d) => s + (Number(d.valor) || 0), 0), qtd: ap.length };
   }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, escopoAtivo, mesISO]);
 
+  // ===== Próximo compromisso a pagar (mais próximo por vencimento) =====
+  // Olha o mês corrente + o próximo. Prioriza o próximo a vencer (>= hoje);
+  // se não houver, mostra o atrasado mais recente.
+  const proximoCompromisso = useMemo(() => {
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
+    const hojeISO = hoje.toISOString().slice(0, 10);
+    const [yy, mm] = mesISO.split("-").map(Number);
+    const prox = new Date(yy, mm, 1);
+    const proxISO = `${prox.getFullYear()}-${String(prox.getMonth() + 1).padStart(2, "0")}`;
+    let cand = [];
+    for (const m of [mesISO, proxISO]) {
+      try { cand = cand.concat(getDespesasDoMes(m, state, escopoAtivo).filter(d => d.status !== "paga")); } catch {}
+    }
+    const futuros = cand.filter(d => (d.data || "") >= hojeISO).sort((a, b) => (a.data || "").localeCompare(b.data || ""));
+    const atrasados = cand.filter(d => (d.data || "") < hojeISO).sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+    const pick = futuros[0] || atrasados[0];
+    if (!pick) return null;
+    return { nome: pick.descricao, valor: Number(pick.valor) || 0, data: pick.data, atrasado: (pick.data || "") < hojeISO };
+  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, escopoAtivo, mesISO]);
+
   // ===== Projeção próximos 6 meses =====
   const projecao = useMemo(() => {
     const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
@@ -325,13 +345,11 @@ export default function Dashboard({
 
       {/* KPI row */}
       <section className="dash-kpi-grid" style={{
-        display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
                  breakdown={{ contas: totalContas, aReceber: aReceberAno, invest: totalInvest, aPagar: aPagarAno }} />
-        <KpiBlock label="Total em Contas" value={mask(fmt(totalContas))} sub={`${contas.length} contas ativas`} icon={Wallet} cor={T.green} />
-        <KpiBlock label="Investimentos" value={mask(fmt(totalInvest))} sub="rentabilidade" icon={PieIcon} cor={T.green} variation={rentInvest} />
-        <KpiBlock label="Receitas este mês" value={mask(fmt(receitasMes))} sub="vs mês anterior" icon={TrendingUp} cor={T.green} variation={momReceitas} />
+        <ProximoCompromissoCard item={proximoCompromisso} hidden={hidden} onVer={() => onTabChange?.("despesas")} />
       </section>
 
       {/* Contas · Gastos por Categoria · Alocação Atual (Contas primeiro) */}
@@ -517,6 +535,36 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
         </ResponsiveContainer>
       </div>
     </div>
+  );
+}
+
+function ProximoCompromissoCard({ item, hidden, onVer }) {
+  const fmtData = (iso) => {
+    if (!iso) return "—";
+    try { return new Date(iso + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
+    catch { return iso; }
+  };
+  return (
+    <Card style={{ minHeight: 110, position: "relative", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+      <div style={{ fontSize: 11, color: T.muted, display: "flex", alignItems: "center", gap: 6 }}>
+        <AlertCircle size={13} style={{ color: T.gold }} /> Próximo compromisso
+      </div>
+      {item ? (
+        <>
+          <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 6, color: T.ink }}>
+            {hidden ? "•••••" : fmt(item.valor)}
+          </div>
+          <div style={{ fontSize: 11, color: item.atrasado ? T.red : T.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {item.nome} · {item.atrasado ? "atrasado" : fmtData(item.data)}
+          </div>
+          <button onClick={onVer} style={{ position: "absolute", top: 14, right: 14, background: "transparent", border: "none", color: T.gold, fontSize: 11, cursor: "pointer" }}>
+            Ver
+          </button>
+        </>
+      ) : (
+        <div style={{ fontSize: 12, color: T.faint, fontStyle: "italic", marginTop: 8 }}>Nenhum compromisso próximo.</div>
+      )}
+    </Card>
   );
 }
 
@@ -725,6 +773,8 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
 }
 
 function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, hidden, onSeeAll, onVerPagar }) {
+  // Total a receber começa oculto (•••); clica pra revelar — igual ao Patrimônio.
+  const [mostrarTotal, setMostrarTotal] = useState(false);
   const hoje = new Date().toISOString().slice(0, 10);
   const fimSemana = (() => {
     const d = new Date();
@@ -781,8 +831,10 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, hidde
         </button>
       </div>
 
-      <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 600, color: T.ink, lineHeight: 1.1 }}>
-        {hidden ? "•••••" : fmt(total)}
+      <div className="num" onClick={() => setMostrarTotal(v => !v)}
+        title={mostrarTotal ? "Toque para ocultar" : "Toque para ver"}
+        style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 600, color: T.ink, lineHeight: 1.1, cursor: "pointer", userSelect: "none" }}>
+        {(mostrarTotal && !hidden) ? fmt(total) : "•••••"}
       </div>
       <div style={{ fontSize: 11, color: T.muted, marginBottom: 12 }}>
         {abertos.length} {abertos.length === 1 ? "recebível em aberto" : "recebíveis em aberto"}
