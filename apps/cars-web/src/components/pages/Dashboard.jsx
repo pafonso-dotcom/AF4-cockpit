@@ -330,15 +330,6 @@ export default function Dashboard({
 
   return (
     <div className="fade-up">
-      {/* Greeting */}
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontFamily: T.serif, fontSize: 28, fontWeight: 600, color: T.ink, margin: 0 }}>
-          {greetingForTime()}{userName ? `, ${userName}` : ""}! 👋
-        </h1>
-        <div style={{ color: T.muted, fontSize: 13, marginTop: 4 }}>
-          Aqui está o resumo da sua vida financeira.
-        </div>
-      </div>
 
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
@@ -633,6 +624,34 @@ function DespesasKpiBlock({ resumo, hidden }) {
   );
 }
 
+// Cores de marca + sigla por instituição, pra dar cara de "ícone do banco"
+// no badge da conta (sem depender de logos externos). Cai no c.cor se não
+// reconhecer o banco.
+const BANCOS = [
+  { re: /nubank|\bnu\b/i,            bg: "#820ad1", label: "Nu" },
+  { re: /inter/i,                    bg: "#ec7000", label: "in" },
+  { re: /\bxp\b/i,                   bg: "#0f1b2d", label: "XP" },
+  { re: /ita[uú]/i,                  bg: "#ec7000", label: "It" },
+  { re: /bradesco/i,                 bg: "#cc092f", label: "Br" },
+  { re: /santander/i,                bg: "#ec0000", label: "Sa" },
+  { re: /caixa/i,                    bg: "#1c5fab", label: "Cx" },
+  { re: /banco do brasil|\bbb\b/i,   bg: "#f9dd16", fg: "#1a1a1a", label: "BB" },
+  { re: /\bc6\b/i,                   bg: "#1a1a1a", label: "C6" },
+  { re: /mercado ?pago/i,            bg: "#00b1ea", label: "MP" },
+  { re: /picpay/i,                   bg: "#21c25e", label: "Pp" },
+  { re: /btg/i,                      bg: "#0b2239", label: "BTG" },
+  { re: /sicoob/i,                   bg: "#003641", label: "Sc" },
+  { re: /sicredi/i,                  bg: "#3a9447", label: "Si" },
+  { re: /carteira|dinheiro|esp[eé]cie/i, bg: "#4b5563", label: "$" },
+];
+function bancoBadge(c) {
+  const txt = `${c?.instituicao || ""} ${c?.nome || ""}`;
+  const hit = BANCOS.find(b => b.re.test(txt));
+  if (hit) return { bg: hit.bg, fg: hit.fg || "#fff", label: hit.label };
+  const base = (c?.instituicao || c?.nome || "?").trim();
+  return { bg: c?.cor || T.gold, fg: "#fff", label: (base.slice(0, 2) || "?").toUpperCase() };
+}
+
 function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
   return (
     <Card>
@@ -641,11 +660,13 @@ function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
         <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver todas</button>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-        {contas.slice(0, 4).map(c => (
+        {contas.slice(0, 4).map(c => {
+          const bb = bancoBadge(c);
+          return (
           <button key={c.id} onClick={() => onContaClick?.(c)}
             style={{ background: "transparent", border: "none", padding: "9px 0", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left", borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ width: 32, height: 32, borderRadius: 14, background: c.cor || T.gold, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
-              {(c.instituicao || c.nome || "?").slice(0,1).toUpperCase()}
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: bb.bg, display: "grid", placeItems: "center", color: bb.fg, fontWeight: 700, fontSize: 11, flexShrink: 0 }}>
+              {bb.label}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12.5, color: T.ink, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
@@ -654,7 +675,8 @@ function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
             <div className="num" style={{ fontFamily: T.serif, fontSize: 13, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(c.saldo)}</div>
             <ChevronRight size={14} style={{ color: T.muted, flexShrink: 0 }} />
           </button>
-        ))}
+          );
+        })}
         {contas.length === 0 && (
           <div style={{ padding: 16, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Sem contas cadastradas.</div>
         )}
