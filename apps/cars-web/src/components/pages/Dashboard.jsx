@@ -1054,6 +1054,20 @@ function ProjecaoCard({ projecao, patrimonio = 0, hidden }) {
   );
 }
 
+// Anel de progresso (gauge radial) com o % no centro.
+function GaugeRing({ pct = 0, size = 54, cor = T.gold }) {
+  const r = 22, circ = 2 * Math.PI * r;
+  const dash = Math.max(0, Math.min(100, pct)) / 100 * circ;
+  return (
+    <svg width={size} height={size} viewBox="0 0 56 56" style={{ flexShrink: 0 }}>
+      <circle cx="28" cy="28" r={r} fill="none" stroke={T.border} strokeWidth="6" />
+      <circle cx="28" cy="28" r={r} fill="none" stroke={cor} strokeWidth="6" strokeLinecap="round"
+              strokeDasharray={`${dash} ${circ}`} transform="rotate(-90 28 28)" />
+      <text x="28" y="32" textAnchor="middle" fontSize="13" fontWeight="700" fill={T.ink}>{fmtN(pct, 0)}%</text>
+    </svg>
+  );
+}
+
 function MetasCard({ metas, hidden, onSeeAll }) {
   return (
     <Card>
@@ -1066,15 +1080,18 @@ function MetasCard({ metas, hidden, onSeeAll }) {
           const meta = Number(m.alvo ?? m.valorMeta ?? m.valor ?? 0);
           const atual = Number(m.atual ?? m.valorAtual ?? m.aplicado ?? 0);
           const pct = meta > 0 ? Math.min(100, (atual / meta) * 100) : 0;
+          const cor = pct >= 100 ? T.green : T.gold;
           return (
-            <div key={m.id} style={{ background: T.bgSoft, borderRadius: 14, padding: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: T.ink, marginBottom: 2 }}>{m.nome || m.titulo || "Meta"}</div>
-              <div style={{ fontSize: 10, color: T.muted, marginBottom: 6 }}>
-                <span className="num">{hidden ? "•••" : fmt(atual)}</span> / <span className="num">{hidden ? "•••" : fmt(meta)}</span>
-                <span style={{ float: "right", color: T.green, fontWeight: 600 }}>{fmtN(pct, 0)}%</span>
-              </div>
-              <div style={{ background: T.border, height: 4, borderRadius: 2, overflow: "hidden" }}>
-                <div style={{ width: `${pct}%`, height: "100%", background: T.green }} />
+            <div key={m.id} style={{ background: T.bgSoft, borderRadius: 14, padding: 10, display: "flex", alignItems: "center", gap: 10 }}>
+              <GaugeRing pct={pct} cor={cor} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.nome || m.titulo || "Meta"}</div>
+                <div className="num" style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>
+                  {hidden ? "•••" : fmt(atual)}
+                </div>
+                <div className="num" style={{ fontSize: 9.5, color: T.faint }}>
+                  de {hidden ? "•••" : fmt(meta)}
+                </div>
               </div>
             </div>
           );
