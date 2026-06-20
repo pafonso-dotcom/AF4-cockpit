@@ -4,7 +4,7 @@ import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tool
 import { T } from "../../lib/theme.js";
 import { MESES_UP as MESES_PT } from "../../lib/meses.js";
 import { fmt, fmtN } from "../../lib/format.js";
-import { somaContasBRL, buscarCotacao } from "../../lib/cambio.js";
+import { somaContasBRL } from "../../lib/cambio.js";
 import { gerarInsights } from "../../lib/intelligence.js";
 import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
@@ -89,21 +89,13 @@ export default function Dashboard({
   const mesISO = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}`;
   const ehMesAtual = (data) => (data || "").startsWith(mesISO);
 
-  // Cotação do dólar ao vivo (R$ por 1 US$) — ativos US (Stocks/REITs) têm
-  // preço em dólar e precisam ser convertidos pra entrar no patrimônio em R$.
-  const [usdRate, setUsdRate] = useState(null);
-  useEffect(() => {
-    let vivo = true;
-    buscarCotacao("USD").then(r => { if (vivo && r) setUsdRate(r); });
-    return () => { vivo = false; };
-  }, []);
-
   const totalContas = useMemo(() => somaContasBRL(contas), [contas]);
+  // Patrimônio conta só a parte Brasil dos investimentos. Ativos em dólar
+  // (Stocks/REITs) ficam fora do total (decisão do usuário).
   const totalInvest = useMemo(() => ativos.reduce((s, a) => {
-    const v = Number(a.qtd||0) * Number(a.preco||0);
     const ehUSD = a.tipo === "stock" || a.tipo === "reit";
-    return s + (ehUSD ? v * (usdRate || 1) : v);
-  }, 0), [ativos, usdRate]);
+    return ehUSD ? s : s + Number(a.qtd||0) * Number(a.preco||0);
+  }, 0), [ativos]);
   const patrimonio = totalContas + totalInvest;
 
   // ===== Patrimônio Total (card do painel) =====
@@ -507,7 +499,7 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
         <div style={{ position: "relative", zIndex: 1, marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.15)", display: "flex", flexDirection: "column", gap: 2 }}>
           <Linha rotulo="Contas" v={breakdown.contas} sinal="+" />
           <Linha rotulo="A receber (ano)" v={breakdown.aReceber} sinal="+" />
-          <Linha rotulo="Investimentos" v={breakdown.invest} sinal="+" />
+          <Linha rotulo="Investimentos (Brasil)" v={breakdown.invest} sinal="+" />
           <Linha rotulo="A pagar (ano)" v={breakdown.aPagar} sinal="-" />
         </div>
       )}
