@@ -781,24 +781,7 @@ export default function AReceberEDividas({
 
   return (
     <div className={(embed || somenteReceber) ? "" : "fade-up py-8 px-6"}>
-      {embed ? (
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-          <button className="btn-ghost" onClick={() => setForm({
-            id: null, tipo: "receber", nome: "", valor: "", vencimento: "",
-            categoria: "Outros", obs: "", parcela: "",
-            parcelar: false, numParcelas: 3, modoValor: "total",
-          })}>
-            <Plus size={13} className="inline mr-1.5" /> Recebimento
-          </button>
-          <button className="btn-gold" onClick={() => setForm({
-            id: null, tipo: "dividas", nome: "", valor: "", vencimento: "",
-            categoria: "Outros", escopo: "pessoal", obs: "", parcela: "",
-            parcelar: false, numParcelas: 3, modoValor: "total",
-          })}>
-            <Plus size={13} className="inline mr-1.5" /> Compromisso
-          </button>
-        </div>
-      ) : somenteReceber ? (
+      {embed ? null : somenteReceber ? (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
           <button className="btn-ghost" onClick={() => setForm({
             id: null, tipo: "receber", nome: "", valor: "", vencimento: "",
@@ -1007,27 +990,47 @@ export default function AReceberEDividas({
 
       {/* Toggle: A Receber | A Pagar (escondido quando embutido na tela unificada) */}
       {!somenteReceber && (
-      <div role="tablist" style={{ display: "flex", gap: 2, marginBottom: 12, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
-        {[
-          { id: "receber", label: `💰 A Receber (${receberMes.length})`, cor: T.green },
-          { id: "pagar",   label: `⚠️ A Pagar (${pagarMes.length})`,    cor: T.red   },
-          { id: "pagas",   label: `✅ Pagas (${pagasMes.length})`,       cor: T.green },
-        ].map(t => {
-          const ativo = vista === t.id;
-          return (
-            <button key={t.id} role="tab" aria-selected={ativo} onClick={() => setVista(t.id)}
-              style={{
-                padding: "9px 16px", fontSize: 12.5, fontWeight: ativo ? 700 : 500,
-                background: "transparent",
-                color: ativo ? t.cor : T.muted,
-                border: "none", borderBottom: ativo ? `2px solid ${t.cor}` : "2px solid transparent",
-                marginBottom: -1, cursor: "pointer", letterSpacing: ".02em",
-                whiteSpace: "nowrap",
-              }}>
-              {t.label}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+        <div role="tablist" style={{ display: "flex", gap: 2, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
+          {[
+            { id: "receber", label: `💰 A Receber (${receberMes.length})`, cor: T.green },
+            { id: "pagar",   label: `⚠️ A Pagar (${pagarMes.length})`,    cor: T.red   },
+            { id: "pagas",   label: `✅ Pagas (${pagasMes.length})`,       cor: T.green },
+          ].map(t => {
+            const ativo = vista === t.id;
+            return (
+              <button key={t.id} role="tab" aria-selected={ativo} onClick={() => setVista(t.id)}
+                style={{
+                  padding: "9px 16px", fontSize: 12.5, fontWeight: ativo ? 700 : 500,
+                  background: "transparent",
+                  color: ativo ? t.cor : T.muted,
+                  border: "none", borderBottom: ativo ? `2px solid ${t.cor}` : "2px solid transparent",
+                  marginBottom: -1, cursor: "pointer", letterSpacing: ".02em",
+                  whiteSpace: "nowrap",
+                }}>
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        {embed && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className="btn-ghost" onClick={() => setForm({
+              id: null, tipo: "receber", nome: "", valor: "", vencimento: "",
+              categoria: "Outros", obs: "", parcela: "",
+              parcelar: false, numParcelas: 3, modoValor: "total",
+            })}>
+              <Plus size={13} className="inline mr-1.5" /> Recebimento
             </button>
-          );
-        })}
+            <button className="btn-gold" onClick={() => setForm({
+              id: null, tipo: "dividas", nome: "", valor: "", vencimento: "",
+              categoria: "Outros", escopo: "pessoal", obs: "", parcela: "",
+              parcelar: false, numParcelas: 3, modoValor: "total",
+            })}>
+              <Plus size={13} className="inline mr-1.5" /> Compromisso
+            </button>
+          </div>
+        )}
       </div>
       )}
 
