@@ -766,6 +766,427 @@ export default function App() {
     );
   }
 
+  // Render por módulo (closures: capturam todo o estado/handlers acima, sem
+  // prop-drilling). Mantém o <main> enxuto e o gating de módulo legível.
+  const renderFinancas = () => (
+    <div className="px-6 md:px-10">
+      {tab === "dashboard" && (
+        <Dashboard totais={totais} hidden={hidden} contas={contas} ativos={ativos}
+                   transacoes={transacoes} categorias={categorias} metas={metas}
+                   cartoes={cartoes} parcelamentos={parcelamentos}
+                   devedores={devedores} dividas={dividas}
+                   fixas={fixas} fixaOcorrencias={fixaOcorrencias}
+                   agenda={agenda}
+                   patrimonioHistorico={patrimonioHistorico}
+                   escopoAtivo={escopoAtivo}
+                   onTabChange={irParaTab}
+                   onContaClick={(c) => { setTab("contas"); setContaAberta(c); }} />
+      )}
+      {tab === "contas" && !contaAberta && (
+        <div className="px-6 md:px-10">
+          <Contas contas={contas} setContas={setContas} hidden={hidden}
+                  transacoes={transacoes} setTransacoes={setTransacoes}
+                  categorias={categorias}
+                  escopoAtivo={escopoAtivo}
+                  onCreateTransacao={handleCreateTransacao}
+                  contaAtiva={contaAberta}
+                  onContaClick={setContaAberta} />
+        </div>
+      )}
+      {tab === "contas" && contaAberta && (
+        <div className="px-6 md:px-10">
+          <ContaExtrato conta={contaAberta}
+                        contas={contas} setContas={setContas}
+                        transacoes={transacoes}
+                        setTransacoes={setTransacoes}
+                        categorias={categorias}
+                        hidden={hidden}
+                        onVoltar={() => setContaAberta(null)} />
+        </div>
+      )}
+      {(tab === "areceber" || tab === "fixas" || tab === "relatorios-anual" || tab === "planejamento") && (
+        <Planejamento
+          transacoes={transacoes} setTransacoes={setTransacoes}
+          contas={contas} setContas={setContas}
+          categorias={categorias} setCategorias={setCategorias}
+          devedores={devedores} setDevedores={setDevedores}
+          dividas={dividas} setDividas={setDividas}
+          fixas={fixas} setFixas={setFixas}
+          fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
+          parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
+          cartoes={cartoes} setCartoes={setCartoes}
+          metas={metas} setMetas={setMetas}
+          escopoAtivo={escopoAtivo}
+          tab={tab}
+          hidden={hidden}
+        />
+      )}
+      {tab === "despesas" && (
+        <Despesas
+          transacoes={transacoes} setTransacoes={setTransacoes}
+          fixas={fixas} setFixas={setFixas}
+          fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
+          parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
+          dividas={dividas} setDividas={setDividas}
+          contas={contas} setContas={setContas}
+          categorias={categorias}
+          cartoes={cartoes}
+          hidden={hidden}
+        />
+      )}
+      {tab === "audit" && (
+        <div className="px-6 md:px-10">
+          <AuditLog />
+        </div>
+      )}
+      {tab === "perguntar" && (
+        <div className="px-6 md:px-10">
+          <PergunteAoClaude
+            apiKey={apiKeys.anthropic}
+            onSaveKey={(k) => setApiKeys(prev => ({ ...prev, anthropic: k }))}
+            transacoes={transacoes} contas={contas} ativos={ativos}
+            devedores={devedores} dividas={dividas}
+          />
+        </div>
+      )}
+      {tab === "cartoes" && !cartaoAberto && (
+        <div className="px-6 md:px-10">
+          <Cartoes cartoes={cartoes} setCartoes={setCartoes}
+                   parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
+                   contas={contas} setContas={setContas}
+                   transacoes={transacoes} setTransacoes={setTransacoes}
+                   fixas={fixas} setFixas={setFixas}
+                   fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
+                   categorias={categorias} setCategorias={setCategorias}
+                   apiKeys={apiKeys}
+                   hidden={hidden}
+                   cartaoAtivo={cartaoAberto}
+                   onCartaoClick={setCartaoAberto} />
+        </div>
+      )}
+      {tab === "cartoes" && cartaoAberto && (
+        <div className="px-6 md:px-10">
+          <CartaoExtrato cartao={cartaoAberto}
+                         transacoes={transacoes}
+                         setTransacoes={setTransacoes}
+                         parcelamentos={parcelamentos}
+                         setParcelamentos={setParcelamentos}
+                         categorias={categorias}
+                         onVoltar={() => setCartaoAberto(null)}
+                         hidden={hidden} />
+        </div>
+      )}
+      {tab === "relatorios-f" && (
+        <RelatoriosFinancas transacoes={transacoes} contas={contas}
+                            categorias={categorias}
+                            fixas={fixas} fixaOcorrencias={fixaOcorrencias}
+                            parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
+                            patrimonioHistorico={patrimonioHistorico}
+                            escopoAtivo={escopoAtivo}
+                            hidden={hidden} />
+      )}
+      {tab === "transacoes" && (
+        <Transacoes transacoes={transacoes} setTransacoes={setTransacoes}
+                    categorias={categorias} contas={contas} setContas={setContas}
+                    ativos={ativos} totais={totais}
+                    parcelamentos={parcelamentos} cartoes={cartoes}
+                    pendingTransacao={pendingTransacao}
+                    clearPendingTransacao={handleClearPending}
+                    apiKey={apiKeys.anthropic}
+                    escopoAtivo={escopoAtivo}
+                    hidden={hidden} />
+      )}
+      {tab === "categorias" && (
+        <Categorias categorias={categorias} setCategorias={setCategorias} transacoes={transacoes}
+                    escopoAtivo={escopoAtivo} hidden={hidden} />
+      )}
+      {/* Rotas antigas (fixas, relatorios-anual, areceber) consolidadas em Planejamento — ver bloco unificado acima */}
+      {tab === "analiseia" && (
+        <AnaliseFatura
+          categorias={categorias} setCategorias={setCategorias}
+          transacoes={transacoes} setTransacoes={setTransacoes}
+          contas={contas} setContas={setContas}
+          cartoes={cartoes} setCartoes={setCartoes}
+          fixas={fixas} setFixas={setFixas}
+          fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
+          parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
+          apiKeys={apiKeys} hidden={hidden}
+        />
+      )}
+    </div>
+  );
+
+  const renderAgenda = () => (
+    <div className="px-6 md:px-10">
+      {tab === "inicio" && (
+        <AgendaInicio
+          agenda={agenda} tarefas={tarefas} ideias={ideias}
+          compras={compras} metas={metas}
+          setTab={setTab}
+          lembretes={lembretes}
+          treinos={treinos}
+        />
+      )}
+      {tab === "notas" && (
+        <Notas agenda={agenda} setAgenda={setAgenda}
+               notasLegacy={notas} setNotasLegacy={setNotas} />
+      )}
+      {tab === "calendario" && (
+        <Calendario transacoes={transacoes} setTransacoes={setTransacoes}
+                    contas={contas} setContas={setContas}
+                    categorias={categorias} hidden={hidden}
+                    fixas={fixas} fixaOcorrencias={fixaOcorrencias}
+                    parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
+                    agenda={agenda} setAgenda={setAgenda}
+                    escopoAtivo={escopoAtivo} />
+      )}
+      {tab === "tarefas" && (
+        <Tarefas tarefas={tarefas} setTarefas={setTarefas} />
+      )}
+      {tab === "ideias" && (
+        <Ideias ideias={ideias} setIdeias={setIdeias} />
+      )}
+      {tab === "sugestoes" && (
+        <SugestoesMelhorias sugestoes={sugestoes} setSugestoes={setSugestoes} />
+      )}
+      {tab === "metas" && (
+        <Metas metas={metas} setMetas={setMetas} hidden={hidden}
+               fixas={fixas} setFixas={setFixas}
+               fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
+               categorias={categorias} contas={contas} setContas={setContas}
+               transacoes={transacoes} setTransacoes={setTransacoes}
+               ativos={ativos} setAtivos={setAtivos} />
+      )}
+      {tab === "compras" && (
+        <Compras compras={compras} setCompras={setCompras} />
+      )}
+      {tab === "habitos" && (
+        <Habitos habitos={habitos} setHabitos={setHabitos} />
+      )}
+      {tab === "diario" && (
+        <Diario diario={diario} setDiario={setDiario} />
+      )}
+      {tab === "lembretes" && (
+        <Lembretes lembretes={lembretes} setLembretes={setLembretes} />
+      )}
+      {tab === "conversa" && (
+        <Conversa
+          conversaHistorico={conversaHistorico}
+          setConversaHistorico={setConversaHistorico}
+          transacoes={transacoes} setTransacoes={setTransacoes}
+          categorias={categorias}
+          agenda={agenda} setAgenda={setAgenda}
+          tarefas={tarefas} setTarefas={setTarefas}
+          lembretes={lembretes} setLembretes={setLembretes}
+          treinos={treinos}
+          apiKeys={apiKeys}
+          hidden={hidden}
+        />
+      )}
+      {tab === "treino" && (
+        <Treino
+          treinos={treinos} setTreinos={setTreinos}
+          exerciciosDB={exerciciosDB} setExerciciosDB={setExerciciosDB}
+          treinoTemplates={treinoTemplates} setTreinoTemplates={setTreinoTemplates}
+          apiKeys={apiKeys}
+        />
+      )}
+    </div>
+  );
+
+  const renderNegocio = () => (
+    <div className="px-6 md:px-10">
+      {(tab === "negocio-painel" || !tab.startsWith("negocio-")) && (
+        <NegocioPainel
+          negocioVeiculos={negocioVeiculos}
+          negocioVendasVeiculos={negocioVendasVeiculos}
+          negocioServicos={negocioServicos}
+          negocioVendasServicos={negocioVendasServicos}
+          negocioClientes={negocioClientes}
+          caixaNegocio={caixaNegocio}
+          hidden={hidden}
+          onTabChange={(t) => setTab(t)}
+        />
+      )}
+      {tab === "negocio-veiculos" && (
+        <NegocioVeiculos
+          veiculos={negocioVeiculos} setVeiculos={setNegocioVeiculos}
+          vendas={negocioVendasVeiculos} setVendas={setNegocioVendasVeiculos}
+          clientes={negocioClientes}
+          contas={contas} setContas={setContas}
+          transacoes={transacoes} setTransacoes={setTransacoes}
+          categorias={categorias}
+          caixaNegocio={caixaNegocio} setCaixaNegocio={setCaixaNegocio}
+          hidden={hidden}
+        />
+      )}
+      {tab === "negocio-servicos" && (
+        <NegocioServicos
+          servicos={negocioServicos} setServicos={setNegocioServicos}
+          vendas={negocioVendasServicos} setVendas={setNegocioVendasServicos}
+          contratos={negocioContratos} setContratos={setNegocioContratos}
+          clientes={negocioClientes}
+          veiculos={negocioVeiculos}
+          instaladores={negocioInstaladores} setInstaladores={setNegocioInstaladores}
+          bancos={negocioBancos} setBancos={setNegocioBancos}
+          caixaNegocio={caixaNegocio} setCaixaNegocio={setCaixaNegocio}
+          hidden={hidden}
+        />
+      )}
+      {tab === "negocio-clientes" && (
+        <NegocioClientes
+          clientes={negocioClientes} setClientes={setNegocioClientes}
+          vendasVeiculos={negocioVendasVeiculos}
+          vendasServicos={negocioVendasServicos}
+          hidden={hidden}
+        />
+      )}
+    </div>
+  );
+
+  const renderInvest = () => (
+    <>
+      {tab === "investimentos" && (
+        <InvestPainel ativos={ativos} transacoes={transacoes} categorias={categorias} hidden={hidden}
+                      apiKeys={apiKeys}
+                      onTabChange={irParaTab}
+                      onAbrirAnaliseCarteira={() => { setAnaliseViewInicial("carteira-analise"); setTab("analises"); }}
+                      onAbrirAnaliseIdv={() => { setAnaliseViewInicial("idv"); setTab("analises"); }}
+                      onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }} />
+      )}
+      {tab === "analises" && (
+        <div className="px-6 md:px-10">
+          <AnalisesUnificada
+            ativos={ativos} hidden={hidden}
+            tradeAnalisesIdV={tradeAnalisesIdV} setTradeAnalisesIdV={setTradeAnalisesIdV}
+            onAnalisarAtivo={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
+            apiKeys={apiKeys}
+            viewInicial={analiseViewInicial}
+            onConsumirViewInicial={() => setAnaliseViewInicial(null)}
+          />
+        </div>
+      )}
+      {tab === "carteira" && (
+        <div className="px-6 md:px-10">
+          <Investimentos ativos={ativos} setAtivos={setAtivos}
+                         contas={contas} setContas={setContas}
+                         categorias={categorias}
+                         transacoes={transacoes} setTransacoes={setTransacoes}
+                         onRefresh={refreshMarket} refreshing={refreshing}
+                         onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
+                         onProjetar={(ativo) => { setProjetarAlvo(ativo); setTab("projecao"); }}
+                         hidden={hidden} />
+        </div>
+      )}
+      {tab === "objetivos" && (
+        <div className="px-6 md:px-10">
+          <ObjetivosCarteira
+            ativos={ativos}
+            objetivosCarteira={objetivosCarteira}
+            setObjetivosCarteira={setObjetivosCarteira}
+            hidden={hidden}
+            apiKeys={apiKeys}
+          />
+        </div>
+      )}
+      {tab === "modelo" && (
+        <div className="px-6 md:px-10">
+          <CarteiraModelo
+            ativos={ativos}
+            carteirasModeloCustom={carteirasModeloCustom}
+            setCarteirasModeloCustom={setCarteirasModeloCustom}
+            modeloAtivoId={modeloAtivoId}
+            setModeloAtivoId={setModeloAtivoId}
+            hidden={hidden}
+            apiKeys={apiKeys}
+          />
+        </div>
+      )}
+      {tab === "monte-carteira" && (
+        <div className="px-6 md:px-10">
+          <MonteSuaCarteira ativos={ativos} apiKey={apiKeys.anthropic} />
+        </div>
+      )}
+      {tab === "proventos" && (
+        <Proventos
+          ativos={ativos} setAtivos={setAtivos}
+          hidden={hidden}
+          carteiraProventos={carteiraProventos}
+          setCarteiraProventos={setCarteiraProventos}
+          proventosRecebidos={proventosRecebidos}
+          setProventosRecebidos={setProventosRecebidos}
+          proventosIgnorados={proventosIgnorados}
+          setProventosIgnorados={setProventosIgnorados}
+          proventosManuais={proventosManuais}
+          setProventosManuais={setProventosManuais}
+          contas={contas} setContas={setContas}
+          categorias={categorias}
+          transacoes={transacoes} setTransacoes={setTransacoes}
+        />
+      )}
+      {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} transacoes={transacoes} patrimonioHistorico={patrimonioHistorico} proventos={[]} operacoes={[]} hidden={hidden} />}
+      {tab === "mercado" && (
+        <div className="px-6 md:px-10">
+          <Mercado ativos={ativos} apiKeys={apiKeys} />
+        </div>
+      )}
+      {tab === "simulador" && (
+        <div className="px-6 md:px-10">
+          <Simulador />
+        </div>
+      )}
+      {tab === "calc-renda" && (
+        <div className="px-6 md:px-10">
+          <CalculadoraRenda />
+        </div>
+      )}
+      {tab === "projecao" && (
+        <div className="px-6 md:px-10">
+          <Projecao
+            ativos={ativos} hidden={hidden} apiKeys={apiKeys}
+            alvoInicial={projetarAlvo}
+            onConsumirAlvo={() => setProjetarAlvo(null)}
+          />
+        </div>
+      )}
+    </>
+  );
+
+  const renderTradeAtivo = () => (
+    <div className="px-6 md:px-10">
+      <AnaliseTrade tradeWatchlist={tradeWatchlist} ativos={ativos} alvoInicial={analiseAlvo}
+                    onVoltar={() => setTab("analises")} />
+    </div>
+  );
+
+  const renderConfig = () => (
+    <Configuracoes subtab={tab}
+                   themeId={themeId} setThemeId={setThemeId}
+                   apiKeys={apiKeys} setApiKeys={setApiKeys}
+                   modulesEnabled={modulesEnabled} setModulesEnabled={setModulesEnabled}
+                   onClearModule={async (id) => {
+                     // Calcula snapshot zerado e força save imediato
+                     // (bypass do debounce de 1.5s — senão recarregar
+                     // antes do timer faz a versão antiga voltar do cloud).
+                     const cleared = {
+                       contas, categorias, transacoes, ativos, metas, notas,
+                       cartoes, parcelamentos, devedores, dividas, themeId,
+                     };
+                     if (id === "financas") {
+                       cleared.contas = []; cleared.cartoes = []; cleared.parcelamentos = [];
+                       cleared.transacoes = []; cleared.categorias = [];
+                       cleared.metas = []; cleared.notas = []; cleared.devedores = []; cleared.dividas = [];
+                       setContas([]); setCartoes([]); setParcelamentos([]);
+                       setTransacoes([]); setCategorias([]);
+                       setMetas([]); setNotas([]); setDevedores([]); setDividas([]);
+                     } else if (id === "invest") {
+                       cleared.ativos = [];
+                       setAtivos([]);
+                     }
+                     await saveAll(cleared, { immediate: true });
+                   }} />
+  );
+
   return (
     <div style={{ background: T.bg, color: T.ink, fontFamily: T.body, minHeight: "100vh" }}>
       <GlobalStyles />
@@ -830,429 +1251,22 @@ export default function App() {
       >
         <Suspense fallback={<PageFallback />}>
         {/* MÓDULO: FINANÇAS */}
-        {modulo === "financas" && (
-          <div className="px-6 md:px-10">
-            {tab === "dashboard" && (
-              <Dashboard totais={totais} hidden={hidden} contas={contas} ativos={ativos}
-                         transacoes={transacoes} categorias={categorias} metas={metas}
-                         cartoes={cartoes} parcelamentos={parcelamentos}
-                         devedores={devedores} dividas={dividas}
-                         fixas={fixas} fixaOcorrencias={fixaOcorrencias}
-                         agenda={agenda}
-                         patrimonioHistorico={patrimonioHistorico}
-                         escopoAtivo={escopoAtivo}
-                         onTabChange={irParaTab}
-                         onContaClick={(c) => { setTab("contas"); setContaAberta(c); }} />
-            )}
-            {tab === "contas" && !contaAberta && (
-              <div className="px-6 md:px-10">
-                <Contas contas={contas} setContas={setContas} hidden={hidden}
-                        transacoes={transacoes} setTransacoes={setTransacoes}
-                        categorias={categorias}
-                        escopoAtivo={escopoAtivo}
-                        onCreateTransacao={handleCreateTransacao}
-                        contaAtiva={contaAberta}
-                        onContaClick={setContaAberta} />
-              </div>
-            )}
-            {tab === "contas" && contaAberta && (
-              <div className="px-6 md:px-10">
-                <ContaExtrato conta={contaAberta}
-                              contas={contas} setContas={setContas}
-                              transacoes={transacoes}
-                              setTransacoes={setTransacoes}
-                              categorias={categorias}
-                              hidden={hidden}
-                              onVoltar={() => setContaAberta(null)} />
-              </div>
-            )}
-            {(tab === "areceber" || tab === "fixas" || tab === "relatorios-anual" || tab === "planejamento") && (
-              <Planejamento
-                transacoes={transacoes} setTransacoes={setTransacoes}
-                contas={contas} setContas={setContas}
-                categorias={categorias} setCategorias={setCategorias}
-                devedores={devedores} setDevedores={setDevedores}
-                dividas={dividas} setDividas={setDividas}
-                fixas={fixas} setFixas={setFixas}
-                fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
-                parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
-                cartoes={cartoes} setCartoes={setCartoes}
-                metas={metas} setMetas={setMetas}
-                escopoAtivo={escopoAtivo}
-                tab={tab}
-                hidden={hidden}
-              />
-            )}
-            {tab === "despesas" && (
-              <Despesas
-                transacoes={transacoes} setTransacoes={setTransacoes}
-                fixas={fixas} setFixas={setFixas}
-                fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
-                parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
-                dividas={dividas} setDividas={setDividas}
-                contas={contas} setContas={setContas}
-                categorias={categorias}
-                cartoes={cartoes}
-                hidden={hidden}
-              />
-            )}
-            {tab === "audit" && (
-              <div className="px-6 md:px-10">
-                <AuditLog />
-              </div>
-            )}
-            {tab === "perguntar" && (
-              <div className="px-6 md:px-10">
-                <PergunteAoClaude
-                  apiKey={apiKeys.anthropic}
-                  onSaveKey={(k) => setApiKeys(prev => ({ ...prev, anthropic: k }))}
-                  transacoes={transacoes} contas={contas} ativos={ativos}
-                  devedores={devedores} dividas={dividas}
-                />
-              </div>
-            )}
-            {tab === "cartoes" && !cartaoAberto && (
-              <div className="px-6 md:px-10">
-                <Cartoes cartoes={cartoes} setCartoes={setCartoes}
-                         parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
-                         contas={contas} setContas={setContas}
-                         transacoes={transacoes} setTransacoes={setTransacoes}
-                         fixas={fixas} setFixas={setFixas}
-                         fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
-                         categorias={categorias} setCategorias={setCategorias}
-                         apiKeys={apiKeys}
-                         hidden={hidden}
-                         cartaoAtivo={cartaoAberto}
-                         onCartaoClick={setCartaoAberto} />
-              </div>
-            )}
-            {tab === "cartoes" && cartaoAberto && (
-              <div className="px-6 md:px-10">
-                <CartaoExtrato cartao={cartaoAberto}
-                               transacoes={transacoes}
-                               setTransacoes={setTransacoes}
-                               parcelamentos={parcelamentos}
-                               setParcelamentos={setParcelamentos}
-                               categorias={categorias}
-                               onVoltar={() => setCartaoAberto(null)}
-                               hidden={hidden} />
-              </div>
-            )}
-            {tab === "relatorios-f" && (
-              <RelatoriosFinancas transacoes={transacoes} contas={contas}
-                                  categorias={categorias}
-                                  fixas={fixas} fixaOcorrencias={fixaOcorrencias}
-                                  parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
-                                  patrimonioHistorico={patrimonioHistorico}
-                                  escopoAtivo={escopoAtivo}
-                                  hidden={hidden} />
-            )}
-            {tab === "transacoes" && (
-              <Transacoes transacoes={transacoes} setTransacoes={setTransacoes}
-                          categorias={categorias} contas={contas} setContas={setContas}
-                          ativos={ativos} totais={totais}
-                          parcelamentos={parcelamentos} cartoes={cartoes}
-                          pendingTransacao={pendingTransacao}
-                          clearPendingTransacao={handleClearPending}
-                          apiKey={apiKeys.anthropic}
-                          escopoAtivo={escopoAtivo}
-                          hidden={hidden} />
-            )}
-            {tab === "categorias" && (
-              <Categorias categorias={categorias} setCategorias={setCategorias} transacoes={transacoes}
-                          escopoAtivo={escopoAtivo} hidden={hidden} />
-            )}
-            {/* Rotas antigas (fixas, relatorios-anual, areceber) consolidadas em Planejamento — ver bloco unificado acima */}
-            {tab === "analiseia" && (
-              <AnaliseFatura
-                categorias={categorias} setCategorias={setCategorias}
-                transacoes={transacoes} setTransacoes={setTransacoes}
-                contas={contas} setContas={setContas}
-                cartoes={cartoes} setCartoes={setCartoes}
-                fixas={fixas} setFixas={setFixas}
-                fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
-                parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
-                apiKeys={apiKeys} hidden={hidden}
-              />
-            )}
-          </div>
-        )}
+        {modulo === "financas" && renderFinancas()}
 
         {/* AGENDA — agora incorporada ao módulo Finanças (as tabs vivem em financas). */}
-        {modulo === "financas" && (
-          <div className="px-6 md:px-10">
-            {tab === "inicio" && (
-              <AgendaInicio
-                agenda={agenda} tarefas={tarefas} ideias={ideias}
-                compras={compras} metas={metas}
-                setTab={setTab}
-                lembretes={lembretes}
-                treinos={treinos}
-              />
-            )}
-            {tab === "notas" && (
-              <Notas agenda={agenda} setAgenda={setAgenda}
-                     notasLegacy={notas} setNotasLegacy={setNotas} />
-            )}
-            {tab === "calendario" && (
-              <Calendario transacoes={transacoes} setTransacoes={setTransacoes}
-                          contas={contas} setContas={setContas}
-                          categorias={categorias} hidden={hidden}
-                          fixas={fixas} fixaOcorrencias={fixaOcorrencias}
-                          parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
-                          agenda={agenda} setAgenda={setAgenda}
-                          escopoAtivo={escopoAtivo} />
-            )}
-            {tab === "tarefas" && (
-              <Tarefas tarefas={tarefas} setTarefas={setTarefas} />
-            )}
-            {tab === "ideias" && (
-              <Ideias ideias={ideias} setIdeias={setIdeias} />
-            )}
-            {tab === "sugestoes" && (
-              <SugestoesMelhorias sugestoes={sugestoes} setSugestoes={setSugestoes} />
-            )}
-            {tab === "metas" && (
-              <Metas metas={metas} setMetas={setMetas} hidden={hidden}
-                     fixas={fixas} setFixas={setFixas}
-                     fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
-                     categorias={categorias} contas={contas} setContas={setContas}
-                     transacoes={transacoes} setTransacoes={setTransacoes}
-                     ativos={ativos} setAtivos={setAtivos} />
-            )}
-            {tab === "compras" && (
-              <Compras compras={compras} setCompras={setCompras} />
-            )}
-            {tab === "habitos" && (
-              <Habitos habitos={habitos} setHabitos={setHabitos} />
-            )}
-            {tab === "diario" && (
-              <Diario diario={diario} setDiario={setDiario} />
-            )}
-            {tab === "lembretes" && (
-              <Lembretes lembretes={lembretes} setLembretes={setLembretes} />
-            )}
-            {tab === "conversa" && (
-              <Conversa
-                conversaHistorico={conversaHistorico}
-                setConversaHistorico={setConversaHistorico}
-                transacoes={transacoes} setTransacoes={setTransacoes}
-                categorias={categorias}
-                agenda={agenda} setAgenda={setAgenda}
-                tarefas={tarefas} setTarefas={setTarefas}
-                lembretes={lembretes} setLembretes={setLembretes}
-                treinos={treinos}
-                apiKeys={apiKeys}
-                hidden={hidden}
-              />
-            )}
-            {tab === "treino" && (
-              <Treino
-                treinos={treinos} setTreinos={setTreinos}
-                exerciciosDB={exerciciosDB} setExerciciosDB={setExerciciosDB}
-                treinoTemplates={treinoTemplates} setTreinoTemplates={setTreinoTemplates}
-                apiKeys={apiKeys}
-              />
-            )}
-          </div>
-        )}
+        {modulo === "financas" && renderAgenda()}
 
         {/* MÓDULO: NEGÓCIO (revenda + serviços) */}
-        {modulo === "negocio" && (
-          <div className="px-6 md:px-10">
-            {(tab === "negocio-painel" || !tab.startsWith("negocio-")) && (
-              <NegocioPainel
-                negocioVeiculos={negocioVeiculos}
-                negocioVendasVeiculos={negocioVendasVeiculos}
-                negocioServicos={negocioServicos}
-                negocioVendasServicos={negocioVendasServicos}
-                negocioClientes={negocioClientes}
-                caixaNegocio={caixaNegocio}
-                hidden={hidden}
-                onTabChange={(t) => setTab(t)}
-              />
-            )}
-            {tab === "negocio-veiculos" && (
-              <NegocioVeiculos
-                veiculos={negocioVeiculos} setVeiculos={setNegocioVeiculos}
-                vendas={negocioVendasVeiculos} setVendas={setNegocioVendasVeiculos}
-                clientes={negocioClientes}
-                contas={contas} setContas={setContas}
-                transacoes={transacoes} setTransacoes={setTransacoes}
-                categorias={categorias}
-                caixaNegocio={caixaNegocio} setCaixaNegocio={setCaixaNegocio}
-                hidden={hidden}
-              />
-            )}
-            {tab === "negocio-servicos" && (
-              <NegocioServicos
-                servicos={negocioServicos} setServicos={setNegocioServicos}
-                vendas={negocioVendasServicos} setVendas={setNegocioVendasServicos}
-                contratos={negocioContratos} setContratos={setNegocioContratos}
-                clientes={negocioClientes}
-                veiculos={negocioVeiculos}
-                instaladores={negocioInstaladores} setInstaladores={setNegocioInstaladores}
-                bancos={negocioBancos} setBancos={setNegocioBancos}
-                caixaNegocio={caixaNegocio} setCaixaNegocio={setCaixaNegocio}
-                hidden={hidden}
-              />
-            )}
-            {tab === "negocio-clientes" && (
-              <NegocioClientes
-                clientes={negocioClientes} setClientes={setNegocioClientes}
-                vendasVeiculos={negocioVendasVeiculos}
-                vendasServicos={negocioVendasServicos}
-                hidden={hidden}
-              />
-            )}
-          </div>
-        )}
+        {modulo === "negocio" && renderNegocio()}
 
         {/* MÓDULO: INVESTIMENTOS */}
-        {modulo === "invest" && (
-          <>
-            {tab === "investimentos" && (
-              <InvestPainel ativos={ativos} transacoes={transacoes} categorias={categorias} hidden={hidden}
-                            apiKeys={apiKeys}
-                            onTabChange={irParaTab}
-                            onAbrirAnaliseCarteira={() => { setAnaliseViewInicial("carteira-analise"); setTab("analises"); }}
-                            onAbrirAnaliseIdv={() => { setAnaliseViewInicial("idv"); setTab("analises"); }}
-                            onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }} />
-            )}
-            {tab === "analises" && (
-              <div className="px-6 md:px-10">
-                <AnalisesUnificada
-                  ativos={ativos} hidden={hidden}
-                  tradeAnalisesIdV={tradeAnalisesIdV} setTradeAnalisesIdV={setTradeAnalisesIdV}
-                  onAnalisarAtivo={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
-                  apiKeys={apiKeys}
-                  viewInicial={analiseViewInicial}
-                  onConsumirViewInicial={() => setAnaliseViewInicial(null)}
-                />
-              </div>
-            )}
-            {tab === "carteira" && (
-              <div className="px-6 md:px-10">
-                <Investimentos ativos={ativos} setAtivos={setAtivos}
-                               contas={contas} setContas={setContas}
-                               categorias={categorias}
-                               transacoes={transacoes} setTransacoes={setTransacoes}
-                               onRefresh={refreshMarket} refreshing={refreshing}
-                               onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
-                               onProjetar={(ativo) => { setProjetarAlvo(ativo); setTab("projecao"); }}
-                               hidden={hidden} />
-              </div>
-            )}
-            {tab === "objetivos" && (
-              <div className="px-6 md:px-10">
-                <ObjetivosCarteira
-                  ativos={ativos}
-                  objetivosCarteira={objetivosCarteira}
-                  setObjetivosCarteira={setObjetivosCarteira}
-                  hidden={hidden}
-                  apiKeys={apiKeys}
-                />
-              </div>
-            )}
-            {tab === "modelo" && (
-              <div className="px-6 md:px-10">
-                <CarteiraModelo
-                  ativos={ativos}
-                  carteirasModeloCustom={carteirasModeloCustom}
-                  setCarteirasModeloCustom={setCarteirasModeloCustom}
-                  modeloAtivoId={modeloAtivoId}
-                  setModeloAtivoId={setModeloAtivoId}
-                  hidden={hidden}
-                  apiKeys={apiKeys}
-                />
-              </div>
-            )}
-            {tab === "monte-carteira" && (
-              <div className="px-6 md:px-10">
-                <MonteSuaCarteira ativos={ativos} apiKey={apiKeys.anthropic} />
-              </div>
-            )}
-            {tab === "proventos" && (
-              <Proventos
-                ativos={ativos} setAtivos={setAtivos}
-                hidden={hidden}
-                carteiraProventos={carteiraProventos}
-                setCarteiraProventos={setCarteiraProventos}
-                proventosRecebidos={proventosRecebidos}
-                setProventosRecebidos={setProventosRecebidos}
-                proventosIgnorados={proventosIgnorados}
-                setProventosIgnorados={setProventosIgnorados}
-                proventosManuais={proventosManuais}
-                setProventosManuais={setProventosManuais}
-                contas={contas} setContas={setContas}
-                categorias={categorias}
-                transacoes={transacoes} setTransacoes={setTransacoes}
-              />
-            )}
-            {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} transacoes={transacoes} patrimonioHistorico={patrimonioHistorico} proventos={[]} operacoes={[]} hidden={hidden} />}
-            {tab === "mercado" && (
-              <div className="px-6 md:px-10">
-                <Mercado ativos={ativos} apiKeys={apiKeys} />
-              </div>
-            )}
-            {tab === "simulador" && (
-              <div className="px-6 md:px-10">
-                <Simulador />
-              </div>
-            )}
-            {tab === "calc-renda" && (
-              <div className="px-6 md:px-10">
-                <CalculadoraRenda />
-              </div>
-            )}
-            {tab === "projecao" && (
-              <div className="px-6 md:px-10">
-                <Projecao
-                  ativos={ativos} hidden={hidden} apiKeys={apiKeys}
-                  alvoInicial={projetarAlvo}
-                  onConsumirAlvo={() => setProjetarAlvo(null)}
-                />
-              </div>
-            )}
-          </>
-        )}
+        {modulo === "invest" && renderInvest()}
 
         {/* TELA DE ANÁLISE TÉCNICA DE UM ATIVO (fluxo a partir do Análise da Carteira) */}
-        {modulo === "invest" && tab === "trade-ativo" && (
-          <div className="px-6 md:px-10">
-            <AnaliseTrade tradeWatchlist={tradeWatchlist} ativos={ativos} alvoInicial={analiseAlvo}
-                          onVoltar={() => setTab("analises")} />
-          </div>
-        )}
+        {modulo === "invest" && tab === "trade-ativo" && renderTradeAtivo()}
 
         {/* MÓDULO: CONFIGURAÇÕES */}
-        {modulo === "config" && (
-          <Configuracoes subtab={tab}
-                         themeId={themeId} setThemeId={setThemeId}
-                         apiKeys={apiKeys} setApiKeys={setApiKeys}
-                         modulesEnabled={modulesEnabled} setModulesEnabled={setModulesEnabled}
-                         onClearModule={async (id) => {
-                           // Calcula snapshot zerado e força save imediato
-                           // (bypass do debounce de 1.5s — senão recarregar
-                           // antes do timer faz a versão antiga voltar do cloud).
-                           const cleared = {
-                             contas, categorias, transacoes, ativos, metas, notas,
-                             cartoes, parcelamentos, devedores, dividas, themeId,
-                           };
-                           if (id === "financas") {
-                             cleared.contas = []; cleared.cartoes = []; cleared.parcelamentos = [];
-                             cleared.transacoes = []; cleared.categorias = [];
-                             cleared.metas = []; cleared.notas = []; cleared.devedores = []; cleared.dividas = [];
-                             setContas([]); setCartoes([]); setParcelamentos([]);
-                             setTransacoes([]); setCategorias([]);
-                             setMetas([]); setNotas([]); setDevedores([]); setDividas([]);
-                           } else if (id === "invest") {
-                             cleared.ativos = [];
-                             setAtivos([]);
-                           }
-                           await saveAll(cleared, { immediate: true });
-                         }} />
-        )}
+        {modulo === "config" && renderConfig()}
         </Suspense>
       </main>
 
