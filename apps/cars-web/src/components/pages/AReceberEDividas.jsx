@@ -648,6 +648,7 @@ export default function AReceberEDividas({
   }, [todosVencimentos.join(","), hoje]);
   const [mesAtivo, setMesAtivo] = useState(""); // "" = Geral (todos os meses)
   const [vista, setVista] = useState(vistaInicial === "pagar" ? "pagar" : "receber"); // "receber" | "pagar"
+  const [ordem, setOrdem] = useState("data"); // "data" | "nome"
 
   const filtroMes = (item) => {
     if (!mesAtivo) return true;
@@ -655,10 +656,12 @@ export default function AReceberEDividas({
     return ymOf(item.vencimento) === mesAtivo;
   };
 
-  // Ordena por data de vencimento (mais próxima primeiro); sem data vai pro fim.
+  // Ordenação: por data de vencimento (mais próxima primeiro; sem data no fim) ou por nome.
   const ordenarPorData = (a, b) => (a.vencimento || "9999-12-31").localeCompare(b.vencimento || "9999-12-31");
-  const receberMes = devAbertos.filter(filtroMes).sort(ordenarPorData);
-  const pagarMes   = divAbertas.filter(filtroMes).sort(ordenarPorData);
+  const ordenarPorNome = (a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR", { sensitivity: "base" });
+  const sorter = ordem === "nome" ? ordenarPorNome : ordenarPorData;
+  const receberMes = devAbertos.filter(filtroMes).sort(sorter);
+  const pagarMes   = divAbertas.filter(filtroMes).sort(sorter);
 
   // Alertas globais (todos os meses)
   const totaisAlerta = {
@@ -1046,11 +1049,26 @@ export default function AReceberEDividas({
                 ({receberMes.length} {receberMes.length === 1 ? "item" : "itens"})
               </span>
             </div>
-            <div className="num" style={{
-              color: T.green, fontSize: 16, fontWeight: 600,
-              fontFamily: T.serif, letterSpacing: "-.01em",
-            }}>
-              {hidden ? "•••" : fmt(receberMes.reduce((s, d) => s + aReceberDe(d), 0))}
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "inline-flex", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 999, padding: 2 }}>
+                {[{ id: "data", l: "Data" }, { id: "nome", l: "Nome" }].map(o => (
+                  <button key={o.id} onClick={() => setOrdem(o.id)}
+                    style={{
+                      padding: "4px 11px", fontSize: 10, fontWeight: 700, letterSpacing: ".05em",
+                      textTransform: "uppercase", border: "none", borderRadius: 999, cursor: "pointer",
+                      background: ordem === o.id ? T.gold : "transparent",
+                      color: ordem === o.id ? T.bg : T.muted,
+                    }}>
+                    {o.l}
+                  </button>
+                ))}
+              </div>
+              <div className="num" style={{
+                color: T.green, fontSize: 16, fontWeight: 600,
+                fontFamily: T.serif, letterSpacing: "-.01em",
+              }}>
+                {hidden ? "•••" : fmt(receberMes.reduce((s, d) => s + aReceberDe(d), 0))}
+              </div>
             </div>
           </div>
 
@@ -1063,7 +1081,7 @@ export default function AReceberEDividas({
               {receberMes.map((d, i) => {
                 const ym = ymOf(d.vencimento) || "—";
                 const prevYm = i > 0 ? (ymOf(receberMes[i - 1].vencimento) || "—") : null;
-                const showHeader = !mesAtivo && ym !== prevYm;
+                const showHeader = ordem === "data" && !mesAtivo && ym !== prevYm;
                 return (
                   <React.Fragment key={d.id}>
                     {showHeader && (
