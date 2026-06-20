@@ -2,6 +2,7 @@ import React, { useMemo, useEffect, useState } from "react";
 import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar } from "lucide-react";
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
+import { MESES_UP as MESES_PT } from "../../lib/meses.js";
 import { fmt, fmtN } from "../../lib/format.js";
 import { somaContasBRL } from "../../lib/cambio.js";
 import { gerarInsights } from "../../lib/intelligence.js";
@@ -11,7 +12,6 @@ import { getKPIsMes, getDespesasDoMes } from "../../lib/agregador.js";
 import { supabase } from "../../lib/supabase.js";
 import Card from "../ui/Card.jsx";
 
-const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 // Paleta moderna e harmônica (tons mais suaves, sem primários puros gritando).
 const CORES_CAT = ["#6366f1","#0ea5e9","#22c08b","#f5a623","#f0728a","#a78bfa","#2dd4bf","#fb923c","#94a3b8"];
 // Cor única das barras horizontais do dashboard — teal estilo Optio.
