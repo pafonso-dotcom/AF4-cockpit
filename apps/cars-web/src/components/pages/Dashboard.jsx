@@ -349,7 +349,7 @@ export default function Dashboard({
       }}>
         <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
                  breakdown={{ contas: totalContas, aReceber: aReceberAno, invest: totalInvest, aPagar: aPagarAno }} />
-        <ProximoCompromissoCard item={proximoCompromisso} hidden={hidden} onVer={() => onTabChange?.("despesas")} />
+        <ProximoCompromissoCard item={proximoCompromisso} total={aPagarMes} hidden={hidden} onVer={() => onTabChange?.("despesas")} />
       </section>
 
       {/* Contas · Gastos por Categoria · Alocação Atual (Contas primeiro) */}
@@ -538,12 +538,13 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
   );
 }
 
-function ProximoCompromissoCard({ item, hidden, onVer }) {
+function ProximoCompromissoCard({ item, total, hidden, onVer }) {
   const fmtData = (iso) => {
     if (!iso) return "—";
     try { return new Date(iso + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
     catch { return iso; }
   };
+  const temTotal = total && total.qtd > 0;
   return (
     <Card style={{ minHeight: 110, position: "relative", display: "flex", flexDirection: "column", justifyContent: "center" }}>
       <div style={{ fontSize: 11, color: T.muted, display: "flex", alignItems: "center", gap: 6 }}>
@@ -557,6 +558,16 @@ function ProximoCompromissoCard({ item, hidden, onVer }) {
           <div style={{ fontSize: 11, color: item.atrasado ? T.red : T.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {item.nome} · {item.atrasado ? "atrasado" : fmtData(item.data)}
           </div>
+          {temTotal && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
+              <span style={{ fontSize: 10.5, color: T.muted }}>
+                Total a pagar · mês ({total.qtd})
+              </span>
+              <span className="num" style={{ fontSize: 13, fontWeight: 700, color: T.red }}>
+                {hidden ? "•••" : fmt(total.total)}
+              </span>
+            </div>
+          )}
           <button onClick={onVer} style={{ position: "absolute", top: 14, right: 14, background: "transparent", border: "none", color: T.gold, fontSize: 11, cursor: "pointer" }}>
             Ver
           </button>
