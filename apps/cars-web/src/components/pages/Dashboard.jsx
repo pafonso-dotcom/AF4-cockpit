@@ -4,11 +4,11 @@ import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tool
 import { T } from "../../lib/theme.js";
 import { MESES_UP as MESES_PT } from "../../lib/meses.js";
 import { fmt, fmtN } from "../../lib/format.js";
-import { somaContasBRL } from "../../lib/cambio.js";
+import { somaContasBRL, buscarCotacao } from "../../lib/cambio.js";
 import { gerarInsights } from "../../lib/intelligence.js";
 import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
-import { getKPIsMes, getDespesasDoMes } from "../../lib/agregador.js";
+import { getKPIsMes, getDespesasDoMes, getAnualPorMes } from "../../lib/agregador.js";
 import { supabase } from "../../lib/supabase.js";
 import Card from "../ui/Card.jsx";
 
@@ -89,9 +89,38 @@ export default function Dashboard({
   const mesISO = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}`;
   const ehMesAtual = (data) => (data || "").startsWith(mesISO);
 
+  // Cotação do dólar ao vivo (R$ por 1 US$) — ativos US (Stocks/REITs) têm
+  // preço em dólar e precisam ser convertidos pra entrar no patrimônio em R$.
+  const [usdRate, setUsdRate] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    buscarCotacao("USD").then(r => { if (vivo && r) setUsdRate(r); });
+    return () => { vivo = false; };
+  }, []);
+
   const totalContas = useMemo(() => somaContasBRL(contas), [contas]);
-  const totalInvest = useMemo(() => ativos.reduce((s, a) => s + Number(a.qtd||0) * Number(a.preco||0), 0), [ativos]);
+  const totalInvest = useMemo(() => ativos.reduce((s, a) => {
+    const v = Number(a.qtd||0) * Number(a.preco||0);
+    const ehUSD = a.tipo === "stock" || a.tipo === "reit";
+    return s + (ehUSD ? v * (usdRate || 1) : v);
+  }, 0), [ativos, usdRate]);
   const patrimonio = totalContas + totalInvest;
+
+  // ===== Patrimônio Total (card do painel) =====
+  // Soma pedida: contas + a receber + investimento − a pagar, com A receber e
+  // A pagar recortados pelo ANO CORRENTE (por vencimento). Contas e
+  // investimentos entram pelo valor cheio atual (invest já convertido em R$).
+  const anoAtual = hoje.getFullYear();
+  const aReceberAno = useMemo(() => {
+    const y = String(anoAtual);
+    return (devedores || []).reduce((s, d) => {
+      if (d.recebido) return s;
+      if (!(d.vencimento || "").startsWith(y)) return s;
+      const rem = (Number(d.valor) || 0) - (Number(d.valorRecebido) || 0);
+      return s + Math.max(0, rem);
+    }, 0);
+  }, [devedores, anoAtual]);
+  // aPagarAno e patrimonioTotal são calculados mais abaixo, após `stateAgg`.
   const receitasMes = useMemo(() => transacoes.filter(t => t.tipo === "receita" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
   const despesasMes = useMemo(() => transacoes.filter(t => t.tipo === "despesa" && t.origem !== "fatura-pagamento" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
 
@@ -104,6 +133,17 @@ export default function Dashboard({
     () => ({ transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes }),
     [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes]
   );
+  // A pagar do ano (todos os compromissos pendentes/atrasados com vencimento no
+  // ano corrente: fixas, variáveis, parcelas e dívidas) + patrimônio total.
+  const aPagarAno = useMemo(() => {
+    try {
+      const anual = getAnualPorMes(anoAtual, stateAgg, escopoAtivo);
+      return anual.reduce((s, mo) => s + mo.despesas
+        .filter(d => d.status === "pendente" || d.status === "atrasada")
+        .reduce((ss, d) => ss + (Number(d.valor) || 0), 0), 0);
+    } catch { return 0; }
+  }, [anoAtual, stateAgg, escopoAtivo]);
+  const patrimonioTotal = totalContas + totalInvest + aReceberAno - aPagarAno;
   const mesAnteriorISO = useMemo(() => {
     const [y, m] = mesISO.split("-").map(Number);
     const d = new Date(y, m - 2, 1);
@@ -295,7 +335,7 @@ export default function Dashboard({
       <section className="dash-kpi-grid" style={{
         display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16,
       }}>
-        <KpiHero value={patrimonio} mom={momPatrim} hidden={hidden} evolucao={evolucao} />
+        <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao} />
         <KpiBlock label="Total em Contas" value={mask(fmt(totalContas))} sub={`${contas.length} contas ativas`} icon={Wallet} cor={T.green} />
         <KpiBlock label="Investimentos" value={mask(fmt(totalInvest))} sub="rentabilidade" icon={PieIcon} cor={T.green} variation={rentInvest} />
         <KpiBlock label="Receitas este mês" value={mask(fmt(receitasMes))} sub="vs mês anterior" icon={TrendingUp} cor={T.green} variation={momReceitas} />
@@ -437,14 +477,24 @@ function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, m
 }
 
 function KpiHero({ value, mom, hidden, evolucao }) {
+  // Sempre começa oculto; só revela quando o usuário clica no card. O modo
+  // privado global (hidden) tem prioridade e mantém oculto.
+  const [revelado, setRevelado] = useState(false);
+  const visivel = revelado && !hidden;
   const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
   return (
-    <div style={{ background: bg, color: "#fff", borderRadius: 18, padding: 14, position: "relative", overflow: "hidden", minHeight: 110 }}>
+    <div onClick={() => setRevelado(v => !v)}
+         title={visivel ? "Toque para ocultar" : "Toque para ver"}
+         style={{ background: bg, color: "#fff", borderRadius: 18, padding: 14, position: "relative", overflow: "hidden", minHeight: 110, cursor: "pointer", userSelect: "none" }}>
       <div style={{ fontSize: 11, color: "#86efac", letterSpacing: ".03em" }}>Patrimônio Total</div>
-      <div className="num" style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 700, marginTop: 6 }}>{hidden ? "•••••" : fmt(value)}</div>
+      <div className="num" style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 700, marginTop: 6 }}>{visivel ? fmt(value) : "••••••"}</div>
       <div style={{ fontSize: 11, color: "#86efac", marginTop: 4 }}>
-        {mom >= 0 ? "↗" : "↘"} {fmtN(mom, 2)}%
-        <span style={{ color: "rgba(255,255,255,0.55)", marginLeft: 4 }}>vs mês anterior</span>
+        {visivel ? (
+          <>{mom >= 0 ? "↗" : "↘"} {fmtN(mom, 2)}%
+          <span style={{ color: "rgba(255,255,255,0.55)", marginLeft: 4 }}>vs mês anterior</span></>
+        ) : (
+          <span style={{ color: "rgba(255,255,255,0.55)" }}>toque para revelar</span>
+        )}
       </div>
       <div style={{ position: "absolute", right: 0, bottom: 0, left: 0, height: 46, opacity: 0.6, pointerEvents: "none" }}>
         <ResponsiveContainer width="100%" height="100%">
