@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspens
 import { T, applyTheme, THEMES } from "./lib/theme.js";
 import { simulateTick, uid } from "./lib/format.js";
 import { somaContasBRL } from "./lib/cambio.js";
+import { MESES_LONGO } from "./lib/meses.js";
 import { loadAll, saveAll, loadKeys, saveKeys, flushSave } from "./lib/storage.js";
 import { API, COIN_MAP } from "./lib/api.js";
 import { generateRecurringForCurrentMonth } from "./lib/recorrencia.js";
@@ -565,7 +566,7 @@ export default function App() {
     if (novas.length > 0) {
       setTransacoes(prev => [...novas, ...prev]);
       const ref = new Date();
-      const mesNome = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][ref.getMonth()];
+      const mesNome = MESES_LONGO[ref.getMonth()];
       toast.info(
         `${novas.length} despesa${novas.length !== 1 ? "s" : ""} fixa${novas.length !== 1 ? "s" : ""} prevista${novas.length !== 1 ? "s" : ""} para ${mesNome} ${ref.getFullYear()}.`,
         { duration: 6000 }

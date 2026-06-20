@@ -4,6 +4,7 @@
 
 import Papa from "papaparse";
 import { fmt, fmtN } from "./format.js";
+import { MESES_LONGO } from "./meses.js";
 
 const parseOFX = (text) => {
   const out = [];
@@ -199,8 +200,7 @@ const escHtml = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
 const fmtMonthBR = (yyyymm) => {
   if (!yyyymm) return "Sem data";
   const [y, m] = yyyymm.split("-");
-  const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  return `${meses[parseInt(m) - 1] || ""} ${y}`;
+  return `${MESES_LONGO[parseInt(m) - 1] || ""} ${y}`;
 };
 
 const buildPDFReport = ({ transacoes, contas, ativos, totais, escopo }) => {

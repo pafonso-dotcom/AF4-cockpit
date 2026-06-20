@@ -2,8 +2,7 @@ import React, { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
-
-const MES_NOMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+import { MESES_CURTO as MES_NOMES } from "../../../lib/meses.js";
 
 /**
  * Controle Anual de Recebíveis e Pagamentos do Negócio (serviços).

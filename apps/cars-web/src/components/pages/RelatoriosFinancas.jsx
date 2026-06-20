@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { T } from "../../lib/theme.js";
 import { CARD_SHADOW } from "../../lib/styles.js";
+import { MESES_CURTO } from "../../lib/meses.js";
 import { fmt } from "../../lib/format.js";
 import { BarChartDouble, BarChart, HorizontalBarList, ReportCard, ReportGrid } from "../ui/Charts.jsx";
 import { toPDF, toCSV, toPNG, hasPNGSupport } from "../../lib/exportRelatorio.js";
@@ -48,7 +49,7 @@ export default function RelatoriosFinancas({
     for (let i = 5; i >= 0; i--) {
       const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
       const key = d.toISOString().slice(0, 7);
-      const nome = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][d.getMonth()];
+      const nome = MESES_CURTO[d.getMonth()];
       const tx = transacoes.filter(t => (t.data || "").startsWith(key));
       const rec = tx.filter(t => t.tipo === "receita").reduce((s, t) => s + Number(t.valor || 0), 0);
       const desp = tx.filter(t => t.tipo === "despesa").reduce((s, t) => s + Number(t.valor || 0), 0);
@@ -137,7 +138,7 @@ export default function RelatoriosFinancas({
   const acumuladoAno = useMemo(() => {
     const ano = new Date().getFullYear();
     const mesAtualIdx = new Date().getMonth(); // 0..11
-    const nomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+    const nomes = MESES_CURTO;
     const out = [];
     let acc = 0;
     for (let m = 0; m <= mesAtualIdx; m++) {
@@ -160,7 +161,7 @@ export default function RelatoriosFinancas({
     for (let i = 1; i <= 6; i++) {
       const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
       const mesISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const nome = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][d.getMonth()];
+      const nome = MESES_CURTO[d.getMonth()];
       const kpis = getKPIsMes(mesISO, state);
       meses.push({
         label: `${nome}/${String(d.getFullYear()).slice(2)}`,

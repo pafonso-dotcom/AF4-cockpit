@@ -8,9 +8,7 @@ import { gerarOcorrencias, statusReal, resumoMes } from "../../lib/fixas.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import NovaFixaModal from "../modals/NovaFixaModal.jsx";
 import ConfirmarPagamentoFixaModal from "../modals/ConfirmarPagamentoFixaModal.jsx";
-
-const MES_NOMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-const MES_NOMES_LONGOS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+import { MESES_CURTO as MES_NOMES, MESES_LONGO as MES_NOMES_LONGOS } from "../../lib/meses.js";
 
 /**
  * Despesas Fixas — módulo independente.

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Activity, Plus, Trash2, Edit3, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText, Mic } from "lucide-react";
 import EmptyState from "../ui/EmptyState.jsx";
 import { T } from "../../lib/theme.js";
+import { MESES_CURTO } from "../../lib/meses.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
 import { parseValorBR, printHTML } from "../../lib/importExport.js";
 import { toast } from "../../lib/toast.js";
@@ -502,8 +503,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
           {mesesDisponiveis.length > 0 && <option disabled value="">─────────</option>}
           {mesesDisponiveis.map(m => {
             const [y, mm] = m.split("-");
-            const nomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-            return <option key={m} value={m}>{nomes[parseInt(mm) - 1]}/{y}</option>;
+            return <option key={m} value={m}>{MESES_CURTO[parseInt(mm) - 1]}/{y}</option>;
           })}
         </select>
       </div>
@@ -988,7 +988,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
 /* ================================================================
    TabelaMensal — visão alternativa: tabs por mês + tabela
    ================================================================ */
-const MESES_NOMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const MESES_NOMES = MESES_CURTO;
 
 function TabelaMensal({ transacoes, hidden, onEdit }) {
   const hojeISO = new Date().toISOString().slice(0, 10);

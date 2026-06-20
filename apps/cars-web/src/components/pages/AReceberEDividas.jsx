@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef } from "react";
 import { Plus, Trash2, Edit3, Check, X, MessageCircle, MoreHorizontal } from "lucide-react";
 import { T } from "../../lib/theme.js";
+import { MESES_CURTO } from "../../lib/meses.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
 import MoneyInput from "../ui/MoneyInput.jsx";
 import { confirm } from "../../lib/confirm.js";
@@ -775,8 +776,7 @@ export default function AReceberEDividas({
   const mesLabel = (ym) => {
     if (!ym) return "—";
     const [y, m] = ym.split("-");
-    const nomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-    return `${nomes[parseInt(m,10)-1]}/${y.slice(2)}`;
+    return `${MESES_CURTO[parseInt(m,10)-1]}/${y.slice(2)}`;
   };
 
   return (

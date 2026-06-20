@@ -4,8 +4,8 @@ import { fmt } from "../../../lib/format.js";
 import { BarChart, HorizontalBarList, ReportCard, ReportGrid } from "../../ui/Charts.jsx";
 import { PROVENTO_REGEX } from "../../../lib/invest-constants.js";
 import PdfCarteira from "./PdfCarteira.jsx";
+import { MESES_CURTO as MESES_PT } from "../../../lib/meses.js";
 
-const MESES_PT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 // Últimos 12 meses (do mais antigo pro atual), com iso "YYYY-MM" e fim do mês.
 function ultimos12Meses() {
   const out = [];

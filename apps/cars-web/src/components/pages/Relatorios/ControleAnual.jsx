@@ -6,8 +6,7 @@ import PageHeader from "../../ui/PageHeader.jsx";
 import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import { getAnualPorMes } from "../../../lib/agregador.js";
-
-const MES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+import { MESES_LONGO as MES_NOMES } from "../../../lib/meses.js";
 
 const TIPO_COR = {
   fixa:     T.gold,

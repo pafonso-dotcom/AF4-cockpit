@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Activity, Briefcase, TrendingUp, TrendingDown, Coins } from "lucide-react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
+import { MESES_CURTO } from "../../lib/meses.js";
 import { fmt, fmtN } from "../../lib/format.js";
 import { semCapitalSocial } from "../../lib/invest-constants.js";
 import PageHeader from "../ui/PageHeader.jsx";
@@ -134,7 +135,7 @@ export default function Analise({ ativos: ativosProp, transacoes, hidden }) {
 
   // Synthesized monthly evolution within selected year
   const monthlyEvolution = useMemo(() => {
-    const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+    const months = MESES_CURTO;
     const monthlyAvg = Math.pow(yearEnd / yearStart, 1 / 12) - 1;
     const rng = seededRandom(year * 42);
     let v = yearStart;
