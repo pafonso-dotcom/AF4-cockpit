@@ -36,55 +36,74 @@ import AtalhosOverlay from "./components/modals/AtalhosOverlay.jsx";
 import CommandPalette from "./components/ui/CommandPalette.jsx";
 import OnboardingTradeModal from "./components/modals/OnboardingTradeModal.jsx";
 import PomodoroFloat from "./components/PomodoroFloat.jsx";
+import ErrorBoundary from "./components/ui/ErrorBoundary.jsx";
+
+// Carrega um chunk de página com auto-recuperação: se o import falhar porque
+// o chunk mudou de nome num deploy novo (página/cache antigo), recarrega a
+// página UMA vez pra buscar o index.html + chunks atualizados. Evita a "tela
+// branca" ao abrir uma aba após deploy. Guardado por sessionStorage pra não
+// entrar em loop — se falhar de novo, o ErrorBoundary mostra a tela de erro.
+const carregarComReload = (factory) => factory().catch((err) => {
+  const ehChunk = /Loading chunk|dynamically imported module|module script|Failed to fetch/i.test(err?.message || "");
+  let jaTentou = false;
+  try { jaTentou = !!sessionStorage.getItem("af4:chunk-reload"); } catch {}
+  if (ehChunk && !jaTentou && typeof window !== "undefined") {
+    try { sessionStorage.setItem("af4:chunk-reload", "1"); } catch {}
+    window.location.reload();
+    return new Promise(() => {}); // nunca resolve: a página está recarregando
+  }
+  throw err;
+});
+const lz = (factory) => lazy(() => carregarComReload(factory));
 
 // Páginas carregadas sob demanda (code-splitting por aba). Cada página vira um
 // chunk próprio, então o bundle inicial não carrega Negócio/Treino/Invest etc.
 // só pra abrir o Dashboard. O <Suspense> que envolve o <main> mostra o fallback
 // enquanto o chunk da aba é baixado.
-const AnaliseTrade = lazy(() => import("./components/pages/Trade/Analise.jsx"));
-const Dashboard = lazy(() => import("./components/pages/Dashboard.jsx"));
-const Contas = lazy(() => import("./components/pages/Contas.jsx"));
-const Cartoes = lazy(() => import("./components/pages/Cartoes.jsx"));
-const Transacoes = lazy(() => import("./components/pages/Transacoes.jsx"));
-const Calendario = lazy(() => import("./components/pages/Calendario.jsx"));
-const Categorias = lazy(() => import("./components/pages/Categorias.jsx"));
-const Metas = lazy(() => import("./components/pages/Metas.jsx"));
-const Notas = lazy(() => import("./components/pages/Notas.jsx"));
-const Habitos = lazy(() => import("./components/pages/Habitos.jsx"));
-const Diario = lazy(() => import("./components/pages/Diario.jsx"));
-const Compras = lazy(() => import("./components/pages/Compras.jsx"));
-const Ideias = lazy(() => import("./components/pages/Ideias.jsx"));
-const Tarefas = lazy(() => import("./components/pages/Tarefas.jsx"));
-const SugestoesMelhorias = lazy(() => import("./components/pages/SugestoesMelhorias.jsx"));
-const AgendaInicio = lazy(() => import("./components/pages/AgendaInicio.jsx"));
-const Despesas = lazy(() => import("./components/pages/Despesas.jsx"));
-const Planejamento = lazy(() => import("./components/pages/Planejamento/index.jsx"));
-const AnaliseFatura = lazy(() => import("./components/pages/AnaliseFatura.jsx"));
-const Investimentos = lazy(() => import("./components/pages/Investimentos.jsx"));
-const Mercado = lazy(() => import("./components/pages/Mercado.jsx"));
-const Simulador = lazy(() => import("./components/pages/Simulador.jsx"));
-const CalculadoraRenda = lazy(() => import("./components/pages/Invest/CalculadoraRenda.jsx"));
-const Projecao = lazy(() => import("./components/pages/Invest/Projecao.jsx"));
-const AnalisesUnificada = lazy(() => import("./components/pages/Invest/Analises.jsx"));
-const ObjetivosCarteira = lazy(() => import("./components/pages/Invest/ObjetivosCarteira.jsx"));
-const CarteiraModelo = lazy(() => import("./components/pages/Invest/CarteiraModelo.jsx"));
-const MonteSuaCarteira = lazy(() => import("./components/pages/Invest/MonteSuaCarteira.jsx"));
-const InvestPainel = lazy(() => import("./components/pages/Invest/InvestPainel.jsx"));
-const Proventos = lazy(() => import("./components/pages/Invest/Proventos.jsx"));
-const RelatoriosInvest = lazy(() => import("./components/pages/Invest/RelatoriosInvest.jsx"));
-const RelatoriosFinancas = lazy(() => import("./components/pages/RelatoriosFinancas.jsx"));
-const CartaoExtrato = lazy(() => import("./components/pages/CartaoExtrato.jsx"));
-const ContaExtrato = lazy(() => import("./components/pages/ContaExtrato.jsx"));
-const AuditLog = lazy(() => import("./components/pages/AuditLog.jsx"));
-const PergunteAoClaude = lazy(() => import("./components/pages/PergunteAoClaude.jsx"));
-const Configuracoes = lazy(() => import("./components/pages/Configuracoes.jsx"));
-const NegocioPainel = lazy(() => import("./components/pages/Negocio/NegocioPainel.jsx"));
-const NegocioVeiculos = lazy(() => import("./components/pages/Negocio/Veiculos.jsx"));
-const NegocioServicos = lazy(() => import("./components/pages/Negocio/Servicos.jsx"));
-const NegocioClientes = lazy(() => import("./components/pages/Negocio/Clientes.jsx"));
-const Lembretes = lazy(() => import("./components/pages/Lembretes.jsx"));
-const Conversa = lazy(() => import("./components/pages/Conversa.jsx"));
-const Treino = lazy(() => import("./components/pages/Treino.jsx"));
+const AnaliseTrade = lz(() => import("./components/pages/Trade/Analise.jsx"));
+const Dashboard = lz(() => import("./components/pages/Dashboard.jsx"));
+const Contas = lz(() => import("./components/pages/Contas.jsx"));
+const Cartoes = lz(() => import("./components/pages/Cartoes.jsx"));
+const Transacoes = lz(() => import("./components/pages/Transacoes.jsx"));
+const Calendario = lz(() => import("./components/pages/Calendario.jsx"));
+const Categorias = lz(() => import("./components/pages/Categorias.jsx"));
+const Metas = lz(() => import("./components/pages/Metas.jsx"));
+const Notas = lz(() => import("./components/pages/Notas.jsx"));
+const Habitos = lz(() => import("./components/pages/Habitos.jsx"));
+const Diario = lz(() => import("./components/pages/Diario.jsx"));
+const Compras = lz(() => import("./components/pages/Compras.jsx"));
+const Ideias = lz(() => import("./components/pages/Ideias.jsx"));
+const Tarefas = lz(() => import("./components/pages/Tarefas.jsx"));
+const SugestoesMelhorias = lz(() => import("./components/pages/SugestoesMelhorias.jsx"));
+const AgendaInicio = lz(() => import("./components/pages/AgendaInicio.jsx"));
+const Despesas = lz(() => import("./components/pages/Despesas.jsx"));
+const Planejamento = lz(() => import("./components/pages/Planejamento/index.jsx"));
+const AnaliseFatura = lz(() => import("./components/pages/AnaliseFatura.jsx"));
+const Investimentos = lz(() => import("./components/pages/Investimentos.jsx"));
+const Mercado = lz(() => import("./components/pages/Mercado.jsx"));
+const Simulador = lz(() => import("./components/pages/Simulador.jsx"));
+const CalculadoraRenda = lz(() => import("./components/pages/Invest/CalculadoraRenda.jsx"));
+const Projecao = lz(() => import("./components/pages/Invest/Projecao.jsx"));
+const AnalisesUnificada = lz(() => import("./components/pages/Invest/Analises.jsx"));
+const ObjetivosCarteira = lz(() => import("./components/pages/Invest/ObjetivosCarteira.jsx"));
+const CarteiraModelo = lz(() => import("./components/pages/Invest/CarteiraModelo.jsx"));
+const MonteSuaCarteira = lz(() => import("./components/pages/Invest/MonteSuaCarteira.jsx"));
+const InvestPainel = lz(() => import("./components/pages/Invest/InvestPainel.jsx"));
+const Proventos = lz(() => import("./components/pages/Invest/Proventos.jsx"));
+const RelatoriosInvest = lz(() => import("./components/pages/Invest/RelatoriosInvest.jsx"));
+const RelatoriosFinancas = lz(() => import("./components/pages/RelatoriosFinancas.jsx"));
+const CartaoExtrato = lz(() => import("./components/pages/CartaoExtrato.jsx"));
+const ContaExtrato = lz(() => import("./components/pages/ContaExtrato.jsx"));
+const AuditLog = lz(() => import("./components/pages/AuditLog.jsx"));
+const PergunteAoClaude = lz(() => import("./components/pages/PergunteAoClaude.jsx"));
+const Configuracoes = lz(() => import("./components/pages/Configuracoes.jsx"));
+const NegocioPainel = lz(() => import("./components/pages/Negocio/NegocioPainel.jsx"));
+const NegocioVeiculos = lz(() => import("./components/pages/Negocio/Veiculos.jsx"));
+const NegocioServicos = lz(() => import("./components/pages/Negocio/Servicos.jsx"));
+const NegocioClientes = lz(() => import("./components/pages/Negocio/Clientes.jsx"));
+const Lembretes = lz(() => import("./components/pages/Lembretes.jsx"));
+const Conversa = lz(() => import("./components/pages/Conversa.jsx"));
+const Treino = lz(() => import("./components/pages/Treino.jsx"));
 import { EXERCICIOS_BASE } from "./lib/exerciciosBase.js";
 
 // Fallback enquanto o chunk de uma aba (lazy) é baixado.
@@ -1145,6 +1164,7 @@ export default function App() {
         className={isVertical ? "pb-24" : ((tab === "planejamento" || tab === "areceber" || tab === "fixas" || tab === "relatorios-anual") ? "pb-24" : "max-w-7xl mx-auto pb-24")}
         style={isVertical ? { marginLeft: 220, maxWidth: "none", transition: "margin-left .2s" } : undefined}
       >
+        <ErrorBoundary key={modulo + ":" + tab}>
         <Suspense fallback={<PageFallback />}>
         {/* MÓDULO: FINANÇAS */}
         {modulo === "financas" && renderFinancas()}
@@ -1164,6 +1184,7 @@ export default function App() {
         {/* MÓDULO: CONFIGURAÇÕES */}
         {modulo === "config" && renderConfig()}
         </Suspense>
+        </ErrorBoundary>
       </main>
 
       <Footer />
