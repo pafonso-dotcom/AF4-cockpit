@@ -618,6 +618,13 @@ export default function App() {
     setTab("transacoes");
   }, []);
 
+  // Navega pra uma aba zerando os detalhes abertos (conta/cartão). Antes esse
+  // mesmo wrapper estava repetido inline em Header, KeyboardShortcuts, Dashboard,
+  // InvestPainel e BottomTabBar.
+  const irParaTab = useCallback((t) => {
+    setCartaoAberto(null); setContaAberta(null); setTab(t);
+  }, []);
+
   // Quick actions (também usadas pelos atalhos N/V/A)
   const handleQuickAction = useCallback((kind) => {
     if (kind === "transacao") {
@@ -764,7 +771,7 @@ export default function App() {
       <GlobalStyles />
       <Header
         modulo={modulo} setModulo={setModulo}
-        tab={tab} setTab={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
+        tab={tab} setTab={irParaTab}
         contas={contas} cartoes={cartoes}
         contaAberta={contaAberta} setContaAberta={setContaAberta}
         cartaoAberto={cartaoAberto} setCartaoAberto={setCartaoAberto}
@@ -795,23 +802,12 @@ export default function App() {
           }
           if (kind === "perfis") setPerfisOpen(true);
         }}
-        onQuickAction={(kind) => {
-          // ★ atalhos rápidos do header sempre disponíveis
-          if (kind === "transacao") {
-            setCartaoAberto(null); setContaAberta(null);
-            setModulo("financas"); setTab("transacoes");
-            handleCreateTransacao(contas[0]?.nome || "");
-          } else if (kind === "aporte") {
-            setCartaoAberto(null); setContaAberta(null);
-            setModulo("invest"); setTab("investimentos");
-            window.dispatchEvent(new CustomEvent("af4:open-new-aporte"));
-          }
-        }}
+        onQuickAction={handleQuickAction}
         pendingCounts={pendingCounts}
       />
 
       <KeyboardShortcuts
-        setTab={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
+        setTab={irParaTab}
         transacoes={transacoes} contas={contas}
         ativos={ativos} cartoes={cartoes}
       />
@@ -845,7 +841,7 @@ export default function App() {
                          agenda={agenda}
                          patrimonioHistorico={patrimonioHistorico}
                          escopoAtivo={escopoAtivo}
-                         onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
+                         onTabChange={irParaTab}
                          onContaClick={(c) => { setTab("contas"); setContaAberta(c); }} />
             )}
             {tab === "contas" && !contaAberta && (
@@ -1118,7 +1114,7 @@ export default function App() {
             {tab === "investimentos" && (
               <InvestPainel ativos={ativos} transacoes={transacoes} categorias={categorias} hidden={hidden}
                             apiKeys={apiKeys}
-                            onTabChange={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
+                            onTabChange={irParaTab}
                             onAbrirAnaliseCarteira={() => { setAnaliseViewInicial("carteira-analise"); setTab("analises"); }}
                             onAbrirAnaliseIdv={() => { setAnaliseViewInicial("idv"); setTab("analises"); }}
                             onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }} />
@@ -1263,7 +1259,7 @@ export default function App() {
       <Footer />
       <BottomTabBar
         modulo={modulo} setModulo={setModulo}
-        setTab={(t) => { setCartaoAberto(null); setContaAberta(null); setTab(t); }}
+        setTab={irParaTab}
       />
       <PomodoroFloat />
       <ToastContainer />
@@ -1273,11 +1269,7 @@ export default function App() {
       <CommandPalette
         open={paletaAberta}
         onClose={() => setPaletaAberta(false)}
-        onNavigate={({ modulo: m, tab: t }) => {
-          setModulo(m);
-          setCartaoAberto(null); setContaAberta(null);
-          setTab(t);
-        }}
+        onNavigate={({ modulo: m, tab: t }) => { setModulo(m); irParaTab(t); }}
       />
       {["analise-carteira", "trade-ativo"].includes(tab) && !tradeOnboardingVisto && (
         <OnboardingTradeModal onClose={() => setTradeOnboardingVisto(true)} />
