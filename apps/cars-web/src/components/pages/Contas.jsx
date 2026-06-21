@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { Plus, Trash2, Edit3, Building2, Receipt, ArrowRightLeft, ChevronRight, RefreshCw, AlertCircle, Eye, EyeOff, Upload } from "lucide-react";
+import { Plus, Trash2, Edit3, Building2, Receipt, ArrowRightLeft, ChevronRight, ChevronUp, ChevronDown, RefreshCw, AlertCircle, Eye, EyeOff, Upload } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid } from "../../lib/format.js";
 import { parseValorBR } from "../../lib/importExport.js";
@@ -65,6 +65,21 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     : contasNoEscopo;
   const ehNegocio = (c) => (c?.escopo || "pessoal") === "negocio";
   const totalNegocio = somaContasBRL((contas || []).filter(ehNegocio));
+
+  // Reordena a conta `c` trocando de posição com a vizinha VISÍVEL (dir -1 sobe,
+  // +1 desce). Mexe no array `contas` completo (persistido), por isso funciona
+  // mesmo com a lista filtrada por escopo/ocultar zeradas.
+  const moverConta = (c, dir) => {
+    const visIds = contasVisiveis.map(x => x.id);
+    const alvoId = visIds[visIds.indexOf(c.id) + dir];
+    if (!alvoId) return; // já é o primeiro/último visível
+    const arr = [...(contas || [])];
+    const i = arr.findIndex(x => x.id === c.id);
+    const j = arr.findIndex(x => x.id === alvoId);
+    if (i < 0 || j < 0) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    setContas(arr);
+  };
 
   const save = () => {
     const errs = {};
@@ -344,6 +359,24 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                   <div style={{ fontSize: 10, color: T.muted, fontStyle: "italic" }}>{c.instituicao}</div>
                 )}
               </div>
+              {(() => {
+                const vi = contasVisiveis.findIndex(x => x.id === c.id);
+                const primeiro = vi <= 0, ultimo = vi >= contasVisiveis.length - 1;
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                    <button onClick={() => moverConta(c, -1)} disabled={primeiro} aria-label="Mover para cima"
+                            title="Mover para cima"
+                            style={{ background: "transparent", border: "none", padding: 0, lineHeight: 0, cursor: primeiro ? "default" : "pointer", color: primeiro ? T.faint : T.muted, opacity: primeiro ? 0.35 : 1 }}>
+                      <ChevronUp size={15} />
+                    </button>
+                    <button onClick={() => moverConta(c, 1)} disabled={ultimo} aria-label="Mover para baixo"
+                            title="Mover para baixo"
+                            style={{ background: "transparent", border: "none", padding: 0, lineHeight: 0, cursor: ultimo ? "default" : "pointer", color: ultimo ? T.faint : T.muted, opacity: ultimo ? 0.35 : 1 }}>
+                      <ChevronDown size={15} />
+                    </button>
+                  </div>
+                );
+              })()}
               <div className="num" style={{
                 fontFamily: T.serif, fontSize: 15, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap",
               }}>
