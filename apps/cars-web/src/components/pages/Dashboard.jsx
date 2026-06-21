@@ -310,6 +310,24 @@ export default function Dashboard({
     return { total: ap.reduce((s, d) => s + (Number(d.valor) || 0), 0), qtd: ap.length };
   }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, escopoAtivo, mesISO]);
 
+  // ===== Heatmap de gastos (últimos 35 dias, por dia) =====
+  const gastosHeatmap = useMemo(() => {
+    const base = new Date();
+    const dias = [];
+    for (let i = 34; i >= 0; i--) {
+      const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - i);
+      dias.push({ iso: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, total: 0 });
+    }
+    const idx = new Map(dias.map((d, i) => [d.iso, i]));
+    transacoes.forEach(t => {
+      if (t.tipo !== "despesa" || t.origem === "fatura-pagamento") return;
+      const k = (t.data || "").slice(0, 10);
+      if (idx.has(k)) dias[idx.get(k)].total += Number(t.valor || 0);
+    });
+    const max = Math.max(1, ...dias.map(d => d.total));
+    return { dias, max };
+  }, [transacoes]);
+
   // ===== Próximo compromisso a pagar (mais próximo por vencimento) =====
   // Olha o mês corrente + o próximo. Prioriza o próximo a vencer (>= hoje);
   // se não houver, mostra o atrasado mais recente.
@@ -371,6 +389,11 @@ export default function Dashboard({
         <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
         <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
         <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
+      </section>
+
+      {/* Gastos · mapa de calor (últimas 5 semanas) */}
+      <section style={{ marginBottom: 16 }}>
+        <GastosHeatmapCard dias={gastosHeatmap.dias} max={gastosHeatmap.max} hidden={hidden} />
       </section>
 
       {/* A Receber + Projeção */}
@@ -1049,6 +1072,42 @@ function ProjecaoCard({ projecao, patrimonio = 0, hidden }) {
       </div>
       <div style={{ fontSize: 10, color: T.muted, marginTop: 8, lineHeight: 1.4 }}>
         📅 Baseado em compromissos já agendados (fixas, parcelas, dívidas, devedores) nos próximos 6 meses.
+      </div>
+    </Card>
+  );
+}
+
+// Mapa de calor de gastos — 35 dias em grade 7×5, intensidade por valor do dia.
+function GastosHeatmapCard({ dias = [], max = 1, hidden }) {
+  const fmtDia = (iso) => {
+    try { return new Date(iso + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
+    catch { return iso; }
+  };
+  const alpha = (t) => t > 0 ? (0.18 + 0.82 * (t / max)) : 0;
+  return (
+    <Card>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Gastos · mapa de calor</div>
+        <span style={{ fontSize: 10.5, color: T.muted }}>últimas 5 semanas</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
+        {dias.map((d) => (
+          <div key={d.iso} title={`${fmtDia(d.iso)} · ${hidden ? "•••" : fmt(d.total)}`}
+            style={{
+              height: 22, borderRadius: 6,
+              background: d.total > 0 ? T.gold : T.bgSoft,
+              opacity: d.total > 0 ? alpha(d.total) : 1,
+              border: d.total > 0 ? "none" : `1px solid ${T.border}`,
+            }} />
+        ))}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 10, color: T.muted }}>
+        <span>menos</span>
+        <span style={{ width: 12, height: 12, borderRadius: 3, background: T.gold, opacity: 0.25 }} />
+        <span style={{ width: 12, height: 12, borderRadius: 3, background: T.gold, opacity: 0.5 }} />
+        <span style={{ width: 12, height: 12, borderRadius: 3, background: T.gold, opacity: 0.75 }} />
+        <span style={{ width: 12, height: 12, borderRadius: 3, background: T.gold, opacity: 1 }} />
+        <span>mais</span>
       </div>
     </Card>
   );
