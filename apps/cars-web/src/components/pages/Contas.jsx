@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { Plus, Trash2, Edit3, Building2, Receipt, ArrowRightLeft, ChevronRight, ChevronUp, ChevronDown, RefreshCw, AlertCircle, Eye, EyeOff, Upload } from "lucide-react";
+import { Plus, Trash2, Edit3, Building2, Receipt, ArrowRightLeft, ChevronRight, ChevronUp, ChevronDown, GripVertical, RefreshCw, AlertCircle, Eye, EyeOff, Upload } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid } from "../../lib/format.js";
 import { parseValorBR } from "../../lib/importExport.js";
@@ -341,6 +341,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                    padding: "10px 12px",
                    cursor: onContaClick ? "pointer" : "default",
                  }}>
+              <GripVertical size={15} style={{ color: T.faint, flexShrink: 0, opacity: 0.6 }} aria-hidden="true" />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</span>
@@ -359,24 +360,6 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                   <div style={{ fontSize: 10, color: T.muted, fontStyle: "italic" }}>{c.instituicao}</div>
                 )}
               </div>
-              {(() => {
-                const vi = contasVisiveis.findIndex(x => x.id === c.id);
-                const primeiro = vi <= 0, ultimo = vi >= contasVisiveis.length - 1;
-                return (
-                  <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => moverConta(c, -1)} disabled={primeiro} aria-label="Mover para cima"
-                            title="Mover para cima"
-                            style={{ background: "transparent", border: "none", padding: 0, lineHeight: 0, cursor: primeiro ? "default" : "pointer", color: primeiro ? T.faint : T.muted, opacity: primeiro ? 0.35 : 1 }}>
-                      <ChevronUp size={15} />
-                    </button>
-                    <button onClick={() => moverConta(c, 1)} disabled={ultimo} aria-label="Mover para baixo"
-                            title="Mover para baixo"
-                            style={{ background: "transparent", border: "none", padding: 0, lineHeight: 0, cursor: ultimo ? "default" : "pointer", color: ultimo ? T.faint : T.muted, opacity: ultimo ? 0.35 : 1 }}>
-                      <ChevronDown size={15} />
-                    </button>
-                  </div>
-                );
-              })()}
               <div className="num" style={{
                 fontFamily: T.serif, fontSize: 15, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap",
               }}>
@@ -391,6 +374,28 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             {/* Filhos — ações */}
             {exp && (
               <div style={{ display: "flex", gap: 6, padding: "6px 12px 10px", borderTop: `1px dashed ${T.border}` }}>
+                {(() => {
+                  const vi = contasVisiveis.findIndex(x => x.id === c.id);
+                  const primeiro = vi <= 0, ultimo = vi >= contasVisiveis.length - 1;
+                  const estilo = (off) => ({
+                    width: 30, padding: "5px 0", borderRadius: 4, background: "transparent",
+                    border: `1px solid ${T.border}`, color: off ? T.faint : T.muted,
+                    cursor: off ? "default" : "pointer", opacity: off ? 0.4 : 1,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  });
+                  return (
+                    <>
+                      <button onClick={(e) => { e.stopPropagation(); moverConta(c, -1); }} disabled={primeiro}
+                              title="Mover para cima" style={estilo(primeiro)}>
+                        <ChevronUp size={13} />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); moverConta(c, 1); }} disabled={ultimo}
+                              title="Mover para baixo" style={estilo(ultimo)}>
+                        <ChevronDown size={13} />
+                      </button>
+                    </>
+                  );
+                })()}
                 {c.appUrl && (
                   <button onClick={(e) => { e.stopPropagation(); window.open(c.appUrl, "_blank", "noopener"); }}
                     title="Abrir o app/site do banco"
