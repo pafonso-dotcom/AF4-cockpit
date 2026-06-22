@@ -164,6 +164,10 @@ function HeaderHorizontal({
       { id: "negocio-veiculos", label: "Veículos", icon: Car },
       { id: "negocio-servicos", label: "Serviços", icon: Wrench },
       { id: "negocio-clientes", label: "Clientes", icon: Users },
+      { id: "negocio-banco",          label: "Banco",              icon: PiggyBank },
+      { id: "negocio-categorias",     label: "Categorias",         icon: Tag },
+      { id: "negocio-despesas-fixas", label: "Despesas fixas",     icon: Repeat },
+      { id: "negocio-despesas-var",   label: "Despesas variáveis", icon: Receipt },
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência",    icon: Sparkles },
@@ -648,6 +652,10 @@ function HeaderVertical({
       { id: "negocio-veiculos", label: "Veículos", icon: Car },
       { id: "negocio-servicos", label: "Serviços", icon: Wrench },
       { id: "negocio-clientes", label: "Clientes", icon: Users },
+      { id: "negocio-banco",          label: "Banco",              icon: PiggyBank },
+      { id: "negocio-categorias",     label: "Categorias",         icon: Tag },
+      { id: "negocio-despesas-fixas", label: "Despesas fixas",     icon: Repeat },
+      { id: "negocio-despesas-var",   label: "Despesas variáveis", icon: Receipt },
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência", icon: Sparkles },

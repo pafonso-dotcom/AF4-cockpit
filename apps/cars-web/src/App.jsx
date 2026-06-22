@@ -101,6 +101,10 @@ const NegocioPainel = lz(() => import("./components/pages/Negocio/NegocioPainel.
 const NegocioVeiculos = lz(() => import("./components/pages/Negocio/Veiculos.jsx"));
 const NegocioServicos = lz(() => import("./components/pages/Negocio/Servicos.jsx"));
 const NegocioClientes = lz(() => import("./components/pages/Negocio/Clientes.jsx"));
+const NegocioBanco = lz(() => import("./components/pages/Negocio/NegocioBanco.jsx"));
+const NegocioCategorias = lz(() => import("./components/pages/Negocio/NegocioCategorias.jsx"));
+const NegocioDespesasFixas = lz(() => import("./components/pages/Negocio/NegocioDespesasFixas.jsx"));
+const NegocioDespesasVar = lz(() => import("./components/pages/Negocio/NegocioDespesasVar.jsx"));
 const Lembretes = lz(() => import("./components/pages/Lembretes.jsx"));
 const Conversa = lz(() => import("./components/pages/Conversa.jsx"));
 const Treino = lz(() => import("./components/pages/Treino.jsx"));
@@ -221,6 +225,16 @@ export default function App() {
   // Banco do Serviço: contas próprias do negócio de serviços, totalmente
   // independentes das Contas/Finanças do cockpit. Modelo: [{ id, nome, saldo }].
   const [negocioBancos, setNegocioBancos] = useState([]);
+  // Financeiro DEDICADO do Negócio (telas próprias, dados separados do
+  // financeiro pessoal). Modelos:
+  //   negocioFinContas:       [{ id, nome, instituicao, saldo, cor }]
+  //   negocioFinCategorias:   [{ id, nome, tipo, cor }]
+  //   negocioFinDespesasFixas:[{ id, descricao, valor, categoria, diaVencimento }]
+  //   negocioFinDespesasVar:  [{ id, descricao, valor, categoria, data, conta }]
+  const [negocioFinContas, setNegocioFinContas] = useState([]);
+  const [negocioFinCategorias, setNegocioFinCategorias] = useState([]);
+  const [negocioFinDespesasFixas, setNegocioFinDespesasFixas] = useState([]);
+  const [negocioFinDespesasVar, setNegocioFinDespesasVar] = useState([]);
   // Proventos marcados como recebidos: { [proventoKey]: { dataBaixa, destino, valor } }
   const [proventosRecebidos, setProventosRecebidos] = useState({});
   // Proventos que o user marcou como "Ignorados" (não interessam, foram
@@ -264,6 +278,7 @@ export default function App() {
         setNegocioVendasServicos, setNegocioContratos, setNegocioClientes,
         setNegocioInstaladores, setObjetivosCarteira, setCarteirasModeloCustom,
         setModeloAtivoId, setCarteiraProventos, setCaixaNegocio, setNegocioBancos,
+        setNegocioFinContas, setNegocioFinCategorias, setNegocioFinDespesasFixas, setNegocioFinDespesasVar,
         setProventosRecebidos, setProventosIgnorados, setProventosManuais,
         setTradeWatchlist, setTradeHistorico, setTradeAnalisesIdV,
         setTradeOnboardingVisto, setThemeId,
@@ -303,6 +318,7 @@ export default function App() {
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       caixaNegocio, negocioBancos,
+      negocioFinContas, negocioFinCategorias, negocioFinDespesasFixas, negocioFinDespesasVar,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
       themeId,
@@ -314,6 +330,7 @@ export default function App() {
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       caixaNegocio, negocioBancos,
+      negocioFinContas, negocioFinCategorias, negocioFinDespesasFixas, negocioFinDespesasVar,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
       themeId, loading]);
@@ -952,6 +969,31 @@ export default function App() {
           clientes={negocioClientes} setClientes={setNegocioClientes}
           vendasVeiculos={negocioVendasVeiculos}
           vendasServicos={negocioVendasServicos}
+          hidden={hidden}
+        />
+      )}
+      {tab === "negocio-banco" && (
+        <NegocioBanco
+          contas={negocioFinContas} setContas={setNegocioFinContas}
+          hidden={hidden}
+        />
+      )}
+      {tab === "negocio-categorias" && (
+        <NegocioCategorias
+          categorias={negocioFinCategorias} setCategorias={setNegocioFinCategorias}
+        />
+      )}
+      {tab === "negocio-despesas-fixas" && (
+        <NegocioDespesasFixas
+          despesas={negocioFinDespesasFixas} setDespesas={setNegocioFinDespesasFixas}
+          categorias={negocioFinCategorias}
+          hidden={hidden}
+        />
+      )}
+      {tab === "negocio-despesas-var" && (
+        <NegocioDespesasVar
+          despesas={negocioFinDespesasVar} setDespesas={setNegocioFinDespesasVar}
+          categorias={negocioFinCategorias} contas={negocioFinContas}
           hidden={hidden}
         />
       )}
