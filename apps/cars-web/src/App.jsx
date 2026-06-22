@@ -965,6 +965,7 @@ export default function App() {
                       apiKeys={apiKeys}
                       proventosRecebidos={proventosRecebidos}
                       onRefresh={refreshMarket} refreshing={refreshing}
+                      patrimonioHistorico={patrimonioHistorico}
                       onTabChange={irParaTab}
                       onAbrirAnaliseCarteira={() => { setAnaliseViewInicial("carteira-analise"); setTab("analises"); }}
                       onAbrirAnaliseIdv={() => { setAnaliseViewInicial("idv"); setTab("analises"); }}
