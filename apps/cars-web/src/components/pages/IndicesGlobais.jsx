@@ -19,6 +19,23 @@ const NOME_FX = { USDBRL: "Dólar", EURBRL: "Euro" };
 // não devolve o índice (mercado fechado / resposta sem preço / sem token).
 const IBOV_REF = { nome: "Ibovespa", valor: 134820, var: 0, moeda: "pts", sim: true };
 
+// Minigráfico de tendência (sparkline) a partir de uma série de números.
+function Sparkline({ data, cor, w = 56, h = 22 }) {
+  if (!data || data.length < 2) return null;
+  const min = Math.min(...data), max = Math.max(...data);
+  const span = max - min || 1;
+  const pts = data.map((v, idx) => {
+    const x = (idx / (data.length - 1)) * w;
+    const y = h - ((v - min) / span) * (h - 2) - 1;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  return (
+    <svg width={w} height={h} style={{ display: "block", flexShrink: 0 }} aria-hidden="true">
+      <polyline points={pts} fill="none" stroke={cor} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function IndicesGlobais({ apiKeys = {}, excluir = [] }) {
   const [itens, setItens] = useState(null);
 
@@ -53,6 +70,23 @@ export default function IndicesGlobais({ apiKeys = {}, excluir = [] }) {
           if (Number.isFinite(v)) out.splice(1, 0, { nome: "Selic", valor: v, moeda: "taxa" });
         }
       } catch { /* silencioso */ }
+      // Sparkline com DADO REAL só para câmbio: a AwesomeAPI tem série diária
+      // sem token. Índices (Ibov/S&P/Nasdaq) não têm fonte fácil de série aqui,
+      // então ficam sem minigráfico (sem inventar dados).
+      try {
+        const spark = async (pair) => {
+          const r = await fetch(`https://economia.awesomeapi.com.br/json/daily/${pair}/14`);
+          if (!r.ok) return null;
+          const j = await r.json();
+          const vals = (Array.isArray(j) ? j : []).map(d => parseFloat(d.bid)).filter(Number.isFinite).reverse();
+          return vals.length >= 2 ? vals : null;
+        };
+        const [sUSD, sEUR] = await Promise.all([spark("USD-BRL"), spark("EUR-BRL")]);
+        out.forEach(i => {
+          if (i.nome === "Dólar" && sUSD) i.spark = sUSD;
+          if (i.nome === "Euro" && sEUR) i.spark = sEUR;
+        });
+      } catch { /* silencioso */ }
       if (!cancel) setItens(out);
     })();
     return () => { cancel = true; };
@@ -81,21 +115,25 @@ export default function IndicesGlobais({ apiKeys = {}, excluir = [] }) {
           <div key={idx} style={{
             flex: "0 0 auto", minWidth: 132, background: T.card,
             border: `1px solid ${T.border}`, borderRadius: 16, padding: "8px 12px",
+            display: "flex", alignItems: "center", gap: 10,
           }}>
-            <div style={{ fontSize: 10, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
-              {i.nome}
-            </div>
-            <div className="num" style={{ fontSize: 15, fontWeight: 600, color: T.ink, lineHeight: 1.1 }}>
-              {fmtVal(i)}
-            </div>
-            {i.moeda === "taxa" ? (
-              <div style={{ fontSize: 11, fontWeight: 600, color: T.muted, marginTop: 2 }}>meta · ao ano</div>
-            ) : (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: cor, marginTop: 2 }}>
-                {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                {up ? "+" : ""}{(i.var ?? 0).toFixed(2)}%
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 10, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
+                {i.nome}
               </div>
-            )}
+              <div className="num" style={{ fontSize: 15, fontWeight: 600, color: T.ink, lineHeight: 1.1 }}>
+                {fmtVal(i)}
+              </div>
+              {i.moeda === "taxa" ? (
+                <div style={{ fontSize: 11, fontWeight: 600, color: T.muted, marginTop: 2 }}>meta · ao ano</div>
+              ) : (
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: cor, marginTop: 2 }}>
+                  {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                  {up ? "+" : ""}{(i.var ?? 0).toFixed(2)}%
+                </div>
+              )}
+            </div>
+            {i.spark && <Sparkline data={i.spark} cor={cor} />}
           </div>
         );
       })}

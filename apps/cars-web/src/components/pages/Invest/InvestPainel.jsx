@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, BarChart3, DollarSign, Award, RefreshCw, Plus, Coins, LineChart, Calculator } from "lucide-react";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
 import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS } from "../../../lib/invest-constants.js";
@@ -14,6 +14,7 @@ export default function InvestPainel({
   hidden, onTabChange, onAnalisar,
   onAbrirAnaliseCarteira, onAbrirAnaliseIdv, apiKeys = {},
   proventosRecebidos = {}, onRefresh, refreshing = false,
+  patrimonioHistorico = [],
 }) {
   const mask = (s) => hidden ? "•••••" : s;
   const hoje = new Date();
@@ -168,6 +169,14 @@ export default function InvestPainel({
         <Kpi label="Posições" value={posicoes.qtd} format={(n) => String(Math.round(n))} sub={`${posicoes.classes} classes`} icon={Briefcase} cor={T.gold} />
       </section>
 
+      {/* Evolução do patrimônio (com filtros de tempo) + Alocação por moeda */}
+      <section className="ip-evo-grid" style={{
+        display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 12, marginBottom: 16,
+      }}>
+        <EvolucaoCard historico={patrimonioHistorico} hidden={hidden} />
+        <MoedaCard valorBR={t.valorBR} valorUSA={t.valorUSA} usdRate={usdRate} hidden={hidden} fmtUSD={fmtUSD} />
+      </section>
+
       {/* Linha 2 */}
       <section className="ip-mid-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
@@ -235,7 +244,7 @@ export default function InvestPainel({
         }
         @media (max-width: 1024px) {
           .ip-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
-          .ip-mid-grid, .ip-bot-grid, .ip-foot-grid { grid-template-columns: 1fr !important; }
+          .ip-mid-grid, .ip-bot-grid, .ip-foot-grid, .ip-evo-grid { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 380px) {
           .ip-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
@@ -296,6 +305,134 @@ function AnimatedNumber({ value, format = (n) => String(n), hidden, hiddenText =
 
   if (hidden) return <span className={className} style={style}>{hiddenText}</span>;
   return <span className={className} style={style}>{format(display)}</span>;
+}
+
+// Evolução do patrimônio com filtros de período. Usa o snapshot diário real
+// (patrimonioHistorico). Sem histórico suficiente, mostra estado vazio.
+const RANGES = [
+  { id: "1M", label: "1M", dias: 30 },
+  { id: "6M", label: "6M", dias: 182 },
+  { id: "1A", label: "1A", dias: 365 },
+  { id: "tudo", label: "Tudo", dias: Infinity },
+];
+function EvolucaoCard({ historico = [], hidden }) {
+  const [range, setRange] = useState("6M");
+  const serie = useMemo(() => {
+    const ordenado = [...(historico || [])]
+      .filter(p => p && p.data && Number.isFinite(Number(p.total)))
+      .sort((a, b) => a.data.localeCompare(b.data));
+    const r = RANGES.find(x => x.id === range) || RANGES[1];
+    if (r.dias === Infinity) return ordenado;
+    const corte = new Date();
+    corte.setDate(corte.getDate() - r.dias);
+    const corteISO = corte.toISOString().slice(0, 10);
+    return ordenado.filter(p => p.data >= corteISO);
+  }, [historico, range]);
+
+  const primeiro = serie[0]?.total ?? 0;
+  const ultimo = serie[serie.length - 1]?.total ?? 0;
+  const variacao = primeiro > 0 ? ((ultimo - primeiro) / primeiro) * 100 : 0;
+  const ganho = ultimo - primeiro;
+  const temDados = serie.length >= 2;
+
+  return (
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Evolução do Patrimônio</div>
+        {/* Segmented control de período */}
+        <div style={{ display: "inline-flex", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 10, padding: 3, gap: 2 }}>
+          {RANGES.map(r => (
+            <button key={r.id} onClick={() => setRange(r.id)}
+              style={{
+                padding: "4px 11px", borderRadius: 7, border: "none", cursor: "pointer",
+                fontSize: 11.5, fontWeight: 600,
+                background: range === r.id ? T.gold : "transparent",
+                color: range === r.id ? (T.dark ? "#1a1a1a" : "#fff") : T.muted,
+              }}>{r.label}</button>
+          ))}
+        </div>
+      </div>
+      {!temDados ? (
+        <div style={{ padding: "40px 24px", textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>
+          Histórico insuficiente neste período. O patrimônio é registrado 1×/dia — volte em alguns dias para ver a curva.
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 6 }}>
+            <span className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, color: T.ink }}>{hidden ? "•••••" : fmt(ultimo)}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: ganho >= 0 ? T.green : T.red }}>
+              {ganho >= 0 ? "↗ +" : "↘ "}{fmtN(variacao, 2)}% <span style={{ color: T.muted, fontWeight: 400 }}>no período</span>
+            </span>
+          </div>
+          <div style={{ height: 150 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={serie} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="evoFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={T.gold} stopOpacity={0.35} />
+                    <stop offset="100%" stopColor={T.gold} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke={T.border} strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="data" tick={{ fontSize: 9, fill: T.muted }} tickFormatter={(d) => (d || "").slice(5)} minTickGap={28} />
+                <YAxis hide domain={["auto", "auto"]} />
+                <Tooltip
+                  contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11, borderRadius: 8 }}
+                  labelStyle={{ color: T.muted }}
+                  formatter={(v) => [hidden ? "•••••" : fmt(v), "Patrimônio"]}
+                  labelFormatter={(d) => d} />
+                <Area type="monotone" dataKey="total" stroke={T.gold} strokeWidth={2} fill="url(#evoFill)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Alocação por moeda (Brasil R$ vs EUA US$) com bandeiras. Converte o lado EUA
+// pra R$ (via dólar ao vivo) só para calcular a proporção da barra; os valores
+// continuam exibidos em cada moeda.
+function MoedaCard({ valorBR = 0, valorUSA = 0, usdRate, hidden, fmtUSD }) {
+  const usaEmBRL = usdRate ? valorUSA * usdRate : 0;
+  const totalBRL = valorBR + usaEmBRL;
+  const pctBR = totalBRL > 0 ? (valorBR / totalBRL) * 100 : (valorUSA > 0 ? 0 : 100);
+  const pctUSA = totalBRL > 0 ? (usaEmBRL / totalBRL) * 100 : 0;
+  const temUSA = valorUSA > 0;
+  return (
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
+      <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Alocação por Moeda</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 22 }} aria-hidden="true">🇧🇷</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10.5, color: T.muted }}>Brasil · R$</div>
+            <div className="num" style={{ fontSize: 16, fontWeight: 700, color: T.ink }}>{hidden ? "•••••" : fmt(valorBR)}</div>
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 600, color: T.gold }}>{fmtN(pctBR, 0)}%</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 22, opacity: temUSA ? 1 : 0.4 }} aria-hidden="true">🇺🇸</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10.5, color: T.muted }}>EUA · US$</div>
+            <div className="num" style={{ fontSize: 16, fontWeight: 700, color: temUSA ? T.ink : T.muted }}>{hidden ? "•••••" : fmtUSD(valorUSA)}</div>
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#2dd4bf" }}>{temUSA ? `${fmtN(pctUSA, 0)}%` : "—"}</span>
+        </div>
+        {/* Barra dividida */}
+        <div style={{ display: "flex", height: 16, borderRadius: 999, overflow: "hidden", background: T.bgSoft, marginTop: 2 }}>
+          <div style={{ width: `${pctBR}%`, background: T.gold }} />
+          <div style={{ width: `${pctUSA}%`, background: "#2dd4bf" }} />
+        </div>
+        <div style={{ fontSize: 9.5, color: T.faint, fontStyle: "italic" }}>
+          {temUSA
+            ? (usdRate ? `Proporção convertida ao dólar ${fmt(usdRate)}.` : "Carregando dólar para a proporção…")
+            : "Sem ativos em dólar."}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function KpiHero({ valorBR, pctBR, valorUSA, pctUSA, hidden, fmtUSD }) {
