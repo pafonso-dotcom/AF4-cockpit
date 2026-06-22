@@ -212,16 +212,19 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
 
   return (
     <div className="fade-up py-8">
-      {/* Cabeçalho compacto — botões abaixo do título (cabe na coluna estreita) */}
-      <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${T.border}` }}>
-        <div className="label-eyebrow">Capítulo I</div>
-        <h2 style={{ fontFamily: T.serif, fontSize: 26, color: T.ink, marginTop: 4, lineHeight: 1.05, letterSpacing: "-0.02em" }}>
-          Contas
-        </h2>
-        <div style={{ color: T.muted, fontSize: 12, marginTop: 4, fontStyle: "italic" }}>
-          Cada conta é uma página do seu balanço.
+      {/* Cabeçalho — botões à direita, na linha do título (quebram abaixo em telas estreitas) */}
+      <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${T.border}`,
+                    display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ flexShrink: 0 }}>
+          <div className="label-eyebrow">Capítulo I</div>
+          <h2 style={{ fontFamily: T.serif, fontSize: 26, color: T.ink, marginTop: 4, lineHeight: 1.05, letterSpacing: "-0.02em" }}>
+            Contas
+          </h2>
+          <div style={{ color: T.muted, fontSize: 12, marginTop: 4, fontStyle: "italic" }}>
+            Cada conta é uma página do seu balanço.
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           {contas.length >= 2 && (
             <button onClick={() => setTransferOpen(true)}
                     style={{ ...btnSec, color: T.gold, borderColor: T.gold }}>

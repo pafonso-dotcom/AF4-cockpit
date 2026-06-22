@@ -22,7 +22,7 @@ const DARK_BASE = {
 
 const THEMES = {
   // ----- DARK -----
-  gold:    { ...DARK_BASE, id: "gold",    nome: "Laranja",        subtitulo: "Acento laranja · padrão",   gold: "#ed9355", goldHi: "#f2ab78" },
+  gold:    { ...DARK_BASE, id: "gold",    nome: "Esmeralda Suave", subtitulo: "Verde-água suave · padrão", gold: "#5bbf9a", goldHi: "#7ccdb0", blue: "#6f9fd8" },
   emerald: { ...DARK_BASE, id: "emerald", nome: "Esmeralda",      subtitulo: "Verde profissional",        gold: "#10b981", goldHi: "#34d399" },
   cyan:    { ...DARK_BASE, id: "cyan",    nome: "Cyan",           subtitulo: "Tech moderno",              gold: "#06b6d4", goldHi: "#22d3ee" },
   violet:  { ...DARK_BASE, id: "violet",  nome: "Violeta",        subtitulo: "Sofisticado",               gold: "#8b5cf6", goldHi: "#a78bfa" },
