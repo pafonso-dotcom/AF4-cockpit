@@ -142,9 +142,8 @@ export default function InvestPainel({
 
       {/* KPIs */}
       <section className="ip-kpi-grid" style={{
-        display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16,
       }}>
-        <KpiHero valorBR={t.valorBR} pctBR={t.pctBR} valorUSA={t.valorUSA} pctUSA={t.pctUSA} hidden={hidden} fmtUSD={fmtUSD} />
         <Kpi label="Custo Investido" value={t.custo} format={fmt} hidden={hidden} sub="Total aportado" icon={Wallet} cor={T.muted}
              extra={t.valorUSA > 0 ? {
                label: "Ativos em US$ → R$",
@@ -399,31 +398,6 @@ function MoedaCard({ valorBR = 0, valorUSA = 0, usdRate, hidden, fmtUSD }) {
             : "Sem ativos em dólar."}
         </div>
       </div>
-    </div>
-  );
-}
-
-function KpiHero({ valorBR, pctBR, valorUSA, pctUSA, hidden, fmtUSD }) {
-  const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
-  const temUSA = valorUSA > 0 || valorUSA < 0;
-  return (
-    <div className="ip-card ip-hero" style={{ background: bg, color: "#fff", borderRadius: 18, padding: 14, minHeight: 110 }}>
-      <div style={{ fontSize: 11, color: "#86efac" }}>Patrimônio · Brasil</div>
-      <AnimatedNumber value={valorBR} format={fmt} hidden={hidden}
-        className="num" style={{ display: "block", fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 4 }} />
-      <div style={{ fontSize: 10.5, color: pctBR >= 0 ? "#86efac" : "#fca5a5", marginTop: 2 }}>
-        {pctBR >= 0 ? "↗" : "↘"} {fmtN(pctBR, 2)}% <span style={{ color: "rgba(255,255,255,0.55)" }}>rentab.</span>
-      </div>
-      {temUSA && (
-        <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
-          <div style={{ fontSize: 10.5, color: "#86efac" }}>Patrimônio · EUA <span style={{ color: "rgba(255,255,255,0.5)" }}>(em dólar)</span></div>
-          <AnimatedNumber value={valorUSA} format={fmtUSD} hidden={hidden}
-            className="num" style={{ display: "block", fontFamily: T.serif, fontSize: 17, fontWeight: 700, marginTop: 2 }} />
-          <div style={{ fontSize: 10, color: pctUSA >= 0 ? "#86efac" : "#fca5a5", marginTop: 1 }}>
-            {pctUSA >= 0 ? "↗" : "↘"} {fmtN(pctUSA, 2)}% <span style={{ color: "rgba(255,255,255,0.55)" }}>rentab.</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
