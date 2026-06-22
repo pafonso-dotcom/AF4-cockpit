@@ -15,7 +15,6 @@ export default function InvestPainel({
   onAbrirAnaliseCarteira, onAbrirAnaliseIdv, apiKeys = {},
   proventosRecebidos = {}, onRefresh, refreshing = false,
 }) {
-  const mask = (s) => hidden ? "•••••" : s;
   const hoje = new Date();
 
   // ===== Totais (custo, valor, resultado, %) — separados BR (R$) e USA (US$) =====
@@ -50,7 +49,6 @@ export default function InvestPainel({
     buscarCotacao("USD").then(r => { if (vivo && r) setUsdRate(r); });
     return () => { vivo = false; };
   }, []);
-  const valorUSAemBRL = usdRate ? t.valorUSA * usdRate : null;
 
   // ===== Posições / classes únicas =====
   const posicoes = useMemo(() => ({
@@ -141,21 +139,10 @@ export default function InvestPainel({
 
       {/* KPIs — Alocação por Moeda + indicadores, tudo na mesma linha */}
       <section className="ip-kpi-grid" style={{
-<<<<<<< Updated upstream
-        display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16,
-      }}>
-        <Kpi label="Custo Investido" value={t.custo} format={fmt} hidden={hidden} sub="Total aportado" icon={Wallet} cor={T.muted}
-             extra={t.valorUSA > 0 ? {
-               label: "Ativos em US$ → R$",
-               valor: valorUSAemBRL != null ? mask(fmt(valorUSAemBRL)) : "—",
-               sub: usdRate ? `${fmtUSD(t.valorUSA)} · dólar ${fmt(usdRate)}` : "carregando dólar…",
-             } : null} />
-=======
         display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 12, marginBottom: 16,
       }}>
         <MoedaCard valorBR={t.valorBR} valorUSA={t.valorUSA} usdRate={usdRate} hidden={hidden} fmtUSD={fmtUSD} />
         <Kpi label="Custo Investido" value={t.custo} format={fmt} hidden={hidden} sub="Total aportado" icon={Wallet} cor={T.muted} />
->>>>>>> Stashed changes
         <Kpi label="Resultado" value={t.resultado} format={fmt} hidden={hidden} variation={t.pct} cor={t.resultado >= 0 ? T.green : T.red}
              icon={t.resultado >= 0 ? TrendingUp : TrendingDown} />
         <Kpi label="Proventos · mês" value={proventosMes} format={fmt} hidden={hidden} sub="Receita passiva" icon={DollarSign} cor={T.green} />
