@@ -327,17 +327,14 @@ function CustoEvolucaoCard({ historico = [], hidden }) {
 
   return (
     <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
-      <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Custo Investido · Aportes</div>
+      <div style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Custo Investido · Aportes</div>
       {!temDados ? (
-        <div style={{ padding: "40px 24px", textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>
+        <div style={{ padding: "24px", textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>
           Histórico insuficiente. O custo é registrado 1×/dia — volte em alguns dias para ver a curva de aportes.
         </div>
       ) : (
         <>
-          <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, color: T.ink, marginBottom: 6 }}>
-            {hidden ? "•••••" : fmt(ultimo)}
-          </div>
-          <div style={{ height: 130 }}>
+          <div style={{ height: 92 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={serie} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <defs>
@@ -358,14 +355,14 @@ function CustoEvolucaoCard({ historico = [], hidden }) {
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          <div style={{ display: "flex", gap: 12, marginTop: 8, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
+          <div style={{ display: "flex", gap: 12, marginTop: 6, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, color: T.muted }}>Aportes {ano}</div>
-              <div className="num" style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(aportesAno)}</div>
+              <div style={{ fontSize: 9.5, color: T.muted }}>Aportes {ano}</div>
+              <div className="num" style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(aportesAno)}</div>
             </div>
             <div style={{ flex: 1, textAlign: "right" }}>
-              <div style={{ fontSize: 10, color: T.muted }}>Média mensal</div>
-              <div className="num" style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(mediaMensal)}</div>
+              <div style={{ fontSize: 9.5, color: T.muted }}>Média mensal</div>
+              <div className="num" style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(mediaMensal)}</div>
             </div>
           </div>
         </>
