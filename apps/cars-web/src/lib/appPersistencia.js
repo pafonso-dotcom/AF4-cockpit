@@ -70,6 +70,10 @@ export function aplicarDadosCarregados(data, S) {
   S.setCarteiraProventos(data.carteiraProventos || { saldo: 0, historico: [] });
   S.setCaixaNegocio(data.caixaNegocio || { saldo: 0, historico: [] });
   S.setNegocioBancos(data.negocioBancos || []);
+  S.setNegocioFinContas(data.negocioFinContas || []);
+  S.setNegocioFinCategorias(data.negocioFinCategorias || []);
+  S.setNegocioFinDespesasFixas(data.negocioFinDespesasFixas || []);
+  S.setNegocioFinDespesasVar(data.negocioFinDespesasVar || []);
   S.setProventosRecebidos(data.proventosRecebidos || {});
   S.setProventosIgnorados(data.proventosIgnorados || {});
   S.setProventosManuais(data.proventosManuais || []);
@@ -126,6 +130,10 @@ export function aplicarSeeds(S) {
   S.setCarteiraProventos({ saldo: 0, historico: [] });
   S.setCaixaNegocio({ saldo: 0, historico: [] });
   S.setNegocioBancos([]);
+  S.setNegocioFinContas([]);
+  S.setNegocioFinCategorias([]);
+  S.setNegocioFinDespesasFixas([]);
+  S.setNegocioFinDespesasVar([]);
   S.setProventosRecebidos({});
   S.setProventosIgnorados({});
   S.setProventosManuais([]);
