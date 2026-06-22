@@ -169,11 +169,11 @@ export default function InvestPainel({
         <Kpi label="Posições" value={posicoes.qtd} format={(n) => String(Math.round(n))} sub={`${posicoes.classes} classes`} icon={Briefcase} cor={T.gold} />
       </section>
 
-      {/* Evolução do patrimônio (com filtros de tempo) + Alocação por moeda */}
+      {/* Custo Investido · evolução dos aportes + Alocação por moeda */}
       <section className="ip-evo-grid" style={{
         display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <EvolucaoCard historico={patrimonioHistorico} hidden={hidden} />
+        <CustoEvolucaoCard historico={patrimonioHistorico} hidden={hidden} />
         <MoedaCard valorBR={t.valorBR} valorUSA={t.valorUSA} usdRate={usdRate} hidden={hidden} fmtUSD={fmtUSD} />
       </section>
 
@@ -307,68 +307,41 @@ function AnimatedNumber({ value, format = (n) => String(n), hidden, hiddenText =
   return <span className={className} style={style}>{format(display)}</span>;
 }
 
-// Evolução do patrimônio com filtros de período. Usa o snapshot diário real
-// (patrimonioHistorico). Sem histórico suficiente, mostra estado vazio.
-const RANGES = [
-  { id: "1M", label: "1M", dias: 30 },
-  { id: "6M", label: "6M", dias: 182 },
-  { id: "1A", label: "1A", dias: 365 },
-  { id: "tudo", label: "Tudo", dias: Infinity },
-];
-function EvolucaoCard({ historico = [], hidden }) {
-  const [range, setRange] = useState("6M");
-  const serie = useMemo(() => {
-    const ordenado = [...(historico || [])]
-      .filter(p => p && p.data && Number.isFinite(Number(p.total)))
-      .sort((a, b) => a.data.localeCompare(b.data));
-    const r = RANGES.find(x => x.id === range) || RANGES[1];
-    if (r.dias === Infinity) return ordenado;
-    const corte = new Date();
-    corte.setDate(corte.getDate() - r.dias);
-    const corteISO = corte.toISOString().slice(0, 10);
-    return ordenado.filter(p => p.data >= corteISO);
-  }, [historico, range]);
+// Custo Investido · evolução dos aportes. Usa o snapshot diário real
+// (patrimonioHistorico.totalAportado = qtd × preço médio). Mostra a curva de
+// aportes + aportes no ano e média mensal. Sem histórico, estado vazio.
+function CustoEvolucaoCard({ historico = [], hidden }) {
+  const serie = useMemo(() => [...(historico || [])]
+    .filter(p => p && p.data && Number.isFinite(Number(p.totalAportado)))
+    .sort((a, b) => a.data.localeCompare(b.data))
+    .map(p => ({ data: p.data, aportado: Number(p.totalAportado) })), [historico]);
 
-  const primeiro = serie[0]?.total ?? 0;
-  const ultimo = serie[serie.length - 1]?.total ?? 0;
-  const variacao = primeiro > 0 ? ((ultimo - primeiro) / primeiro) * 100 : 0;
-  const ganho = ultimo - primeiro;
   const temDados = serie.length >= 2;
+  const ultimo = serie[serie.length - 1]?.aportado ?? 0;
+  const ano = new Date().getFullYear();
+  const doAno = serie.filter(p => p.data.startsWith(String(ano)));
+  const baseAno = doAno[0]?.aportado ?? serie[0]?.aportado ?? 0;
+  const aportesAno = Math.max(0, ultimo - baseAno);
+  const mesesDecorridos = new Date().getMonth() + 1;
+  const mediaMensal = mesesDecorridos > 0 ? aportesAno / mesesDecorridos : 0;
 
   return (
     <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Evolução do Patrimônio</div>
-        {/* Segmented control de período */}
-        <div style={{ display: "inline-flex", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 10, padding: 3, gap: 2 }}>
-          {RANGES.map(r => (
-            <button key={r.id} onClick={() => setRange(r.id)}
-              style={{
-                padding: "4px 11px", borderRadius: 7, border: "none", cursor: "pointer",
-                fontSize: 11.5, fontWeight: 600,
-                background: range === r.id ? T.gold : "transparent",
-                color: range === r.id ? (T.dark ? "#1a1a1a" : "#fff") : T.muted,
-              }}>{r.label}</button>
-          ))}
-        </div>
-      </div>
+      <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Custo Investido · Aportes</div>
       {!temDados ? (
         <div style={{ padding: "40px 24px", textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>
-          Histórico insuficiente neste período. O patrimônio é registrado 1×/dia — volte em alguns dias para ver a curva.
+          Histórico insuficiente. O custo é registrado 1×/dia — volte em alguns dias para ver a curva de aportes.
         </div>
       ) : (
         <>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 6 }}>
-            <span className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, color: T.ink }}>{hidden ? "•••••" : fmt(ultimo)}</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: ganho >= 0 ? T.green : T.red }}>
-              {ganho >= 0 ? "↗ +" : "↘ "}{fmtN(variacao, 2)}% <span style={{ color: T.muted, fontWeight: 400 }}>no período</span>
-            </span>
+          <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, color: T.ink, marginBottom: 6 }}>
+            {hidden ? "•••••" : fmt(ultimo)}
           </div>
-          <div style={{ height: 150 }}>
+          <div style={{ height: 130 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={serie} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="evoFill" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="custoFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={T.gold} stopOpacity={0.35} />
                     <stop offset="100%" stopColor={T.gold} stopOpacity={0} />
                   </linearGradient>
@@ -379,11 +352,21 @@ function EvolucaoCard({ historico = [], hidden }) {
                 <Tooltip
                   contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11, borderRadius: 8 }}
                   labelStyle={{ color: T.muted }}
-                  formatter={(v) => [hidden ? "•••••" : fmt(v), "Patrimônio"]}
+                  formatter={(v) => [hidden ? "•••••" : fmt(v), "Aportado"]}
                   labelFormatter={(d) => d} />
-                <Area type="monotone" dataKey="total" stroke={T.gold} strokeWidth={2} fill="url(#evoFill)" />
+                <Area type="monotone" dataKey="aportado" stroke={T.gold} strokeWidth={2} fill="url(#custoFill)" />
               </AreaChart>
             </ResponsiveContainer>
+          </div>
+          <div style={{ display: "flex", gap: 12, marginTop: 8, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: T.muted }}>Aportes {ano}</div>
+              <div className="num" style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(aportesAno)}</div>
+            </div>
+            <div style={{ flex: 1, textAlign: "right" }}>
+              <div style={{ fontSize: 10, color: T.muted }}>Média mensal</div>
+              <div className="num" style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(mediaMensal)}</div>
+            </div>
           </div>
         </>
       )}
