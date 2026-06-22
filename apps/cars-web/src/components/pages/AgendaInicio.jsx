@@ -7,6 +7,7 @@ import { T } from "../../lib/theme.js";
 import { todayISO } from "../../lib/format.js";
 import { getPerfilAtivo } from "../../lib/perfis.js";
 import { PRIORIDADE_COR, EVENTO_TIPO } from "../../lib/coresUI.js";
+import { IlustraVazio, MetaMascote } from "./AgendaIlustracoes.jsx";
 
 const PRIO_COR = PRIORIDADE_COR;
 const PRIO_LBL = { alta: "Alta", media: "Média", baixa: "Baixa" };
@@ -178,6 +179,7 @@ export default function AgendaInicio({
           acao={{ lbl: "Ver agenda", onClick: () => go("calendario") }}
           vazio={eventosProximos.length === 0}
           vazioMsg="Sem eventos próximos."
+          vazioTipo="eventos"
           vazioIcone={Calendar}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {eventosProximos.map(ev => (
@@ -191,6 +193,7 @@ export default function AgendaInicio({
           acao={{ lbl: "Ver todas", onClick: () => go("tarefas") }}
           vazio={tarefasHoje.length === 0}
           vazioMsg="Nenhuma tarefa pra hoje."
+          vazioTipo="tarefas"
           vazioIcone={CheckSquare}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {tarefasHoje.map(t => (
@@ -207,21 +210,25 @@ export default function AgendaInicio({
           acao={{ lbl: "Ver metas", onClick: () => go("metas") }}
           vazio={metas.filter(m => (m.atual || 0) < (m.alvo || 0)).length === 0}
           vazioMsg="Sem metas ativas."
+          vazioTipo="metas"
           vazioIcone={Target}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {metas.filter(m => (m.atual || 0) < (m.alvo || 0)).slice(0, 4).map(m => {
+            {metas.filter(m => (m.atual || 0) < (m.alvo || 0)).slice(0, 4).map((m, i) => {
               const pct = Math.min(100, ((m.atual || 0) / (m.alvo || 1)) * 100);
               return (
-                <div key={m.id}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 500, color: T.ink }}>{m.nome}</span>
-                    <span className="num" style={{ fontSize: 11, color: T.gold, fontWeight: 600 }}>{pct.toFixed(0)}%</span>
-                  </div>
-                  <div style={{ height: 6, background: T.border, borderRadius: 999 }}>
-                    <div style={{
-                      width: `${pct}%`, height: "100%", borderRadius: 999,
-                      background: T.gold, transition: "width .4s",
-                    }} />
+                <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ flexShrink: 0 }}><MetaMascote seed={i} nome={m.nome} size={42} /></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 500, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.nome}</span>
+                      <span className="num" style={{ fontSize: 11, color: T.gold, fontWeight: 600, flexShrink: 0, marginLeft: 6 }}>{pct.toFixed(0)}%</span>
+                    </div>
+                    <div style={{ height: 6, background: T.border, borderRadius: 999 }}>
+                      <div style={{
+                        width: `${pct}%`, height: "100%", borderRadius: 999,
+                        background: T.gold, transition: "width .4s",
+                      }} />
+                    </div>
                   </div>
                 </div>
               );
@@ -234,6 +241,7 @@ export default function AgendaInicio({
           acao={{ lbl: "Ver ideias", onClick: () => go("ideias") }}
           vazio={(ideias || []).filter(i => i.pinned).length === 0}
           vazioMsg="Nenhuma ideia fixada."
+          vazioTipo="ideias"
           vazioIcone={Sparkles}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {(ideias || []).filter(i => i.pinned).slice(0, 4).map(i => (
@@ -343,7 +351,7 @@ function KpiCard({ icon: Icon, cor, valor, label, subtitle, onClick }) {
   );
 }
 
-function SectionCard({ titulo, acao, vazio, vazioMsg, vazioIcone: VazioIcone, children }) {
+function SectionCard({ titulo, acao, vazio, vazioMsg, vazioIcone: VazioIcone, vazioTipo, children }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
@@ -364,9 +372,11 @@ function SectionCard({ titulo, acao, vazio, vazioMsg, vazioIcone: VazioIcone, ch
       </div>
       {vazio ? (
         <div style={{
-          textAlign: "center", padding: "26px 16px", color: T.muted, fontSize: 12.5,
+          textAlign: "center", padding: "20px 16px", color: T.muted, fontSize: 12.5,
         }}>
-          {VazioIcone && <VazioIcone size={28} style={{ color: T.faint, marginBottom: 8, display: "inline" }} />}
+          {vazioTipo
+            ? <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><IlustraVazio tipo={vazioTipo} size={76} /></div>
+            : VazioIcone && <VazioIcone size={28} style={{ color: T.faint, marginBottom: 8, display: "inline" }} />}
           <div>{vazioMsg}</div>
         </div>
       ) : children}
