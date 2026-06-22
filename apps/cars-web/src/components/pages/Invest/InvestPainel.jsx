@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, BarChart3, DollarSign, Award, RefreshCw, Plus, Coins, LineChart, Calculator } from "lucide-react";
+import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, BarChart3, DollarSign, Award, RefreshCw, Plus } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
@@ -124,7 +124,7 @@ export default function InvestPainel({
         </div>
       </div>
 
-      {/* Ações rápidas — atualizar mercado, novo aporte e atalhos diretos */}
+      {/* Ações rápidas — atualizar mercado e novo aporte */}
       <div className="ip-actions" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         {onRefresh && (
           <button onClick={onRefresh} disabled={refreshing}
@@ -138,18 +138,6 @@ export default function InvestPainel({
           <Plus size={13} style={{ flexShrink: 0 }} />
           Novo aporte
         </button>
-        <div style={{ flex: 1 }} />
-        {[
-          { label: "Carteira", icon: Briefcase, tab: "carteira" },
-          { label: "Proventos", icon: Coins, tab: "proventos" },
-          { label: "Análises", icon: LineChart, tab: "analises" },
-          { label: "Calculadora", icon: Calculator, tab: "calc-renda" },
-        ].map(({ label, icon: Icon, tab }) => (
-          <button key={tab} onClick={() => onTabChange?.(tab)} className="ip-chip" title={`Ir para ${label}`}>
-            <Icon size={12} style={{ flexShrink: 0 }} />
-            <span className="ip-chip-label">{label}</span>
-          </button>
-        ))}
       </div>
 
       {/* KPIs */}
