@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from "react";
-import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, BarChart3, DollarSign, Award } from "lucide-react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
+import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, BarChart3, DollarSign, Award, RefreshCw, Plus, Coins, LineChart, Calculator } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
@@ -13,7 +13,7 @@ export default function InvestPainel({
   ativos = [], transacoes = [], categorias = [],
   hidden, onTabChange, onAnalisar,
   onAbrirAnaliseCarteira, onAbrirAnaliseIdv, apiKeys = {},
-  proventosRecebidos = {},
+  proventosRecebidos = {}, onRefresh, refreshing = false,
 }) {
   const mask = (s) => hidden ? "•••••" : s;
   const hoje = new Date();
@@ -99,6 +99,13 @@ export default function InvestPainel({
       .reduce((s, r) => s + (Number(r?.valor) || 0), 0);
   }, [proventosRecebidos]);
 
+  // Abre o fluxo de novo aporte: vai pra Carteira (onde o modal vive) e dispara
+  // o evento que a tela escuta. Sem ativos, ela abre o "Novo Ativo".
+  const novoAporte = () => {
+    onTabChange?.("carteira");
+    setTimeout(() => window.dispatchEvent(new CustomEvent("af4:open-new-aporte")), 60);
+  };
+
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
       {/* Header — título à esquerda, índices (Ibovespa, S&P, Nasdaq, Dólar, Euro) no topo direito */}
@@ -116,21 +123,49 @@ export default function InvestPainel({
         </div>
       </div>
 
+      {/* Ações rápidas — atualizar mercado, novo aporte e atalhos diretos */}
+      <div className="ip-actions" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        {onRefresh && (
+          <button onClick={onRefresh} disabled={refreshing}
+                  className="ip-btn ip-btn-primary"
+                  title="Atualizar cotações do mercado">
+            <RefreshCw size={13} className={refreshing ? "spin" : ""} style={{ flexShrink: 0 }} />
+            {refreshing ? "Atualizando…" : "Atualizar mercado"}
+          </button>
+        )}
+        <button onClick={novoAporte} className="ip-btn ip-btn-gold" title="Registrar um novo aporte">
+          <Plus size={13} style={{ flexShrink: 0 }} />
+          Novo aporte
+        </button>
+        <div style={{ flex: 1 }} />
+        {[
+          { label: "Carteira", icon: Briefcase, tab: "carteira" },
+          { label: "Proventos", icon: Coins, tab: "proventos" },
+          { label: "Análises", icon: LineChart, tab: "analises" },
+          { label: "Calculadora", icon: Calculator, tab: "calc-renda" },
+        ].map(({ label, icon: Icon, tab }) => (
+          <button key={tab} onClick={() => onTabChange?.(tab)} className="ip-chip" title={`Ir para ${label}`}>
+            <Icon size={12} style={{ flexShrink: 0 }} />
+            <span className="ip-chip-label">{label}</span>
+          </button>
+        ))}
+      </div>
+
       {/* KPIs */}
       <section className="ip-kpi-grid" style={{
         display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 12, marginBottom: 16,
       }}>
         <KpiHero valorBR={t.valorBR} pctBR={t.pctBR} valorUSA={t.valorUSA} pctUSA={t.pctUSA} hidden={hidden} fmtUSD={fmtUSD} />
-        <Kpi label="Custo Investido" valor={mask(fmt(t.custo))} sub="Total aportado" icon={Wallet} cor={T.muted}
+        <Kpi label="Custo Investido" value={t.custo} format={fmt} hidden={hidden} sub="Total aportado" icon={Wallet} cor={T.muted}
              extra={t.valorUSA > 0 ? {
                label: "Ativos em US$ → R$",
                valor: valorUSAemBRL != null ? mask(fmt(valorUSAemBRL)) : "—",
                sub: usdRate ? `${fmtUSD(t.valorUSA)} · dólar ${fmt(usdRate)}` : "carregando dólar…",
              } : null} />
-        <Kpi label="Resultado" valor={mask(fmt(t.resultado))} variation={t.pct} cor={t.resultado >= 0 ? T.green : T.red}
+        <Kpi label="Resultado" value={t.resultado} format={fmt} hidden={hidden} variation={t.pct} cor={t.resultado >= 0 ? T.green : T.red}
              icon={t.resultado >= 0 ? TrendingUp : TrendingDown} />
-        <Kpi label="Proventos · mês" valor={mask(fmt(proventosMes))} sub="Receita passiva" icon={DollarSign} cor={T.green} />
-        <Kpi label="Posições" valor={String(posicoes.qtd)} sub={`${posicoes.classes} classes`} icon={Briefcase} cor={T.gold} />
+        <Kpi label="Proventos · mês" value={proventosMes} format={fmt} hidden={hidden} sub="Receita passiva" icon={DollarSign} cor={T.green} />
+        <Kpi label="Posições" value={posicoes.qtd} format={(n) => String(Math.round(n))} sub={`${posicoes.classes} classes`} icon={Briefcase} cor={T.gold} />
       </section>
 
       {/* Linha 2 */}
@@ -160,12 +195,54 @@ export default function InvestPainel({
       </section>
 
       <style>{`
+        /* Botões de ação rápida */
+        .ip-btn {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 7px 13px; border-radius: 10px; font-size: 12px; font-weight: 600;
+          cursor: pointer; white-space: nowrap; transition: transform .12s ease, filter .15s ease, background .15s ease;
+          border: 1px solid ${T.border};
+        }
+        .ip-btn:active { transform: scale(0.97); }
+        .ip-btn:disabled { opacity: .55; cursor: default; }
+        .ip-btn-primary { background: ${T.bgSoft}; color: ${T.ink}; }
+        .ip-btn-primary:hover:not(:disabled) { background: ${T.cardHi}; }
+        .ip-btn-gold { background: ${T.gold}; color: ${T.dark ? "#1a1a1a" : "#fff"}; border-color: ${T.gold}; }
+        .ip-btn-gold:hover { filter: brightness(1.07); }
+
+        /* Chips de atalho (Carteira, Proventos, …) */
+        .ip-chip {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 6px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 500;
+          background: transparent; border: 1px solid ${T.border}; color: ${T.muted};
+          cursor: pointer; white-space: nowrap; transition: color .15s ease, border-color .15s ease, background .15s ease;
+        }
+        .ip-chip:hover { color: ${T.gold}; border-color: ${T.gold}66; background: ${T.gold}12; }
+
+        /* Cards: leve elevação no hover + entrada escalonada */
+        .ip-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+        .ip-card:hover { transform: translateY(-2px); }
+        .ip-atalho:hover { border-color: ${T.gold}66; }
+        .ip-kpi-grid > * { animation: ipUp .42s ease both; }
+        .ip-kpi-grid > *:nth-child(2) { animation-delay: .05s; }
+        .ip-kpi-grid > *:nth-child(3) { animation-delay: .1s; }
+        .ip-kpi-grid > *:nth-child(4) { animation-delay: .15s; }
+        .ip-kpi-grid > *:nth-child(5) { animation-delay: .2s; }
+        @keyframes ipUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 600px) {
+          .ip-chip-label { display: none; }
+          .ip-chip { padding: 6px 9px; }
+        }
         @media (max-width: 1024px) {
           .ip-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .ip-mid-grid, .ip-bot-grid, .ip-foot-grid { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 380px) {
           .ip-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .ip-card:hover { transform: none; }
+          .ip-kpi-grid > * { animation: none; }
         }
       `}</style>
     </div>
@@ -176,24 +253,67 @@ export default function InvestPainel({
    Sub-componentes
    ============================================================ */
 
+// Respeita a preferência do sistema por menos movimento (acessibilidade).
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const h = (e) => setReduced(e.matches);
+    mq.addEventListener?.("change", h);
+    return () => mq.removeEventListener?.("change", h);
+  }, []);
+  return reduced;
+}
+
+// Número que "conta" suavemente até o valor (count-up). Anima do 0 ao montar
+// e entre mudanças de valor — dá a sensação de painel vivo/ágil. Quando
+// oculto (modo privacidade) ou com reduced-motion, mostra direto sem animar.
+function AnimatedNumber({ value, format = (n) => String(n), hidden, hiddenText = "•••••", duration = 650, className, style }) {
+  const reduced = usePrefersReducedMotion();
+  const [display, setDisplay] = useState(0);
+  const fromRef = useRef(0);
+  const rafRef = useRef(0);
+
+  useEffect(() => {
+    if (hidden) return; // não anima escondido; retoma do último valor ao reexibir
+    const from = fromRef.current;
+    const to = Number(value) || 0;
+    if (reduced || from === to) { setDisplay(to); fromRef.current = to; return; }
+    const start = performance.now();
+    cancelAnimationFrame(rafRef.current);
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+      setDisplay(from + (to - from) * eased);
+      if (p < 1) { rafRef.current = requestAnimationFrame(tick); }
+      else { fromRef.current = to; }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [value, hidden, reduced, duration]);
+
+  if (hidden) return <span className={className} style={style}>{hiddenText}</span>;
+  return <span className={className} style={style}>{format(display)}</span>;
+}
+
 function KpiHero({ valorBR, pctBR, valorUSA, pctUSA, hidden, fmtUSD }) {
   const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
   const temUSA = valorUSA > 0 || valorUSA < 0;
   return (
-    <div style={{ background: bg, color: "#fff", borderRadius: 18, padding: 14, minHeight: 110 }}>
+    <div className="ip-card ip-hero" style={{ background: bg, color: "#fff", borderRadius: 18, padding: 14, minHeight: 110 }}>
       <div style={{ fontSize: 11, color: "#86efac" }}>Patrimônio · Brasil</div>
-      <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 4 }}>
-        {hidden ? "•••••" : fmt(valorBR)}
-      </div>
+      <AnimatedNumber value={valorBR} format={fmt} hidden={hidden}
+        className="num" style={{ display: "block", fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 4 }} />
       <div style={{ fontSize: 10.5, color: pctBR >= 0 ? "#86efac" : "#fca5a5", marginTop: 2 }}>
         {pctBR >= 0 ? "↗" : "↘"} {fmtN(pctBR, 2)}% <span style={{ color: "rgba(255,255,255,0.55)" }}>rentab.</span>
       </div>
       {temUSA && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
           <div style={{ fontSize: 10.5, color: "#86efac" }}>Patrimônio · EUA <span style={{ color: "rgba(255,255,255,0.5)" }}>(em dólar)</span></div>
-          <div className="num" style={{ fontFamily: T.serif, fontSize: 17, fontWeight: 700, marginTop: 2 }}>
-            {hidden ? "•••••" : fmtUSD(valorUSA)}
-          </div>
+          <AnimatedNumber value={valorUSA} format={fmtUSD} hidden={hidden}
+            className="num" style={{ display: "block", fontFamily: T.serif, fontSize: 17, fontWeight: 700, marginTop: 2 }} />
           <div style={{ fontSize: 10, color: pctUSA >= 0 ? "#86efac" : "#fca5a5", marginTop: 1 }}>
             {pctUSA >= 0 ? "↗" : "↘"} {fmtN(pctUSA, 2)}% <span style={{ color: "rgba(255,255,255,0.55)" }}>rentab.</span>
           </div>
@@ -203,14 +323,15 @@ function KpiHero({ valorBR, pctBR, valorUSA, pctUSA, hidden, fmtUSD }) {
   );
 }
 
-function Kpi({ label, valor, sub, variation, icon: Icon, cor, extra }) {
+function Kpi({ label, value, format = (n) => String(n), hidden, sub, variation, icon: Icon, cor, extra }) {
   const num = typeof variation === "number" ? variation : null;
   const varStr = num != null ? (num >= 0 ? "↗ +" : "↘ ") + fmtN(num, 2) + "%" : null;
   const positive = num != null && num >= 0;
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, minHeight: 110, position: "relative", boxShadow: CARD_SHADOW }}>
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, minHeight: 110, position: "relative", boxShadow: CARD_SHADOW }}>
       <div style={{ fontSize: 11, color: T.muted }}>{label}</div>
-      <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 6, color: T.ink }}>{valor}</div>
+      <AnimatedNumber value={value} format={format} hidden={hidden}
+        className="num" style={{ display: "block", fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 6, color: T.ink }} />
       {varStr && <div style={{ fontSize: 11, color: positive ? T.green : T.red, marginTop: 4 }}>{varStr}</div>}
       {sub && <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{sub}</div>}
       {extra && (
@@ -255,7 +376,7 @@ function DonutBloco({ titulo, data, total, fmtMoeda, hidden }) {
 function AlocacaoCard({ dataBR = [], totalBR = 0, dataUSA = [], totalUSA = 0, hidden, fmtUSD }) {
   const semNada = dataBR.length === 0 && dataUSA.length === 0;
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
       <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Alocação por Classe</div>
       {semNada ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos cadastrados.</div>
@@ -275,7 +396,7 @@ function AlocacaoCard({ dataBR = [], totalBR = 0, dataUSA = [], totalUSA = 0, hi
 
 function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Top 5 Ativos</div>
         <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver carteira</button>
@@ -341,7 +462,7 @@ function ValorPorClasseCard({ dataBR = [], dataUSA = [], hidden, fmtUSD }) {
     </div>
   );
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
       <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Valor por Classe</div>
       {semNada ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos.</div>
@@ -363,7 +484,7 @@ function ProventosMesesCard({ data, hidden }) {
   const total = data.reduce((s,d) => s+d.total, 0);
   const ehVazio = total === 0;
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Proventos · 12 meses</div>
         <div className="num" style={{ fontSize: 12, color: T.green }}>{hidden ? "•••" : fmt(total)}</div>
@@ -392,7 +513,7 @@ function GainersLosersCard({ topGain, topLoss, hidden, onAnalisar }) {
   const altas = (topGain || []).filter(x => x.pct > 0);
   const baixas = (topLoss || []).filter(x => x.pct < 0);
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
       <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Maiores Variações</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
@@ -428,7 +549,7 @@ function GainersLosersCard({ topGain, topLoss, hidden, onAnalisar }) {
 
 function AtalhoCard({ label, sub, icon: Icon, cor, onClick }) {
   return (
-    <button onClick={onClick}
+    <button onClick={onClick} className="ip-card ip-atalho"
             style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 14, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
       <div style={{ width: 40, height: 40, borderRadius: 14, background: `${cor}22`, display: "grid", placeItems: "center", flexShrink: 0 }}>
         <Icon size={20} style={{ color: cor }} />

@@ -964,6 +964,7 @@ export default function App() {
         <InvestPainel ativos={ativos} transacoes={transacoes} categorias={categorias} hidden={hidden}
                       apiKeys={apiKeys}
                       proventosRecebidos={proventosRecebidos}
+                      onRefresh={refreshMarket} refreshing={refreshing}
                       onTabChange={irParaTab}
                       onAbrirAnaliseCarteira={() => { setAnaliseViewInicial("carteira-analise"); setTab("analises"); }}
                       onAbrirAnaliseIdv={() => { setAnaliseViewInicial("idv"); setTab("analises"); }}
