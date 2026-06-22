@@ -189,7 +189,7 @@ export default function InvestPainel({
       <section className="ip-bot-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <ValorPorClasseCard dataBR={alocacaoBR} dataUSA={alocacaoUSA} hidden={hidden} fmtUSD={fmtUSD} />
+        <ClassesExpansiveisCard ativos={ativos} hidden={hidden} onAnalisar={onAnalisar} fmtUSD={fmtUSD} />
         <GainersLosersCard topGain={topGain} topLoss={topLoss} hidden={hidden} onAnalisar={onAnalisar} />
       </section>
 
@@ -578,39 +578,74 @@ function SinaisCTA({ onClick }) {
   );
 }
 
-function ValorPorClasseCard({ dataBR = [], dataUSA = [], hidden, fmtUSD }) {
-  const semNada = dataBR.length === 0 && dataUSA.length === 0;
-  const secao = (titulo, data, fmtMoeda) => data.length === 0 ? null : (
-    <div>
-      <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginBottom: 8 }}>{titulo}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {data.map((d,i) => (
-          <div key={i}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
-              <span style={{ color: T.ink, fontWeight: 600 }}>{d.label}</span>
-              <span className="num" style={{ color: T.muted }}>{hidden ? "•••" : fmtMoeda(d.valor)} · {fmtN(d.pct, 1)}%</span>
-            </div>
-            <div style={{ height: 6, background: T.border, borderRadius: 3, overflow: "hidden" }}>
-              <div style={{ width: `${d.pct}%`, height: "100%", background: d.cor }} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+// Lista expansível por classe de ativo: cada classe mostra nº de ativos e valor
+// total; clicar abre/fecha a lista dos ativos daquela classe (drill-down).
+// Substitui o antigo "Valor por Classe" (estático) por uma visão navegável.
+function ClassesExpansiveisCard({ ativos = [], hidden, onAnalisar, fmtUSD }) {
+  const US = new Set(["stock", "reit"]);
+  const grupos = useMemo(() => {
+    const m = new Map();
+    (ativos || []).forEach(a => {
+      const tipo = a?.tipo || "outro";
+      if (!m.has(tipo)) m.set(tipo, []);
+      const r = calcRentabilidadeAtivo(a);
+      m.get(tipo).push({ ativo: a, valor: r.valor, rentab: r.pctGanho });
+    });
+    return [...m.entries()]
+      .map(([tipo, items]) => ({
+        tipo,
+        label: ASSET_CLASS_LABELS[tipo] || tipo,
+        cor: ASSET_CLASS_COLORS[tipo] || T.gold,
+        moedaUS: US.has(tipo),
+        items: items.sort((a, b) => b.valor - a.valor),
+        total: items.reduce((s, x) => s + (Number(x.valor) || 0), 0),
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [ativos]);
+
+  // Por padrão, a classe de maior valor já vem aberta.
+  const [abertas, setAbertas] = useState(() => new Set(grupos[0] ? [grupos[0].tipo] : []));
+  const toggle = (tipo) => setAbertas(prev => {
+    const n = new Set(prev);
+    n.has(tipo) ? n.delete(tipo) : n.add(tipo);
+    return n;
+  });
+  const moeda = (us, v) => us ? fmtUSD(v) : fmt(v);
+
   return (
     <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
-      <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Valor por Classe</div>
-      {semNada ? (
+      <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Classes da Carteira</div>
+      {grupos.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos.</div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {secao("🇧🇷 Brasil · R$", dataBR, fmt)}
-          {dataUSA.length > 0 && (
-            <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 12 }}>
-              {secao("🇺🇸 EUA · US$", dataUSA, fmtUSD)}
-            </div>
-          )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {grupos.map(g => {
+            const aberta = abertas.has(g.tipo);
+            return (
+              <div key={g.tipo} style={{ border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+                <button onClick={() => toggle(g.tipo)} aria-expanded={aberta}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 11px", background: aberta ? T.bgSoft : "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
+                  <span style={{ color: aberta ? T.gold : T.muted, fontSize: 11, width: 12, flexShrink: 0, transition: "transform .15s ease", transform: aberta ? "rotate(0deg)" : "rotate(0deg)" }}>{aberta ? "▾" : "▸"}</span>
+                  <span style={{ width: 9, height: 9, borderRadius: 3, background: g.cor, flexShrink: 0 }} />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.label}</span>
+                  <span style={{ fontSize: 10.5, color: T.muted, flexShrink: 0 }}>{g.items.length} {g.items.length === 1 ? "ativo" : "ativos"}</span>
+                  <span className="num" style={{ fontSize: 12.5, fontWeight: 700, color: T.gold, flexShrink: 0, minWidth: 64, textAlign: "right" }}>{hidden ? "•••" : moeda(g.moedaUS, g.total)}</span>
+                </button>
+                {aberta && (
+                  <div style={{ padding: "2px 11px 8px", borderTop: `1px dashed ${T.border}` }}>
+                    {g.items.map(({ ativo, valor, rentab }) => (
+                      <button key={ativo.id} onClick={() => onAnalisar?.(ativo)}
+                        style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "6px 0 6px 20px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: T.ink, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ativo.ticker}</span>
+                        <span className="num" style={{ fontSize: 11.5, color: T.ink, whiteSpace: "nowrap" }}>{hidden ? "•••" : moeda(g.moedaUS, valor)}</span>
+                        <span className="num" style={{ fontSize: 10.5, width: 52, textAlign: "right", color: rentab >= 0 ? T.green : T.red }}>{rentab >= 0 ? "+" : ""}{fmtN(rentab, 1)}%</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
