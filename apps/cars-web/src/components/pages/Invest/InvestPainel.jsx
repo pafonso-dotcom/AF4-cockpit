@@ -102,19 +102,19 @@ export default function InvestPainel({
 
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
-      {/* Header — título à esquerda, índices (Ibovespa, S&P, Nasdaq, Dólar, Euro) no topo direito */}
-      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
-        <div style={{ flexShrink: 0 }}>
-          <div style={{ fontSize: 10.5, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, fontWeight: 500 }}>
-            Investimentos · Painel
-          </div>
-          <h1 style={{ fontFamily: T.serif, fontSize: 28, fontWeight: 600, color: T.ink, margin: "4px 0 0 0" }}>
-            Sua carteira, <em style={{ color: T.gold }}>com clareza.</em>
-          </h1>
+      {/* Header — título à esquerda */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 10.5, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, fontWeight: 500 }}>
+          Investimentos · Painel
         </div>
-        <div style={{ flex: "1 1 360px", minWidth: 0, display: "flex", justifyContent: "flex-end" }}>
-          <IndicesGlobais apiKeys={apiKeys} />
-        </div>
+        <h1 style={{ fontFamily: T.serif, fontSize: 28, fontWeight: 600, color: T.ink, margin: "4px 0 0 0" }}>
+          Sua carteira, <em style={{ color: T.gold }}>com clareza.</em>
+        </h1>
+      </div>
+
+      {/* Índices de mercado — faixa própria de largura total (evita aperto) */}
+      <div style={{ marginBottom: 12 }}>
+        <IndicesGlobais apiKeys={apiKeys} />
       </div>
 
       {/* Ações rápidas — atualizar mercado e novo aporte */}
@@ -135,7 +135,7 @@ export default function InvestPainel({
 
       {/* KPIs — Alocação por Moeda + indicadores, tudo na mesma linha */}
       <section className="ip-kpi-grid" style={{
-        display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 12, marginBottom: 16, alignItems: "start",
       }}>
         <MoedaCard valorBR={t.valorBR} valorUSA={t.valorUSA} usdRate={usdRate} hidden={hidden} fmtUSD={fmtUSD} />
         <Kpi label="Custo Investido" value={t.custo} format={fmt} hidden={hidden} sub="Total aportado" icon={Wallet} cor={T.muted} />
