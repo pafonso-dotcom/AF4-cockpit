@@ -1222,7 +1222,8 @@ export default function AReceberEDividas({
                     <td>{item.descricao}</td>
                     <td><span style={{ fontSize: 10, color: T.muted, textTransform: "capitalize" }}>{item.fonte}</span></td>
                     <td><span style={{ fontSize: 11, color: T.muted }}>{item.categoria}</span></td>
-                    <td className="num" style={{ textAlign: "right", color: T.ink }}>{hidden ? "•••" : fmt(item.valor)}</td>
+                    <td className="num" style={{ textAlign: "right", color: T.green, textDecoration: "line-through", textDecorationColor: `${T.green}88` }}
+                        title="Já pago">{hidden ? "•••" : fmt(item.valor)}</td>
                     <td style={{ textAlign: "right" }}>
                       <button onClick={() => desfazerPagamento(item)}
                         title="Desfazer pagamento (volta para A Pagar para corrigir)"
