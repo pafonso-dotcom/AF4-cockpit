@@ -1184,6 +1184,8 @@ export default function App() {
         }}
         onQuickAction={handleQuickAction}
         pendingCounts={pendingCounts}
+        alertData={{ dividas, devedores, fixas, fixaOcorrencias, parcelamentos, cartoes, categorias, transacoes }}
+        onNavegar={(mod, t) => { setModulo(mod); irParaTab(t); }}
       />
 
       <KeyboardShortcuts
