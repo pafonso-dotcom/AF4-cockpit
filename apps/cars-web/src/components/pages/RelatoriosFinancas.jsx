@@ -197,10 +197,11 @@ export default function RelatoriosFinancas({
         const sub = (d.subcategoria || "").trim();
         const cat = sub ? `${base} › ${sub}` : base;
         const key = `${fonte}||${cat}`;
-        const r = map[key] || (map[key] = { fonte, cat, porMes: {}, total: 0 });
+        const r = map[key] || (map[key] = { fonte, cat, porMes: {}, pagoPorMes: {}, total: 0, pagoTotal: 0 });
         const v = Number(d.valor) || 0;
         r.porMes[m.iso] = (r.porMes[m.iso] || 0) + v;
         r.total += v;
+        if (d.status === "paga") { r.pagoPorMes[m.iso] = (r.pagoPorMes[m.iso] || 0) + v; r.pagoTotal += v; }
       });
     });
     const n = proximosMeses.length || 1;
@@ -225,10 +226,11 @@ export default function RelatoriosFinancas({
         const baseG = g.categoria || "Receita";
         const subG = (g.subcategoria || "").trim();
         const cat = subG ? `${baseG} › ${subG}` : baseG;
-        const r = recMap[cat] || (recMap[cat] = { cat, porMes: {}, total: 0 });
+        const r = recMap[cat] || (recMap[cat] = { cat, porMes: {}, pagoPorMes: {}, total: 0, pagoTotal: 0 });
         const v = Number(g.valor) || 0;
         r.porMes[m.iso] = (r.porMes[m.iso] || 0) + v;
         r.total += v;
+        if (g.status === "paga") { r.pagoPorMes[m.iso] = (r.pagoPorMes[m.iso] || 0) + v; r.pagoTotal += v; }
       });
     });
     const recRows = Object.values(recMap).filter(r => r.total > 0)
@@ -373,17 +375,24 @@ td.neg { color:#b3261e; }
                         {g.label}
                       </td>
                     </tr>
-                    {g.rows.map((r, idx) => (
+                    {g.rows.map((r, idx) => {
+                      const totQuit = r.total > 0 && (r.pagoTotal || 0) >= r.total - 0.005;
+                      return (
                       <tr key={r.cat}>
                         <td style={{ color: T.ink, fontWeight: idx === 0 ? 700 : 500, paddingLeft: 14 }}>{r.cat}</td>
-                        {proximosMeses.map(m => (
-                          <td key={m.iso} className="num" style={{ textAlign: "right", color: r.porMes[m.iso] ? T.muted : T.faint }}>
-                            {r.porMes[m.iso] ? (hidden ? "•••" : fmt(r.porMes[m.iso])) : "—"}
-                          </td>
-                        ))}
-                        <td className="num" style={{ textAlign: "right", color: T.ink, fontWeight: 700 }}>{hidden ? "•••" : fmt(r.total)}</td>
+                        {proximosMeses.map(m => {
+                          const val = r.porMes[m.iso];
+                          const quit = val > 0 && (r.pagoPorMes?.[m.iso] || 0) >= val - 0.005;
+                          return (
+                            <td key={m.iso} className="num" style={{ textAlign: "right", color: quit ? T.green : (val ? T.muted : T.faint), textDecoration: quit ? "line-through" : "none", textDecorationColor: quit ? `${T.green}99` : undefined }} title={quit ? "Já pago" : undefined}>
+                              {val ? (hidden ? "•••" : fmt(val)) : "—"}
+                            </td>
+                          );
+                        })}
+                        <td className="num" style={{ textAlign: "right", color: totQuit ? T.green : T.ink, fontWeight: 700, textDecoration: totQuit ? "line-through" : "none", textDecorationColor: totQuit ? `${T.green}99` : undefined }}>{hidden ? "•••" : fmt(r.total)}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                     <tr>
                       <td style={{ fontWeight: 600, color: T.muted, fontSize: 11.5, paddingLeft: 14, borderTop: `1px solid ${T.border}` }}>{g.label} · subtotal</td>
                       {g.subPorMes.map((v, i) => (
@@ -408,17 +417,24 @@ td.neg { color:#b3261e; }
                         A receber (entradas previstas)
                       </td>
                     </tr>
-                    {projecao.receber.rows.map((r, idx) => (
+                    {projecao.receber.rows.map((r, idx) => {
+                      const totQuit = r.total > 0 && (r.pagoTotal || 0) >= r.total - 0.005;
+                      return (
                       <tr key={r.cat}>
                         <td style={{ color: T.ink, fontWeight: idx === 0 ? 700 : 500, paddingLeft: 14 }}>{r.cat}</td>
-                        {proximosMeses.map(m => (
-                          <td key={m.iso} className="num" style={{ textAlign: "right", color: r.porMes[m.iso] ? T.muted : T.faint }}>
-                            {r.porMes[m.iso] ? (hidden ? "•••" : fmt(r.porMes[m.iso])) : "—"}
-                          </td>
-                        ))}
-                        <td className="num" style={{ textAlign: "right", color: T.ink, fontWeight: 700 }}>{hidden ? "•••" : fmt(r.total)}</td>
+                        {proximosMeses.map(m => {
+                          const val = r.porMes[m.iso];
+                          const quit = val > 0 && (r.pagoPorMes?.[m.iso] || 0) >= val - 0.005;
+                          return (
+                            <td key={m.iso} className="num" style={{ textAlign: "right", color: quit ? T.green : (val ? T.muted : T.faint), textDecoration: quit ? "line-through" : "none", textDecorationColor: quit ? `${T.green}99` : undefined }} title={quit ? "Já recebido" : undefined}>
+                              {val ? (hidden ? "•••" : fmt(val)) : "—"}
+                            </td>
+                          );
+                        })}
+                        <td className="num" style={{ textAlign: "right", color: totQuit ? T.green : T.ink, fontWeight: 700, textDecoration: totQuit ? "line-through" : "none", textDecorationColor: totQuit ? `${T.green}99` : undefined }}>{hidden ? "•••" : fmt(r.total)}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                     <tr>
                       <td style={{ fontWeight: 600, color: T.muted, fontSize: 11.5, paddingLeft: 14, borderTop: `1px solid ${T.border}` }}>A receber · subtotal</td>
                       {projecao.receber.subPorMes.map((v, i) => (

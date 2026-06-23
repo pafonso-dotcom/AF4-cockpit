@@ -292,6 +292,14 @@ function HeaderHorizontal({
         {/* UTILITY · sino + menu "⋯". Escondem só em RETRATO no celular; em
             paisagem (e desktop) aparecem normalmente. */}
         <div className="util-cluster" style={{ display: "inline-flex", gap: 8, alignItems: "center", position: "relative" }}>
+          {/* Busca rápida (Command Palette) — atalho ⌘K/Ctrl+K visível */}
+          <button onClick={() => onOpenPalette?.()}
+                  title="Busca rápida (⌘K / Ctrl+K)" aria-label="Busca rápida"
+                  className="hdr-util"
+                  style={{ ...utilBtn, width: "auto", padding: "0 10px", gap: 6, display: "inline-flex", alignItems: "center", background: NAV_SOFT, color: NAV_MUTED }}>
+            <Search size={16} />
+            <span className="header-brand-text" style={{ fontSize: 11, fontWeight: 600, letterSpacing: ".04em" }}>⌘K</span>
+          </button>
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={utilBtn} iconSize={18} />
           <button onClick={() => setMenuUtilAberto(v => !v)}
                   title="Mais ações" aria-label="Mais ações"
