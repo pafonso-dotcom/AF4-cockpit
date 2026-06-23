@@ -474,7 +474,7 @@ export default function AReceberEDividas({
         setDevedores(devedores.map(d => d.id === baixaForm.itemId
           ? { ...d, recebido: true, dataRecebimento: baixaForm.dataBaixa, contaRecebimento: baixaForm.contaDestino }
           : d));
-        toast.success(`Empréstimo de ${baixaForm.nome} quitado.${J > 0 ? ` Juros recebidos: ${fmt(J)}.` : ""}`);
+        toast.success(`Empréstimo de ${baixaForm.nome} quitado.${J > 0 ? ` Juros totais: ${fmt(J)}.` : ""}`);
       }
       setBaixaForm(null);
       return;
