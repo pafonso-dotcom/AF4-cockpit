@@ -7,7 +7,7 @@ import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
 import { calcSaldoConta, reconciliarContas } from "../../lib/saldoConta.js";
 import { filtrarPorEscopo, detectarEscopoConta } from "../../lib/escopo.js";
-import { somaContasBRL, semCotacao, buscarCotacao } from "../../lib/cambio.js";
+import { somaContasBRL, semCotacao, buscarCotacao, saldoContaBRL } from "../../lib/cambio.js";
 import Field from "../ui/Field.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
 import Modal from "../ui/Modal.jsx";
@@ -128,6 +128,10 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
   // Total em R$ — contas do exterior convertidas pela cotação de cada uma.
   const total = somaContasBRL(contas);
   const contasSemCotacao = contas.filter(semCotacao);
+  // Composição do total: quanto é Pessoal vs Negócio (ambos entram no total;
+  // "fora do patrimônio" NÃO entra — mostrado à parte).
+  const totalPessoal = somaContasBRL((contas || []).filter(c => !ehNegocio(c)));
+  const totalForaPatrimonio = (contas || []).filter(c => c?.foraPatrimonio).reduce((s, c) => s + saldoContaBRL(c), 0);
 
   // Detecta contas dessincronizadas (saldo armazenado != saldo calculado por transações)
   const dessincronizadas = useMemo(() => {
@@ -214,7 +218,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     <div className="fade-up py-8">
       {/* Cabeçalho — botões à direita, na linha do título (quebram abaixo em telas estreitas) */}
       <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${T.border}`,
-                    display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
+                    display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flexShrink: 0 }}>
           <div className="label-eyebrow">Capítulo I</div>
           <h2 style={{ fontFamily: T.serif, fontSize: 26, color: T.ink, marginTop: 4, lineHeight: 1.05, letterSpacing: "-0.02em" }}>
@@ -224,7 +228,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             Cada conta é uma página do seu balanço.
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end" }}>
           {contas.length >= 2 && (
             <button onClick={() => setTransferOpen(true)}
                     style={{ ...btnSec, color: T.gold, borderColor: T.gold }}>
@@ -280,8 +284,8 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
       <div style={{
         marginBottom: 10, padding: "8px 12px",
         background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
-        display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
       }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
           <span style={{ fontSize: 9, letterSpacing: ".15em", color: T.muted, textTransform: "uppercase", fontWeight: 700 }}>
             Total
@@ -314,6 +318,27 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             ? <><Eye size={10} /> Mostrar zeradas</>
             : <><EyeOff size={10} /> Ocultar zeradas</>}
         </button>
+        </div>
+        {/* Barra de composição do total: Pessoal vs Negócio (fora do patrimônio à parte) */}
+        {total > 0 && totalNegocio > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ display: "flex", height: 8, borderRadius: 999, overflow: "hidden", background: T.bgSoft }}>
+              <div style={{ width: `${(totalPessoal / total) * 100}%`, background: T.gold }} />
+              <div style={{ width: `${(totalNegocio / total) * 100}%`, background: T.blue }} />
+            </div>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 5, fontSize: 10, color: T.muted }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: T.gold }} /> Pessoal · {hidden ? "•••" : fmt(totalPessoal)}
+              </span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: T.blue }} /> Negócio · {hidden ? "•••" : fmt(totalNegocio)}
+              </span>
+              {totalForaPatrimonio > 0 && (
+                <span style={{ color: T.faint }}>Fora do patrimônio · {hidden ? "•••" : fmt(totalForaPatrimonio)} (não soma)</span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Lista de contas — aberta por padrão */}
@@ -326,6 +351,9 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
           return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
         };
+
+        // Bandeira da moeda (conta do exterior).
+        const bandeira = (m) => ({ USD: "🇺🇸", EUR: "🇪🇺", GBP: "🇬🇧", JPY: "🇯🇵", CHF: "🇨🇭", CAD: "🇨🇦", AUD: "🇦🇺", ARS: "🇦🇷" }[m] || "🌎");
 
         // Card de uma conta — mantém TODOS os handlers/ações originais.
         const renderConta = (c) => {
@@ -361,28 +389,39 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                 {iniciais(c.nome)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</span>
-                  {ehNegocio(c) && (
-                    <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", whiteSpace: "nowrap", flexShrink: 0 }}>
-                      Negócio
-                    </span>
-                  )}
-                  {c.foraPatrimonio && (
-                    <span style={{ fontSize: 7.5, padding: "1px 5px", borderRadius: 100, background: T.bgSoft, color: T.faint, fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase", whiteSpace: "nowrap", flexShrink: 0 }}>
-                      Fora do patrimônio
-                    </span>
+                <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, minWidth: 0 }}>
+                  {(() => {
+                    const neg = ehNegocio(c), fora = !!c.foraPatrimonio;
+                    if (!neg && !fora) return null;
+                    const label = neg && fora ? "Negócio · fora" : neg ? "Negócio" : "Fora do patrimônio";
+                    const st = neg
+                      ? { background: `${T.gold}22`, color: T.gold }
+                      : { background: T.bgSoft, color: T.faint };
+                    return (
+                      <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", whiteSpace: "nowrap", flexShrink: 0, ...st }}>
+                        {label}
+                      </span>
+                    );
+                  })()}
+                  {c.instituicao && (
+                    <span style={{ fontSize: 10, color: T.muted, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.instituicao}</span>
                   )}
                 </div>
-                {c.instituicao && (
-                  <div style={{ fontSize: 10, color: T.muted, fontStyle: "italic" }}>{c.instituicao}</div>
-                )}
               </div>
-              <div className="num" style={{
-                fontFamily: T.serif, fontVariantNumeric: "tabular-nums",
-                fontSize: 15, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap",
-              }}>
-                {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flexShrink: 0 }}>
+                <div className="num" style={{
+                  fontFamily: T.serif, fontVariantNumeric: "tabular-nums",
+                  fontSize: 15, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap",
+                }}>
+                  {!ehBRL(c) && <span style={{ fontSize: 12, marginRight: 3 }} aria-hidden="true">{bandeira(c.moeda)}</span>}
+                  {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
+                </div>
+                {!ehBRL(c) && (
+                  <div className="num" style={{ fontSize: 9.5, color: Number(c.cotacao) > 0 ? T.faint : T.gold, whiteSpace: "nowrap" }}>
+                    {Number(c.cotacao) > 0 ? `≈ ${hidden ? "•••" : fmt(saldoContaBRL(c))}` : "sem cotação"}
+                  </div>
+                )}
               </div>
               <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
                       aria-label={exp ? "Recolher" : "Mais ações"}
