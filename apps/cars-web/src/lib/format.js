@@ -13,6 +13,9 @@ export const fmtN = (v, d = 2) =>
 
 export const fmtP = (v) => `${v >= 0 ? "+" : ""}${fmtN(v, 2)}%`;
 
+export const fmtUSD = (v) =>
+  "US$ " + (Number(v) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export const uid = () =>
   Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 

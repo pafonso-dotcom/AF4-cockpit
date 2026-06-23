@@ -2,8 +2,8 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, BarChart3, DollarSign, Award, RefreshCw, Plus } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../../lib/theme.js";
-import { fmt, fmtN } from "../../../lib/format.js";
-import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS } from "../../../lib/invest-constants.js";
+import { fmt, fmtN, fmtUSD } from "../../../lib/format.js";
+import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, ehUS } from "../../../lib/invest-constants.js";
 import { calcAlocacaoPorClasse, calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
 import { buscarCotacao } from "../../../lib/cambio.js";
 import { CARD_SHADOW } from "../../../lib/styles.js";
@@ -20,13 +20,12 @@ export default function InvestPainel({
   // ===== Totais (custo, valor, resultado, %) — separados BR (R$) e USA (US$) =====
   // Ativos US (Stocks/REITs) têm preço em DÓLAR, então NÃO entram na soma em R$.
   const t = useMemo(() => {
-    const US = new Set(["stock", "reit"]);
     let custoBR = 0, valorBR = 0, custoUSA = 0, valorUSA = 0;
     ativos.forEach(a => {
       const qtd = Number(a.qtd || 0);
       const c = qtd * Number(a.pm ?? a.precoMedio ?? 0);
       const v = qtd * Number(a.preco || 0);
-      if (US.has(a.tipo)) { custoUSA += c; valorUSA += v; }
+      if (ehUS(a)) { custoUSA += c; valorUSA += v; }
       else { custoBR += c; valorBR += v; }
     });
     const custo = custoBR + custoUSA, valor = valorBR + valorUSA; // legado (não exibido)
@@ -36,9 +35,6 @@ export default function InvestPainel({
     const pctUSA = custoUSA > 0 ? ((valorUSA - custoUSA) / custoUSA) * 100 : 0;
     return { custo, valor, resultado, pct, valorBR, custoBR, pctBR, valorUSA, custoUSA, pctUSA };
   }, [ativos]);
-
-  // Formata em dólar (US$ 1,234.56)
-  const fmtUSD = (v) => "US$ " + (Number(v) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   // ===== Cotação do dólar ao vivo (R$ por 1 US$) =====
   // Usada para mostrar o saldo dos ativos em dólar convertido em real, abaixo

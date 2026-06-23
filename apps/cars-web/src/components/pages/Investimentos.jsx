@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart, Calculator, Printer } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
-import { fmt, fmtN, fmtP, uid, generateHistory, todayISO } from "../../lib/format.js";
+import { fmt, fmtN, fmtP, fmtUSD, uid, generateHistory, todayISO } from "../../lib/format.js";
+import { ehUS, fmtMoedaAtivo, TIPOS_ANALISAVEIS } from "../../lib/invest-constants.js";
 import { API, COIN_MAP } from "../../lib/api.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
@@ -12,14 +13,6 @@ import StatCard from "../ui/StatCard.jsx";
 import Modal from "../ui/Modal.jsx";
 import PdfCarteira from "./Invest/PdfCarteira.jsx";
 import CarteiraSaude from "./Invest/CarteiraSaude.jsx";
-
-const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
-
-// Ativos US (Stocks/REITs) têm preço em DÓLAR — exibidos e somados em US$, à parte.
-const US_TIPOS = new Set(["stock", "reit"]);
-const ehUS = (a) => US_TIPOS.has(a?.tipo);
-const fmtUSD = (v) => "US$ " + (Number(v) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtMoedaAtivo = (a, v) => ehUS(a) ? fmtUSD(v) : fmt(v);
 
 // Segmentos/setores sugeridos por tipo de ativo (B3 + padrões de mercado).
 // "Outros" libera input livre de texto.

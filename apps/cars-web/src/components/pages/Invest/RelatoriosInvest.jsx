@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { T } from "../../../lib/theme.js";
-import { fmt } from "../../../lib/format.js";
+import { fmt, fmtUSD } from "../../../lib/format.js";
 import { BarChart, HorizontalBarList, ReportCard, ReportGrid } from "../../ui/Charts.jsx";
-import { PROVENTO_REGEX } from "../../../lib/invest-constants.js";
+import { PROVENTO_REGEX, ehUS, fmtMoedaAtivo } from "../../../lib/invest-constants.js";
 import PdfCarteira from "./PdfCarteira.jsx";
 import { MESES_CURTO as MESES_PT } from "../../../lib/meses.js";
 
@@ -27,12 +27,6 @@ const ehProvento = (tx) =>
   tx?.tipo === "receita"
   && (PROVENTO_REGEX.test(tx.categoria || "") || PROVENTO_REGEX.test(tx.descricao || ""))
   && !NAO_PROVENTO.test(tx.descricao || "");
-
-// Ativos US (Stocks/REITs) têm preço em DÓLAR — somados/exibidos em US$ à parte.
-const US_TIPOS = new Set(["stock", "reit"]);
-const ehUS = (a) => US_TIPOS.has(a?.tipo);
-const fmtUSD = (v) => "US$ " + (Number(v) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtMoedaAtivo = (a, v) => ehUS(a) ? fmtUSD(v) : fmt(v);
 
 /**
  * Relatórios de Investimentos.
