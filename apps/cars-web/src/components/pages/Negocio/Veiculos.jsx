@@ -1,9 +1,37 @@
 import React, { useMemo, useState } from "react";
-import { Plus, Trash2, Edit3, Check, Car, Package, DollarSign, ChevronDown, ChevronRight, TrendingUp } from "lucide-react";
+import { Plus, Trash2, Edit3, Check, Car, Package, DollarSign, ChevronDown, ChevronRight, TrendingUp, Search } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { KpiInline as Kpi } from "../../ui/KpiCard.jsx";
 import { fmt, uid, todayISO } from "../../../lib/format.js";
+import { API } from "../../../lib/api.js";
 import { toast } from "../../../lib/toast.js";
+
+/**
+ * Extrai marca/modelo/ano/cor de uma resposta de consulta de placa, de forma
+ * tolerante: achata o objeto (até 3 níveis) e procura por nomes de campo
+ * comuns (PT/EN). Funciona com formatos diferentes de API sem mapeamento fixo.
+ */
+function mapearPlaca(data) {
+  const flat = {};
+  const walk = (o, depth) => {
+    if (!o || typeof o !== "object" || depth > 3) return;
+    for (const [k, v] of Object.entries(o)) {
+      if (v && typeof v === "object") walk(v, depth + 1);
+      else if (flat[k.toLowerCase()] == null) flat[k.toLowerCase()] = v;
+    }
+  };
+  walk(data, 0);
+  const pick = (...keys) => {
+    for (const k of keys) { const v = flat[k]; if (v != null && String(v).trim() !== "") return String(v).trim(); }
+    return "";
+  };
+  return {
+    marca: pick("marca", "fabricante", "marcamodelo", "marca_modelo", "brand"),
+    modelo: pick("modelo", "submodelo", "versao", "model"),
+    ano: pick("anomodelo", "ano_modelo", "ano", "anofabricacao", "ano_fabricacao", "year"),
+    cor: pick("cor", "corveiculo", "cor_veiculo", "color"),
+  };
+}
 import { confirm } from "../../../lib/confirm.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import Field from "../../ui/Field.jsx";
@@ -41,6 +69,7 @@ export default function Veiculos({
   hidden,
 }) {
   const [form, setForm] = useState(null);       // novo/edita veículo
+  const [buscandoPlaca, setBuscandoPlaca] = useState(false);
   const [custoForm, setCustoForm] = useState(null); // novo custo extra
   const [vendaForm, setVendaForm] = useState(null);
   const [filter, setFilter] = useState("estoque"); // estoque | vendidos | todos
@@ -100,6 +129,33 @@ export default function Veiculos({
     custoEntrada: String(v.custoEntrada ?? ""),
     ano: String(v.ano ?? ""),
   });
+
+  // Consulta a placa (via Worker /api/placa → APIBrasil) e autopreenche
+  // marca/modelo/ano/cor no formulário.
+  const buscarPlaca = async () => {
+    const placa = (form?.placa || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (placa.length < 7) { toast.error("Digite a placa completa (ex.: ABC1D23)."); return; }
+    setBuscandoPlaca(true);
+    try {
+      const data = await API.consultarPlaca(placa);
+      const m = mapearPlaca(data);
+      if (!m.marca && !m.modelo && !m.ano && !m.cor) {
+        toast.info("Consulta feita, mas não reconheci os campos — preencha manualmente.");
+      } else {
+        setForm(f => ({
+          ...f,
+          marca: m.marca || f.marca,
+          modelo: m.modelo || f.modelo,
+          ano: m.ano ? String(parseInt(m.ano, 10) || m.ano) : f.ano,
+          cor: m.cor || f.cor,
+        }));
+        toast.success("Dados da placa preenchidos.");
+      }
+    } catch (e) {
+      toast.error("Falha na consulta: " + (e.message || "erro"));
+    }
+    setBuscandoPlaca(false);
+  };
 
   const salvar = () => {
     const placa = (form.placa || "").trim().toUpperCase();
@@ -354,8 +410,18 @@ export default function Veiculos({
         <Modal title={form.id ? "Editar veículo" : "Novo veículo"} onClose={() => setForm(null)}>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label="Placa">
-              <input value={form.placa} onChange={e => setForm({ ...form, placa: e.target.value })}
-                     placeholder="ABC1D23" autoFocus />
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={form.placa} onChange={e => setForm({ ...form, placa: e.target.value })}
+                       onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); buscarPlaca(); } }}
+                       placeholder="ABC1D23" autoFocus style={{ flex: 1, minWidth: 0 }} />
+                <button type="button" onClick={buscarPlaca} disabled={buscandoPlaca}
+                        title="Buscar dados pela placa"
+                        style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, padding: "0 12px",
+                                 background: T.gold, color: T.dark ? "#1a1a1a" : "#fff", border: "none", borderRadius: 8,
+                                 fontSize: 11, fontWeight: 600, cursor: buscandoPlaca ? "wait" : "pointer", whiteSpace: "nowrap" }}>
+                  <Search size={13} />{buscandoPlaca ? "…" : "Buscar"}
+                </button>
+              </div>
             </Field>
             <Field label="Marca">
               <input value={form.marca} onChange={e => setForm({ ...form, marca: e.target.value })}

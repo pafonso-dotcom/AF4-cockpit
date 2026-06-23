@@ -71,6 +71,38 @@ export default {
       }
     }
 
+    // Consulta de placa via APIBrasil (proxy server-side — tokens ficam no
+    // Worker, sem CORS, sem expor credenciais no front).
+    // Secrets/vars do Worker:
+    //  - APIBRASIL_BEARER       : token Bearer da conta APIBrasil
+    //  - APIBRASIL_DEVICE_TOKEN : DeviceToken do device "Consulta Veículos"
+    //  - PLACA_API_URL          : (opcional) override do endpoint; default abaixo.
+    if (url.pathname === "/api/placa") {
+      const placa = (url.searchParams.get("placa") || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (!placa) return json({ ok: false, error: "Informe a placa." }, 400);
+      if (!env.APIBRASIL_BEARER || !env.APIBRASIL_DEVICE_TOKEN) {
+        return json({ ok: false, error: "Consulta de placa não configurada no servidor (defina os secrets APIBRASIL_BEARER e APIBRASIL_DEVICE_TOKEN no Worker)." }, 501);
+      }
+      const alvo = env.PLACA_API_URL || "https://gateway.apibrasil.io/api/v2/consulta/veiculos/dados";
+      try {
+        const r = await fetch(alvo, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": `Bearer ${env.APIBRASIL_BEARER}`,
+            "DeviceToken": env.APIBRASIL_DEVICE_TOKEN,
+          },
+          body: JSON.stringify({ placa }),
+        });
+        const txt = await r.text();
+        let data; try { data = JSON.parse(txt); } catch { data = { raw: txt }; }
+        return json({ ok: r.ok, status: r.status, data }, r.ok ? 200 : 502);
+      } catch (e) {
+        return json({ ok: false, error: String(e && e.message || e) }, 502);
+      }
+    }
+
     // Endpoints /api/* antigos (state/keys) foram removidos — sync agora
     // é via GitHub Gist direto do cliente. Devolve 410 Gone pra qualquer
     // chamada residual.
