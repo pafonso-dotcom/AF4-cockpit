@@ -318,11 +318,17 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
 
       {/* Lista de contas — aberta por padrão */}
       <SecaoColapsavel idKey="contas-lista" titulo="Minhas contas" count={contasVisiveis.length} defaultAberto={true}>
-      {/* Grid denso · auto-fill 200px+ */}
-      <div style={{
-        display: "flex", flexDirection: "column", gap: 4,
-      }}>
-        {contasVisiveis.map(c => {
+      {(() => {
+        // Iniciais do nome (1–2 letras) pro avatar.
+        const iniciais = (nome) => {
+          const partes = String(nome || "").trim().split(/\s+/).filter(Boolean);
+          if (partes.length === 0) return "?";
+          if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+          return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+        };
+
+        // Card de uma conta — mantém TODOS os handlers/ações originais.
+        const renderConta = (c) => {
           const ativa = contaAtiva?.id === c.id;
           const exp = expandedConta.has(c.id);
           return (
@@ -344,7 +350,16 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                    padding: "10px 12px",
                    cursor: onContaClick ? "pointer" : "default",
                  }}>
-              <GripVertical size={15} style={{ color: T.faint, flexShrink: 0, opacity: 0.6 }} aria-hidden="true" />
+              <GripVertical size={13} style={{ color: T.faint, flexShrink: 0, opacity: 0.45 }} aria-hidden="true" />
+              {/* Avatar com inicial */}
+              <div aria-hidden="true" style={{
+                width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                background: c.cor || T.gold, color: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: T.sans, fontWeight: 700, fontSize: 13, letterSpacing: ".02em",
+              }}>
+                {iniciais(c.nome)}
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</span>
@@ -354,7 +369,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                     </span>
                   )}
                   {c.foraPatrimonio && (
-                    <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, background: T.bgSoft, color: T.muted, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", whiteSpace: "nowrap", flexShrink: 0 }}>
+                    <span style={{ fontSize: 7.5, padding: "1px 5px", borderRadius: 100, background: T.bgSoft, color: T.faint, fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase", whiteSpace: "nowrap", flexShrink: 0 }}>
                       Fora do patrimônio
                     </span>
                   )}
@@ -364,7 +379,8 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                 )}
               </div>
               <div className="num" style={{
-                fontFamily: T.serif, fontSize: 15, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap",
+                fontFamily: T.serif, fontVariantNumeric: "tabular-nums",
+                fontSize: 15, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap",
               }}>
                 {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
               </div>
@@ -461,8 +477,47 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             )}
           </div>
           );
-        })}
-      </div>
+        };
+
+        // Agrupa por escopo, preservando a ordem global de contasVisiveis.
+        const grupoPessoal = contasVisiveis.filter(c => !ehNegocio(c));
+        const grupoNegocio = contasVisiveis.filter(ehNegocio);
+        const grupos = [
+          { id: "pessoal", titulo: "Pessoal", contas: grupoPessoal },
+          { id: "negocio", titulo: "Negócio", contas: grupoNegocio },
+        ].filter(g => g.contas.length > 0);
+
+        const renderGrupo = (g) => (
+          <div key={g.id} style={{ marginBottom: 12 }}>
+            {/* Cabeçalho do grupo + subtotal */}
+            <div style={{
+              display: "flex", alignItems: "baseline", justifyContent: "space-between",
+              gap: 8, margin: "4px 2px 8px",
+            }}>
+              <span style={{ fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase", fontWeight: 700, color: T.muted }}>
+                {g.titulo}
+                <span style={{ color: T.faint, fontWeight: 600 }}> · {g.contas.length}</span>
+              </span>
+              <span className="num" style={{
+                fontFamily: T.serif, fontVariantNumeric: "tabular-nums",
+                fontSize: 12.5, color: T.muted, whiteSpace: "nowrap",
+              }}>
+                {hidden ? "•••" : fmt(somaContasBRL(g.contas))}
+              </span>
+            </div>
+            {/* Grid responsivo — 1 coluna no mobile */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: 10,
+            }}>
+              {g.contas.map(renderConta)}
+            </div>
+          </div>
+        );
+
+        return <div>{grupos.map(renderGrupo)}</div>;
+      })()}
       </SecaoColapsavel>
 
       {form && (
