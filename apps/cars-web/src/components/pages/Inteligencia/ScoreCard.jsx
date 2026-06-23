@@ -25,7 +25,7 @@ export default function ScoreCard({ score, hidden }) {
         {score.breakdown.map((b, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
             <span style={{ flex: 1, color: T.ink }}>{b.label}</span>
-            <span className="num" style={{ color: T.muted }}>{Math.round(b.pts)}/{b.max}</span>
+            <span className="num" style={{ color: T.muted }}>{hidden ? "•••" : `${Math.round(b.pts)}/${b.max}`}</span>
             <div style={{ width: 70, height: 4, borderRadius: 100, background: T.border, overflow: "hidden" }}>
               <div style={{ width: `${Math.max(0, Math.min(100, (b.pts / b.max) * 100))}%`, height: "100%",
                             background: b.pts / b.max >= 0.5 ? T.green : T.gold }} />

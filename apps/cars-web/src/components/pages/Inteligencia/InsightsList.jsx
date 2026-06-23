@@ -27,7 +27,7 @@ export default function InsightsList({ insights = [], onIr }) {
                 {ins.descricao && <div style={{ fontSize: 11, color: T.muted }}>{ins.descricao}</div>}
               </div>
               {alvo && onIr && (
-                <button onClick={() => onIr(alvo)} title="Ir para a tela"
+                <button type="button" onClick={() => onIr(alvo)} title="Ir para a tela"
                   style={{ background: "transparent", border: "none", color: T.gold, cursor: "pointer",
                            display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11 }}>
                   ir <ArrowRight size={12} />
