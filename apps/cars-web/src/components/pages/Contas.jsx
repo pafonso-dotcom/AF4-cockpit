@@ -218,7 +218,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     <div className="fade-up py-8">
       {/* Cabeçalho — botões à direita, na linha do título (quebram abaixo em telas estreitas) */}
       <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${T.border}`,
-                    display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
+                    display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flexShrink: 0 }}>
           <div className="label-eyebrow">Capítulo I</div>
           <h2 style={{ fontFamily: T.serif, fontSize: 26, color: T.ink, marginTop: 4, lineHeight: 1.05, letterSpacing: "-0.02em" }}>
@@ -228,7 +228,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             Cada conta é uma página do seu balanço.
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end" }}>
           {contas.length >= 2 && (
             <button onClick={() => setTransferOpen(true)}
                     style={{ ...btnSec, color: T.gold, borderColor: T.gold }}>
@@ -389,8 +389,8 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                 {iniciais(c.nome)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</span>
+                <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, minWidth: 0 }}>
                   {(() => {
                     const neg = ehNegocio(c), fora = !!c.foraPatrimonio;
                     if (!neg && !fora) return null;
@@ -404,10 +404,10 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                       </span>
                     );
                   })()}
+                  {c.instituicao && (
+                    <span style={{ fontSize: 10, color: T.muted, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.instituicao}</span>
+                  )}
                 </div>
-                {c.instituicao && (
-                  <div style={{ fontSize: 10, color: T.muted, fontStyle: "italic" }}>{c.instituicao}</div>
-                )}
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flexShrink: 0 }}>
                 <div className="num" style={{
