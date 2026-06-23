@@ -92,6 +92,7 @@ const InvestPainel = lz(() => import("./components/pages/Invest/InvestPainel.jsx
 const Proventos = lz(() => import("./components/pages/Invest/Proventos.jsx"));
 const RelatoriosInvest = lz(() => import("./components/pages/Invest/RelatoriosInvest.jsx"));
 const RelatoriosFinancas = lz(() => import("./components/pages/RelatoriosFinancas.jsx"));
+const Inteligencia = lz(() => import("./components/pages/Inteligencia.jsx"));
 const CartaoExtrato = lz(() => import("./components/pages/CartaoExtrato.jsx"));
 const ContaExtrato = lz(() => import("./components/pages/ContaExtrato.jsx"));
 const AuditLog = lz(() => import("./components/pages/AuditLog.jsx"));
@@ -830,6 +831,13 @@ export default function App() {
       {tab === "categorias" && (
         <Categorias categorias={categorias} setCategorias={setCategorias} transacoes={transacoes}
                     escopoAtivo={escopoAtivo} hidden={hidden} />
+      )}
+      {tab === "inteligencia" && (
+        <Inteligencia
+          transacoes={transacoes} contas={contas} ativos={ativos}
+          cartoes={cartoes} parcelamentos={parcelamentos} metas={metas}
+          escopoAtivo={escopoAtivo} hidden={hidden} onTabChange={setTab}
+        />
       )}
       {/* Rotas antigas (fixas, relatorios-anual, areceber) consolidadas em Planejamento — ver bloco unificado acima */}
       {tab === "analiseia" && (

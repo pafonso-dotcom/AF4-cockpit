@@ -13,7 +13,7 @@ import {
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
   BookOpen, Repeat, MoreHorizontal, RotateCw, LogOut,
-  Bell, Dumbbell,
+  Bell, Dumbbell, Brain,
 } from "lucide-react";
 
 /**
@@ -139,6 +139,7 @@ function HeaderHorizontal({
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "transacoes",   label: "Transações",   icon: Receipt },
       { id: "planejamento", label: "Centro de controle", icon: Target },
+      { id: "inteligencia", label: "Inteligência", icon: Brain },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
@@ -635,6 +636,7 @@ function HeaderVertical({
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "transacoes",   label: "Transações",   icon: Receipt },
       { id: "planejamento", label: "Centro de controle", icon: Target },
+      { id: "inteligencia", label: "Inteligência", icon: Brain },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },

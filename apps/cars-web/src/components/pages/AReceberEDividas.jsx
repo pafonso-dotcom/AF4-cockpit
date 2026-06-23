@@ -116,9 +116,13 @@ export default function AReceberEDividas({
       // vencimento/obs). NÃO mexe na conta — a saída original já aconteceu.
       if (form.emprestimo) {
         const principal = Number(form.valor) || 0;
-        const juros = Number(form.juros) || 0;
+        const jurosMensal = Number(form.jurosMensal) || 0;
+        const meses = Math.max(1, parseInt(form.meses, 10) || 1);
+        // Novo modelo: juros = mensal × meses. Fallback p/ empréstimo antigo
+        // (sem jurosMensal): preserva o total de juros já existente.
+        const juros = jurosMensal > 0 ? +(jurosMensal * meses).toFixed(2) : (Number(form.juros) || 0);
         setDevedores(devedores.map(d => d.id === form.id
-          ? { ...d, nome: form.nome.trim(), principal, juros,
+          ? { ...d, nome: form.nome.trim(), principal, jurosMensal, meses, juros,
               valor: +(principal + juros).toFixed(2),
               vencimento: form.vencimento || d.vencimento || "",
               escopo: form.escopo || d.escopo, obs: form.obs || "" }
@@ -203,7 +207,9 @@ export default function AReceberEDividas({
     // "a receber". O principal não é gasto; só os juros serão receita.
     if (form.emprestimo && form.tipo === "receber") {
       const principal = Number(form.valor) || 0;
-      const juros = Number(form.juros) || 0;
+      const jurosMensal = Number(form.jurosMensal) || 0;
+      const meses = Math.max(1, parseInt(form.meses, 10) || 1);
+      const juros = +(jurosMensal * meses).toFixed(2);
       if (principal <= 0) { toast.error("Valor emprestado inválido."); return; }
       const conta = contas.find(c => c.nome === form.contaOrigem);
       if (!conta) { toast.error("Selecione a conta de origem do empréstimo."); return; }
@@ -227,13 +233,13 @@ export default function AReceberEDividas({
       // 2) Cria o recebível do empréstimo (valor a receber = principal + juros).
       setDevedores([...devedores, {
         id: empId, tipo: "receber", nome: form.nome.trim(),
-        emprestimo: true, principal, juros,
+        emprestimo: true, principal, jurosMensal, meses, juros,
         valor: +(principal + juros).toFixed(2),
         contaOrigem: form.contaOrigem, dataEmprestimo: dataEmp,
         vencimento: form.vencimento || "", categoria: "Empréstimos", subcategoria: "",
         escopo: form.escopo || "pessoal", obs: form.obs || "", recebido: false,
       }]);
-      toast.success(`Empréstimo de ${fmt(principal)} a ${form.nome.trim()} registrado. Saiu de ${form.contaOrigem}${juros > 0 ? ` · a receber ${fmt(principal + juros)} (juros ${fmt(juros)})` : ""}.`);
+      toast.success(`Empréstimo de ${fmt(principal)} a ${form.nome.trim()} registrado. Saiu de ${form.contaOrigem}${juros > 0 ? ` · a receber ${fmt(principal + juros)} (juros ${fmt(jurosMensal)}/mês × ${meses})` : ""}.`);
       setForm(null);
       return;
     }
@@ -909,7 +915,8 @@ export default function AReceberEDividas({
 
   // Abre o formulário já em modo "empréstimo a terceiro" (sai da minha conta).
   const abrirNovoEmprestimo = () => setForm({
-    id: null, tipo: "receber", emprestimo: true, nome: "", valor: "", juros: "",
+    id: null, tipo: "receber", emprestimo: true, nome: "", valor: "",
+    jurosMensal: "", meses: "1", juros: "",
     contaOrigem: contas[0]?.nome || "", vencimento: "", dataEmprestimo: hoje,
     categoria: "Empréstimos", escopo: "pessoal", obs: "",
     parcela: "", parcelar: false, numParcelas: 1, modoValor: "total",
@@ -1419,18 +1426,32 @@ export default function AReceberEDividas({
                 <Field label="Valor emprestado (R$)" required hint="O principal — volta sem ser receita.">
                   <MoneyInput value={form.valor} onChange={v => setForm({ ...form, valor: v })} />
                 </Field>
-                <Field label="Juros cobrados (R$)" hint="Opcional. Só os juros entram como receita.">
-                  <MoneyInput value={form.juros} onChange={v => setForm({ ...form, juros: v })} />
+                <Field label="Juros por mês (R$)" hint="Opcional. Cobrado por mês; só os juros são receita.">
+                  <MoneyInput value={form.jurosMensal} onChange={v => setForm({ ...form, jurosMensal: v })} />
                 </Field>
               </div>
-              <Field label="Vencimento (previsão de devolução)">
-                <input type="date" value={form.vencimento}
-                       onChange={e => setForm({ ...form, vencimento: e.target.value })} />
-              </Field>
-              <div style={{ fontSize: 11.5, color: T.muted, marginTop: -4, marginBottom: 4 }}>
-                Total a receber: <strong style={{ color: T.ink }}>{fmt((Number(form.valor) || 0) + (Number(form.juros) || 0))}</strong>
-                {" "}(principal {fmt(Number(form.valor) || 0)}{(Number(form.juros) || 0) > 0 ? ` + juros ${fmt(Number(form.juros) || 0)}` : ""}).
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Nº de meses" required hint="Por quantos meses os juros incidem.">
+                  <input type="number" min="1" step="1" value={form.meses ?? "1"}
+                         onChange={e => setForm({ ...form, meses: e.target.value })} />
+                </Field>
+                <Field label="Vencimento (previsão de devolução)">
+                  <input type="date" value={form.vencimento}
+                         onChange={e => setForm({ ...form, vencimento: e.target.value })} />
+                </Field>
               </div>
+              {(() => {
+                const principal = Number(form.valor) || 0;
+                const jm = Number(form.jurosMensal) || 0;
+                const n = Math.max(1, parseInt(form.meses, 10) || 1);
+                const jurosTotal = +(jm * n).toFixed(2);
+                return (
+                  <div style={{ fontSize: 11.5, color: T.muted, marginTop: -4, marginBottom: 4 }}>
+                    Total a receber: <strong style={{ color: T.ink }}>{fmt(principal + jurosTotal)}</strong>
+                    {" "}(principal {fmt(principal)}{jurosTotal > 0 ? ` + juros ${fmt(jurosTotal)} = ${fmt(jm)}/mês × ${n}` : ""}).
+                  </div>
+                );
+              })()}
             </>
           ) : (
           <div className="grid grid-cols-2 gap-3">
@@ -2187,7 +2208,10 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
           </div>
           {temParcial && <div style={{ fontSize: 9, color: T.muted }}>falta · de {hidden ? "•••" : fmt(valorTotal)}</div>}
           {d.emprestimo && !temParcial && (Number(d.juros) || 0) > 0 && (
-            <div style={{ fontSize: 9, color: T.muted }}>princ. {hidden ? "•••" : fmt(d.principal)} + juros {hidden ? "•••" : fmt(d.juros)}</div>
+            <div style={{ fontSize: 9, color: T.muted }}>
+              princ. {hidden ? "•••" : fmt(d.principal)} + juros {hidden ? "•••" : fmt(d.juros)}
+              {!hidden && (Number(d.jurosMensal) || 0) > 0 ? ` (${fmt(d.jurosMensal)}/mês × ${d.meses || 1})` : ""}
+            </div>
           )}
         </div>
         <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
