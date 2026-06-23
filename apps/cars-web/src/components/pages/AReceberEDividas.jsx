@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from "react";
-import { Plus, Trash2, Edit3, Check, X, MessageCircle, MoreHorizontal } from "lucide-react";
+import { Plus, Trash2, Edit3, Check, X, MessageCircle, MoreHorizontal, RotateCcw } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { MESES_CURTO } from "../../lib/meses.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
@@ -37,6 +37,7 @@ export default function AReceberEDividas({
 }) {
   const [form, setForm] = useState(null);        // {tipo, ...} novo/editar
   const [baixaForm, setBaixaForm] = useState(null); // baixa de um item
+  const [verRecebForm, setVerRecebForm] = useState(null); // { devedorId } — ver/estornar recebimentos
 
   const hoje = todayISO();
   // "YYYY-MM" seguro de qualquer vencimento (string ISO, Date ou número).
@@ -211,23 +212,37 @@ export default function AReceberEDividas({
       const meses = Math.max(1, parseInt(form.meses, 10) || 1);
       const juros = +(jurosMensal * meses).toFixed(2);
       if (principal <= 0) { toast.error("Valor emprestado inválido."); return; }
-      const conta = contas.find(c => c.nome === form.contaOrigem);
-      if (!conta) { toast.error("Selecione a conta de origem do empréstimo."); return; }
-      if ((parseFloat(conta.saldo) || 0) < principal - 0.005) {
-        toast.error(`Saldo insuficiente em ${conta.nome} (${fmt(conta.saldo)}) para emprestar ${fmt(principal)}.`);
-        return;
+      // Origem: conta bancária OU "Carteira (dinheiro)". Em espécie, cria/usa
+      // uma conta tipo carteira e não bloqueia por saldo (caixa não é rastreado).
+      const emDinheiro = form.contaOrigem === "__carteira__";
+      let contasBase = contas;
+      let conta;
+      if (emDinheiro) {
+        conta = contas.find(c => c.tipo === "carteira" || c.nome === "Carteira");
+        if (!conta) {
+          conta = { id: uid(), nome: "Carteira", tipo: "carteira", saldo: 0,
+                    escopo: form.escopo || "pessoal", cor: T.gold };
+          contasBase = [...contas, conta];
+        }
+      } else {
+        conta = contas.find(c => c.nome === form.contaOrigem);
+        if (!conta) { toast.error("Selecione a conta de origem do empréstimo."); return; }
+        if ((parseFloat(conta.saldo) || 0) < principal - 0.005) {
+          toast.error(`Saldo insuficiente em ${conta.nome} (${fmt(conta.saldo)}) para emprestar ${fmt(principal)}.`);
+          return;
+        }
       }
       const empId = uid();
       const dataEmp = form.dataEmprestimo || todayISO();
-      // 1) Debita o principal e registra a saída (marcada: não conta como gasto).
-      setContas(contas.map(c => c.id === conta.id ? { ...c, saldo: (parseFloat(c.saldo) || 0) - principal } : c));
+      // 1) Debita o principal da origem (banco ou carteira) e registra a saída.
+      setContas(contasBase.map(c => c.id === conta.id ? { ...c, saldo: (parseFloat(c.saldo) || 0) - principal } : c));
       const saida = {
         id: uid(), tipo: "despesa", valor: principal,
         descricao: `Empréstimo a ${form.nome.trim()}`,
-        categoria: "Empréstimos", conta: form.contaOrigem, data: dataEmp,
+        categoria: "Empréstimos", conta: conta.nome, data: dataEmp,
         compensado: true, fixa: false,
         emprestimoId: empId, emprestimoSaida: true,
-        obs: form.obs || "Empréstimo concedido",
+        obs: form.obs || (emDinheiro ? "Empréstimo concedido (dinheiro)" : "Empréstimo concedido"),
       };
       setTransacoes([saida, ...transacoes]);
       // 2) Cria o recebível do empréstimo (valor a receber = principal + juros).
@@ -235,11 +250,11 @@ export default function AReceberEDividas({
         id: empId, tipo: "receber", nome: form.nome.trim(),
         emprestimo: true, principal, jurosMensal, meses, juros,
         valor: +(principal + juros).toFixed(2),
-        contaOrigem: form.contaOrigem, dataEmprestimo: dataEmp,
+        contaOrigem: conta.nome, emDinheiro, dataEmprestimo: dataEmp,
         vencimento: form.vencimento || "", categoria: "Empréstimos", subcategoria: "",
         escopo: form.escopo || "pessoal", obs: form.obs || "", recebido: false,
       }]);
-      toast.success(`Empréstimo de ${fmt(principal)} a ${form.nome.trim()} registrado. Saiu de ${form.contaOrigem}${juros > 0 ? ` · a receber ${fmt(principal + juros)} (juros ${fmt(jurosMensal)}/mês × ${meses})` : ""}.`);
+      toast.success(`Empréstimo de ${fmt(principal)} a ${form.nome.trim()} registrado. Saiu de ${conta.nome}${juros > 0 ? ` · a receber ${fmt(principal + juros)} (juros ${fmt(jurosMensal)}/mês × ${meses})` : ""}.`);
       setForm(null);
       return;
     }
@@ -409,6 +424,36 @@ export default function AReceberEDividas({
     });
   };
 
+  /* ===== Estornar um recebimento (parcial ou total) =====
+     Remove as transações ligadas, devolve o valor da conta de destino, reduz o
+     recebido e reabre o item (recebido → false). */
+  const estornarRecebimento = async (devedor, rec) => {
+    if (!devedor || !rec) return;
+    const ok = await confirm({
+      title: `Estornar recebimento de ${fmt(rec.valor)}?`,
+      body: `Desfaz este recebimento de ${devedor.nome}${rec.conta ? `, retirando ${fmt(rec.valor)} de ${rec.conta}` : ""} e reabre o saldo em aberto. Pode desfazer logo após.`,
+      danger: true, confirmLabel: "Estornar",
+    });
+    if (!ok) return;
+    const backupDev = devedores, backupTx = transacoes, backupContas = contas;
+    if (Array.isArray(rec.txIds) && rec.txIds.length) {
+      setTransacoes((transacoes || []).filter(t => !rec.txIds.includes(t.id)));
+    }
+    if (rec.conta) {
+      setContas((contas || []).map(c => c.nome === rec.conta
+        ? { ...c, saldo: (parseFloat(c.saldo) || 0) - (Number(rec.valor) || 0) } : c));
+    }
+    setDevedores((devedores || []).map(d => {
+      if (d.id !== devedor.id) return d;
+      const recebimentos = (d.recebimentos || []).filter(r => r.id !== rec.id);
+      const valorRecebido = Math.max(0, +(((parseFloat(d.valorRecebido) || 0) - (Number(rec.valor) || 0))).toFixed(2));
+      return { ...d, recebimentos, valorRecebido, recebido: false, dataRecebimento: null, contaRecebimento: null };
+    }));
+    toast.success(`Recebimento de ${fmt(rec.valor)} estornado.`, {
+      action: { label: "Desfazer", onClick: () => { setDevedores(backupDev); setTransacoes(backupTx); setContas(backupContas); } },
+    });
+  };
+
   /* ===== Baixa: cria transação + atualiza conta + marca como recebido/pago ===== */
   const confirmarBaixa = () => {
     if (!baixaForm.contaDestino) { toast.error("Selecione a conta."); return; }
@@ -451,7 +496,7 @@ export default function AReceberEDividas({
       const txs = [];
       if (principalPortion > 0.005) txs.push({
         id: uid(), tipo: "receita", valor: principalPortion,
-        descricao: `Devolução de ${baixaForm.nome}`, categoria: "Empréstimos",
+        descricao: `Quitação de ${baixaForm.nome}`, categoria: "Empréstimo (devolução)",
         conta: baixaForm.contaDestino, data: baixaForm.dataBaixa,
         compensado: true, fixa: false, emprestimoId: empId, emprestimoRetorno: true,
         obs: baixaForm.obs || "Principal de empréstimo de volta",
@@ -463,25 +508,23 @@ export default function AReceberEDividas({
         compensado: true, fixa: false, emprestimoId: empId, emprestimoJuros: true,
         obs: baixaForm.obs || "Juros do empréstimo",
       });
+      const txIds = txs.map(t => t.id);
       if (txs.length) setTransacoes([...txs, ...transacoes]);
       setContas(contas.map(c => c.id === conta.id ? { ...c, saldo: (parseFloat(c.saldo) || 0) + valor } : c));
-      if (ehParcial && !quitaTudo) {
-        setDevedores(devedores.map(d => {
-          if (d.id !== baixaForm.itemId) return d;
-          const acumulado = +(((parseFloat(d.valorRecebido) || 0) + valor)).toFixed(2);
-          const recebimentos = [
-            ...(Array.isArray(d.recebimentos) ? d.recebimentos : []),
-            { id: uid(), valor, data: baixaForm.dataBaixa, conta: baixaForm.contaDestino, ts: Date.now() },
-          ];
-          return { ...d, valorRecebido: acumulado, recebimentos };
-        }));
-        toast.success(`Recebido ${fmt(valor)} de ${baixaForm.nome} (juros ${fmt(jurosPortion)}). Em aberto: ${fmt(saldoAberto - valor)}.`);
-      } else {
-        setDevedores(devedores.map(d => d.id === baixaForm.itemId
-          ? { ...d, recebido: true, dataRecebimento: baixaForm.dataBaixa, contaRecebimento: baixaForm.contaDestino }
-          : d));
-        toast.success(`Empréstimo de ${baixaForm.nome} quitado.${J > 0 ? ` Juros totais: ${fmt(J)}.` : ""}`);
-      }
+      // Registra o recebimento (parcial OU total) com os IDs das transações,
+      // para permitir VER e ESTORNAR depois.
+      const novoRec = { id: uid(), valor, data: baixaForm.dataBaixa, conta: baixaForm.contaDestino, ts: Date.now(), txIds, juros: jurosPortion };
+      setDevedores(devedores.map(d => {
+        if (d.id !== baixaForm.itemId) return d;
+        const acumulado = +(((parseFloat(d.valorRecebido) || 0) + valor)).toFixed(2);
+        const recebimentos = [...(Array.isArray(d.recebimentos) ? d.recebimentos : []), novoRec];
+        return (ehParcial && !quitaTudo)
+          ? { ...d, valorRecebido: acumulado, recebimentos }
+          : { ...d, recebido: true, dataRecebimento: baixaForm.dataBaixa, contaRecebimento: baixaForm.contaDestino, valorRecebido: acumulado, recebimentos };
+      }));
+      toast.success((ehParcial && !quitaTudo)
+        ? `Recebido ${fmt(valor)} de ${baixaForm.nome} (juros ${fmt(jurosPortion)}). Em aberto: ${fmt(saldoAberto - valor)}.`
+        : `Empréstimo de ${baixaForm.nome} quitado.${J > 0 ? ` Juros totais: ${fmt(J)}.` : ""}`);
       setBaixaForm(null);
       return;
     }
@@ -917,7 +960,7 @@ export default function AReceberEDividas({
   const abrirNovoEmprestimo = () => setForm({
     id: null, tipo: "receber", emprestimo: true, nome: "", valor: "",
     jurosMensal: "", meses: "1", juros: "",
-    contaOrigem: contas[0]?.nome || "", vencimento: "", dataEmprestimo: hoje,
+    contaOrigem: contas[0]?.nome || "__carteira__", vencimento: "", dataEmprestimo: hoje,
     categoria: "Empréstimos", escopo: "pessoal", obs: "",
     parcela: "", parcelar: false, numParcelas: 1, modoValor: "total",
   });
@@ -1276,6 +1319,7 @@ export default function AReceberEDividas({
                   onEditar={() => setForm({ ...d, tipo: "receber" })}
                   onExcluir={() => excluir(d, "receber")}
                   onWhats={() => whatsapp.cobrarDevedor(d)}
+                  onVerRecebimentos={() => setVerRecebForm({ devedorId: d.id })}
                 />
                   </React.Fragment>
                 );
@@ -1416,8 +1460,9 @@ export default function AReceberEDividas({
           {form.emprestimo ? (
             <>
               {!form.id && (
-                <Field label="Conta de origem (de onde sai o dinheiro)" required hint="O principal é debitado desta conta agora.">
+                <Field label="Conta de origem (de onde sai o dinheiro)" required hint="Banco ou dinheiro em espécie (Carteira).">
                   <select value={form.contaOrigem || ""} onChange={e => setForm({ ...form, contaOrigem: e.target.value })}>
+                    <option value="__carteira__">💵 Carteira (dinheiro)</option>
                     {(contas || []).map(c => <option key={c.id} value={c.nome}>{c.nome} · {fmt(c.saldo)}</option>)}
                   </select>
                 </Field>
@@ -1565,6 +1610,48 @@ export default function AReceberEDividas({
           </div>
         </Modal>
       )}
+
+      {/* Modal Ver / Estornar recebimentos */}
+      {verRecebForm && (() => {
+        const dev = (devedores || []).find(d => d.id === verRecebForm.devedorId);
+        if (!dev) return null;
+        const recs = Array.isArray(dev.recebimentos) ? dev.recebimentos : [];
+        const totalReceb = recs.reduce((s, r) => s + (Number(r.valor) || 0), 0);
+        return (
+          <Modal title={`Recebimentos · ${dev.nome}`} onClose={() => setVerRecebForm(null)}>
+            {recs.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: T.muted, fontStyle: "italic", padding: "8px 2px" }}>
+                Nenhum recebimento registrado ainda.
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 12, color: T.muted, marginBottom: 8 }}>
+                  Total recebido: <strong style={{ color: T.ink }}>{fmt(totalReceb)}</strong> em {recs.length} recebimento{recs.length > 1 ? "s" : ""}.
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {recs.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).map(r => (
+                    <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="num" style={{ fontSize: 13.5, fontWeight: 600, color: T.green }}>{fmt(r.valor)}</div>
+                        <div style={{ fontSize: 10.5, color: T.muted }}>
+                          {(r.data || "").split("-").reverse().join("/")}{r.conta ? ` · ${r.conta}` : ""}{(Number(r.juros) || 0) > 0 ? ` · juros ${fmt(r.juros)}` : ""}
+                        </div>
+                      </div>
+                      <button onClick={() => estornarRecebimento(dev, r)}
+                        style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600 }}>
+                        <RotateCcw size={12} /> Estornar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            <div className="flex gap-3 justify-end mt-4">
+              <button className="btn-ghost" onClick={() => setVerRecebForm(null)}>Fechar</button>
+            </div>
+          </Modal>
+        );
+      })()}
 
       {/* Modal Baixa */}
       {baixaForm && (() => {
@@ -2152,7 +2239,7 @@ function corDoNome(nome = "") {
   return `linear-gradient(135deg, hsl(${hue1}, 55%, 45%), hsl(${hue2}, 50%, 35%))`;
 }
 
-export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, dueLabel }) {
+export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, onVerRecebimentos, hidden, dueLabel }) {
   const due = dueLabel ? dueLabel(d.vencimento) : null;
   const isOver = due?.status === "over";
   const isWarn = due?.status === "warn";
@@ -2220,6 +2307,12 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, hidden, 
                      cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
             <Check size={12} /> Receber
           </button>
+          {(d.recebimentos?.length || 0) > 0 && onVerRecebimentos && (
+            <button onClick={() => onVerRecebimentos(d)} title="Ver / estornar recebimentos"
+              style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+              <RotateCcw size={13} />
+            </button>
+          )}
           <button onClick={() => onEditar(d)} title="Editar"
             style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
             <Edit3 size={13} />

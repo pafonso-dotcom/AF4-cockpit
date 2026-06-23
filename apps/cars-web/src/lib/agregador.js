@@ -188,17 +188,36 @@ export function getGanhosDoMes(mesISO, state = {}, escopo) {
 
   // 1. Devedores com recebimento no mês
   (state.devedores || []).forEach(d => {
-    // Empréstimo a terceiro: só os JUROS são receita (o principal é capital que
-    // volta, não renda). Quando recebido, os juros entram pela transação da baixa.
+    // Empréstimo a terceiro: juros por COMPETÊNCIA (jurosMensal em cada mês do
+    // período, a partir da data do empréstimo) + a QUITAÇÃO do principal (conta
+    // como receita no mês do recebimento). As transações da baixa são ignoradas
+    // na seção 2 — o ganho vem daqui, por competência.
     if (d.emprestimo) {
-      const juros = Number(d.juros) || 0;
-      if (juros <= 0 || d.recebido) return;
-      if (d.vencimento && d.vencimento.startsWith(mesISO)) {
+      const meses = Math.max(1, parseInt(d.meses, 10) || 1);
+      const jurosMensal = (Number(d.jurosMensal) || 0) > 0
+        ? Number(d.jurosMensal)
+        : +(((Number(d.juros) || 0) / meses)).toFixed(2); // fallback p/ empréstimos antigos
+      const baseISO = (d.dataEmprestimo || d.vencimento || "").slice(0, 7);
+      if (jurosMensal > 0 && baseISO) {
+        const [by, bm] = baseISO.split("-").map(Number);
+        const [my, mm] = mesISO.split("-").map(Number);
+        const offset = (my - by) * 12 + (mm - bm);
+        if (offset >= 0 && offset < meses) {
+          out.push({
+            id: `${d.id}::juros::${offset}`, fonte: "devedor", tipo: "ganho",
+            descricao: `Juros de ${d.nome} (${offset + 1}/${meses})`,
+            data: `${mesISO}-15`, valor: jurosMensal,
+            status: d.recebido ? "paga" : "pendente",
+            categoria: "Juros de empréstimo",
+          });
+        }
+      }
+      if (d.recebido && (d.dataRecebimento || "").startsWith(mesISO)) {
         out.push({
-          id: d.id, fonte: "devedor", tipo: "ganho",
-          descricao: `Juros a receber de ${d.nome}`,
-          data: d.vencimento, valor: juros,
-          status: "pendente", categoria: "Juros de empréstimo",
+          id: `${d.id}::quit`, fonte: "devedor", tipo: "ganho",
+          descricao: `Quitação de ${d.nome}`,
+          data: d.dataRecebimento, valor: Number(d.principal) || 0,
+          status: "paga", categoria: "Empréstimo (devolução)",
         });
       }
       return;
@@ -224,9 +243,9 @@ export function getGanhosDoMes(mesISO, state = {}, escopo) {
   // 2. Transações tipo "receita" do mês
   (state.transacoes || []).forEach(t => {
     if (t.tipo !== "receita") return;
-    // Empréstimo: a devolução do principal NÃO é renda (só os juros, que vêm
-    // numa transação própria sem esta marca).
-    if (t.emprestimoRetorno || t.emprestimoSaida) return;
+    // Empréstimo: juros e quitação entram por competência (seção 1, via devedor);
+    // as transações da baixa são só lançamento de caixa/extrato — não recontam.
+    if (t.emprestimoRetorno || t.emprestimoSaida || t.emprestimoJuros) return;
     if (!(t.data || "").startsWith(mesISO)) return;
     out.push({
       id: t.id, fonte: "transacao", tipo: "ganho",
