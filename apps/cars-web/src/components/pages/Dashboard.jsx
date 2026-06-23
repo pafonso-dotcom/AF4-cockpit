@@ -388,6 +388,7 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "2.5fr 1fr", gap: 12, marginBottom: 24,
       }}>
         <MetasCard metas={metas || []} hidden={hidden} onSeeAll={() => onTabChange?.("metas")} />
+        {principalInsight && <InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("inteligencia")} />}
         <PergunteIACard onClick={() => onTabChange?.("perguntar")} />
       </section>
 
