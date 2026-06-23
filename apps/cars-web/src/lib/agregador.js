@@ -155,6 +155,9 @@ export function getDespesasDoMes(mesISO, state = {}, escopo) {
     // A baixa do pagamento de fatura importada é só transferência (a despesa
     // são os itens importados) — não conta como despesa.
     if (t.origem === "fatura-pagamento") return;
+    // Empréstimo a terceiro: emprestar (saída) e a devolução do principal são
+    // movimento de capital — NÃO contam como gasto (o dinheiro virou "a receber").
+    if (t.emprestimoSaida || t.emprestimoRetorno) return;
     const status = t.compensado
       ? "paga"
       : (t.data < hoje ? "atrasada" : "pendente");
@@ -185,6 +188,21 @@ export function getGanhosDoMes(mesISO, state = {}, escopo) {
 
   // 1. Devedores com recebimento no mês
   (state.devedores || []).forEach(d => {
+    // Empréstimo a terceiro: só os JUROS são receita (o principal é capital que
+    // volta, não renda). Quando recebido, os juros entram pela transação da baixa.
+    if (d.emprestimo) {
+      const juros = Number(d.juros) || 0;
+      if (juros <= 0 || d.recebido) return;
+      if (d.vencimento && d.vencimento.startsWith(mesISO)) {
+        out.push({
+          id: d.id, fonte: "devedor", tipo: "ganho",
+          descricao: `Juros a receber de ${d.nome}`,
+          data: d.vencimento, valor: juros,
+          status: "pendente", categoria: "Juros de empréstimo",
+        });
+      }
+      return;
+    }
     if (d.recebido) {
       if (!(d.dataRecebimento || "").startsWith(mesISO)) return;
       out.push({
@@ -206,6 +224,9 @@ export function getGanhosDoMes(mesISO, state = {}, escopo) {
   // 2. Transações tipo "receita" do mês
   (state.transacoes || []).forEach(t => {
     if (t.tipo !== "receita") return;
+    // Empréstimo: a devolução do principal NÃO é renda (só os juros, que vêm
+    // numa transação própria sem esta marca).
+    if (t.emprestimoRetorno || t.emprestimoSaida) return;
     if (!(t.data || "").startsWith(mesISO)) return;
     out.push({
       id: t.id, fonte: "transacao", tipo: "ganho",
