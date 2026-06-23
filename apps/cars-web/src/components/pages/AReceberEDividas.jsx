@@ -446,8 +446,22 @@ export default function AReceberEDividas({
     setDevedores((devedores || []).map(d => {
       if (d.id !== devedor.id) return d;
       const recebimentos = (d.recebimentos || []).filter(r => r.id !== rec.id);
+      // Juros: só desmarca aquele mês (não reabre o principal).
+      if (rec.tipo === "juros") {
+        const jurosRecebidos = (d.jurosRecebidos || []).filter(m => m !== rec.mesJuros);
+        return { ...d, recebimentos, jurosRecebidos };
+      }
+      // Principal (ou recebimento legado): reabre o empréstimo e restaura o
+      // prazo original (caso a quitação tenha truncado os juros futuros).
       const valorRecebido = Math.max(0, +(((parseFloat(d.valorRecebido) || 0) - (Number(rec.valor) || 0))).toFixed(2));
-      return { ...d, recebimentos, valorRecebido, recebido: false, dataRecebimento: null, contaRecebimento: null };
+      const mesesRest = Math.max(1, parseInt(d.mesesOriginal ?? d.meses, 10) || 1);
+      const jm = Number(d.jurosMensal) || 0;
+      return {
+        ...d, recebimentos, valorRecebido,
+        recebido: false, principalRecebido: false, dataRecebimento: null, contaRecebimento: null,
+        meses: mesesRest, mesesOriginal: undefined,
+        ...(jm > 0 ? { juros: +(jm * mesesRest).toFixed(2), valor: +(((Number(d.principal) || 0) + jm * mesesRest)).toFixed(2) } : {}),
+      };
     }));
     toast.success(`Recebimento de ${fmt(rec.valor)} estornado.`, {
       action: { label: "Desfazer", onClick: () => { setDevedores(backupDev); setTransacoes(backupTx); setContas(backupContas); } },
@@ -487,44 +501,69 @@ export default function AReceberEDividas({
     // O dinheiro volta pra conta, mas o principal NÃO é renda (é capital que
     // volta) — só os juros contam como receita. Divide a baixa proporcionalmente.
     if (isReceber && baixaForm.emprestimo) {
-      const P = Number(baixaForm.principal) || 0;
-      const J = Number(baixaForm.juros) || 0;
-      const total = P + J;
-      const jurosPortion = total > 0 ? +((J * valor) / total).toFixed(2) : 0;
-      const principalPortion = +(valor - jurosPortion).toFixed(2);
       const empId = baixaForm.emprestimoId || baixaForm.itemId;
-      const txs = [];
-      if (principalPortion > 0.005) txs.push({
-        id: uid(), tipo: "receita", valor: principalPortion,
+      const modo = baixaForm.modoEmprestimo || "principal";
+
+      if (modo === "juros") {
+        // Recebe o juros de UM mês — não toca no principal.
+        const tx = {
+          id: uid(), tipo: "receita", valor,
+          descricao: `Juros de ${baixaForm.nome}${baixaForm.mesJurosLabel ? ` (${baixaForm.mesJurosLabel})` : ""}`,
+          categoria: "Juros de empréstimo", conta: baixaForm.contaDestino, data: baixaForm.dataBaixa,
+          compensado: true, fixa: false, emprestimoId: empId, emprestimoJuros: true,
+          obs: baixaForm.obs || "Juros do empréstimo",
+        };
+        setTransacoes([tx, ...transacoes]);
+        setContas(contas.map(c => c.id === conta.id ? { ...c, saldo: (parseFloat(c.saldo) || 0) + valor } : c));
+        const novoRec = { id: uid(), valor, data: baixaForm.dataBaixa, conta: baixaForm.contaDestino, ts: Date.now(), txIds: [tx.id], tipo: "juros", mesJuros: baixaForm.mesJuros };
+        setDevedores(devedores.map(d => {
+          if (d.id !== baixaForm.itemId) return d;
+          const jurosRecebidos = [...(Array.isArray(d.jurosRecebidos) ? d.jurosRecebidos : []), baixaForm.mesJuros].filter(Boolean);
+          const recebimentos = [...(Array.isArray(d.recebimentos) ? d.recebimentos : []), novoRec];
+          return { ...d, jurosRecebidos, recebimentos };
+        }));
+        toast.success(`Juros de ${fmt(valor)} recebido de ${baixaForm.nome}.`);
+        setBaixaForm(null);
+        return;
+      }
+
+      // modo principal → quitação (recebe o principal de volta)
+      const tx = {
+        id: uid(), tipo: "receita", valor,
         descricao: `Quitação de ${baixaForm.nome}`, categoria: "Empréstimo (devolução)",
         conta: baixaForm.contaDestino, data: baixaForm.dataBaixa,
         compensado: true, fixa: false, emprestimoId: empId, emprestimoRetorno: true,
         obs: baixaForm.obs || "Principal de empréstimo de volta",
-      });
-      if (jurosPortion > 0.005) txs.push({
-        id: uid(), tipo: "receita", valor: jurosPortion,
-        descricao: `Juros de ${baixaForm.nome}`, categoria: "Juros de empréstimo",
-        conta: baixaForm.contaDestino, data: baixaForm.dataBaixa,
-        compensado: true, fixa: false, emprestimoId: empId, emprestimoJuros: true,
-        obs: baixaForm.obs || "Juros do empréstimo",
-      });
-      const txIds = txs.map(t => t.id);
-      if (txs.length) setTransacoes([...txs, ...transacoes]);
+      };
+      setTransacoes([tx, ...transacoes]);
       setContas(contas.map(c => c.id === conta.id ? { ...c, saldo: (parseFloat(c.saldo) || 0) + valor } : c));
-      // Registra o recebimento (parcial OU total) com os IDs das transações,
-      // para permitir VER e ESTORNAR depois.
-      const novoRec = { id: uid(), valor, data: baixaForm.dataBaixa, conta: baixaForm.contaDestino, ts: Date.now(), txIds, juros: jurosPortion };
+      const novoRec = { id: uid(), valor, data: baixaForm.dataBaixa, conta: baixaForm.contaDestino, ts: Date.now(), txIds: [tx.id], tipo: "principal" };
+      let mesesTruncado = null;
       setDevedores(devedores.map(d => {
         if (d.id !== baixaForm.itemId) return d;
-        const acumulado = +(((parseFloat(d.valorRecebido) || 0) + valor)).toFixed(2);
-        const recebimentos = [...(Array.isArray(d.recebimentos) ? d.recebimentos : []), novoRec];
-        return (ehParcial && !quitaTudo)
-          ? { ...d, valorRecebido: acumulado, recebimentos }
-          : { ...d, recebido: true, dataRecebimento: baixaForm.dataBaixa, contaRecebimento: baixaForm.contaDestino, valorRecebido: acumulado, recebimentos };
+        // Quitação adiantada: cancela os juros dos meses APÓS a quitação
+        // (trunca o prazo até o mês do recebimento). Guarda o prazo original.
+        const baseISO = (d.dataEmprestimo || d.vencimento || baixaForm.dataBaixa || "").slice(0, 7);
+        const mesesOrig = Math.max(1, parseInt(d.mesesOriginal ?? d.meses, 10) || 1);
+        let mesesEfetivo = mesesOrig;
+        if (baseISO && baixaForm.dataBaixa) {
+          const [by, bm] = baseISO.split("-").map(Number);
+          const [py, pm] = baixaForm.dataBaixa.slice(0, 7).split("-").map(Number);
+          const offset = (py - by) * 12 + (pm - bm);
+          mesesEfetivo = Math.max(1, Math.min(mesesOrig, offset + 1));
+        }
+        mesesTruncado = mesesEfetivo < mesesOrig ? mesesEfetivo : null;
+        const jm = Number(d.jurosMensal) || 0;
+        const jurosTrunc = +(jm * mesesEfetivo).toFixed(2);
+        return {
+          ...d, recebido: true, principalRecebido: true,
+          mesesOriginal: d.mesesOriginal ?? d.meses, meses: mesesEfetivo,
+          ...(jm > 0 ? { juros: jurosTrunc, valor: +(((Number(d.principal) || 0) + jurosTrunc)).toFixed(2) } : {}),
+          dataRecebimento: baixaForm.dataBaixa, contaRecebimento: baixaForm.contaDestino,
+          recebimentos: [...(Array.isArray(d.recebimentos) ? d.recebimentos : []), novoRec],
+        };
       }));
-      toast.success((ehParcial && !quitaTudo)
-        ? `Recebido ${fmt(valor)} de ${baixaForm.nome} (juros ${fmt(jurosPortion)}). Em aberto: ${fmt(saldoAberto - valor)}.`
-        : `Empréstimo de ${baixaForm.nome} quitado.${J > 0 ? ` Juros totais: ${fmt(J)}.` : ""}`);
+      toast.success(`Principal de ${fmt(valor)} recebido — empréstimo de ${baixaForm.nome} quitado.${mesesTruncado ? ` Juros futuros cancelados (prazo encerrado em ${mesesTruncado} ${mesesTruncado > 1 ? "meses" : "mês"}).` : ""}`);
       setBaixaForm(null);
       return;
     }
@@ -965,6 +1004,39 @@ export default function AReceberEDividas({
     parcela: "", parcelar: false, numParcelas: 1, modoValor: "total",
   });
 
+  // Abre a baixa do JUROS de um mês (o próximo mês ainda não recebido).
+  const abrirReceberJuros = (d) => {
+    const meses = Math.max(1, parseInt(d.meses, 10) || 1);
+    const baseISO = (d.dataEmprestimo || d.vencimento || hoje).slice(0, 7);
+    const recebidos = new Set(Array.isArray(d.jurosRecebidos) ? d.jurosRecebidos : []);
+    const [by, bm] = baseISO.split("-").map(Number);
+    let mesJuros = null, idx = -1;
+    for (let i = 0; i < meses; i++) {
+      const dt = new Date(by, bm - 1 + i, 1);
+      const m = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+      if (!recebidos.has(m)) { mesJuros = m; idx = i; break; }
+    }
+    if (!mesJuros) { toast.info("Todos os meses de juros já foram recebidos."); return; }
+    const jm = (Number(d.jurosMensal) || 0) > 0 ? Number(d.jurosMensal) : +(((Number(d.juros) || 0) / meses)).toFixed(2);
+    if (jm <= 0) { toast.info("Este empréstimo não tem juros."); return; }
+    setBaixaForm({
+      itemId: d.id, tipoOriginal: "receber", emprestimo: true, emprestimoId: d.id,
+      modoEmprestimo: "juros", mesJuros, mesJurosLabel: `${idx + 1}/${meses}`,
+      nome: d.nome, valor: jm, categoria: "Juros de empréstimo",
+      contaDestino: contas[0]?.nome || "", dataBaixa: hoje, parcial: false,
+    });
+  };
+
+  // Abre a baixa do PRINCIPAL (quitação do empréstimo).
+  const abrirQuitar = (d) => {
+    setBaixaForm({
+      itemId: d.id, tipoOriginal: "receber", emprestimo: true, emprestimoId: d.id,
+      modoEmprestimo: "principal", nome: d.nome,
+      valor: Number(d.principal) || Number(d.valor) || 0, categoria: "Empréstimo (devolução)",
+      contaDestino: contas[0]?.nome || "", dataBaixa: hoje, parcial: false,
+    });
+  };
+
   return (
     <div className={(embed || somenteReceber) ? "" : "fade-up py-8 px-6"}>
       {embed ? null : somenteReceber ? (
@@ -1320,6 +1392,8 @@ export default function AReceberEDividas({
                   onExcluir={() => excluir(d, "receber")}
                   onWhats={() => whatsapp.cobrarDevedor(d)}
                   onVerRecebimentos={() => setVerRecebForm({ devedorId: d.id })}
+                  onReceberJuros={abrirReceberJuros}
+                  onQuitar={abrirQuitar}
                 />
                   </React.Fragment>
                 );
@@ -1674,6 +1748,10 @@ export default function AReceberEDividas({
           <Modal
             title={ehAporteMeta
               ? `Guardar para ${baixaForm._metaNome || "meta"}`
+              : baixaForm.modoEmprestimo === "juros"
+                ? `Receber juros · ${baixaForm.nome}${baixaForm.mesJurosLabel ? ` (${baixaForm.mesJurosLabel})` : ""}`
+              : baixaForm.modoEmprestimo === "principal"
+                ? `Quitar (principal) · ${baixaForm.nome}`
               : (isReceber ? `Receber de ${baixaForm.nome}` : `Pagar para ${baixaForm.nome}`)}
             onClose={() => setBaixaForm(null)}
           >
@@ -1703,8 +1781,8 @@ export default function AReceberEDividas({
               )}
             </div>
 
-            {/* Recebimento parcial — só A Receber */}
-            {isReceber && (
+            {/* Recebimento parcial — só A Receber (não em empréstimo, que usa juros/quitar) */}
+            {isReceber && !baixaForm.modoEmprestimo && (
               <div style={{
                 background: T.bgSoft,
                 border: `1px solid ${ehParcial ? T.green : T.border}`,
@@ -2239,7 +2317,7 @@ function corDoNome(nome = "") {
   return `linear-gradient(135deg, hsl(${hue1}, 55%, 45%), hsl(${hue2}, 50%, 35%))`;
 }
 
-export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, onVerRecebimentos, hidden, dueLabel }) {
+export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, onVerRecebimentos, onReceberJuros, onQuitar, hidden, dueLabel }) {
   const due = dueLabel ? dueLabel(d.vencimento) : null;
   const isOver = due?.status === "over";
   const isWarn = due?.status === "warn";
@@ -2302,11 +2380,30 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, onVerRec
           )}
         </div>
         <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-          <button onClick={() => onBaixa(d)} title="Receber"
-            style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 10, padding: "6px 10px",
-                     cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
-            <Check size={12} /> Receber
-          </button>
+          {d.emprestimo ? (
+            <>
+              {(Number(d.jurosMensal) || Number(d.juros) || 0) > 0 && onReceberJuros && (
+                <button onClick={() => onReceberJuros(d)} title="Receber o juros do mês"
+                  style={{ background: "transparent", color: T.gold, border: `1px solid ${T.gold}88`, borderRadius: 10, padding: "6px 10px",
+                           cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
+                  Juros
+                </button>
+              )}
+              {onQuitar && (
+                <button onClick={() => onQuitar(d)} title="Receber o principal (quitar)"
+                  style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 10, padding: "6px 10px",
+                           cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
+                  <Check size={12} /> Quitar
+                </button>
+              )}
+            </>
+          ) : (
+            <button onClick={() => onBaixa(d)} title="Receber"
+              style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 10, padding: "6px 10px",
+                       cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
+              <Check size={12} /> Receber
+            </button>
+          )}
           {(d.recebimentos?.length || 0) > 0 && onVerRecebimentos && (
             <button onClick={() => onVerRecebimentos(d)} title="Ver / estornar recebimentos"
               style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
