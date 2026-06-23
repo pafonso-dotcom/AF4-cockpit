@@ -189,15 +189,17 @@ export function getGanhosDoMes(mesISO, state = {}, escopo) {
   // 1. Devedores com recebimento no mês
   (state.devedores || []).forEach(d => {
     // Empréstimo a terceiro: juros por COMPETÊNCIA (jurosMensal em cada mês do
-    // período, a partir da data do empréstimo) + a QUITAÇÃO do principal (conta
+    // período) + o PRINCIPAL (pendente "a receber" até a quitação; depois conta
     // como receita no mês do recebimento). As transações da baixa são ignoradas
-    // na seção 2 — o ganho vem daqui, por competência.
+    // na seção 2 — o ganho vem daqui.
     if (d.emprestimo) {
       const meses = Math.max(1, parseInt(d.meses, 10) || 1);
       const jurosMensal = (Number(d.jurosMensal) || 0) > 0
         ? Number(d.jurosMensal)
         : +(((Number(d.juros) || 0) / meses)).toFixed(2); // fallback p/ empréstimos antigos
       const baseISO = (d.dataEmprestimo || d.vencimento || "").slice(0, 7);
+      const jurosRecebidos = new Set(Array.isArray(d.jurosRecebidos) ? d.jurosRecebidos : []);
+      // Juros — 1 lançamento por mês do período (paga se aquele mês já foi recebido).
       if (jurosMensal > 0 && baseISO) {
         const [by, bm] = baseISO.split("-").map(Number);
         const [my, mm] = mesISO.split("-").map(Number);
@@ -207,18 +209,37 @@ export function getGanhosDoMes(mesISO, state = {}, escopo) {
             id: `${d.id}::juros::${offset}`, fonte: "devedor", tipo: "ganho",
             descricao: `Juros de ${d.nome} (${offset + 1}/${meses})`,
             data: `${mesISO}-15`, valor: jurosMensal,
-            status: d.recebido ? "paga" : "pendente",
+            status: jurosRecebidos.has(mesISO) ? "paga" : "pendente",
             categoria: "Juros de empréstimo",
           });
         }
       }
-      if (d.recebido && (d.dataRecebimento || "").startsWith(mesISO)) {
-        out.push({
-          id: `${d.id}::quit`, fonte: "devedor", tipo: "ganho",
-          descricao: `Quitação de ${d.nome}`,
-          data: d.dataRecebimento, valor: Number(d.principal) || 0,
-          status: "paga", categoria: "Empréstimo (devolução)",
-        });
+      // Principal — pendente até a quitação; depois vira "Quitação" (paga).
+      const principal = Number(d.principal) || Number(d.valor) || 0;
+      if (d.recebido) {
+        if ((d.dataRecebimento || "").startsWith(mesISO)) {
+          out.push({
+            id: `${d.id}::quit`, fonte: "devedor", tipo: "ganho",
+            descricao: `Quitação de ${d.nome}`,
+            data: d.dataRecebimento, valor: principal,
+            status: "paga", categoria: "Empréstimo (devolução)",
+          });
+        }
+      } else if (principal > 0) {
+        let princISO = (d.vencimento || "").slice(0, 7);
+        if (!princISO && baseISO) {
+          const [by, bm] = baseISO.split("-").map(Number);
+          const dt = new Date(by, bm - 1 + (meses - 1), 1);
+          princISO = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+        }
+        if (princISO === mesISO) {
+          out.push({
+            id: `${d.id}::princ`, fonte: "devedor", tipo: "ganho",
+            descricao: `A receber (principal) de ${d.nome}`,
+            data: `${mesISO}-28`, valor: principal,
+            status: "pendente", categoria: "Empréstimo (principal)",
+          });
+        }
       }
       return;
     }
