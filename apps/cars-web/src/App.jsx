@@ -1247,6 +1247,8 @@ export default function App() {
         open={paletaAberta}
         onClose={() => setPaletaAberta(false)}
         onNavigate={({ modulo: m, tab: t }) => { setModulo(m); irParaTab(t); }}
+        transacoes={transacoes} contas={contas} ativos={ativos}
+        notas={notas} metas={metas} categorias={categorias}
       />
       {["analise-carteira", "trade-ativo"].includes(tab) && !tradeOnboardingVisto && (
         <OnboardingTradeModal onClose={() => setTradeOnboardingVisto(true)} />
