@@ -112,37 +112,40 @@ export default function InvestPainel({
         </h1>
       </div>
 
-      {/* Índices de mercado — faixa própria de largura total (evita aperto) */}
-      <div style={{ marginBottom: 12 }}>
-        <IndicesGlobais apiKeys={apiKeys} />
-      </div>
-
-      {/* Ações rápidas — atualizar mercado e novo aporte */}
-      <div className="ip-actions" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-        {onRefresh && (
-          <button onClick={onRefresh} disabled={refreshing}
-                  className="ip-btn ip-btn-primary"
-                  title="Atualizar cotações do mercado">
-            <RefreshCw size={13} className={refreshing ? "spin" : ""} style={{ flexShrink: 0 }} />
-            {refreshing ? "Atualizando…" : "Atualizar mercado"}
-          </button>
-        )}
-        <button onClick={novoAporte} className="ip-btn ip-btn-gold" title="Registrar um novo aporte">
-          <Plus size={13} style={{ flexShrink: 0 }} />
-          Novo aporte
-        </button>
-      </div>
-
-      {/* KPIs — Alocação por Moeda + indicadores, tudo na mesma linha */}
-      <section className="ip-kpi-grid" style={{
-        display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 12, marginBottom: 16, alignItems: "start",
+      {/* Topo · 2 colunas: esquerda = Alocação por Moeda + ações; direita =
+          índices de mercado + KPIs. Alturas igualadas (alignItems stretch). */}
+      <section className="ip-top" style={{
+        display: "grid", gridTemplateColumns: "minmax(230px, 1fr) 3fr", gap: 12, marginBottom: 16, alignItems: "stretch",
       }}>
-        <MoedaCard valorBR={t.valorBR} valorUSA={t.valorUSA} usdRate={usdRate} hidden={hidden} fmtUSD={fmtUSD} />
-        <Kpi label="Custo Investido" value={t.custo} format={fmt} hidden={hidden} sub="Total aportado" icon={Wallet} cor={T.muted} />
-        <Kpi label="Resultado" value={t.resultado} format={fmt} hidden={hidden} variation={t.pct} cor={t.resultado >= 0 ? T.green : T.red}
-             icon={t.resultado >= 0 ? TrendingUp : TrendingDown} />
-        <Kpi label="Proventos · mês" value={proventosMes} format={fmt} hidden={hidden} sub="Receita passiva" icon={DollarSign} cor={T.green} />
-        <Kpi label="Posições" value={posicoes.qtd} format={(n) => String(Math.round(n))} sub={`${posicoes.classes} classes`} icon={Briefcase} cor={T.gold} />
+        {/* Esquerda */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+          <div style={{ flex: 1, display: "flex" }}>
+            <MoedaCard valorBR={t.valorBR} valorUSA={t.valorUSA} usdRate={usdRate} hidden={hidden} fmtUSD={fmtUSD} fill />
+          </div>
+          <div className="ip-actions" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {onRefresh && (
+              <button onClick={onRefresh} disabled={refreshing} className="ip-btn ip-btn-primary" title="Atualizar cotações do mercado">
+                <RefreshCw size={13} className={refreshing ? "spin" : ""} style={{ flexShrink: 0 }} />
+                {refreshing ? "Atualizando…" : "Atualizar mercado"}
+              </button>
+            )}
+            <button onClick={novoAporte} className="ip-btn ip-btn-gold" title="Registrar um novo aporte">
+              <Plus size={13} style={{ flexShrink: 0 }} />
+              Novo aporte
+            </button>
+          </div>
+        </div>
+        {/* Direita */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+          <IndicesGlobais apiKeys={apiKeys} />
+          <div className="ip-kpi4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, flex: 1, alignItems: "stretch" }}>
+            <Kpi label="Custo Investido" value={t.custo} format={fmt} hidden={hidden} sub="Total aportado" icon={Wallet} cor={T.muted} />
+            <Kpi label="Resultado" value={t.resultado} format={fmt} hidden={hidden} variation={t.pct} cor={t.resultado >= 0 ? T.green : T.red}
+                 icon={t.resultado >= 0 ? TrendingUp : TrendingDown} />
+            <Kpi label="Proventos · mês" value={proventosMes} format={fmt} hidden={hidden} sub="Receita passiva" icon={DollarSign} cor={T.green} />
+            <Kpi label="Posições" value={posicoes.qtd} format={(n) => String(Math.round(n))} sub={`${posicoes.classes} classes`} icon={Briefcase} cor={T.gold} />
+          </div>
+        </div>
       </section>
 
       {/* Linha 2 */}
@@ -214,6 +217,12 @@ export default function InvestPainel({
           .ip-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .ip-mid-grid, .ip-bot-grid, .ip-foot-grid, .ip-evo-grid { grid-template-columns: 1fr !important; }
         }
+        @media (max-width: 900px) {
+          .ip-top { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 560px) {
+          .ip-kpi4 { grid-template-columns: repeat(2, 1fr) !important; }
+        }
         @media (max-width: 380px) {
           .ip-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
         }
@@ -278,14 +287,14 @@ function AnimatedNumber({ value, format = (n) => String(n), hidden, hiddenText =
 // Alocação por moeda (Brasil R$ vs EUA US$) com bandeiras. Converte o lado EUA
 // pra R$ (via dólar ao vivo) só para calcular a proporção da barra; os valores
 // continuam exibidos em cada moeda.
-function MoedaCard({ valorBR = 0, valorUSA = 0, usdRate, hidden, fmtUSD }) {
+function MoedaCard({ valorBR = 0, valorUSA = 0, usdRate, hidden, fmtUSD, fill = false }) {
   const usaEmBRL = usdRate ? valorUSA * usdRate : 0;
   const totalBRL = valorBR + usaEmBRL;
   const pctBR = totalBRL > 0 ? (valorBR / totalBRL) * 100 : (valorUSA > 0 ? 0 : 100);
   const pctUSA = totalBRL > 0 ? (usaEmBRL / totalBRL) * 100 : 0;
   const temUSA = valorUSA > 0;
   return (
-    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW, width: "100%", height: fill ? "100%" : undefined }}>
       <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Alocação por Moeda</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
