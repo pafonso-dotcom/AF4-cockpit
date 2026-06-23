@@ -3,21 +3,34 @@ import { createPortal } from "react-dom";
 import { Search, CornerDownLeft } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { filtrarNav } from "../../lib/navItems.js";
+import { buscarGlobal } from "../../lib/globalSearch.js";
 
 /**
- * Command Palette — busca rápida de abas (Ctrl/Cmd+K).
+ * Command Palette — busca rápida de abas + busca global (Ctrl/Cmd+K).
  *
  * Props:
  * - open (bool), onClose ()
  * - onNavigate ({ modulo, tab }) — chamado ao escolher um destino
+ * - transacoes, contas, ativos, notas, metas, categorias — dados p/ busca global
  */
-export default function CommandPalette({ open, onClose, onNavigate }) {
+export default function CommandPalette({
+  open, onClose, onNavigate,
+  transacoes = [], contas = [], ativos = [], notas = [], metas = [], categorias = [],
+}) {
   const [query, setQuery] = useState("");
   const [idx, setIdx] = useState(0);
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
-  const resultados = useMemo(() => filtrarNav(query), [query]);
+  const navRes = useMemo(
+    () => filtrarNav(query).map(it => ({ ...it, key: `nav-${it.modulo}-${it.tab}` })),
+    [query],
+  );
+  const dataRes = useMemo(
+    () => buscarGlobal(query, { transacoes, contas, ativos, notas, metas, categorias }),
+    [query, transacoes, contas, ativos, notas, metas, categorias],
+  );
+  const resultados = useMemo(() => [...navRes, ...dataRes], [navRes, dataRes]);
 
   // Reseta ao abrir + foca o input
   useEffect(() => {
@@ -82,7 +95,7 @@ export default function CommandPalette({ open, onClose, onNavigate }) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Buscar aba… (ex: contas, calculadora, veículos)"
+            placeholder="Buscar abas, contas, ativos, transações…"
             style={{
               flex: 1, background: "transparent", border: "none", outline: "none",
               color: T.ink, fontSize: 15, fontFamily: "inherit",
@@ -104,7 +117,7 @@ export default function CommandPalette({ open, onClose, onNavigate }) {
               const ativo = i === idx;
               return (
                 <button
-                  key={`${item.modulo}-${item.tab}`}
+                  key={item.key || `${item.modulo}-${item.tab}-${i}`}
                   onClick={() => escolher(item)}
                   onMouseEnter={() => setIdx(i)}
                   style={{
@@ -120,8 +133,9 @@ export default function CommandPalette({ open, onClose, onNavigate }) {
                   }}>
                     {item.grupo}
                   </span>
-                  <span style={{ flex: 1, fontSize: 13.5, fontWeight: ativo ? 600 : 400 }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: ativo ? 600 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {item.label}
+                    {item.sub && <span style={{ color: T.muted, fontWeight: 400, fontSize: 11.5 }}> · {item.sub}</span>}
                   </span>
                   {ativo && <CornerDownLeft size={13} style={{ color: T.gold, flexShrink: 0 }} />}
                 </button>
