@@ -40,9 +40,9 @@ export default function CardsGrid({
     const totalVariaveis = variaveisMes.reduce((s, t) => s + (parseFloat(t.valor) || 0), 0);
 
     // Balanço anual: receitas - despesas - dividas pagas
-    // Movimento de capital de empréstimo (saída ao emprestar / devolução do
-    // principal) não entra no balanço — só os juros, que vêm sem essa marca.
-    const txsAno = transacoes.filter(t => (t.data || "").startsWith(anoAtual) && !(t.emprestimoSaida || t.emprestimoRetorno));
+    // Empréstimo: só a SAÍDA (ato de emprestar) fica fora do balanço; a
+    // devolução do principal e os juros recebidos contam como receita.
+    const txsAno = transacoes.filter(t => (t.data || "").startsWith(anoAtual) && !t.emprestimoSaida);
     const receitasAno = txsAno.filter(t => t.tipo === "receita").reduce((s, t) => s + (parseFloat(t.valor) || 0), 0);
     const despesasAno = txsAno.filter(t => t.tipo === "despesa").reduce((s, t) => s + (parseFloat(t.valor) || 0), 0);
     const dividasPagasAno = dividas.filter(d => d.pago && (d.dataPagamento || "").startsWith(anoAtual))
