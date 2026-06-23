@@ -58,6 +58,15 @@ const API = {
       return j.results || null;
     } catch { return null; }
   },
+  // Consulta de placa via rota do Worker (/api/placa) — o Worker injeta os
+  // tokens da APIBrasil e repassa. Devolve o JSON cru da API (data) p/ o
+  // front mapear. Lança em erro de rede/credencial.
+  async consultarPlaca(placa) {
+    const r = await fetch(`/api/placa?placa=${encodeURIComponent(placa)}`);
+    const j = await r.json().catch(() => null);
+    if (!r.ok || !j?.ok) throw new Error(j?.error || `Falha na consulta (HTTP ${r.status})`);
+    return j.data;
+  },
   async testBrapi(token) {
     const url = `https://brapi.dev/api/quote/PETR4${token ? `?token=${token}` : ""}`;
     try {
