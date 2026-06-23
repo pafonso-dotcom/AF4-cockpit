@@ -8,6 +8,7 @@ import { calcularScore, direcaoSinal, confiancaSinal } from "../../../lib/score.
 import { getWatchlist } from "../../../lib/watchlist.js";
 import { gerarJSONGemini } from "../../../lib/gemini.js";
 import { toast } from "../../../lib/toast.js";
+import { TIPOS_ANALISAVEIS } from "../../../lib/invest-constants.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 
 const INTERVALOS = [
@@ -28,9 +29,6 @@ const BRAPI_TF = {
   "1d": { range: "3mo", interval: "1d" },
   "1w": { range: "3mo", interval: "1wk" },
 };
-
-// Tipos de ativo da carteira que dão pra analisar tecnicamente
-const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
 
 // Constrói a lista unificada de itens analisáveis (watchlist cripto + carteira)
 function buildItens(watchlist, ativos) {

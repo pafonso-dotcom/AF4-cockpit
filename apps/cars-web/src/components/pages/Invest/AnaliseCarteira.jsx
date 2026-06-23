@@ -7,7 +7,7 @@ import { getHistorico, getQuotes } from "../../../lib/brapi.js";
 import { calcRSI, calcMACD, calcTrend, calcVolumeChange, calcEMA } from "../../../lib/indicadores.js";
 import { calcularScore, direcaoSinal, confiancaSinal } from "../../../lib/score.js";
 import { toast } from "../../../lib/toast.js";
-import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS } from "../../../lib/invest-constants.js";
+import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, TIPOS_ANALISAVEIS } from "../../../lib/invest-constants.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 
 const INTERVALOS_BINANCE = [
@@ -15,8 +15,6 @@ const INTERVALOS_BINANCE = [
   { v: "1d",  l: "1d"  }, { v: "1w", l: "1w" },
 ];
 const BRAPI_TF = { "1d": { range: "3mo", interval: "1d" }, "1w": { range: "3mo", interval: "1wk" } };
-
-const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
 
 async function analisarAtivo(asset, intervaloUI) {
   // Roteia a fonte de dados pelo tipo do ativo

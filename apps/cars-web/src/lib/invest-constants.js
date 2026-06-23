@@ -7,6 +7,8 @@
  * - PROV_RE antes inline em InvestPainel e Proventos.
  */
 
+import { fmt, fmtUSD } from "./format.js";
+
 export const ASSET_CLASS_LABELS = {
   acao: "Ações BR",
   fii: "FIIs",
@@ -42,3 +44,13 @@ export const PROVENTO_REGEX = /provent|dividend|rendiment|juros sobre|jcp\b/i;
 export const CAPITAL_SOCIAL_TIPO = "capitalSocial";
 export const semCapitalSocial = (ativos = []) =>
   (ativos || []).filter(a => a?.tipo !== CAPITAL_SOCIAL_TIPO);
+
+// Ativos US (preço em dólar) — Stocks e REITs.
+export const US_TIPOS = new Set(["stock", "reit"]);
+export const ehUS = (a) => US_TIPOS.has(a?.tipo);
+
+// Tipos com análise técnica/fundamentalista disponível.
+export const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
+
+// Formata no padrão da moeda do ativo (US$ para Stocks/REITs, R$ para o resto).
+export const fmtMoedaAtivo = (a, v) => (ehUS(a) ? fmtUSD(v) : fmt(v));
