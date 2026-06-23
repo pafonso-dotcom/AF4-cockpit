@@ -71,28 +71,29 @@ export default {
       }
     }
 
-    // Consulta de placa via APIBrasil (proxy server-side — tokens ficam no
-    // Worker, sem CORS, sem expor credenciais no front).
+    // Consulta de placa via APIBrasil (proxy server-side — token fica no
+    // Worker, sem CORS, sem expor credencial no front).
     // Secrets/vars do Worker:
-    //  - APIBRASIL_BEARER       : token Bearer da conta APIBrasil
-    //  - APIBRASIL_DEVICE_TOKEN : DeviceToken do device "Consulta Veículos"
+    //  - APIBRASIL_BEARER       : token Bearer da conta APIBrasil (obrigatório)
+    //  - APIBRASIL_DEVICE_TOKEN : DeviceToken (opcional; enviado só se definido)
     //  - PLACA_API_URL          : (opcional) override do endpoint; default abaixo.
     if (url.pathname === "/api/placa") {
       const placa = (url.searchParams.get("placa") || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
       if (!placa) return json({ ok: false, error: "Informe a placa." }, 400);
-      if (!env.APIBRASIL_BEARER || !env.APIBRASIL_DEVICE_TOKEN) {
-        return json({ ok: false, error: "Consulta de placa não configurada no servidor (defina os secrets APIBRASIL_BEARER e APIBRASIL_DEVICE_TOKEN no Worker)." }, 501);
+      if (!env.APIBRASIL_BEARER) {
+        return json({ ok: false, error: "Consulta de placa não configurada no servidor (defina o secret APIBRASIL_BEARER no Worker)." }, 501);
       }
-      const alvo = env.PLACA_API_URL || "https://gateway.apibrasil.io/api/v2/consulta/veiculos/dados";
+      const alvo = env.PLACA_API_URL || "https://gateway.apibrasil.io/api/v2/vehicles/dados";
+      const headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": `Bearer ${env.APIBRASIL_BEARER}`,
+      };
+      if (env.APIBRASIL_DEVICE_TOKEN) headers["DeviceToken"] = env.APIBRASIL_DEVICE_TOKEN;
       try {
         const r = await fetch(alvo, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "Authorization": `Bearer ${env.APIBRASIL_BEARER}`,
-            "DeviceToken": env.APIBRASIL_DEVICE_TOKEN,
-          },
+          headers,
           body: JSON.stringify({ placa }),
         });
         const txt = await r.text();
