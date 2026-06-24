@@ -6,21 +6,26 @@ import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import Field from "../../ui/Field.jsx";
 import Modal from "../../ui/Modal.jsx";
+import { filtrarPorLoja, LOJA_TODAS } from "../../../lib/negocioLojas.js";
 
 /**
  * NegocioDespesasFixas — despesas recorrentes mensais do Negócio (dados
- * próprios). Campos: { id, descricao, valor, categoria, diaVencimento }.
+ * próprios), por loja. Campos: { id, descricao, valor, categoria, diaVencimento, lojaId }.
  * Mostra o total mensal somado.
  */
-export default function NegocioDespesasFixas({ despesas = [], setDespesas, categorias = [], hidden }) {
+export default function NegocioDespesasFixas({ despesas = [], setDespesas, categorias = [], lojaAtiva, lojas = [], hidden }) {
   const [form, setForm] = useState(null);
   const [formErrors, setFormErrors] = useState({});
+  const ehTodas = lojaAtiva === LOJA_TODAS;
+  const lojaPadrao = lojas[0]?.id || "";
+  const nomeLoja = (id) => (lojas.find((l) => l.id === id)?.nome || "—");
 
   const catsDespesa = (categorias || []).filter(c => c.tipo === "despesa");
-  const totalMensal = (despesas || []).reduce((s, d) => s + (Number(d.valor) || 0), 0);
+  const daLoja = filtrarPorLoja(despesas, lojaAtiva);
+  const totalMensal = daLoja.reduce((s, d) => s + (Number(d.valor) || 0), 0);
 
   const novo = () =>
-    setForm({ id: null, descricao: "", valor: "", categoria: "", diaVencimento: 1 });
+    setForm({ id: null, descricao: "", valor: "", categoria: "", diaVencimento: 1, lojaId: ehTodas ? lojaPadrao : lojaAtiva });
 
   const save = () => {
     const errs = {};
@@ -31,6 +36,7 @@ export default function NegocioDespesasFixas({ despesas = [], setDespesas, categ
     }
     const dia = parseInt(form.diaVencimento, 10);
     if (isNaN(dia) || dia < 1 || dia > 31) errs.diaVencimento = "Dia entre 1 e 31";
+    if (!form.lojaId) errs.lojaId = "Escolha a loja";
     setFormErrors(errs);
     if (Object.keys(errs).length > 0) {
       toast.error("Verifique os campos destacados.");
@@ -61,7 +67,7 @@ export default function NegocioDespesasFixas({ despesas = [], setDespesas, categ
 
   const corCat = (nome) => (categorias || []).find(c => c.nome === nome)?.cor || T.muted;
 
-  const ordenadas = [...(despesas || [])].sort((a, b) => (a.diaVencimento || 0) - (b.diaVencimento || 0));
+  const ordenadas = [...daLoja].sort((a, b) => (a.diaVencimento || 0) - (b.diaVencimento || 0));
 
   return (
     <div className="fade-up py-8">
@@ -94,7 +100,7 @@ export default function NegocioDespesasFixas({ despesas = [], setDespesas, categ
           {hidden ? "R$ •••••" : fmt(totalMensal)}
         </span>
         <span className="num" style={{ fontSize: 10.5, color: T.faint }}>
-          · {despesas.length} {despesas.length === 1 ? "despesa" : "despesas"}
+          · {daLoja.length} {daLoja.length === 1 ? "despesa" : "despesas"}
         </span>
       </div>
 
@@ -118,6 +124,7 @@ export default function NegocioDespesasFixas({ despesas = [], setDespesas, categ
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ color: T.ink, fontSize: 13, fontWeight: 600 }}>{d.descricao}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 1, fontSize: 11, color: T.muted, flexWrap: "wrap" }}>
+                  {ehTodas && <span style={{ padding: "1px 7px", background: `${T.gold}22`, color: T.gold, borderRadius: 4, fontWeight: 600, fontSize: 9.5 }}>{nomeLoja(d.lojaId)}</span>}
                   {d.categoria && (
                     <span style={{ padding: "1px 7px", background: `${corCat(d.categoria)}22`, color: corCat(d.categoria),
                                    borderRadius: 4, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", fontSize: 9.5 }}>
@@ -154,6 +161,14 @@ export default function NegocioDespesasFixas({ despesas = [], setDespesas, categ
                    onChange={e => setForm({ ...form, valor: e.target.value })}
                    placeholder="Ex.: 1.500,00" />
           </Field>
+          {(ehTodas || !lojaAtiva) && (
+            <Field label="Loja" required error={formErrors.lojaId}>
+              <select value={form.lojaId || ""} onChange={e => setForm({ ...form, lojaId: e.target.value })}>
+                <option value="">— Escolha —</option>
+                {lojas.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+              </select>
+            </Field>
+          )}
           <Field label="Categoria">
             <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>
               <option value="">— Sem categoria —</option>

@@ -11,6 +11,7 @@ import {
 } from "./seeds.js";
 import { THEMES } from "./theme.js";
 import { migrarEscoposAuto } from "./escopo.js";
+import { migrarNegocioLojas } from "./negocioLojas.js";
 
 // Aplica os dados carregados (com defaults/migrações) nos setters do App.
 export function aplicarDadosCarregados(data, S) {
@@ -70,10 +71,15 @@ export function aplicarDadosCarregados(data, S) {
   S.setCarteiraProventos(data.carteiraProventos || { saldo: 0, historico: [] });
   S.setCaixaNegocio(data.caixaNegocio || { saldo: 0, historico: [] });
   S.setNegocioBancos(data.negocioBancos || []);
-  S.setNegocioFinContas(data.negocioFinContas || []);
+  // Financeiro por loja: migra (cria "Loja 1" e atribui lojaId aos itens sem).
+  const _nl = migrarNegocioLojas(data);
+  S.setNegocioLojas(_nl.negocioLojas);
+  S.setNegocioLojaAtiva(_nl.negocioLojaAtiva);
+  S.setNegocioFinContas(_nl.negocioFinContas);
   S.setNegocioFinCategorias(data.negocioFinCategorias || []);
-  S.setNegocioFinDespesasFixas(data.negocioFinDespesasFixas || []);
-  S.setNegocioFinDespesasVar(data.negocioFinDespesasVar || []);
+  S.setNegocioFinDespesasFixas(_nl.negocioFinDespesasFixas);
+  S.setNegocioFinDespesasVar(_nl.negocioFinDespesasVar);
+  S.setNegocioRecebimentos(_nl.negocioRecebimentos);
   S.setProventosRecebidos(data.proventosRecebidos || {});
   S.setProventosIgnorados(data.proventosIgnorados || {});
   S.setProventosManuais(data.proventosManuais || []);
@@ -134,6 +140,10 @@ export function aplicarSeeds(S) {
   S.setNegocioFinCategorias([]);
   S.setNegocioFinDespesasFixas([]);
   S.setNegocioFinDespesasVar([]);
+  const _seedLojas = migrarNegocioLojas({});
+  S.setNegocioLojas(_seedLojas.negocioLojas);
+  S.setNegocioLojaAtiva(_seedLojas.negocioLojaAtiva);
+  S.setNegocioRecebimentos([]);
   S.setProventosRecebidos({});
   S.setProventosIgnorados({});
   S.setProventosManuais([]);
