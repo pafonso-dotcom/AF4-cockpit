@@ -4,6 +4,7 @@ import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import Modal from "../../ui/Modal.jsx";
+import { resumoLoja, LOJA_TODAS } from "../../../lib/negocioLojas.js";
 
 /**
  * Painel · visão geral do módulo Negócio.
@@ -17,10 +18,17 @@ export default function NegocioPainel({
   negocioServicos = [], negocioVendasServicos = [],
   negocioClientes = [],
   caixaNegocio = { saldo: 0, historico: [] },
+  negocioFinContas = [], negocioFinDespesasFixas = [], negocioFinDespesasVar = [], negocioRecebimentos = [],
+  lojaAtiva, lojas = [],
   hidden,
   onTabChange,
 }) {
   const [caixaModalAberto, setCaixaModalAberto] = useState(false);
+  const resumo = resumoLoja({
+    contas: negocioFinContas, despesasFixas: negocioFinDespesasFixas,
+    despesasVar: negocioFinDespesasVar, recebimentos: negocioRecebimentos,
+  }, lojaAtiva);
+  const tituloLoja = lojaAtiva === LOJA_TODAS ? "Todas as lojas" : (lojas.find(l => l.id === lojaAtiva)?.nome || "Loja");
   const stats = useMemo(() => {
     const hoje = new Date();
     const mesISO = hoje.toISOString().slice(0, 7);
@@ -67,6 +75,28 @@ export default function NegocioPainel({
         title="Visão geral"
         sub="Resumo do que está rolando hoje no seu negócio: estoque, vendas, lucro e atalhos pras áreas."
       />
+
+      {/* Financeiro da loja (ou consolidado) — Banco / Recebimentos / Despesas / Resultado */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginBottom: 6 }}>
+          Financeiro · {tituloLoja}
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { lbl: "Saldo em banco", v: resumo.saldoBanco, cor: T.ink },
+            { lbl: "Recebimentos", v: resumo.recebimentos, cor: T.green },
+            { lbl: "Despesas", v: resumo.despesasFixas + resumo.despesasVar, cor: T.red },
+            { lbl: "Resultado", v: resumo.resultado, cor: resumo.resultado >= 0 ? T.green : T.red },
+          ].map((k) => (
+            <div key={k.lbl} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px 14px" }}>
+              <div style={{ fontSize: 10.5, color: T.muted }}>{k.lbl}</div>
+              <div className="num" style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: k.cor, marginTop: 3 }}>
+                {hidden ? "•••" : fmt(k.v)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Cards destaque lado a lado: Caixa do Negócio · Valor em estoque */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3" style={{ marginBottom: 14 }}>

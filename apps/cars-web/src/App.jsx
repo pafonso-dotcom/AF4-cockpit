@@ -964,6 +964,11 @@ export default function App() {
           negocioVendasServicos={negocioVendasServicos}
           negocioClientes={negocioClientes}
           caixaNegocio={caixaNegocio}
+          negocioFinContas={negocioFinContas}
+          negocioFinDespesasFixas={negocioFinDespesasFixas}
+          negocioFinDespesasVar={negocioFinDespesasVar}
+          negocioRecebimentos={negocioRecebimentos}
+          lojaAtiva={negocioLojaAtiva} lojas={negocioLojas}
           hidden={hidden}
           onTabChange={(t) => setTab(t)}
         />
