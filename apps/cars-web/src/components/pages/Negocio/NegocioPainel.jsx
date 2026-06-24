@@ -4,7 +4,7 @@ import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import Modal from "../../ui/Modal.jsx";
-import { resumoLoja, LOJA_TODAS } from "../../../lib/negocioLojas.js";
+import { resumoLoja } from "../../../lib/negocioLojas.js";
 
 /**
  * Painel · visão geral do módulo Negócio.
@@ -24,11 +24,6 @@ export default function NegocioPainel({
   onTabChange,
 }) {
   const [caixaModalAberto, setCaixaModalAberto] = useState(false);
-  const resumo = resumoLoja({
-    contas: negocioFinContas, despesasFixas: negocioFinDespesasFixas,
-    despesasVar: negocioFinDespesasVar, recebimentos: negocioRecebimentos,
-  }, lojaAtiva);
-  const tituloLoja = lojaAtiva === LOJA_TODAS ? "Todas as lojas" : (lojas.find(l => l.id === lojaAtiva)?.nome || "Loja");
   const stats = useMemo(() => {
     const hoje = new Date();
     const mesISO = hoje.toISOString().slice(0, 7);
@@ -76,30 +71,41 @@ export default function NegocioPainel({
         sub="Resumo do que está rolando hoje no seu negócio: estoque, vendas, lucro e atalhos pras áreas."
       />
 
-      {/* Financeiro da loja (ou consolidado) — Banco / Recebimentos / Despesas / Resultado */}
+      {/* Cards por loja — Banco / Recebimentos / D. Fixa / D. Variável / Resultado */}
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginBottom: 6 }}>
-          Financeiro · {tituloLoja}
+          Lojas · financeiro
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { lbl: "Saldo em banco", v: resumo.saldoBanco, cor: T.ink },
-            { lbl: "Recebimentos", v: resumo.recebimentos, cor: T.green },
-            { lbl: "Despesas", v: resumo.despesasFixas + resumo.despesasVar, cor: T.red },
-            { lbl: "Resultado", v: resumo.resultado, cor: resumo.resultado >= 0 ? T.green : T.red },
-          ].map((k) => (
-            <div key={k.lbl} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px 14px" }}>
-              <div style={{ fontSize: 10.5, color: T.muted }}>{k.lbl}</div>
-              <div className="num" style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: k.cor, marginTop: 3 }}>
-                {hidden ? "•••" : fmt(k.v)}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+          {(lojas || []).map((loja) => {
+            const r = resumoLoja({
+              contas: negocioFinContas, despesasFixas: negocioFinDespesasFixas,
+              despesasVar: negocioFinDespesasVar, recebimentos: negocioRecebimentos,
+            }, loja.id);
+            const linha = (lbl, v, cor) => (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 12.5, padding: "3px 0" }}>
+                <span style={{ color: T.muted }}>{lbl}</span>
+                <span className="num" style={{ color: cor || T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(v)}</span>
               </div>
-            </div>
-          ))}
+            );
+            return (
+              <div key={loja.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, borderRadius: 14, padding: 14 }}>
+                <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.ink, marginBottom: 8 }}>{loja.nome}</div>
+                {linha("Banco", r.saldoBanco)}
+                {linha("Recebimentos", r.recebimentos, T.green)}
+                {linha("D. Fixa", r.despesasFixas, T.red)}
+                {linha("D. Variável", r.despesasVar, T.red)}
+                <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 6, paddingTop: 6 }}>
+                  {linha("Resultado", r.resultado, r.resultado >= 0 ? T.green : T.red)}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Cards destaque lado a lado: Caixa do Negócio · Valor em estoque */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3" style={{ marginBottom: 14 }}>
+      {/* Caixa do Negócio */}
+      <div style={{ marginBottom: 14 }}>
         <button
           onClick={() => setCaixaModalAberto(true)}
           style={{
@@ -127,50 +133,20 @@ export default function NegocioPainel({
             </div>
           </div>
         </button>
-
-        <div style={{
-          background: T.card, border: `1px solid ${T.border}`,
-          borderLeft: `3px solid ${T.blue || "#60a5fa"}`, borderRadius: 14, padding: 16,
-          display: "flex", alignItems: "center", gap: 14,
-        }}>
-          <span style={{
-            width: 44, height: 44, borderRadius: 16,
-            background: `${T.blue || "#60a5fa"}22`, color: T.blue || "#60a5fa",
-            display: "grid", placeItems: "center", flexShrink: 0,
-          }}>
-            <Package size={22} />
-          </span>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted }}>
-              Valor em estoque (carros)
-            </div>
-            <div style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 500, color: T.blue || "#60a5fa", fontVariantNumeric: "tabular-nums", marginTop: 2 }}>
-              {hidden ? "•••••" : fmt(stats.valorEstoque)}
-            </div>
-            <div style={{ fontSize: 11.5, color: T.muted, marginTop: 3 }}>
-              {stats.veiculosEstoque} {stats.veiculosEstoque === 1 ? "veículo" : "veículos"} · custo + extras
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Cards de resumo do mês */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6" style={{ background: T.border }}>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-px mb-6" style={{ background: T.border }}>
         <KpiCard label="Receita do mês" valor={hidden ? "•••••" : fmt(stats.receita)} cor={T.gold} icon={TrendingUp} />
         <KpiCard label="Custo do mês" valor={hidden ? "•••••" : fmt(stats.custo)} cor={T.muted} />
         <KpiCard label="Lucro do mês"
                  valor={hidden ? "•••••" : fmt(stats.lucro)}
                  sub={`${stats.pctMargem.toFixed(1)}% margem`}
                  cor={stats.lucro >= 0 ? T.green : T.red} />
-        <KpiCard label="Veículos em estoque"
-                 valor={String(stats.veiculosEstoque)}
-                 cor={T.blue || "#60a5fa"} icon={Package} />
       </div>
 
       {/* Atalhos pras áreas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Atalho icon={Car} label="Veículos" sub={`${stats.veiculosEstoque} em estoque · ${stats.veiculosVendidosMes} vendidos este mês`}
-                onClick={() => onTabChange?.("negocio-veiculos")} cor={T.gold} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Atalho icon={Wrench} label="Serviços" sub={`${stats.servicosCatalogo} no catálogo · ${stats.servicosVendidosMes} vendidos este mês`}
                 onClick={() => onTabChange?.("negocio-servicos")} cor={T.green} />
         <Atalho icon={Users} label="Clientes" sub={`${stats.clientes} cadastrados`}
