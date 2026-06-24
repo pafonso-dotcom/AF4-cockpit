@@ -6,20 +6,25 @@ import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import Field from "../../ui/Field.jsx";
 import Modal from "../../ui/Modal.jsx";
+import { filtrarPorLoja, LOJA_TODAS } from "../../../lib/negocioLojas.js";
 
 /**
  * NegocioBanco — contas/bancos do Negócio (dados próprios, independentes do
  * financeiro pessoal). CRUD simples com lista + total somado.
  * Campos por conta: { id, nome, instituicao, saldo, cor }.
  */
-export default function NegocioBanco({ contas = [], setContas, hidden }) {
+export default function NegocioBanco({ contas = [], setContas, lojaAtiva, lojas = [], hidden }) {
   const [form, setForm] = useState(null);
   const [formErrors, setFormErrors] = useState({});
+  const ehTodas = lojaAtiva === LOJA_TODAS;
+  const lojaPadrao = lojas[0]?.id || "";
+  const nomeLoja = (id) => (lojas.find((l) => l.id === id)?.nome || "—");
 
-  const total = (contas || []).reduce((s, c) => s + (Number(c.saldo) || 0), 0);
+  const daLoja = filtrarPorLoja(contas, lojaAtiva);
+  const total = daLoja.reduce((s, c) => s + (Number(c.saldo) || 0), 0);
 
   const novo = () =>
-    setForm({ id: null, nome: "", instituicao: "", saldo: "", cor: T.gold });
+    setForm({ id: null, nome: "", instituicao: "", saldo: "", cor: T.gold, lojaId: ehTodas ? lojaPadrao : lojaAtiva });
 
   const save = () => {
     const errs = {};
@@ -28,6 +33,7 @@ export default function NegocioBanco({ contas = [], setContas, hidden }) {
     if (form.saldo === "" || form.saldo == null || isNaN(saldoNum)) {
       errs.saldo = "Saldo inválido (ex.: 1500 ou 1.500,00)";
     }
+    if (!form.lojaId) errs.lojaId = "Escolha a loja";
     setFormErrors(errs);
     if (Object.keys(errs).length > 0) {
       toast.error("Verifique os campos destacados.");
@@ -87,19 +93,19 @@ export default function NegocioBanco({ contas = [], setContas, hidden }) {
           {hidden ? "R$ •••••" : fmt(total)}
         </span>
         <span className="num" style={{ fontSize: 10.5, color: T.faint }}>
-          · {contas.length} {contas.length === 1 ? "conta" : "contas"}
+          · {daLoja.length} {daLoja.length === 1 ? "conta" : "contas"}
         </span>
       </div>
 
       {/* Lista */}
-      {contas.length === 0 ? (
+      {daLoja.length === 0 ? (
         <div style={{ padding: 50, textAlign: "center", color: T.muted, fontStyle: "italic",
                       background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16 }}>
           Nenhuma conta do Negócio ainda. Comece com o botão <strong>Nova Conta</strong>.
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {contas.map(c => (
+          {daLoja.map(c => (
             <div key={c.id} style={{
               background: T.card, border: `1px solid ${T.border}`,
               borderLeft: `3px solid ${c.cor || T.gold}`, borderRadius: 11,
@@ -108,7 +114,10 @@ export default function NegocioBanco({ contas = [], setContas, hidden }) {
               <Building2 size={15} style={{ color: T.faint, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
-                {c.instituicao && <div style={{ fontSize: 10, color: T.muted, fontStyle: "italic" }}>{c.instituicao}</div>}
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {ehTodas && <span style={{ padding: "1px 7px", background: `${T.gold}22`, color: T.gold, borderRadius: 4, fontWeight: 600, fontSize: 9.5 }}>{nomeLoja(c.lojaId)}</span>}
+                  {c.instituicao && <span style={{ fontSize: 10, color: T.muted, fontStyle: "italic" }}>{c.instituicao}</span>}
+                </div>
               </div>
               <div className="num" style={{ fontFamily: T.serif, fontSize: 15, color: (Number(c.saldo) || 0) < 0 ? T.red : T.ink, whiteSpace: "nowrap" }}>
                 {hidden ? "•••" : fmt(c.saldo)}
@@ -131,6 +140,14 @@ export default function NegocioBanco({ contas = [], setContas, hidden }) {
           <Field label="Nome" required error={formErrors.nome}>
             <input value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder="Ex.: Conta do Negócio" />
           </Field>
+          {(ehTodas || !lojaAtiva) && (
+            <Field label="Loja" required error={formErrors.lojaId}>
+              <select value={form.lojaId || ""} onChange={e => setForm({ ...form, lojaId: e.target.value })}>
+                <option value="">— Escolha —</option>
+                {lojas.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+              </select>
+            </Field>
+          )}
           <Field label="Instituição">
             <input value={form.instituicao} onChange={e => setForm({ ...form, instituicao: e.target.value })} placeholder="Ex.: Itaú, Nubank PJ…" />
           </Field>

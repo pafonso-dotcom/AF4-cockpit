@@ -6,35 +6,40 @@ import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import Field from "../../ui/Field.jsx";
 import Modal from "../../ui/Modal.jsx";
+import { filtrarPorLoja, LOJA_TODAS } from "../../../lib/negocioLojas.js";
 
 /**
- * NegocioDespesasVar — despesas avulsas do Negócio (dados próprios).
- * Campos: { id, descricao, valor, categoria, data (YYYY-MM-DD), conta }.
+ * NegocioDespesasVar — despesas avulsas do Negócio (dados próprios), por loja.
+ * Campos: { id, descricao, valor, categoria, data (YYYY-MM-DD), conta, lojaId }.
  * Mostra total e filtro simples por mês.
  */
-export default function NegocioDespesasVar({ despesas = [], setDespesas, categorias = [], contas = [], hidden }) {
+export default function NegocioDespesasVar({ despesas = [], setDespesas, categorias = [], contas = [], lojaAtiva, lojas = [], hidden }) {
   const [form, setForm] = useState(null);
   const [formErrors, setFormErrors] = useState({});
   const [mesFiltro, setMesFiltro] = useState(""); // "" = todos, ou "YYYY-MM"
+  const ehTodas = lojaAtiva === LOJA_TODAS;
+  const lojaPadrao = lojas[0]?.id || "";
+  const nomeLoja = (id) => (lojas.find((l) => l.id === id)?.nome || "—");
 
   const catsDespesa = (categorias || []).filter(c => c.tipo === "despesa");
+  const daLoja = useMemo(() => filtrarPorLoja(despesas, lojaAtiva), [despesas, lojaAtiva]);
 
   // Meses disponíveis (a partir das datas), pra alimentar o filtro.
   const mesesDisponiveis = useMemo(() => {
     const set = new Set();
-    (despesas || []).forEach(d => { if (d.data) set.add(d.data.slice(0, 7)); });
+    daLoja.forEach(d => { if (d.data) set.add(d.data.slice(0, 7)); });
     return Array.from(set).sort().reverse();
-  }, [despesas]);
+  }, [daLoja]);
 
   const filtradas = useMemo(() => {
-    const arr = !mesFiltro ? (despesas || []) : (despesas || []).filter(d => (d.data || "").startsWith(mesFiltro));
+    const arr = !mesFiltro ? daLoja : daLoja.filter(d => (d.data || "").startsWith(mesFiltro));
     return [...arr].sort((a, b) => (b.data || "").localeCompare(a.data || ""));
-  }, [despesas, mesFiltro]);
+  }, [daLoja, mesFiltro]);
 
   const total = filtradas.reduce((s, d) => s + (Number(d.valor) || 0), 0);
 
   const novo = () =>
-    setForm({ id: null, descricao: "", valor: "", categoria: "", data: todayISO(), conta: "" });
+    setForm({ id: null, descricao: "", valor: "", categoria: "", data: todayISO(), conta: "", lojaId: ehTodas ? lojaPadrao : lojaAtiva });
 
   const save = () => {
     const errs = {};
@@ -44,6 +49,7 @@ export default function NegocioDespesasVar({ despesas = [], setDespesas, categor
       errs.valor = "Valor inválido (ex.: 1500 ou 1.500,00)";
     }
     if (!form.data) errs.data = "Data é obrigatória";
+    if (!form.lojaId) errs.lojaId = "Escolha a loja";
     setFormErrors(errs);
     if (Object.keys(errs).length > 0) {
       toast.error("Verifique os campos destacados.");
@@ -139,6 +145,7 @@ export default function NegocioDespesasVar({ despesas = [], setDespesas, categor
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ color: T.ink, fontSize: 13, fontWeight: 600 }}>{d.descricao}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 1, fontSize: 11, color: T.muted, flexWrap: "wrap" }}>
+                  {ehTodas && <span style={{ padding: "1px 7px", background: `${T.gold}22`, color: T.gold, borderRadius: 4, fontWeight: 600, fontSize: 9.5 }}>{nomeLoja(d.lojaId)}</span>}
                   {d.categoria && (
                     <span style={{ padding: "1px 7px", background: `${corCat(d.categoria)}22`, color: corCat(d.categoria),
                                    borderRadius: 4, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", fontSize: 9.5 }}>
@@ -176,6 +183,14 @@ export default function NegocioDespesasVar({ despesas = [], setDespesas, categor
                    onChange={e => setForm({ ...form, valor: e.target.value })}
                    placeholder="Ex.: 250,00" />
           </Field>
+          {(ehTodas || !lojaAtiva) && (
+            <Field label="Loja" required error={formErrors.lojaId}>
+              <select value={form.lojaId || ""} onChange={e => setForm({ ...form, lojaId: e.target.value })}>
+                <option value="">— Escolha —</option>
+                {lojas.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+              </select>
+            </Field>
+          )}
           <Field label="Categoria">
             <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>
               <option value="">— Sem categoria —</option>

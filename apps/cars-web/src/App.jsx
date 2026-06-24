@@ -106,10 +106,14 @@ const NegocioBanco = lz(() => import("./components/pages/Negocio/NegocioBanco.js
 const NegocioCategorias = lz(() => import("./components/pages/Negocio/NegocioCategorias.jsx"));
 const NegocioDespesasFixas = lz(() => import("./components/pages/Negocio/NegocioDespesasFixas.jsx"));
 const NegocioDespesasVar = lz(() => import("./components/pages/Negocio/NegocioDespesasVar.jsx"));
+const NegocioRecebimentos = lz(() => import("./components/pages/Negocio/NegocioRecebimentos.jsx"));
 const Lembretes = lz(() => import("./components/pages/Lembretes.jsx"));
 const Conversa = lz(() => import("./components/pages/Conversa.jsx"));
 const Treino = lz(() => import("./components/pages/Treino.jsx"));
 import { EXERCICIOS_BASE } from "./lib/exerciciosBase.js";
+import LojaSelector from "./components/pages/Negocio/LojaSelector.jsx";
+import GerenciarLojasModal from "./components/pages/Negocio/GerenciarLojasModal.jsx";
+import { filtrarPorLoja } from "./lib/negocioLojas.js";
 
 // Fallback enquanto o chunk de uma aba (lazy) é baixado.
 function PageFallback() {
@@ -941,8 +945,17 @@ export default function App() {
     </div>
   );
 
-  const renderNegocio = () => (
+  const renderNegocio = () => {
+    const lojaTemItens = (lojaId) =>
+      [negocioFinContas, negocioFinDespesasFixas, negocioFinDespesasVar, negocioRecebimentos]
+        .some(arr => (arr || []).some(i => i.lojaId === lojaId));
+    const mostraSelector = ["negocio-painel", "negocio-banco", "negocio-despesas-fixas", "negocio-despesas-var", "negocio-recebimentos"].includes(tab) || !tab.startsWith("negocio-");
+    return (
     <div className="px-6 md:px-10">
+      {mostraSelector && (
+        <LojaSelector lojas={negocioLojas} lojaAtiva={negocioLojaAtiva} setLojaAtiva={setNegocioLojaAtiva}
+          onGerenciar={() => setGerenciarLojasOpen(true)} />
+      )}
       {(tab === "negocio-painel" || !tab.startsWith("negocio-")) && (
         <NegocioPainel
           negocioVeiculos={negocioVeiculos}
@@ -991,6 +1004,7 @@ export default function App() {
       {tab === "negocio-banco" && (
         <NegocioBanco
           contas={negocioFinContas} setContas={setNegocioFinContas}
+          lojaAtiva={negocioLojaAtiva} lojas={negocioLojas}
           hidden={hidden}
         />
       )}
@@ -1003,18 +1017,34 @@ export default function App() {
         <NegocioDespesasFixas
           despesas={negocioFinDespesasFixas} setDespesas={setNegocioFinDespesasFixas}
           categorias={negocioFinCategorias}
+          lojaAtiva={negocioLojaAtiva} lojas={negocioLojas}
           hidden={hidden}
         />
       )}
       {tab === "negocio-despesas-var" && (
         <NegocioDespesasVar
           despesas={negocioFinDespesasVar} setDespesas={setNegocioFinDespesasVar}
-          categorias={negocioFinCategorias} contas={negocioFinContas}
+          categorias={negocioFinCategorias} contas={filtrarPorLoja(negocioFinContas, negocioLojaAtiva)}
+          lojaAtiva={negocioLojaAtiva} lojas={negocioLojas}
           hidden={hidden}
         />
       )}
+      {tab === "negocio-recebimentos" && (
+        <NegocioRecebimentos
+          recebimentos={negocioRecebimentos} setRecebimentos={setNegocioRecebimentos}
+          categorias={negocioFinCategorias} contas={filtrarPorLoja(negocioFinContas, negocioLojaAtiva)}
+          lojaAtiva={negocioLojaAtiva} lojas={negocioLojas}
+          hidden={hidden}
+        />
+      )}
+      {gerenciarLojasOpen && (
+        <GerenciarLojasModal lojas={negocioLojas} setLojas={setNegocioLojas}
+          lojaAtiva={negocioLojaAtiva} setLojaAtiva={setNegocioLojaAtiva}
+          temItens={lojaTemItens} onClose={() => setGerenciarLojasOpen(false)} />
+      )}
     </div>
-  );
+    );
+  };
 
   const renderInvest = () => (
     <>

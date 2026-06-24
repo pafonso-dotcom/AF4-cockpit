@@ -13,7 +13,7 @@ import {
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
   BookOpen, Repeat, MoreHorizontal, RotateCw, LogOut,
-  Bell, Dumbbell, Brain,
+  Bell, Dumbbell, Brain, HandCoins,
 } from "lucide-react";
 
 /**
@@ -169,6 +169,7 @@ function HeaderHorizontal({
       { id: "negocio-categorias",     label: "Categorias",         icon: Tag },
       { id: "negocio-despesas-fixas", label: "Despesas fixas",     icon: Repeat },
       { id: "negocio-despesas-var",   label: "Despesas variáveis", icon: Receipt },
+      { id: "negocio-recebimentos",   label: "Recebimentos",       icon: HandCoins },
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência",    icon: Sparkles },
@@ -666,6 +667,7 @@ function HeaderVertical({
       { id: "negocio-categorias",     label: "Categorias",         icon: Tag },
       { id: "negocio-despesas-fixas", label: "Despesas fixas",     icon: Repeat },
       { id: "negocio-despesas-var",   label: "Despesas variáveis", icon: Receipt },
+      { id: "negocio-recebimentos",   label: "Recebimentos",       icon: HandCoins },
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência", icon: Sparkles },
