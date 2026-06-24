@@ -236,6 +236,11 @@ export default function App() {
   const [negocioFinCategorias, setNegocioFinCategorias] = useState([]);
   const [negocioFinDespesasFixas, setNegocioFinDespesasFixas] = useState([]);
   const [negocioFinDespesasVar, setNegocioFinDespesasVar] = useState([]);
+  // Financeiro por loja: lojas, loja ativa e lista de recebimentos (entradas).
+  const [negocioLojas, setNegocioLojas] = useState([]);
+  const [negocioLojaAtiva, setNegocioLojaAtiva] = useState("");
+  const [negocioRecebimentos, setNegocioRecebimentos] = useState([]);
+  const [gerenciarLojasOpen, setGerenciarLojasOpen] = useState(false);
   // Proventos marcados como recebidos: { [proventoKey]: { dataBaixa, destino, valor } }
   const [proventosRecebidos, setProventosRecebidos] = useState({});
   // Proventos que o user marcou como "Ignorados" (não interessam, foram
@@ -280,6 +285,7 @@ export default function App() {
         setNegocioInstaladores, setObjetivosCarteira, setCarteirasModeloCustom,
         setModeloAtivoId, setCarteiraProventos, setCaixaNegocio, setNegocioBancos,
         setNegocioFinContas, setNegocioFinCategorias, setNegocioFinDespesasFixas, setNegocioFinDespesasVar,
+        setNegocioLojas, setNegocioLojaAtiva, setNegocioRecebimentos,
         setProventosRecebidos, setProventosIgnorados, setProventosManuais,
         setTradeWatchlist, setTradeHistorico, setTradeAnalisesIdV,
         setTradeOnboardingVisto, setThemeId,
@@ -320,6 +326,7 @@ export default function App() {
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       caixaNegocio, negocioBancos,
       negocioFinContas, negocioFinCategorias, negocioFinDespesasFixas, negocioFinDespesasVar,
+      negocioLojas, negocioLojaAtiva, negocioRecebimentos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
       themeId,
@@ -332,6 +339,7 @@ export default function App() {
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
       caixaNegocio, negocioBancos,
       negocioFinContas, negocioFinCategorias, negocioFinDespesasFixas, negocioFinDespesasVar,
+      negocioLojas, negocioLojaAtiva, negocioRecebimentos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
       themeId, loading]);
