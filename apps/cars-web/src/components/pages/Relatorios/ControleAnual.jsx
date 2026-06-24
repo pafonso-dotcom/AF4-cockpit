@@ -293,6 +293,19 @@ export default function ControleAnual({
       />
       )}
 
+      {/* No Centro de controle (embed) o cabeçalho some — mostra só o seletor de ano. */}
+      {embed && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+          <select value={ano} onChange={e => setAno(parseInt(e.target.value))}
+                  style={{ padding: "6px 10px", background: T.bgSoft, border: `1px solid ${T.border}`,
+                           color: T.ink, fontSize: 12, borderRadius: 10, cursor: "pointer" }}>
+            {[anoCorrente - 2, anoCorrente - 1, anoCorrente, anoCorrente + 1, anoCorrente + 2].map(y =>
+              <option key={y} value={y}>{y}</option>
+            )}
+          </select>
+        </div>
+      )}
+
       <div className="print-area" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "auto" }}>
         <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 900 }}>
           <thead>
