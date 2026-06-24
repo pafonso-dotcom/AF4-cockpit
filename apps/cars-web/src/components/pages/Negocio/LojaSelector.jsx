@@ -4,20 +4,37 @@ import { T } from "../../../lib/theme.js";
 import { LOJA_TODAS } from "../../../lib/negocioLojas.js";
 
 /**
- * Barra de seleção de loja (financeiro do Negócio): dropdown + botão Gerenciar.
+ * Barra de seleção de loja (financeiro do Negócio): nomes das lojas FIXOS no
+ * menu (chips clicáveis, sempre à vista) + botão Gerenciar. A loja ativa fica
+ * destacada.
  */
 export default function LojaSelector({ lojas = [], lojaAtiva, setLojaAtiva, onGerenciar, incluirTodas = true }) {
+  const itens = [
+    ...(incluirTodas ? [{ id: LOJA_TODAS, nome: "Todas as lojas" }] : []),
+    ...lojas,
+  ];
+  const chip = (ativo) => ({
+    background: ativo ? T.gold : "transparent",
+    color: ativo ? T.bg : T.ink,
+    border: `1px solid ${ativo ? T.gold : T.border}`,
+    borderRadius: 999,
+    padding: "5px 12px",
+    fontSize: 12.5,
+    fontWeight: 600,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  });
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-      <span style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 700 }}>Loja</span>
-      <select value={lojaAtiva} onChange={(e) => setLojaAtiva(e.target.value)}
-        style={{ background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, borderRadius: 8, padding: "5px 10px", fontSize: 12.5, cursor: "pointer", fontWeight: 600 }}>
-        {incluirTodas && <option value={LOJA_TODAS}>Todas as lojas</option>}
-        {lojas.map((l) => <option key={l.id} value={l.id}>{l.nome}</option>)}
-      </select>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+      <span style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginRight: 2 }}>Loja</span>
+      {itens.map((l) => (
+        <button key={l.id} onClick={() => setLojaAtiva(l.id)} style={chip(lojaAtiva === l.id)}>
+          {l.nome}
+        </button>
+      ))}
       {onGerenciar && (
         <button onClick={onGerenciar} title="Gerenciar lojas"
-          style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 8, padding: "5px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+          style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 999, padding: "5px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
           <Settings size={14} />
         </button>
       )}
