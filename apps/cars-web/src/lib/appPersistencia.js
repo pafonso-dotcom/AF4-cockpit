@@ -39,6 +39,7 @@ export function aplicarDadosCarregados(data, S) {
   }));
   S.setDevedores(data.devedores || seedDevedores);
   S.setDividas(data.dividas || seedDividas);
+  S.setCheques(data.cheques || []);
   // Migração silenciosa: se backup antigo não tem essas chaves, vira []
   S.setFixas(data.fixas || []);
   S.setFixaOcorrencias(data.fixaOcorrencias || []);
@@ -114,6 +115,7 @@ export function aplicarSeeds(S) {
   }));
   S.setDevedores(seedDevedores);
   S.setDividas(seedDividas);
+  S.setCheques([]);
   S.setFixas([]);
   S.setFixaOcorrencias([]);
   S.setAgenda([]);

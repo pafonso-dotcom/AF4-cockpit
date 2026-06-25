@@ -13,7 +13,7 @@ import {
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
   BookOpen, Repeat, MoreHorizontal, RotateCw, LogOut,
-  Bell, Dumbbell, Brain, HandCoins,
+  Bell, Dumbbell, Brain, HandCoins, FileText,
 } from "lucide-react";
 
 /**
@@ -143,6 +143,7 @@ function HeaderHorizontal({
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
+      { id: "cheques",      label: "Cheques",      icon: FileText },
       { id: "audit",        label: "Histórico",    icon: History },
       // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
       // que ficam escondidas até clicar aqui.
@@ -641,6 +642,7 @@ function HeaderVertical({
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
+      { id: "cheques",      label: "Cheques",      icon: FileText },
       { id: "audit",        label: "Histórico",    icon: History },
       // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
       // que ficam escondidas até clicar aqui.
