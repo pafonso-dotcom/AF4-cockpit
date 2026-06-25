@@ -92,6 +92,7 @@ const InvestPainel = lz(() => import("./components/pages/Invest/InvestPainel.jsx
 const Proventos = lz(() => import("./components/pages/Invest/Proventos.jsx"));
 const RelatoriosInvest = lz(() => import("./components/pages/Invest/RelatoriosInvest.jsx"));
 const RelatoriosFinancas = lz(() => import("./components/pages/RelatoriosFinancas.jsx"));
+const Cheques = lz(() => import("./components/pages/Cheques.jsx"));
 const Inteligencia = lz(() => import("./components/pages/Inteligencia.jsx"));
 const CartaoExtrato = lz(() => import("./components/pages/CartaoExtrato.jsx"));
 const ContaExtrato = lz(() => import("./components/pages/ContaExtrato.jsx"));
@@ -175,6 +176,7 @@ export default function App() {
   const [parcelamentos, setParcelamentos] = useState([]);
   const [devedores, setDevedores] = useState([]);
   const [dividas, setDividas] = useState([]);
+  const [cheques, setCheques] = useState([]); // cheques a receber (aguardando/compensado/devolvido)
 
   // Escopo financeiro · Pessoal / Negócio / Tudo
   const [escopoAtivo, setEscopoAtivo] = useState(lerEscopo());
@@ -280,7 +282,7 @@ export default function App() {
       try {
       const SETTERS = {
         setContas, setCategorias, setTransacoes, setAtivos, setMetas, setNotas,
-        setCartoes, setParcelamentos, setDevedores, setDividas,
+        setCartoes, setParcelamentos, setDevedores, setDividas, setCheques,
         setFixas, setFixaOcorrencias, setAgenda, setHabitos, setDiario, setCompras,
         setIdeias, setTarefas, setSugestoes, setLembretes, setConversaHistorico,
         setExerciciosDB, setTreinoTemplates, setTreinos, setPatrimonioHistorico,
@@ -322,7 +324,7 @@ export default function App() {
     if (loading) return;
     saveAll({
       contas, categorias, transacoes, ativos, metas, notas,
-      cartoes, parcelamentos, devedores, dividas,
+      cartoes, parcelamentos, devedores, dividas, cheques,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
       negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes, negocioInstaladores,
@@ -398,7 +400,7 @@ export default function App() {
       if (!(await shouldAutoBackup())) return;
       const snapshot = {
         contas, categorias, transacoes, ativos, metas,
-        cartoes, parcelamentos, devedores, dividas,
+        cartoes, parcelamentos, devedores, dividas, cheques,
         fixas, fixaOcorrencias,
         themeId,
         savedAt: new Date().toISOString(),
@@ -466,7 +468,7 @@ export default function App() {
     const tick = () => {
       const cfg = getNotifCfg();
       if (!cfg.habilitada) return;
-      checkAndNotify({ devedores, dividas });
+      checkAndNotify({ devedores, dividas, cheques });
     };
     tick(); // primeira vez logo após boot
     const id = setInterval(tick, 30 * 60 * 1000); // a cada 30min
@@ -718,7 +720,7 @@ export default function App() {
         <Dashboard totais={totais} hidden={hidden} contas={contas} ativos={ativos}
                    transacoes={transacoes} categorias={categorias} metas={metas}
                    cartoes={cartoes} parcelamentos={parcelamentos}
-                   devedores={devedores} dividas={dividas}
+                   devedores={devedores} dividas={dividas} cheques={cheques}
                    fixas={fixas} fixaOcorrencias={fixaOcorrencias}
                    agenda={agenda}
                    patrimonioHistorico={patrimonioHistorico}
@@ -755,6 +757,7 @@ export default function App() {
           categorias={categorias} setCategorias={setCategorias}
           devedores={devedores} setDevedores={setDevedores}
           dividas={dividas} setDividas={setDividas}
+          cheques={cheques}
           fixas={fixas} setFixas={setFixas}
           fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
           parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
@@ -789,7 +792,7 @@ export default function App() {
             apiKey={apiKeys.anthropic}
             onSaveKey={(k) => setApiKeys(prev => ({ ...prev, anthropic: k }))}
             transacoes={transacoes} contas={contas} ativos={ativos}
-            devedores={devedores} dividas={dividas}
+            devedores={devedores} dividas={dividas} cheques={cheques}
           />
         </div>
       )}
@@ -825,9 +828,18 @@ export default function App() {
                             categorias={categorias}
                             fixas={fixas} fixaOcorrencias={fixaOcorrencias}
                             parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
+                            cheques={cheques}
                             patrimonioHistorico={patrimonioHistorico}
                             escopoAtivo={escopoAtivo}
                             hidden={hidden} />
+      )}
+      {tab === "cheques" && (
+        <Cheques
+          cheques={cheques} setCheques={setCheques}
+          contas={contas} setContas={setContas}
+          transacoes={transacoes} setTransacoes={setTransacoes}
+          escopoAtivo={escopoAtivo} hidden={hidden}
+        />
       )}
       {tab === "transacoes" && (
         <Transacoes transacoes={transacoes} setTransacoes={setTransacoes}
@@ -1180,15 +1192,15 @@ export default function App() {
                      // antes do timer faz a versão antiga voltar do cloud).
                      const cleared = {
                        contas, categorias, transacoes, ativos, metas, notas,
-                       cartoes, parcelamentos, devedores, dividas, themeId,
+                       cartoes, parcelamentos, devedores, dividas, cheques, themeId,
                      };
                      if (id === "financas") {
                        cleared.contas = []; cleared.cartoes = []; cleared.parcelamentos = [];
                        cleared.transacoes = []; cleared.categorias = [];
-                       cleared.metas = []; cleared.notas = []; cleared.devedores = []; cleared.dividas = [];
+                       cleared.metas = []; cleared.notas = []; cleared.devedores = []; cleared.dividas = []; cleared.cheques = [];
                        setContas([]); setCartoes([]); setParcelamentos([]);
                        setTransacoes([]); setCategorias([]);
-                       setMetas([]); setNotas([]); setDevedores([]); setDividas([]);
+                       setMetas([]); setNotas([]); setDevedores([]); setDividas([]); setCheques([]);
                      } else if (id === "invest") {
                        cleared.ativos = [];
                        setAtivos([]);

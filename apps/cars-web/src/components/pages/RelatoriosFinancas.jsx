@@ -25,7 +25,7 @@ import EvolucaoPatrimonio from "./Invest/EvolucaoPatrimonio.jsx";
  */
 export default function RelatoriosFinancas({
   transacoes: transacoesRaw = [], contas: contasRaw = [], categorias = [],
-  fixas = [], fixaOcorrencias = [], parcelamentos = [], dividas = [], devedores = [],
+  fixas = [], fixaOcorrencias = [], parcelamentos = [], dividas = [], devedores = [], cheques = [],
   patrimonioHistorico = [],
   escopoAtivo = "tudo",
   hidden,
@@ -65,7 +65,7 @@ export default function RelatoriosFinancas({
   // expandida + fixas/parcelas/dívidas), pra os números baterem entre as telas.
   const topCategorias = useMemo(() => {
     const mes = new Date().toISOString().slice(0, 7);
-    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores };
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques };
     let desp = [];
     try { desp = getDespesasDoMes(mes, state, escopoAtivo); } catch {}
     const mapa = {};
@@ -158,7 +158,7 @@ export default function RelatoriosFinancas({
   // ===== Projeção REAL · meses a vencer (compromissos já agendados) =====
   const projecaoReal = useMemo(() => {
     const hoje = new Date();
-    const state = { transacoes, fixas, fixaOcorrencias, parcelamentos, dividas, devedores };
+    const state = { transacoes, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques };
     const meses = [];
     for (let i = 1; i <= 6; i++) {
       const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
@@ -189,7 +189,7 @@ export default function RelatoriosFinancas({
   }, [anoProj]);
 
   const projecao = useMemo(() => {
-    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores };
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques };
     const map = {}; // chave: `${fonte}||${categoria}`
     proximosMeses.forEach(m => {
       let desp = [];
@@ -259,7 +259,7 @@ export default function RelatoriosFinancas({
   // A conta "bem" (imóvel/veículo/patrimônio físico) fica fora do saldo líquido.
   const ehBem = (c) => /\bbem\b|\bbens\b|im[oó]ve|ve[ií]cul|autom[oó]ve|\bcarro\b|patrim/i.test(c?.nome || "");
   const cenarios = useMemo(() => {
-    const stateRaw = { transacoes: transacoesRaw, contas: contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores };
+    const stateRaw = { transacoes: transacoesRaw, contas: contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques };
     const cenario = (escopo) => {
       const contasEsc = filtrarPorEscopo(contasRaw || [], escopo).filter(c => !ehBem(c));
       const saldoInicial = contasEsc.reduce((s, c) => s + (Number(c.saldo) || 0), 0);

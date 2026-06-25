@@ -37,6 +37,7 @@ function aplicarEscopo(state, escopo) {
     dividas: (state.dividas || []).filter(noEscopo),
     parcelamentos: (state.parcelamentos || []).filter(noEscopo),
     devedores: (state.devedores || []).filter(noEscopo),
+    cheques: (state.cheques || []).filter(noEscopo),
   };
 }
 
@@ -275,6 +276,19 @@ export function getGanhosDoMes(mesISO, state = {}, escopo) {
       status: t.compensado ? "paga" : "pendente",
       categoria: t.categoria || "Receita",
       subcategoria: t.subcategoria || "",
+    });
+  });
+
+  // 3. Cheques aguardando — recebível pendente no mês do vencimento.
+  // (Compensado entra pela transação tipo receita; devolvido não conta.)
+  (state.cheques || []).forEach(c => {
+    if (c.status !== "aguardando") return;
+    if (!(c.vencimento || "").startsWith(mesISO)) return;
+    out.push({
+      id: `cheque::${c.id}`, fonte: "cheque", tipo: "ganho",
+      descricao: `Cheque de ${c.de || "—"}`,
+      data: c.vencimento, valor: Number(c.valor) || 0,
+      status: "pendente", categoria: "Cheques",
     });
   });
 
