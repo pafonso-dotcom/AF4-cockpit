@@ -182,8 +182,8 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
                   {c.status === "compensado" && (
                     <button onClick={() => estornar(c)} title="Estornar compensação" style={btnGhost}><RotateCcw size={12} /> Estornar</button>
                   )}
-                  {c.status === "aguardando" && (
-                    <button onClick={() => devolver(c)} title="Marcar devolvido" style={{ ...btnGhost, color: T.red, borderColor: `${T.red}55` }}>Devolver</button>
+                  {(c.status === "aguardando" || c.status === "compensado") && (
+                    <button onClick={() => devolver(c)} title="Marcar devolvido (sem fundo)" style={{ ...btnGhost, color: T.red, borderColor: `${T.red}55` }}>Devolver</button>
                   )}
                   {c.status === "devolvido" && (
                     <button onClick={() => reativar(c)} title="Voltar para aguardando" style={btnGhost}><RotateCcw size={12} /> Reativar</button>
