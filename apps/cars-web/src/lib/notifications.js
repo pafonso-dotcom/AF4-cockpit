@@ -127,16 +127,17 @@ export function checkAndNotify({ devedores = [], dividas = [], cheques = [] }) {
   // Cheques (a compensar)
   if (cfg.tipos.cheques) {
     cheques.filter(c => c.status === "aguardando").forEach(c => {
-      const d = diasAte(c.data);
+      const nome = c.de || c.emitente || "Emitente";
+      const d = diasAte(c.vencimento || c.data);
       if (d === null) return;
       if (d < 0) {
         tryFire(`cheque-atraso-${c.id}`,
           "⚠ Cheque vencido sem compensar",
-          `${c.emitente || "Emitente"} · ${formatBRL(c.valor)} · venceu há ${Math.abs(d)} ${Math.abs(d) === 1 ? "dia" : "dias"}`);
+          `${nome} · ${formatBRL(c.valor)} · venceu há ${Math.abs(d)} ${Math.abs(d) === 1 ? "dia" : "dias"}`);
       } else if (d <= cfg.antecedenciaDias) {
         tryFire(`cheque-${c.id}`,
           d === 0 ? "💰 Cheque vence HOJE" : d === 1 ? "💰 Cheque vence AMANHÃ" : `💰 Cheque vence em ${d} dias`,
-          `${c.emitente || "Emitente"} · Nº ${c.numero || "—"} · ${formatBRL(c.valor)} · ${c.banco || ""}`);
+          `${nome} · Nº ${c.numero || "—"} · ${formatBRL(c.valor)} · ${c.banco || ""}`);
       }
     });
   }
