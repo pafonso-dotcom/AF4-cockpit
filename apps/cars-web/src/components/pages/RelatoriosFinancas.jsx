@@ -41,6 +41,8 @@ export default function RelatoriosFinancas({
 
   const [pngOk, setPngOk] = useState(false);
   useEffect(() => { hasPNGSupport().then(setPngOk); }, []);
+  const anoAtualProj = new Date().getFullYear();
+  const [anoProj, setAnoProj] = useState(anoAtualProj);
   const mesAtualKey = new Date().toISOString().slice(0, 7);
   // ===== Receita vs Despesa últimos 6 meses =====
   const seisMeses = useMemo(() => {
@@ -177,12 +179,14 @@ export default function RelatoriosFinancas({
   const proximosMeses = useMemo(() => {
     const out = [];
     const now = new Date();
-    for (let i = 1; i <= 6; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    // Ponto de partida: ano corrente → a partir do próximo mês; outro ano → janeiro.
+    const baseM = anoProj === now.getFullYear() ? now.getMonth() + 1 : 0;
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(anoProj, baseM + i, 1);
       out.push({ iso: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: `${MESES_PROJ[d.getMonth()]}/${String(d.getFullYear()).slice(2)}` });
     }
     return out;
-  }, []);
+  }, [anoProj]);
 
   const projecao = useMemo(() => {
     const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores };
@@ -349,9 +353,18 @@ td.neg { color:#b3261e; }
             <div style={{ fontSize: 11, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Projeção · Meses a vencer</div>
             <div style={{ fontFamily: FONTE_ARRED, fontSize: 17, fontWeight: 700, color: T.ink }}>Por categoria · {periodoLabel}</div>
           </div>
-          <button onClick={imprimirProjecao} className="btn-gold" style={{ padding: "8px 14px", fontSize: 12 }}>
-            🖨️ Imprimir (A4 · 1 folha)
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <select value={anoProj} onChange={e => setAnoProj(parseInt(e.target.value))}
+                    style={{ padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`,
+                             color: T.ink, fontSize: 12, borderRadius: 10, cursor: "pointer" }}>
+              {[anoAtualProj - 1, anoAtualProj, anoAtualProj + 1, anoAtualProj + 2].map(y =>
+                <option key={y} value={y}>{y}</option>
+              )}
+            </select>
+            <button onClick={imprimirProjecao} className="btn-gold" style={{ padding: "8px 14px", fontSize: 12 }}>
+              🖨️ Imprimir (A4 · 1 folha)
+            </button>
+          </div>
         </div>
         {projecao.vazio ? (
           <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 12.5 }}>
