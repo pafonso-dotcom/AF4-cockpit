@@ -74,7 +74,7 @@ function nextMonthsISO(n = 6) {
 
 export default function Dashboard({
   hidden, contas: contasRaw, ativos = [], transacoes: transacoesRaw,
-  categorias, metas, cartoes = [], parcelamentos = [], devedores = [], dividas = [],
+  categorias, metas, cartoes = [], parcelamentos = [], devedores = [], dividas = [], cheques = [],
   fixas = [], fixaOcorrencias = [],
   agenda = [],
   patrimonioHistorico = [],
@@ -143,7 +143,7 @@ export default function Dashboard({
   // Planejamento. (O `despesasMes` acima, em regime de caixa, segue sendo
   // usado só pro fluxo de patrimônio.)
   const stateAgg = useMemo(
-    () => ({ transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes }),
+    () => ({ transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques }),
     [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes]
   );
   // A pagar do ano (todos os compromissos pendentes/atrasados com vencimento no
@@ -293,7 +293,7 @@ export default function Dashboard({
   const aPagarHoje = useMemo(() => {
     const hoje = new Date().toISOString().slice(0, 10);
     const mesISO = hoje.slice(0, 7);
-    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques };
     let desp = [];
     try { desp = getDespesasDoMes(mesISO, state, escopoAtivo); } catch {}
     return desp
@@ -303,7 +303,7 @@ export default function Dashboard({
 
   // ===== Contas a PAGAR do mês (total + qtd) — pendentes/atrasadas =====
   const aPagarMes = useMemo(() => {
-    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques };
     let desp = [];
     try { desp = getDespesasDoMes(mesISO, state, escopoAtivo); } catch {}
     const ap = desp.filter(d => d.status !== "paga");
@@ -314,7 +314,7 @@ export default function Dashboard({
   // Olha o mês corrente + o próximo. Prioriza o próximo a vencer (>= hoje);
   // se não houver, mostra o atrasado mais recente.
   const proximoCompromisso = useMemo(() => {
-    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques };
     const hojeISO = hoje.toISOString().slice(0, 10);
     const [yy, mm] = mesISO.split("-").map(Number);
     const prox = new Date(yy, mm, 1);
@@ -332,7 +332,7 @@ export default function Dashboard({
 
   // ===== Projeção próximos 6 meses =====
   const projecao = useMemo(() => {
-    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes };
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques };
     return nextMonthsISO(6).map(m => {
       let kpi = null;
       try { kpi = getKPIsMes(m.iso, state, escopoAtivo); } catch {}

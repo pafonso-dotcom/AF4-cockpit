@@ -720,7 +720,7 @@ export default function App() {
         <Dashboard totais={totais} hidden={hidden} contas={contas} ativos={ativos}
                    transacoes={transacoes} categorias={categorias} metas={metas}
                    cartoes={cartoes} parcelamentos={parcelamentos}
-                   devedores={devedores} dividas={dividas}
+                   devedores={devedores} dividas={dividas} cheques={cheques}
                    fixas={fixas} fixaOcorrencias={fixaOcorrencias}
                    agenda={agenda}
                    patrimonioHistorico={patrimonioHistorico}
@@ -757,6 +757,7 @@ export default function App() {
           categorias={categorias} setCategorias={setCategorias}
           devedores={devedores} setDevedores={setDevedores}
           dividas={dividas} setDividas={setDividas}
+          cheques={cheques}
           fixas={fixas} setFixas={setFixas}
           fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
           parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
@@ -827,6 +828,7 @@ export default function App() {
                             categorias={categorias}
                             fixas={fixas} fixaOcorrencias={fixaOcorrencias}
                             parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
+                            cheques={cheques}
                             patrimonioHistorico={patrimonioHistorico}
                             escopoAtivo={escopoAtivo}
                             hidden={hidden} />

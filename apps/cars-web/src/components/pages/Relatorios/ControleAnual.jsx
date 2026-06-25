@@ -40,6 +40,7 @@ export default function ControleAnual({
   parcelamentos = [],
   setParcelamentos,
   devedores = [],
+  cheques = [],
   escopoAtivo = "tudo",
   embed = false,
   hidden,
@@ -55,10 +56,10 @@ export default function ControleAnual({
   // transações pertencem ao escopo (Pessoal/Negócio). Sem isso o relatório
   // mostrava receitas/despesas de TODOS os escopos, sem bater com a tela de
   // Transações (que é filtrada por escopo).
-  const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores };
+  const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques };
   const linhas = useMemo(
     () => getAnualPorMes(ano, state, escopoAtivo),
-    [ano, transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, escopoAtivo]
+    [ano, transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, escopoAtivo]
   );
 
   const totais = useMemo(() => {
