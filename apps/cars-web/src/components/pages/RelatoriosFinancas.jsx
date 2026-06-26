@@ -251,7 +251,23 @@ export default function RelatoriosFinancas({
     const saldoTotal = (receber ? receber.subTotal : 0) - totalGeral;
 
     return { grupos, totaisMes, totalGeral, media: totalGeral / n, receber, saldoMes, saldoTotal, saldoMedia: saldoTotal / n, vazio: todas.length === 0 && !receber };
-  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, escopoAtivo, proximosMeses]);
+  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, escopoAtivo, proximosMeses]);
+
+  // ===== Cheques a receber (aguardando) — TODOS, independente da janela de projeção =====
+  // A matriz acima só cobre 6 meses; um cheque com vencimento fora dessa janela
+  // (ex.: ano seguinte) não aparece lá. Esta seção lista todos os aguardando.
+  const chequesAReceber = useMemo(() => {
+    const noEsc = (c) => escopoAtivo === "tudo" || (c.escopo || "pessoal") === escopoAtivo;
+    const hoje = new Date().toISOString().slice(0, 10);
+    const lista = (cheques || [])
+      .filter(c => c.status === "aguardando" && noEsc(c))
+      .slice()
+      .sort((a, b) => (a.vencimento || "").localeCompare(b.vencimento || ""))
+      .map(c => ({ ...c, vencido: (c.vencimento || "") < hoje }));
+    const total = lista.reduce((s, c) => s + (Number(c.valor) || 0), 0);
+    return { lista, total };
+  }, [cheques, escopoAtivo]);
+  const fmtData = (d) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "—";
 
   // ===== Cenários de Saldo previsto =====
   // Parte do SALDO ATUAL das contas e acumula (A receber − Saídas) mês a mês.
@@ -485,6 +501,56 @@ td.neg { color:#b3261e; }
                     <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmt(cenarios.bensTotal)}</td>
                   </tr>
                 )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Cheques a receber — todos os aguardando, independente do ano/janela */}
+      <div style={{ marginTop: 16, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, boxShadow: CARD_SHADOW, fontFamily: FONTE_ARRED }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+          <div>
+            <div style={{ fontSize: 11, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Recebíveis</div>
+            <div style={{ fontFamily: FONTE_ARRED, fontSize: 17, fontWeight: 700, color: T.ink }}>Cheques a receber</div>
+          </div>
+          {chequesAReceber.lista.length > 0 && (
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Total aguardando</div>
+              <div className="num" style={{ fontSize: 18, fontWeight: 700, color: T.gold }}>{hidden ? "•••" : fmt(chequesAReceber.total)}</div>
+            </div>
+          )}
+        </div>
+        {chequesAReceber.lista.length === 0 ? (
+          <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 12.5 }}>
+            Nenhum cheque aguardando compensação.
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table className="tbl" style={{ width: "100%", minWidth: 520, fontSize: 12 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left" }}>Vencimento</th>
+                  <th style={{ textAlign: "left" }}>Emitente</th>
+                  <th style={{ textAlign: "left" }}>Banco · nº</th>
+                  <th style={{ textAlign: "right" }}>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {chequesAReceber.lista.map(c => (
+                  <tr key={c.id}>
+                    <td style={{ color: c.vencido ? T.red : T.ink, fontWeight: 700, whiteSpace: "nowrap" }}>
+                      {fmtData(c.vencimento)}{c.vencido ? " · vencido" : ""}
+                    </td>
+                    <td style={{ color: T.ink, fontWeight: 500 }}>{c.de || "—"}</td>
+                    <td style={{ color: T.muted }}>{[c.banco, c.numero ? `nº ${c.numero}` : ""].filter(Boolean).join(" · ") || "—"}</td>
+                    <td className="num" style={{ textAlign: "right", color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(c.valor)}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td colSpan={3} style={{ fontWeight: 700, color: T.ink, borderTop: `2px solid ${T.ink}` }}>Total</td>
+                  <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.gold, borderTop: `2px solid ${T.ink}` }}>{hidden ? "•••" : fmt(chequesAReceber.total)}</td>
+                </tr>
               </tbody>
             </table>
           </div>
