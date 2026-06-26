@@ -357,7 +357,7 @@ export default function Dashboard({
   const principalInsight = insights[0];
 
   return (
-    <div className="fade-up">
+    <div className="fade-up" style={{ paddingTop: 12 }}>
 
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
