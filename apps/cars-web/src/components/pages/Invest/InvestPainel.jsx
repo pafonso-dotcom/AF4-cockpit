@@ -6,6 +6,8 @@ import { fmt, fmtN, fmtUSD } from "../../../lib/format.js";
 import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, ehUS } from "../../../lib/invest-constants.js";
 import { calcAlocacaoPorClasse, calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
 import { buscarCotacao } from "../../../lib/cambio.js";
+import { getHistorico } from "../../../lib/brapi.js";
+import { detectarFonte } from "../../../lib/cotacoes.js";
 import { CARD_SHADOW } from "../../../lib/styles.js";
 import IndicesGlobais from "../IndicesGlobais.jsx";
 
@@ -399,11 +401,70 @@ function AlocacaoCard({ dataBR = [], totalBR = 0, dataUSA = [], totalUSA = 0, hi
   );
 }
 
-// Mini-tendência por ativo: linha do ganho vs preço médio (sem histórico diário
-// armazenado por ativo, a direção segue a rentabilidade). Verde sobe, vermelho desce.
-function MiniTrend({ rentab = 0, cor, w = 56, h = 20 }) {
-  const r = Number(rentab) || 0;
-  const data = [100, 100 + r];
+// ===== Sparklines reais (histórico de preço via BRAPI), com cache local =====
+const SPARK_TTL = 12 * 3600 * 1000; // 12h — evita estourar o limite mensal BRAPI
+const sparkKey = (tk) => `af4:spark:${tk}`;
+
+function lerSparkCache(tk) {
+  try {
+    const raw = localStorage.getItem(sparkKey(tk));
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o || !Array.isArray(o.serie) || o.serie.length < 2) return null;
+    return o; // { t, serie }
+  } catch { return null; }
+}
+function gravarSparkCache(tk, serie) {
+  try { localStorage.setItem(sparkKey(tk), JSON.stringify({ t: Date.now(), serie })); } catch {}
+}
+
+// Busca (com cache) a série de fechamento dos últimos meses para os tickers BRAPI
+// visíveis. Sem token BRAPI ou para cripto/renda fixa, não busca → cai no fallback.
+function useSparklines(items) {
+  const [map, setMap] = useState({});
+  const tickers = (items || [])
+    .map(x => x.ativo)
+    .filter(a => a && (a.ticker || a.symbol) && detectarFonte(a.ticker || a.symbol) === "brapi" && a.tipo !== "capitalSocial")
+    .map(a => a.ticker || a.symbol);
+  const chave = tickers.join(",");
+  useEffect(() => {
+    let cancel = false;
+    let temToken = false;
+    try { temToken = !!localStorage.getItem("af4:brapi-token"); } catch {}
+    const out = {};
+    // 1) Cache fresco entra na hora.
+    for (const tk of tickers) {
+      const c = lerSparkCache(tk);
+      if (c && Date.now() - c.t < SPARK_TTL) out[tk] = c.serie;
+    }
+    if (Object.keys(out).length) setMap(prev => ({ ...prev, ...out }));
+    // 2) Sem token, não tenta rede (renda fixa/cripto também não têm histórico BRAPI).
+    if (!temToken) return () => { cancel = true; };
+    (async () => {
+      for (const tk of tickers) {
+        if (out[tk]) continue; // já veio do cache
+        try {
+          const hist = await getHistorico(tk, "3mo", "1d");
+          const serie = hist.map(h => h.close).filter(v => Number.isFinite(v) && v > 0);
+          if (serie.length >= 2) {
+            gravarSparkCache(tk, serie);
+            if (!cancel) setMap(prev => ({ ...prev, [tk]: serie }));
+          }
+        } catch { /* token inválido / limite / rede: silencioso, usa fallback */ }
+        if (cancel) return;
+      }
+    })();
+    return () => { cancel = true; };
+  }, [chave]);
+  return map;
+}
+
+// Mini-gráfico do ativo. Com histórico real (série BRAPI) desenha a curva de
+// fechamento; sem ele, cai numa linha de tendência do ganho vs preço médio.
+// Verde sobe, vermelho desce.
+function MiniTrend({ serie, rentab = 0, cor, w = 56, h = 20 }) {
+  const real = Array.isArray(serie) && serie.length >= 2;
+  const data = real ? serie : [100, 100 + (Number(rentab) || 0)];
   const min = Math.min(...data), max = Math.max(...data);
   const span = max - min || 1;
   const pts = data.map((v, i) => {
@@ -419,6 +480,7 @@ function MiniTrend({ rentab = 0, cor, w = 56, h = 20 }) {
 }
 
 function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
+  const sparks = useSparklines(items);
   return (
     <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -430,6 +492,7 @@ function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
           <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos.</div>
         ) : items.map(({ ativo, rentab }) => {
           const cor = rentab >= 0 ? T.green : T.red;
+          const serie = sparks[ativo.ticker || ativo.symbol];
           return (
           <button key={ativo.id} onClick={() => onAnalisar?.(ativo)}
             style={{ width: "100%", background: "transparent", border: "none", padding: "8px 0", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left", borderBottom: `1px solid ${T.border}` }}>
@@ -440,7 +503,7 @@ function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
               <div style={{ fontSize: 12.5, color: T.ink, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ativo.ticker}</div>
               <div style={{ fontSize: 10, color: T.muted }}>{ASSET_CLASS_LABELS[ativo.tipo] || ativo.tipo}</div>
             </div>
-            <MiniTrend rentab={rentab} cor={cor} />
+            <MiniTrend serie={serie} rentab={rentab} cor={cor} />
             <div className="num" style={{ fontSize: 11.5, color: cor, fontWeight: 600, minWidth: 46, textAlign: "right", flexShrink: 0 }}>
               {rentab >= 0 ? "+" : ""}{fmtN(rentab, 1)}%
             </div>

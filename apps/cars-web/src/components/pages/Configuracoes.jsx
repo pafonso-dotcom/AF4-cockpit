@@ -59,8 +59,8 @@ function Aparencia({ themeId, setThemeId }) {
 
   // Layout (horizontal/vertical)
   const [layoutPref, setLayoutPref] = useState(() => {
-    try { return localStorage.getItem("af4:layout") || "horizontal"; }
-    catch { return "horizontal"; }
+    try { return localStorage.getItem("af4:layout") || "vertical"; }
+    catch { return "vertical"; }
   });
   const mudarLayout = (v) => {
     try { localStorage.setItem("af4:layout", v); } catch {}

@@ -10,8 +10,8 @@ const LS_KEY = "af4:layout";
  */
 export function useLayout() {
   const [layout, setLayout] = useState(() => {
-    try { return localStorage.getItem(LS_KEY) || "horizontal"; }
-    catch { return "horizontal"; }
+    try { return localStorage.getItem(LS_KEY) || "vertical"; }
+    catch { return "vertical"; }
   });
   const [forcaHorizontal, setForcaHorizontal] = useState(() => {
     if (typeof window === "undefined") return false;
