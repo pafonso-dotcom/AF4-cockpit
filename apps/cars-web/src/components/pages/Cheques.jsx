@@ -213,7 +213,7 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
                   )}
                 </div>
                 {/* Número do cheque */}
-                {c.numero && <span style={{ fontSize: 11, color: T.muted, flexShrink: 0 }}>nº {c.numero}</span>}
+                {c.numero && <span style={{ fontSize: 11, color: T.green, fontWeight: 700, flexShrink: 0 }}>nº {c.numero}</span>}
                 {/* Status */}
                 <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${st.cor}22`, color: st.cor, textTransform: "uppercase", fontWeight: 700, letterSpacing: ".05em", flexShrink: 0 }}>{st.label}</span>
                 {vencido && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${T.red}22`, color: T.red, textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>vencido</span>}
