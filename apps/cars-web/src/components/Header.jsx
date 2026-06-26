@@ -615,6 +615,7 @@ function HeaderVertical({
   onRefresh, refreshing,
   onOpenSettings,
   onOpenPalette,
+  onQuickAction,
   pendingCounts = {},
   contas = [], cartoes = [],
   contaAberta, setContaAberta,
@@ -704,12 +705,13 @@ function HeaderVertical({
   return (
     <>
       <aside className="hdr-vertical-aside" style={{
-        position: "fixed", top: 0, left: 0, bottom: 0, width: 220,
+        position: "fixed", top: 10, left: 10, bottom: 10, width: 200,
         background: NAV_BG, color: NAV_INK,
-        padding: "16px 14px",
+        padding: "16px 12px",
         overflowY: "auto", zIndex: 100,
         display: "flex", flexDirection: "column", gap: 16,
-        borderRight: `1px solid ${NAV_BORDER}`,
+        border: `1px solid ${NAV_BORDER}`, borderRadius: 20,
+        boxShadow: "0 10px 30px rgba(0,0,0,.28)",
         backdropFilter: "blur(14px)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
@@ -731,7 +733,7 @@ function HeaderVertical({
                 <React.Fragment key={m.id}>
                   <button onClick={() => abrirModulo(m)}
                     style={{
-                      padding: "8px 10px", borderRadius: 12,
+                      padding: "9px 11px", borderRadius: 14,
                       background: ativo ? "rgba(255,255,255,0.08)" : "transparent",
                       color: ativo ? T.gold : NAV_INK,
                       fontWeight: ativo ? 600 : 400, fontSize: 13,
@@ -749,9 +751,10 @@ function HeaderVertical({
                     <Chevron size={13} style={{ opacity: 0.6 }} />
                   </button>
 
-                  {/* Sub-abas (aparecem só quando o módulo está aberto) */}
+                  {/* Sub-abas (aparecem só quando o módulo está aberto) — árvore
+                      com linha-guia vertical à esquerda (cara de pastas). */}
                   {aberto && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 1, margin: "2px 0 6px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 1, margin: "2px 0 6px", marginLeft: 18, paddingLeft: 8, borderLeft: `1px solid ${NAV_BORDER}` }}>
                       {mSubtabs.map(s => {
                         const SIcon = s.icon;
                         const sAtivo = s.agenda ? AGENDA_TAB_IDS.has(tab) : s.id === tab;
@@ -783,15 +786,15 @@ function HeaderVertical({
                           <React.Fragment key={s.id}>
                             <button onClick={() => setTab(s.id)}
                               style={{
-                                padding: "7px 10px 7px 26px", borderRadius: 5, fontSize: 15,
+                                padding: "7px 10px", borderRadius: 10, fontSize: 15,
                                 fontFamily: "'Nunito', system-ui, sans-serif",
-                                background: sAtivo ? "rgba(255,255,255,0.08)" : "transparent",
+                                background: sAtivo ? "rgba(255,255,255,0.10)" : "transparent",
                                 color: sAtivo ? NAV_INK : NAV_MUTED,
                                 fontWeight: sAtivo ? 600 : 400,
-                                borderLeft: `2px solid ${sAtivo ? T.gold : "transparent"}`,
-                                border: "none", borderLeftWidth: 2, cursor: "pointer", textAlign: "left",
+                                border: "none", cursor: "pointer", textAlign: "left",
                                 display: "flex", alignItems: "center", gap: 8,
                               }}>
+                              <span aria-hidden style={{ width: 8, height: 1, background: sAtivo ? T.gold : NAV_BORDER, marginLeft: -8, marginRight: 2, flexShrink: 0 }} />
                               {SIcon && <SIcon size={12} />}
                               {s.label}
                               {pending > 0 && (
@@ -806,15 +809,15 @@ function HeaderVertical({
                             {filhos && filhos.map(f => (
                               <button key={f.id} onClick={f.onClick}
                                 style={{
-                                  padding: "5px 10px 5px 44px", borderRadius: 5, fontSize: 12,
+                                  padding: "5px 10px 5px 16px", borderRadius: 10, fontSize: 12,
                                   background: f.ativo ? "rgba(255,255,255,0.12)" : "transparent",
                                   color: f.ativo ? NAV_INK : NAV_MUTED,
                                   fontWeight: f.ativo ? 600 : 400,
-                                  borderLeft: `2px solid ${f.ativo ? T.gold : "transparent"}`,
-                                  border: "none", borderLeftWidth: 2, cursor: "pointer", textAlign: "left",
+                                  border: "none", cursor: "pointer", textAlign: "left",
                                   display: "flex", alignItems: "center", gap: 7,
                                   whiteSpace: "nowrap", overflow: "hidden",
                                 }}>
+                                <span aria-hidden style={{ width: 6, height: 1, background: f.ativo ? T.gold : NAV_BORDER, marginLeft: -8, marginRight: 1, flexShrink: 0 }} />
                                 {f.cor && <span style={{ width: 8, height: 8, borderRadius: 2, background: f.cor, flexShrink: 0 }} />}
                                 <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{f.label}</span>
                               </button>
@@ -831,6 +834,25 @@ function HeaderVertical({
         </div>
 
         <div style={{ flex: 1 }} />
+
+        {/* Card de atalho rápido — muda conforme a pasta ativa. */}
+        {modulo !== "config" && (
+          <button
+            onClick={() => {
+              if (modulo === "financas") onQuickAction?.("transacao");
+              else if (modulo === "invest") onQuickAction?.("aporte");
+              else if (modulo === "negocio") setTab("negocio-recebimentos");
+            }}
+            style={{
+              background: `linear-gradient(135deg, ${T.gold}26, ${T.gold}10)`,
+              border: `1px solid ${T.gold}44`, borderRadius: 16, padding: "11px 12px",
+              color: NAV_INK, cursor: "pointer", textAlign: "left",
+              display: "flex", alignItems: "center", gap: 9, fontSize: 12.5, fontWeight: 600,
+            }}>
+            <span style={{ width: 26, height: 26, borderRadius: 9, background: T.gold, color: T.bg, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 17, fontWeight: 700, lineHeight: 1 }}>+</span>
+            {modulo === "financas" ? "Nova transação" : modulo === "invest" ? "Novo aporte" : "Recebimento"}
+          </button>
+        )}
 
         <button
           onClick={() => { setModulo("config"); setTab("cfg-aparencia"); }}
