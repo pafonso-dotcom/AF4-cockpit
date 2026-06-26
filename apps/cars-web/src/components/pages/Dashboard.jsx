@@ -126,13 +126,20 @@ export default function Dashboard({
   const anoAtual = hoje.getFullYear();
   const aReceberAno = useMemo(() => {
     const y = String(anoAtual);
-    return (devedores || []).reduce((s, d) => {
+    const dev = (devedores || []).reduce((s, d) => {
       if (d.recebido) return s;
       if (!(d.vencimento || "").startsWith(y)) return s;
       const rem = (Number(d.valor) || 0) - (Number(d.valorRecebido) || 0);
       return s + Math.max(0, rem);
     }, 0);
-  }, [devedores, anoAtual]);
+    // Cheques a receber (aguardando) com vencimento no ano corrente entram no patrimônio.
+    const chq = (cheques || []).reduce((s, c) => {
+      if (c.status !== "aguardando") return s;
+      if (!(c.vencimento || "").startsWith(y)) return s;
+      return s + (Number(c.valor) || 0);
+    }, 0);
+    return dev + chq;
+  }, [devedores, cheques, anoAtual]);
   // aPagarAno e patrimonioTotal são calculados mais abaixo, após `stateAgg`.
   const receitasMes = useMemo(() => transacoes.filter(t => t.tipo === "receita" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
   const despesasMes = useMemo(() => transacoes.filter(t => t.tipo === "despesa" && t.origem !== "fatura-pagamento" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
@@ -144,7 +151,7 @@ export default function Dashboard({
   // usado só pro fluxo de patrimônio.)
   const stateAgg = useMemo(
     () => ({ transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques }),
-    [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes]
+    [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques]
   );
   // A pagar do ano (todos os compromissos pendentes/atrasados com vencimento no
   // ano corrente: fixas, variáveis, parcelas e dívidas) + patrimônio total.
