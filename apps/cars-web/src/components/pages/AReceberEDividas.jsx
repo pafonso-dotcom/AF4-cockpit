@@ -2173,140 +2173,92 @@ function CompromissoTabela({
           Nada por aqui neste mês.
         </div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-            <thead>
-              <tr>
-                <ThSmall>Vence</ThSmall>
-                <ThSmall>Nome</ThSmall>
-                {showCredor && <ThSmall>Credor</ThSmall>}
-                <ThSmall>Obs</ThSmall>
-                <ThSmall align="right">Valor</ThSmall>
-                <ThSmall align="right">Ações</ThSmall>
-              </tr>
-            </thead>
-            <tbody>
-              {itens.map(item => {
-                const due = dueLabel(item.vencimento);
-                const isOver = due.status === "over";
-                const isWarn = due.status === "warn";
-                const rowBg = isOver ? `${T.red}1a`
-                            : isWarn ? `${T.gold}1a`
-                            : "transparent";
-                return (
-                  <tr key={item.id} style={{
-                    background: rowBg,
-                    borderTop: `1px solid ${T.border}`,
-                  }}>
-                    <td style={{ ...tdMini, whiteSpace: "nowrap" }}>
-                      {item.vencimento ? (
-                        <div>
-                          <div style={{ color: due.cor, fontWeight: (isOver || isWarn) ? 600 : 400, fontSize: 12.5 }}>
-                            {(() => {
-                              const s = typeof item.vencimento === "string"
-                                ? item.vencimento
-                                : (() => { try { return new Date(item.vencimento).toISOString().slice(0,10); } catch { return ""; } })();
-                              return `${s.slice(8,10)}/${s.slice(5,7)}/${s.slice(2,4)}`;
-                            })()}
-                          </div>
-                          <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>
-                            {(() => {
-                              const d = new Date(item.vencimento);
-                              const h = new Date(new Date().toISOString().slice(0,10));
-                              const dias = Math.round((d - h) / 86400000);
-                              if (dias < 0) return `há ${-dias}d`;
-                              if (dias === 0) return "hoje";
-                              return `em ${dias}d`;
-                            })()}
-                          </div>
-                        </div>
-                      ) : "—"}
-                    </td>
-                    <td style={{ ...tdMini, color: T.ink }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span>{item.nome}</span>
-                        {item.parcela && (
-                          <span style={{ fontSize: 10, color: T.faint, fontStyle: "italic" }}>· {item.parcela}</span>
-                        )}
-                      </div>
-                    </td>
-                    {showCredor && (
-                      <td style={{ ...tdMini, color: T.muted, fontSize: 12 }}>
-                        {item.credor || <span style={{ color: T.faint }}>—</span>}
-                      </td>
-                    )}
-                    <td style={{ ...tdMini, color: T.muted, fontSize: 11, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                        title={item.obs || ""}>
-                      {item.obs || "—"}
-                    </td>
-                    <td className="num" style={{ ...tdMini, textAlign: "right", color: corAccent, fontWeight: 500, whiteSpace: "nowrap" }}>
-                      {hidden ? "•••" : fmt(item.valor)}
-                    </td>
-                    <td style={{ ...tdMini, textAlign: "right", whiteSpace: "nowrap" }}>
-                      <button onClick={() => onBaixa(item)}
-                              title={`✓ ${labelAcao}`}
-                              style={{
-                                background: corAccent, color: isReceber ? T.bg : "#fff",
-                                border: "none", padding: "6px 12px",
-                                fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase",
-                                fontWeight: 600, cursor: "pointer", borderRadius: 5,
-                                marginRight: 4, display: "inline-flex", alignItems: "center", gap: 4,
-                              }}>
-                        <Check size={11} /> {labelAcao}
-                      </button>
-                      <button onClick={() => onWhats(item)}
-                              title="WhatsApp"
-                              style={{ ...miniIconBtn, color: "#25D366" }}>
-                        <MessageCircle size={12} />
-                      </button>
-                      <button onClick={() => onEditar(item)}
-                              title="Editar"
-                              style={{ ...miniIconBtn, color: T.muted }}>
-                        <Edit3 size={12} />
-                      </button>
-                      <button onClick={() => onExcluir(item)}
-                              title="Excluir"
-                              style={{ ...miniIconBtn, color: T.red }}>
-                        <Trash2 size={12} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12 }}>
+          {itens.map(item => (
+            <CompromissoCard key={item.id} item={item} hidden={hidden} dueLabel={dueLabel}
+              corAccent={corAccent} isReceber={isReceber} labelAcao={labelAcao} showCredor={showCredor}
+              onBaixa={() => onBaixa(item)} onWhats={() => onWhats(item)}
+              onEditar={() => onEditar(item)} onExcluir={() => onExcluir(item)} />
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function ThSmall({ children, align }) {
+// Card de UMA LINHA para A Pagar (e compromissos em geral) — mesmo padrão dos
+// cheques e do A Receber: data (pílula) · nome (+ meta) · selos · valor · ações.
+function CompromissoCard({ item, hidden, dueLabel, corAccent, isReceber, labelAcao, showCredor, onBaixa, onWhats, onEditar, onExcluir }) {
+  const due = dueLabel ? dueLabel(item.vencimento) : null;
+  const isOver = due?.status === "over";
+  const isWarn = due?.status === "warn";
+  const cor = corDoNome(item.nome || "?");
+  const sc = isOver ? T.red : isWarn ? T.gold : null;
+  const corData = sc || corAccent;
+  const vencStr = item.vencimento
+    ? (typeof item.vencimento === "string"
+        ? item.vencimento
+        : (() => { try { return new Date(item.vencimento).toISOString().slice(0, 10); } catch { return ""; } })())
+    : "";
+  const meta = [
+    showCredor && item.credor ? item.credor : "",
+    item.parcela || "",
+    item.obs || "",
+  ].filter(Boolean).join(" · ");
   return (
-    <th style={{
-      padding: "8px 10px",
-      textAlign: align || "left",
-      fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
-      color: T.muted, fontWeight: 500,
-      background: T.bgSoft,
-      borderBottom: `1px solid ${T.border}`,
-    }}>{children}</th>
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+      padding: "8px 12px", background: sc ? `${sc}11` : T.card,
+      border: `1px solid ${sc ? `${sc}55` : T.border}`, borderLeft: `4px solid ${sc || cor}`, borderRadius: 16,
+    }}>
+      {/* Data — vencimento em destaque (pílula) */}
+      {vencStr && (
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0,
+                      background: `${corData}18`, color: corData,
+                      border: `1px solid ${corData}44`, borderRadius: 8, padding: "3px 8px" }}>
+          <CalendarDays size={13} />
+          <span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: ".01em" }}>
+            {vencStr.slice(8, 10)}/{vencStr.slice(5, 7)}/{vencStr.slice(0, 4)}
+          </span>
+        </div>
+      )}
+      {/* Nome + meta */}
+      <div style={{ flex: 1, minWidth: 120, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <span style={{ color: T.ink, fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.nome}</span>
+        {meta && (
+          <span style={{ fontSize: 10, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{meta}</span>
+        )}
+      </div>
+      {/* Selos */}
+      {isOver && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${T.red}22`, color: T.red, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>vencido</span>}
+      {isWarn && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>3 dias</span>}
+      {/* Valor */}
+      <div className="num" style={{ color: corAccent, fontFamily: T.serif, fontSize: 14.5, fontWeight: 600, minWidth: 90, textAlign: "right", flexShrink: 0, whiteSpace: "nowrap" }}>
+        {hidden ? "•••" : fmt(item.valor)}
+      </div>
+      {/* Ações */}
+      <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+        <button onClick={onBaixa} title={`✓ ${labelAcao}`}
+          style={{ background: corAccent, color: isReceber ? T.bg : "#fff", border: "none", borderRadius: 10,
+                   padding: "6px 10px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
+          <Check size={12} /> {labelAcao}
+        </button>
+        <button onClick={onWhats} title="WhatsApp"
+          style={{ background: "transparent", color: "#25D366", border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+          <MessageCircle size={13} />
+        </button>
+        <button onClick={onEditar} title="Editar"
+          style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+          <Edit3 size={13} />
+        </button>
+        <button onClick={onExcluir} title="Excluir"
+          style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+          <Trash2 size={13} />
+        </button>
+      </div>
+    </div>
   );
 }
-
-const tdMini = {
-  padding: "8px 10px",
-  verticalAlign: "middle",
-};
-
-const miniIconBtn = {
-  background: "transparent",
-  border: "none",
-  cursor: "pointer",
-  padding: 4,
-  borderRadius: 5,
-  marginLeft: 2,
-};
 
 // Hash determinístico do nome → gradient consistente (mesma pessoa = mesma cor)
 function corDoNome(nome = "") {
