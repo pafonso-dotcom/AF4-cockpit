@@ -399,6 +399,25 @@ function AlocacaoCard({ dataBR = [], totalBR = 0, dataUSA = [], totalUSA = 0, hi
   );
 }
 
+// Mini-tendência por ativo: linha do ganho vs preço médio (sem histórico diário
+// armazenado por ativo, a direção segue a rentabilidade). Verde sobe, vermelho desce.
+function MiniTrend({ rentab = 0, cor, w = 56, h = 20 }) {
+  const r = Number(rentab) || 0;
+  const data = [100, 100 + r];
+  const min = Math.min(...data), max = Math.max(...data);
+  const span = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - ((v - min) / span) * (h - 3) - 1.5;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  return (
+    <svg width={w} height={h} style={{ display: "block", flexShrink: 0 }} aria-hidden="true">
+      <polyline points={pts} fill="none" stroke={cor} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
   return (
     <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
@@ -409,9 +428,11 @@ function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
       <div>
         {items.length === 0 ? (
           <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos.</div>
-        ) : items.map(({ ativo, valor, rentab }) => (
+        ) : items.map(({ ativo, rentab }) => {
+          const cor = rentab >= 0 ? T.green : T.red;
+          return (
           <button key={ativo.id} onClick={() => onAnalisar?.(ativo)}
-            style={{ width: "100%", background: "transparent", border: "none", padding: "8px 0", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", textAlign: "left", borderBottom: `1px solid ${T.border}` }}>
+            style={{ width: "100%", background: "transparent", border: "none", padding: "8px 0", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left", borderBottom: `1px solid ${T.border}` }}>
             <div style={{ width: 28, height: 28, borderRadius: 11, background: ASSET_CLASS_COLORS[ativo.tipo] || T.gold, display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 10, flexShrink: 0 }}>
               {String(ativo.ticker || "?").slice(0, 2).toUpperCase()}
             </div>
@@ -419,12 +440,13 @@ function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
               <div style={{ fontSize: 12.5, color: T.ink, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ativo.ticker}</div>
               <div style={{ fontSize: 10, color: T.muted }}>{ASSET_CLASS_LABELS[ativo.tipo] || ativo.tipo}</div>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <div className="num" style={{ fontSize: 12, color: T.ink, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(valor)}</div>
-              <div className="num" style={{ fontSize: 10, color: rentab >= 0 ? T.green : T.red }}>{rentab >= 0 ? "+" : ""}{fmtN(rentab, 1)}%</div>
+            <MiniTrend rentab={rentab} cor={cor} />
+            <div className="num" style={{ fontSize: 11.5, color: cor, fontWeight: 600, minWidth: 46, textAlign: "right", flexShrink: 0 }}>
+              {rentab >= 0 ? "+" : ""}{fmtN(rentab, 1)}%
             </div>
           </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
