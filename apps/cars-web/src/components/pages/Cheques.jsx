@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Plus, Trash2, Edit3, Check, RotateCcw } from "lucide-react";
+import { Plus, Trash2, Edit3, Check, RotateCcw, CalendarDays, X, Layers } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
@@ -23,6 +23,7 @@ const STATUS = {
 
 export default function Cheques({ cheques = [], setCheques, contas = [], setContas, transacoes = [], setTransacoes, escopoAtivo = "tudo", hidden }) {
   const [form, setForm] = useState(null);         // novo/editar
+  const [loteForm, setLoteForm] = useState(null); // vários cheques do mesmo emitente
   const [compForm, setCompForm] = useState(null); // compensar
   const [filtro, setFiltro] = useState("todos");
   const hoje = todayISO();
@@ -41,6 +42,35 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
   const compensadoMes = doEscopo.filter(c => c.status === "compensado" && (c.dataCompensacao || "").startsWith(mesAtual)).reduce((s, c) => s + (Number(c.valor) || 0), 0);
 
   const novo = () => setForm({ id: null, de: "", valor: "", vencimento: hoje, banco: "", numero: "", obs: "", escopo: escopoAtivo === "tudo" ? "pessoal" : escopoAtivo, status: "aguardando" });
+
+  // ===== Entrada em lote (vários cheques do mesmo emitente) =====
+  const proxMes = (iso) => {
+    if (!iso) return hoje;
+    const [y, m, d] = iso.split("-").map(Number);
+    const ultimoDia = new Date(y, m + 1, 0).getDate(); // m (1-indexed) como índice = mês seguinte
+    return `${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}-${String(Math.min(d, ultimoDia)).padStart(2, "0")}`;
+  };
+  const novoLote = () => setLoteForm({ de: "", banco: "", escopo: escopoAtivo === "tudo" ? "pessoal" : escopoAtivo, linhas: [{ valor: "", vencimento: hoje, numero: "" }] });
+  const setLinha = (i, patch) => setLoteForm(f => ({ ...f, linhas: f.linhas.map((ln, k) => k === i ? { ...ln, ...patch } : ln) }));
+  const addLinha = () => setLoteForm(f => {
+    const last = f.linhas[f.linhas.length - 1] || {};
+    const numero = last.numero && /^\d+$/.test(last.numero) ? String(parseInt(last.numero, 10) + 1) : "";
+    return { ...f, linhas: [...f.linhas, { valor: "", vencimento: proxMes(last.vencimento), numero }] };
+  });
+  const removerLinha = (i) => setLoteForm(f => ({ ...f, linhas: f.linhas.length > 1 ? f.linhas.filter((_, k) => k !== i) : f.linhas }));
+  const loteValidas = (loteForm?.linhas || []).filter(ln => (Number(ln.valor) || 0) > 0 && ln.vencimento);
+  const loteSoma = loteValidas.reduce((s, ln) => s + (Number(ln.valor) || 0), 0);
+  const salvarLote = () => {
+    if (!loteForm.de?.trim()) { toast.error("Informe de quem são os cheques."); return; }
+    if (loteValidas.length === 0) { toast.error("Adicione ao menos um cheque com valor e vencimento."); return; }
+    const novos = loteValidas.map(ln => ({
+      id: uid(), de: loteForm.de.trim(), banco: loteForm.banco || "", escopo: loteForm.escopo || "pessoal",
+      valor: Number(ln.valor) || 0, vencimento: ln.vencimento, numero: ln.numero || "", obs: "", status: "aguardando",
+    }));
+    setCheques([...cheques, ...novos]);
+    toast.success(`${novos.length} cheque${novos.length > 1 ? "s" : ""} de ${loteForm.de.trim()} cadastrado${novos.length > 1 ? "s" : ""}.`);
+    setLoteForm(null);
+  };
 
   const salvar = () => {
     if (!form.de?.trim()) { toast.error("Informe de quem é o cheque."); return; }
@@ -114,6 +144,7 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
   };
 
   const fmtData = (d) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(2, 4)}` : "—";
+  const fmtDataLonga = (d) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "— sem data —";
   const btnGhost = { background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "5px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5 };
 
   return (
@@ -122,7 +153,12 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
         eyebrow="Finanças · Recebíveis"
         title={<>Cheques.</>}
         sub="Cheques a receber. Ao compensar, o dinheiro entra na conta escolhida e vira receita. Cheques aguardando aparecem no relatório."
-        action={<button className="btn-gold" onClick={novo}><Plus size={13} className="inline mr-1.5" /> Novo cheque</button>}
+        action={
+          <div className="flex gap-2 flex-wrap">
+            <button className="btn-ghost" onClick={novoLote}><Layers size={13} className="inline mr-1.5" /> Vários</button>
+            <button className="btn-gold" onClick={novo}><Plus size={13} className="inline mr-1.5" /> Novo cheque</button>
+          </div>
+        }
       />
 
       {/* KPIs */}
@@ -160,16 +196,24 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
             const vencido = c.status === "aguardando" && (c.vencimento || "") < hoje;
             return (
               <div key={c.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderLeft: `4px solid ${st.cor}`, borderRadius: 16, padding: "8px 12px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <div style={{ flex: 1, minWidth: 180 }}>
-                  <div style={{ color: T.ink, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ color: T.ink, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     {c.de}
                     <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${st.cor}22`, color: st.cor, textTransform: "uppercase", fontWeight: 700, letterSpacing: ".05em" }}>{st.label}</span>
                     {vencido && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${T.red}22`, color: T.red, textTransform: "uppercase", fontWeight: 700 }}>vencido</span>}
                   </div>
-                  <div style={{ fontSize: 10.5, color: T.muted, marginTop: 1 }}>
-                    venc. {fmtData(c.vencimento)}{c.banco ? ` · ${c.banco}` : ""}{c.numero ? ` · nº ${c.numero}` : ""}
-                    {c.status === "compensado" && c.contaCompensacao ? ` · em ${c.contaCompensacao}` : ""}
+                  {/* Data em destaque — vencimento é informação importante */}
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 4,
+                                background: vencido ? `${T.red}18` : `${T.gold}18`, color: vencido ? T.red : T.gold,
+                                border: `1px solid ${vencido ? T.red : T.gold}44`, borderRadius: 8, padding: "2px 8px" }}>
+                    <CalendarDays size={13} />
+                    <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: ".01em" }}>{fmtDataLonga(c.vencimento)}</span>
                   </div>
+                  {(c.banco || c.numero || (c.status === "compensado" && c.contaCompensacao)) && (
+                    <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>
+                      {[c.banco, c.numero ? `nº ${c.numero}` : "", c.status === "compensado" && c.contaCompensacao ? `em ${c.contaCompensacao}` : ""].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
                 </div>
                 <div className="num" style={{ color: st.cor, fontFamily: T.serif, fontSize: 14.5, fontWeight: 600, minWidth: 90, textAlign: "right" }}>{hidden ? "•••" : fmt(c.valor)}</div>
                 <div style={{ display: "flex", gap: 5, flexShrink: 0, flexWrap: "wrap" }}>
@@ -231,6 +275,54 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
           <div className="flex gap-3 justify-end mt-4">
             <button className="btn-ghost" onClick={() => setForm(null)}>Cancelar</button>
             <button className="btn-gold" onClick={salvar}>Salvar</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal Vários cheques (lote) */}
+      {loteForm && (
+        <Modal title="Vários cheques · mesmo emitente" onClose={() => setLoteForm(null)}>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="De quem são" required>
+              <input value={loteForm.de} onChange={e => setLoteForm({ ...loteForm, de: e.target.value })} placeholder="Ex.: João Silva" />
+            </Field>
+            <Field label="Banco">
+              <input value={loteForm.banco} onChange={e => setLoteForm({ ...loteForm, banco: e.target.value })} placeholder="Ex.: Itaú" />
+            </Field>
+          </div>
+          <Field label="Escopo">
+            <select value={loteForm.escopo} onChange={e => setLoteForm({ ...loteForm, escopo: e.target.value })}>
+              <option value="pessoal">👤 Pessoal</option>
+              <option value="negocio">🏢 Negócio</option>
+            </select>
+          </Field>
+
+          <div style={{ fontSize: 11, letterSpacing: ".05em", textTransform: "uppercase", color: T.muted, fontWeight: 700, margin: "10px 0 6px" }}>
+            Cheques — valor · vencimento · nº
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {loteForm.linhas.map((ln, i) => (
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr 0.8fr auto", gap: 6, alignItems: "center" }}>
+                <MoneyInput value={ln.valor} onChange={v => setLinha(i, { valor: v })} />
+                <input type="date" value={ln.vencimento} onChange={e => setLinha(i, { vencimento: e.target.value })} />
+                <input value={ln.numero} onChange={e => setLinha(i, { numero: e.target.value })} placeholder="nº" />
+                <button onClick={() => removerLinha(i)} title="Remover"
+                  style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 9, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+                  <X size={13} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button className="btn-ghost" style={{ marginTop: 8 }} onClick={addLinha}>
+            <Plus size={13} className="inline mr-1.5" /> Adicionar cheque
+          </button>
+
+          <div style={{ marginTop: 10, fontSize: 12.5, color: T.muted }}>
+            Total: <strong style={{ color: T.ink }}>{fmt(loteSoma)}</strong> em {loteValidas.length} cheque{loteValidas.length !== 1 ? "s" : ""}.
+          </div>
+          <div className="flex gap-3 justify-end mt-4">
+            <button className="btn-ghost" onClick={() => setLoteForm(null)}>Cancelar</button>
+            <button className="btn-gold" onClick={salvarLote}>Salvar todos</button>
           </div>
         </Modal>
       )}
