@@ -196,26 +196,30 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
             const vencido = c.status === "aguardando" && (c.vencimento || "") < hoje;
             return (
               <div key={c.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderLeft: `4px solid ${st.cor}`, borderRadius: 16, padding: "8px 12px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <div style={{ flex: 1, minWidth: 200 }}>
-                  <div style={{ color: T.ink, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    {c.de}
-                    <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${st.cor}22`, color: st.cor, textTransform: "uppercase", fontWeight: 700, letterSpacing: ".05em" }}>{st.label}</span>
-                    {vencido && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${T.red}22`, color: T.red, textTransform: "uppercase", fontWeight: 700 }}>vencido</span>}
-                  </div>
-                  {/* Data em destaque — vencimento é informação importante */}
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 4,
-                                background: vencido ? `${T.red}18` : `${T.gold}18`, color: vencido ? T.red : T.gold,
-                                border: `1px solid ${vencido ? T.red : T.gold}44`, borderRadius: 8, padding: "2px 8px" }}>
-                    <CalendarDays size={13} />
-                    <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: ".01em" }}>{fmtDataLonga(c.vencimento)}</span>
-                  </div>
-                  {(c.banco || c.numero || (c.status === "compensado" && c.contaCompensacao)) && (
-                    <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>
-                      {[c.banco, c.numero ? `nº ${c.numero}` : "", c.status === "compensado" && c.contaCompensacao ? `em ${c.contaCompensacao}` : ""].filter(Boolean).join(" · ")}
-                    </div>
+                {/* Data — vencimento em destaque */}
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0,
+                              background: vencido ? `${T.red}18` : `${T.gold}18`, color: vencido ? T.red : T.gold,
+                              border: `1px solid ${vencido ? T.red : T.gold}44`, borderRadius: 8, padding: "3px 8px" }}>
+                  <CalendarDays size={13} />
+                  <span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: ".01em" }}>{fmtDataLonga(c.vencimento)}</span>
+                </div>
+                {/* Nome + banco/conta */}
+                <div style={{ flex: 1, minWidth: 120, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  <span style={{ color: T.ink, fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.de}</span>
+                  {(c.banco || (c.status === "compensado" && c.contaCompensacao)) && (
+                    <span style={{ fontSize: 10, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {[c.banco, c.status === "compensado" && c.contaCompensacao ? `em ${c.contaCompensacao}` : ""].filter(Boolean).join(" · ")}
+                    </span>
                   )}
                 </div>
-                <div className="num" style={{ color: st.cor, fontFamily: T.serif, fontSize: 14.5, fontWeight: 600, minWidth: 90, textAlign: "right" }}>{hidden ? "•••" : fmt(c.valor)}</div>
+                {/* Número do cheque */}
+                {c.numero && <span style={{ fontSize: 11, color: T.muted, flexShrink: 0 }}>nº {c.numero}</span>}
+                {/* Status */}
+                <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${st.cor}22`, color: st.cor, textTransform: "uppercase", fontWeight: 700, letterSpacing: ".05em", flexShrink: 0 }}>{st.label}</span>
+                {vencido && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${T.red}22`, color: T.red, textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>vencido</span>}
+                {/* Valor */}
+                <div className="num" style={{ color: st.cor, fontFamily: T.serif, fontSize: 14.5, fontWeight: 600, minWidth: 90, textAlign: "right", flexShrink: 0 }}>{hidden ? "•••" : fmt(c.valor)}</div>
+                {/* Ações */}
                 <div style={{ display: "flex", gap: 5, flexShrink: 0, flexWrap: "wrap" }}>
                   {c.status === "aguardando" && (
                     <button onClick={() => abrirCompensar(c)} title="Compensar"
