@@ -253,18 +253,23 @@ export default function RelatoriosFinancas({
     return { grupos, totaisMes, totalGeral, media: totalGeral / n, receber, saldoMes, saldoTotal, saldoMedia: saldoTotal / n, vazio: todas.length === 0 && !receber };
   }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, escopoAtivo, proximosMeses]);
 
-  // ===== Cheques a receber (aguardando) — TODOS, independente da janela de projeção =====
+  // ===== Cheques a receber — TODOS, independente da janela de projeção =====
   // A matriz acima só cobre 6 meses; um cheque com vencimento fora dessa janela
-  // (ex.: ano seguinte) não aparece lá. Esta seção lista todos os aguardando.
+  // (ex.: ano seguinte) não aparece lá. Lista aguardando + compensados (estes
+  // riscados, já recebidos). O total conta só os aguardando.
   const chequesAReceber = useMemo(() => {
     const noEsc = (c) => escopoAtivo === "tudo" || (c.escopo || "pessoal") === escopoAtivo;
     const hoje = new Date().toISOString().slice(0, 10);
     const lista = (cheques || [])
-      .filter(c => c.status === "aguardando" && noEsc(c))
+      .filter(c => (c.status === "aguardando" || c.status === "compensado") && noEsc(c))
       .slice()
       .sort((a, b) => (a.vencimento || "").localeCompare(b.vencimento || ""))
-      .map(c => ({ ...c, vencido: (c.vencimento || "") < hoje }));
-    const total = lista.reduce((s, c) => s + (Number(c.valor) || 0), 0);
+      .map(c => ({
+        ...c,
+        compensado: c.status === "compensado",
+        vencido: c.status === "aguardando" && (c.vencimento || "") < hoje,
+      }));
+    const total = lista.filter(c => !c.compensado).reduce((s, c) => s + (Number(c.valor) || 0), 0);
     return { lista, total };
   }, [cheques, escopoAtivo]);
   const fmtData = (d) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "—";
@@ -537,16 +542,21 @@ td.neg { color:#b3261e; }
                 </tr>
               </thead>
               <tbody>
-                {chequesAReceber.lista.map(c => (
-                  <tr key={c.id}>
-                    <td style={{ color: c.vencido ? T.red : T.ink, fontWeight: 700, whiteSpace: "nowrap" }}>
-                      {fmtData(c.vencimento)}{c.vencido ? " · vencido" : ""}
+                {chequesAReceber.lista.map(c => {
+                  // Compensado = já recebido → linha riscada.
+                  const deco = c.compensado ? "line-through" : "none";
+                  const corBase = c.compensado ? T.faint : T.ink;
+                  return (
+                  <tr key={c.id} style={{ opacity: c.compensado ? 0.75 : 1 }}>
+                    <td style={{ color: c.compensado ? T.green : (c.vencido ? T.red : T.ink), fontWeight: 700, whiteSpace: "nowrap", textDecoration: deco }}>
+                      {fmtData(c.vencimento)}{c.compensado ? " · compensado" : c.vencido ? " · vencido" : ""}
                     </td>
-                    <td style={{ color: T.ink, fontWeight: 500 }}>{c.de || "—"}</td>
-                    <td style={{ color: T.muted }}>{[c.banco, c.numero ? `nº ${c.numero}` : ""].filter(Boolean).join(" · ") || "—"}</td>
-                    <td className="num" style={{ textAlign: "right", color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(c.valor)}</td>
+                    <td style={{ color: corBase, fontWeight: 500, textDecoration: deco }}>{c.de || "—"}</td>
+                    <td style={{ color: T.muted, textDecoration: deco }}>{[c.banco, c.numero ? `nº ${c.numero}` : ""].filter(Boolean).join(" · ") || "—"}</td>
+                    <td className="num" style={{ textAlign: "right", color: corBase, fontWeight: 600, textDecoration: deco }}>{hidden ? "•••" : fmt(c.valor)}</td>
                   </tr>
-                ))}
+                  );
+                })}
                 <tr>
                   <td colSpan={3} style={{ fontWeight: 700, color: T.ink, borderTop: `2px solid ${T.ink}` }}>Total</td>
                   <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.gold, borderTop: `2px solid ${T.ink}` }}>{hidden ? "•••" : fmt(chequesAReceber.total)}</td>
