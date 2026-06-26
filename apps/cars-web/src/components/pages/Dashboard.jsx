@@ -126,20 +126,20 @@ export default function Dashboard({
   const anoAtual = hoje.getFullYear();
   const aReceberAno = useMemo(() => {
     const y = String(anoAtual);
-    const dev = (devedores || []).reduce((s, d) => {
+    return (devedores || []).reduce((s, d) => {
       if (d.recebido) return s;
       if (!(d.vencimento || "").startsWith(y)) return s;
       const rem = (Number(d.valor) || 0) - (Number(d.valorRecebido) || 0);
       return s + Math.max(0, rem);
     }, 0);
-    // Cheques a receber (aguardando) com vencimento no ano corrente entram no patrimônio.
-    const chq = (cheques || []).reduce((s, c) => {
-      if (c.status !== "aguardando") return s;
-      if (!(c.vencimento || "").startsWith(y)) return s;
-      return s + (Number(c.valor) || 0);
-    }, 0);
-    return dev + chq;
-  }, [devedores, cheques, anoAtual]);
+  }, [devedores, anoAtual]);
+  // Cheques a receber (aguardando) — TODOS, independente do ano, entram no
+  // patrimônio (são recebíveis garantidos). Respeita o escopo ativo.
+  const chequesAReceber = useMemo(() => {
+    const noEsc = (c) => escopoAtivo === "tudo" || (c.escopo || "pessoal") === escopoAtivo;
+    return (cheques || []).reduce((s, c) =>
+      (c.status === "aguardando" && noEsc(c)) ? s + (Number(c.valor) || 0) : s, 0);
+  }, [cheques, escopoAtivo]);
   // aPagarAno e patrimonioTotal são calculados mais abaixo, após `stateAgg`.
   const receitasMes = useMemo(() => transacoes.filter(t => t.tipo === "receita" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
   const despesasMes = useMemo(() => transacoes.filter(t => t.tipo === "despesa" && t.origem !== "fatura-pagamento" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
@@ -163,7 +163,7 @@ export default function Dashboard({
         .reduce((ss, d) => ss + (Number(d.valor) || 0), 0), 0);
     } catch { return 0; }
   }, [anoAtual, stateAgg, escopoAtivo]);
-  const patrimonioTotal = totalContas + totalInvest + aReceberAno - aPagarAno;
+  const patrimonioTotal = totalContas + totalInvest + aReceberAno + chequesAReceber - aPagarAno;
   const mesAnteriorISO = useMemo(() => {
     const [y, m] = mesISO.split("-").map(Number);
     const d = new Date(y, m - 2, 1);
@@ -367,7 +367,7 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
-                 breakdown={{ contas: totalContas, aReceber: aReceberAno, invest: totalInvest, aPagar: aPagarAno }} />
+                 breakdown={{ contas: totalContas, aReceber: aReceberAno, cheques: chequesAReceber, invest: totalInvest, aPagar: aPagarAno }} />
         <ProximoCompromissoCard item={proximoCompromisso} total={aPagarMes} hidden={hidden} onVer={() => onTabChange?.("despesas")} />
       </section>
 
@@ -538,6 +538,7 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
         <div style={{ position: "relative", zIndex: 1, marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.15)", display: "flex", flexDirection: "column", gap: 2 }}>
           <Linha rotulo="Contas" v={breakdown.contas} sinal="+" />
           <Linha rotulo="A receber (ano)" v={breakdown.aReceber} sinal="+" />
+          {breakdown.cheques > 0 && <Linha rotulo="Cheques a receber" v={breakdown.cheques} sinal="+" />}
           <Linha rotulo="Investimentos (Brasil)" v={breakdown.invest} sinal="+" />
           <Linha rotulo="A pagar (ano)" v={breakdown.aPagar} sinal="-" />
         </div>
