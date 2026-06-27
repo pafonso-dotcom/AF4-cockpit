@@ -394,9 +394,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                    boxShadow: "0 8px 22px rgba(20,12,40,.22)",
                  }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                <div aria-hidden="true" style={{ width: 40, height: 40, borderRadius: 12, background: c.cor || T.gold, color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 14, flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,.25)" }}>
-                  {iniciais(c.nome)}
-                </div>
+                <BankIcon c={c} />
                 <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
                         aria-label={exp ? "Recolher" : "Mais ações"}
                         style={{ background: "rgba(255,255,255,.12)", border: "none", color: PASTA_INK, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -570,6 +568,65 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           onClose={() => setImportExtratoOpen(false)}
         />
       )}
+    </div>
+  );
+}
+
+// Domínio do banco a partir do nome/instituição/appUrl → favicon usado como "logo".
+function dominioBanco(c) {
+  if (c?.appUrl) { try { return new URL(c.appUrl).hostname.replace(/^www\./, ""); } catch {} }
+  const s = `${c?.nome || ""} ${c?.instituicao || ""}`.toLowerCase();
+  const mapa = [
+    [/nubank|\bnu\b/, "nubank.com.br"],
+    [/ita[uú]/, "itau.com.br"],
+    [/santander/, "santander.com.br"],
+    [/bradesco/, "bradesco.com.br"],
+    [/banco do brasil|\bbb\b/, "bb.com.br"],
+    [/caixa/, "caixa.gov.br"],
+    [/\binter\b/, "bancointer.com.br"],
+    [/\bc6\b/, "c6bank.com.br"],
+    [/\bxp\b/, "xpi.com.br"],
+    [/picpay/, "picpay.com"],
+    [/mercado ?pago|mercado ?livre|\bmeli\b/, "mercadopago.com.br"],
+    [/sicoob/, "sicoob.com.br"],
+    [/sicredi/, "sicredi.com.br"],
+    [/safra/, "safra.com.br"],
+    [/\bpan\b/, "bancopan.com.br"],
+    [/\boriginal\b/, "original.com.br"],
+    [/\bbtg\b/, "btgpactual.com"],
+    [/\bwise\b/, "wise.com"],
+    [/\bpaypal\b/, "paypal.com"],
+    [/\bneon\b/, "neon.com.br"],
+    [/\bwill\b/, "willbank.com.br"],
+    [/\bdigio\b/, "digio.com.br"],
+  ];
+  for (const [re, dom] of mapa) if (re.test(s)) return dom;
+  return null;
+}
+
+function iniciaisDe(nome) {
+  const p = String(nome || "").trim().split(/\s+/).filter(Boolean);
+  if (!p.length) return "?";
+  if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+  return (p[0][0] + p[p.length - 1][0]).toUpperCase();
+}
+
+// Ícone do banco no card de pasta: tenta o favicon (logo do banco); se não houver
+// domínio conhecido ou a imagem falhar, cai nas iniciais sobre a cor da conta.
+function BankIcon({ c }) {
+  const [erro, setErro] = useState(false);
+  const dom = dominioBanco(c);
+  const box = { width: 40, height: 40, borderRadius: 12, flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,.25)" };
+  if (dom && !erro) {
+    return (
+      <img src={`https://www.google.com/s2/favicons?domain=${dom}&sz=64`} alt="" aria-hidden="true"
+           onError={() => setErro(true)} loading="lazy" referrerPolicy="no-referrer"
+           style={{ ...box, objectFit: "contain", background: "#fff", padding: 5 }} />
+    );
+  }
+  return (
+    <div aria-hidden="true" style={{ ...box, background: c.cor || T.gold, color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 14 }}>
+      {iniciaisDe(c.nome)}
     </div>
   );
 }
