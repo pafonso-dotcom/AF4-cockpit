@@ -402,6 +402,11 @@ export default function Dashboard({
         <ProximoCompromissoCard item={proximoCompromisso} total={aPagarMes} hidden={hidden} onVer={() => onTabChange?.("despesas")} />
       </section>
 
+      {/* Resumo do mês */}
+      <section style={{ marginBottom: 16 }}>
+        <ResumoMesCard mesNome={MESES_PT[hoje.getMonth()]} receitas={receitasMes} despesas={despesasMes} gastosCat={gastosCat} hidden={hidden} />
+      </section>
+
       {/* Contas · Gastos por Categoria · Alocação Atual (Contas primeiro) */}
       <section className="dash-mid-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
@@ -744,6 +749,37 @@ function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
         ))}
         {contas.length === 0 && (
           <div style={{ gridColumn: "1 / -1", padding: 16, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Sem contas cadastradas.</div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function ResumoMesCard({ mesNome, receitas, despesas, gastosCat, hidden }) {
+  const sobra = receitas - despesas;
+  const top = gastosCat?.[0];
+  const titulo = String(mesNome || "").toLowerCase().replace(/^./, (c) => c.toUpperCase());
+  const Stat = ({ label, valor, cor }) => (
+    <div style={{ minWidth: 110 }}>
+      <div style={{ fontSize: 9.5, letterSpacing: ".06em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>{label}</div>
+      <div className="num" style={{ fontFamily: T.serif, fontSize: 17, fontWeight: 700, color: cor || T.ink, marginTop: 1, whiteSpace: "nowrap" }}>{valor}</div>
+    </div>
+  );
+  return (
+    <Card>
+      <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Resumo de {titulo}</div>
+      <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-end" }}>
+        <Stat label="Receitas" valor={hidden ? "•••" : `+ ${fmt(receitas)}`} cor={T.green} />
+        <Stat label="Despesas" valor={hidden ? "•••" : `− ${fmt(despesas)}`} cor={T.red} />
+        <Stat label="Sobrou" valor={hidden ? "•••" : `${sobra >= 0 ? "+ " : "− "}${fmt(Math.abs(sobra))}`} cor={sobra >= 0 ? T.green : T.red} />
+        {top && (
+          <div style={{ minWidth: 140 }}>
+            <div style={{ fontSize: 9.5, letterSpacing: ".06em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Maior gasto</div>
+            <div style={{ fontSize: 13, color: T.ink, fontWeight: 600, marginTop: 3, display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+              {top.cor && <span style={{ width: 8, height: 8, borderRadius: 2, background: top.cor }} />}
+              {top.nome} <span className="num" style={{ color: T.muted, fontWeight: 500 }}>· {hidden ? "•••" : fmt(top.valor)}</span>
+            </div>
+          </div>
         )}
       </div>
     </Card>
