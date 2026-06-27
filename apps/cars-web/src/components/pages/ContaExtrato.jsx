@@ -5,6 +5,8 @@ import { fmt } from "../../lib/format.js";
 import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
 import { reconciliarContas } from "../../lib/saldoConta.js";
+import BankIcon from "../ui/BankIcon.jsx";
+import { CARD_SHADOW } from "../../lib/styles.js";
 import NovaTransacaoModal from "../modals/NovaTransacaoModal.jsx";
 
 /**
@@ -298,28 +300,28 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
       {/* Banner estilo cartão: gradiente por banco + nome + saldo */}
       <div className="conta-hero" style={{
         display: "flex", alignItems: "center", gap: 18, padding: 24,
-        background: gradient, borderRadius: 14, marginBottom: 14,
-        color: "#fff", flexWrap: "wrap",
-        boxShadow: `0 6px 20px ${T.bg}66`,
+        background: T.card, border: `1px solid ${T.border}`,
+        borderLeft: `4px solid ${conta.cor || T.gold}`,
+        borderRadius: 18, marginBottom: 14,
+        color: T.ink, flexWrap: "wrap",
+        boxShadow: CARD_SHADOW,
       }}>
-        <div className="conta-hero-icon" style={{
-          width: 56, height: 56, borderRadius: 18,
-          display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0,
-          background: "rgba(0,0,0,.2)",
-        }}>🏦</div>
+        <div className="conta-hero-icon" style={{ flexShrink: 0 }}>
+          <BankIcon c={conta} size={56} />
+        </div>
         <div style={{ flex: 1, minWidth: 180 }}>
-          <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "rgba(255,255,255,.8)", fontWeight: 600 }}>
+          <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
             Extrato · {conta.instituicao}{conta.tipo ? ` · ${conta.tipo}` : ""}
           </div>
-          <div className="conta-hero-name" style={{ fontFamily: T.serif, fontWeight: 500, marginTop: 5, letterSpacing: "-0.02em", wordBreak: "break-word" }}>
+          <div className="conta-hero-name" style={{ fontFamily: T.serif, fontWeight: 500, marginTop: 5, letterSpacing: "-0.02em", wordBreak: "break-word", color: T.ink }}>
             {conta.nome}
           </div>
         </div>
         <div className="conta-hero-fatura" style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,.7)", letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 4 }}>
+          <div style={{ fontSize: 10, color: T.muted, letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 4 }}>
             Saldo atual
           </div>
-          <div className="num conta-hero-valor" style={{ fontFamily: T.serif, fontWeight: 300, lineHeight: 1, fontVariantNumeric: "tabular-nums", wordBreak: "break-word" }}>
+          <div className="num conta-hero-valor" style={{ fontFamily: T.serif, fontWeight: 300, lineHeight: 1, fontVariantNumeric: "tabular-nums", wordBreak: "break-word", color: T.ink }}>
             {hidden ? "R$ •••••" : fmt(saldoExibido)}
           </div>
         </div>
