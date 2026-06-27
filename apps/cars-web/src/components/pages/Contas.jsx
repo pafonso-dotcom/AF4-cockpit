@@ -9,6 +9,7 @@ import { calcSaldoConta, reconciliarContas } from "../../lib/saldoConta.js";
 import { filtrarPorEscopo, detectarEscopoConta } from "../../lib/escopo.js";
 import { somaContasBRL, semCotacao, buscarCotacao, saldoContaBRL } from "../../lib/cambio.js";
 import Field from "../ui/Field.jsx";
+import BankIcon from "../ui/BankIcon.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
 import Modal from "../ui/Modal.jsx";
 import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
@@ -490,6 +491,25 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           <Field label="App / site do banco (link)" hint="Opcional — atalho pra abrir o banco numa nova aba. Ex.: https://app.nubank.com.br">
             <input value={form.appUrl || ""} onChange={e => setForm({ ...form, appUrl: e.target.value })} placeholder="https://…" />
           </Field>
+          <Field label="Logo do banco (opcional)" hint="Imagem pequena (PNG/JPG, máx. 200 KB). Se vazio, usa o logo automático pelo nome do banco.">
+            {form.logo ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <img src={form.logo} alt="" style={{ width: 40, height: 40, borderRadius: 10, objectFit: "contain", background: "#fff", border: `1px solid ${T.border}` }} />
+                <button type="button" onClick={() => setForm({ ...form, logo: null })}
+                        style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 8, padding: "5px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                  Remover
+                </button>
+              </div>
+            ) : (
+              <input type="file" accept="image/*" onChange={(e) => {
+                const f = e.target.files?.[0]; if (!f) return;
+                if (f.size > 200 * 1024) { toast.error("Imagem muito grande (máx. 200 KB)."); e.target.value = ""; return; }
+                const reader = new FileReader();
+                reader.onload = () => setForm(prev => ({ ...prev, logo: reader.result }));
+                reader.readAsDataURL(f);
+              }} />
+            )}
+          </Field>
           <Field label="Tipo">
             <select value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>
               {tipos.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
@@ -568,65 +588,6 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           onClose={() => setImportExtratoOpen(false)}
         />
       )}
-    </div>
-  );
-}
-
-// Domínio do banco a partir do nome/instituição/appUrl → favicon usado como "logo".
-function dominioBanco(c) {
-  if (c?.appUrl) { try { return new URL(c.appUrl).hostname.replace(/^www\./, ""); } catch {} }
-  const s = `${c?.nome || ""} ${c?.instituicao || ""}`.toLowerCase();
-  const mapa = [
-    [/nubank|\bnu\b/, "nubank.com.br"],
-    [/ita[uú]/, "itau.com.br"],
-    [/santander/, "santander.com.br"],
-    [/bradesco/, "bradesco.com.br"],
-    [/banco do brasil|\bbb\b/, "bb.com.br"],
-    [/caixa/, "caixa.gov.br"],
-    [/\binter\b/, "bancointer.com.br"],
-    [/\bc6\b/, "c6bank.com.br"],
-    [/\bxp\b/, "xpi.com.br"],
-    [/picpay/, "picpay.com"],
-    [/mercado ?pago|mercado ?livre|\bmeli\b/, "mercadopago.com.br"],
-    [/sicoob/, "sicoob.com.br"],
-    [/sicredi/, "sicredi.com.br"],
-    [/safra/, "safra.com.br"],
-    [/\bpan\b/, "bancopan.com.br"],
-    [/\boriginal\b/, "original.com.br"],
-    [/\bbtg\b/, "btgpactual.com"],
-    [/\bwise\b/, "wise.com"],
-    [/\bpaypal\b/, "paypal.com"],
-    [/\bneon\b/, "neon.com.br"],
-    [/\bwill\b/, "willbank.com.br"],
-    [/\bdigio\b/, "digio.com.br"],
-  ];
-  for (const [re, dom] of mapa) if (re.test(s)) return dom;
-  return null;
-}
-
-function iniciaisDe(nome) {
-  const p = String(nome || "").trim().split(/\s+/).filter(Boolean);
-  if (!p.length) return "?";
-  if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
-  return (p[0][0] + p[p.length - 1][0]).toUpperCase();
-}
-
-// Ícone do banco no card de pasta: tenta o favicon (logo do banco); se não houver
-// domínio conhecido ou a imagem falhar, cai nas iniciais sobre a cor da conta.
-function BankIcon({ c }) {
-  const [erro, setErro] = useState(false);
-  const dom = dominioBanco(c);
-  const box = { width: 40, height: 40, borderRadius: 12, flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,.25)" };
-  if (dom && !erro) {
-    return (
-      <img src={`https://www.google.com/s2/favicons?domain=${dom}&sz=64`} alt="" aria-hidden="true"
-           onError={() => setErro(true)} loading="lazy" referrerPolicy="no-referrer"
-           style={{ ...box, objectFit: "contain", background: "#fff", padding: 5 }} />
-    );
-  }
-  return (
-    <div aria-hidden="true" style={{ ...box, background: c.cor || T.gold, color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 14 }}>
-      {iniciaisDe(c.nome)}
     </div>
   );
 }
