@@ -13,7 +13,7 @@ import { CARD_SHADOW, CARD_SHADOW_ELEVATED } from "../../lib/styles.js";
  */
 export default function Card({ variant = "default", style, children, ...rest }) {
   const base = {
-    background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14,
+    background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 14,
     // Sombra suave estilo SaaS (quase imperceptível no escuro, elegante no claro).
     boxShadow: CARD_SHADOW,
   };
