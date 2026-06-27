@@ -726,6 +726,7 @@ export default function App() {
                    patrimonioHistorico={patrimonioHistorico}
                    escopoAtivo={escopoAtivo}
                    onTabChange={irParaTab}
+                   onQuickAction={handleQuickAction}
                    onContaClick={(c) => { setTab("contas"); setContaAberta(c); }} />
       )}
       {tab === "contas" && !contaAberta && (
