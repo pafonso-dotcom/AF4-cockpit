@@ -279,14 +279,17 @@ export default function Dashboard({
   // ===== Evolução do patrimônio (mês a mês YTD) =====
   const evolucao = useMemo(() => {
     const arr = [];
-    const ano = hoje.getFullYear();
-    const saldoBase = contas.reduce((s, c) => s + Number(c.saldoInicial != null ? c.saldoInicial : (c.saldo || 0) - 0), 0);
-    for (let m = 0; m <= hoje.getMonth(); m++) {
-      const limite = `${ano}-${String(m+1).padStart(2,"0")}-31`;
+    // Saldo de partida real (saldoInicial das contas) + fluxo acumulado de
+    // transações até o fim de cada mês. Rolling dos ÚLTIMOS 12 MESES, então a
+    // curva sempre mostra uma tendência real (não zera no começo do ano).
+    const saldoBase = contas.reduce((s, c) => s + Number(c.saldoInicial != null ? c.saldoInicial : (c.saldo || 0)), 0);
+    for (let i = 11; i >= 0; i--) {
+      const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() - i + 1, 0); // último dia do mês
+      const limite = `${fimMes.getFullYear()}-${String(fimMes.getMonth() + 1).padStart(2, "0")}-${String(fimMes.getDate()).padStart(2, "0")}`;
       const fluxo = transacoes
         .filter(t => (t.data || "") <= limite)
-        .reduce((s,t) => s + (t.tipo === "receita" ? Number(t.valor||0) : -Number(t.valor||0)), 0);
-      arr.push({ mes: MESES_PT[m], saldo: saldoBase + fluxo + totalInvest });
+        .reduce((s, t) => s + (t.tipo === "receita" ? Number(t.valor || 0) : -Number(t.valor || 0)), 0);
+      arr.push({ mes: MESES_PT[fimMes.getMonth()], saldo: saldoBase + fluxo + totalInvest });
     }
     return arr;
   }, [transacoes, contas, totalInvest]);
