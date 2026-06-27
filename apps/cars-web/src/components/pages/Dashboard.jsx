@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect, useState } from "react";
-import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar } from "lucide-react";
+import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar, Plus } from "lucide-react";
+import { CARD_SHADOW } from "../../lib/styles.js";
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import BankIcon from "../ui/BankIcon.jsx";
@@ -80,7 +81,7 @@ export default function Dashboard({
   agenda = [],
   patrimonioHistorico = [],
   escopoAtivo = "tudo",
-  onTabChange, onContaClick,
+  onTabChange, onContaClick, onQuickAction,
 }) {
   // Nome do usuário logado, resolvido via Supabase auth.
   // Sem sessão (modo local em dev) o nome fica vazio → saudação sem nome.
@@ -362,6 +363,31 @@ export default function Dashboard({
 
   return (
     <div className="fade-up" style={{ paddingTop: 12 }}>
+
+      {/* Faixa de atalhos rápidos */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 10, marginBottom: 16 }}>
+        {[
+          { lbl: "Nova transação", icon: Plus, cor: T.gold, on: () => (onQuickAction ? onQuickAction("transacao") : onTabChange?.("transacoes")) },
+          { lbl: "Novo cheque", icon: FileText, cor: T.green, on: () => onTabChange?.("cheques") },
+          { lbl: "Conferir banco", icon: Wallet, cor: T.blue || "#60a5fa", on: () => onTabChange?.("contas") },
+        ].map(a => {
+          const I = a.icon;
+          return (
+            <button key={a.lbl} onClick={a.on}
+              style={{
+                display: "flex", alignItems: "center", gap: 10, padding: "11px 14px",
+                background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
+                boxShadow: CARD_SHADOW, cursor: "pointer", textAlign: "left",
+                color: T.ink, fontWeight: 600, fontSize: 13,
+              }}>
+              <span style={{ width: 34, height: 34, borderRadius: 11, background: `${a.cor}1f`, color: a.cor, display: "grid", placeItems: "center", flexShrink: 0 }}>
+                <I size={17} />
+              </span>
+              {a.lbl}
+            </button>
+          );
+        })}
+      </div>
 
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
