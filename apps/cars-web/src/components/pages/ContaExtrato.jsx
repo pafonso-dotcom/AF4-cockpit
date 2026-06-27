@@ -339,15 +339,11 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         `}</style>
       </div>
 
-      {/* KPIs do mês + ações */}
+      {/* Cabeçalho do extrato (período de visualização) */}
       <div style={{
         display: "flex", gap: 18, flexWrap: "wrap", alignItems: "flex-end",
         marginBottom: 16, padding: "0 2px",
       }}>
-        <KPI l="Entradas (mês)" v={hidden ? "•••" : `+ ${fmt(kpisMes.entradas)}`} c={T.green} />
-        <KPI l="Saídas (mês)"   v={hidden ? "•••" : `− ${fmt(kpisMes.saidas)}`}   c={T.red} />
-        <KPI l="Saldo previsto fim do mês" v={hidden ? "•••" : fmt(kpisMes.saldoPrev)} c={T.gold} />
-
         {(() => {
           const datas = filtradas.map(t => (t.data || "").slice(0, 10)).filter(Boolean).sort();
           const ini = datas[0], fim = datas[datas.length - 1];
@@ -363,62 +359,30 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         })()}
       </div>
 
-      {/* Filtros — uma linha em desktop, colapsa em mobile */}
+      {/* Filtros + ações numa linha só: Período · Tipo · Mais recentes · Expandir */}
       <div className="extrato-filtros" style={{
-        display: "grid",
-        gridTemplateColumns: "minmax(160px, 0.8fr) minmax(140px, 0.7fr) 1fr",
-        gap: 8, marginBottom: 8, alignItems: "center",
+        display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12, alignItems: "center",
       }}>
         <select value={periodo} onChange={e => setPeriodo(e.target.value)}
-                style={{ padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }}>
+                style={{ flex: "1 1 150px", minWidth: 130, padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }}>
           <option value="mes">Período · este mês</option>
           <option value="3meses">Período · últimos 3 meses</option>
           <option value="tudo">Período · tudo</option>
         </select>
         <select value={tipo} onChange={e => setTipo(e.target.value)}
-                style={{ padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }}>
+                style={{ flex: "1 1 130px", minWidth: 120, padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }}>
           <option value="todos">Tipo · todos</option>
           <option value="receita">Tipo · receitas</option>
           <option value="despesa">Tipo · despesas</option>
         </select>
-        <div style={{ fontSize: 11, color: T.muted, letterSpacing: ".05em", whiteSpace: "nowrap", textAlign: "right" }}>
-          {filtradas.length} {filtradas.length === 1 ? "lançamento" : "lançamentos"}
-        </div>
-      </div>
-
-      {/* Chips de Status */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        <span style={{ fontSize: 10, color: T.muted, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", marginRight: 4 }}>
-          Status:
-        </span>
-        {[
-          { id: "todas", label: "Todas" },
-          { id: "compensadas", label: "✓ Compensadas" },
-          { id: "pendentes", label: "○ Pendentes" },
-        ].map(opt => {
-          const active = statusFilter === opt.id;
-          return (
-            <button key={opt.id} onClick={() => setStatusFilter(opt.id)}
-              style={{
-                padding: "5px 11px", borderRadius: 100, fontSize: 11, fontWeight: 500,
-                background: active ? `${T.gold}22` : T.bgSoft,
-                color: active ? T.gold : T.muted,
-                border: `1px solid ${active ? T.gold : T.border}`,
-                cursor: "pointer", whiteSpace: "nowrap",
-                transition: "all .15s",
-              }}>
-              {opt.label}
-            </button>
-          );
-        })}
         <button onClick={() => setSortDir(sortDir === "desc" ? "asc" : "desc")}
                 title="Alternar ordem por data"
                 style={{
-                  marginLeft: "auto", padding: "5px 11px", borderRadius: 100, fontSize: 11,
+                  padding: "8px 12px", borderRadius: 11, fontSize: 11.5,
                   background: T.bgSoft, color: T.muted, border: `1px solid ${T.border}`,
-                  cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
+                  cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", flexShrink: 0,
                 }}>
-          {sortDir === "desc" ? <ArrowDown size={11} /> : <ArrowUp size={11} />}
+          {sortDir === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
           {sortDir === "desc" ? "Mais recentes" : "Mais antigos"}
         </button>
         {(() => {
@@ -433,9 +397,9 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             <button onClick={() => setTodos(todosRecolhidos)}
                     title="Recolher ou expandir todos os dias"
                     style={{
-                      padding: "5px 11px", borderRadius: 100, fontSize: 11,
+                      padding: "8px 12px", borderRadius: 11, fontSize: 11.5,
                       background: T.bgSoft, color: T.muted, border: `1px solid ${T.border}`,
-                      cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
+                      cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", flexShrink: 0,
                     }}>
               {todosRecolhidos ? "Expandir dias" : "Recolher dias"}
             </button>
