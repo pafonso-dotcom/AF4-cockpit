@@ -861,6 +861,7 @@ export default function App() {
         <Inteligencia
           transacoes={transacoes} contas={contas} ativos={ativos}
           cartoes={cartoes} parcelamentos={parcelamentos} metas={metas}
+          fixas={fixas}
           escopoAtivo={escopoAtivo} hidden={hidden} onTabChange={setTab}
         />
       )}
