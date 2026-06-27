@@ -13,7 +13,7 @@ import {
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
   BookOpen, Repeat, MoreHorizontal, RotateCw, LogOut,
-  Bell, Dumbbell, Brain, HandCoins, FileText,
+  Bell, Dumbbell, Brain, HandCoins, FileText, Landmark,
 } from "lucide-react";
 
 /**
@@ -721,7 +721,7 @@ function HeaderVertical({
         <div>
           <div style={{ fontSize: 9, color: NAV_MUTED, letterSpacing: ".2em", marginBottom: 6, paddingLeft: 4 }}>MÓDULOS</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            {MODULOS.map(m => {
+            {MODULOS.map((m, mi) => {
               const Icon = m.icon;
               const ativo = m.id === modulo;
               const aberto = expandido === m.id;
@@ -731,12 +731,15 @@ function HeaderVertical({
               const pendModulo = mSubtabs.reduce((s, st) => s + (pendingCounts[st.id] || 0), 0);
               return (
                 <React.Fragment key={m.id}>
+                  {/* Linha sutil separando os módulos */}
+                  {mi > 0 && <div aria-hidden style={{ height: 1, background: NAV_BORDER, margin: "4px 6px" }} />}
                   <button onClick={() => abrirModulo(m)}
                     style={{
                       padding: "9px 11px", borderRadius: 14,
-                      background: ativo ? "rgba(255,255,255,0.08)" : "transparent",
-                      color: ativo ? T.gold : NAV_INK,
-                      fontWeight: ativo ? 600 : 400, fontSize: 13,
+                      // Módulo aberto/ativo: destaque em branco (fundo claro + texto branco).
+                      background: (ativo || aberto) ? "rgba(255,255,255,0.16)" : "transparent",
+                      color: (ativo || aberto) ? "#ffffff" : NAV_INK,
+                      fontWeight: (ativo || aberto) ? 700 : 400, fontSize: 13,
                       border: "none", cursor: "pointer", textAlign: "left",
                       display: "flex", alignItems: "center", gap: 9,
                     }}>
@@ -752,19 +755,21 @@ function HeaderVertical({
                   </button>
 
                   {/* Sub-abas (aparecem só quando o módulo está aberto) — árvore
-                      com linha-guia vertical à esquerda (cara de pastas). */}
+                      com conectores em "L" (pai → filhos), como pastas. */}
                   {aberto && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 1, margin: "2px 0 6px", marginLeft: 18, paddingLeft: 8, borderLeft: `1px solid ${NAV_BORDER}` }}>
-                      {mSubtabs.map(s => {
+                    <div style={{ display: "flex", flexDirection: "column", gap: 1, margin: "2px 0 6px", marginLeft: 14 }}>
+                      {mSubtabs.map((s, si) => {
                         const SIcon = s.icon;
                         const sAtivo = s.agenda ? AGENDA_TAB_IDS.has(tab) : s.id === tab;
                         const pending = pendingCounts[s.id] || 0;
+                        const sUlt = si === mSubtabs.length - 1;
+                        const sCon = sAtivo ? T.gold : NAV_BORDER;
                         // Filhos da árvore — ESCONDIDOS até clicar na aba-pai:
                         // bancos só aparecem com Contas aberta; cartões com Cartões aberta.
                         let filhos = null;
                         if (s.id === "contas" && tab === "contas" && contas.length > 0 && setContaAberta) {
                           filhos = contas.map(c => ({
-                            id: `conta:${c.id}`, label: c.nome, cor: c.cor,
+                            id: `conta:${c.id}`, label: c.nome, cor: c.cor, tipoConta: true,
                             ativo: contaAberta?.id === c.id,
                             onClick: () => { setTab("contas"); setContaAberta(c); },
                           }));
@@ -783,10 +788,14 @@ function HeaderVertical({
                           }));
                         }
                         return (
-                          <React.Fragment key={s.id}>
+                          <div key={s.id} style={{ position: "relative" }}>
+                            {/* conector em L do subtab */}
+                            <span aria-hidden style={{ position: "absolute", left: 2, top: 0, width: 11, height: 16, borderLeft: `1px solid ${sCon}`, borderBottom: `1px solid ${sCon}`, borderBottomLeftRadius: 7 }} />
+                            {!sUlt && <span aria-hidden style={{ position: "absolute", left: 2, top: 0, bottom: 0, borderLeft: `1px solid ${NAV_BORDER}` }} />}
                             <button onClick={() => setTab(s.id)}
                               style={{
-                                padding: "7px 10px", borderRadius: 10, fontSize: 15,
+                                position: "relative", width: "100%",
+                                padding: "7px 10px 7px 18px", borderRadius: 10, fontSize: 15,
                                 fontFamily: "'Nunito', system-ui, sans-serif",
                                 background: sAtivo ? "rgba(255,255,255,0.10)" : "transparent",
                                 color: sAtivo ? NAV_INK : NAV_MUTED,
@@ -794,8 +803,7 @@ function HeaderVertical({
                                 border: "none", cursor: "pointer", textAlign: "left",
                                 display: "flex", alignItems: "center", gap: 8,
                               }}>
-                              <span aria-hidden style={{ width: 8, height: 1, background: sAtivo ? T.gold : NAV_BORDER, marginLeft: -8, marginRight: 2, flexShrink: 0 }} />
-                              {SIcon && <SIcon size={12} />}
+                              {SIcon && <SIcon size={12} style={{ flexShrink: 0 }} />}
                               {s.label}
                               {pending > 0 && (
                                 <span style={{
@@ -806,23 +814,37 @@ function HeaderVertical({
                                 }}>{pending}</span>
                               )}
                             </button>
-                            {filhos && filhos.map(f => (
-                              <button key={f.id} onClick={f.onClick}
-                                style={{
-                                  padding: "5px 10px 5px 16px", borderRadius: 10, fontSize: 12,
-                                  background: f.ativo ? "rgba(255,255,255,0.12)" : "transparent",
-                                  color: f.ativo ? NAV_INK : NAV_MUTED,
-                                  fontWeight: f.ativo ? 600 : 400,
-                                  border: "none", cursor: "pointer", textAlign: "left",
-                                  display: "flex", alignItems: "center", gap: 7,
-                                  whiteSpace: "nowrap", overflow: "hidden",
-                                }}>
-                                <span aria-hidden style={{ width: 6, height: 1, background: f.ativo ? T.gold : NAV_BORDER, marginLeft: -8, marginRight: 1, flexShrink: 0 }} />
-                                {f.cor && <span style={{ width: 8, height: 8, borderRadius: 2, background: f.cor, flexShrink: 0 }} />}
-                                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{f.label}</span>
-                              </button>
-                            ))}
-                          </React.Fragment>
+                            {filhos && (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 1, marginLeft: 16 }}>
+                                {filhos.map((f, fi) => {
+                                  const fUlt = fi === filhos.length - 1;
+                                  const fCon = f.ativo ? T.gold : NAV_BORDER;
+                                  return (
+                                    <div key={f.id} style={{ position: "relative" }}>
+                                      <span aria-hidden style={{ position: "absolute", left: 2, top: 0, width: 11, height: 13, borderLeft: `1px solid ${fCon}`, borderBottom: `1px solid ${fCon}`, borderBottomLeftRadius: 7 }} />
+                                      {!fUlt && <span aria-hidden style={{ position: "absolute", left: 2, top: 0, bottom: 0, borderLeft: `1px solid ${NAV_BORDER}` }} />}
+                                      <button onClick={f.onClick}
+                                        style={{
+                                          position: "relative", width: "100%",
+                                          padding: "5px 10px 5px 18px", borderRadius: 10, fontSize: 12,
+                                          background: f.ativo ? "rgba(255,255,255,0.12)" : "transparent",
+                                          color: f.ativo ? NAV_INK : NAV_MUTED,
+                                          fontWeight: f.ativo ? 600 : 400,
+                                          border: "none", cursor: "pointer", textAlign: "left",
+                                          display: "flex", alignItems: "center", gap: 7,
+                                          whiteSpace: "nowrap", overflow: "hidden",
+                                        }}>
+                                        {f.tipoConta
+                                          ? <Landmark size={12} style={{ color: f.cor || NAV_MUTED, flexShrink: 0 }} />
+                                          : f.cor ? <span style={{ width: 8, height: 8, borderRadius: 2, background: f.cor, flexShrink: 0 }} /> : null}
+                                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{f.label}</span>
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
