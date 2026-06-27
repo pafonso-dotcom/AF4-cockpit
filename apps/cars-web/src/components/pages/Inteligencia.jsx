@@ -15,6 +15,7 @@ const safe = (fn, fallback) => { try { return fn(); } catch { return fallback; }
 
 export default function Inteligencia({
   transacoes = [], contas = [], ativos = [], cartoes = [], parcelamentos = [], metas = [],
+  fixas = [],
   escopoAtivo = "tudo", hidden = false, onTabChange,
 }) {
   const fin = useMemo(() => escoparFinancas(transacoes, contas, escopoAtivo), [transacoes, contas, escopoAtivo]);
@@ -34,7 +35,7 @@ export default function Inteligencia({
       <Grupo titulo="Finanças">
         <Secao titulo="Score financeiro"><ScoreCard score={score} hidden={hidden} /></Secao>
         <Secao titulo="Insights"><InsightsList insights={insights} onIr={onTabChange} /></Secao>
-        <Secao titulo="Assinaturas detectadas"><AssinaturasCard assinaturas={assinaturas} hidden={hidden} /></Secao>
+        <Secao titulo="Assinaturas detectadas"><AssinaturasCard assinaturas={assinaturas} fixas={fixas} hidden={hidden} onTabChange={onTabChange} /></Secao>
         <Secao titulo="Projeção de caixa (3 meses)"><CashflowCard projecao={projecao} hidden={hidden} /></Secao>
       </Grupo>
 
