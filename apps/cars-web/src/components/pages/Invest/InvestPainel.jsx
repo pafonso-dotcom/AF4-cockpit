@@ -335,7 +335,10 @@ function Kpi({ label, value, format = (n) => String(n), hidden, sub, variation, 
   const varStr = num != null ? (num >= 0 ? "↗ +" : "↘ ") + fmtN(num, 2) + "%" : null;
   const positive = num != null && num >= 0;
   return (
-    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, minHeight: 110, position: "relative", boxShadow: CARD_SHADOW }}>
+    <div style={{ position: "relative", paddingTop: 9 }}>
+      {/* aba da pasta — branca/clara, no mesmo estilo dos folder cards */}
+      <div aria-hidden style={{ position: "absolute", top: 0, left: "32%", right: "9%", height: 15, borderRadius: "10px 10px 0 0", background: T.bgSoft, border: `1px solid ${T.border}`, borderBottom: "none", zIndex: 0 }} />
+      <div className="ip-card" style={{ position: "relative", zIndex: 1, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, minHeight: 110, boxShadow: CARD_SHADOW }}>
       <div style={{ fontSize: 11, color: T.muted }}>{label}</div>
       <AnimatedNumber value={value} format={format} hidden={hidden}
         className="num" style={{ display: "block", fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 6, color: T.ink }} />
@@ -353,6 +356,7 @@ function Kpi({ label, value, format = (n) => String(n), hidden, sub, variation, 
           <Icon size={16} style={{ color: cor || T.gold }} />
         </div>
       )}
+      </div>
     </div>
   );
 }
