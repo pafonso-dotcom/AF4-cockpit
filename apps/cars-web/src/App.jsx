@@ -1312,6 +1312,7 @@ export default function App() {
         open={paletaAberta}
         onClose={() => setPaletaAberta(false)}
         onNavigate={({ modulo: m, tab: t }) => { setModulo(m); irParaTab(t); }}
+        onQuickAction={handleQuickAction}
         transacoes={transacoes} contas={contas} ativos={ativos}
         notas={notas} metas={metas} categorias={categorias}
       />
