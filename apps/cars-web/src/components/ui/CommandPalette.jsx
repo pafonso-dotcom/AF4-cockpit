@@ -14,13 +14,26 @@ import { buscarGlobal } from "../../lib/globalSearch.js";
  * - transacoes, contas, ativos, notas, metas, categorias — dados p/ busca global
  */
 export default function CommandPalette({
-  open, onClose, onNavigate,
+  open, onClose, onNavigate, onQuickAction,
   transacoes = [], contas = [], ativos = [], notas = [], metas = [], categorias = [],
 }) {
   const [query, setQuery] = useState("");
   const [idx, setIdx] = useState(0);
   const inputRef = useRef(null);
   const listRef = useRef(null);
+
+  // Ações rápidas (comandos) — aparecem por padrão e ao buscar pelo nome.
+  const acoes = useMemo(() => {
+    const base = [
+      { key: "ac-tx", grupo: "Ação", label: "Nova transação", sub: "criar receita/despesa", run: () => onQuickAction?.("transacao") },
+      { key: "ac-aporte", grupo: "Ação", label: "Novo aporte", sub: "registrar investimento", run: () => onQuickAction?.("aporte") },
+      { key: "ac-cheque", grupo: "Ação", label: "Novo cheque", sub: "cheque a receber", run: () => onNavigate?.({ modulo: "financas", tab: "cheques" }) },
+      { key: "ac-banco", grupo: "Ação", label: "Conferir banco", sub: "abrir Contas", run: () => onNavigate?.({ modulo: "financas", tab: "contas" }) },
+    ];
+    const ql = query.trim().toLowerCase();
+    if (!ql) return base;
+    return base.filter(a => `${a.label} ${a.sub}`.toLowerCase().includes(ql));
+  }, [query, onQuickAction, onNavigate]);
 
   const navRes = useMemo(
     () => filtrarNav(query).map(it => ({ ...it, key: `nav-${it.modulo}-${it.tab}` })),
@@ -30,7 +43,7 @@ export default function CommandPalette({
     () => buscarGlobal(query, { transacoes, contas, ativos, notas, metas, categorias }),
     [query, transacoes, contas, ativos, notas, metas, categorias],
   );
-  const resultados = useMemo(() => [...navRes, ...dataRes], [navRes, dataRes]);
+  const resultados = useMemo(() => [...acoes, ...navRes, ...dataRes], [acoes, navRes, dataRes]);
 
   // Reseta ao abrir + foca o input
   useEffect(() => {
@@ -46,6 +59,7 @@ export default function CommandPalette({
 
   const escolher = (item) => {
     if (!item) return;
+    if (item.run) { item.run(); onClose?.(); return; }
     onNavigate?.({ modulo: item.modulo, tab: item.tab });
     onClose?.();
   };
