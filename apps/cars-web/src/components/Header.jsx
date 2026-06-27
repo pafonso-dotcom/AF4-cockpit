@@ -688,18 +688,17 @@ function HeaderVertical({
   const NAV_MUTED = "#a8a8b0";
   const NAV_BORDER = "rgba(255,255,255,0.08)";
 
-  // Acordeão: começa com TODOS fechados; abre um por vez ao clicar no módulo.
-  const [expandido, setExpandido] = useState(null);
+  // Acordeão: começa com o módulo ATIVO já aberto (ex.: Finanças ao abrir o app).
+  // Só fecha quando o usuário abre outro módulo (não recolhe ao clicar no já aberto).
+  const [expandido, setExpandido] = useState(() => modulo);
   const abrirModulo = (m) => {
     if (m.id !== modulo) {
       setModulo(m.id);
       const first = SUBTABS[m.id]?.[0]?.id;
       if (first) setTab(first);
-      setExpandido(m.id);
-    } else {
-      // Clicar no módulo já ativo abre/fecha as sub-abas.
-      setExpandido(prev => (prev === m.id ? null : m.id));
     }
+    // Em qualquer caso, o módulo clicado fica aberto (só fecha ao abrir outro).
+    setExpandido(m.id);
   };
 
   return (

@@ -746,17 +746,34 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
           <Field label="Descrição" required error={formErrors.descricao}>
             <input value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} placeholder="Ex.: Salário, Mercado…" />
           </Field>
-          <Field label="Valor (R$)" required error={formErrors.valor} hint="Só números · centavos automáticos">
-            <MoneyInput value={form.valor} onChange={v => setForm({ ...form, valor: v })} />
-          </Field>
-          <Field label="Categoria" required error={formErrors.categoria}>
-            <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value, subcategoria: "" })}>
-              <option value="">Selecione…</option>
-              {categorias.filter(c => c.tipo === form.tipo).map(c => (
-                <option key={c.id} value={c.nome}>{c.nome}</option>
-              ))}
-            </select>
-          </Field>
+          {/* Valor + Data lado a lado (reduz a altura do form) */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
+            <Field label="Valor (R$)" required error={formErrors.valor} hint="Só números · centavos automáticos">
+              <MoneyInput value={form.valor} onChange={v => setForm({ ...form, valor: v })} />
+            </Field>
+            <Field label="Data" required error={formErrors.data}>
+              <input type="date" value={form.data} onChange={e => setForm({ ...form, data: e.target.value })} />
+            </Field>
+          </div>
+          {/* Categoria + Cartão lado a lado (Cartão é condicional → Categoria ocupa a linha toda quando não houver) */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
+            <Field label="Categoria" required error={formErrors.categoria}>
+              <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value, subcategoria: "" })}>
+                <option value="">Selecione…</option>
+                {categorias.filter(c => c.tipo === form.tipo).map(c => (
+                  <option key={c.id} value={c.nome}>{c.nome}</option>
+                ))}
+              </select>
+            </Field>
+            {form.tipo === "despesa" && cartoes && cartoes.length > 0 && (
+              <Field label="Cartão (opcional)" hint="Útil para gerar fatura detalhada por categoria/cartão">
+                <select value={form.cartaoId || ""} onChange={e => setForm({ ...form, cartaoId: e.target.value || null })}>
+                  <option value="">Nenhum · pago direto da conta</option>
+                  {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+              </Field>
+            )}
+          </div>
           {/* Subcategoria — só aparece se a categoria escolhida tem subs */}
           {(() => {
             const catObj = categorias.find(c => c.nome === form.categoria && c.tipo === form.tipo);
@@ -777,17 +794,6 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
               {contas.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
             </select>
           </Field>
-          <Field label="Data" required error={formErrors.data}>
-            <input type="date" value={form.data} onChange={e => setForm({ ...form, data: e.target.value })} />
-          </Field>
-          {form.tipo === "despesa" && cartoes && cartoes.length > 0 && (
-            <Field label="Cartão (opcional)" hint="Útil para gerar fatura detalhada por categoria/cartão">
-              <select value={form.cartaoId || ""} onChange={e => setForm({ ...form, cartaoId: e.target.value || null })}>
-                <option value="">Nenhum · pago direto da conta</option>
-                {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
-            </Field>
-          )}
           <Field label="Observações (opcional)" hint="Notas livres — número do comprovante, contexto, etc.">
             <textarea value={form.obs || ""} onChange={e => setForm({ ...form, obs: e.target.value })}
                       rows={2} placeholder="Notas, número do comprovante, parcelado em…"
