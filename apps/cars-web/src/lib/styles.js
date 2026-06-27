@@ -5,7 +5,7 @@
 
 // Sombra padrão dos cards (estilo SaaS, quase imperceptível no escuro).
 export const CARD_SHADOW =
-  "0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06)";
+  "0 2px 8px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06)";
 
 // Sombra de destaque (cards "elevados").
 export const CARD_SHADOW_ELEVATED =
