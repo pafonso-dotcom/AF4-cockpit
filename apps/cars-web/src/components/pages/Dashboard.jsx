@@ -11,6 +11,7 @@ import { gerarInsights } from "../../lib/intelligence.js";
 import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { getKPIsMes, getDespesasDoMes, getAnualPorMes } from "../../lib/agregador.js";
+import { calcOrcamentoCategorias } from "../../lib/orcamentos.js";
 import { supabase } from "../../lib/supabase.js";
 import Card from "../ui/Card.jsx";
 
@@ -410,6 +411,11 @@ export default function Dashboard({
         <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
       </section>
 
+      {/* Orçamento por categoria */}
+      <section style={{ marginBottom: 16 }}>
+        <OrcamentoCard categorias={categorias} transacoes={transacoes} mesISO={mesISO} hidden={hidden} onTabChange={onTabChange} />
+      </section>
+
       {/* A Receber + Projeção */}
       <section className="dash-bot-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
@@ -740,6 +746,50 @@ function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
           <div style={{ gridColumn: "1 / -1", padding: 16, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Sem contas cadastradas.</div>
         )}
       </div>
+    </Card>
+  );
+}
+
+function OrcamentoCard({ categorias, transacoes, mesISO, hidden, onTabChange }) {
+  const itens = useMemo(() => calcOrcamentoCategorias(categorias, transacoes, mesISO), [categorias, transacoes, mesISO]);
+  return (
+    <Card>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Orçamento por categoria</div>
+        <button onClick={() => onTabChange?.("categorias")} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Editar</button>
+      </div>
+      {itens.length === 0 ? (
+        <div style={{ padding: 14, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>
+          Nenhum orçamento definido.{" "}
+          <button onClick={() => onTabChange?.("categorias")} style={{ background: "transparent", border: "none", color: T.gold, cursor: "pointer", fontWeight: 600 }}>Definir em Categorias →</button>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+          {itens.map(c => {
+            const cor = c.estado === "estourado" ? T.red : c.estado === "alerta" ? T.gold : T.green;
+            const w = Math.min(100, c.pct);
+            return (
+              <div key={c.id}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, color: T.ink, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {c.estado !== "ok" && <AlertCircle size={12} style={{ color: cor, flexShrink: 0 }} />}
+                    {c.cor && <span style={{ width: 8, height: 8, borderRadius: 2, background: c.cor, flexShrink: 0 }} />}
+                    {c.nome}
+                  </span>
+                  <span className="num" style={{ fontSize: 10.5, color: cor, fontWeight: 700, flexShrink: 0 }}>{Math.round(c.pct)}%</span>
+                </div>
+                <div style={{ height: 8, borderRadius: 6, background: T.bgSoft, overflow: "hidden" }}>
+                  <div style={{ width: `${w}%`, height: "100%", borderRadius: 6, background: cor, transition: "width .4s ease" }} />
+                </div>
+                <div style={{ fontSize: 9.5, color: T.muted, marginTop: 3 }}>
+                  {hidden ? "•••" : `${fmt(c.gasto)} de ${fmt(c.limite)}`}
+                  {c.estado === "estourado" ? " · estourou" : c.estado === "alerta" ? " · quase no limite" : ""}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </Card>
   );
 }
