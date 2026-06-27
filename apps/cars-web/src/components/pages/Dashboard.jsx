@@ -2,6 +2,7 @@ import React, { useMemo, useEffect, useState } from "react";
 import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar } from "lucide-react";
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
+import BankIcon from "../ui/BankIcon.jsx";
 import { MESES_UP as MESES_PT } from "../../lib/meses.js";
 import { fmt, fmtN } from "../../lib/format.js";
 import { somaContasBRL } from "../../lib/cambio.js";
@@ -690,26 +691,24 @@ function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Contas</div>
         <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver todas</button>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-        {contas.slice(0, 4).map(c => {
-          const bb = bancoBadge(c);
-          return (
+      {/* Mini-pastas — versão compacta dos folder cards roxos da tela de Contas */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        {contas.slice(0, 4).map(c => (
           <button key={c.id} onClick={() => onContaClick?.(c)}
-            style={{ background: "transparent", border: "none", padding: "9px 0", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left", borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ width: 32, height: 32, borderRadius: 9, background: bb.bg, display: "grid", placeItems: "center", color: bb.fg, fontWeight: 700, fontSize: 11, flexShrink: 0 }}>
-              {bb.label}
+            style={{ position: "relative", paddingTop: 6, background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
+            {/* aba da pasta */}
+            <div aria-hidden style={{ position: "absolute", top: 0, left: "30%", right: "12%", height: 9, borderRadius: "6px 6px 0 0", background: "#5a4a93", opacity: .85 }} />
+            <div style={{ position: "relative", background: "linear-gradient(155deg, #3a2d63 0%, #271f4a 100%)", color: "#f3f0fb", borderRadius: 12, padding: "9px 10px", boxShadow: "0 6px 16px rgba(20,12,40,.2)" }}>
+              <BankIcon c={c} size={26} />
+              <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
+              <div className="num" style={{ fontFamily: T.serif, fontSize: 12.5, color: c.saldo < 0 ? "#ff9d9d" : "#f3f0fb", whiteSpace: "nowrap" }}>
+                {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
+              </div>
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, color: T.ink, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
-              <div style={{ fontSize: 10, color: T.muted }}>{c.tipo === "carteira" ? "Carteira (Física)" : "Conta Corrente"}</div>
-            </div>
-            <div className="num" style={{ fontFamily: T.serif, fontSize: 13, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(c.saldo)}</div>
-            <ChevronRight size={14} style={{ color: T.muted, flexShrink: 0 }} />
           </button>
-          );
-        })}
+        ))}
         {contas.length === 0 && (
-          <div style={{ padding: 16, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Sem contas cadastradas.</div>
+          <div style={{ gridColumn: "1 / -1", padding: 16, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Sem contas cadastradas.</div>
         )}
       </div>
     </Card>
