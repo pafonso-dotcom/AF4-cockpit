@@ -478,17 +478,18 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                 {/* Cabeçalho do dia (clicável: recolhe/expande os lançamentos) */}
                 <div onClick={() => toggleDia(grupo.dia, abertoPadrao)} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
+                  gap: 8, flexWrap: "wrap",
                   padding: "5px 14px", background: T.bgSoft, borderBottom: `1px solid ${T.border}`,
                   cursor: "pointer",
                 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flex: "1 1 auto", minWidth: 0, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 10, color: T.muted, display: "inline-block", transform: recolhido ? "none" : "rotate(90deg)", transition: "transform .15s" }}>▸</span>
                     <span className="num" style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{dl.dia}</span>
                     <span style={{ fontSize: 11, color: T.muted }}>{dl.mes} '{dl.ano}</span>
                     <span style={{ fontSize: 10.5, color: T.faint, textTransform: "capitalize" }}>· {dl.semana}</span>
                     <span style={{ fontSize: 10.5, color: T.faint }}>· {grupo.itens.length} {grupo.itens.length === 1 ? "lançamento" : "lançamentos"}</span>
                   </span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: "auto" }}>
                     <span className="num" style={{ fontSize: 11, fontWeight: 600, color: net >= 0 ? T.green : T.red }}>
                       {hidden ? "•••" : `${net >= 0 ? "+ " : "− "}${fmt(Math.abs(net))}`}
                     </span>
