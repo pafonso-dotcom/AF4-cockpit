@@ -92,6 +92,9 @@ const InvestPainel = lz(() => import("./components/pages/Invest/InvestPainel.jsx
 const Proventos = lz(() => import("./components/pages/Invest/Proventos.jsx"));
 const RelatoriosInvest = lz(() => import("./components/pages/Invest/RelatoriosInvest.jsx"));
 const RelatoriosFinancas = lz(() => import("./components/pages/RelatoriosFinancas.jsx"));
+const RevisorGanhos = lz(() => import("./components/pages/RevisorGanhos.jsx"));
+const PesquisadorMercado = lz(() => import("./components/pages/PesquisadorMercado.jsx"));
+const ConstrutorMercado = lz(() => import("./components/pages/ConstrutorMercado.jsx"));
 const Cheques = lz(() => import("./components/pages/Cheques.jsx"));
 const Inteligencia = lz(() => import("./components/pages/Inteligencia.jsx"));
 const CartaoExtrato = lz(() => import("./components/pages/CartaoExtrato.jsx"));
@@ -796,6 +799,18 @@ export default function App() {
             devedores={devedores} dividas={dividas} cheques={cheques}
           />
         </div>
+      )}
+      {tab === "revisor-ganhos" && (
+        <RevisorGanhos transacoes={transacoes} hidden={hidden} />
+      )}
+      {tab === "pesquisador-mercado" && (
+        <PesquisadorMercado onIrConstrutor={() => setTab("construtor-mercado")} />
+      )}
+      {tab === "construtor-mercado" && (
+        <ConstrutorMercado
+          onIrPesquisador={() => setTab("pesquisador-mercado")}
+          onIrMonteCarteira={() => { setModulo("invest"); irParaTab("monte-carteira"); }}
+        />
       )}
       {tab === "cartoes" && !cartaoAberto && (
         <div className="px-6 md:px-10">
