@@ -402,11 +402,14 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                  }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                 <BankIcon c={c} />
-                <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
-                        aria-label={exp ? "Recolher" : "Mais ações"}
-                        style={{ background: "rgba(255,255,255,.12)", border: "none", color: PASTA_INK, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                  <MoreHorizontal size={15} />
-                </button>
+                {/* No mobile a tela fica só informativa: esconde o ⋯ (Mais ações). */}
+                {!isMobile && (
+                  <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
+                          aria-label={exp ? "Recolher" : "Mais ações"}
+                          style={{ background: "rgba(255,255,255,.12)", border: "none", color: PASTA_INK, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                    <MoreHorizontal size={15} />
+                  </button>
+                )}
               </div>
               <div style={{ flex: 1, minHeight: 10 }} />
               <div style={{ fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
