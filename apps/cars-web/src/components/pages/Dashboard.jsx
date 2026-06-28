@@ -411,18 +411,13 @@ export default function Dashboard({
       </section>
       )}
 
-      {/* Contas · Gastos por Categoria · Alocação Atual (Contas primeiro) */}
+      {/* Contas · Alocação Atual · Gastos por Categoria (Alocação antes de Gastos) */}
       <section className="dash-mid-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
-        <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
         <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
-      </section>
-
-      {/* Orçamento por categoria */}
-      <section style={{ marginBottom: 16 }}>
-        <OrcamentoCard categorias={categorias} transacoes={transacoes} mesISO={mesISO} hidden={hidden} onTabChange={onTabChange} />
+        <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
       </section>
 
       {/* A Receber + Projeção */}
