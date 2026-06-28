@@ -18,8 +18,6 @@ export const NAV_ITEMS = [
   { modulo: "financas", tab: "categorias",   label: "Categorias",         grupo: "Finanças" },
   { modulo: "financas", tab: "perguntar",    label: "Pergunte ao Claude", grupo: "Finanças" },
   { modulo: "financas", tab: "revisor-ganhos",      label: "Revisor de ganhos",     grupo: "Finanças" },
-  { modulo: "financas", tab: "pesquisador-mercado", label: "Pesquisador de mercado", grupo: "Finanças" },
-  { modulo: "financas", tab: "construtor-mercado",  label: "Construtor de mercado",  grupo: "Finanças" },
   { modulo: "financas", tab: "relatorios-f", label: "Relatórios",         grupo: "Finanças" },
   { modulo: "financas", tab: "audit",        label: "Histórico",          grupo: "Finanças" },
 
@@ -32,6 +30,8 @@ export const NAV_ITEMS = [
   { modulo: "invest", tab: "analises",       label: "Análises",            grupo: "Investimentos" },
   { modulo: "invest", tab: "proventos",      label: "Proventos",           grupo: "Investimentos" },
   { modulo: "invest", tab: "mercado",        label: "Mercado",             grupo: "Investimentos" },
+  { modulo: "invest", tab: "pesquisador-mercado", label: "Pesquisador de mercado", grupo: "Investimentos" },
+  { modulo: "invest", tab: "construtor-mercado",  label: "Construtor de mercado",  grupo: "Investimentos" },
   { modulo: "invest", tab: "relatorios-i",   label: "Relatórios",          grupo: "Investimentos" },
 
   // Negócio

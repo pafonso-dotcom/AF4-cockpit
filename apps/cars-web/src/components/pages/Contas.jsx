@@ -287,7 +287,8 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
         </div>
       )}
 
-      {/* Total compacto */}
+      {/* Total compacto — escondido no mobile (lá fica só os cards das contas) */}
+      {!isMobile && (
       <div style={{
         marginBottom: 10, padding: "8px 12px",
         background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
@@ -347,6 +348,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           </div>
         )}
       </div>
+      )}
 
       {/* Lista de contas — aberta por padrão */}
       <SecaoColapsavel idKey="contas-lista" titulo="Minhas contas" count={contasVisiveis.length} defaultAberto={true}>
