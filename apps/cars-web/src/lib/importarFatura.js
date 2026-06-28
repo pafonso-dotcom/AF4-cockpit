@@ -93,6 +93,67 @@ export function matchFixaExistente(item, fixasExistentes = []) {
 }
 
 /**
+ * Concilia uma linha "vista" da fatura com uma transação que o usuário JÁ lançou
+ * à mão (durante o mês). Evita o duplicado clássico: você lança a compra quando
+ * gasta, e depois a fatura traz a mesma linha.
+ *
+ * Critérios:
+ *  - é despesa, não veio de fatura (origem != "fatura*"), não está em `usados`
+ *  - mesmo cartão (se `cartaoId` for informado e a transação tiver cartaoId)
+ *  - valor igual (tolerância: 1% ou 1 centavo, o que for maior)
+ *  - data dentro da janela (`janelaDias`, padrão 4)
+ *  - se ambas têm descrição, exige alguma similaridade (evita casar 2 compras
+ *    de mesmo valor/dia que não têm nada a ver)
+ * Entre vários candidatos, escolhe o de data mais próxima.
+ * Em caso de dúvida, retorna null (prefere não conciliar a conciliar errado).
+ *
+ * @returns {object|null} a transação existente que casa, ou null
+ */
+export function matchTransacaoExistente(item, transacoesExistentes = [], opts = {}) {
+  if (!item) return null;
+  if (!Array.isArray(transacoesExistentes) || transacoesExistentes.length === 0) return null;
+
+  const { cartaoId = null, janelaDias = 4, usados = new Set() } = opts;
+  const valorItem = Number(item.valor) || 0;
+  if (!valorItem) return null;
+  const descNorm = normalize(item.descricao || "");
+  const dataItem = brDateToISO(item.data_compra) || item.data || item.data_compra || null;
+  const tolValor = Math.max(0.02, valorItem * 0.01);
+
+  const candidatos = transacoesExistentes.filter((t) => {
+    if (!t || t.tipo !== "despesa") return false;
+    if (t.id && usados.has(t.id)) return false;
+    if (typeof t.origem === "string" && t.origem.startsWith("fatura")) return false;
+    if (cartaoId && t.cartaoId && t.cartaoId !== cartaoId) return false;
+
+    const tv = Number(t.valor) || 0;
+    if (!tv) return false;
+    if (Math.abs(tv - valorItem) > tolValor) return false;
+
+    if (dataItem && t.data) {
+      const dias = Math.abs(new Date(dataItem) - new Date(t.data)) / 86400000;
+      if (Number.isFinite(dias) && dias > janelaDias) return false;
+    }
+
+    const tNorm = normalize(t.descricao || "");
+    if (descNorm && tNorm) {
+      const ok = tNorm.includes(descNorm) || descNorm.includes(tNorm) || jaccardSimilarity(tNorm, descNorm) > 0.34;
+      if (!ok) return false;
+    }
+    return true;
+  });
+
+  candidatos.sort((a, b) => {
+    if (!dataItem) return 0;
+    const da = a.data ? Math.abs(new Date(dataItem) - new Date(a.data)) : Infinity;
+    const db = b.data ? Math.abs(new Date(dataItem) - new Date(b.data)) : Infinity;
+    return da - db;
+  });
+
+  return candidatos[0] || null;
+}
+
+/**
  * Verifica se a fatura inteira parece já ter sido importada.
  * Retorna objeto com `duplicada: true` se ≥ 70% das parcelas já existem.
  */
