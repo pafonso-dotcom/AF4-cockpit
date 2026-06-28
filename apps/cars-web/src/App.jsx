@@ -804,11 +804,11 @@ export default function App() {
         <RevisorGanhos transacoes={transacoes} hidden={hidden} />
       )}
       {tab === "pesquisador-mercado" && (
-        <PesquisadorMercado onIrConstrutor={() => setTab("construtor-mercado")} />
+        <PesquisadorMercado onIrConstrutor={() => { setModulo("invest"); setTab("construtor-mercado"); }} />
       )}
       {tab === "construtor-mercado" && (
         <ConstrutorMercado
-          onIrPesquisador={() => setTab("pesquisador-mercado")}
+          onIrPesquisador={() => { setModulo("invest"); setTab("pesquisador-mercado"); }}
           onIrMonteCarteira={() => { setModulo("invest"); irParaTab("monte-carteira"); }}
         />
       )}
