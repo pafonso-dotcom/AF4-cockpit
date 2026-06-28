@@ -158,14 +158,18 @@ export default function Dashboard({
     () => ({ transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques }),
     [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques]
   );
-  // A pagar do ano (todos os compromissos pendentes/atrasados com vencimento no
-  // ano corrente: fixas, variáveis, parcelas e dívidas) + patrimônio total.
+  // A pagar do ano: compromissos pendentes/atrasados (fixas, variáveis, parcelas
+  // e dívidas) do MÊS CORRENTE em diante. Meses já fechados (passados) não somam
+  // — o que já passou/pagou já está refletido no saldo. Mesma regra do "riscado
+  // não soma" do Relatório.
   const aPagarAno = useMemo(() => {
     try {
       const anual = getAnualPorMes(anoAtual, stateAgg, escopoAtivo);
-      return anual.reduce((s, mo) => s + mo.despesas
-        .filter(d => d.status === "pendente" || d.status === "atrasada")
-        .reduce((ss, d) => ss + (Number(d.valor) || 0), 0), 0);
+      return anual
+        .filter(mo => mo.status !== "fechado")
+        .reduce((s, mo) => s + mo.despesas
+          .filter(d => d.status === "pendente" || d.status === "atrasada")
+          .reduce((ss, d) => ss + (Number(d.valor) || 0), 0), 0);
     } catch { return 0; }
   }, [anoAtual, stateAgg, escopoAtivo]);
   const patrimonioTotal = totalContas + totalInvest + aReceber + chequesAReceber - aPagarAno;
