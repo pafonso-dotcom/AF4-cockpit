@@ -13,10 +13,12 @@ import BankIcon from "../ui/BankIcon.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
 import Modal from "../ui/Modal.jsx";
 import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
+import { useLayout } from "../../lib/useLayout.js";
 import TransferenciaModal from "../modals/TransferenciaModal.jsx";
 import ImportarExtrato from "../modals/ImportarExtrato.jsx";
 
 export default function Contas({ contas, setContas, hidden, onCreateTransacao, onContaClick, contaAtiva, transacoes, setTransacoes, categorias, escopoAtivo = "tudo" }) {
+  const { isMobile } = useLayout();
   const [form, setForm] = useState(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [importExtratoOpen, setImportExtratoOpen] = useState(false);
@@ -229,6 +231,9 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             Cada conta é uma página do seu balanço.
           </div>
         </div>
+        {/* No mobile a tela de Contas fica só informativa (menos manuseio):
+            esconde a barra de ações. Gerenciar contas continua no desktop. */}
+        {!isMobile && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end" }}>
           {contas.length >= 2 && (
             <button onClick={() => setTransferOpen(true)}
@@ -255,6 +260,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             <Plus size={13} className="inline mr-1.5" />Nova Conta
           </button>
         </div>
+        )}
       </div>
 
       {/* Aviso de contas dessincronizadas */}
