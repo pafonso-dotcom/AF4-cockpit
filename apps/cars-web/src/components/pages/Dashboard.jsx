@@ -129,15 +129,15 @@ export default function Dashboard({
   // A pagar recortados pelo ANO CORRENTE (por vencimento). Contas e
   // investimentos entram pelo valor cheio atual (invest já convertido em R$).
   const anoAtual = hoje.getFullYear();
-  const aReceberAno = useMemo(() => {
-    const y = String(anoAtual);
+  // A receber: TODOS os recebíveis em aberto (independente do ano) — o que já
+  // foi recebido (parcial ou total) não soma.
+  const aReceber = useMemo(() => {
     return (devedores || []).reduce((s, d) => {
       if (d.recebido) return s;
-      if (!(d.vencimento || "").startsWith(y)) return s;
       const rem = (Number(d.valor) || 0) - (Number(d.valorRecebido) || 0);
       return s + Math.max(0, rem);
     }, 0);
-  }, [devedores, anoAtual]);
+  }, [devedores]);
   // Cheques a receber (aguardando) — TODOS, independente do ano, entram no
   // patrimônio (são recebíveis garantidos). Respeita o escopo ativo.
   const chequesAReceber = useMemo(() => {
@@ -168,7 +168,7 @@ export default function Dashboard({
         .reduce((ss, d) => ss + (Number(d.valor) || 0), 0), 0);
     } catch { return 0; }
   }, [anoAtual, stateAgg, escopoAtivo]);
-  const patrimonioTotal = totalContas + totalInvest + aReceberAno + chequesAReceber - aPagarAno;
+  const patrimonioTotal = totalContas + totalInvest + aReceber + chequesAReceber - aPagarAno;
   const mesAnteriorISO = useMemo(() => {
     const [y, m] = mesISO.split("-").map(Number);
     const d = new Date(y, m - 2, 1);
@@ -400,7 +400,7 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
-                 breakdown={{ contas: totalContas, aReceber: aReceberAno, cheques: chequesAReceber, invest: totalInvest, aPagar: aPagarAno }} />
+                 breakdown={{ contas: totalContas, aReceber: aReceber, cheques: chequesAReceber, invest: totalInvest, aPagar: aPagarAno }} />
         <ProximoCompromissoCard item={proximoCompromisso} total={aPagarMes} hidden={hidden} onVer={() => onTabChange?.("despesas")} />
       </section>
 
@@ -411,18 +411,13 @@ export default function Dashboard({
       </section>
       )}
 
-      {/* Contas · Gastos por Categoria · Alocação Atual (Contas primeiro) */}
+      {/* Contas · Alocação Atual · Gastos por Categoria (Alocação antes de Gastos) */}
       <section className="dash-mid-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
-        <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
         <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
-      </section>
-
-      {/* Orçamento por categoria */}
-      <section style={{ marginBottom: 16 }}>
-        <OrcamentoCard categorias={categorias} transacoes={transacoes} mesISO={mesISO} hidden={hidden} onTabChange={onTabChange} />
+        <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
       </section>
 
       {/* A Receber + Projeção */}
@@ -582,7 +577,7 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
       {visivel && breakdown && (
         <div style={{ position: "relative", zIndex: 1, marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.15)", display: "flex", flexDirection: "column", gap: 2 }}>
           <Linha rotulo="Contas" v={breakdown.contas} sinal="+" />
-          <Linha rotulo="A receber (ano)" v={breakdown.aReceber} sinal="+" />
+          <Linha rotulo="A receber" v={breakdown.aReceber} sinal="+" />
           {breakdown.cheques > 0 && <Linha rotulo="Cheques a receber" v={breakdown.cheques} sinal="+" />}
           <Linha rotulo="Investimentos (Brasil)" v={breakdown.invest} sinal="+" />
           <Linha rotulo="A pagar (ano)" v={breakdown.aPagar} sinal="-" />
