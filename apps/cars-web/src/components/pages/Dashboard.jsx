@@ -12,6 +12,7 @@ import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { getKPIsMes, getDespesasDoMes, getAnualPorMes } from "../../lib/agregador.js";
 import { calcOrcamentoCategorias } from "../../lib/orcamentos.js";
+import { useLayout } from "../../lib/useLayout.js";
 import { supabase } from "../../lib/supabase.js";
 import Card from "../ui/Card.jsx";
 
@@ -84,6 +85,7 @@ export default function Dashboard({
   escopoAtivo = "tudo",
   onTabChange, onContaClick, onQuickAction,
 }) {
+  const { isMobile } = useLayout();
   // Nome do usuário logado, resolvido via Supabase auth.
   // Sem sessão (modo local em dev) o nome fica vazio → saudação sem nome.
   const [userName, setUserName] = useState("");
@@ -402,10 +404,12 @@ export default function Dashboard({
         <ProximoCompromissoCard item={proximoCompromisso} total={aPagarMes} hidden={hidden} onVer={() => onTabChange?.("despesas")} />
       </section>
 
-      {/* Resumo do mês */}
+      {/* Resumo do mês — escondido no mobile (Painel mais enxuto) */}
+      {!isMobile && (
       <section style={{ marginBottom: 16 }}>
         <ResumoMesCard mesNome={MESES_PT[hoje.getMonth()]} receitas={receitasMes} despesas={despesasMes} gastosCat={gastosCat} hidden={hidden} />
       </section>
+      )}
 
       {/* Contas · Gastos por Categoria · Alocação Atual (Contas primeiro) */}
       <section className="dash-mid-grid" style={{
