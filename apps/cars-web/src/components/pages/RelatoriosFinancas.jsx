@@ -209,17 +209,21 @@ export default function RelatoriosFinancas({
       });
     });
     const n = proximosMeses.length || 1;
-    const todas = Object.values(map).filter(r => r.total > 0).map(r => ({ ...r, media: r.total / n }));
+    // `aberto` = só o que ainda NÃO foi pago (riscado não soma). Os totais usam o
+    // aberto; as células continuam mostrando o valor cheio (riscado quando pago).
+    const abertoMes = (r, iso) => (r.porMes[iso] || 0) - (r.pagoPorMes[iso] || 0);
+    const todas = Object.values(map).filter(r => r.total > 0)
+      .map(r => ({ ...r, aberto: r.total - (r.pagoTotal || 0), media: r.total / n }));
     // Agrupa por fonte (Fixas, Parcelas, Dívidas, Avulsas), com subtotais.
     const grupos = FONTE_ORDEM.map(fonte => {
       const rows = todas.filter(r => r.fonte === fonte).sort((a, b) => b.total - a.total);
       if (!rows.length) return null;
-      const subTotal = rows.reduce((s, r) => s + r.total, 0);
-      const subPorMes = proximosMeses.map(m => rows.reduce((s, r) => s + (r.porMes[m.iso] || 0), 0));
+      const subTotal = rows.reduce((s, r) => s + r.aberto, 0);
+      const subPorMes = proximosMeses.map(m => rows.reduce((s, r) => s + abertoMes(r, m.iso), 0));
       return { fonte, label: FONTE_LABEL[fonte], rows, subTotal, subMedia: subTotal / n, subPorMes };
     }).filter(Boolean);
-    const totaisMes = proximosMeses.map(m => todas.reduce((s, r) => s + (r.porMes[m.iso] || 0), 0));
-    const totalGeral = todas.reduce((s, r) => s + r.total, 0);
+    const totaisMes = proximosMeses.map(m => todas.reduce((s, r) => s + abertoMes(r, m.iso), 0));
+    const totalGeral = todas.reduce((s, r) => s + r.aberto, 0);
 
     // ===== A receber (entradas previstas) — por categoria =====
     const recMap = {};
@@ -238,12 +242,14 @@ export default function RelatoriosFinancas({
       });
     });
     const recRows = Object.values(recMap).filter(r => r.total > 0)
-      .map(r => ({ ...r, media: r.total / n })).sort((a, b) => b.total - a.total);
+      .map(r => ({ ...r, aberto: r.total - (r.pagoTotal || 0), media: r.total / n })).sort((a, b) => b.total - a.total);
+    const recAbertoMes = (r, iso) => (r.porMes[iso] || 0) - (r.pagoPorMes[iso] || 0);
+    const recSubTotal = recRows.reduce((s, r) => s + r.aberto, 0);
     const receber = recRows.length ? {
       rows: recRows,
-      subPorMes: proximosMeses.map(m => recRows.reduce((s, r) => s + (r.porMes[m.iso] || 0), 0)),
-      subTotal: recRows.reduce((s, r) => s + r.total, 0),
-      subMedia: recRows.reduce((s, r) => s + r.total, 0) / n,
+      subPorMes: proximosMeses.map(m => recRows.reduce((s, r) => s + recAbertoMes(r, m.iso), 0)),
+      subTotal: recSubTotal,
+      subMedia: recSubTotal / n,
     } : null;
 
     // ===== Saldo previsto (entradas − saídas) =====
@@ -423,7 +429,7 @@ td.neg { color:#b3261e; }
                             </td>
                           );
                         })}
-                        <td className="num" style={{ textAlign: "right", color: totQuit ? T.green : T.ink, fontWeight: 700, textDecoration: totQuit ? "line-through" : "none", textDecorationColor: totQuit ? `${T.green}99` : undefined }}>{hidden ? "•••" : fmt(r.total)}</td>
+                        <td className="num" style={{ textAlign: "right", color: totQuit ? T.green : T.ink, fontWeight: 700, textDecoration: totQuit ? "line-through" : "none", textDecorationColor: totQuit ? `${T.green}99` : undefined }} title={totQuit ? "Já pago" : "Em aberto"}>{hidden ? "•••" : fmt(r.aberto ?? r.total)}</td>
                       </tr>
                       );
                     })}
@@ -465,7 +471,7 @@ td.neg { color:#b3261e; }
                             </td>
                           );
                         })}
-                        <td className="num" style={{ textAlign: "right", color: totQuit ? T.green : T.ink, fontWeight: 700, textDecoration: totQuit ? "line-through" : "none", textDecorationColor: totQuit ? `${T.green}99` : undefined }}>{hidden ? "•••" : fmt(r.total)}</td>
+                        <td className="num" style={{ textAlign: "right", color: totQuit ? T.green : T.ink, fontWeight: 700, textDecoration: totQuit ? "line-through" : "none", textDecorationColor: totQuit ? `${T.green}99` : undefined }} title={totQuit ? "Já pago" : "Em aberto"}>{hidden ? "•••" : fmt(r.aberto ?? r.total)}</td>
                       </tr>
                       );
                     })}
