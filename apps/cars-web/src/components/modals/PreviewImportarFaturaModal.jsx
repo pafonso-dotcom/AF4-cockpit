@@ -6,6 +6,7 @@ import { toast } from "../../lib/toast.js";
 import {
   matchParcelamento,
   matchFixaExistente,
+  matchTransacaoExistente,
   detectarDuplicidadeFatura,
   gerarOcorrenciasFixa,
   brDateToISO,
@@ -88,8 +89,9 @@ export default function PreviewImportarFaturaModal({
     return `${competencia}-${dia}`;
   })();
 
-  // Itens com match detectado (parcelamentos existentes)
+  // Itens com match detectado (parcelamentos / fixas / transações já lançadas)
   const itensProcessados = useMemo(() => {
+    const usados = new Set(); // evita casar a mesma transação com 2 linhas
     return itens.map(item => {
       if (item.tipo === "parcela") {
         const match = matchParcelamento(item, parcelamentos);
@@ -98,9 +100,12 @@ export default function PreviewImportarFaturaModal({
       if (item.tipo === "fixa") {
         return { ...item, _matchFixa: matchFixaExistente(item, fixas) };
       }
-      return item;
+      // vista: tenta conciliar com um lançamento que o usuário já fez à mão
+      const mt = matchTransacaoExistente(item, transacoes, { cartaoId: cartaoSelecionado, usados });
+      if (mt) usados.add(mt.id);
+      return { ...item, _matchTx: mt };
     });
-  }, [itens, parcelamentos, fixas]);
+  }, [itens, parcelamentos, fixas, transacoes, cartaoSelecionado]);
 
   // Agrupamento por tipo (pra mostrar contadores)
   const stats = useMemo(() => {
@@ -112,6 +117,7 @@ export default function PreviewImportarFaturaModal({
       parcela: incluidos.filter(i => i.tipo === "parcela").length,
       matches: incluidos.filter(i => i.tipo === "parcela" && i._match).length,
       novasParcelas: incluidos.filter(i => i.tipo === "parcela" && !i._match).length,
+      conciliar: incluidos.filter(i => i.tipo === "vista" && i._matchTx).length,
       valorTotal: incluidos.reduce((s, i) => s + (i.valor || 0), 0),
     };
   }, [itensProcessados]);
@@ -151,6 +157,13 @@ export default function PreviewImportarFaturaModal({
     let parcelamentosAtualizados = [...parcelamentos];
     let totalDebitado = 0;
 
+    // Conciliação de "à vista" com lançamentos já existentes:
+    //   - patchPorTxId: como atualizar cada transação já lançada (dobrar pra fatura)
+    //   - restituicaoPorConta: saldo a DEVOLVER (a transação havia debitado o banco;
+    //     agora quem debita é o "Pagar fatura", então devolvemos pra não contar 2x)
+    const patchPorTxId = new Map();
+    const restituicaoPorConta = {};
+
     const banco = analise.banco || "Fatura";
     const origemTag = `fatura-${banco}`;
 
@@ -159,10 +172,26 @@ export default function PreviewImportarFaturaModal({
       const cat = item.categoria_sugerida || "Outros";
 
       if (item.tipo === "vista") {
-        // Item da fatura = COMPRA DO CARTÃO. Fica SEM conta bancária (não entra
-        // no extrato do banco nem debita saldo) — quem debita o banco é a baixa
-        // única "Pagamento fatura" (valor integral). Serve só para o detalhe e
-        // categoria nas Transações.
+        if (item._matchTx) {
+          // CONCILIA: já existe um lançamento seu pra essa linha. Não cria outro —
+          // dobra o existente pra dentro da fatura (vira pendente, ligado ao cartão).
+          const tx = item._matchTx;
+          patchPorTxId.set(tx.id, {
+            cartaoId: cartaoSelecionado || tx.cartaoId || null,
+            conta: "",
+            compensado: false,
+            origem: origemTag,
+            obs: `${tx.obs ? tx.obs + " · " : ""}Conciliado com a fatura ${banco}`,
+          });
+          // Se aquele lançamento havia debitado uma conta, devolve o saldo:
+          // o débito real acontece uma vez só, no pagamento da fatura.
+          if (tx.conta) {
+            restituicaoPorConta[tx.conta] = (restituicaoPorConta[tx.conta] || 0) + (Number(tx.valor) || 0);
+          }
+          return;
+        }
+        // Sem match — item novo. Compra do cartão SEM conta bancária (não debita
+        // saldo agora); quem debita é o "Pagar fatura". Só detalhe/categoria.
         novasTransacoes.push({
           id: uid(),
           tipo: "despesa",
@@ -272,8 +301,12 @@ export default function PreviewImportarFaturaModal({
     });
 
     // === Aplica tudo no estado ===
-    if (novasTransacoes.length > 0 && setTransacoes) {
-      setTransacoes([...novasTransacoes, ...transacoes]);
+    if (setTransacoes && (novasTransacoes.length > 0 || patchPorTxId.size > 0)) {
+      // Primeiro concilia (aplica patch nas existentes), depois prepend das novas.
+      const base = patchPorTxId.size > 0
+        ? transacoes.map(t => patchPorTxId.has(t.id) ? { ...t, ...patchPorTxId.get(t.id) } : t)
+        : transacoes;
+      setTransacoes(novasTransacoes.length > 0 ? [...novasTransacoes, ...base] : base);
     }
     if (novasFixas.length > 0 && setFixas) {
       setFixas([...fixas, ...novasFixas]);
@@ -284,12 +317,19 @@ export default function PreviewImportarFaturaModal({
     if (setParcelamentos) {
       setParcelamentos([...parcelamentosAtualizados, ...novosParcelamentos]);
     }
-    // Debita o saldo da conta — SÓ se uma conta foi escolhida.
-    // Sem conta, as transações ficam vinculadas só ao cartão (descontam no pagamento da fatura).
-    if (conta && setContas && totalDebitado > 0) {
-      setContas(contas.map(c => c.nome === contaNome
-        ? { ...c, saldo: (Number(c.saldo) || 0) - totalDebitado }
-        : c));
+    // Ajuste de saldos por conta: débito de fixas (se conta escolhida) MENOS as
+    // restituições dos lançamentos conciliados (que serão pagos via fatura).
+    if (setContas) {
+      const delta = { ...restituicaoPorConta };
+      if (conta && totalDebitado > 0) {
+        delta[contaNome] = (delta[contaNome] || 0) - totalDebitado;
+      }
+      const nomesAfetados = Object.keys(delta);
+      if (nomesAfetados.length > 0) {
+        setContas(contas.map(c => delta[c.nome]
+          ? { ...c, saldo: (Number(c.saldo) || 0) + delta[c.nome] }
+          : c));
+      }
     }
 
     // Registra a fatura REAL (valor a pagar = à vista + fixas + parcelas desta
@@ -306,7 +346,8 @@ export default function PreviewImportarFaturaModal({
 
     toast.success(
       `Fatura importada · ${incluidos.length} itens (pendentes — debita ao pagar a fatura). ` +
-      `${stats.vista} à vista · ${stats.parcela} parcelas (${stats.matches} matches).`
+      `${stats.vista} à vista${stats.conciliar > 0 ? ` (${stats.conciliar} conciliados)` : ""} · ` +
+      `${stats.parcela} parcelas (${stats.matches} matches).`
     );
     onClose?.();
   };
@@ -404,7 +445,7 @@ export default function PreviewImportarFaturaModal({
           gap: 6, marginTop: 12, fontSize: 11, color: T.muted,
         }}>
           <div>📦 <strong style={{ color: T.ink, fontSize: 13 }}>{stats.total}</strong> itens</div>
-          <div>🛒 <strong style={{ color: T.muted, fontSize: 13 }}>{stats.vista}</strong> à vista</div>
+          <div>🛒 <strong style={{ color: T.muted, fontSize: 13 }}>{stats.vista}</strong> à vista{stats.conciliar > 0 && <span style={{ color: T.green }}> · {stats.conciliar} concilia</span>}</div>
           <div>📱 <strong style={{ color: T.blue || "#60a5fa", fontSize: 13 }}>{stats.parcela}</strong> parcelas{stats.matches > 0 && ` (${stats.matches} matches)`}</div>
         </div>
         <div className="num" style={{
@@ -424,12 +465,13 @@ export default function PreviewImportarFaturaModal({
           const cor = corPorTipo[item.tipo] || T.muted;
           const opacidade = item._incluir ? 1 : 0.45;
           const matchBanner = (item.tipo === "parcela" && item._match) || (item.tipo === "fixa" && item._matchFixa);
+          const conciliarBanner = item.tipo === "vista" && item._matchTx;
           const novaParcela = item.tipo === "parcela" && !item._match;
           return (
             <div key={item._idx} style={{
               display: "flex", alignItems: "center", gap: 8,
               padding: "0 10px", marginBottom: 4, minHeight: 44, boxSizing: "border-box",
-              background: T.card, border: `1px solid ${matchBanner ? (T.blue || "#60a5fa") + "66" : T.border}`,
+              background: T.card, border: `1px solid ${matchBanner ? (T.blue || "#60a5fa") + "66" : conciliarBanner ? T.green + "66" : T.border}`,
               borderLeft: `3px solid ${cor}`,
               borderRadius: 11, opacity: opacidade,
             }}>
@@ -480,6 +522,19 @@ export default function PreviewImportarFaturaModal({
                       borderRadius: 3, fontWeight: 600, fontSize: 9, letterSpacing: ".05em", textTransform: "uppercase",
                     }}>NOVO</span>
                   )}
+                  {conciliarBanner && (
+                    <>
+                      <span style={{
+                        fontSize: 9, padding: "1px 6px",
+                        background: "#E1F5EE", color: "#04342C",
+                        borderRadius: 3, fontWeight: 700, letterSpacing: ".05em",
+                        textTransform: "uppercase",
+                      }}>Já lançado</span>
+                      <span style={{ color: T.green, display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 600 }}>
+                        <Link2 size={10} /> concilia: {item._matchTx?.descricao}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -515,6 +570,8 @@ export default function PreviewImportarFaturaModal({
         ℹ️ <strong>Parcelas com match</strong> só marcam a parcela {analise.vencimento ? `${analise.vencimento.slice(3, 5)}` : "atual"} como paga (não duplica o parcelamento).
         <br />
         ℹ️ Os itens entram <strong>pendentes</strong> e só descontam do banco quando pagares a fatura (uma baixa única).
+        <br />
+        ℹ️ <strong style={{ color: T.green }}>"Já lançado"</strong>: linhas que casam com uma compra que você já tinha lançado são <strong>conciliadas</strong> (não duplica) — o lançamento vira parte desta fatura e o saldo que ele havia debitado é devolvido (a fatura debita uma vez só).
       </div>
 
       <div className="flex gap-3 justify-end mt-5">
