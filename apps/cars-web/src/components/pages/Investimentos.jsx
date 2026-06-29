@@ -114,22 +114,29 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
     return { ...calc(filtered), br, usa, temUSA: filtered.some(ehUS) };
   }, [filtered]);
 
-  // Agrupa ativos por segmento (ordenado por valor decrescente).
-  // Ativos sem segmento caem num grupo "Sem segmento".
+  // Agrupa ativos por CATEGORIA (tipo): Ações, FIIs, Stocks, etc. Assim, dentro
+  // de cada grupo, o "% da categoria" de cada ativo fecha 100% à vista.
   const grupos = useMemo(() => {
+    const labelDe = (t) => (tipos.find(x => x.v === t)?.l) || t || "Outros";
+    const ordem = tipos.map(t => t.v);
+    const valorDe = (a) => (Number(a.qtd) || 0) * (Number(a.preco) || 0);
     const m = new Map();
     filtered.forEach(a => {
-      const seg = (a.segmento && String(a.segmento).trim()) || "Sem segmento";
-      if (!m.has(seg)) m.set(seg, []);
-      m.get(seg).push(a);
+      const key = a.tipo || "outro";
+      if (!m.has(key)) m.set(key, []);
+      m.get(key).push(a);
     });
     return [...m.entries()]
-      .map(([segmento, items]) => {
-        const valor = items.reduce((s, a) => s + (Number(a.qtd) || 0) * (Number(a.preco) || 0), 0);
+      .map(([tipo, items]) => {
+        const ativosOrd = [...items].sort((x, y) => valorDe(y) - valorDe(x));
+        const valor = items.reduce((s, a) => s + valorDe(a), 0);
         const moedaUS = items.length > 0 && items.every(ehUS);
-        return { segmento, ativos: items, valor, count: items.length, moedaUS };
+        return { segmento: labelDe(tipo), tipo, ativos: ativosOrd, valor, count: items.length, moedaUS };
       })
-      .sort((a, b) => b.valor - a.valor);
+      .sort((a, b) => {
+        const ia = ordem.indexOf(a.tipo), ib = ordem.indexOf(b.tipo);
+        return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+      });
   }, [filtered]);
 
   // Peso de cada ativo DENTRO da sua categoria (tipo): valor do ativo ÷ total da
