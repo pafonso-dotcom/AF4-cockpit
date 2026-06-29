@@ -132,6 +132,21 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       .sort((a, b) => b.valor - a.valor);
   }, [filtered]);
 
+  // Peso de cada ativo DENTRO da sua categoria (tipo): valor do ativo ÷ total da
+  // categoria. Ex.: quanto este FII representa do total de FIIs.
+  const valorPorTipo = useMemo(() => {
+    const m = {};
+    (ativos || []).forEach(a => {
+      m[a.tipo] = (m[a.tipo] || 0) + (Number(a.qtd) || 0) * (Number(a.preco) || 0);
+    });
+    return m;
+  }, [ativos]);
+  const pesoNaCategoria = (a) => {
+    const tot = valorPorTipo[a.tipo] || 0;
+    const v = (Number(a.qtd) || 0) * (Number(a.preco) || 0);
+    return tot > 0 ? (v / tot) * 100 : 0;
+  };
+
   // Quais segmentos estão colapsados (persistido em localStorage).
   const [collapsedSegs, setCollapsedSegs] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem("af4:invest:collapsed") || "[]")); }
@@ -481,6 +496,11 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   <div style={{ color: T.faint, fontSize: 10, marginTop: 4, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: T.sans }}>
                     {a.tipo} · {fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)} un.
                   </div>
+                  {a.tipo !== "capitalSocial" && valorPorTipo[a.tipo] > 0 && (
+                    <div style={{ color: T.muted, fontSize: 9.5, marginTop: 2 }}>
+                      {pesoNaCategoria(a).toFixed(0)}% da categoria
+                    </div>
+                  )}
                   {a.segmento && (
                     <div style={{
                       display: "inline-block", marginTop: 6,
@@ -667,6 +687,11 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     {a.segmento && (
                       <div style={{ color: T.gold, fontSize: 9.5, marginTop: 3, letterSpacing: ".03em", textTransform: "none", fontWeight: 500 }}>
                         {a.segmento}
+                      </div>
+                    )}
+                    {a.tipo !== "capitalSocial" && valorPorTipo[a.tipo] > 0 && (
+                      <div style={{ color: T.muted, fontSize: 9.5, marginTop: 3, letterSpacing: ".02em", textTransform: "none", fontWeight: 500 }}>
+                        {pesoNaCategoria(a).toFixed(0)}% da categoria
                       </div>
                     )}
                   </td>
