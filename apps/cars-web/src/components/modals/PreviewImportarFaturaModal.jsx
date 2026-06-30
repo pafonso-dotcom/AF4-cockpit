@@ -460,7 +460,7 @@ export default function PreviewImportarFaturaModal({
       </div>
 
       {/* Lista de itens */}
-      <div style={{ maxHeight: 380, overflowY: "auto", paddingRight: 4 }}>
+      <div style={{ maxHeight: 380, overflowY: "auto", overflowX: "hidden", paddingRight: 4 }}>
         {itensProcessados.map(item => {
           const cor = corPorTipo[item.tipo] || T.muted;
           const opacidade = item._incluir ? 1 : 0.45;
