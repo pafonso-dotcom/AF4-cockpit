@@ -88,6 +88,7 @@ const AnalisesUnificada = lz(() => import("./components/pages/Invest/Analises.js
 const ObjetivosCarteira = lz(() => import("./components/pages/Invest/ObjetivosCarteira.jsx"));
 const CarteiraModelo = lz(() => import("./components/pages/Invest/CarteiraModelo.jsx"));
 const MonteSuaCarteira = lz(() => import("./components/pages/Invest/MonteSuaCarteira.jsx"));
+const Planejador = lz(() => import("./components/pages/Invest/Planejador.jsx"));
 const InvestPainel = lz(() => import("./components/pages/Invest/InvestPainel.jsx"));
 const Proventos = lz(() => import("./components/pages/Invest/Proventos.jsx"));
 const MapaDividendos = lz(() => import("./components/pages/Invest/MapaDividendos.jsx"));
@@ -1183,6 +1184,11 @@ export default function App() {
       {tab === "calc-renda" && (
         <div className="px-6 md:px-10">
           <CalculadoraRenda />
+        </div>
+      )}
+      {tab === "planejador" && (
+        <div className="px-6 md:px-10">
+          <Planejador transacoes={transacoes} hidden={hidden} />
         </div>
       )}
       {tab === "projecao" && (
