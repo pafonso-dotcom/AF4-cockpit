@@ -367,8 +367,8 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
         // Card de uma conta — mantém TODOS os handlers/ações originais.
         // Card em forma de PASTA (folder) — roxo uniforme; a cor da conta vai só
         // no ícone. Clique abre a conta; "⋯" expande as ações (mover/app/Tx/editar/excluir).
-        const PASTA_BG = "linear-gradient(155deg, #efeafb 0%, #e3dcf6 100%)";
-        const PASTA_TAB = "#cdc0ee";
+        const PASTA_BG = "linear-gradient(155deg, rgba(255,255,255,.58) 0%, rgba(227,220,246,.42) 100%)";
+        const PASTA_TAB = "rgba(205,192,238,.55)";
         const PASTA_INK = "#3a2e63";
         const PASTA_MUTED = "rgba(58,46,99,.62)";
         const acaoBtn = {
@@ -396,11 +396,12 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                  onKeyDown={(e) => { if (onContaClick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onContaClick(c); } }}
                  style={{
                    position: "relative", zIndex: 1, background: PASTA_BG, color: PASTA_INK,
-                   border: `1px solid ${ativa ? T.gold : "rgba(58,46,99,.16)"}`,
+                   backdropFilter: "blur(16px) saturate(170%)", WebkitBackdropFilter: "blur(16px) saturate(170%)",
+                   border: `1px solid ${ativa ? T.gold : "rgba(255,255,255,.6)"}`,
                    borderRadius: 18, padding: 14, minHeight: 130,
                    cursor: onContaClick ? "pointer" : "default",
                    display: "flex", flexDirection: "column",
-                   boxShadow: "0 8px 22px rgba(90,74,147,.18)",
+                   boxShadow: "0 10px 30px rgba(90,74,147,.20)",
                  }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                 <BankIcon c={c} />
