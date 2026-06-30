@@ -367,12 +367,12 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
         // Card de uma conta — mantém TODOS os handlers/ações originais.
         // Card em forma de PASTA (folder) — roxo uniforme; a cor da conta vai só
         // no ícone. Clique abre a conta; "⋯" expande as ações (mover/app/Tx/editar/excluir).
-        const PASTA_BG = "linear-gradient(155deg, #3a2d63 0%, #271f4a 100%)";
-        const PASTA_TAB = "#5a4a93";
-        const PASTA_INK = "#f3f0fb";
-        const PASTA_MUTED = "rgba(243,240,251,.62)";
+        const PASTA_BG = "linear-gradient(155deg, #efeafb 0%, #e3dcf6 100%)";
+        const PASTA_TAB = "#cdc0ee";
+        const PASTA_INK = "#3a2e63";
+        const PASTA_MUTED = "rgba(58,46,99,.62)";
         const acaoBtn = {
-          background: "rgba(255,255,255,.12)", border: "none", color: PASTA_INK,
+          background: "rgba(58,46,99,.10)", border: "none", color: PASTA_INK,
           borderRadius: 8, padding: "5px 8px", cursor: "pointer", fontSize: 10, fontWeight: 600,
           letterSpacing: ".04em", textTransform: "uppercase",
           display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
@@ -396,11 +396,11 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                  onKeyDown={(e) => { if (onContaClick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onContaClick(c); } }}
                  style={{
                    position: "relative", zIndex: 1, background: PASTA_BG, color: PASTA_INK,
-                   border: `1px solid ${ativa ? T.gold : "rgba(255,255,255,.08)"}`,
+                   border: `1px solid ${ativa ? T.gold : "rgba(58,46,99,.16)"}`,
                    borderRadius: 18, padding: 14, minHeight: 130,
                    cursor: onContaClick ? "pointer" : "default",
                    display: "flex", flexDirection: "column",
-                   boxShadow: "0 8px 22px rgba(20,12,40,.22)",
+                   boxShadow: "0 8px 22px rgba(90,74,147,.18)",
                  }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                 <BankIcon c={c} />
@@ -408,26 +408,26 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                 {!isMobile && (
                   <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
                           aria-label={exp ? "Recolher" : "Mais ações"}
-                          style={{ background: "rgba(255,255,255,.12)", border: "none", color: PASTA_INK, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                          style={{ background: "rgba(58,46,99,.10)", border: "none", color: PASTA_INK, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
                     <MoreHorizontal size={15} />
                   </button>
                 )}
               </div>
               <div style={{ flex: 1, minHeight: 10 }} />
               <div style={{ fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
-              <div className="num" style={{ fontFamily: T.serif, fontVariantNumeric: "tabular-nums", fontSize: 16, marginTop: 2, color: c.saldo < 0 ? "#ff9d9d" : PASTA_INK, whiteSpace: "nowrap" }}>
+              <div className="num" style={{ fontFamily: T.serif, fontVariantNumeric: "tabular-nums", fontSize: 16, marginTop: 2, color: c.saldo < 0 ? "#c0392b" : PASTA_INK, whiteSpace: "nowrap" }}>
                 {!ehBRL(c) && <span style={{ fontSize: 12, marginRight: 3 }} aria-hidden="true">{bandeira(c.moeda)}</span>}
                 {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
               </div>
               {(selo || !ehBRL(c) || c.instituicao) && (
                 <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                  {selo && <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: "rgba(255,255,255,.16)", color: PASTA_INK, whiteSpace: "nowrap" }}>{selo}</span>}
+                  {selo && <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: "rgba(58,46,99,.12)", color: PASTA_INK, whiteSpace: "nowrap" }}>{selo}</span>}
                   {!ehBRL(c) && <span style={{ fontSize: 9, color: Number(c.cotacao) > 0 ? PASTA_MUTED : T.gold }}>{Number(c.cotacao) > 0 ? `≈ ${hidden ? "•••" : fmt(saldoContaBRL(c))}` : "sem cotação"}</span>}
                   {c.instituicao && !selo && <span style={{ fontSize: 9, color: PASTA_MUTED, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.instituicao}</span>}
                 </div>
               )}
               {exp && (
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10, paddingTop: 8, borderTop: "1px dashed rgba(255,255,255,.18)" }} onClick={(e) => e.stopPropagation()}>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10, paddingTop: 8, borderTop: "1px dashed rgba(58,46,99,.22)" }} onClick={(e) => e.stopPropagation()}>
                   <button onClick={() => moverConta(c, -1)} disabled={primeiro} title="Mover para cima" style={{ ...acaoBtn, padding: "5px 7px", opacity: primeiro ? .4 : 1, cursor: primeiro ? "default" : "pointer" }}><ChevronUp size={13} /></button>
                   <button onClick={() => moverConta(c, 1)} disabled={ultimo} title="Mover para baixo" style={{ ...acaoBtn, padding: "5px 7px", opacity: ultimo ? .4 : 1, cursor: ultimo ? "default" : "pointer" }}><ChevronDown size={13} /></button>
                   {c.appUrl && <button onClick={() => window.open(c.appUrl, "_blank", "noopener")} title="Abrir app do banco" style={{ ...acaoBtn, color: T.gold }}>🔗 Banco</button>}
@@ -442,7 +442,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                             if (!ok) return;
                             setContas(contas.filter(x => x.id !== c.id));
                             toast.success(`${c.nome} excluída.`);
-                          }} style={{ ...acaoBtn, color: "#ff9d9d" }}><Trash2 size={11} /> Excluir</button>
+                          }} style={{ ...acaoBtn, color: "#c0392b" }}><Trash2 size={11} /> Excluir</button>
                 </div>
               )}
             </div>

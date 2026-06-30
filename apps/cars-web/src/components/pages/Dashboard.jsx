@@ -408,12 +408,6 @@ export default function Dashboard({
         <ProximoCompromissoCard item={proximoCompromisso} total={aPagarMes} hidden={hidden} onVer={() => onTabChange?.("despesas")} />
       </section>
 
-      {/* Resumo do mês — escondido no mobile (Painel mais enxuto) */}
-      {!isMobile && (
-      <section style={{ marginBottom: 16 }}>
-        <ResumoMesCard mesNome={MESES_PT[hoje.getMonth()]} receitas={receitasMes} despesas={despesasMes} gastosCat={gastosCat} hidden={hidden} />
-      </section>
-      )}
 
       {/* Contas · Alocação Atual · Gastos por Categoria (Alocação antes de Gastos) */}
       <section className="dash-mid-grid" style={{
@@ -740,11 +734,11 @@ function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
           <button key={c.id} onClick={() => onContaClick?.(c)}
             style={{ position: "relative", paddingTop: 6, background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
             {/* aba da pasta */}
-            <div aria-hidden style={{ position: "absolute", top: 0, left: "30%", right: "12%", height: 9, borderRadius: "6px 6px 0 0", background: "#5a4a93", opacity: .85 }} />
-            <div style={{ position: "relative", background: "linear-gradient(155deg, #3a2d63 0%, #271f4a 100%)", color: "#f3f0fb", borderRadius: 12, padding: "9px 10px", boxShadow: "0 6px 16px rgba(20,12,40,.2)" }}>
+            <div aria-hidden style={{ position: "absolute", top: 0, left: "30%", right: "12%", height: 9, borderRadius: "6px 6px 0 0", background: "#cdc0ee", opacity: .9 }} />
+            <div style={{ position: "relative", background: "linear-gradient(155deg, #efeafb 0%, #e3dcf6 100%)", color: "#3a2e63", borderRadius: 12, padding: "9px 10px", border: "1px solid rgba(58,46,99,.14)", boxShadow: "0 6px 16px rgba(90,74,147,.16)" }}>
               <BankIcon c={c} size={26} />
               <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
-              <div className="num" style={{ fontFamily: T.serif, fontSize: 12.5, color: c.saldo < 0 ? "#ff9d9d" : "#f3f0fb", whiteSpace: "nowrap" }}>
+              <div className="num" style={{ fontFamily: T.serif, fontSize: 12.5, color: c.saldo < 0 ? "#c0392b" : "#3a2e63", whiteSpace: "nowrap" }}>
                 {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
               </div>
             </div>
