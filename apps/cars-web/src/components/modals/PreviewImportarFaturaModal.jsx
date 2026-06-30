@@ -59,12 +59,14 @@ export default function PreviewImportarFaturaModal({
     // Importação só lida com "vista" e "parcela". Assinaturas recorrentes são
     // criadas manualmente em Despesas Fixas — nunca pela importação de fatura.
     const tipo = it.tipo === "parcela" ? "parcela" : "vista";
-    // Parcela que já existe entra DESMARCADA por default (evita duplicar)
-    const jaExiste = (tipo === "parcela" && !!matchParcelamento(it, parcelamentos));
+    // Todos entram MARCADOS por default — inclusive parcelas que já existem como
+    // parcelamento. A parcela do mês precisa compor o VALOR da fatura (senão a
+    // fatura sai R$ 0 e não dá pra pagar); o confirm() não cria parcelamento
+    // duplicado — só conta o valor e baixa no parcelamento ao pagar a fatura.
     return {
       ...it,
       _idx: idx,
-      _incluir: !jaExiste,
+      _incluir: true,
       // Normalização defensiva
       tipo,
       valor: Number(it.valor) || 0,
@@ -395,7 +397,7 @@ export default function PreviewImportarFaturaModal({
             <div style={{ color: "#854F0B" }}>
               <strong>{duplicidadeAlerta.itensJaImportados} de {duplicidadeAlerta.totalItens}</strong> parcelas
               dessa fatura já existem como parcelamento ({duplicidadeAlerta.percentual}%).
-              As repetidas já vêm <strong>desmarcadas</strong> — confira antes de importar.
+              Elas entram pra compor o <strong>valor da fatura do mês</strong> (sem criar parcelamento novo) — só desmarque se realmente não quiser pagá-las agora.
             </div>
           </div>
         </div>
@@ -567,7 +569,7 @@ export default function PreviewImportarFaturaModal({
       }}>
         ℹ️ A importação lança só o que está na fatura — <strong>não cria despesas fixas/recorrentes</strong>. Assinaturas você cadastra manualmente em Despesas Fixas.
         <br />
-        ℹ️ <strong>Parcelas com match</strong> só marcam a parcela {analise.vencimento ? `${analise.vencimento.slice(3, 5)}` : "atual"} como paga (não duplica o parcelamento).
+        ℹ️ <strong>Parcelas com match</strong> entram no valor da fatura do mês mas <strong>não criam um parcelamento novo</strong> — são baixadas no parcelamento existente quando você paga a fatura.
         <br />
         ℹ️ Os itens entram <strong>pendentes</strong> e só descontam do banco quando pagares a fatura (uma baixa única).
         <br />
