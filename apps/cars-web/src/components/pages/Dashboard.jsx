@@ -408,12 +408,6 @@ export default function Dashboard({
         <ProximoCompromissoCard item={proximoCompromisso} total={aPagarMes} hidden={hidden} onVer={() => onTabChange?.("despesas")} />
       </section>
 
-      {/* Resumo do mês — escondido no mobile (Painel mais enxuto) */}
-      {!isMobile && (
-      <section style={{ marginBottom: 16 }}>
-        <ResumoMesCard mesNome={MESES_PT[hoje.getMonth()]} receitas={receitasMes} despesas={despesasMes} gastosCat={gastosCat} hidden={hidden} />
-      </section>
-      )}
 
       {/* Contas · Alocação Atual · Gastos por Categoria (Alocação antes de Gastos) */}
       <section className="dash-mid-grid" style={{
