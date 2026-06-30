@@ -29,6 +29,7 @@ export const NAV_ITEMS = [
   { modulo: "invest", tab: "calc-renda",     label: "Calculadora",         grupo: "Investimentos" },
   { modulo: "invest", tab: "analises",       label: "Análises",            grupo: "Investimentos" },
   { modulo: "invest", tab: "proventos",      label: "Proventos",           grupo: "Investimentos" },
+  { modulo: "invest", tab: "mapa-dividendos", label: "Mapa de Dividendos",  grupo: "Investimentos" },
   { modulo: "invest", tab: "mercado",        label: "Mercado",             grupo: "Investimentos" },
   { modulo: "invest", tab: "pesquisador-mercado", label: "Pesquisador de mercado", grupo: "Investimentos" },
   { modulo: "invest", tab: "construtor-mercado",  label: "Construtor de mercado",  grupo: "Investimentos" },

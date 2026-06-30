@@ -90,6 +90,7 @@ const CarteiraModelo = lz(() => import("./components/pages/Invest/CarteiraModelo
 const MonteSuaCarteira = lz(() => import("./components/pages/Invest/MonteSuaCarteira.jsx"));
 const InvestPainel = lz(() => import("./components/pages/Invest/InvestPainel.jsx"));
 const Proventos = lz(() => import("./components/pages/Invest/Proventos.jsx"));
+const MapaDividendos = lz(() => import("./components/pages/Invest/MapaDividendos.jsx"));
 const RelatoriosInvest = lz(() => import("./components/pages/Invest/RelatoriosInvest.jsx"));
 const RelatoriosFinancas = lz(() => import("./components/pages/RelatoriosFinancas.jsx"));
 const RevisorGanhos = lz(() => import("./components/pages/RevisorGanhos.jsx"));
@@ -1162,6 +1163,11 @@ export default function App() {
           categorias={categorias}
           transacoes={transacoes} setTransacoes={setTransacoes}
         />
+      )}
+      {tab === "mapa-dividendos" && (
+        <div className="px-6 md:px-10">
+          <MapaDividendos ativos={ativos} proventosManuais={proventosManuais} hidden={hidden} />
+        </div>
       )}
       {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} transacoes={transacoes} patrimonioHistorico={patrimonioHistorico} proventos={[]} operacoes={[]} hidden={hidden} />}
       {tab === "mercado" && (
