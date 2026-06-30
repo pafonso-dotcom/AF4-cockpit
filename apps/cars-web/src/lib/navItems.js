@@ -26,6 +26,7 @@ export const NAV_ITEMS = [
   { modulo: "invest", tab: "carteira",       label: "Carteira",            grupo: "Investimentos" },
   { modulo: "invest", tab: "objetivos",      label: "Objetivos (árvore)",  grupo: "Investimentos" },
   { modulo: "invest", tab: "monte-carteira", label: "Monte sua Carteira",  grupo: "Investimentos" },
+  { modulo: "invest", tab: "planejador",     label: "Planejador",          grupo: "Investimentos" },
   { modulo: "invest", tab: "calc-renda",     label: "Calculadora",         grupo: "Investimentos" },
   { modulo: "invest", tab: "analises",       label: "Análises",            grupo: "Investimentos" },
   { modulo: "invest", tab: "proventos",      label: "Proventos",           grupo: "Investimentos" },
