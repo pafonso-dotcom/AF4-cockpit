@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { taxaMensal, pmtMeta, projetarRiqueza, dividirBaldes, montarPlano } from "../planejador.js";
+import { taxaMensal, pmtMeta, projetarRiqueza, dividirBaldes, montarPlano, calcularParcelamento } from "../planejador.js";
 
 // Cenário exato da planilha de origem (validação das fórmulas).
 describe("taxaMensal", () => {
@@ -50,6 +50,28 @@ describe("dividirBaldes", () => {
   });
   it("sobra 0 → tudo 0", () => {
     expect(dividirBaldes(0, 1, 1)).toEqual({ reserva: 0, duravel: 0, riqueza: 0 });
+  });
+});
+
+describe("calcularParcelamento", () => {
+  it("R$6.000 em 12x a 8%/mês → parcela ~796,17 e juros ~3.554", () => {
+    const r = calcularParcelamento({ valor: 6000, nParcelas: 12, taxaMes: 0.08 });
+    expect(r.parcela).toBeCloseTo(796.17, 1);
+    expect(r.jurosTotais).toBeCloseTo(3554.04, 1);
+  });
+  it("custo de oportunidade: R$6.000 a 15,07% por 264 meses ≈ 131.619", () => {
+    const r = calcularParcelamento({ valor: 6000, nParcelas: 12, taxaMes: 0.08, retRiquezaAnual: 0.1507, mesesHorizonte: 264 });
+    expect(r.custoOportunidade).toBeCloseTo(131619, -2);
+  });
+  it("taxa 0% → parcela = valor/n, sem juros", () => {
+    const r = calcularParcelamento({ valor: 1200, nParcelas: 12, taxaMes: 0 });
+    expect(r.parcela).toBe(100);
+    expect(r.jurosTotais).toBe(0);
+  });
+  it("entrada inválida → zeros", () => {
+    const r = calcularParcelamento({ valor: 0, nParcelas: 0, taxaMes: 0.05 });
+    expect(r.parcela).toBe(0);
+    expect(r.jurosTotais).toBe(0);
   });
 });
 

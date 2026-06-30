@@ -44,6 +44,27 @@ export function projetarRiqueza(saldo, aporteMensal, retAnual, meses, inflacaoAn
   return { fv, vp, comp, fatorAnuidade, meses: m };
 }
 
+/**
+ * "Vale a pena parcelar?" — custo real de um parcelamento.
+ * @returns { parcela, totalPago, jurosTotais, custoOportunidade }
+ *   custoOportunidade = quanto o valor à vista viraria se investido na riqueza
+ *   pelo horizonte (até a aposentadoria).
+ */
+export function calcularParcelamento({ valor, nParcelas, taxaMes, retRiquezaAnual = 0, mesesHorizonte = 0 } = {}) {
+  const P = Math.max(0, Number(valor) || 0);
+  const n = Math.round(Number(nParcelas) || 0);
+  const i = Number(taxaMes) || 0;
+  let parcela = 0, totalPago = 0, jurosTotais = 0;
+  if (P > 0 && n > 0) {
+    if (i === 0) { parcela = P / n; totalPago = P; }
+    else { parcela = (P * i) / (1 - Math.pow(1 + i, -n)); totalPago = parcela * n; }
+    jurosTotais = totalPago - P;
+  }
+  const rm = taxaMensal(retRiquezaAnual);
+  const custoOportunidade = P * Math.pow(1 + rm, Math.max(0, Math.round(Number(mesesHorizonte) || 0)));
+  return { parcela, totalPago, jurosTotais, custoOportunidade };
+}
+
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
 /**

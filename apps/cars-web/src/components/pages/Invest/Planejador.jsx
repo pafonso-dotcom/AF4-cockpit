@@ -1,9 +1,9 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Wallet, Home, TrendingUp, AlertTriangle, Target, Sparkles, Plus, Trash2, Settings2 } from "lucide-react";
+import { Wallet, Home, TrendingUp, AlertTriangle, Target, Sparkles, Plus, Trash2, Settings2, Calculator } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import PageHeader from "../../ui/PageHeader.jsx";
-import { montarPlano } from "../../../lib/planejador.js";
+import { montarPlano, calcularParcelamento } from "../../../lib/planejador.js";
 
 const KEY = "af4:planejador:v1";
 const CARD = { background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16 };
@@ -68,6 +68,14 @@ export default function Planejador({ transacoes = [], hidden = false }) {
   const delBem = (i) => setCfg((c) => ({ ...c, bensDuraveis: c.bensDuraveis.filter((_, j) => j !== i) }));
 
   const plano = useMemo(() => montarPlano(cfg), [cfg]);
+
+  // Calculadora "vale a pena parcelar?"
+  const [parc, setParc] = useState({ valor: "", nParcelas: 12, taxaMes: 0.05 });
+  const resParc = useMemo(() => calcularParcelamento({
+    valor: Number(parc.valor) || 0, nParcelas: Number(parc.nParcelas) || 0, taxaMes: Number(parc.taxaMes) || 0,
+    retRiquezaAnual: cfg.premissas.retRiqueza, mesesHorizonte: Math.max(0, (Number(cfg.idadeAposentadoria) - Number(cfg.idadeAtual))) * 12,
+  }), [parc, cfg.premissas.retRiqueza, cfg.idadeAposentadoria, cfg.idadeAtual]);
+  const anosHoriz = Math.max(0, (Number(cfg.idadeAposentadoria) - Number(cfg.idadeAtual)));
   const balde = [
     { id: "reserva", label: "Reserva de emergência", icon: Wallet, cor: T.green, valor: plano.baldes.reserva },
     { id: "duravel", label: "Bens duráveis", icon: Home, cor: T.blue || "#60a5fa", valor: plano.baldes.duravel },
@@ -211,6 +219,40 @@ export default function Planejador({ transacoes = [], hidden = false }) {
           </div>
         </div>
       )}
+
+      {/* Vale a pena parcelar? */}
+      <div style={{ ...CARD, marginTop: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <Calculator size={15} style={{ color: T.gold }} />
+          <h3 style={{ fontSize: 13, fontWeight: 700, color: T.ink, margin: 0 }}>Vale a pena parcelar? Veja o custo real</h3>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
+          <Campo label="Valor do crédito" value={parc.valor} onChange={(v) => setParc((s) => ({ ...s, valor: v }))} sufixo="R$" w={120} />
+          <Campo label="Nº de parcelas" value={parc.nParcelas} onChange={(v) => setParc((s) => ({ ...s, nParcelas: v }))} w={70} />
+          <Campo label="Taxa ao mês" value={parc.taxaMes} onChange={(v) => setParc((s) => ({ ...s, taxaMes: v }))} sufixo="ex: 0.05" w={80} />
+        </div>
+        {Number(parc.valor) > 0 && Number(parc.nParcelas) > 0 && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginTop: 14 }}>
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                <div style={{ fontSize: 10.5, color: T.muted, textTransform: "uppercase", letterSpacing: ".06em" }}>Parcela</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: T.ink, marginTop: 2 }}>{oculto(fmt(resParc.parcela), hidden)}</div>
+              </div>
+              <div style={{ border: `1px solid ${T.red}40`, borderRadius: 10, padding: "10px 12px", background: `${T.red}0c` }}>
+                <div style={{ fontSize: 10.5, color: T.muted, textTransform: "uppercase", letterSpacing: ".06em" }}>Juros totais</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: T.red, marginTop: 2 }}>{oculto(fmt(resParc.jurosTotais), hidden)}</div>
+              </div>
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                <div style={{ fontSize: 10.5, color: T.muted, textTransform: "uppercase", letterSpacing: ".06em" }}>Total pago</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: T.ink, marginTop: 2 }}>{oculto(fmt(resParc.totalPago), hidden)}</div>
+              </div>
+            </div>
+            <div style={{ marginTop: 12, padding: "10px 12px", background: `${T.gold}10`, border: `1px solid ${T.gold}33`, borderRadius: 10, fontSize: 12.5, color: T.ink }}>
+              ⚠ Custa <b>{oculto(fmt(resParc.jurosTotais), hidden)}</b> em juros — e esses <b>{oculto(fmt(Number(parc.valor) || 0), hidden)}</b> à vista, investidos na riqueza, virariam <b style={{ color: T.green }}>{oculto(fmt(resParc.custoOportunidade), hidden)}</b> em {anosHoriz} anos.
+            </div>
+          </>
+        )}
+      </div>
 
       <div style={{ fontSize: 10.5, color: T.faint, marginTop: 10, fontStyle: "italic" }}>
         Ferramenta educacional — não constitui recomendação de investimento. Rentabilidade passada não garante o futuro.
