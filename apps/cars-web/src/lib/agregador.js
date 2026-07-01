@@ -83,9 +83,11 @@ export function getDespesasDoMes(mesISO, state = {}, escopo) {
   // Ocorrência órfã (cuja fixa foi apagada) não conta — senão a despesa
   // continua aparecendo nos relatórios mesmo depois de excluída.
   const fixaExiste = (id) => (state.fixas || []).some(f => f.id === id);
+  const fixasMaterializadas = new Set();
   (state.fixaOcorrencias || []).forEach(o => {
     if (o.mes !== mesISO) return;
     if (!fixaExiste(o.fixaId)) return;
+    fixasMaterializadas.add(o.fixaId);
     const status = o.status === "paga"
       ? "paga"
       : (o.dataVencimento && o.dataVencimento < hoje ? "atrasada" : "pendente");
@@ -99,6 +101,29 @@ export function getDespesasDoMes(mesISO, state = {}, escopo) {
       status,
       categoria: getFixaCategoria(o.fixaId, state),
       subcategoria: getFixaSubcategoria(o.fixaId, state),
+    });
+  });
+
+  // 1b. Fixas SEM ocorrência materializada neste mês (ex.: anos futuros ainda
+  //     não gerados). Uma fixa recorre indefinidamente, então mostramos uma
+  //     ocorrência VIRTUAL (pendente) pra ela não sumir do relatório/projeção.
+  //     Respeita inicioEm/terminoEm (compare "YYYY-MM" direto).
+  (state.fixas || []).forEach(f => {
+    if (fixasMaterializadas.has(f.id)) return;
+    if (f.inicioEm && mesISO < String(f.inicioEm).slice(0, 7)) return;
+    if (f.terminoEm && mesISO > String(f.terminoEm).slice(0, 7)) return;
+    const dia = String(Math.min(Math.max(parseInt(f.diaVencimento, 10) || 1, 1), 28)).padStart(2, "0");
+    const dataVenc = `${mesISO}-${dia}`;
+    out.push({
+      id: `occ-virtual-${f.id}-${mesISO}`,
+      fonte: "fixa",
+      tipo: "fixa",
+      descricao: getFixaDescricao(f.id, state),
+      data: dataVenc,
+      valor: Number(f.valor) || 0,
+      status: dataVenc < hoje ? "atrasada" : "pendente",
+      categoria: getFixaCategoria(f.id, state),
+      subcategoria: getFixaSubcategoria(f.id, state),
     });
   });
 
