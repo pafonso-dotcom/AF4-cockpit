@@ -179,8 +179,8 @@ export default function RelatoriosFinancas({
   const proximosMeses = useMemo(() => {
     const out = [];
     const now = new Date();
-    // Ponto de partida: ano corrente → a partir do próximo mês; outro ano → janeiro.
-    const baseM = anoProj === now.getFullYear() ? now.getMonth() + 1 : 0;
+    // Ponto de partida: ano corrente → a partir do MÊS CORRENTE; outro ano → janeiro.
+    const baseM = anoProj === now.getFullYear() ? now.getMonth() : 0;
     for (let i = 0; i < 6; i++) {
       const d = new Date(anoProj, baseM + i, 1);
       out.push({ iso: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: `${MESES_PROJ[d.getMonth()]}/${String(d.getFullYear()).slice(2)}` });
