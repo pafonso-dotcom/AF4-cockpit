@@ -49,13 +49,27 @@ export default function Proventos({
   // e podem ter ticker fora da carteira (proventos antigos, ETFs, etc).
   // Os ignorados somem por padrão; toggle "Mostrar ignorados" no header.
   const [mostrarIgnorados, setMostrarIgnorados] = useState(false);
+  // Recebidos de meses anteriores somem por padrão (ficam só pra consulta).
+  const [mostrarRecebidosAnteriores, setMostrarRecebidosAnteriores] = useState(false);
   const [manualForm, setManualForm] = useState(null);
   const proventos = useMemo(() => {
     const auto = calendarioProventos(ativos);
     const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
     const todos = [...auto, ...manuais].sort((a, b) => (a.data || "").localeCompare(b.data || ""));
-    return mostrarIgnorados ? todos : todos.filter(p => !proventosIgnorados[p.id]);
-  }, [ativos, proventosIgnorados, mostrarIgnorados, proventosManuais]);
+    const mesKey = new Date().toISOString().slice(0, 7);
+    let lista = mostrarIgnorados ? todos : todos.filter(p => !proventosIgnorados[p.id]);
+    if (!mostrarRecebidosAnteriores) {
+      // esconde proventos JÁ RECEBIDOS de meses ANTERIORES ao corrente
+      lista = lista.filter(p => !(proventosRecebidos[p.id] && String(p.data || "").slice(0, 7) < mesKey));
+    }
+    return lista;
+  }, [ativos, proventosIgnorados, mostrarIgnorados, proventosManuais, proventosRecebidos, mostrarRecebidosAnteriores]);
+  const totalRecebidosAnteriores = useMemo(() => {
+    const auto = calendarioProventos(ativos);
+    const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
+    const mesKey = new Date().toISOString().slice(0, 7);
+    return [...auto, ...manuais].filter(p => proventosRecebidos[p.id] && String(p.data || "").slice(0, 7) < mesKey).length;
+  }, [ativos, proventosManuais, proventosRecebidos]);
   const totalIgnorados = useMemo(() => {
     const auto = calendarioProventos(ativos);
     const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
@@ -449,6 +463,12 @@ export default function Proventos({
               <button onClick={() => setMostrarIgnorados(v => !v)} className="btn-ghost"
                       style={{ fontSize: 11 }}>
                 {mostrarIgnorados ? "Esconder" : "Mostrar"} ignorados ({totalIgnorados})
+              </button>
+            )}
+            {totalRecebidosAnteriores > 0 && (
+              <button onClick={() => setMostrarRecebidosAnteriores(v => !v)} className="btn-ghost"
+                      style={{ fontSize: 11 }} title="Proventos já recebidos de meses anteriores">
+                {mostrarRecebidosAnteriores ? "Esconder" : "Mostrar"} recebidos anteriores ({totalRecebidosAnteriores})
               </button>
             )}
             <button onClick={abrirNovoManual} className="btn-gold" style={{ fontSize: 11 }}>
