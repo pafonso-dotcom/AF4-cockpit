@@ -134,21 +134,24 @@ function HeaderHorizontal({
 
   const SUBTABS = {
     financas: [
+      // Ordem fixada pelo usuário: Painel, Contas, Cartões, Centro de controle,
+      // Cheques, Relatórios, Agenda — e depois o resto.
       { id: "dashboard",    label: "Painel",       icon: Activity },
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
-      { id: "transacoes",   label: "Transações",   icon: Receipt },
       { id: "planejamento", label: "Centro de controle", icon: Target },
+      { id: "cheques",      label: "Cheques",      icon: FileText },
+      { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
+      // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
+      // que ficam escondidas até clicar aqui.
+      { id: "inicio",       label: "Agenda",       icon: Calendar, agenda: true },
+      // O resto:
+      { id: "transacoes",   label: "Transações",   icon: Receipt },
       { id: "inteligencia", label: "Inteligência", icon: Brain },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "revisor-ganhos",      label: "Revisor de ganhos",      icon: LineIcon },
-      { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
-      { id: "cheques",      label: "Cheques",      icon: FileText },
       { id: "audit",        label: "Histórico",    icon: History },
-      // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
-      // que ficam escondidas até clicar aqui.
-      { id: "inicio",       label: "Agenda",       icon: Calendar, agenda: true },
     ],
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
@@ -252,6 +255,8 @@ function HeaderHorizontal({
   const NAV_MUTED = "#a8a8b0";
   const NAV_FAINT = "#6e6e78";
   const NAV_BORDER = "rgba(255,255,255,0.08)";
+  // Linhas-guia da árvore (cotovelo + vertical) — mais visíveis que a borda base.
+  const NAV_LINE   = "rgba(255,255,255,0.26)";
   const NAV_SOFT   = "rgba(255,255,255,0.05)";
 
   // Estilo padrão dos botões utility (Eye/Sun/Refresh) — área de toque 40x40
@@ -639,21 +644,24 @@ function HeaderVertical({
 
   const SUBTABS = {
     financas: [
+      // Ordem fixada pelo usuário: Painel, Contas, Cartões, Centro de controle,
+      // Cheques, Relatórios, Agenda — e depois o resto.
       { id: "dashboard",    label: "Painel",       icon: Activity },
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
-      { id: "transacoes",   label: "Transações",   icon: Receipt },
       { id: "planejamento", label: "Centro de controle", icon: Target },
+      { id: "cheques",      label: "Cheques",      icon: FileText },
+      { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
+      // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
+      // que ficam escondidas até clicar aqui.
+      { id: "inicio",       label: "Agenda",       icon: Calendar, agenda: true },
+      // O resto:
+      { id: "transacoes",   label: "Transações",   icon: Receipt },
       { id: "inteligencia", label: "Inteligência", icon: Brain },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
       { id: "revisor-ganhos",      label: "Revisor de ganhos",      icon: LineIcon },
-      { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
-      { id: "cheques",      label: "Cheques",      icon: FileText },
       { id: "audit",        label: "Histórico",    icon: History },
-      // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
-      // que ficam escondidas até clicar aqui.
-      { id: "inicio",       label: "Agenda",       icon: Calendar, agenda: true },
     ],
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
@@ -697,6 +705,7 @@ function HeaderVertical({
   const NAV_INK = "#f5f5f7";
   const NAV_MUTED = "#a8a8b0";
   const NAV_BORDER = "rgba(255,255,255,0.08)";
+  const NAV_LINE   = "rgba(255,255,255,0.26)";
 
   // Acordeão: começa com o módulo ATIVO já aberto (ex.: Finanças ao abrir o app).
   // Só fecha quando o usuário abre outro módulo (não recolhe ao clicar no já aberto).
@@ -772,7 +781,7 @@ function HeaderVertical({
                         const sAtivo = s.agenda ? AGENDA_TAB_IDS.has(tab) : s.id === tab;
                         const pending = pendingCounts[s.id] || 0;
                         const sUlt = si === mSubtabs.length - 1;
-                        const sCon = sAtivo ? T.gold : NAV_BORDER;
+                        const sCon = sAtivo ? T.gold : NAV_LINE;
                         // Filhos da árvore — ESCONDIDOS até clicar na aba-pai:
                         // bancos só aparecem com Contas aberta; cartões com Cartões aberta.
                         let filhos = null;
@@ -800,7 +809,7 @@ function HeaderVertical({
                           <div key={s.id} style={{ position: "relative" }}>
                             {/* conector em L do subtab */}
                             <span aria-hidden style={{ position: "absolute", left: 2, top: 0, width: 11, height: 16, borderLeft: `1px solid ${sCon}`, borderBottom: `1px solid ${sCon}`, borderBottomLeftRadius: 7 }} />
-                            {!sUlt && <span aria-hidden style={{ position: "absolute", left: 2, top: 0, bottom: 0, borderLeft: `1px solid ${NAV_BORDER}` }} />}
+                            {!sUlt && <span aria-hidden style={{ position: "absolute", left: 2, top: 0, bottom: 0, borderLeft: `1px solid ${NAV_LINE}` }} />}
                             <button onClick={() => setTab(s.id)}
                               style={{
                                 position: "relative", width: "100%",
@@ -827,11 +836,11 @@ function HeaderVertical({
                               <div style={{ display: "flex", flexDirection: "column", gap: 1, marginLeft: 16 }}>
                                 {filhos.map((f, fi) => {
                                   const fUlt = fi === filhos.length - 1;
-                                  const fCon = f.ativo ? T.gold : NAV_BORDER;
+                                  const fCon = f.ativo ? T.gold : NAV_LINE;
                                   return (
                                     <div key={f.id} style={{ position: "relative" }}>
                                       <span aria-hidden style={{ position: "absolute", left: 2, top: 0, width: 11, height: 13, borderLeft: `1px solid ${fCon}`, borderBottom: `1px solid ${fCon}`, borderBottomLeftRadius: 7 }} />
-                                      {!fUlt && <span aria-hidden style={{ position: "absolute", left: 2, top: 0, bottom: 0, borderLeft: `1px solid ${NAV_BORDER}` }} />}
+                                      {!fUlt && <span aria-hidden style={{ position: "absolute", left: 2, top: 0, bottom: 0, borderLeft: `1px solid ${NAV_LINE}` }} />}
                                       <button onClick={f.onClick}
                                         style={{
                                           position: "relative", width: "100%",

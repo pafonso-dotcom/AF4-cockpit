@@ -337,7 +337,11 @@ export default function Proventos({
       toast.success(`Provento ${ticker} atualizado.`);
     } else {
       setProventosManuais([...(proventosManuais || []), novo]);
-      toast.success(`Provento ${ticker} lançado.`);
+      toast.success(`Provento ${ticker} ${f._origemAuto ? "corrigido" : "lançado"}.`);
+    }
+    // Editou um provento automático: ignora o original pra não duplicar com a estimativa.
+    if (f._origemAuto && setProventosIgnorados) {
+      setProventosIgnorados({ ...proventosIgnorados, [f._origemAuto]: true });
     }
     setManualForm(null);
   };
@@ -697,18 +701,18 @@ export default function Proventos({
                                     }}>
                               <ArrowDownToLine size={11} /> Baixar
                             </button>
-                            {p.manual && (
-                              <button onClick={() => setManualForm({ ...p, qtd: String(p.qtd), valorPorCota: String(p.valorPorCota) })}
-                                      title="Editar lançamento manual"
-                                      aria-label={`Editar lançamento manual ${p.ticker}`}
-                                      style={{
-                                        background: "transparent", border: `1px solid ${T.border}`,
-                                        color: T.muted, padding: "2px 7px", borderRadius: 4,
-                                        cursor: "pointer", fontSize: 10, letterSpacing: ".05em",
-                                      }}>
-                                ✎
-                              </button>
-                            )}
+                            <button onClick={() => setManualForm(p.manual
+                                      ? { ...p, qtd: String(p.qtd), valorPorCota: String(p.valorPorCota) }
+                                      : { ...p, id: null, _origemAuto: p.id, qtd: String(p.qtd), valorPorCota: String(p.valorPorCota) })}
+                                    title={p.manual ? "Editar lançamento" : "Editar (corrige o valor — vira lançamento manual)"}
+                                    aria-label={`Editar provento ${p.ticker}`}
+                                    style={{
+                                      background: "transparent", border: `1px solid ${T.border}`,
+                                      color: T.muted, padding: "2px 7px", borderRadius: 4,
+                                      cursor: "pointer", fontSize: 10, letterSpacing: ".05em",
+                                    }}>
+                              ✎
+                            </button>
                             <button onClick={() => p.manual ? excluirManual(p) : ignorarProvento(p)}
                                     title={p.manual ? "Excluir lançamento manual" : "Excluir/ignorar este provento previsto"}
                                     aria-label={p.manual ? `Excluir lançamento manual ${p.ticker}` : `Excluir provento previsto ${p.ticker}`}
