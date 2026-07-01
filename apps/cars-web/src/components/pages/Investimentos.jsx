@@ -556,7 +556,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   <div className="num" style={{ color: T.ink, marginTop: 2 }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</div>
                 </div>
               </div>
-              <div className="flex gap-2 no-print" onClick={e => e.stopPropagation()}>
+              <div className="no-print" onClick={e => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" })}
                         aria-label={`Aportar em ${a.ticker}`}
                         style={{ flex: 1, background: "transparent", color: T.ink, padding: "6px 8px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
@@ -567,6 +568,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                         style={{ flex: 1, background: "transparent", color: T.ink, padding: "6px 8px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
                   Venda
                 </button>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {onAnalisar && TIPOS_ANALISAVEIS.includes(a.tipo) && (
                   <button onClick={() => onAnalisar(a)} aria-label={`Analisar ${a.ticker}`} title="Análise técnica"
                           style={{ color: T.gold, padding: 6, background: "transparent", border: `1px solid ${T.gold}`, cursor: "pointer" }}>
@@ -603,6 +606,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                         style={{ color: T.red, padding: 6, background: "transparent", border: `1px solid ${T.red}`, cursor: "pointer" }}>
                   <Trash2 size={14} />
                 </button>
+                </div>
               </div>
             </div>
           );
