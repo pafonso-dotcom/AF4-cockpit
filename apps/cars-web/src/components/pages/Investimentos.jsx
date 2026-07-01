@@ -729,7 +729,9 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                       <span style={{ fontSize: 11 }}>{fmtP(pct)}</span></>
                     )}
                   </td>
-                  <td className="no-print" style={{ padding: "14px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
+                  <td className="no-print" style={{ padding: "14px 8px", whiteSpace: "nowrap" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
+                    <div style={{ display: "flex", gap: 4 }}>
                     <button onClick={e => { e.stopPropagation(); setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" }); }}
                             title="Novo Aporte"
                             style={{ background: "transparent", color: T.ink, padding: "4px 8px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, marginRight: 4, cursor: "pointer", fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
@@ -740,6 +742,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                             style={{ background: "transparent", color: T.ink, padding: "4px 8px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, marginRight: 4, cursor: "pointer", fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
                       <ArrowUpRight size={10} className="inline" /> Venda
                     </button>
+                    </div>
+                    <div style={{ display: "flex", gap: 2 }}>
                     {onAnalisar && TIPOS_ANALISAVEIS.includes(a.tipo) && (
                       <button onClick={e => { e.stopPropagation(); onAnalisar(a); }} aria-label={`Analisar ${a.ticker}`} title="Análise técnica"
                               style={{ color: T.gold, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><LineChart size={12} /></button>
@@ -766,6 +770,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                               });
                             }}
                             style={{ color: T.red, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Trash2 size={12} /></button>
+                    </div>
+                    </div>
                   </td>
                 </tr>
               );
