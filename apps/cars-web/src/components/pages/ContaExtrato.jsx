@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, ArrowRightLeft, Search, Printer, ArrowUp, ArrowDown, Edit3, Trash2, Scale } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, ArrowRightLeft, Search, Printer, ArrowUp, ArrowDown, Edit3, Trash2, Scale, Check } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt } from "../../lib/format.js";
 import { confirm } from "../../lib/confirm.js";
@@ -116,6 +116,12 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
       return sortDir === "desc" ? -cmp : cmp;
     });
   }, [transacoesDaConta, periodo, tipo, busca, mesAtual, sortDir, statusFilter]);
+
+  // Conferência manual com o extrato do banco — independe de "compensado"
+  // (que afeta o saldo). É só um tique pra você marcar o que já bateu.
+  const toggleConferido = (t) => {
+    setTransacoes?.((prev) => prev.map(x => x.id === t.id ? { ...x, conferido: !x.conferido } : x));
+  };
 
   const trocarCategoria = (t, novaCat) => {
     setTransacoes?.((prev) => prev.map(x => x.id === t.id ? { ...x, categoria: novaCat } : x));
@@ -481,6 +487,19 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                       padding: "5px 14px", borderBottom: `1px solid ${T.border}`,
                       opacity: t.compensado ? 1 : 0.7,
                     }}>
+                      {/* Conferência manual com o extrato do banco */}
+                      <button onClick={() => toggleConferido(t)}
+                              title={t.conferido ? "Conferido com o extrato — clique pra desmarcar" : "Marcar como conferido no extrato do banco"}
+                              aria-label={t.conferido ? "Desmarcar conferido" : "Marcar conferido"}
+                              style={{
+                                width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                                border: `1.5px solid ${t.conferido ? T.green : T.border}`,
+                                background: t.conferido ? T.green : "transparent",
+                                display: "grid", placeItems: "center", cursor: "pointer", padding: 0,
+                              }}>
+                        {t.conferido && <Check size={13} strokeWidth={3} color={T.bg} />}
+                      </button>
+
                       {/* Ícone entrada/saída */}
                       <span style={{
                         width: 22, height: 22, borderRadius: "50%",
