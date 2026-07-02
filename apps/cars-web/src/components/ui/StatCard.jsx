@@ -8,7 +8,7 @@ import { T } from "../../lib/theme.js";
  * - variation: indicador MoM { pct, label, goodIfUp } (item 10)
  * - sub: subtítulo simples (compat)
  */
-export default function StatCard({ label, value, accent, icon: Icon, sub, tooltip, variation }) {
+export default function StatCard({ label, value, accent, icon: Icon, sub, tooltip, variation, compact }) {
   const [showTip, setShowTip] = useState(false);
 
   const variationColor = variation
@@ -19,9 +19,9 @@ export default function StatCard({ label, value, accent, icon: Icon, sub, toolti
     : T.muted;
 
   return (
-    <div style={{ background: T.card, padding: 20, position: "relative" }} className="card-hover">
-      <div className="flex items-start justify-between mb-3">
-        <div className="label-eyebrow" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+    <div style={{ background: T.card, padding: compact ? 12 : 20, position: "relative" }} className="card-hover">
+      <div className="flex items-start justify-between" style={{ marginBottom: compact ? 6 : 12 }}>
+        <div className="label-eyebrow" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: compact ? 9.5 : undefined }}>
           {label}
           {tooltip && (
             <span
@@ -35,10 +35,10 @@ export default function StatCard({ label, value, accent, icon: Icon, sub, toolti
             </span>
           )}
         </div>
-        {Icon && <Icon size={14} style={{ color: accent }} />}
+        {Icon && <Icon size={compact ? 12 : 14} style={{ color: accent }} />}
       </div>
 
-      <div className="num" style={{ fontFamily: T.serif, fontSize: "clamp(20px, 3vw, 28px)", color: T.ink, lineHeight: 1.1, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+      <div className="num" style={{ fontFamily: T.serif, fontSize: compact ? "clamp(15px, 2vw, 19px)" : "clamp(20px, 3vw, 28px)", color: T.ink, lineHeight: 1.1, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
         <span>{value}</span>
         {variation && (
           <span style={{
@@ -53,7 +53,7 @@ export default function StatCard({ label, value, accent, icon: Icon, sub, toolti
       </div>
 
       {(sub || variation?.label) && (
-        <div className="num text-xs mt-2" style={{ color: T.muted }}>
+        <div className="num text-xs" style={{ color: T.muted, marginTop: compact ? 4 : 8 }}>
           {variation?.label || sub}
         </div>
       )}
