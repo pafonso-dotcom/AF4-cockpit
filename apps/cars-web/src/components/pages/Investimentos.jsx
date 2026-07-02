@@ -616,174 +616,154 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
         })}
       </div>
 
-      {/* Desktop: tabela completa */}
-      <div className="hidden md:block overflow-x-auto" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-        <table className="w-full" style={{ minWidth: 820 }}>
-          <thead>
-            <tr style={{ borderBottom: `1px solid ${T.border}` }}>
-              {["Ativo", "Tipo", "Qtd", "PM", "Preço Atual", "Investido", "Valor", "Resultado", "Ações"].map((h, i) => (
-                <th key={i}
-                    className={h === "Ações" ? "no-print" : undefined}
-                    style={{ color: T.muted, padding: "12px 16px", textAlign: i > 1 ? "right" : "left",
-                             fontFamily: T.sans, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 500 }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {refreshing && filtered.length === 0 && (
-              <>
-                {[1,2,3,4,5].map(i => (
-                  <tr key={`skel-${i}`}>
-                    <td colSpan={9} style={{ padding: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderBottom: `1px solid ${T.border}` }}>
-                        <div style={{
-                          width: 28, height: 28, borderRadius: "50%",
-                          background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`,
-                          backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite",
-                        }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ height: 13, width: 110, background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`, backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite", borderRadius: 4 }} />
-                          <div style={{ height: 4 }} />
-                          <div style={{ height: 10, width: 70, background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`, backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite", borderRadius: 4 }} />
-                        </div>
-                        <div style={{ width: 90, height: 14, background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`, backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite", borderRadius: 4 }} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </>
-            )}
-            {grupos.map(grupo => {
-              const fechado = collapsedSegs.has(grupo.segmento);
-              return (
-                <React.Fragment key={grupo.segmento}>
-                  <tr onClick={() => toggleSeg(grupo.segmento)}
-                      style={{ cursor: "pointer", background: `${T.gold}10`, borderTop: `1px solid ${T.gold}33`, borderBottom: `1px solid ${T.gold}33` }}>
-                    <td colSpan={9} style={{ padding: "8px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ color: T.gold, fontSize: 11, fontWeight: 600 }}>
-                          {fechado ? "▶" : "▼"}
-                        </span>
-                        <span style={{ flex: 1, color: T.ink, fontSize: 13, fontWeight: 600 }}>
-                          {grupo.segmento}
-                        </span>
-                        <span style={{ color: T.muted, fontSize: 11 }}>
-                          {grupo.count} {grupo.count === 1 ? "ativo" : "ativos"}
-                        </span>
-                        <span style={{ color: T.gold, fontSize: 12, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                          {hidden ? "•••" : (grupo.moedaUS ? fmtUSD(grupo.valor) : fmt(grupo.valor))}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                  {!fechado && grupo.ativos.map(a => {
-              const investido = a.qtd * a.pm;
-              const valor = a.qtd * a.preco;
-              const ganho = valor - investido;
-              const pct = investido > 0 ? (ganho / investido) * 100 : 0;
-              return (
-                <tr key={a.id} className="hover:bg-black/30" style={{ borderBottom: `1px solid ${T.border}`, transition: "background 0.2s", cursor: "pointer" }}
-                    onClick={() => setSelected(a)}>
-                  <td style={{ padding: "14px 16px" }}>
-                    <div style={{ fontFamily: T.serif, fontSize: 17, color: T.ink, display: "inline-flex", alignItems: "center", gap: 8 }}>
-                      {a.ticker}
-                      {isLive(a) && <span className="af4-live-dot" title="Cotação ao vivo (atualizada nos últimos 60s)" />}
-                    </div>
-                    <div style={{ color: T.muted, fontSize: 11.5, marginTop: 2, display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
-                      {a.nome && <span className="italic">{a.nome}</span>}
-                      <span style={{ fontFamily: T.sans, letterSpacing: "0.05em", textTransform: "uppercase", fontSize: 10 }}>
-                        {a.nome ? "· " : ""}{a.tipo}
-                      </span>
-                      {a.tipo !== "capitalSocial" && valorPorTipo[a.tipo] > 0 && (
-                        <span style={{ color: T.gold, fontWeight: 600, fontSize: 10.5 }}>· {pesoNaCategoria(a).toFixed(0)}%</span>
-                      )}
-                    </div>
-                  </td>
-                  <td style={{ padding: "14px 16px", color: T.gold, fontSize: 10.5, fontFamily: T.sans, letterSpacing: ".02em" }}>
-                    {a.segmento || "—"}
-                  </td>
-                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.ink }}>{fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)}</td>
-                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.pm)}</td>
-                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.gold }}>
-                    {hidden ? "•••" : fmtMoedaAtivo(a, a.preco)}
-                    {Number.isFinite(Number(a.variacao24h)) && (
+      {/* Desktop: lista "de extrato" — sem grade de colunas, cada ativo é uma
+          linha com selo de iniciais, nome/tipo/segmento à esquerda e
+          valor/resultado à direita. Cabe sem rolagem lateral em qualquer
+          largura de tela. */}
+      <div className="hidden md:block" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+        {refreshing && filtered.length === 0 && (
+          [1,2,3,4,5].map(i => (
+            <div key={`skel-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderBottom: `1px solid ${T.border}` }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: "50%",
+                background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`,
+                backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite",
+              }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ height: 13, width: 110, background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`, backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite", borderRadius: 4 }} />
+                <div style={{ height: 4 }} />
+                <div style={{ height: 10, width: 70, background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`, backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite", borderRadius: 4 }} />
+              </div>
+              <div style={{ width: 90, height: 14, background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`, backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite", borderRadius: 4 }} />
+            </div>
+          ))
+        )}
+        {grupos.map(grupo => {
+          const fechado = collapsedSegs.has(grupo.segmento);
+          return (
+            <React.Fragment key={grupo.segmento}>
+              <div onClick={() => toggleSeg(grupo.segmento)}
+                   style={{ cursor: "pointer", background: `${T.gold}10`, borderTop: `1px solid ${T.gold}33`, borderBottom: `1px solid ${T.gold}33`, padding: "8px 16px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ color: T.gold, fontSize: 11, fontWeight: 600 }}>
+                    {fechado ? "▶" : "▼"}
+                  </span>
+                  <span style={{ flex: 1, color: T.ink, fontSize: 13, fontWeight: 600 }}>
+                    {grupo.segmento}
+                  </span>
+                  <span style={{ color: T.muted, fontSize: 11 }}>
+                    {grupo.count} {grupo.count === 1 ? "ativo" : "ativos"}
+                  </span>
+                  <span style={{ color: T.gold, fontSize: 12, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                    {hidden ? "•••" : (grupo.moedaUS ? fmtUSD(grupo.valor) : fmt(grupo.valor))}
+                  </span>
+                </div>
+              </div>
+              {!fechado && grupo.ativos.map(a => {
+                const investido = a.qtd * a.pm;
+                const valor = a.qtd * a.preco;
+                const ganho = valor - investido;
+                const pct = investido > 0 ? (ganho / investido) * 100 : 0;
+                const cor = a.tipo === "capitalSocial" ? T.border : (ganho >= 0 ? T.green : T.red);
+                return (
+                  <div key={a.id} className="hover:bg-black/30" onClick={() => setSelected(a)}
+                       style={{
+                         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+                         padding: "12px 16px", borderBottom: `1px solid ${T.border}`, borderLeft: `3px solid ${cor}`,
+                         transition: "background 0.2s", cursor: "pointer", flexWrap: "wrap",
+                       }}>
+                    {/* Esquerda: selo + identificação */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: "1 1 320px" }}>
                       <div style={{
-                        fontSize: 10, marginTop: 2,
-                        color: Number(a.variacao24h) >= 0 ? T.green : T.red,
+                        width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                        background: `${T.gold}1a`, color: T.gold,
+                        display: "grid", placeItems: "center", fontSize: 10, fontWeight: 700,
                       }}>
-                        {Number(a.variacao24h) >= 0 ? "+" : ""}{Number(a.variacao24h).toFixed(2)}% 24h
+                        {(a.ticker || "??").slice(0, 2).toUpperCase()}
                       </div>
-                    )}
-                  </td>
-                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmtMoedaAtivo(a, investido)}</td>
-                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.ink }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</td>
-                  <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: a.tipo === "capitalSocial" ? T.muted : (ganho >= 0 ? T.green : T.red) }}>
-                    {a.tipo === "capitalSocial" ? (
-                      <span style={{ fontStyle: "italic" }}>manual</span>
-                    ) : (
-                      <>{hidden ? "•••" : fmtMoedaAtivo(a, ganho)}<br/>
-                      <span style={{ fontSize: 11 }}>{fmtP(pct)}</span></>
-                    )}
-                  </td>
-                  <td className="no-print" style={{ padding: "14px 8px", whiteSpace: "nowrap" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
-                    <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={e => { e.stopPropagation(); setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" }); }}
-                            title="Novo Aporte"
-                            style={{ background: "transparent", color: T.ink, padding: "4px 8px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, marginRight: 4, cursor: "pointer", fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
-                      <ArrowDownRight size={10} className="inline" /> Aporte
-                    </button>
-                    <button onClick={e => { e.stopPropagation(); setVendaForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" }); }}
-                            title="Venda"
-                            style={{ background: "transparent", color: T.ink, padding: "4px 8px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, marginRight: 4, cursor: "pointer", fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
-                      <ArrowUpRight size={10} className="inline" /> Venda
-                    </button>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+                          <span style={{ fontFamily: T.serif, fontSize: 15, color: T.ink, fontWeight: 600 }}>{a.ticker}</span>
+                          {isLive(a) && <span className="af4-live-dot" title="Cotação ao vivo (atualizada nos últimos 60s)" />}
+                          <span style={{ color: T.muted, fontSize: 11 }}>
+                            {a.nome && <span className="italic">{a.nome} · </span>}
+                            <span style={{ fontFamily: T.sans, letterSpacing: "0.03em", textTransform: "uppercase", fontSize: 9.5 }}>{a.tipo}</span>
+                            {a.tipo !== "capitalSocial" && valorPorTipo[a.tipo] > 0 && (
+                              <span style={{ color: T.gold, fontWeight: 600 }}> · {pesoNaCategoria(a).toFixed(0)}%</span>
+                            )}
+                          </span>
+                        </div>
+                        <div style={{ color: T.faint, fontSize: 10.5, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                          {a.segmento && <>{a.segmento} · </>}
+                          {fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)} un · PM {hidden ? "•••" : fmtMoedaAtivo(a, a.pm)} → {hidden ? "•••" : fmtMoedaAtivo(a, a.preco)}
+                          {Number.isFinite(Number(a.variacao24h)) && (
+                            <span style={{ color: Number(a.variacao24h) >= 0 ? T.green : T.red }}>
+                              {" "}({Number(a.variacao24h) >= 0 ? "+" : ""}{Number(a.variacao24h).toFixed(2)}% 24h)
+                            </span>
+                          )}
+                          {" "}· investido {hidden ? "•••" : fmtMoedaAtivo(a, investido)}
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ display: "flex", gap: 2 }}>
-                    {onAnalisar && TIPOS_ANALISAVEIS.includes(a.tipo) && (
-                      <button onClick={e => { e.stopPropagation(); onAnalisar(a); }} aria-label={`Analisar ${a.ticker}`} title="Análise técnica"
-                              style={{ color: T.gold, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><LineChart size={12} /></button>
-                    )}
-                    {onProjetar && (
-                      <button onClick={e => { e.stopPropagation(); onProjetar(a); }} aria-label={`Projetar ${a.ticker}`} title="Projetar evolução deste ativo"
-                              style={{ color: T.gold, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Calculator size={12} /></button>
-                    )}
-                    <button onClick={e => { e.stopPropagation(); setPdfAtivoId(a.id); }} aria-label={`Imprimir PDF de ${a.ticker}`} title="Imprimir PDF deste ativo"
-                            style={{ color: T.gold, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Printer size={12} /></button>
-                    <button onClick={e => { e.stopPropagation(); setForm(a); }} aria-label={`Editar ${a.ticker}`} style={{ color: T.muted, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Edit3 size={12} /></button>
-                    <button onClick={async e => {
-                              e.stopPropagation();
-                              const ok = await confirm({
-                                title: `Excluir ${a.ticker}?`,
-                                body: `Posição de ${a.qtd} ${a.ticker} (${fmt(a.qtd * a.preco)}) será removida da carteira.`,
-                                danger: true, confirmLabel: "Excluir",
-                              });
-                              if (!ok) return;
-                              const backup = ativos;
-                              setAtivos(ativos.filter(x => x.id !== a.id));
-                              toast.success(`${a.ticker} removido da carteira.`, {
-                                action: { label: "Desfazer", onClick: () => setAtivos(backup) },
-                              });
-                            }}
-                            style={{ color: T.red, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}><Trash2 size={12} /></button>
+
+                    {/* Direita: valor + resultado + ações */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+                      <div style={{ textAlign: "right" }}>
+                        <div className="num" style={{ fontSize: 15, fontWeight: 650, color: T.ink }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</div>
+                        <div className="num" style={{ fontSize: 11, marginTop: 1, color: a.tipo === "capitalSocial" ? T.muted : (ganho >= 0 ? T.green : T.red) }}>
+                          {a.tipo === "capitalSocial" ? <span style={{ fontStyle: "italic" }}>manual</span> : (
+                            <>{hidden ? "•••" : fmtMoedaAtivo(a, ganho)} · {fmtP(pct)}</>
+                          )}
+                        </div>
+                      </div>
+                      <div className="no-print" style={{ display: "flex", gap: 2 }}>
+                        <button onClick={e => { e.stopPropagation(); setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" }); }}
+                                aria-label={`Novo aporte em ${a.ticker}`} title="Novo Aporte"
+                                style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><ArrowDownRight size={13} /></button>
+                        <button onClick={e => { e.stopPropagation(); setVendaForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" }); }}
+                                aria-label={`Venda de ${a.ticker}`} title="Venda"
+                                style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><ArrowUpRight size={13} /></button>
+                        {onAnalisar && TIPOS_ANALISAVEIS.includes(a.tipo) && (
+                          <button onClick={e => { e.stopPropagation(); onAnalisar(a); }} aria-label={`Analisar ${a.ticker}`} title="Análise técnica"
+                                  style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><LineChart size={13} /></button>
+                        )}
+                        {onProjetar && (
+                          <button onClick={e => { e.stopPropagation(); onProjetar(a); }} aria-label={`Projetar ${a.ticker}`} title="Projetar evolução deste ativo"
+                                  style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Calculator size={13} /></button>
+                        )}
+                        <button onClick={e => { e.stopPropagation(); setPdfAtivoId(a.id); }} aria-label={`Imprimir PDF de ${a.ticker}`} title="Imprimir PDF deste ativo"
+                                style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Printer size={13} /></button>
+                        <button onClick={e => { e.stopPropagation(); setForm(a); }} aria-label={`Editar ${a.ticker}`} title="Editar"
+                                style={{ color: T.muted, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Edit3 size={13} /></button>
+                        <button onClick={async e => {
+                                  e.stopPropagation();
+                                  const ok = await confirm({
+                                    title: `Excluir ${a.ticker}?`,
+                                    body: `Posição de ${a.qtd} ${a.ticker} (${fmt(a.qtd * a.preco)}) será removida da carteira.`,
+                                    danger: true, confirmLabel: "Excluir",
+                                  });
+                                  if (!ok) return;
+                                  const backup = ativos;
+                                  setAtivos(ativos.filter(x => x.id !== a.id));
+                                  toast.success(`${a.ticker} removido da carteira.`, {
+                                    action: { label: "Desfazer", onClick: () => setAtivos(backup) },
+                                  });
+                                }}
+                                aria-label={`Excluir ${a.ticker}`} title="Excluir"
+                                style={{ color: T.red, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Trash2 size={13} /></button>
+                      </div>
                     </div>
-                    </div>
-                  </td>
-                </tr>
-              );
-                  })}
-                </React.Fragment>
-              );
-            })}
-            {filtered.length === 0 && (
-              <tr><td colSpan={9} style={{ padding: 32, textAlign: "center", color: T.muted, fontStyle: "italic" }}>
-                Nenhum ativo nessa categoria.
-              </td></tr>
-            )}
-          </tbody>
-        </table>
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div style={{ padding: 32, textAlign: "center", color: T.muted, fontStyle: "italic" }}>
+            Nenhum ativo nessa categoria.
+          </div>
+        )}
       </div>
 
       {selected && <DetalheAtivo ativo={selected} onClose={() => setSelected(null)} />}
