@@ -367,12 +367,12 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
         // Card de uma conta — mantém TODOS os handlers/ações originais.
         // Card em forma de PASTA (folder) — roxo uniforme; a cor da conta vai só
         // no ícone. Clique abre a conta; "⋯" expande as ações (mover/app/Tx/editar/excluir).
-        const PASTA_BG = "linear-gradient(155deg, rgba(255,255,255,.58) 0%, rgba(227,220,246,.42) 100%)";
-        const PASTA_TAB = "rgba(205,192,238,.55)";
-        const PASTA_INK = "#3a2e63";
-        const PASTA_MUTED = "rgba(58,46,99,.62)";
+        const PASTA_BG = "linear-gradient(155deg, rgba(255,255,255,.58) 0%, rgba(196,225,255,.45) 100%)";
+        const PASTA_TAB = "rgba(147,197,253,.55)";
+        const PASTA_INK = "#1e3a5f";
+        const PASTA_MUTED = "rgba(30,58,95,.62)";
         const acaoBtn = {
-          background: "rgba(58,46,99,.10)", border: "none", color: PASTA_INK,
+          background: "rgba(30,58,95,.10)", border: "none", color: PASTA_INK,
           borderRadius: 8, padding: "5px 8px", cursor: "pointer", fontSize: 10, fontWeight: 600,
           letterSpacing: ".04em", textTransform: "uppercase",
           display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
@@ -401,7 +401,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                    borderRadius: 18, padding: 14, minHeight: 130,
                    cursor: onContaClick ? "pointer" : "default",
                    display: "flex", flexDirection: "column",
-                   boxShadow: "0 10px 30px rgba(90,74,147,.20)",
+                   boxShadow: "0 10px 30px rgba(30,64,107,.20)",
                  }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                 <BankIcon c={c} />
@@ -409,7 +409,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                 {!isMobile && (
                   <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
                           aria-label={exp ? "Recolher" : "Mais ações"}
-                          style={{ background: "rgba(58,46,99,.10)", border: "none", color: PASTA_INK, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                          style={{ background: "rgba(30,58,95,.10)", border: "none", color: PASTA_INK, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
                     <MoreHorizontal size={15} />
                   </button>
                 )}
@@ -422,13 +422,13 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               </div>
               {(selo || !ehBRL(c) || c.instituicao) && (
                 <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                  {selo && <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: "rgba(58,46,99,.12)", color: PASTA_INK, whiteSpace: "nowrap" }}>{selo}</span>}
+                  {selo && <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: "rgba(30,58,95,.12)", color: PASTA_INK, whiteSpace: "nowrap" }}>{selo}</span>}
                   {!ehBRL(c) && <span style={{ fontSize: 9, color: Number(c.cotacao) > 0 ? PASTA_MUTED : T.gold }}>{Number(c.cotacao) > 0 ? `≈ ${hidden ? "•••" : fmt(saldoContaBRL(c))}` : "sem cotação"}</span>}
                   {c.instituicao && !selo && <span style={{ fontSize: 9, color: PASTA_MUTED, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.instituicao}</span>}
                 </div>
               )}
               {exp && (
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10, paddingTop: 8, borderTop: "1px dashed rgba(58,46,99,.22)" }} onClick={(e) => e.stopPropagation()}>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10, paddingTop: 8, borderTop: "1px dashed rgba(30,58,95,.22)" }} onClick={(e) => e.stopPropagation()}>
                   <button onClick={() => moverConta(c, -1)} disabled={primeiro} title="Mover para cima" style={{ ...acaoBtn, padding: "5px 7px", opacity: primeiro ? .4 : 1, cursor: primeiro ? "default" : "pointer" }}><ChevronUp size={13} /></button>
                   <button onClick={() => moverConta(c, 1)} disabled={ultimo} title="Mover para baixo" style={{ ...acaoBtn, padding: "5px 7px", opacity: ultimo ? .4 : 1, cursor: ultimo ? "default" : "pointer" }}><ChevronDown size={13} /></button>
                   {c.appUrl && <button onClick={() => window.open(c.appUrl, "_blank", "noopener")} title="Abrir app do banco" style={{ ...acaoBtn, color: T.gold }}>🔗 Banco</button>}
