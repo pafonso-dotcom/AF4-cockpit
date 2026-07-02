@@ -6,6 +6,7 @@ import { parseOFX, parseDataBR, parseValorBR, autoMapCSV, norm } from "../../lib
 import { marcarDuplicadas } from "../../lib/extratoParser.js";
 import Papa from "papaparse";
 import Field from "../ui/Field.jsx";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 
 export default function ImportPanel({ transacoes, setTransacoes, contas, setContas, categorias, onDone }) {
   const [file, setFile] = useState(null);
@@ -198,7 +199,7 @@ export default function ImportPanel({ transacoes, setTransacoes, contas, setCont
             <Field label="Categoria padrão (opcional)">
               <select value={defaultCategoria} onChange={e => setDefaultCategoria(e.target.value)}>
                 <option value="">— sem categoria —</option>
-                {categorias.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+                {ordenarPorNome(categorias).map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
               </select>
             </Field>
           </div>

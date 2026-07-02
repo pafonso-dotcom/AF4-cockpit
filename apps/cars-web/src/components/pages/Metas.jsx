@@ -10,6 +10,7 @@ import { valorCdbHoje, getCdiAnual } from "../../lib/cdbMeta.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 
 // Calcula meses entre hoje e uma data alvo (YYYY-MM-DD ou YYYY-MM)
 function mesesAteData(dataAlvoISO) {
@@ -480,7 +481,7 @@ export default function Metas({
                       <button onClick={() => setResgate({
                                 meta: m, modo: "usar",
                                 valor: saldoCofre,
-                                categoria: categorias.filter(c => c.tipo === "despesa")[0]?.nome || "Outros",
+                                categoria: ordenarPorNome(categorias.filter(c => c.tipo === "despesa"))[0]?.nome || "Outros",
                                 contaDestino: (contas || []).find(c => c.nome !== cofre.nome)?.nome || "",
                                 obs: "",
                               })}
@@ -708,7 +709,7 @@ export default function Metas({
               <Field label="Categoria da despesa">
                 <select value={resgate.categoria}
                         onChange={e => setResgate({ ...resgate, categoria: e.target.value })}>
-                  {categorias.filter(c => c.tipo === "despesa").map(c => (
+                  {ordenarPorNome(categorias.filter(c => c.tipo === "despesa")).map(c => (
                     <option key={c.id} value={c.nome}>{c.nome}</option>
                   ))}
                   <option value="Outros">Outros</option>

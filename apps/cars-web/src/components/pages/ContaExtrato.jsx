@@ -8,6 +8,7 @@ import { reconciliarContas } from "../../lib/saldoConta.js";
 import BankIcon from "../ui/BankIcon.jsx";
 import { CARD_SHADOW } from "../../lib/styles.js";
 import NovaTransacaoModal from "../modals/NovaTransacaoModal.jsx";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 
 /**
  * Extrato detalhado de uma conta bancária.
@@ -533,7 +534,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                                 color: T.ink, fontSize: 11, padding: "3px 7px", borderRadius: 5, maxWidth: 180,
                               }}>
                               <option value="">— sem categoria —</option>
-                              {categorias.filter(c => c.tipo === t.tipo).map(c => (
+                              {ordenarPorNome(categorias.filter(c => c.tipo === t.tipo)).map(c => (
                                 <option key={c.id} value={c.nome}>{c.nome}</option>
                               ))}
                             </select>

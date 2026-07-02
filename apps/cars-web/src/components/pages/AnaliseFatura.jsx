@@ -6,6 +6,7 @@ import { gerarJSONGemini, gerarJSONGeminiComPDF, anonimizar, fetchComRetry, pars
 import { printHTML } from "../../lib/importExport.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import PreviewImportarFaturaModal from "../modals/PreviewImportarFaturaModal.jsx";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 
 export default function AnaliseFatura({
   categorias, setCategorias,
@@ -34,7 +35,7 @@ export default function AnaliseFatura({
   const [destCartao, setDestCartao] = useState(cartoes[0]?.nome || "");
   const fileRef = useRef();
 
-  const categoriasDespesa = categorias.filter(c => c.tipo === "despesa").map(c => c.nome);
+  const categoriasDespesa = ordenarPorNome(categorias.filter(c => c.tipo === "despesa")).map(c => c.nome);
   if (!categoriasDespesa.includes("Outros")) categoriasDespesa.push("Outros");
 
   const fileToBase64 = (file) => new Promise((res, rej) => {

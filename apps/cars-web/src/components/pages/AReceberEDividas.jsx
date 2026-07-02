@@ -11,6 +11,7 @@ import { getDespesasDoMes } from "../../lib/agregador.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 
 /**
  * Aba dedicada: A Receber (devedores) + Dívidas (a pagar).
@@ -1600,7 +1601,7 @@ export default function AReceberEDividas({
               <div style={{ display: "flex", gap: 6 }}>
                 <select value={form.categoria} style={{ flex: 1 }}
                         onChange={e => setForm({ ...form, categoria: e.target.value, subcategoria: "" })}>
-                  {categorias.filter(c => c.tipo === (form.tipo === "receber" ? "receita" : "despesa")).map(c => (
+                  {ordenarPorNome(categorias.filter(c => c.tipo === (form.tipo === "receber" ? "receita" : "despesa"))).map(c => (
                     <option key={c.id} value={c.nome}>{c.nome}</option>
                   ))}
                   <option value="Outros">Outros</option>
@@ -1865,7 +1866,7 @@ export default function AReceberEDividas({
               <Field label="Categoria">
                 <select value={baixaForm.categoria}
                         onChange={e => setBaixaForm({ ...baixaForm, categoria: e.target.value })}>
-                  {categorias.filter(c => c.tipo === (isReceber ? "receita" : "despesa")).map(c => (
+                  {ordenarPorNome(categorias.filter(c => c.tipo === (isReceber ? "receita" : "despesa"))).map(c => (
                     <option key={c.id} value={c.nome}>{c.nome}</option>
                   ))}
                   <option value="Outros">Outros</option>
