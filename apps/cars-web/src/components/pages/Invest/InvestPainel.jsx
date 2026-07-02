@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, BarChart3, DollarSign, Award, RefreshCw, Plus } from "lucide-react";
+import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, BarChart3, DollarSign, Award } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN, fmtUSD } from "../../../lib/format.js";
@@ -15,7 +15,7 @@ export default function InvestPainel({
   ativos = [], transacoes = [], categorias = [],
   hidden, onTabChange, onAnalisar,
   onAbrirAnaliseCarteira, onAbrirAnaliseIdv, apiKeys = {},
-  proventosRecebidos = {}, onRefresh, refreshing = false,
+  proventosRecebidos = {},
 }) {
   const hoje = new Date();
 
@@ -97,11 +97,6 @@ export default function InvestPainel({
 
   // Abre o fluxo de novo aporte: vai pra Carteira (onde o modal vive) e dispara
   // o evento que a tela escuta. Sem ativos, ela abre o "Novo Ativo".
-  const novoAporte = () => {
-    onTabChange?.("carteira");
-    setTimeout(() => window.dispatchEvent(new CustomEvent("af4:open-new-aporte")), 60);
-  };
-
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
       {/* Header — título à esquerda */}
@@ -123,18 +118,6 @@ export default function InvestPainel({
         <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
           <div style={{ flex: 1, display: "flex" }}>
             <MoedaCard valorBR={t.valorBR} valorUSA={t.valorUSA} usdRate={usdRate} hidden={hidden} fmtUSD={fmtUSD} fill />
-          </div>
-          <div className="ip-actions" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            {onRefresh && (
-              <button onClick={onRefresh} disabled={refreshing} className="ip-btn ip-btn-primary" title="Atualizar cotações do mercado">
-                <RefreshCw size={13} className={refreshing ? "spin" : ""} style={{ flexShrink: 0 }} />
-                {refreshing ? "Atualizando…" : "Atualizar mercado"}
-              </button>
-            )}
-            <button onClick={novoAporte} className="ip-btn ip-btn-gold" title="Registrar um novo aporte">
-              <Plus size={13} style={{ flexShrink: 0 }} />
-              Novo aporte
-            </button>
           </div>
         </div>
         {/* Direita */}
