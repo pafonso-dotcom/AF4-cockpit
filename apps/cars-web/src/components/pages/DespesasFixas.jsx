@@ -4,7 +4,7 @@ import { T } from "../../lib/theme.js";
 import { fmt, todayISO, uid } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
-import { gerarOcorrencias, statusReal, resumoMes } from "../../lib/fixas.js";
+import { gerarOcorrencias, statusReal, resumoMes, dataVencimentoNoMes } from "../../lib/fixas.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import NovaFixaModal from "../modals/NovaFixaModal.jsx";
 import ConfirmarPagamentoFixaModal from "../modals/ConfirmarPagamentoFixaModal.jsx";
@@ -85,8 +85,8 @@ export default function DespesasFixas({
         if (o.fixaId !== fixaSalva.id) return o;
         if (o.status === "paga") return o; // nunca toca em pagas
         if (modo === "futuras" && o.mes < limite) return o;
-        // Atualiza valor padrão (se não foi editado individualmente, mantém igual à fixa)
-        return { ...o, valor: fixaSalva.valor };
+        // Atualiza valor padrão e a data de vencimento (dia do mês pode ter mudado)
+        return { ...o, valor: fixaSalva.valor, dataVencimento: dataVencimentoNoMes(o.mes, fixaSalva.diaVencimento) };
       });
       setFixaOcorrencias(novasOcc);
       toast.success(`"${fixaSalva.descricao}" atualizada (${modo === "futuras" ? "futuras" : "todas pendentes"}).`);

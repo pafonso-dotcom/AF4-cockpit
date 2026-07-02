@@ -5,6 +5,15 @@
 //   fixaOcorrencias[]: 12 entradas/ano geradas a partir de cada fixa
 
 /**
+ * Data de vencimento (YYYY-MM-DD) de uma fixa num mês (YYYY-MM), aplicando o
+ * mesmo clamp de dia usado na geração de ocorrências (1–28, evita "Fev 30").
+ */
+export function dataVencimentoNoMes(mesISO, diaVencimento) {
+  const diaSafe = Math.min(Math.max(parseInt(diaVencimento, 10) || 1, 1), 28);
+  return `${mesISO}-${String(diaSafe).padStart(2, "0")}`;
+}
+
+/**
  * Gera as ocorrências de uma fixa para um ano específico (1 por mês).
  * Respeita inicioEm/terminoEm da fixa pra não gerar fora do range.
  */
@@ -24,15 +33,12 @@ export function gerarOcorrencias(fixa, ano = new Date().getFullYear()) {
     if (ano === fimAno && m > fimMes) continue;
 
     const mesStr = String(m).padStart(2, "0");
-    // Garante dia válido (Fev 30 vira Fev 28/29 — mas mantemos o dia configurado;
-    // é só uma data de referência, o vencimento real é toString)
-    const diaSafe = Math.min(Math.max(parseInt(fixa.diaVencimento, 10) || 1, 1), 28);
-    const diaStr = String(diaSafe).padStart(2, "0");
+    const mesISO = `${ano}-${mesStr}`;
     ocorrencias.push({
       id: `occ-${fixa.id}-${ano}-${mesStr}`,
       fixaId: fixa.id,
-      mes: `${ano}-${mesStr}`,
-      dataVencimento: `${ano}-${mesStr}-${diaStr}`,
+      mes: mesISO,
+      dataVencimento: dataVencimentoNoMes(mesISO, fixa.diaVencimento),
       valor: parseFloat(fixa.valor) || 0,
       status: "pendente",
       dataPagamento: null,
