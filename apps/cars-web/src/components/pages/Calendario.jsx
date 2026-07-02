@@ -10,7 +10,6 @@ import { fmt, uid, todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import PageHeader from "../ui/PageHeader.jsx";
-import StatCard from "../ui/StatCard.jsx";
 import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
 import { getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
@@ -69,13 +68,14 @@ export default function Calendario({
     return cells;
   }, [year, month]);
 
-  // Itens financeiros do mês
+  // Itens financeiros do mês — só o que AINDA NÃO foi pago/recebido (o que já
+  // está resolvido não precisa ocupar espaço no calendário).
   const itensByDay = useMemo(() => {
     if (!showFinanceiro) return {};
     const monthStr = `${year}-${String(month + 1).padStart(2, "0")}`;
     const state = { transacoes, contas, categorias, fixaOcorrencias, fixas, parcelamentos, dividas, devedores };
-    const desp = getDespesasDoMes(monthStr, state, escopoAtivo);
-    const ganh = getGanhosDoMes(monthStr, state, escopoAtivo);
+    const desp = getDespesasDoMes(monthStr, state, escopoAtivo).filter(d => d.status !== "paga");
+    const ganh = getGanhosDoMes(monthStr, state, escopoAtivo).filter(g => g.status !== "paga");
     const map = {};
     desp.forEach(d => {
       if (!d.data) return;
@@ -174,17 +174,6 @@ export default function Calendario({
   const eventosAgendaVista = showPessoal ? (agenda || []) : [];
 
   const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-
-  // Stats do mês
-  const monthStats = useMemo(() => {
-    const all = Object.values(itensByDay).flat();
-    const receitas = all.filter(i => i._kind === "ganho").reduce((s, i) => s + Number(i.valor || 0), 0);
-    const despesas = all.filter(i => i._kind === "despesa").reduce((s, i) => s + Number(i.valor || 0), 0);
-    const pendentes = all.filter(i => i.status !== "paga").length;
-    const atrasadas = all.filter(i => i.status === "atrasada").length;
-    const eventosAgenda = Object.values(agendaByDay).reduce((s, l) => s + l.length, 0);
-    return { receitas, despesas, pendentes, atrasadas, eventosAgenda };
-  }, [itensByDay, agendaByDay]);
 
   const dayFinanceiros = selectedDay ? (itensByDay[selectedDay] || []) : [];
   const dayEventos = selectedDay ? (agendaByDay[selectedDay] || []) : [];
@@ -353,16 +342,8 @@ export default function Calendario({
         />
       )}
 
-      {/* Vista Mês (stats + grade mensal) */}
+      {/* Vista Mês (grade mensal) */}
       {vista === "mes" && (<>
-      {/* Month stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6" style={{ background: T.border }}>
-        <StatCard label="Receitas previstas" value={hidden ? "•••" : fmt(monthStats.receitas)} accent={T.green} icon={ArrowUpRight} />
-        <StatCard label="Despesas previstas" value={hidden ? "•••" : fmt(monthStats.despesas)} accent={T.red} icon={ArrowDownRight} />
-        <StatCard label="Pendentes" value={String(monthStats.pendentes)} accent={T.gold} icon={AlarmClock} />
-        <StatCard label="Eventos da agenda" value={String(monthStats.eventosAgenda)} accent={T.blue} icon={Star} />
-      </div>
-
       {/* Calendar grid */}
       <div style={{ background: T.card, border: `1px solid ${T.border}`, padding: 16 }}>
         <div className="grid grid-cols-7 gap-px mb-2" style={{ background: T.border }}>

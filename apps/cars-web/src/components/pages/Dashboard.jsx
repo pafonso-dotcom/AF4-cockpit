@@ -405,7 +405,7 @@ export default function Dashboard({
       }}>
         <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
                  breakdown={{ contas: totalContas, aReceber: aReceber, cheques: chequesAReceber, invest: totalInvest, aPagar: aPagarAno }} />
-        <ProximoCompromissoCard item={proximoCompromisso} total={aPagarMes} hidden={hidden} onVer={() => onTabChange?.("despesas")} />
+        <ProximoCompromissoCard item={proximoCompromisso} total={aPagarMes} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
       </section>
 
 
@@ -606,7 +606,8 @@ function ProximoCompromissoCard({ item, total, hidden, onVer }) {
   };
   const temTotal = total && total.qtd > 0;
   return (
-    <Card style={{ minHeight: 110, position: "relative", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+    <Card onClick={item ? onVer : undefined}
+          style={{ minHeight: 110, position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", cursor: item ? "pointer" : "default" }}>
       <div style={{ fontSize: 11, color: T.muted, display: "flex", alignItems: "center", gap: 6 }}>
         <AlertCircle size={13} style={{ color: T.gold }} /> Próximo compromisso
       </div>
@@ -628,7 +629,7 @@ function ProximoCompromissoCard({ item, total, hidden, onVer }) {
               </span>
             </div>
           )}
-          <button onClick={onVer} style={{ position: "absolute", top: 14, right: 14, background: "transparent", border: "none", color: T.gold, fontSize: 11, cursor: "pointer" }}>
+          <button onClick={(e) => { e.stopPropagation(); onVer?.(); }} style={{ position: "absolute", top: 14, right: 14, background: "transparent", border: "none", color: T.gold, fontSize: 11, cursor: "pointer" }}>
             Ver
           </button>
         </>

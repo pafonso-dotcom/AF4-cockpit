@@ -314,6 +314,7 @@ function NotificationsBlock() {
                   { key: "cheques",      label: "Cheques a compensar" },
                   { key: "dividas",      label: "Dívidas a pagar" },
                   { key: "recebimentos", label: "Recebimentos (devedores)" },
+                  { key: "fixas",        label: "Despesas fixas (aluguel, contas…)" },
                   { key: "backups",      label: "Backups automáticos" },
                 ].map(t => (
                   <label key={t.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, cursor: "pointer" }}>

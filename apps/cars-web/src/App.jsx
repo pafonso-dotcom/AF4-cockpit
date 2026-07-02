@@ -473,12 +473,12 @@ export default function App() {
     const tick = () => {
       const cfg = getNotifCfg();
       if (!cfg.habilitada) return;
-      checkAndNotify({ devedores, dividas, cheques });
+      checkAndNotify({ devedores, dividas, cheques, fixas, fixaOcorrencias });
     };
     tick(); // primeira vez logo após boot
     const id = setInterval(tick, 30 * 60 * 1000); // a cada 30min
     return () => clearInterval(id);
-  }, [loading, devedores, dividas]);
+  }, [loading, devedores, dividas, fixas, fixaOcorrencias]);
 
   /* ---------- Atalhos de teclado globais: N / V / A ---------- */
   useEffect(() => {
