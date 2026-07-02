@@ -1,6 +1,22 @@
 import { describe, it, expect } from "vitest";
-import { mesesDefault, inferirMesesDoHistorico, montarMapaDividendos } from "../mapaDividendos.js";
+import { mesesDefault, inferirMesesDoHistorico, montarMapaDividendos, proventosPorCota12m } from "../mapaDividendos.js";
 import { YIELDS_MENSAIS } from "../yields-base.js";
+
+describe("proventosPorCota12m", () => {
+  it("soma o valor por cota dos pagamentos dos últimos 12 meses", () => {
+    const divs = [
+      { pagamento: "2026-06-13", valor: 1.10 },
+      { pagamento: "2026-01-15", valor: 1.20 },
+      { pagamento: "2024-05-01", valor: 9.99 }, // fora da janela
+    ];
+    const hoje = new Date(2026, 5, 15);
+    expect(proventosPorCota12m(divs, hoje)).toBeCloseTo(2.30, 5);
+  });
+  it("retorna 0 sem histórico", () => {
+    expect(proventosPorCota12m([], new Date(2026, 5, 15))).toBe(0);
+    expect(proventosPorCota12m(undefined, new Date(2026, 5, 15))).toBe(0);
+  });
+});
 
 describe("mesesDefault", () => {
   it("FII paga todos os 12 meses", () => {

@@ -13,6 +13,7 @@ import StatCard from "../ui/StatCard.jsx";
 import Modal from "../ui/Modal.jsx";
 import PdfCarteira from "./Invest/PdfCarteira.jsx";
 import CarteiraSaude from "./Invest/CarteiraSaude.jsx";
+import { proventosPorCota12m } from "../../lib/mapaDividendos.js";
 
 // Segmentos/setores sugeridos por tipo de ativo (B3 + padrões de mercado).
 // "Outros" libera input livre de texto.
@@ -152,6 +153,21 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
     const tot = valorPorTipo[a.tipo] || 0;
     const v = (Number(a.qtd) || 0) * (Number(a.preco) || 0);
     return tot > 0 ? (v / tot) * 100 : 0;
+  };
+
+  // Yield-on-cost por posição: proventos por cota dos últimos 12 meses
+  // (cache de proventos reais da brapi, o mesmo do Mapa de Dividendos)
+  // sobre o preço médio pago. Só aparece pra quem já atualizou os
+  // proventos reais lá — sem cache, nada é mostrado (sem estimativa).
+  const proventosReais = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("af4:mapa-div:proventos-brapi:v1") || "null")?.porTicker || {}; }
+    catch { return {}; }
+  }, []);
+  const yieldOnCost = (a) => {
+    const pm = Number(a.pm) || 0;
+    if (pm <= 0) return null;
+    const porCota = proventosPorCota12m(proventosReais[(a.ticker || "").toUpperCase()]);
+    return porCota > 0 ? (porCota / pm) * 100 : null;
   };
 
   // Quais segmentos estão colapsados (persistido em localStorage).
@@ -702,6 +718,14 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                             </span>
                           )}
                           {" "}· investido {hidden ? "•••" : fmtMoedaAtivo(a, investido)}
+                          {(() => {
+                            const yoc = yieldOnCost(a);
+                            return yoc != null ? (
+                              <span style={{ color: T.green, fontWeight: 600 }} title="Yield-on-cost: proventos por cota dos últimos 12 meses ÷ seu preço médio pago (fonte: proventos reais do Mapa de Dividendos)">
+                                {" "}· YoC {yoc.toFixed(1)}%
+                              </span>
+                            ) : null;
+                          })()}
                         </div>
                       </div>
                     </div>
