@@ -88,6 +88,21 @@ describe("montarMapaDividendos", () => {
     expect(rows[0].dy).toBe(11.2);
   });
 
+  it("a renda anual usa o DY real do ativo (fundamentos), não a média da classe", () => {
+    // valor 10000; DY médio da classe FII geraria 960 (8%*12), mas o DY real
+    // informado nos fundamentos (11,2%) deve prevalecer: 10000 * 0.112 = 1120.
+    const ativos = [{ ticker: "HGLG11", tipo: "fii", qtd: 100, preco: 100 }];
+    const fundamentos = { HGLG11: { dados: { dy: 11.2 } } };
+    const { rows } = montarMapaDividendos({ ativos, fundamentos });
+    expect(rows[0].rendaAnual).toBeCloseTo(1120, 5);
+  });
+
+  it("candidato com DY explícito usa esse DY na renda anual", () => {
+    const candidatos = [{ ticker: "MXRF11", tipo: "fii", valorPlanejado: 5000, dy: 13 }];
+    const { rows } = montarMapaDividendos({ ativos: [], candidatos });
+    expect(rows[0].rendaAnual).toBeCloseTo(5000 * 0.13, 5);
+  });
+
   it("ignora tipos que não pagam dividendo (cripto, cdb)", () => {
     const ativos = [
       { ticker: "BTC", tipo: "cripto", qtd: 1, preco: 300000 },
