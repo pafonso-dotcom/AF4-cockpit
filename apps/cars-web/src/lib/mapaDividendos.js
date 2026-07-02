@@ -62,9 +62,11 @@ function mesesDoItem(item, overrides, mesesInferidos) {
  * @param {object} [p.overrides]  { [TICKER]: { meses:number[] } } — ajustes do usuário
  * @param {Array} [p.proventosManuais] histórico p/ inferir meses
  * @param {object} [p.fundamentos]  { [TICKER]: { dados:{ dy } } } — DY real, se houver
+ * @param {object} [p.historicoReal] { [TICKER]: [{ pagamento:"YYYY-MM-DD", valor:number/cota }] } — proventos anunciados (brapi)
+ * @param {Date}   [p.hoje]       referência da janela de 12 meses (testável)
  * @returns {{ rows, totaisPorMes:number[], rendaAnualTotal:number, rendaMensalMedia:number, lacunas:number[] }}
  */
-export function montarMapaDividendos({ ativos = [], candidatos = [], overrides = {}, proventosManuais = [], fundamentos = {} } = {}) {
+export function montarMapaDividendos({ ativos = [], candidatos = [], overrides = {}, proventosManuais = [], fundamentos = {}, historicoReal = {}, hoje = new Date() } = {}) {
   const itens = [
     ...ativos.filter((a) => a && TIPOS_PAGADORES.includes(a.tipo)).map((a) => ({ ...a, candidato: false })),
     ...candidatos.map((c) => ({ ...c, candidato: true })),
@@ -76,12 +78,42 @@ export function montarMapaDividendos({ ativos = [], candidatos = [], overrides =
     if (!(tk in mesesInferidos)) mesesInferidos[tk] = inferirMesesDoHistorico(tk, proventosManuais);
   }
 
+  // Janela: últimos 12 meses a partir de `hoje`.
+  const limite = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
+  const limiteISO = `${limite.getFullYear()}-${String(limite.getMonth() + 1).padStart(2, "0")}-${String(limite.getDate()).padStart(2, "0")}`;
+
   const rows = itens.map((it) => {
     const valor = valorPosicao(it);
+
+    // 1º) Histórico REAL de proventos (brapi) — só pra posições da carteira
+    //     (candidato não tem qtd; continua estimado por DY planejado).
+    const realDivs = !it.candidato ? (historicoReal[norm(it.ticker)] || []) : [];
+    const pagamentos12m = realDivs.filter((d) => d && d.pagamento >= limiteISO && Number(d.valor) > 0);
+    if (pagamentos12m.length > 0) {
+      const qtd = Number(it.qtd) || 0;
+      const rendaPorMes = Array(12).fill(0);
+      pagamentos12m.forEach((d) => {
+        const m = Number(String(d.pagamento).slice(5, 7)) - 1;
+        if (m >= 0 && m <= 11) rendaPorMes[m] += Number(d.valor) * qtd;
+      });
+      const rendaAnual = rendaPorMes.reduce((s, v) => s + v, 0);
+      const meses = rendaPorMes.map((v, m) => (v > 0 ? m : -1)).filter((m) => m >= 0);
+      return {
+        ticker: norm(it.ticker),
+        nome: it.nome || "",
+        tipo: it.tipo,
+        candidato: false,
+        real: true,
+        valor,
+        dy: valor > 0 ? (rendaAnual / valor) * 100 : 0,
+        meses,
+        rendaPorMes,
+        rendaAnual,
+      };
+    }
+
+    // 2º) Estimativa por DY (real curado > informado > média da classe).
     const meses = mesesDoItem(it, overrides, mesesInferidos).filter((m) => m >= 0 && m <= 11);
-    // DY real do ativo (informado no candidato ou curado em Fundamentos) tem
-    // prioridade sobre a média da classe — a renda projetada usa o mesmo DY
-    // que é mostrado na coluna, em vez de sempre cair pro yield genérico.
     const dyInformado = it.dy != null ? Number(it.dy) : Number(fundamentos[norm(it.ticker)]?.dados?.dy);
     const dy = Number.isFinite(dyInformado) && dyInformado > 0 ? dyInformado : dyEstimado(it.tipo);
     const rendaAnual = valor * (dy / 100);
@@ -93,6 +125,7 @@ export function montarMapaDividendos({ ativos = [], candidatos = [], overrides =
       nome: it.nome || "",
       tipo: it.tipo,
       candidato: !!it.candidato,
+      real: false,
       valor,
       dy,
       meses,

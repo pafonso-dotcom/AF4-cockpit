@@ -1,13 +1,16 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { CalendarDays, Plus, Trash2, Info } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Info, RefreshCw } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
+import { toast } from "../../../lib/toast.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import { carregarFundamentos } from "../../../lib/fundamentosLocal.js";
+import { getDividendos } from "../../../lib/brapi.js";
 import { montarMapaDividendos, MESES_PT } from "../../../lib/mapaDividendos.js";
 
 const KEY_OV = "af4:mapa-div:overrides:v1";
 const KEY_CAND = "af4:mapa-div:candidatos:v1";
+const KEY_REAL = "af4:mapa-div:proventos-brapi:v1";
 const CARD = { background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16 };
 const TIPOS = [{ v: "acao", l: "Ação" }, { v: "fii", l: "FII" }, { v: "stock", l: "Stock (US)" }, { v: "reit", l: "REIT (US)" }];
 
@@ -26,15 +29,48 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
   const [candidatos, setCandidatos] = useState(() => ler(KEY_CAND, []));
   const [form, setForm] = useState({ ticker: "", tipo: "fii", valorPlanejado: "", dy: "" });
   const [verDicas, setVerDicas] = useState(false);
+  // Proventos anunciados de verdade (brapi) — { atualizadoEm, porTicker: { TK: [{pagamento, valor}] } }
+  const [realCache, setRealCache] = useState(() => ler(KEY_REAL, null));
+  const [buscandoReal, setBuscandoReal] = useState(false);
 
   useEffect(() => grava(KEY_OV, overrides), [overrides]);
   useEffect(() => grava(KEY_CAND, candidatos), [candidatos]);
 
   const fundamentos = useMemo(() => carregarFundamentos(), []);
   const mapa = useMemo(
-    () => montarMapaDividendos({ ativos, candidatos, overrides, proventosManuais, fundamentos }),
-    [ativos, candidatos, overrides, proventosManuais, fundamentos]
+    () => montarMapaDividendos({ ativos, candidatos, overrides, proventosManuais, fundamentos, historicoReal: realCache?.porTicker || {} }),
+    [ativos, candidatos, overrides, proventosManuais, fundamentos, realCache]
   );
+
+  // Busca o histórico real de proventos na brapi pra cada ativo pagador da
+  // carteira (1 requisição por ticker — por isso é manual, não automático).
+  async function atualizarProventosReais() {
+    const tickers = [...new Set(
+      ativos.filter((a) => ["acao", "fii", "stock", "reit"].includes(a?.tipo)).map((a) => (a.ticker || "").toUpperCase()).filter(Boolean)
+    )];
+    if (!tickers.length) { toast.info("Nenhum ativo pagador de dividendos na carteira."); return; }
+    setBuscandoReal(true);
+    const porTicker = { ...(realCache?.porTicker || {}) };
+    let ok = 0, falhas = 0;
+    for (const tk of tickers) {
+      try {
+        const divs = await getDividendos(tk);
+        if (divs.length) { porTicker[tk] = divs.map((d) => ({ pagamento: d.pagamento, valor: d.valor })); ok++; }
+      } catch (e) {
+        falhas++;
+        if (falhas === 1 && /token/i.test(e.message || "")) {
+          toast.error(e.message);
+          setBuscandoReal(false);
+          return;
+        }
+      }
+    }
+    const novo = { atualizadoEm: new Date().toISOString(), porTicker };
+    setRealCache(novo);
+    grava(KEY_REAL, novo);
+    setBuscandoReal(false);
+    toast.success(`Proventos reais atualizados: ${ok} ${ok === 1 ? "ativo" : "ativos"}${falhas ? ` · ${falhas} sem dados` : ""}.`);
+  }
 
   const maxTotal = Math.max(...mapa.totaisPorMes, 1);
 
@@ -68,9 +104,16 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
         title={<>Mapa de <em>Dividendos.</em></>}
         sub="Combine ativos com calendários complementares e monte uma renda que paga o ano todo."
         action={
-          <button onClick={() => setVerDicas((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 10, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
-            <Info size={13} /> Como usar
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={atualizarProventosReais} disabled={buscandoReal}
+                    title="Busca na brapi os proventos anunciados de verdade (data e valor por cota) de cada ativo da carteira"
+                    style={{ display: "flex", alignItems: "center", gap: 6, background: T.gold, border: "none", color: "#fff", borderRadius: 10, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: buscandoReal ? "wait" : "pointer", opacity: buscandoReal ? 0.7 : 1 }}>
+              <RefreshCw size={13} className={buscandoReal ? "spin" : ""} /> {buscandoReal ? "Buscando…" : "Atualizar proventos reais"}
+            </button>
+            <button onClick={() => setVerDicas((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 10, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
+              <Info size={13} /> Como usar
+            </button>
+          </div>
         }
       />
 
@@ -129,6 +172,7 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
                     <div style={{ fontWeight: 700, color: T.ink, display: "flex", alignItems: "center", gap: 6 }}>
                       {r.ticker}
                       {r.candidato && <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 4, background: `${T.gold}22`, color: T.gold, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase" }}>plano</span>}
+                      {r.real && <span title="Valores dos proventos anunciados de verdade (brapi), últimos 12 meses" style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 4, background: `${T.green}22`, color: T.green, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase" }}>real</span>}
                     </div>
                     <div style={{ fontSize: 9.5, color: T.faint, textTransform: "uppercase", letterSpacing: ".05em" }}>{r.tipo}</div>
                   </td>
@@ -177,7 +221,10 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
         )}
       </div>
       <div style={{ fontSize: 11, color: T.faint, marginTop: 6 }}>
-        ● mês com pagamento (clique numa célula pra marcar/tirar). Renda estimada por DY médio da classe — ajuste fino vem do seu histórico de proventos.
+        ● mês com pagamento (clique numa célula pra marcar/tirar). Linhas com selo <b style={{ color: T.green }}>real</b> usam os proventos anunciados (brapi, últimos 12 meses); as demais estimam pelo DY.
+        {realCache?.atualizadoEm && (
+          <> · Proventos reais atualizados em {new Date(realCache.atualizadoEm).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}.</>
+        )}
       </div>
 
       {/* Candidatos / planejamento */}

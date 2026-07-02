@@ -103,6 +103,51 @@ describe("montarMapaDividendos", () => {
     expect(rows[0].rendaAnual).toBeCloseTo(5000 * 0.13, 5);
   });
 
+  it("usa histórico REAL de proventos (brapi) quando disponível — valores exatos por mês", () => {
+    // 100 cotas; pagamentos reais de R$0,10/cota em jan, R$0,11 em fev.
+    const ativos = [{ ticker: "HGLG11", tipo: "fii", qtd: 100, preco: 100 }];
+    const historicoReal = {
+      HGLG11: [
+        { pagamento: "2026-01-15", valor: 0.10 },
+        { pagamento: "2026-02-14", valor: 0.11 },
+      ],
+    };
+    const hoje = new Date(2026, 5, 15); // 15/06/2026 — ambos dentro de 12 meses
+    const { rows } = montarMapaDividendos({ ativos, historicoReal, hoje });
+    const r = rows[0];
+    expect(r.real).toBe(true);
+    expect(r.rendaPorMes[0]).toBeCloseTo(10, 5);  // jan: 0.10 × 100
+    expect(r.rendaPorMes[1]).toBeCloseTo(11, 5);  // fev: 0.11 × 100
+    expect(r.rendaPorMes[2]).toBe(0);
+    expect(r.rendaAnual).toBeCloseTo(21, 5);
+    expect(r.meses).toEqual([0, 1]);
+    // DY passa a refletir o histórico real: 21 / 10000 = 0,21%
+    expect(r.dy).toBeCloseTo(0.21, 5);
+  });
+
+  it("histórico real ignora pagamentos com mais de 12 meses", () => {
+    const ativos = [{ ticker: "HGLG11", tipo: "fii", qtd: 100, preco: 100 }];
+    const historicoReal = {
+      HGLG11: [
+        { pagamento: "2026-05-15", valor: 0.10 }, // dentro da janela
+        { pagamento: "2024-01-15", valor: 9.99 }, // fora — ignorado
+      ],
+    };
+    const hoje = new Date(2026, 5, 15);
+    const { rows } = montarMapaDividendos({ ativos, historicoReal, hoje });
+    expect(rows[0].rendaAnual).toBeCloseTo(10, 5);
+    expect(rows[0].meses).toEqual([4]);
+  });
+
+  it("candidato NÃO usa histórico real (continua estimado por DY)", () => {
+    const candidatos = [{ ticker: "MXRF11", tipo: "fii", valorPlanejado: 5000, dy: 13 }];
+    const historicoReal = { MXRF11: [{ pagamento: "2026-05-15", valor: 0.10 }] };
+    const hoje = new Date(2026, 5, 15);
+    const { rows } = montarMapaDividendos({ ativos: [], candidatos, historicoReal, hoje });
+    expect(rows[0].real).toBeFalsy();
+    expect(rows[0].rendaAnual).toBeCloseTo(650, 5);
+  });
+
   it("ignora tipos que não pagam dividendo (cripto, cdb)", () => {
     const ativos = [
       { ticker: "BTC", tipo: "cripto", qtd: 1, preco: 300000 },
