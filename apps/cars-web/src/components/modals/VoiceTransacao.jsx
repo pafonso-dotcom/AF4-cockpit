@@ -5,6 +5,7 @@ import { fmt, uid, todayISO } from "../../lib/format.js";
 import { gerarJSONGeminiComAudio } from "../../lib/gemini.js";
 import { audit } from "../../lib/auditLog.js";
 import { toast } from "../../lib/toast.js";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
 import MoneyInput from "../ui/MoneyInput.jsx";
@@ -260,7 +261,7 @@ export default function VoiceTransacao({ contas, categorias, transacoes, setTran
             </Field>
             <Field label="Categoria">
               <select value={forma.categoria} onChange={e => setForma({ ...forma, categoria: e.target.value })}>
-                {categorias.filter(c => c.tipo === forma.tipo).map(c => (
+                {ordenarPorNome(categorias.filter(c => c.tipo === forma.tipo)).map(c => (
                   <option key={c.id} value={c.nome}>{c.nome}</option>
                 ))}
                 {!categorias.some(c => c.nome === forma.categoria) && (

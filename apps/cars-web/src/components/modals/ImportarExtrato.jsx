@@ -6,6 +6,7 @@ import { parseExtrato, marcarDuplicadas } from "../../lib/extratoParser.js";
 import { gerarJSONGeminiComPDF, fileToBase64 } from "../../lib/gemini.js";
 import { toast } from "../../lib/toast.js";
 import { audit } from "../../lib/auditLog.js";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
 
@@ -311,7 +312,7 @@ export default function ImportarExtrato({
                 <select value={cat}
                         onChange={e => updateLinha(t._id, "categoria", e.target.value)}
                         style={{ width: "100%", marginTop: 3, background: T.bgSoft, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 4, fontSize: 11, padding: "3px 6px", cursor: "pointer", outline: "none" }}>
-                  {categorias.filter(c => c.tipo === t.tipo).map(c => (
+                  {ordenarPorNome(categorias.filter(c => c.tipo === t.tipo)).map(c => (
                     <option key={c.id} value={c.nome}>{c.nome}</option>
                   ))}
                   {!categorias.some(c => c.nome === cat) && (

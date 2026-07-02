@@ -6,6 +6,7 @@ import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import Field from "../../ui/Field.jsx";
 import Modal from "../../ui/Modal.jsx";
+import { ordenarPorNome } from "../../../lib/categoriaSort.js";
 
 /**
  * Pacote pronto de categorias do Negócio (foco em revenda de veículos +
@@ -151,8 +152,8 @@ export default function NegocioCategorias({ categorias = [], setCategorias }) {
   // Agrupa a lista (do tipo selecionado) em pai → filhos. Categorias com paiId
   // "órfão" (pai inexistente neste tipo) entram como principais.
   const idsLista = new Set(lista.map(c => c.id));
-  const principais = lista.filter(c => !c.paiId || !idsLista.has(c.paiId));
-  const filhosDe = (id) => lista.filter(c => c.paiId === id);
+  const principais = ordenarPorNome(lista.filter(c => !c.paiId || !idsLista.has(c.paiId)));
+  const filhosDe = (id) => ordenarPorNome(lista.filter(c => c.paiId === id));
 
   return (
     <div className="fade-up py-8">
@@ -247,8 +248,8 @@ export default function NegocioCategorias({ categorias = [], setCategorias }) {
           <Field label="Categoria pai (opcional)" hint="Deixe em branco para uma categoria principal.">
             <select value={form.paiId || ""} onChange={e => setForm({ ...form, paiId: e.target.value || null })}>
               <option value="">— Nenhuma (principal) —</option>
-              {categorias
-                .filter(c => c.tipo === form.tipo && !c.paiId && c.id !== form.id)
+              {ordenarPorNome(categorias
+                .filter(c => c.tipo === form.tipo && !c.paiId && c.id !== form.id))
                 .map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </Field>

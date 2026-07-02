@@ -6,6 +6,7 @@ import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import { PACOTES } from "../../lib/categoriasPacotes.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
@@ -421,7 +422,8 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
 
 function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias, accent, hidden, transacoes }) {
   // Apenas categorias-raiz neste nível; filhas aparecem indentadas via CategoriaItem
-  const raizes = cats.filter(c => !c.parentId);
+  // (ambas em ordem alfabética)
+  const raizes = ordenarPorNome(cats.filter(c => !c.parentId));
   const filhasPorPai = useMemo(() => {
     const map = {};
     cats.forEach(c => {
@@ -430,6 +432,7 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
         map[c.parentId].push(c);
       }
     });
+    Object.keys(map).forEach(k => { map[k] = ordenarPorNome(map[k]); });
     return map;
   }, [cats]);
 
@@ -475,7 +478,7 @@ function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {},
   const [openFilhas, setOpenFilhas] = useState(false); // filhas colapsadas por default
   const [novaSub, setNovaSub] = useState("");
 
-  const subs = c.subcategorias || [];
+  const subs = ordenarPorNome(c.subcategorias || []);
   const pct = total > 0 ? (valor / total) * 100 : 0;
   const limiteUsado = c.limite > 0 ? Math.min(100, (valor / c.limite) * 100) : null;
   const temFilhas = filhas.length > 0;

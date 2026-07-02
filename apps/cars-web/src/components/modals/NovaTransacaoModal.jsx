@@ -3,6 +3,7 @@ import { X, Check } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { todayISO, uid } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import MoneyInput from "../ui/MoneyInput.jsx";
 
 // Impacto da transação no saldo da conta (0 se pendente).
@@ -79,7 +80,7 @@ export default function NovaTransacaoModal({
     onClose?.();
   };
 
-  const catsDoTipo = categorias.filter(c => c.tipo === form.tipo);
+  const catsDoTipo = ordenarPorNome(categorias.filter(c => c.tipo === form.tipo));
 
   const lbl = { fontSize: 10, color: T.muted, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", marginBottom: 4 };
   const inp = { width: "100%", padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 };

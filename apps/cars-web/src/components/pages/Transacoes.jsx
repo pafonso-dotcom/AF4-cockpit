@@ -14,6 +14,7 @@ import MoneyInput from "../ui/MoneyInput.jsx";
 import ImportExportModal from "../modals/ImportExportModal.jsx";
 import OCRComprovante from "../modals/OCRComprovante.jsx";
 import VoiceTransacao from "../modals/VoiceTransacao.jsx";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 
 export default function Transacoes({ transacoes, setTransacoes, categorias, contas, setContas, ativos, totais, hidden, pendingTransacao, clearPendingTransacao, parcelamentos, cartoes, apiKey, escopoAtivo = "tudo" }) {
   const [form, setForm] = useState(null);
@@ -475,7 +476,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
         </select>
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ width: "auto", flex: "0 1 200px" }}>
           <option value="todas">Todas as categorias</option>
-          {categorias.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+          {ordenarPorNome(categorias).map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
         </select>
         <select value={filterConta} onChange={e => setFilterConta(e.target.value)} style={{ width: "auto", flex: "0 1 220px" }}>
           <option value="todas">🏦 Banco · todos</option>
@@ -574,7 +575,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
           <select onChange={e => bulkCategorizar(e.target.value)} value=""
                   style={{ width: "auto", padding: "4px 8px", fontSize: 12 }}>
             <option value="">Recategorizar para…</option>
-            {categorias.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+            {ordenarPorNome(categorias).map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
           </select>
           <select onChange={e => bulkAlterarBanco(e.target.value)} value=""
                   style={{ width: "auto", padding: "4px 8px", fontSize: 12 }}>
@@ -760,7 +761,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
             <Field label="Categoria" required error={formErrors.categoria}>
               <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value, subcategoria: "" })}>
                 <option value="">Selecione…</option>
-                {categorias.filter(c => c.tipo === form.tipo).map(c => (
+                {ordenarPorNome(categorias.filter(c => c.tipo === form.tipo)).map(c => (
                   <option key={c.id} value={c.nome}>{c.nome}</option>
                 ))}
               </select>
