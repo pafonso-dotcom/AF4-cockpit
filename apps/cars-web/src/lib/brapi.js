@@ -54,6 +54,26 @@ export async function getHistorico(ticker, range = "6mo", interval = "1d") {
     }));
 }
 
+/**
+ * Histórico de proventos anunciados (dividendos/JCP/rendimentos) de um ticker.
+ * Fonte: brapi `?dividends=true` → results[0].dividendsData.cashDividends.
+ * Retorna [{ pagamento:"YYYY-MM-DD", dataCom:"YYYY-MM-DD"|null, valor, tipo }],
+ * mais recente primeiro.
+ */
+export async function getDividendos(ticker) {
+  const data = await brapiFetch(`/quote/${encodeURIComponent(ticker)}?dividends=true`);
+  const divs = data.results?.[0]?.dividendsData?.cashDividends || [];
+  return divs
+    .filter((d) => d && d.paymentDate && Number(d.rate) > 0)
+    .map((d) => ({
+      pagamento: String(d.paymentDate).slice(0, 10),
+      dataCom: d.lastDatePrior ? String(d.lastDatePrior).slice(0, 10) : null,
+      valor: Number(d.rate),
+      tipo: d.label || "Dividendo",
+    }))
+    .sort((a, b) => b.pagamento.localeCompare(a.pagamento));
+}
+
 export async function getIndices() {
   try {
     const data = await brapiFetch("/quote/list?type=index");
