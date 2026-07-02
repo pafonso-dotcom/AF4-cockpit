@@ -40,6 +40,18 @@ export function dyEstimado(tipo) {
   return (YIELDS_MENSAIS[tipo] ?? 0) * 12 * 100;
 }
 
+/**
+ * Soma dos proventos POR COTA pagos nos últimos 12 meses.
+ * Base do yield-on-cost: YoC = proventosPorCota12m / preço médio pago × 100.
+ * @param {Array} divs  [{ pagamento:"YYYY-MM-DD", valor:number/cota }]
+ * @param {Date} [hoje]
+ */
+export function proventosPorCota12m(divs = [], hoje = new Date()) {
+  const limite = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
+  const limiteISO = `${limite.getFullYear()}-${String(limite.getMonth() + 1).padStart(2, "0")}-${String(limite.getDate()).padStart(2, "0")}`;
+  return (divs || []).reduce((s, d) => (d && d.pagamento >= limiteISO && Number(d.valor) > 0 ? s + Number(d.valor) : s), 0);
+}
+
 function valorPosicao(item) {
   if (item.valorPlanejado != null) return Number(item.valorPlanejado) || 0; // candidato
   return (Number(item.qtd) || 0) * (Number(item.preco) || 0); // ativo da carteira
