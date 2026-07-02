@@ -10,7 +10,7 @@ import { somaContasBRL } from "../../lib/cambio.js";
 import { gerarInsights } from "../../lib/intelligence.js";
 import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
-import { getKPIsMes, getDespesasDoMes, getAnualPorMes } from "../../lib/agregador.js";
+import { getKPIsMes, getDespesasDoMes, getGanhosDoMes, getAnualPorMes } from "../../lib/agregador.js";
 import { calcOrcamentoCategorias } from "../../lib/orcamentos.js";
 import { useLayout } from "../../lib/useLayout.js";
 import { supabase } from "../../lib/supabase.js";
@@ -66,7 +66,7 @@ function deriveFirstName(user) {
 function nextMonthsISO(n = 6) {
   const out = [];
   const now = new Date();
-  for (let i = 1; i <= n; i++) {
+  for (let i = 0; i < n; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
     out.push({
       label: `${MESES_PT[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`,
@@ -349,17 +349,21 @@ export default function Dashboard({
     return { nome: pick.descricao, valor: Number(pick.valor) || 0, data: pick.data, atrasado: (pick.data || "") < hojeISO };
   }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, escopoAtivo, mesISO]);
 
-  // ===== Projeção próximos 6 meses =====
+  // ===== Projeção próximos 6 meses (inclui o mês corrente) =====
+  // Só o que ainda está EM ABERTO (não pago/recebido) — o que já foi pago já
+  // está refletido no saldo das contas; contá-lo de novo dobraria o valor.
+  // Mesma regra usada em Relatórios (cenarios/abertoMes) e em getProjecaoSaldo.
   const projecao = useMemo(() => {
     const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques };
     return nextMonthsISO(6).map(m => {
-      let kpi = null;
-      try { kpi = getKPIsMes(m.iso, state, escopoAtivo); } catch {}
-      const rec = Number(kpi?.totalGanhos || 0);
-      const des = Number(kpi?.totalPrevisto || 0);
+      let desp = [], gan = [];
+      try { desp = getDespesasDoMes(m.iso, state, escopoAtivo).filter(d => d.status !== "paga"); } catch {}
+      try { gan = getGanhosDoMes(m.iso, state, escopoAtivo).filter(g => g.status !== "paga"); } catch {}
+      const rec = gan.reduce((s, g) => s + (Number(g.valor) || 0), 0);
+      const des = desp.reduce((s, d) => s + (Number(d.valor) || 0), 0);
       return { label: m.label, receita: rec, despesa: des, saldo: rec - des };
     });
-  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, escopoAtivo]);
+  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques, escopoAtivo]);
 
   // ===== Insights =====
   const insights = useMemo(() => {

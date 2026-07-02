@@ -52,4 +52,26 @@ describe("getProjecaoSaldo", () => {
     expect(r.meses[1].entradas).toBe(300);
     expect(r.meses[1].saldoFim).toBe(300);
   });
+
+  it("ignora conta marcada 'fora do patrimônio' no saldo inicial", () => {
+    const state = {
+      contas: [
+        { nome: "A", saldo: 1000 },
+        { nome: "Reserva de terceiro", saldo: 500, foraPatrimonio: true },
+      ],
+    };
+    const r = getProjecaoSaldo(state, "tudo", 3, HOJE);
+    expect(r.saldoInicial).toBe(1000);
+  });
+
+  it("converte conta em moeda estrangeira pela cotação no saldo inicial", () => {
+    const state = {
+      contas: [
+        { nome: "A", saldo: 1000 },
+        { nome: "USD", saldo: 100, moeda: "USD", cotacao: 5 },
+      ],
+    };
+    const r = getProjecaoSaldo(state, "tudo", 3, HOJE);
+    expect(r.saldoInicial).toBe(1500);
+  });
 });
