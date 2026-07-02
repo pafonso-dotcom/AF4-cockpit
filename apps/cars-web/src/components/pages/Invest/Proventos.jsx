@@ -11,8 +11,8 @@
  */
 import React, { useMemo, useState } from "react";
 import {
-  Check, TrendingUp, ArrowDownToLine, Wallet, ChevronDown, ChevronRight,
-  ArrowUpRight, ShoppingCart, X, AlertCircle, Sparkles,
+  Check, ArrowDownToLine, Wallet, ChevronDown, ChevronRight,
+  ArrowUpRight, ShoppingCart, X,
 } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { MESES_LONGO } from "../../../lib/meses.js";
