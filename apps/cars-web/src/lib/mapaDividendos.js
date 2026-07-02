@@ -78,14 +78,16 @@ export function montarMapaDividendos({ ativos = [], candidatos = [], overrides =
 
   const rows = itens.map((it) => {
     const valor = valorPosicao(it);
-    const yieldM = YIELDS_MENSAIS[it.tipo] ?? 0;
     const meses = mesesDoItem(it, overrides, mesesInferidos).filter((m) => m >= 0 && m <= 11);
-    const rendaAnual = valor * yieldM * 12;
+    // DY real do ativo (informado no candidato ou curado em Fundamentos) tem
+    // prioridade sobre a média da classe — a renda projetada usa o mesmo DY
+    // que é mostrado na coluna, em vez de sempre cair pro yield genérico.
+    const dyInformado = it.dy != null ? Number(it.dy) : Number(fundamentos[norm(it.ticker)]?.dados?.dy);
+    const dy = Number.isFinite(dyInformado) && dyInformado > 0 ? dyInformado : dyEstimado(it.tipo);
+    const rendaAnual = valor * (dy / 100);
     const porMesPag = meses.length ? rendaAnual / meses.length : 0;
     const rendaPorMes = Array(12).fill(0);
     meses.forEach((m) => { rendaPorMes[m] = porMesPag; });
-    const dyInformado = it.dy != null ? Number(it.dy) : Number(fundamentos[norm(it.ticker)]?.dados?.dy);
-    const dy = Number.isFinite(dyInformado) && dyInformado > 0 ? dyInformado : dyEstimado(it.tipo);
     return {
       ticker: norm(it.ticker),
       nome: it.nome || "",
