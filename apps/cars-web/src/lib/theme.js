@@ -32,8 +32,8 @@ const THEMES = {
 
   // ----- LIGHT -----
   papel: {
-    dark: false, id: "papel", nome: "Papel", subtitulo: "Sépia · papel antigo",
-    bg: "#f4ecd8", bgSoft: "#ede3ca", card: "#fbf6e8", cardHi: "#f4ecd8",
+    dark: false, id: "papel", nome: "Papel", subtitulo: "Sépia · fundo branco",
+    bg: "#ffffff", bgSoft: "#f7f5f0", card: "#ffffff", cardHi: "#f7f5f0",
     border: "#d9c9a3", borderHi: "#bfae87",
     ink: "#2a2218", muted: "#4f432f", faint: "#796a52",
     gold: "#8a5a28", goldHi: "#a87440",
