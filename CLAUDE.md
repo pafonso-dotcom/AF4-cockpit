@@ -42,6 +42,16 @@ O que mais economiza não é a arquitetura, e sim o escopo de cada pedido:
 
 - Trabalhar em `claude/numvi-pessoal-changes-YHaEK` salvo instrução em contrário.
 
+## Merge de PRs
+
+- **Merge automático liberado** (decisão de 2026-07-02): ao terminar um PR
+  (testes passando + build OK + verificação feita), o agente pode marcar como
+  pronto (`draft: false`) e dar squash merge direto no `main`, **sem esperar
+  confirmação do usuário**. Não é mais necessário dizer "pode merge".
+- Isso não dispensa as outras verificações de segurança de git (nunca dar
+  force-push destrutivo sem necessidade, nunca pular hooks, etc.) — só remove
+  a espera por aprovação explícita antes do merge em si.
+
 ## Histórico de decisões
 
 - `docs/superpowers/specs/2026-06-09-apps-independentes-decisao.md` — decisão de
