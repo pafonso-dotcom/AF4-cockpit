@@ -1,9 +1,9 @@
 /**
- * Notificações de vencimentos · cheques, dívidas, devedores em atraso, backups.
+ * Notificações de vencimentos · cheques, dívidas, devedores, despesas fixas, backups.
  *
  * Funciona via Notifications API do navegador (PWA compatível).
  * Configurações persistem em localStorage:
- *   af4:notif:cfg   → { habilitada, antecedenciaDias, tipos: { cheques, dividas, recebimentos, backups } }
+ *   af4:notif:cfg   → { habilitada, antecedenciaDias, tipos: { cheques, dividas, recebimentos, fixas, backups } }
  *   af4:notif:enviadas → Set de IDs já notificadas (evita duplicar)
  */
 
@@ -17,6 +17,7 @@ const DEFAULTS = {
     cheques: true,
     dividas: true,
     recebimentos: true,
+    fixas: true,                // despesas fixas (aluguel, contas…) vencendo
     backups: false,             // backup automático não notifica por padrão
   },
 };
@@ -105,7 +106,7 @@ function diasAte(dateISO) {
  *   - 1x logo após o app carregar
  *   - Periodicamente (a cada 30min)
  */
-export function checkAndNotify({ devedores = [], dividas = [], cheques = [] }) {
+export function checkAndNotify({ devedores = [], dividas = [], cheques = [], fixas = [], fixaOcorrencias = [] }) {
   const cfg = getConfig();
   if (!cfg.habilitada || getPermission() !== "granted") return { fired: 0, total: 0 };
 
@@ -172,6 +173,27 @@ export function checkAndNotify({ devedores = [], dividas = [], cheques = [] }) {
         tryFire(`devedor-${dev.id}`,
           d === 0 ? "💵 Receber HOJE" : d === 1 ? "💵 Receber AMANHÃ" : `💵 Receber em ${d} dias`,
           `${dev.nome} · ${formatBRL(dev.valor)}`);
+      }
+    });
+  }
+
+  // Despesas fixas (aluguel, contas recorrentes…) — ocorrência não paga
+  if (cfg.tipos.fixas) {
+    fixaOcorrencias.filter(o => (o.status || "pendente") !== "paga").forEach(o => {
+      const d = diasAte(o.dataVencimento);
+      if (d === null) return;
+      const fixa = fixas.find(f => f.id === o.fixaId);
+      if (!fixa) return; // ocorrência órfã (fixa apagada) — não notifica
+      const nome = fixa.nome || o.descricao || "Despesa fixa";
+      const valor = Number(o.valorPago ?? o.valor ?? fixa.valor) || 0;
+      if (d < 0) {
+        tryFire(`fixa-atraso-${o.id}`,
+          "⚠ Despesa fixa em atraso",
+          `${nome} · ${formatBRL(valor)} · atrasou ${Math.abs(d)} ${Math.abs(d) === 1 ? "dia" : "dias"}`);
+      } else if (d <= cfg.antecedenciaDias) {
+        tryFire(`fixa-${o.id}`,
+          d === 0 ? "📌 Despesa fixa vence HOJE" : d === 1 ? "📌 Despesa fixa vence AMANHÃ" : `📌 Despesa fixa vence em ${d} dias`,
+          `${nome} · ${formatBRL(valor)}`);
       }
     });
   }

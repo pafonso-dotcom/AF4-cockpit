@@ -313,6 +313,11 @@ function HeaderHorizontal({
             <Search size={16} />
             <span className="header-brand-text" style={{ fontSize: 11, fontWeight: 600, letterSpacing: ".04em" }}>⌘K</span>
           </button>
+          <button onClick={() => { setModulo("financas"); setTab("calendario"); }}
+                  title="Calendário" aria-label="Calendário"
+                  className="hdr-util" style={{ ...utilBtn, background: NAV_SOFT, color: NAV_MUTED }}>
+            <Calendar size={16} />
+          </button>
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={utilBtn} iconSize={18} />
           <button onClick={() => setMenuUtilAberto(v => !v)}
                   title="Mais ações" aria-label="Mais ações"
@@ -927,6 +932,11 @@ function HeaderVertical({
             title="Busca rápida de abas (Ctrl/Cmd+K)"
             style={vertUtilBtn}>
             <Search size={16} />
+          </button>
+          <button onClick={() => { setModulo("financas"); setTab("calendario"); }}
+            title="Calendário"
+            style={vertUtilBtn}>
+            <Calendar size={16} />
           </button>
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={vertUtilBtn} iconSize={16} />
           <button onClick={() => setHidden(!hidden)}
