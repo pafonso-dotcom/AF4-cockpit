@@ -292,9 +292,12 @@ export default function RelatoriosFinancas({
       const saldoInicial = contasEsc.reduce((s, c) => s + (Number(c.saldo) || 0), 0);
       let acc = saldoInicial;
       const porMes = proximosMeses.map(m => {
+        // Só o que ainda está EM ABERTO (não pago/recebido) — o que já foi
+        // pago/recebido já está refletido no saldo das contas (saldoInicial),
+        // contá-lo de novo aqui somaria/descontaria em dobro.
         let saidas = 0, receber = 0;
-        try { saidas = getDespesasDoMes(m.iso, stateRaw, escopo).reduce((s, d) => s + (Number(d.valor) || 0), 0); } catch {}
-        try { receber = getGanhosDoMes(m.iso, stateRaw, escopo).reduce((s, g) => s + (Number(g.valor) || 0), 0); } catch {}
+        try { saidas = getDespesasDoMes(m.iso, stateRaw, escopo).filter(d => d.status !== "paga").reduce((s, d) => s + (Number(d.valor) || 0), 0); } catch {}
+        try { receber = getGanhosDoMes(m.iso, stateRaw, escopo).filter(g => g.status !== "paga").reduce((s, g) => s + (Number(g.valor) || 0), 0); } catch {}
         acc += receber - saidas;
         return acc;
       });
