@@ -429,15 +429,15 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6 no-print" style={{ background: T.border }}>
-        <StatCard label="Valor Investido" value={hidden ? "•••••" : fmt(totais.br.custo)} accent={T.muted} icon={DollarSign}
+        <StatCard compact label="Valor Investido" value={hidden ? "•••••" : fmt(totais.br.custo)} accent={T.muted} icon={DollarSign}
                   sub={totais.temUSA ? `EUA ${hidden ? "•••" : fmtUSD(totais.usa.custo)}` : `${filtered.length} ativos`} />
-        <StatCard label="Valor de Mercado" value={hidden ? "•••••" : fmt(totais.br.valor)} accent={T.gold} icon={Briefcase}
+        <StatCard compact label="Valor de Mercado" value={hidden ? "•••••" : fmt(totais.br.valor)} accent={T.gold} icon={Briefcase}
                   sub={totais.temUSA ? `EUA ${hidden ? "•••" : fmtUSD(totais.usa.valor)}` : undefined} />
-        <StatCard label="Resultado" value={hidden ? "•••••" : fmt(totais.br.ganho)}
+        <StatCard compact label="Resultado" value={hidden ? "•••••" : fmt(totais.br.ganho)}
                   accent={totais.br.ganho >= 0 ? T.green : T.red}
                   icon={totais.br.ganho >= 0 ? TrendingUp : TrendingDown}
                   sub={totais.temUSA ? `EUA ${hidden ? "•••" : fmtUSD(totais.usa.ganho)}` : fmtP(totais.br.pct)} />
-        <StatCard label="Posições" value={String(filtered.length)} accent={T.blue} icon={Activity}
+        <StatCard compact label="Posições" value={String(filtered.length)} accent={T.blue} icon={Activity}
                   sub={`${filtered.filter(a => a.preco > a.pm).length} no lucro`} />
       </div>
 
