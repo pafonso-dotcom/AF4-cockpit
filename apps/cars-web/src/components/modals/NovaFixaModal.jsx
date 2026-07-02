@@ -8,6 +8,7 @@ import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
 import MoneyInput from "../ui/MoneyInput.jsx";
 import { MESES_LONGO as MES_NOMES } from "../../lib/meses.js";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 
 /**
  * Modal próprio de cadastro/edição de Despesa Fixa.
@@ -43,7 +44,7 @@ export default function NovaFixaModal({ editing, categorias = [], contas = [], o
   // Pra edição: aplicar em "futuras" (default) ou "todas pendentes"
   const [escopoEdicao, setEscopoEdicao] = useState("futuras");
 
-  const despCats = (categorias || []).filter(c => c.tipo === "despesa");
+  const despCats = ordenarPorNome((categorias || []).filter(c => c.tipo === "despesa"));
 
   // Gera lista de meses (até 24 à frente) pra Começar/Terminar selects
   const mesesOpcoes = [];

@@ -77,7 +77,7 @@ export default function Metas({
     const catReserva = (categorias || []).find(c =>
       c.tipo === "despesa" && /reserva|meta|poupan/i.test(c.nome || "")
     );
-    const categoria = catReserva?.nome || (categorias || []).filter(c => c.tipo === "despesa")[0]?.nome || "Outros";
+    const categoria = catReserva?.nome || ordenarPorNome((categorias || []).filter(c => c.tipo === "despesa"))[0]?.nome || "Outros";
     const conta = contas[0]?.nome || "";
     const ok = await confirm({
       title: `Criar poupança automática?`,

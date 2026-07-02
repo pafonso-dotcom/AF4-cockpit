@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { T } from "../../lib/theme.js";
 import { fmt } from "../../lib/format.js";
 import { ArrowLeft } from "lucide-react";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 
 // Calcula qual parcela de um parcelamento cai em um mês específico (mesISO = "2026-05")
 function parcelaNoMes(parc, mesISO) {
@@ -45,7 +46,7 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
 
   // Categorias de despesa disponíveis para o seletor inline da fatura.
   const categoriasDespesa = useMemo(
-    () => (categorias || []).filter(c => c.tipo !== "receita").map(c => c.nome),
+    () => ordenarPorNome((categorias || []).filter(c => c.tipo !== "receita")).map(c => c.nome),
     [categorias]
   );
 

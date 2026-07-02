@@ -7,6 +7,7 @@ import { confirm } from "../../../lib/confirm.js";
 import Field from "../../ui/Field.jsx";
 import Modal from "../../ui/Modal.jsx";
 import { filtrarPorLoja, LOJA_TODAS } from "../../../lib/negocioLojas.js";
+import { ordenarPorNome } from "../../../lib/categoriaSort.js";
 
 /**
  * NegocioRecebimentos — entradas (recebimentos) do Negócio, por loja.
@@ -20,7 +21,7 @@ export default function NegocioRecebimentos({ recebimentos = [], setRecebimentos
   const lojaPadrao = lojas[0]?.id || "";
   const nomeLoja = (id) => (lojas.find((l) => l.id === id)?.nome || "—");
 
-  const catsReceita = (categorias || []).filter(c => c.tipo === "receita");
+  const catsReceita = ordenarPorNome((categorias || []).filter(c => c.tipo === "receita"));
   const daLoja = useMemo(() => filtrarPorLoja(recebimentos, lojaAtiva), [recebimentos, lojaAtiva]);
   const mesesDisponiveis = useMemo(() => {
     const set = new Set();
