@@ -119,6 +119,48 @@ export default function Metas({
   const cofreDe = (m) => (contas || []).find(c => c._cofreMetaId === m.id)
     || (contas || []).find(c => c.nome === cofreNomeDe(m));
 
+  // Exclui a meta e a poupança automática (fixa) vinculada, se houver — senão
+  // ela continua cobrando/aparecendo nos relatórios pra uma meta que já não
+  // existe mais. O cofrinho (conta) NÃO é apagado automaticamente — pode ter
+  // dinheiro real guardado; só avisa, pra decidir em Contas.
+  const excluirMeta = async (m) => {
+    const fixaLigada = m.fixaId ? (fixas || []).find(f => f.id === m.fixaId) : null;
+    const cofre = cofreDe(m);
+    const avisos = [];
+    if (fixaLigada) avisos.push(`a poupança automática "${fixaLigada.descricao}" (${fmt(fixaLigada.valor)}/mês) também será removida`);
+    if (cofre) avisos.push(`o cofrinho "${cofre.nome}" (saldo ${fmt(cofre.saldo || 0)}) NÃO será apagado — decida o que fazer com ele em Contas`);
+    const ok = await confirm({
+      title: `Excluir meta "${m.nome}"?`,
+      body: avisos.length ? avisos.map(a => a.charAt(0).toUpperCase() + a.slice(1)).join(". ") + "." : undefined,
+      danger: true, confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+
+    const backupMetas = metas;
+    const backupFixas = fixas;
+    const backupOcorrencias = fixaOcorrencias;
+    const removeuFixa = !!(fixaLigada && setFixas && setFixaOcorrencias);
+
+    setMetas(metas.filter(x => x.id !== m.id));
+    if (removeuFixa) {
+      setFixas(fixas.filter(f => f.id !== fixaLigada.id));
+      // Remove só ocorrências pendentes; pagas ficam preservadas no histórico.
+      setFixaOcorrencias(fixaOcorrencias.filter(o => o.fixaId !== fixaLigada.id || o.status === "paga"));
+    }
+
+    toast.success(`Meta "${m.nome}" excluída.${removeuFixa ? " Poupança automática removida junto." : ""}`, {
+      action: {
+        label: "Desfazer", onClick: () => {
+          setMetas(backupMetas);
+          if (removeuFixa) {
+            setFixas(backupFixas);
+            setFixaOcorrencias(backupOcorrencias);
+          }
+        },
+      },
+    });
+  };
+
   // FASE 2 — Rendimento projetado a CDI.
   // Cada movimento do cofrinho rende (ou deixa de render) à taxa CDI desde a
   // sua data até hoje. rendimento = valor_futuro_dos_aportes − saldo_atual.
@@ -390,18 +432,7 @@ export default function Metas({
                 <div className="label-eyebrow">{ok ? "No ritmo certo" : "Acelerar aporte"}</div>
                 <div className="flex gap-2">
                   <button onClick={() => setForm(m)} aria-label={`Editar meta ${m.nome}`} style={{ color: T.muted }}><Edit3 size={14} /></button>
-                  <button onClick={async () => {
-                            const ok = await confirm({
-                              title: `Excluir meta "${m.nome}"?`,
-                              danger: true, confirmLabel: "Excluir",
-                            });
-                            if (!ok) return;
-                            const backup = metas;
-                            setMetas(metas.filter(x => x.id !== m.id));
-                            toast.success(`Meta "${m.nome}" excluída.`, {
-                              action: { label: "Desfazer", onClick: () => setMetas(backup) },
-                            });
-                          }}
+                  <button onClick={() => excluirMeta(m)}
                           style={{ color: T.red }}><Trash2 size={14} /></button>
                 </div>
               </div>
