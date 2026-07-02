@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Plus, Edit3, Trash2, Check, AlertCircle, Repeat, Clock, Circle } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, todayISO, uid } from "../../lib/format.js";
@@ -57,6 +57,38 @@ export default function DespesasFixas({
 
   // Resumo do mês
   const resumo = useMemo(() => resumoMes(fixaOcorrencias, mesAtivo), [fixaOcorrencias, mesAtivo]);
+
+  // Auto-cura: uma fixa com ocorrências geradas pro ano mas com um mês
+  // "furado" (ex.: apagado por engano, ou um gap de geração antiga) fica
+  // invisível aqui mas o Relatório ainda conta ela via ocorrência virtual —
+  // gera a ocorrência real do mês ativo agora, pra bater com o Relatório e
+  // dar pra editar/pagar/excluir. Não mexe em fixa sem NENHUMA ocorrência no
+  // ano (isso é o App.jsx / garantirOcorrenciasDoAno que cuida).
+  useEffect(() => {
+    if (!fixas.length || !setFixaOcorrencias) return;
+    const faltando = fixas.filter(f => {
+      const temDoAno = fixaOcorrencias.some(o => o.fixaId === f.id && o.mes.slice(0, 4) === mesAtivo.slice(0, 4));
+      if (!temDoAno) return false;
+      if (fixaOcorrencias.some(o => o.fixaId === f.id && o.mes === mesAtivo)) return false;
+      if (f.inicioEm && mesAtivo < String(f.inicioEm).slice(0, 7)) return false;
+      if (f.terminoEm && mesAtivo > String(f.terminoEm).slice(0, 7)) return false;
+      return true;
+    });
+    if (!faltando.length) return;
+    const novas = faltando.map(f => ({
+      id: `occ-${f.id}-${mesAtivo}`,
+      fixaId: f.id,
+      mes: mesAtivo,
+      dataVencimento: dataVencimentoNoMes(mesAtivo, f.diaVencimento),
+      valor: parseFloat(f.valor) || 0,
+      status: "pendente",
+      dataPagamento: null,
+      transacaoId: null,
+      valorPago: null,
+    }));
+    setFixaOcorrencias([...fixaOcorrencias, ...novas]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fixas, mesAtivo]);
 
   // Index de fixas por id pra lookup rápido
   const fixasPorId = useMemo(() => {
