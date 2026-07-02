@@ -77,7 +77,7 @@ body { color: var(--text-color, inherit); }
 
 /* ===== LIGHT THEMES ===== */
 [data-c="papel"] {
-  --bg: #f4ecd8; --be: #ede3ca; --bc: #fbf6e8; --bc2: #f4ecd8;
+  --bg: #ffffff; --be: #f7f5f0; --bc: #ffffff; --bc2: #f7f5f0;
   --bd: #d9c9a3; --bd2: #bfae87;
   --tx: #2a2218; --tm: #5e503c; --td: #8a7b62;
   --ac: #8a5a28; --ac2: #a87440;
