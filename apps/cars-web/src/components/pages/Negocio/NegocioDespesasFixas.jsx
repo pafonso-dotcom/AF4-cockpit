@@ -7,6 +7,7 @@ import { confirm } from "../../../lib/confirm.js";
 import Field from "../../ui/Field.jsx";
 import Modal from "../../ui/Modal.jsx";
 import { filtrarPorLoja, LOJA_TODAS } from "../../../lib/negocioLojas.js";
+import { ordenarPorNome } from "../../../lib/categoriaSort.js";
 
 /**
  * NegocioDespesasFixas — despesas recorrentes mensais do Negócio (dados
@@ -20,7 +21,7 @@ export default function NegocioDespesasFixas({ despesas = [], setDespesas, categ
   const lojaPadrao = lojas[0]?.id || "";
   const nomeLoja = (id) => (lojas.find((l) => l.id === id)?.nome || "—");
 
-  const catsDespesa = (categorias || []).filter(c => c.tipo === "despesa");
+  const catsDespesa = ordenarPorNome((categorias || []).filter(c => c.tipo === "despesa"));
   const daLoja = filtrarPorLoja(despesas, lojaAtiva);
   const totalMensal = daLoja.reduce((s, d) => s + (Number(d.valor) || 0), 0);
 

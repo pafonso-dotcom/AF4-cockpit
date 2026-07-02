@@ -11,6 +11,7 @@ import StatCard from "../ui/StatCard.jsx";
 import Modal from "../ui/Modal.jsx";
 import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
 import AnaliseFatura from "./AnaliseFatura.jsx";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 
 // ===== Helpers compartilhados de parcelas =====
 // Mantidos no nível do módulo pra que o cálculo do "valor a pagar" do cartão
@@ -396,7 +397,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
       tipo: "despesa",
       descricao: `Pagamento fatura ${cartao.nome} · ${pagFatura.monthKey}`,
       valor: v,
-      categoria: categorias?.find(c => /cart[ãa]o|fatura/i.test(c.nome))?.nome || categorias?.filter(c => c.tipo === "despesa")?.[0]?.nome || "Outros",
+      categoria: categorias?.find(c => /cart[ãa]o|fatura/i.test(c.nome))?.nome || ordenarPorNome(categorias?.filter(c => c.tipo === "despesa") || [])?.[0]?.nome || "Outros",
       conta: conta.nome,
       data: pagFatura.data,
       compensado: true,
@@ -1051,7 +1052,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           <Field label="Categoria" hint="Como você quer ver essa parcela nos relatórios">
             <select value={parcForm.categoria || ""} onChange={e => setParcForm({ ...parcForm, categoria: e.target.value })}>
               <option value="">Sem categoria</option>
-              {(categorias || []).filter(c => c.tipo !== "receita").map(c => (
+              {ordenarPorNome((categorias || []).filter(c => c.tipo !== "receita")).map(c => (
                 <option key={c.id} value={c.nome}>{c.nome}</option>
               ))}
             </select>

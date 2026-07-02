@@ -7,6 +7,7 @@ import { confirm } from "../../../lib/confirm.js";
 import Field from "../../ui/Field.jsx";
 import Modal from "../../ui/Modal.jsx";
 import { filtrarPorLoja, LOJA_TODAS } from "../../../lib/negocioLojas.js";
+import { ordenarPorNome } from "../../../lib/categoriaSort.js";
 
 /**
  * NegocioDespesasVar — despesas avulsas do Negócio (dados próprios), por loja.
@@ -21,7 +22,7 @@ export default function NegocioDespesasVar({ despesas = [], setDespesas, categor
   const lojaPadrao = lojas[0]?.id || "";
   const nomeLoja = (id) => (lojas.find((l) => l.id === id)?.nome || "—");
 
-  const catsDespesa = (categorias || []).filter(c => c.tipo === "despesa");
+  const catsDespesa = ordenarPorNome((categorias || []).filter(c => c.tipo === "despesa"));
   const daLoja = useMemo(() => filtrarPorLoja(despesas, lojaAtiva), [despesas, lojaAtiva]);
 
   // Meses disponíveis (a partir das datas), pra alimentar o filtro.
