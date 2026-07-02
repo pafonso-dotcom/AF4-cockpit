@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { CalendarDays, Plus, Trash2, Info, TrendingUp, AlertTriangle } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Info } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import PageHeader from "../../ui/PageHeader.jsx";

@@ -76,7 +76,10 @@ export function classificar(ativo, fundamentosMap) {
   const criterios = CRIT_POR_CLASSE[classe];
   if (!criterios) return null;
 
-  const r = calcularScoreIdV(reg.dados || {}, criterios);
+  // calcularScoreIdV espera { valores: { <id>: valor } } (shape das análises
+  // IdV) — embrulhar o mapa plano de dados, senão todo critério lê vazio e o
+  // ativo aparece como "Sem dados" mesmo depois de analisado pela IA.
+  const r = calcularScoreIdV({ valores: reg.dados || {} }, criterios);
   // Recomendação simples a partir da nota (linguagem de ferramenta, não conselho).
   let recomendacao, recCor;
   if (r.score >= 70) { recomendacao = "Comprar"; recCor = "#1F7A3D"; }

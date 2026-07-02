@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, BarChart3, DollarSign, Award } from "lucide-react";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, DollarSign, Award } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN, fmtUSD } from "../../../lib/format.js";
 import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, ehUS } from "../../../lib/invest-constants.js";
@@ -14,7 +13,7 @@ import IndicesGlobais from "../IndicesGlobais.jsx";
 export default function InvestPainel({
   ativos = [], transacoes = [], categorias = [],
   hidden, onTabChange, onAnalisar,
-  onAbrirAnaliseCarteira, onAbrirAnaliseIdv, apiKeys = {},
+  onAbrirAnaliseIdv, apiKeys = {},
   proventosRecebidos = {},
 }) {
   const hoje = new Date();
@@ -502,22 +501,6 @@ function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
   );
 }
 
-function SinaisCTA({ onClick }) {
-  const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
-  return (
-    <div style={{ background: bg, color: "#fff", borderRadius: 18, padding: 16, display: "flex", flexDirection: "column" }}>
-      <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>🤖 Análise da Carteira</div>
-      <div style={{ flex: 1, fontSize: 13, lineHeight: 1.5, marginBottom: 14, color: "rgba(255,255,255,0.85)" }}>
-        Varredura técnica completa — RSI, MACD, tendência e score 0-100 para cada ativo da carteira. Sinais de compra, venda e neutro em uma única tela.
-      </div>
-      <button onClick={onClick}
-              style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", padding: "8px 12px", borderRadius: 11, fontSize: 12, cursor: "pointer", alignSelf: "flex-start" }}>
-        Abrir análise →
-      </button>
-    </div>
-  );
-}
-
 // Lista expansível por classe de ativo: cada classe mostra nº de ativos e valor
 // total; clicar abre/fecha a lista dos ativos daquela classe (drill-down).
 // Substitui o antigo "Valor por Classe" (estático) por uma visão navegável.
@@ -586,35 +569,6 @@ function ClassesExpansiveisCard({ ativos = [], hidden, onAnalisar, fmtUSD }) {
               </div>
             );
           })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ProventosMesesCard({ data, hidden }) {
-  const total = data.reduce((s,d) => s+d.total, 0);
-  const ehVazio = total === 0;
-  return (
-    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Proventos · 12 meses</div>
-        <div className="num" style={{ fontSize: 12, color: T.green }}>{hidden ? "•••" : fmt(total)}</div>
-      </div>
-      {ehVazio ? (
-        <div style={{ padding: 32, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>
-          Sem proventos detectados. Categorize transações como <strong style={{ color: T.green }}>"Provento"</strong>, <strong style={{ color: T.green }}>"Dividendo"</strong> ou <strong style={{ color: T.green }}>"Rendimento"</strong> para aparecerem aqui.
-        </div>
-      ) : (
-        <div style={{ height: 160 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <XAxis dataKey="mes" tick={{ fontSize: 10, fill: T.muted }} />
-              <YAxis tick={{ fontSize: 9, fill: T.muted }} width={40} />
-              <Tooltip contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11 }} />
-              <Bar dataKey="total" fill={T.green} radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
         </div>
       )}
     </div>
