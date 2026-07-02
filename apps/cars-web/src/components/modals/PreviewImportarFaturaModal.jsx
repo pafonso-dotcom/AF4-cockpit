@@ -542,7 +542,7 @@ export default function PreviewImportarFaturaModal({
 
               <select value={item.tipo} onChange={e => mudarTipo(item._idx, e.target.value)}
                       style={{
-                        padding: "3px 6px", fontSize: 10, borderRadius: 4,
+                        width: "auto", padding: "3px 6px", fontSize: 10, borderRadius: 4,
                         background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`,
                         flexShrink: 0,
                       }}
