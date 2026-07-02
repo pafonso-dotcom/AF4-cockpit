@@ -18,15 +18,37 @@ export const retornoMensal = (ativo) => {
 };
 
 /**
- * Gera série sintética de 12 retornos mensais ao redor do retorno real do ativo.
- * Apenas pra alimentar Sharpe/Drawdown com dados verossímeis.
+ * Gera série sintética de retornos mensais ao redor do retorno real do ativo —
+ * usada só como ESTIMATIVA ILUSTRATIVA quando não há histórico real de preços.
+ * DETERMINÍSTICA: mesma carteira → mesma série (seed derivada dos ativos),
+ * em vez de Math.random() que mudava os números a cada render.
  */
-const gerarSerie = (retornoAlvo, vol = 0.05, n = 12) => {
+function seedFrom(str = "") {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return h >>> 0;
+}
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const seedDaCarteira = (ativos = []) =>
+  ativos.map((a) => `${a.ticker}:${a.qtd}:${a.pm}`).join("|") || "af4";
+
+const gerarSerie = (retornoAlvo, vol = 0.05, n = 12, seedStr = "af4") => {
+  const rnd = mulberry32(seedFrom(seedStr));
   const serie = [];
   for (let i = 0; i < n; i++) {
     // ruído normal aproximado por Box-Muller simplificado
-    const u1 = Math.random() || 0.001;
-    const u2 = Math.random();
+    const u1 = rnd() || 0.001;
+    const u2 = rnd();
     const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
     serie.push(retornoAlvo / n + z * vol);
   }
@@ -54,7 +76,7 @@ export const sharpeRatio = (ativos) => {
   if (!ativos || ativos.length === 0) return null;
   const r = retornoCarteira(ativos);
   const rAnualizado = (1 + r) ** 12 - 1;
-  const serie = gerarSerie(r, 0.04);
+  const serie = gerarSerie(r, 0.04, 12, seedDaCarteira(ativos));
   const media = serie.reduce((s, x) => s + x, 0) / serie.length;
   const variancia = serie.reduce((s, x) => s + (x - media) ** 2, 0) / serie.length;
   const vol = Math.sqrt(variancia) * Math.sqrt(12); // anualizado
@@ -69,7 +91,7 @@ export const sortinoRatio = (ativos) => {
   if (!ativos || ativos.length === 0) return null;
   const r = retornoCarteira(ativos);
   const rAnualizado = (1 + r) ** 12 - 1;
-  const serie = gerarSerie(r, 0.04);
+  const serie = gerarSerie(r, 0.04, 12, seedDaCarteira(ativos));
   const negativos = serie.filter(x => x < 0);
   if (negativos.length === 0) return "∞";
   const downsideVar = negativos.reduce((s, x) => s + x ** 2, 0) / negativos.length;
@@ -84,7 +106,7 @@ export const sortinoRatio = (ativos) => {
 export const maxDrawdown = (ativos) => {
   if (!ativos || ativos.length === 0) return null;
   const r = retornoCarteira(ativos);
-  const serie = gerarSerie(r, 0.05);
+  const serie = gerarSerie(r, 0.05, 12, seedDaCarteira(ativos));
   let pico = 1, valor = 1, maxDD = 0;
   for (const ret of serie) {
     valor *= (1 + ret);
@@ -101,7 +123,7 @@ export const maxDrawdown = (ativos) => {
 export const volatilidade = (ativos) => {
   if (!ativos || ativos.length === 0) return null;
   const r = retornoCarteira(ativos);
-  const serie = gerarSerie(r, 0.04);
+  const serie = gerarSerie(r, 0.04, 12, seedDaCarteira(ativos));
   const media = serie.reduce((s, x) => s + x, 0) / serie.length;
   const variancia = serie.reduce((s, x) => s + (x - media) ** 2, 0) / serie.length;
   const vol = Math.sqrt(variancia) * Math.sqrt(12) * 100;
@@ -114,7 +136,7 @@ export const volatilidade = (ativos) => {
 export const valueAtRisk = (ativos, percentil = 0.95) => {
   if (!ativos || ativos.length === 0) return null;
   const r = retornoCarteira(ativos);
-  const serie = gerarSerie(r, 0.04, 240); // 20 anos pra ter cauda
+  const serie = gerarSerie(r, 0.04, 240, seedDaCarteira(ativos)); // 20 anos pra ter cauda
   serie.sort((a, b) => a - b);
   const idx = Math.floor(serie.length * (1 - percentil));
   const perdaPercent = serie[idx];
