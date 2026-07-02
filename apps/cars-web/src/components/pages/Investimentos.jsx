@@ -691,20 +691,18 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                       {a.ticker}
                       {isLive(a) && <span className="af4-live-dot" title="Cotação ao vivo (atualizada nos últimos 60s)" />}
                     </div>
-                    <div style={{ color: T.muted, fontSize: 12 }} className="italic">{a.nome}</div>
+                    <div style={{ color: T.muted, fontSize: 11.5, marginTop: 2, display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
+                      {a.nome && <span className="italic">{a.nome}</span>}
+                      <span style={{ fontFamily: T.sans, letterSpacing: "0.05em", textTransform: "uppercase", fontSize: 10 }}>
+                        {a.nome ? "· " : ""}{a.tipo}
+                      </span>
+                      {a.tipo !== "capitalSocial" && valorPorTipo[a.tipo] > 0 && (
+                        <span style={{ color: T.gold, fontWeight: 600, fontSize: 10.5 }}>· {pesoNaCategoria(a).toFixed(0)}%</span>
+                      )}
+                    </div>
                   </td>
-                  <td style={{ padding: "14px 16px", color: T.muted, fontSize: 11, fontFamily: T.sans, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                    {a.tipo}
-                    {a.segmento && (
-                      <div style={{ color: T.gold, fontSize: 9.5, marginTop: 3, letterSpacing: ".03em", textTransform: "none", fontWeight: 500 }}>
-                        {a.segmento}
-                      </div>
-                    )}
-                    {a.tipo !== "capitalSocial" && valorPorTipo[a.tipo] > 0 && (
-                      <div style={{ color: T.muted, fontSize: 9.5, marginTop: 3, letterSpacing: ".02em", textTransform: "none", fontWeight: 500 }}>
-                        {pesoNaCategoria(a).toFixed(0)}% da categoria
-                      </div>
-                    )}
+                  <td style={{ padding: "14px 16px", color: T.gold, fontSize: 10.5, fontFamily: T.sans, letterSpacing: ".02em" }}>
+                    {a.segmento || "—"}
                   </td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.ink }}>{fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)}</td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.pm)}</td>
