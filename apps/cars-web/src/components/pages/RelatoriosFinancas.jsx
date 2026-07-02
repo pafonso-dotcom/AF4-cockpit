@@ -8,6 +8,7 @@ import { toPDF, toCSV, toPNG, hasPNGSupport } from "../../lib/exportRelatorio.js
 import { toast } from "../../lib/toast.js";
 import { getKPIsMes, getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
+import { somaContasBRL, saldoContaBRL } from "../../lib/cambio.js";
 import { printHTML } from "../../lib/importExport.js";
 
 const MESES_PROJ = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
@@ -283,13 +284,14 @@ export default function RelatoriosFinancas({
   // ===== Cenários de Saldo previsto =====
   // Parte do SALDO ATUAL das contas e acumula (A receber − Saídas) mês a mês.
   // Dois cenários: Pessoal (só contas/dados pessoais) e Pessoal + Negócio (tudo).
-  // A conta "bem" (imóvel/veículo/patrimônio físico) fica fora do saldo líquido.
-  const ehBem = (c) => /\bbem\b|\bbens\b|im[oó]ve|ve[ií]cul|autom[oó]ve|\bcarro\b|patrim/i.test(c?.nome || "");
+  // Usa a MESMA base do Painel (somaContasBRL): respeita "fora do patrimônio"
+  // (flag do usuário em Contas, não um chute por nome) e converte contas em
+  // moeda estrangeira pra BRL pela cotação.
   const cenarios = useMemo(() => {
     const stateRaw = { transacoes: transacoesRaw, contas: contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques };
     const cenario = (escopo) => {
-      const contasEsc = filtrarPorEscopo(contasRaw || [], escopo).filter(c => !ehBem(c));
-      const saldoInicial = contasEsc.reduce((s, c) => s + (Number(c.saldo) || 0), 0);
+      const contasEsc = filtrarPorEscopo(contasRaw || [], escopo);
+      const saldoInicial = somaContasBRL(contasEsc);
       let acc = saldoInicial;
       const porMes = proximosMeses.map(m => {
         // Só o que ainda está EM ABERTO (não pago/recebido) — o que já foi
@@ -303,12 +305,12 @@ export default function RelatoriosFinancas({
       });
       return { saldoInicial, porMes, saldoFinal: porMes[porMes.length - 1] ?? saldoInicial };
     };
-    const bens = (contasRaw || []).filter(ehBem);
+    const foraPatrimonio = (contasRaw || []).filter(c => c?.foraPatrimonio);
     return {
       pessoal: cenario("pessoal"),
       tudo: cenario("tudo"),
-      bensTotal: bens.reduce((s, c) => s + (Number(c.saldo) || 0), 0),
-      bensNomes: bens.map(c => c.nome).join(", "),
+      bensTotal: foraPatrimonio.reduce((s, c) => s + saldoContaBRL(c), 0),
+      bensNomes: foraPatrimonio.map(c => c.nome).join(", "),
     };
   }, [transacoesRaw, contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, proximosMeses]);
 

@@ -6,6 +6,8 @@
 //   - fonte: "fixa" | "divida" | "parcela" | "transacao"   (origem do dado)
 //   - tipo:  "fixa" | "variavel" | "parcela" | "ganho"     (classificação semântica)
 
+import { somaContasBRL } from "./cambio.js";
+
 const MES_LEN = 7; // "YYYY-MM"
 
 export function mesAtual(date = new Date()) {
@@ -419,7 +421,7 @@ export function getAnualPorMes(ano, state = {}, escopo) {
  */
 export function getProjecaoSaldo(state = {}, escopo, meses = 6, hoje = new Date()) {
   const st = aplicarEscopo(state, escopo);
-  const saldoInicial = (st.contas || []).reduce((s, c) => s + (Number(c.saldo) || 0), 0);
+  const saldoInicial = somaContasBRL(st.contas || []);
 
   const nomes = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
   const out = [];
