@@ -308,6 +308,10 @@ export default function App() {
           // nuvem). Espelha no localStorage onde lib/gemini.js efetivamente lê,
           // pra ela aparecer já configurada num aparelho novo / após limpar cache.
           try { if (keys.gemini) localStorage.setItem("af4:gemini-key", keys.gemini); } catch {}
+          // Mesmo espelhamento pro token da BRAPI — lib/brapi.js lê só o
+          // localStorage; sem isto, o token sincronizado na conta "sumia"
+          // (Configurações mostrava configurado, mas as telas davam erro).
+          try { if (keys.brapi) localStorage.setItem("af4:brapi-token", keys.brapi); } catch {}
         }
       } catch (e) {
         // Erro ao aplicar os dados carregados (migração/estado inesperado).
