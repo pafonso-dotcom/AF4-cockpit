@@ -156,9 +156,7 @@ function HeaderHorizontal({
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
       { id: "carteira",       label: "Carteira",            icon: Briefcase },
-      { id: "objetivos",      label: "Objetivos (árvore)", icon: Target },
       { id: "monte-carteira", label: "Monte sua Carteira",  icon: Package },
-      { id: "modelo",         label: "Carteira Modelo",     icon: Package },
       { id: "planejador",     label: "Planejador",          icon: Target },
       { id: "calc-renda",     label: "Calculadora",         icon: Calculator },
       { id: "projecao",       label: "Projeção",            icon: Calculator },
@@ -672,9 +670,7 @@ function HeaderVertical({
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
       { id: "carteira",       label: "Carteira",            icon: Briefcase },
-      { id: "objetivos",      label: "Objetivos (árvore)", icon: Target },
       { id: "monte-carteira", label: "Monte sua Carteira",  icon: Package },
-      { id: "modelo",         label: "Carteira Modelo",     icon: Package },
       { id: "planejador",     label: "Planejador",          icon: Target },
       { id: "calc-renda",     label: "Calculadora",         icon: Calculator },
       { id: "projecao",       label: "Projeção",            icon: Calculator },
@@ -785,7 +781,10 @@ function HeaderVertical({
                     <div style={{ display: "flex", flexDirection: "column", gap: 1, margin: "2px 0 6px", marginLeft: 14 }}>
                       {mSubtabs.map((s, si) => {
                         const SIcon = s.icon;
-                        const sAtivo = s.agenda ? AGENDA_TAB_IDS.has(tab) : s.id === tab;
+                        const sAtivo = s.agenda ? AGENDA_TAB_IDS.has(tab)
+                          // "objetivos"/"modelo" são atalhos pro hub Monte sua Carteira
+                          : s.id === "monte-carteira" ? ["monte-carteira", "objetivos", "modelo"].includes(tab)
+                          : s.id === tab;
                         const pending = pendingCounts[s.id] || 0;
                         const sUlt = si === mSubtabs.length - 1;
                         const sCon = sAtivo ? T.gold : NAV_LINE;

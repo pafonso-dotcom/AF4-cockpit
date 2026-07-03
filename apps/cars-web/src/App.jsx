@@ -85,9 +85,7 @@ const Simulador = lz(() => import("./components/pages/Simulador.jsx"));
 const CalculadoraRenda = lz(() => import("./components/pages/Invest/CalculadoraRenda.jsx"));
 const Projecao = lz(() => import("./components/pages/Invest/Projecao.jsx"));
 const AnalisesUnificada = lz(() => import("./components/pages/Invest/Analises.jsx"));
-const ObjetivosCarteira = lz(() => import("./components/pages/Invest/ObjetivosCarteira.jsx"));
-const CarteiraModelo = lz(() => import("./components/pages/Invest/CarteiraModelo.jsx"));
-const MonteSuaCarteira = lz(() => import("./components/pages/Invest/MonteSuaCarteira.jsx"));
+const PlanejarCarteira = lz(() => import("./components/pages/Invest/PlanejarCarteira.jsx"));
 const Planejador = lz(() => import("./components/pages/Invest/Planejador.jsx"));
 const InvestPainel = lz(() => import("./components/pages/Invest/InvestPainel.jsx"));
 const Proventos = lz(() => import("./components/pages/Invest/Proventos.jsx"));
@@ -1119,33 +1117,22 @@ export default function App() {
                          hidden={hidden} />
         </div>
       )}
-      {tab === "objetivos" && (
+      {/* Hub único de planejamento de alocação — as abas antigas "objetivos"
+          e "modelo" continuam válidas como atalhos pra view interna certa. */}
+      {(tab === "monte-carteira" || tab === "objetivos" || tab === "modelo") && (
         <div className="px-6 md:px-10">
-          <ObjetivosCarteira
+          <PlanejarCarteira
             ativos={ativos}
-            objetivosCarteira={objetivosCarteira}
-            setObjetivosCarteira={setObjetivosCarteira}
             hidden={hidden}
             apiKeys={apiKeys}
-          />
-        </div>
-      )}
-      {tab === "modelo" && (
-        <div className="px-6 md:px-10">
-          <CarteiraModelo
-            ativos={ativos}
+            objetivosCarteira={objetivosCarteira}
+            setObjetivosCarteira={setObjetivosCarteira}
             carteirasModeloCustom={carteirasModeloCustom}
             setCarteirasModeloCustom={setCarteirasModeloCustom}
             modeloAtivoId={modeloAtivoId}
             setModeloAtivoId={setModeloAtivoId}
-            hidden={hidden}
-            apiKeys={apiKeys}
+            viewInicial={tab === "objetivos" ? "objetivos" : tab === "modelo" ? "modelo" : "monte"}
           />
-        </div>
-      )}
-      {tab === "monte-carteira" && (
-        <div className="px-6 md:px-10">
-          <MonteSuaCarteira ativos={ativos} apiKey={apiKeys.anthropic} />
         </div>
       )}
       {tab === "proventos" && (

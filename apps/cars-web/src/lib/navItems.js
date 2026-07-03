@@ -24,8 +24,10 @@ export const NAV_ITEMS = [
   // Investimentos
   { modulo: "invest", tab: "investimentos",  label: "Painel",              grupo: "Investimentos" },
   { modulo: "invest", tab: "carteira",       label: "Carteira",            grupo: "Investimentos" },
-  { modulo: "invest", tab: "objetivos",      label: "Objetivos (árvore)",  grupo: "Investimentos" },
+  // Os três destinos abrem o mesmo hub "Monte sua Carteira", cada um na
+  // sua aba interna (objetivos/modelo são atalhos, sem entrada própria no menu).
   { modulo: "invest", tab: "monte-carteira", label: "Monte sua Carteira",  grupo: "Investimentos" },
+  { modulo: "invest", tab: "objetivos",      label: "Objetivos (árvore)",  grupo: "Investimentos" },
   { modulo: "invest", tab: "modelo",         label: "Carteira Modelo",     grupo: "Investimentos" },
   { modulo: "invest", tab: "planejador",     label: "Planejador",          grupo: "Investimentos" },
   { modulo: "invest", tab: "calc-renda",     label: "Calculadora",         grupo: "Investimentos" },
