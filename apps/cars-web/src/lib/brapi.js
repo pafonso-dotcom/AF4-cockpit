@@ -74,6 +74,14 @@ export async function getDividendos(ticker) {
     .sort((a, b) => b.pagamento.localeCompare(a.pagamento));
 }
 
+/**
+ * Lista completa do mercado B3 (ações + FIIs + BDRs) — UMA requisição.
+ * Base do Screener. Retorna o JSON cru da brapi ({ stocks: [...] }).
+ */
+export async function getListaMercado() {
+  return brapiFetch("/quote/list?limit=3000");
+}
+
 export async function getIndices() {
   try {
     const data = await brapiFetch("/quote/list?type=index");
