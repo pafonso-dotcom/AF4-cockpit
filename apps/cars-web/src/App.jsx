@@ -917,6 +917,7 @@ export default function App() {
                     categorias={categorias} hidden={hidden}
                     fixas={fixas} fixaOcorrencias={fixaOcorrencias}
                     parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
+                    cheques={cheques}
                     agenda={agenda} setAgenda={setAgenda}
                     escopoAtivo={escopoAtivo} />
       )}
