@@ -81,6 +81,7 @@ const Planejamento = lz(() => import("./components/pages/Planejamento/index.jsx"
 const AnaliseFatura = lz(() => import("./components/pages/AnaliseFatura.jsx"));
 const Investimentos = lz(() => import("./components/pages/Investimentos.jsx"));
 const Mercado = lz(() => import("./components/pages/Mercado.jsx"));
+const Screener = lz(() => import("./components/pages/Invest/Screener.jsx"));
 const Simulador = lz(() => import("./components/pages/Simulador.jsx"));
 const CalculadoraRenda = lz(() => import("./components/pages/Invest/CalculadoraRenda.jsx"));
 const Projecao = lz(() => import("./components/pages/Invest/Projecao.jsx"));
@@ -1162,6 +1163,11 @@ export default function App() {
       {tab === "mercado" && (
         <div className="px-6 md:px-10">
           <Mercado ativos={ativos} apiKeys={apiKeys} />
+        </div>
+      )}
+      {tab === "screener" && (
+        <div className="px-6 md:px-10">
+          <Screener hidden={hidden} />
         </div>
       )}
       {tab === "simulador" && (
