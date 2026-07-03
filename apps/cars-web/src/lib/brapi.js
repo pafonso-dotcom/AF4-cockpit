@@ -8,7 +8,7 @@ function getToken() {
 
 async function brapiFetch(path) {
   const token = getToken();
-  if (!token) throw new Error("Token BRAPI não configurado. Vá em ⚙ Configurações → BRAPI.");
+  if (!token) throw new Error("Token BRAPI não configurado. Vá em ⚙ Configurações → APIs → BRAPI (o token gratuito sai na hora em brapi.dev).");
   const sep = path.includes("?") ? "&" : "?";
   const r = await fetch(`${BRAPI_BASE}${path}${sep}token=${encodeURIComponent(token)}`);
   if (!r.ok) {
