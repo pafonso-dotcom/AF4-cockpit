@@ -36,6 +36,7 @@ function dataDia(year, month, day) {
 export default function Calendario({
   transacoes, setTransacoes, contas, setContas, categorias, hidden,
   fixaOcorrencias = [], fixas = [], parcelamentos = [], dividas = [], devedores = [],
+  cheques = [],
   agenda = [], setAgenda,
   escopoAtivo = "tudo",
 }) {
@@ -73,7 +74,9 @@ export default function Calendario({
   const itensByDay = useMemo(() => {
     if (!showFinanceiro) return {};
     const monthStr = `${year}-${String(month + 1).padStart(2, "0")}`;
-    const state = { transacoes, contas, categorias, fixaOcorrencias, fixas, parcelamentos, dividas, devedores };
+    // `cheques` incluído: cheques aguardando compensação entram como ganho
+    // pendente na data de vencimento (via getGanhosDoMes).
+    const state = { transacoes, contas, categorias, fixaOcorrencias, fixas, parcelamentos, dividas, devedores, cheques };
     const desp = getDespesasDoMes(monthStr, state, escopoAtivo).filter(d => d.status !== "paga");
     const ganh = getGanhosDoMes(monthStr, state, escopoAtivo).filter(g => g.status !== "paga");
     const map = {};
@@ -90,7 +93,7 @@ export default function Calendario({
       map[day].push({ ...g, _kind: "ganho" });
     });
     return map;
-  }, [transacoes, contas, categorias, fixaOcorrencias, fixas, parcelamentos, dividas, devedores, year, month, escopoAtivo, showFinanceiro]);
+  }, [transacoes, contas, categorias, fixaOcorrencias, fixas, parcelamentos, dividas, devedores, cheques, year, month, escopoAtivo, showFinanceiro]);
 
   // Agenda pessoal do mês
   const agendaByDay = useMemo(() => {
