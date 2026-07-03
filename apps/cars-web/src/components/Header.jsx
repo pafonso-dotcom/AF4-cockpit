@@ -913,6 +913,31 @@ function HeaderVertical({
           }}>
           <Settings size={14} /> Configurações
         </button>
+
+        {/* Sub-abas de Configurações — antes só existiam no layout horizontal,
+            deixando o vertical sem como chegar em APIs/Módulos/Backup. */}
+        {modulo === "config" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 1, marginTop: -8, marginLeft: 14 }}>
+            {(SUBTABS.config || []).map(s => {
+              const SIcon = s.icon;
+              const sAtivo = tab === s.id;
+              return (
+                <button key={s.id} onClick={() => setTab(s.id)}
+                  style={{
+                    padding: "7px 10px", borderRadius: 10,
+                    background: sAtivo ? "rgba(255,255,255,0.12)" : "transparent",
+                    color: sAtivo ? T.gold : NAV_MUTED,
+                    fontWeight: sAtivo ? 700 : 400, fontSize: 12,
+                    border: "none", cursor: "pointer", textAlign: "left",
+                    display: "flex", alignItems: "center", gap: 8,
+                  }}>
+                  {SIcon && <SIcon size={13} />}
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </aside>
 
       <header className="hdr-vertical-topbar" style={{
