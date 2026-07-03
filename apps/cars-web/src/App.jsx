@@ -804,15 +804,6 @@ export default function App() {
       {tab === "revisor-ganhos" && (
         <RevisorGanhos transacoes={transacoes} hidden={hidden} />
       )}
-      {tab === "pesquisador-mercado" && (
-        <PesquisadorMercado onIrConstrutor={() => { setModulo("invest"); setTab("construtor-mercado"); }} />
-      )}
-      {tab === "construtor-mercado" && (
-        <ConstrutorMercado
-          onIrPesquisador={() => { setModulo("invest"); setTab("pesquisador-mercado"); }}
-          onIrMonteCarteira={() => { setModulo("invest"); irParaTab("monte-carteira"); }}
-        />
-      )}
       {tab === "cartoes" && !cartaoAberto && (
         <div className="px-6 md:px-10">
           <Cartoes cartoes={cartoes} setCartoes={setCartoes}
@@ -1169,6 +1160,18 @@ export default function App() {
         <div className="px-6 md:px-10">
           <Screener hidden={hidden} />
         </div>
+      )}
+      {/* Movidos de renderFinancas: as abas estão no módulo Investimentos
+          desde o PR #439, mas os blocos de render tinham ficado pra trás —
+          clicar nelas dava tela em branco. */}
+      {tab === "pesquisador-mercado" && (
+        <PesquisadorMercado onIrConstrutor={() => { setModulo("invest"); setTab("construtor-mercado"); }} />
+      )}
+      {tab === "construtor-mercado" && (
+        <ConstrutorMercado
+          onIrPesquisador={() => { setModulo("invest"); setTab("pesquisador-mercado"); }}
+          onIrMonteCarteira={() => { setModulo("invest"); irParaTab("monte-carteira"); }}
+        />
       )}
       {tab === "simulador" && (
         <div className="px-6 md:px-10">
