@@ -3,7 +3,20 @@
 const BRAPI_BASE = "https://brapi.dev/api";
 
 function getToken() {
-  try { return localStorage.getItem("af4:brapi-token") || ""; } catch { return ""; }
+  try {
+    const direto = localStorage.getItem("af4:brapi-token");
+    if (direto) return direto;
+    // Fallback: o token também vive no blob de chaves sincronizado na conta
+    // (financas:apikeys:v1 → apiKeys.brapi). Se estiver só lá (aparelho novo,
+    // cache limpo), usa e regrava o espelho pra próxima leitura ser direta.
+    const blob = JSON.parse(localStorage.getItem("financas:apikeys:v1") || "null");
+    const doBlob = (blob?.brapi || "").trim();
+    if (doBlob) {
+      try { localStorage.setItem("af4:brapi-token", doBlob); } catch {}
+      return doBlob;
+    }
+    return "";
+  } catch { return ""; }
 }
 
 async function brapiFetch(path) {
