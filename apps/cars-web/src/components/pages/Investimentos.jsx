@@ -14,6 +14,7 @@ import Modal from "../ui/Modal.jsx";
 import PdfCarteira from "./Invest/PdfCarteira.jsx";
 import CarteiraSaude from "./Invest/CarteiraSaude.jsx";
 import { proventosPorCota12m } from "../../lib/mapaDividendos.js";
+import { proventosRecebidosPorTicker } from "../../lib/invest-utils.js";
 
 // Segmentos/setores sugeridos por tipo de ativo (B3 + padrões de mercado).
 // "Outros" libera input livre de texto.
@@ -54,7 +55,7 @@ const SEGMENTOS = {
   ],
 };
 
-export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, onRefresh, refreshing, onAnalisar, onProjetar, hidden }) {
+export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, carteiraProventos, onRefresh, refreshing, onAnalisar, onProjetar, hidden }) {
   const [form, setForm] = useState(null);
   const [aporteForm, setAporteForm] = useState(null);
   const [vendaForm, setVendaForm] = useState(null);
@@ -169,6 +170,14 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
     const porCota = proventosPorCota12m(proventosReais[(a.ticker || "").toUpperCase()]);
     return porCota > 0 ? (porCota / pm) * 100 : null;
   };
+
+  // Proventos REALMENTE recebidos por ticker (baixados na tela Proventos) —
+  // alimenta "Proventos acumulados" e "Rentabilidade com proventos" por
+  // posição, como no extrato da corretora.
+  const proventosPorTicker = useMemo(
+    () => proventosRecebidosPorTicker(carteiraProventos?.historico),
+    [carteiraProventos]
+  );
 
   // Quais segmentos estão colapsados (persistido em localStorage).
   const [collapsedSegs, setCollapsedSegs] = useState(() => {
@@ -739,6 +748,19 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                             <>{hidden ? "•••" : fmtMoedaAtivo(a, ganho)} · {fmtP(pct)}</>
                           )}
                         </div>
+                        {(() => {
+                          // Proventos acumulados (recebidos de verdade) + rentabilidade
+                          // com proventos — mesmo formato do extrato da corretora.
+                          const prov = proventosPorTicker[(a.ticker || "").toUpperCase()] || 0;
+                          if (!(prov > 0) || investido <= 0 || a.tipo === "capitalSocial") return null;
+                          const pctComProv = ((ganho + prov) / investido) * 100;
+                          return (
+                            <div className="num" title="Proventos recebidos (baixados em Proventos) · rentabilidade com proventos = (resultado + proventos) ÷ investido"
+                                 style={{ fontSize: 10, marginTop: 1, color: T.gold }}>
+                              prov {hidden ? "•••" : fmtMoedaAtivo(a, prov)} · c/ prov {fmtP(pctComProv)}
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="no-print" style={{ display: "flex", gap: 2 }}>
                         <button onClick={e => { e.stopPropagation(); setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" }); }}

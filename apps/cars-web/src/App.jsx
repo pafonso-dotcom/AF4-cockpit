@@ -1108,6 +1108,7 @@ export default function App() {
                          contas={contas} setContas={setContas}
                          categorias={categorias}
                          transacoes={transacoes} setTransacoes={setTransacoes}
+                         carteiraProventos={carteiraProventos}
                          onRefresh={refreshMarket} refreshing={refreshing}
                          onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
                          onProjetar={(ativo) => { setProjetarAlvo(ativo); setTab("projecao"); }}
