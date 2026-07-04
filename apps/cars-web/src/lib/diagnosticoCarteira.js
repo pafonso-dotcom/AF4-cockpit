@@ -89,7 +89,7 @@ ${ctx.benchmarks ? `Benchmarks reais dos últimos 12 meses: CDI ${ctx.benchmarks
 
 Avalie: concentração (por ativo, classe e segmento), qualidade dos fundamentos onde disponíveis, renda de dividendos (dyPct/yocPct), posições com resultado muito negativo, e o que falta pra uma carteira mais robusta. Seja específico — cite tickers e números dos dados.
 
-Responda APENAS um JSON válido, sem texto fora dele:
+Responda APENAS um JSON válido, sem texto fora dele. Seja conciso: NO MÁXIMO 4 pontosFortes, 5 riscos e 5 acoesSugeridas, cada frase com menos de 25 palavras (carteiras grandes: agrupe em vez de citar ativo por ativo):
 {
   "notaGeral": <0-100>,
   "classificacao": "<Frágil|Razoável|Boa|Excelente>",

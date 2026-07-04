@@ -1,6 +1,34 @@
 import { describe, it, expect } from "vitest";
-import { mesesDefault, inferirMesesDoHistorico, montarMapaDividendos, proventosPorCota12m, metaProventos } from "../mapaDividendos.js";
+import { mesesDefault, inferirMesesDoHistorico, montarMapaDividendos, proventosPorCota12m, metaProventos, rendaFixaMensal } from "../mapaDividendos.js";
 import { YIELDS_MENSAIS } from "../yields-base.js";
+
+describe("rendaFixaMensal", () => {
+  it("calcula juros mensais por ativo de renda fixa (tesouro/cdb/rf)", () => {
+    const ativos = [
+      { ticker: "TESOURO IPCA", tipo: "tesouro", qtd: 1, preco: 10000 },
+      { ticker: "CDB PICPAY", tipo: "cdb", qtd: 1, preco: 5000 },
+      { ticker: "HGLG11", tipo: "fii", qtd: 100, preco: 100 }, // não é RF — fora
+    ];
+    const r = rendaFixaMensal(ativos);
+    expect(r.porAtivo).toHaveLength(2);
+    expect(r.porAtivo[0].rendaMensal).toBeCloseTo(10000 * 0.0085, 4); // tesouro 0,85%
+    expect(r.porAtivo[1].rendaMensal).toBeCloseTo(5000 * 0.008, 4);   // cdb 0,80%
+    expect(r.total).toBeCloseTo(85 + 40, 4);
+  });
+  it("sem RF devolve zero", () => {
+    expect(rendaFixaMensal([]).total).toBe(0);
+    expect(rendaFixaMensal([{ ticker: "X", tipo: "fii", qtd: 1, preco: 100 }]).total).toBe(0);
+  });
+});
+
+describe("metaProventos com renda extra (juros)", () => {
+  it("soma a renda extra mensal na renda atual e no gap", () => {
+    const rows = [{ ticker: "K", tipo: "fii", valor: 12000, dy: 12, rendaAnual: 1440 }]; // 120/mês
+    const r = metaProventos({ rows, metaMensal: 500, rendaExtraMensal: 125 });
+    expect(r.rendaMensalAtual).toBeCloseTo(245, 2); // 120 proventos + 125 juros
+    expect(r.gapMensal).toBeCloseTo(255, 2);
+  });
+});
 
 describe("metaProventos", () => {
   const rows = [

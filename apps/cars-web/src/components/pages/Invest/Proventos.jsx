@@ -507,6 +507,24 @@ export default function Proventos({
                 {mostrarRecebidosAnteriores ? "Esconder" : "Mostrar"} recebidos anteriores ({totalRecebidosAnteriores})
               </button>
             )}
+            <button className="btn-ghost" style={{ fontSize: 11, opacity: carteiraProventos.saldo <= 0 ? 0.4 : 1 }}
+                    disabled={carteiraProventos.saldo <= 0}
+                    onClick={() => setTransferirForm({
+                      valor: carteiraProventos.saldo.toFixed(2),
+                      contaDestino: contas[0]?.nome || "",
+                    })}>
+              <ArrowUpRight size={12} className="inline mr-1" />
+              Transferir pra conta
+            </button>
+            <button className="btn-ghost" style={{ fontSize: 11, opacity: carteiraProventos.saldo <= 0 ? 0.4 : 1 }}
+                    disabled={carteiraProventos.saldo <= 0}
+                    onClick={() => setComprarForm({
+                      valor: carteiraProventos.saldo.toFixed(2),
+                      ativoId: ativos[0]?.id || "",
+                    })}>
+              <ShoppingCart size={12} className="inline mr-1" />
+              Reinvestir
+            </button>
             <button onClick={abrirNovoManual} className="btn-gold" style={{ fontSize: 11 }}>
               + Lançar manual
             </button>
@@ -514,104 +532,23 @@ export default function Proventos({
         }
       />
 
-      {/* CARD CARTEIRA DE PROVENTOS */}
-      <div style={{
-        background: `linear-gradient(135deg, ${T.gold}11, ${T.card})`,
-        border: `1px solid ${T.gold}55`,
-        borderLeft: `3px solid ${T.gold}`,
-        borderRadius: 18, padding: 16, marginBottom: 14,
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <div className="label-eyebrow" style={{ color: T.gold }}>
-              <Wallet size={11} className="inline mr-1" />
-              Carteira de Proventos
-            </div>
-            <div className="num" style={{
-              fontFamily: T.serif, fontSize: 32, color: T.ink, fontWeight: 600,
-              marginTop: 4, letterSpacing: "-0.02em",
-            }}>
-              {hidden ? "•••" : fmt(carteiraProventos.saldo)}
-            </div>
-            <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>
-              Total já recebido: <strong style={{ color: T.green }} className="num">
-                {hidden ? "•••" : fmt(totalRecebido)}
-              </strong>
-              {" · "}{(carteiraProventos.historico || []).filter(h => h.tipo === "recebimento").length} entradas
-            </div>
+      {/* Resumo em linha única: Carteira de Proventos junto dos KPIs
+          (pedido do usuário — antes o card grande empurrava tudo pra baixo). */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3" style={{ marginBottom: 14 }}>
+        <div style={{
+          background: `linear-gradient(135deg, ${T.gold}11, ${T.card})`,
+          border: `1px solid ${T.gold}55`, borderLeft: `3px solid ${T.gold}`,
+          borderRadius: 16, padding: "12px 14px",
+        }}>
+          <div className="label-eyebrow" style={{ color: T.gold }}>
+            <Wallet size={11} className="inline mr-1" />
+            Carteira de Proventos
           </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <button className="btn-ghost"
-                    disabled={carteiraProventos.saldo <= 0}
-                    onClick={() => setTransferirForm({
-                      valor: carteiraProventos.saldo.toFixed(2),
-                      contaDestino: contas[0]?.nome || "",
-                    })}
-                    style={{ opacity: carteiraProventos.saldo <= 0 ? 0.4 : 1 }}>
-              <ArrowUpRight size={13} className="inline mr-1.5" />
-              Transferir pra conta
-            </button>
-            <button className="btn-gold"
-                    disabled={carteiraProventos.saldo <= 0}
-                    onClick={() => setComprarForm({
-                      valor: carteiraProventos.saldo.toFixed(2),
-                      ativoId: ativos[0]?.id || "",
-                    })}
-                    style={{ opacity: carteiraProventos.saldo <= 0 ? 0.4 : 1 }}>
-              <ShoppingCart size={13} className="inline mr-1.5" />
-              Reinvestir
-            </button>
+          <div className="num" style={{ fontFamily: T.serif, fontSize: 24, color: T.ink, fontWeight: 600, marginTop: 4, letterSpacing: "-0.02em" }}>
+            {hidden ? "•••" : fmt(carteiraProventos.saldo)}
           </div>
+          <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>saldo acumulado pra usar</div>
         </div>
-
-        {/* Histórico colapsível */}
-        {(carteiraProventos.historico || []).length > 0 && (
-          <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${T.border}` }}>
-            <button onClick={() => setHistoricoAberto(!historicoAberto)}
-                    style={{
-                      background: "transparent", border: "none", color: T.muted,
-                      cursor: "pointer", padding: 0, fontSize: 11, fontWeight: 600,
-                      letterSpacing: ".05em", textTransform: "uppercase",
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                    }}>
-              {historicoAberto ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-              Histórico · {(carteiraProventos.historico || []).length} movimentação(ões)
-            </button>
-            {historicoAberto && (
-              <div style={{ marginTop: 8, maxHeight: 280, overflowY: "auto" }}>
-                {(carteiraProventos.historico || []).slice().reverse().map(h => {
-                  const positivo = h.valor > 0;
-                  return (
-                    <div key={h.id} style={{
-                      display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10,
-                      alignItems: "center",
-                      padding: "8px 10px", marginBottom: 4,
-                      background: T.bgSoft, borderRadius: 11,
-                      borderLeft: `2px solid ${positivo ? T.green : T.red}`,
-                    }}>
-                      <div style={{ fontSize: 10.5, color: T.muted, fontFamily: T.mono, minWidth: 56 }}>
-                        {h.data.slice(8, 10)}/{h.data.slice(5, 7)}
-                      </div>
-                      <div style={{ fontSize: 12, color: T.ink, minWidth: 0 }}>
-                        {h.descricao}
-                      </div>
-                      <div className="num" style={{
-                        fontSize: 13, fontWeight: 600,
-                        color: positivo ? T.green : T.red, whiteSpace: "nowrap",
-                      }}>
-                        {positivo ? "+ " : "− "}{hidden ? "•••" : fmt(Math.abs(h.valor))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3" style={{ marginBottom: 14 }}>
         <Kpi
           label="Pendentes este mês"
           valor={hidden ? "•••" : fmt(totalMes)}
@@ -631,6 +568,51 @@ export default function Proventos({
           cor={T.green}
         />
       </div>
+
+      {/* Histórico da carteira de proventos (colapsível) */}
+      {(carteiraProventos.historico || []).length > 0 && (
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 14px", marginBottom: 14 }}>
+          <button onClick={() => setHistoricoAberto(!historicoAberto)}
+                  style={{
+                    background: "transparent", border: "none", color: T.muted,
+                    cursor: "pointer", padding: 0, fontSize: 11, fontWeight: 600,
+                    letterSpacing: ".05em", textTransform: "uppercase",
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                  }}>
+            {historicoAberto ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            Histórico · {(carteiraProventos.historico || []).length} movimentação(ões)
+          </button>
+          {historicoAberto && (
+            <div style={{ marginTop: 8, maxHeight: 280, overflowY: "auto" }}>
+              {(carteiraProventos.historico || []).slice().reverse().map(h => {
+                const positivo = h.valor > 0;
+                return (
+                  <div key={h.id} style={{
+                    display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10,
+                    alignItems: "center",
+                    padding: "8px 10px", marginBottom: 4,
+                    background: T.bgSoft, borderRadius: 11,
+                    borderLeft: `2px solid ${positivo ? T.green : T.red}`,
+                  }}>
+                    <div style={{ fontSize: 10.5, color: T.muted, fontFamily: T.mono, minWidth: 56 }}>
+                      {h.data.slice(8, 10)}/{h.data.slice(5, 7)}
+                    </div>
+                    <div style={{ fontSize: 12, color: T.ink, minWidth: 0 }}>
+                      {h.descricao}
+                    </div>
+                    <div className="num" style={{
+                      fontSize: 13, fontWeight: 600,
+                      color: positivo ? T.green : T.red, whiteSpace: "nowrap",
+                    }}>
+                      {positivo ? "+ " : "− "}{hidden ? "•••" : fmt(Math.abs(h.valor))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* CALENDÁRIO */}
       {porMes.length === 0 ? (

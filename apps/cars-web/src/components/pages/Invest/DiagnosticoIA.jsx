@@ -43,8 +43,18 @@ export default function DiagnosticoIA({ ativos = [], hidden }) {
     if (!ativos.length) { toast.info("Adicione ativos à carteira primeiro."); return; }
     setRodando(true);
     try {
-      const parsed = await gerarJSONGemini(montarPromptDiagnostico(contexto), { temperature: 0.3, maxOutputTokens: 4096 });
-      if (!parsed || typeof parsed.notaGeral !== "number") throw new Error("A IA não retornou um diagnóstico válido. Tente de novo.");
+      // Carteiras grandes (20+ posições) geram respostas longas — orçamento
+      // folgado de saída e 1 retentativa automática se o JSON vier malformado.
+      const prompt = montarPromptDiagnostico(contexto);
+      let parsed = null, ultimoErro = null;
+      for (let tent = 0; tent < 2 && !parsed; tent++) {
+        try {
+          const r = await gerarJSONGemini(prompt, { temperature: 0.3, maxOutputTokens: 16384 });
+          if (r && typeof r.notaGeral === "number") parsed = r;
+          else ultimoErro = new Error("A IA não retornou um diagnóstico válido.");
+        } catch (e) { ultimoErro = e; }
+      }
+      if (!parsed) throw ultimoErro || new Error("A IA não retornou um diagnóstico válido. Tente de novo.");
       const novo = { ...parsed, geradoEm: new Date().toISOString(), posicoes: contexto.totais.posicoes };
       setResultado(novo);
       try { localStorage.setItem(KEY_ULTIMO, JSON.stringify(novo)); } catch {}
