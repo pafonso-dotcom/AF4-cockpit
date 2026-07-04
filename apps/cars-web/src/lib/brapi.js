@@ -26,9 +26,20 @@ async function brapiFetch(path) {
   const r = await fetch(`${BRAPI_BASE}${path}${sep}token=${encodeURIComponent(token)}`);
   if (!r.ok) {
     const err = await r.text();
-    if (r.status === 401 || r.status === 403) throw new Error("Token BRAPI inválido. Verifique em ⚙ Configurações.");
-    if (r.status === 429) throw new Error("Limite mensal BRAPI atingido (1.000 req/mês free). Reseta dia 1.");
-    throw new Error(`BRAPI ${r.status}: ${err.slice(0, 150)}`);
+    // A brapi manda a razão no corpo (JSON { message } ou texto). 401/403 pode
+    // ser token inválido OU recurso fora do plano (ex.: ?dividends=true é pago
+    // em alguns planos) — mostrar a mensagem real em vez de culpar o token.
+    let msg = "";
+    try { msg = JSON.parse(err)?.message || ""; } catch { msg = err; }
+    msg = String(msg || "").slice(0, 180);
+    if (r.status === 401 || r.status === 403) {
+      if (/plan|plano|upgrade|assinatura|subscription|not (available|allowed)|não (está )?dispon/i.test(msg)) {
+        throw new Error(`Recurso fora do seu plano brapi: ${msg} (a lista de cotações continua funcionando; histórico de dividendos pode exigir plano pago em brapi.dev/pricing).`);
+      }
+      throw new Error(`BRAPI recusou o acesso (${r.status})${msg ? `: ${msg}` : ""}. Confira o token em ⚙ Configurações → APIs.`);
+    }
+    if (r.status === 429) throw new Error("Limite de requisições da BRAPI atingido. Aguarde ou confira sua cota em brapi.dev.");
+    throw new Error(`BRAPI ${r.status}: ${msg || err.slice(0, 150)}`);
   }
   return r.json();
 }

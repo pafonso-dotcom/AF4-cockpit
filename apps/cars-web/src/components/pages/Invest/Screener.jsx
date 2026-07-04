@@ -83,7 +83,9 @@ export default function Screener({ hidden }) {
         if (divs.length) { porTicker[tk] = divs.map((d) => ({ pagamento: d.pagamento, valor: d.valor })); ok++; }
         else { porTicker[tk] = []; semDados++; } // marca como consultado, sem repetir a req
       } catch (e) {
-        if (/token/i.test(e.message || "")) { toast.error(e.message); setBuscandoDY(false); return; }
+        // Erro de credencial/plano vale pra todos os tickers — aborta na hora
+        // em vez de queimar as requisições restantes no mesmo erro.
+        if (/token|plano|recusou/i.test(e.message || "")) { toast.error(e.message); setBuscandoDY(false); return; }
         semDados++;
       }
     }
@@ -211,7 +213,7 @@ export default function Screener({ hidden }) {
           <Sparkles size={13} className={iaRodando ? "spin" : ""} /> Analisar top 15
         </button>
         <button type="button" onClick={() => buscarDYTopN(20)} disabled={buscandoDY || !filtrada.length}
-                title="Busca os proventos anunciados dos 20 primeiros papéis filtrados e calcula o DY 12m real (1 requisição brapi POR papel; fica em cache e alimenta também o Mapa de Dividendos)"
+                title="Busca os proventos anunciados dos 20 primeiros papéis filtrados e calcula o DY 12m real (1 requisição brapi POR papel; fica em cache e alimenta também o Mapa de Dividendos). Atenção: o histórico de dividendos pode não estar incluso no plano free da brapi."
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.green}`, color: T.green, borderRadius: 10, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: buscandoDY ? "wait" : "pointer", opacity: !filtrada.length ? 0.5 : 1 }}>
           <RefreshCw size={13} className={buscandoDY ? "spin" : ""} /> {buscandoDY ? "Buscando…" : "Buscar DY (top 20)"}
         </button>

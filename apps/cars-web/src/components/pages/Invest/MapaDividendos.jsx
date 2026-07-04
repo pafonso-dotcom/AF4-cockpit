@@ -58,7 +58,8 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
         if (divs.length) { porTicker[tk] = divs.map((d) => ({ pagamento: d.pagamento, valor: d.valor })); ok++; }
       } catch (e) {
         falhas++;
-        if (falhas === 1 && /token/i.test(e.message || "")) {
+        // Erro de credencial/plano vale pra todos — aborta em vez de repetir.
+        if (falhas === 1 && /token|plano|recusou/i.test(e.message || "")) {
           toast.error(e.message);
           setBuscandoReal(false);
           return;
