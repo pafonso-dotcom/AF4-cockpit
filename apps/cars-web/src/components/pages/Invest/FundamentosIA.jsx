@@ -1,8 +1,10 @@
 import React, { useMemo, useState, useCallback } from "react";
-import { Award, Pencil, Plus, X, Sparkles, Trash2, BookOpen } from "lucide-react";
+import { Award, Pencil, Plus, X, Sparkles, Trash2, BookOpen, Database } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { toast } from "../../../lib/toast.js";
 import { CRITERIOS_FII, CRITERIOS_ACOES, CRITERIOS_STOCK, CRITERIOS_REIT } from "../../../lib/criteriosIdV.js";
+import { getFundamentosBrapi } from "../../../lib/brapi.js";
+import { mapearFundamentosBrapi } from "../../../lib/fundamentosBrapi.js";
 import {
   classificar, classeDoAtivo, carregarFundamentos, salvarFundamento,
   removerFundamento, analisarComIA, carregarMetodologia, salvarMetodologia,
@@ -200,8 +202,26 @@ function EditarFundamento({ edit, setEdit, onMudou }) {
   const criterios = CRIT[edit.classe] || [];
   const [salvando, setSalvando] = useState(false);
   const [analisando, setAnalisando] = useState(false);
+  const [buscandoBrapi, setBuscandoBrapi] = useState(false);
   const set = (k, v) => setEdit(e => ({ ...e, [k]: v }));
   const setDado = (id, v) => setEdit(e => ({ ...e, dados: { ...e.dados, [id]: v } }));
+
+  // Dados OFICIAIS da brapi — sobrescrevem os campos que a API traz (ROE,
+  // margens, dívida/EBITDA, DY, PL, liquidez); o resto continua manual/IA.
+  const buscarBrapi = async () => {
+    const ticker = String(edit.ticker || "").toUpperCase().trim();
+    if (!ticker) { toast.error("Informe o ticker antes de buscar."); return; }
+    setBuscandoBrapi(true);
+    try {
+      const raw = await getFundamentosBrapi(ticker);
+      const { dados, preenchidos } = mapearFundamentosBrapi(raw, edit.classe);
+      if (!preenchidos) throw new Error("A brapi não devolveu fundamentos pra esse ticker (confira o ticker e se seu plano inclui os módulos fundamentalistas).");
+      setEdit(e => ({ ...e, nome: e.nome || raw?.longName || raw?.shortName || "", dados: { ...e.dados, ...dados } }));
+      toast.success(`${preenchidos} ${preenchidos === 1 ? "indicador oficial" : "indicadores oficiais"} da brapi preenchidos. Revise e salve.`);
+    } catch (e) {
+      toast.error(e.message || "Falha ao buscar na brapi.");
+    } finally { setBuscandoBrapi(false); }
+  };
 
   const analisar = async () => {
     const ticker = String(edit.ticker || "").toUpperCase().trim();
@@ -272,10 +292,18 @@ function EditarFundamento({ edit, setEdit, onMudou }) {
         </div>
 
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between", marginTop: 16, flexWrap: "wrap" }}>
-          <button onClick={analisar} disabled={analisando}
-                  style={{ ...btnGhost(), borderColor: T.gold, color: T.gold, display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <Sparkles size={14} /> {analisando ? "Analisando…" : "Analisar com IA"}
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={buscarBrapi} disabled={buscandoBrapi}
+                    title="Preenche ROE, margens, dívida/EBITDA, DY, patrimônio e liquidez com os números OFICIAIS da brapi (requer plano com fundamentos)"
+                    style={{ ...btnGhost(), borderColor: T.green, color: T.green, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Database size={14} /> {buscandoBrapi ? "Buscando…" : "Dados reais (brapi)"}
+            </button>
+            <button onClick={analisar} disabled={analisando}
+                    title="A IA estima os indicadores que a brapi não traz (tag along, anos de lucro, segmento de listagem…)"
+                    style={{ ...btnGhost(), borderColor: T.gold, color: T.gold, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Sparkles size={14} /> {analisando ? "Analisando…" : "Analisar com IA"}
+            </button>
+          </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setEdit(null)} style={btnGhost()}>Cancelar</button>
             <button onClick={salvar} disabled={salvando} style={btnGold()}>{salvando ? "Salvando…" : "Salvar"}</button>

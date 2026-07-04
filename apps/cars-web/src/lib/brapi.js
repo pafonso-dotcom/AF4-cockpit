@@ -106,6 +106,16 @@ export async function getListaMercado() {
   return brapiFetch("/quote/list?limit=3000");
 }
 
+/**
+ * Fundamentos oficiais de um ticker (P/L, ROE, margens, dívida, DY etc.).
+ * Requer plano brapi com módulos fundamentalistas. Retorna results[0] cru —
+ * o mapeamento pros critérios IdV fica em lib/fundamentosBrapi.js.
+ */
+export async function getFundamentosBrapi(ticker) {
+  const data = await brapiFetch(`/quote/${encodeURIComponent(ticker)}?modules=defaultKeyStatistics,financialData&fundamental=true`);
+  return data.results?.[0] || null;
+}
+
 export async function getIndices() {
   try {
     const data = await brapiFetch("/quote/list?type=index");
