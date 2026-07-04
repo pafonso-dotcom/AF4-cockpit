@@ -222,8 +222,15 @@ export const stressTest = (ativos) => {
 };
 
 /**
- * Calendário de proventos simulado para os próximos 90 dias.
- * Cada ativo tipo "acao" ou "fii" gera 1 provento por mês.
+ * Calendário de proventos para os próximos ~90 dias.
+ *
+ * Com `historicoReal` (proventos anunciados via brapi — o mesmo cache do Mapa
+ * de Dividendos/Screener), o calendário fica REAL:
+ *   - pagamentos anunciados na janela entram com a cota exata (flag real);
+ *   - FII sem anúncio num mês é projetado com a ÚLTIMA cota real, no mesmo
+ *     dia do último pagamento (flag estimado) — "cota atualizada";
+ *   - ação com histórico só mostra anunciados (dividendo de ação é irregular).
+ * Sem histórico real do ticker, cai na simulação legada (pseudoRandom).
  */
 // Pseudo-random determinístico baseado em string (mesma seed = mesmo resultado)
 function pseudoRandom(seed) {
@@ -233,8 +240,18 @@ function pseudoRandom(seed) {
   return ((h * 9301 + 49297) % 233280) / 233280;
 }
 
-export const calendarioProventos = (ativos, hoje = new Date()) => {
+const isoDe = (y, mIdx, d) => {
+  const ultDia = new Date(y, mIdx + 1, 0).getDate();
+  const dia = Math.min(d, ultDia);
+  return `${y}-${String(mIdx + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+};
+
+export const calendarioProventos = (ativos, hoje = new Date(), historicoReal = {}) => {
   const proventos = [];
+  // Janela: do 1º dia do mês corrente até ~90 dias à frente.
+  const inicioISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
+  const fim = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 92);
+  const fimISO = fim.toISOString().slice(0, 10);
 
   ativos.forEach(a => {
     const tipo = (a.tipo || "").toLowerCase();
@@ -244,8 +261,58 @@ export const calendarioProventos = (ativos, hoje = new Date()) => {
     const preco = Number(a.preco || 0);
     if (qtd <= 0 || preco <= 0) return;
 
+    const tk = String(a.ticker || "").toUpperCase();
+    const divs = (historicoReal[tk] || []).filter(d => d && d.pagamento && Number(d.valor) > 0);
+
+    // ===== Caminho REAL (proventos anunciados via brapi) =====
+    if (divs.length > 0) {
+      const tipoProv = tipo === "fii" ? "Rendimento" : "Dividendo";
+      const ordenados = [...divs].sort((x, y) => y.pagamento.localeCompare(x.pagamento));
+      const mesesComAnuncio = new Set();
+
+      ordenados.forEach(d => {
+        if (d.pagamento < inicioISO || d.pagamento > fimISO) return;
+        mesesComAnuncio.add(d.pagamento.slice(0, 7));
+        proventos.push({
+          id: `${tk}-${d.pagamento}-${tipoProv}`,
+          data: d.pagamento,
+          ticker: tk,
+          tipo: tipoProv,
+          valorPorCota: Number(d.valor),
+          qtd,
+          total: Number(d.valor) * qtd,
+          real: true,
+        });
+      });
+
+      // FII paga todo mês: projeta os meses da janela ainda sem anúncio com a
+      // última cota real, no mesmo dia do último pagamento.
+      if (tipo === "fii") {
+        const ultimo = ordenados[0];
+        const cota = Number(ultimo.valor);
+        const diaPagto = Number(ultimo.pagamento.slice(8, 10)) || 15;
+        for (let m = 0; m < 3; m++) {
+          const ym = `${new Date(hoje.getFullYear(), hoje.getMonth() + m, 1).getFullYear()}-${String(new Date(hoje.getFullYear(), hoje.getMonth() + m, 1).getMonth() + 1).padStart(2, "0")}`;
+          if (mesesComAnuncio.has(ym)) continue;
+          const dataISO = isoDe(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)) - 1, diaPagto);
+          if (dataISO > fimISO) continue;
+          proventos.push({
+            id: `${tk}-${dataISO}-${tipoProv}`,
+            data: dataISO,
+            ticker: tk,
+            tipo: tipoProv,
+            valorPorCota: cota,
+            qtd,
+            total: cota * qtd,
+            estimado: true, // projeção com a última cota real
+          });
+        }
+      }
+      return;
+    }
+
+    // ===== Caminho legado (sem histórico real): simulação =====
     // FII: rendimento ~ 0,7-1,2% ao mês. Ação: dividendo ~ 0,5-1,5% (trimestral).
-    // Usa pseudoRandom estável (mesma seed = mesmo valor a cada render)
     let valorPorCota = 0;
     let frequencia = 1;
     let tipoProv = "";

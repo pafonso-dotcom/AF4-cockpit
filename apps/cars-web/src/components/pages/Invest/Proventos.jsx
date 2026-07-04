@@ -52,8 +52,40 @@ export default function Proventos({
   // Recebidos de meses anteriores somem por padrão (ficam só pra consulta).
   const [mostrarRecebidosAnteriores, setMostrarRecebidosAnteriores] = useState(false);
   const [manualForm, setManualForm] = useState(null);
+
+  // Proventos ANUNCIADOS de verdade (brapi) — mesmo cache do Mapa de
+  // Dividendos/Screener. Com ele, o calendário usa a cota real anunciada
+  // (flag real) e projeta FIIs com a última cota (flag estimado).
+  const [provReais, setProvReais] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("af4:mapa-div:proventos-brapi:v1") || "null")?.porTicker || {}; } catch { return {}; }
+  });
+  const [buscandoReais, setBuscandoReais] = useState(false);
+  async function atualizarCotasReais() {
+    const tickers = [...new Set(
+      (ativos || []).filter(a => ["acao", "fii"].includes((a.tipo || "").toLowerCase()) && Number(a.qtd) > 0)
+        .map(a => (a.ticker || "").toUpperCase()).filter(Boolean)
+    )];
+    if (!tickers.length) { toast.info("Nenhuma ação/FII na carteira."); return; }
+    setBuscandoReais(true);
+    const { getDividendos } = await import("../../../lib/brapi.js");
+    const porTicker = { ...provReais };
+    let ok = 0;
+    for (const tk of tickers) {
+      try {
+        const divs = await getDividendos(tk);
+        if (divs.length) { porTicker[tk] = divs.map(d => ({ pagamento: d.pagamento, valor: d.valor })); ok++; }
+      } catch (e) {
+        if (/token|plano|recusou/i.test(e.message || "")) { toast.error(e.message); setBuscandoReais(false); return; }
+      }
+    }
+    setProvReais(porTicker);
+    try { localStorage.setItem("af4:mapa-div:proventos-brapi:v1", JSON.stringify({ atualizadoEm: new Date().toISOString(), porTicker })); } catch {}
+    setBuscandoReais(false);
+    toast.success(`Cotas reais atualizadas: ${ok} de ${tickers.length} ativos.`);
+  }
+
   const proventos = useMemo(() => {
-    const auto = calendarioProventos(ativos);
+    const auto = calendarioProventos(ativos, new Date(), provReais);
     const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
     const todos = [...auto, ...manuais].sort((a, b) => (a.data || "").localeCompare(b.data || ""));
     const mesKey = new Date().toISOString().slice(0, 7);
@@ -63,18 +95,18 @@ export default function Proventos({
       lista = lista.filter(p => !(proventosRecebidos[p.id] && String(p.data || "").slice(0, 7) < mesKey));
     }
     return lista;
-  }, [ativos, proventosIgnorados, mostrarIgnorados, proventosManuais, proventosRecebidos, mostrarRecebidosAnteriores]);
+  }, [ativos, provReais, proventosIgnorados, mostrarIgnorados, proventosManuais, proventosRecebidos, mostrarRecebidosAnteriores]);
   const totalRecebidosAnteriores = useMemo(() => {
-    const auto = calendarioProventos(ativos);
+    const auto = calendarioProventos(ativos, new Date(), provReais);
     const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
     const mesKey = new Date().toISOString().slice(0, 7);
     return [...auto, ...manuais].filter(p => proventosRecebidos[p.id] && String(p.data || "").slice(0, 7) < mesKey).length;
-  }, [ativos, proventosManuais, proventosRecebidos]);
+  }, [ativos, provReais, proventosManuais, proventosRecebidos]);
   const totalIgnorados = useMemo(() => {
-    const auto = calendarioProventos(ativos);
+    const auto = calendarioProventos(ativos, new Date(), provReais);
     const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
     return [...auto, ...manuais].filter(p => proventosIgnorados[p.id]).length;
-  }, [ativos, proventosIgnorados, proventosManuais]);
+  }, [ativos, provReais, proventosIgnorados, proventosManuais]);
 
   const [baixaForm, setBaixaForm] = useState(null);
   const [transferirForm, setTransferirForm] = useState(null);
@@ -459,6 +491,10 @@ export default function Proventos({
         sub="Dividendos, JCP e rendimentos previstos + carteira virtual pra acumular ou reinvestir."
         action={
           <div className="flex gap-2 flex-wrap">
+            <button onClick={atualizarCotasReais} disabled={buscandoReais} className="btn-gold" style={{ fontSize: 11 }}
+                    title="Busca na brapi os proventos anunciados de cada ativo — o calendário passa a usar a cota real (e projeta FIIs com a última cota anunciada)">
+              {buscandoReais ? "Buscando…" : "⟳ Atualizar cotas reais"}
+            </button>
             {totalIgnorados > 0 && (
               <button onClick={() => setMostrarIgnorados(v => !v)} className="btn-ghost"
                       style={{ fontSize: 11 }}>
@@ -645,6 +681,26 @@ export default function Proventos({
                                   letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700,
                                 }}>
                             Manual
+                          </span>
+                        )}
+                        {p.real && (
+                          <span title="Provento anunciado — data e cota oficiais (brapi)"
+                                style={{
+                                  marginLeft: 6, fontSize: 8.5, padding: "1px 5px", borderRadius: 3,
+                                  background: `${T.green}33`, color: T.green,
+                                  letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700,
+                                }}>
+                            Real
+                          </span>
+                        )}
+                        {p.estimado && (
+                          <span title="Projeção com a última cota real anunciada (o mês ainda não tem anúncio)"
+                                style={{
+                                  marginLeft: 6, fontSize: 8.5, padding: "1px 5px", borderRadius: 3,
+                                  background: `${T.border}`, color: T.muted,
+                                  letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700,
+                                }}>
+                            Projeção
                           </span>
                         )}
                       </Td>
