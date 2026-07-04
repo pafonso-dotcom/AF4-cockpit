@@ -6,11 +6,12 @@ import { toast } from "../../../lib/toast.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import { carregarFundamentos } from "../../../lib/fundamentosLocal.js";
 import { getDividendos } from "../../../lib/brapi.js";
-import { montarMapaDividendos, MESES_PT } from "../../../lib/mapaDividendos.js";
+import { montarMapaDividendos, metaProventos, MESES_PT } from "../../../lib/mapaDividendos.js";
 
 const KEY_OV = "af4:mapa-div:overrides:v1";
 const KEY_CAND = "af4:mapa-div:candidatos:v1";
 const KEY_REAL = "af4:mapa-div:proventos-brapi:v1";
+const KEY_META = "af4:mapa-div:meta-mensal:v1";
 const CARD = { background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16 };
 const TIPOS = [{ v: "acao", l: "Ação" }, { v: "fii", l: "FII" }, { v: "stock", l: "Stock (US)" }, { v: "reit", l: "REIT (US)" }];
 
@@ -40,6 +41,19 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
   const mapa = useMemo(
     () => montarMapaDividendos({ ativos, candidatos, overrides, proventosManuais, fundamentos, historicoReal: realCache?.porTicker || {} }),
     [ativos, candidatos, overrides, proventosManuais, fundamentos, realCache]
+  );
+
+  // ===== Calculadora de meta de renda mensal =====
+  const [metaMensal, setMetaMensal] = useState(() => { try { return Number(localStorage.getItem(KEY_META)) || 0; } catch { return 0; } });
+  useEffect(() => { try { localStorage.setItem(KEY_META, String(metaMensal || 0)); } catch {} }, [metaMensal]);
+  const precosPorTicker = useMemo(() => {
+    const m = {};
+    (ativos || []).forEach((a) => { const p = Number(a.preco); if (p > 0) m[(a.ticker || "").toUpperCase()] = p; });
+    return m;
+  }, [ativos]);
+  const meta = useMemo(
+    () => metaProventos({ rows: mapa.rows, metaMensal, precos: precosPorTicker }),
+    [mapa.rows, metaMensal, precosPorTicker]
   );
 
   // Busca o histórico real de proventos na brapi pra cada ativo pagador da
@@ -146,6 +160,71 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
             <div style={{ fontSize: 10.5, color: T.faint, marginTop: 2 }}>{mapa.lacunas.map((m) => MESES_PT[m]).join(", ")}</div>
           )}
         </div>
+      </div>
+
+      {/* ===== Calculadora de meta de proventos ===== */}
+      <div style={{ ...CARD, marginTop: 12, borderLeft: `3px solid ${T.gold}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 220px" }}>
+            <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
+              🎯 Meta de renda mensal
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+              <span style={{ fontSize: 13, color: T.muted }}>R$</span>
+              <input value={metaMensal || ""} onChange={(e) => setMetaMensal(Number(e.target.value) || 0)}
+                     placeholder="Ex.: 2000" inputMode="numeric"
+                     style={{ width: 130, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.ink, fontSize: 15, fontWeight: 700, fontFamily: "inherit" }} />
+              <span style={{ fontSize: 12, color: T.faint }}>/mês</span>
+            </div>
+          </div>
+          {metaMensal > 0 && (
+            <div style={{ flex: "2 1 300px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
+                <span style={{ color: T.muted }}>
+                  Sua carteira gera <b style={{ color: T.green }}>{oculto(fmt(meta.rendaMensalAtual), hidden)}</b>/mês
+                </span>
+                <span style={{ color: meta.atingida ? T.green : T.ink, fontWeight: 700 }}>
+                  {meta.atingida ? "Meta atingida! 🎉" : `falta ${oculto(fmt(meta.gapMensal), hidden)}`}
+                </span>
+              </div>
+              <div style={{ height: 10, borderRadius: 100, background: T.bgSoft, border: `1px solid ${T.border}`, overflow: "hidden" }}>
+                <div style={{ width: `${meta.pctAtingido}%`, height: "100%", background: meta.atingida ? T.green : T.gold, transition: "width .3s ease" }} />
+              </div>
+              <div style={{ fontSize: 10.5, color: T.faint, marginTop: 4 }}>{meta.pctAtingido.toFixed(0)}% da meta</div>
+            </div>
+          )}
+        </div>
+
+        {metaMensal > 0 && !meta.atingida && meta.sugestoes.length > 0 && (
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${T.border}` }}>
+            <div style={{ fontSize: 11, color: T.muted, marginBottom: 8 }}>
+              Quanto aportar pra fechar a meta <b>usando só aquele ativo</b> (DY maior = menos aporte — combine ativos pra diversificar):
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 8 }}>
+              {meta.sugestoes.slice(0, 8).map((s) => (
+                <div key={s.ticker} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "9px 11px" }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                    <b style={{ color: T.ink, fontSize: 13 }}>{s.ticker}</b>
+                    {s.candidato && <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 4, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase" }}>plano</span>}
+                    {s.real && <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 4, background: `${T.green}22`, color: T.green, fontWeight: 700, textTransform: "uppercase" }}>real</span>}
+                    <span style={{ marginLeft: "auto", fontSize: 11.5, color: T.green, fontWeight: 700 }}>{s.dy.toFixed(1)}%</span>
+                  </div>
+                  <div className="num" style={{ fontSize: 14, fontWeight: 700, color: T.gold, marginTop: 3 }}>
+                    {oculto(fmt(s.aporteNecessario), hidden)}
+                  </div>
+                  <div style={{ fontSize: 10, color: T.faint }}>
+                    {s.cotas ? `≈ ${s.cotas.toLocaleString("pt-BR")} cotas a ${fmt(s.preco)}` : "aporte adicional necessário"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {metaMensal > 0 && !meta.atingida && meta.sugestoes.length === 0 && (
+          <div style={{ marginTop: 12, fontSize: 12, color: T.faint, fontStyle: "italic" }}>
+            Sem ativos com DY conhecido pra sugerir — use "Atualizar proventos reais" ou adicione candidatos com DY abaixo.
+          </div>
+        )}
       </div>
 
       {/* Grade Ativo × Mês */}
