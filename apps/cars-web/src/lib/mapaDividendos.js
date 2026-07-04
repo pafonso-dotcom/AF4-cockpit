@@ -160,6 +160,25 @@ export function montarMapaDividendos({ ativos = [], candidatos = [], overrides =
 }
 
 /**
+ * Juros mensais estimados dos ativos de RENDA FIXA (tesouro/CDB/RF) —
+ * valor da posição × yield mensal da classe (lib/yields-base). Completa a
+ * calculadora de meta: proventos (RV) + juros (RF) = renda mensal total.
+ */
+export function rendaFixaMensal(ativos = []) {
+  const RF = ["tesouro", "cdb", "rf"];
+  const porAtivo = (ativos || [])
+    .filter((a) => a && RF.includes(String(a.tipo || "").toLowerCase()))
+    .map((a) => {
+      const valor = (Number(a.qtd) || 0) * (Number(a.preco) || 0);
+      const rendaMensal = valor * (YIELDS_MENSAIS[String(a.tipo).toLowerCase()] ?? 0);
+      return { ticker: norm(a.ticker || a.nome || "RF"), tipo: a.tipo, valor, rendaMensal };
+    })
+    .filter((x) => x.rendaMensal > 0)
+    .sort((x, y) => y.rendaMensal - x.rendaMensal);
+  return { porAtivo, total: porAtivo.reduce((s, x) => s + x.rendaMensal, 0) };
+}
+
+/**
  * Calculadora de meta de proventos: quanto a carteira gera por mês, quanto
  * falta pra meta, e o aporte necessário POR ATIVO (carteira + candidatos) pra
  * fechar o gap sozinho — quem tem DY maior precisa de menos aporte.
@@ -168,9 +187,9 @@ export function montarMapaDividendos({ ativos = [], candidatos = [], overrides =
  * @param {number} p.metaMensal  renda mensal desejada (R$)
  * @param {object} [p.precos]    { [TICKER]: preço por cota } — pra converter aporte em cotas
  */
-export function metaProventos({ rows = [], metaMensal = 0, precos = {} } = {}) {
+export function metaProventos({ rows = [], metaMensal = 0, precos = {}, rendaExtraMensal = 0 } = {}) {
   const rendaAnualTotal = rows.reduce((s, r) => s + (Number(r.rendaAnual) || 0), 0);
-  const rendaMensalAtual = rendaAnualTotal / 12;
+  const rendaMensalAtual = rendaAnualTotal / 12 + (Number(rendaExtraMensal) || 0);
   const meta = Number(metaMensal) || 0;
 
   if (meta <= 0) {

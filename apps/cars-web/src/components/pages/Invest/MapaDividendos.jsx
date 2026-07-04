@@ -6,7 +6,7 @@ import { toast } from "../../../lib/toast.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import { carregarFundamentos } from "../../../lib/fundamentosLocal.js";
 import { getDividendos } from "../../../lib/brapi.js";
-import { montarMapaDividendos, metaProventos, MESES_PT } from "../../../lib/mapaDividendos.js";
+import { montarMapaDividendos, metaProventos, rendaFixaMensal, MESES_PT } from "../../../lib/mapaDividendos.js";
 
 const KEY_OV = "af4:mapa-div:overrides:v1";
 const KEY_CAND = "af4:mapa-div:candidatos:v1";
@@ -51,10 +51,20 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
     (ativos || []).forEach((a) => { const p = Number(a.preco); if (p > 0) m[(a.ticker || "").toUpperCase()] = p; });
     return m;
   }, [ativos]);
+  // Juros da renda fixa (tesouro/CDB) entram no total mensal da calculadora.
+  const rf = useMemo(() => rendaFixaMensal(ativos), [ativos]);
   const meta = useMemo(
-    () => metaProventos({ rows: mapa.rows, metaMensal, precos: precosPorTicker }),
-    [mapa.rows, metaMensal, precosPorTicker]
+    () => metaProventos({ rows: mapa.rows, metaMensal, precos: precosPorTicker, rendaExtraMensal: rf.total }),
+    [mapa.rows, metaMensal, precosPorTicker, rf.total]
   );
+  // Renda mensal por ativo HOJE: proventos (grade) + juros (RF), maior primeiro.
+  const rendaPorAtivoHoje = useMemo(() => {
+    const divs = mapa.rows
+      .filter((r) => !r.candidato && r.rendaAnual > 0)
+      .map((r) => ({ ticker: r.ticker, tipo: r.tipo, rendaMensal: r.rendaAnual / 12, origem: r.real ? "real" : "estimado" }));
+    const juros = rf.porAtivo.map((x) => ({ ticker: x.ticker, tipo: x.tipo, rendaMensal: x.rendaMensal, origem: "juros" }));
+    return [...divs, ...juros].sort((a, b) => b.rendaMensal - a.rendaMensal);
+  }, [mapa.rows, rf.porAtivo]);
 
   // Busca o histórico real de proventos na brapi pra cada ativo pagador da
   // carteira (1 requisição por ticker — por isso é manual, não automático).
@@ -182,6 +192,11 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
                 <span style={{ color: T.muted }}>
                   Sua carteira gera <b style={{ color: T.green }}>{oculto(fmt(meta.rendaMensalAtual), hidden)}</b>/mês
+                  {rf.total > 0 && (
+                    <span style={{ color: T.faint, fontSize: 11 }}>
+                      {" "}(proventos {oculto(fmt(meta.rendaMensalAtual - rf.total), hidden)} + juros RF {oculto(fmt(rf.total), hidden)})
+                    </span>
+                  )}
                 </span>
                 <span style={{ color: meta.atingida ? T.green : T.ink, fontWeight: 700 }}>
                   {meta.atingida ? "Meta atingida! 🎉" : `falta ${oculto(fmt(meta.gapMensal), hidden)}`}
@@ -194,6 +209,29 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
             </div>
           )}
         </div>
+
+        {/* Renda mensal por ativo HOJE — proventos + juros, maior primeiro */}
+        {rendaPorAtivoHoje.length > 0 && (
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${T.border}` }}>
+            <div style={{ fontSize: 11, color: T.muted, marginBottom: 8 }}>
+              O que cada ativo gera por mês <b>hoje</b>:
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {rendaPorAtivoHoje.map((x) => (
+                <span key={`${x.ticker}-${x.origem}`}
+                      title={x.origem === "juros" ? "Juros estimados (renda fixa)" : x.origem === "real" ? "Proventos reais (últimos 12 meses)" : "Proventos estimados por DY"}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 999, padding: "4px 11px", fontSize: 11.5 }}>
+                  <b style={{ color: T.ink }}>{x.ticker}</b>
+                  <span className="num" style={{ color: T.green, fontWeight: 700 }}>{oculto(fmt(x.rendaMensal), hidden)}</span>
+                  <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase",
+                                 color: x.origem === "juros" ? (T.blue || "#5b9bd5") : x.origem === "real" ? T.green : T.muted }}>
+                    {x.origem === "juros" ? "juros" : x.origem}
+                  </span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {metaMensal > 0 && !meta.atingida && meta.sugestoes.length > 0 && (
           <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${T.border}` }}>
