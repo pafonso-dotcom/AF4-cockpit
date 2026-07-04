@@ -158,3 +158,47 @@ export function montarMapaDividendos({ ativos = [], candidatos = [], overrides =
     lacunas,
   };
 }
+
+/**
+ * Calculadora de meta de proventos: quanto a carteira gera por mês, quanto
+ * falta pra meta, e o aporte necessário POR ATIVO (carteira + candidatos) pra
+ * fechar o gap sozinho — quem tem DY maior precisa de menos aporte.
+ * @param {object} p
+ * @param {Array}  p.rows        linhas de montarMapaDividendos (têm dy e rendaAnual)
+ * @param {number} p.metaMensal  renda mensal desejada (R$)
+ * @param {object} [p.precos]    { [TICKER]: preço por cota } — pra converter aporte em cotas
+ */
+export function metaProventos({ rows = [], metaMensal = 0, precos = {} } = {}) {
+  const rendaAnualTotal = rows.reduce((s, r) => s + (Number(r.rendaAnual) || 0), 0);
+  const rendaMensalAtual = rendaAnualTotal / 12;
+  const meta = Number(metaMensal) || 0;
+
+  if (meta <= 0) {
+    return { rendaMensalAtual, gapMensal: 0, pctAtingido: 0, atingida: false, sugestoes: [] };
+  }
+
+  const gapMensal = Math.max(0, meta - rendaMensalAtual);
+  const pctAtingido = Math.min(100, (rendaMensalAtual / meta) * 100);
+  const atingida = gapMensal <= 0.005;
+
+  const sugestoes = atingida ? [] : rows
+    .filter((r) => Number(r.dy) > 0)
+    .map((r) => {
+      const dy = Number(r.dy);
+      const aporteNecessario = (gapMensal * 12) / (dy / 100);
+      const preco = Number(precos[r.ticker]) || null;
+      return {
+        ticker: r.ticker,
+        tipo: r.tipo,
+        candidato: !!r.candidato,
+        real: !!r.real,
+        dy,
+        aporteNecessario,
+        preco,
+        cotas: preco ? Math.ceil(aporteNecessario / preco) : null,
+      };
+    })
+    .sort((a, b) => b.dy - a.dy);
+
+  return { rendaMensalAtual, gapMensal: atingida ? 0 : gapMensal, pctAtingido, atingida, sugestoes };
+}

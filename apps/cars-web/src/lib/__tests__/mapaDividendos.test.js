@@ -1,6 +1,49 @@
 import { describe, it, expect } from "vitest";
-import { mesesDefault, inferirMesesDoHistorico, montarMapaDividendos, proventosPorCota12m } from "../mapaDividendos.js";
+import { mesesDefault, inferirMesesDoHistorico, montarMapaDividendos, proventosPorCota12m, metaProventos } from "../mapaDividendos.js";
 import { YIELDS_MENSAIS } from "../yields-base.js";
+
+describe("metaProventos", () => {
+  const rows = [
+    { ticker: "KNCR11", tipo: "fii", candidato: false, valor: 10766, dy: 12.0, rendaAnual: 1291.92 },
+    { ticker: "MXRF11", tipo: "fii", candidato: true, valor: 5000, dy: 13.0, rendaAnual: 650 },
+    { ticker: "SEMDY3", tipo: "acao", candidato: false, valor: 1000, dy: 0, rendaAnual: 0 },
+  ];
+  const precos = { KNCR11: 107.66 };
+
+  it("calcula renda atual, gap e % da meta", () => {
+    const r = metaProventos({ rows, metaMensal: 500, precos });
+    expect(r.rendaMensalAtual).toBeCloseTo((1291.92 + 650) / 12, 2);
+    expect(r.gapMensal).toBeCloseTo(500 - r.rendaMensalAtual, 2);
+    expect(r.pctAtingido).toBeCloseTo((r.rendaMensalAtual / 500) * 100, 1);
+    expect(r.atingida).toBe(false);
+  });
+
+  it("sugestões: aporte necessário pra fechar o gap só com aquele ativo, maiores DY primeiro", () => {
+    const r = metaProventos({ rows, metaMensal: 500, precos });
+    expect(r.sugestoes[0].ticker).toBe("MXRF11"); // DY 13% > 12%
+    const kncr = r.sugestoes.find(s => s.ticker === "KNCR11");
+    // aporte = gapAnual / (dy/100)
+    expect(kncr.aporteNecessario).toBeCloseTo((r.gapMensal * 12) / 0.12, 0);
+    // cotas quando o preço é conhecido
+    expect(kncr.cotas).toBe(Math.ceil(kncr.aporteNecessario / 107.66));
+    // sem DY não entra na lista
+    expect(r.sugestoes.find(s => s.ticker === "SEMDY3")).toBeUndefined();
+  });
+
+  it("meta já atingida não gera sugestões", () => {
+    const r = metaProventos({ rows, metaMensal: 100, precos });
+    expect(r.atingida).toBe(true);
+    expect(r.gapMensal).toBe(0);
+    expect(r.sugestoes).toEqual([]);
+  });
+
+  it("meta inválida/zero devolve estado neutro", () => {
+    const r = metaProventos({ rows, metaMensal: 0, precos });
+    expect(r.atingida).toBe(false);
+    expect(r.pctAtingido).toBe(0);
+    expect(r.sugestoes).toEqual([]);
+  });
+});
 
 describe("proventosPorCota12m", () => {
   it("soma o valor por cota dos pagamentos dos últimos 12 meses", () => {
