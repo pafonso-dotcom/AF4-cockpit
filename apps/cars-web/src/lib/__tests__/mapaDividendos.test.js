@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mesesDefault, inferirMesesDoHistorico, montarMapaDividendos, proventosPorCota12m, metaProventos, rendaFixaMensal } from "../mapaDividendos.js";
+import { mesesDefault, inferirMesesDoHistorico, montarMapaDividendos, proventosPorCota12m, metaProventos, rendaFixaMensal, aporteProporcional, mesesAteMeta } from "../mapaDividendos.js";
 import { YIELDS_MENSAIS } from "../yields-base.js";
 
 describe("rendaFixaMensal", () => {
@@ -18,6 +18,53 @@ describe("rendaFixaMensal", () => {
   it("sem RF devolve zero", () => {
     expect(rendaFixaMensal([]).total).toBe(0);
     expect(rendaFixaMensal([{ ticker: "X", tipo: "fii", qtd: 1, preco: 100 }]).total).toBe(0);
+  });
+});
+
+describe("aporteProporcional", () => {
+  // Carteira: A gera 100/mês com 10.000 (1%/mês) · B gera 50/mês com 10.000 (0,5%/mês)
+  const rows = [
+    { ticker: "A11", tipo: "fii", candidato: false, valor: 10000, rendaAnual: 1200 },
+    { ticker: "B11", tipo: "fii", candidato: false, valor: 10000, rendaAnual: 600 },
+    { ticker: "CAND", tipo: "fii", candidato: true, valor: 5000, rendaAnual: 650 }, // candidato fica FORA
+  ];
+  const rfPorAtivo = [{ ticker: "CDB X", tipo: "cdb", valor: 5000, rendaMensal: 40 }];
+  const precos = { A11: 100 };
+
+  it("calcula o aporte total mantendo o mix e divide por ativo", () => {
+    // V = 25.000 · R = 190/mês · y = 0,76%/mês. Gap 190 → aporte = 190/0,0076 = 25.000
+    const r = aporteProporcional({ rows, rfPorAtivo, gapMensal: 190, precos });
+    expect(r.yieldMensal).toBeCloseTo(190 / 25000, 6);
+    expect(r.total).toBeCloseTo(25000, 0);
+    const a = r.itens.find(i => i.ticker === "A11");
+    expect(a.aporte).toBeCloseTo(25000 * (10000 / 25000), 0); // 10.000
+    expect(a.cotas).toBe(100);
+    const cdb = r.itens.find(i => i.ticker === "CDB X");
+    expect(cdb.aporte).toBeCloseTo(5000, 0);
+    expect(r.itens.find(i => i.ticker === "CAND")).toBeUndefined();
+  });
+
+  it("sem renda na carteira devolve null (não dá pra manter mix)", () => {
+    expect(aporteProporcional({ rows: [], rfPorAtivo: [], gapMensal: 100, precos: {} })).toBe(null);
+  });
+});
+
+describe("mesesAteMeta", () => {
+  it("com aporte mensal e reinvestimento, resolve o nº de meses", () => {
+    // y=1%/mês, capital 10.000 → alvo 20.000, aportando 1.000/mês
+    const n = mesesAteMeta({ yieldMensal: 0.01, capitalAtual: 10000, capitalAlvo: 20000, aporteMensal: 1000 });
+    // conferência por simulação
+    let c = 10000, meses = 0;
+    while (c < 20000 && meses < 100) { c = c * 1.01 + 1000; meses++; }
+    expect(n).toBe(meses);
+  });
+  it("sem aporte, só reinvestindo", () => {
+    const n = mesesAteMeta({ yieldMensal: 0.01, capitalAtual: 10000, capitalAlvo: 20000, aporteMensal: 0 });
+    expect(n).toBe(Math.ceil(Math.log(2) / Math.log(1.01)));
+  });
+  it("meta já alcançada devolve 0; sem yield e sem aporte devolve null", () => {
+    expect(mesesAteMeta({ yieldMensal: 0.01, capitalAtual: 30000, capitalAlvo: 20000, aporteMensal: 0 })).toBe(0);
+    expect(mesesAteMeta({ yieldMensal: 0, capitalAtual: 100, capitalAlvo: 200, aporteMensal: 0 })).toBe(null);
   });
 });
 
