@@ -116,6 +116,28 @@ export async function getFundamentosBrapi(ticker) {
   return data.results?.[0] || null;
 }
 
+/**
+ * Perfil/informações da empresa ou fundo (setor, descrição, site, cidade…).
+ * brapi ?modules=summaryProfile — disponível nos planos com fundamentos.
+ */
+export async function getPerfilAtivo(ticker) {
+  const data = await brapiFetch(`/quote/${encodeURIComponent(ticker)}?modules=summaryProfile`);
+  const r = data.results?.[0] || null;
+  if (!r) return null;
+  const p = r.summaryProfile || {};
+  return {
+    ticker: r.symbol || String(ticker).toUpperCase(),
+    nome: r.longName || r.shortName || "",
+    preco: r.regularMarketPrice ?? null,
+    setor: p.sector || "",
+    industria: p.industry || "",
+    site: p.website || "",
+    cidade: [p.city, p.state].filter(Boolean).join(" · "),
+    funcionarios: p.fullTimeEmployees ?? null,
+    resumo: p.longBusinessSummary || "",
+  };
+}
+
 export async function getIndices() {
   try {
     const data = await brapiFetch("/quote/list?type=index");
