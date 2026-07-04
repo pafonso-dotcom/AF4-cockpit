@@ -699,6 +699,40 @@ function HeaderVertical({
     ],
   };
 
+  // ===== Reordenação das pastas (arrastar ou setas ▲▼ na ativa) =====
+  // Mesma chave af4.taborder.v1 do layout horizontal — a ordem vale nos dois.
+  const [tabOrders, setTabOrders] = useState(loadTabOrders);
+  const dragRef = useRef({ grupo: null, id: null });
+  const salvarOrdens = (next) => {
+    setTabOrders(next);
+    try { localStorage.setItem(TAB_ORDER_KEY, JSON.stringify(next)); } catch {}
+  };
+  const reordenar = (grupo, itens, overId) => {
+    const { grupo: gFrom, id: fromId } = dragRef.current;
+    if (gFrom !== grupo || !fromId || fromId === overId) return;
+    const ids = itens.map(i => i.id);
+    const fromIdx = ids.indexOf(fromId);
+    const toIdx = ids.indexOf(overId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    ids.splice(toIdx, 0, ids.splice(fromIdx, 1)[0]);
+    salvarOrdens({ ...tabOrders, [grupo]: ids });
+  };
+  const moverAba = (grupo, itens, id, dir) => {
+    const ids = itens.map(i => i.id);
+    const idx = ids.indexOf(id);
+    const alvo = idx + dir;
+    if (idx < 0 || alvo < 0 || alvo >= ids.length) return;
+    [ids[idx], ids[alvo]] = [ids[alvo], ids[idx]];
+    salvarOrdens({ ...tabOrders, [grupo]: ids });
+  };
+  const dragProps = (grupo, itens, id) => ({
+    draggable: true,
+    onDragStart: (e) => { dragRef.current = { grupo, id }; e.dataTransfer.effectAllowed = "move"; },
+    onDragOver: (e) => { if (dragRef.current.grupo === grupo) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; } },
+    onDrop: (e) => { e.preventDefault(); reordenar(grupo, itens, id); dragRef.current = { grupo: null, id: null }; },
+    onDragEnd: () => { dragRef.current = { grupo: null, id: null }; },
+  });
+
   const subtabs = SUBTABS[modulo] || SUBTABS.financas;
   const moduloAtivo = TODOS_MODULOS.find(m => m.id === modulo) || { label: modulo };
 
@@ -745,7 +779,7 @@ function HeaderVertical({
               const ativo = m.id === modulo;
               const aberto = expandido === m.id;
               const Chevron = aberto ? ChevronDown : ChevronRight;
-              const mSubtabs = SUBTABS[m.id] || [];
+              const mSubtabs = aplicarOrdem(SUBTABS[m.id] || [], tabOrders[`mod:${m.id}`]);
               // Soma de pendências das abas do módulo (mostra no master quando fechado)
               const pendModulo = mSubtabs.reduce((s, st) => s + (pendingCounts[st.id] || 0), 0);
               return (
@@ -815,6 +849,8 @@ function HeaderVertical({
                             <span aria-hidden style={{ position: "absolute", left: 2, top: 0, width: 11, height: 16, borderLeft: `1px solid ${sCon}`, borderBottom: `1px solid ${sCon}`, borderBottomLeftRadius: 7 }} />
                             {!sUlt && <span aria-hidden style={{ position: "absolute", left: 2, top: 0, bottom: 0, borderLeft: `1px solid ${NAV_LINE}` }} />}
                             <button onClick={() => setTab(s.id)}
+                              {...dragProps(`mod:${m.id}`, mSubtabs, s.id)}
+                              title="Arraste pra reordenar as pastas"
                               style={{
                                 position: "relative", width: "100%",
                                 padding: "7px 10px 7px 18px", borderRadius: 10, fontSize: 15,
@@ -827,6 +863,18 @@ function HeaderVertical({
                               }}>
                               {SIcon && <SIcon size={12} style={{ flexShrink: 0 }} />}
                               {s.label}
+                              {sAtivo && (
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 1, marginLeft: 2 }}>
+                                  <span role="button" aria-label="Mover pra cima" title="Mover pra cima"
+                                    onClick={(e) => { e.stopPropagation(); moverAba(`mod:${m.id}`, mSubtabs, s.id, -1); }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    style={{ cursor: "pointer", padding: "0 2px", fontSize: 10, opacity: 0.7, userSelect: "none" }}>▲</span>
+                                  <span role="button" aria-label="Mover pra baixo" title="Mover pra baixo"
+                                    onClick={(e) => { e.stopPropagation(); moverAba(`mod:${m.id}`, mSubtabs, s.id, +1); }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    style={{ cursor: "pointer", padding: "0 2px", fontSize: 10, opacity: 0.7, userSelect: "none" }}>▼</span>
+                                </span>
+                              )}
                               {pending > 0 && (
                                 <span style={{
                                   marginLeft: "auto",
