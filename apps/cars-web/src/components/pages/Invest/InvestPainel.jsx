@@ -1,11 +1,11 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, DollarSign, Award } from "lucide-react";
+import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, DollarSign, Award, FileText, ExternalLink } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN, fmtUSD } from "../../../lib/format.js";
 import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, ehUS } from "../../../lib/invest-constants.js";
 import { calcAlocacaoPorClasse, calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
 import { buscarCotacao } from "../../../lib/cambio.js";
-import { getHistorico } from "../../../lib/brapi.js";
+import { getHistorico, getPerfilAtivo } from "../../../lib/brapi.js";
 import { detectarFonte } from "../../../lib/cotacoes.js";
 import { CARD_SHADOW } from "../../../lib/styles.js";
 import IndicesGlobais from "../IndicesGlobais.jsx";
@@ -97,13 +97,13 @@ export default function InvestPainel({
   // Abre o fluxo de novo aporte: vai pra Carteira (onde o modal vive) e dispara
   // o evento que a tela escuta. Sem ativos, ela abre o "Novo Ativo".
   return (
-    <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
+    <div className="fade-up" style={{ padding: "14px 14px 20px", maxWidth: 1280, margin: "0 auto" }}>
       {/* Header — título à esquerda */}
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 8 }}>
         <div style={{ fontSize: 10.5, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, fontWeight: 500 }}>
           Investimentos · Painel
         </div>
-        <h1 style={{ fontFamily: T.serif, fontSize: 28, fontWeight: 600, color: T.ink, margin: "4px 0 0 0" }}>
+        <h1 style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: T.ink, margin: "2px 0 0 0" }}>
           Sua carteira, <em style={{ color: T.gold }}>com clareza.</em>
         </h1>
       </div>
@@ -111,7 +111,7 @@ export default function InvestPainel({
       {/* Topo · 2 colunas: esquerda = Alocação por Moeda + ações; direita =
           índices de mercado + KPIs. Alturas igualadas (alignItems stretch). */}
       <section className="ip-top" style={{
-        display: "grid", gridTemplateColumns: "minmax(230px, 1fr) 3fr", gap: 12, marginBottom: 16, alignItems: "stretch",
+        display: "grid", gridTemplateColumns: "minmax(230px, 1fr) 3fr", gap: 10, marginBottom: 10, alignItems: "stretch",
       }}>
         {/* Esquerda */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
@@ -134,7 +134,7 @@ export default function InvestPainel({
 
       {/* Linha 2 */}
       <section className="ip-mid-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10,
       }}>
         <AlocacaoCard dataBR={alocacaoBR} totalBR={t.valorBR} dataUSA={alocacaoUSA} totalUSA={t.valorUSA} hidden={hidden} fmtUSD={fmtUSD} />
         <TopAtivosCard items={topAtivos} hidden={hidden} onAnalisar={onAnalisar} onSeeAll={() => onTabChange?.("carteira")} />
@@ -142,10 +142,15 @@ export default function InvestPainel({
 
       {/* Linha 3 */}
       <section className="ip-bot-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10,
       }}>
         <ClassesExpansiveisCard ativos={ativos} hidden={hidden} onAnalisar={onAnalisar} fmtUSD={fmtUSD} />
         <GainersLosersCard topGain={topGain} topLoss={topLoss} hidden={hidden} onAnalisar={onAnalisar} />
+      </section>
+
+      {/* Informações & relatórios CVM do ativo selecionado */}
+      <section style={{ marginBottom: 16 }}>
+        <InfoCvmCard ativos={ativos} />
       </section>
 
       {/* Atalhos */}
@@ -278,27 +283,27 @@ function MoedaCard({ valorBR = 0, valorUSA = 0, usdRate, hidden, fmtUSD, fill = 
   const pctUSA = totalBRL > 0 ? (usaEmBRL / totalBRL) * 100 : 0;
   const temUSA = valorUSA > 0;
   return (
-    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW, width: "100%", height: fill ? "100%" : undefined }}>
-      <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Alocação por Moeda</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 13, padding: 10, boxShadow: CARD_SHADOW, width: "100%", height: fill ? "100%" : undefined }}>
+      <div style={{ fontFamily: T.serif, fontSize: 13.5, fontWeight: 600, marginBottom: 8 }}>Alocação por Moeda</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 22 }} aria-hidden="true">🇧🇷</span>
+          <span style={{ fontSize: 17 }} aria-hidden="true">🇧🇷</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 10.5, color: T.muted }}>Brasil · R$</div>
-            <div className="num" style={{ fontSize: 16, fontWeight: 700, color: T.ink }}>{hidden ? "•••••" : fmt(valorBR)}</div>
+            <div className="num" style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{hidden ? "•••••" : fmt(valorBR)}</div>
           </div>
           <span style={{ fontSize: 12, fontWeight: 600, color: T.gold }}>{fmtN(pctBR, 0)}%</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 22, opacity: temUSA ? 1 : 0.4 }} aria-hidden="true">🇺🇸</span>
+          <span style={{ fontSize: 17, opacity: temUSA ? 1 : 0.4 }} aria-hidden="true">🇺🇸</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 10.5, color: T.muted }}>EUA · US$</div>
-            <div className="num" style={{ fontSize: 16, fontWeight: 700, color: temUSA ? T.ink : T.muted }}>{hidden ? "•••••" : fmtUSD(valorUSA)}</div>
+            <div className="num" style={{ fontSize: 14, fontWeight: 700, color: temUSA ? T.ink : T.muted }}>{hidden ? "•••••" : fmtUSD(valorUSA)}</div>
           </div>
           <span style={{ fontSize: 12, fontWeight: 600, color: "#2dd4bf" }}>{temUSA ? `${fmtN(pctUSA, 0)}%` : "—"}</span>
         </div>
         {/* Barra dividida */}
-        <div style={{ display: "flex", height: 16, borderRadius: 999, overflow: "hidden", background: T.bgSoft, marginTop: 2 }}>
+        <div style={{ display: "flex", height: 10, borderRadius: 999, overflow: "hidden", background: T.bgSoft, marginTop: 2 }}>
           <div style={{ width: `${pctBR}%`, background: T.gold }} />
           <div style={{ width: `${pctUSA}%`, background: "#2dd4bf" }} />
         </div>
@@ -317,13 +322,13 @@ function Kpi({ label, value, format = (n) => String(n), hidden, sub, variation, 
   const varStr = num != null ? (num >= 0 ? "↗ +" : "↘ ") + fmtN(num, 2) + "%" : null;
   const positive = num != null && num >= 0;
   return (
-    <div style={{ position: "relative", paddingTop: 9 }}>
+    <div style={{ position: "relative", paddingTop: 7 }}>
       {/* aba da pasta — branca/clara, no mesmo estilo dos folder cards */}
-      <div aria-hidden style={{ position: "absolute", top: 0, left: "32%", right: "9%", height: 15, borderRadius: "10px 10px 0 0", background: T.bgSoft, border: `1px solid ${T.border}`, borderBottom: "none", zIndex: 0 }} />
-      <div className="ip-card" style={{ position: "relative", zIndex: 1, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, minHeight: 110, boxShadow: CARD_SHADOW }}>
+      <div aria-hidden style={{ position: "absolute", top: 0, left: "32%", right: "9%", height: 11, borderRadius: "8px 8px 0 0", background: T.bgSoft, border: `1px solid ${T.border}`, borderBottom: "none", zIndex: 0 }} />
+      <div className="ip-card" style={{ position: "relative", zIndex: 1, background: T.card, border: `1px solid ${T.border}`, borderRadius: 13, padding: 10, minHeight: 84, boxShadow: CARD_SHADOW }}>
       <div style={{ fontSize: 11, color: T.muted }}>{label}</div>
       <AnimatedNumber value={value} format={format} hidden={hidden}
-        className="num" style={{ display: "block", fontFamily: T.serif, fontSize: 22, fontWeight: 700, marginTop: 6, color: T.ink }} />
+        className="num" style={{ display: "block", fontFamily: T.serif, fontSize: 17, fontWeight: 700, marginTop: 4, color: T.ink }} />
       {varStr && <div style={{ fontSize: 11, color: positive ? T.green : T.red, marginTop: 4 }}>{varStr}</div>}
       {sub && <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{sub}</div>}
       {extra && (
@@ -334,8 +339,8 @@ function Kpi({ label, value, format = (n) => String(n), hidden, sub, variation, 
         </div>
       )}
       {Icon && (
-        <div style={{ position: "absolute", top: 14, right: 14, width: 32, height: 32, borderRadius: "50%", background: `${cor || T.gold}1f`, display: "grid", placeItems: "center" }}>
-          <Icon size={16} style={{ color: cor || T.gold }} />
+        <div style={{ position: "absolute", top: 10, right: 10, width: 26, height: 26, borderRadius: "50%", background: `${cor || T.gold}1f`, display: "grid", placeItems: "center" }}>
+          <Icon size={13} style={{ color: cor || T.gold }} />
         </div>
       )}
       </div>
@@ -369,8 +374,8 @@ function DonutBloco({ titulo, data, total, fmtMoeda, hidden }) {
 function AlocacaoCard({ dataBR = [], totalBR = 0, dataUSA = [], totalUSA = 0, hidden, fmtUSD }) {
   const semNada = dataBR.length === 0 && dataUSA.length === 0;
   return (
-    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
-      <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Alocação por Classe</div>
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 13, padding: 10, boxShadow: CARD_SHADOW }}>
+      <div style={{ fontFamily: T.serif, fontSize: 13.5, fontWeight: 600, marginBottom: 8 }}>Alocação por Classe</div>
       {semNada ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos cadastrados.</div>
       ) : (
@@ -468,9 +473,9 @@ function MiniTrend({ serie, rentab = 0, cor, w = 56, h = 20 }) {
 function TopAtivosCard({ items, hidden, onAnalisar, onSeeAll }) {
   const sparks = useSparklines(items);
   return (
-    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 13, padding: 10, boxShadow: CARD_SHADOW }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Top 5 Ativos</div>
+        <div style={{ fontFamily: T.serif, fontSize: 13.5, fontWeight: 600 }}>Top 5 Ativos</div>
         <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver carteira</button>
       </div>
       <div>
@@ -536,8 +541,8 @@ function ClassesExpansiveisCard({ ativos = [], hidden, onAnalisar, fmtUSD }) {
   const moeda = (us, v) => us ? fmtUSD(v) : fmt(v);
 
   return (
-    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
-      <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Classes da Carteira</div>
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 13, padding: 10, boxShadow: CARD_SHADOW }}>
+      <div style={{ fontFamily: T.serif, fontSize: 13.5, fontWeight: 600, marginBottom: 8 }}>Classes da Carteira</div>
       {grupos.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos.</div>
       ) : (
@@ -579,8 +584,8 @@ function GainersLosersCard({ topGain, topLoss, hidden, onAnalisar }) {
   const altas = (topGain || []).filter(x => x.pct > 0);
   const baixas = (topLoss || []).filter(x => x.pct < 0);
   return (
-    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
-      <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Maiores Variações</div>
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 13, padding: 10, boxShadow: CARD_SHADOW }}>
+      <div style={{ fontFamily: T.serif, fontSize: 13.5, fontWeight: 600, marginBottom: 8 }}>Maiores Variações</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
           <div style={{ fontSize: 9, letterSpacing: ".15em", color: T.green, fontWeight: 600, marginBottom: 5 }}>↗ MAIORES ALTAS</div>
@@ -626,5 +631,99 @@ function AtalhoCard({ label, sub, icon: Icon, cor, onClick }) {
       </div>
       <ArrowRight size={16} style={{ color: T.muted }} />
     </button>
+  );
+}
+
+
+/* ==================== Informações & relatórios CVM ==================== */
+// Perfil oficial (brapi ?modules=summaryProfile) do papel escolhido + links
+// diretos pros documentos oficiais (RAD/FNET da CVM) e páginas de consulta.
+const KEY_PERFIS = "af4:perfil-ativo:v1";
+function InfoCvmCard({ ativos = [] }) {
+  const elegiveis = (ativos || []).filter(a => ["acao", "fii", "stock", "reit", "etf"].includes((a.tipo || "").toLowerCase()));
+  const [ticker, setTicker] = useState(() => (elegiveis[0]?.ticker || "").toUpperCase());
+  const [perfis, setPerfis] = useState(() => { try { return JSON.parse(localStorage.getItem(KEY_PERFIS) || "{}") || {}; } catch { return {}; } });
+  const [buscando, setBuscando] = useState(false);
+  const [erro, setErro] = useState("");
+  const perfil = perfis[ticker] || null;
+  const ativoSel = elegiveis.find(a => (a.ticker || "").toUpperCase() === ticker);
+  const ehFii = (ativoSel?.tipo || "").toLowerCase() === "fii";
+
+  async function buscar() {
+    if (!ticker) return;
+    setBuscando(true); setErro("");
+    try {
+      const p = await getPerfilAtivo(ticker);
+      if (!p) throw new Error("A brapi não devolveu o perfil desse ticker.");
+      const novo = { ...perfis, [ticker]: { ...p, atualizadoEm: new Date().toISOString() } };
+      setPerfis(novo);
+      try { localStorage.setItem(KEY_PERFIS, JSON.stringify(novo)); } catch {}
+    } catch (e) { setErro(e.message || "Falha ao buscar o perfil."); }
+    finally { setBuscando(false); }
+  }
+
+  const links = ticker ? [
+    ehFii
+      ? { label: "Relatórios CVM (FNET)", url: "https://fnet.bmfbovespa.com.br/fnet/publico/abrirGerenciadorDocumentosCVM" }
+      : { label: "Relatórios CVM (RAD)", url: "https://www.rad.cvm.gov.br/ENET/frmConsultaExternaCVM.aspx" },
+    { label: "Fatos relevantes", url: `https://www.google.com/search?q=${encodeURIComponent(ticker + " fato relevante CVM")}` },
+    { label: "StatusInvest", url: `https://statusinvest.com.br/${ehFii ? "fundos-imobiliarios" : "acoes"}/${ticker.toLowerCase()}` },
+    ...(perfil?.site ? [{ label: "Site / RI", url: perfil.site }] : []),
+  ] : [];
+
+  return (
+    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 13, padding: 10, boxShadow: CARD_SHADOW }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+        <FileText size={15} style={{ color: T.gold }} />
+        <div style={{ fontFamily: T.serif, fontSize: 13.5, fontWeight: 600 }}>Informações & Relatórios CVM</div>
+        <select value={ticker} onChange={e => setTicker(e.target.value)}
+                style={{ marginLeft: "auto", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 9, padding: "7px 10px", color: T.ink, fontSize: 12.5, fontFamily: "inherit", maxWidth: 180 }}>
+          {elegiveis.map(a => <option key={a.id || a.ticker} value={(a.ticker || "").toUpperCase()}>{(a.ticker || "").toUpperCase()}</option>)}
+        </select>
+        <button onClick={buscar} disabled={buscando || !ticker}
+                style={{ background: T.gold, color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 12, fontWeight: 700, cursor: buscando ? "wait" : "pointer", opacity: buscando ? 0.7 : 1 }}>
+          {buscando ? "Buscando…" : perfil ? "Atualizar" : "Buscar informações"}
+        </button>
+      </div>
+
+      {erro && <div style={{ fontSize: 12, color: T.red, marginBottom: 8 }}>{erro}</div>}
+
+      {perfil ? (
+        <>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12, color: T.muted, marginBottom: 8 }}>
+            <span><b style={{ color: T.ink }}>{perfil.nome || ticker}</b></span>
+            {perfil.setor && <span>Setor: <b style={{ color: T.ink }}>{perfil.setor}</b></span>}
+            {perfil.industria && <span>Segmento: <b style={{ color: T.ink }}>{perfil.industria}</b></span>}
+            {perfil.cidade && <span>{perfil.cidade}</span>}
+            {perfil.funcionarios != null && <span>{Number(perfil.funcionarios).toLocaleString("pt-BR")} funcionários</span>}
+          </div>
+          {perfil.resumo && (
+            <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.55, marginBottom: 10, display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              {perfil.resumo}
+            </div>
+          )}
+        </>
+      ) : !erro && (
+        <div style={{ fontSize: 12, color: T.faint, fontStyle: "italic", marginBottom: 10 }}>
+          Escolha um papel e clique em "Buscar informações" — setor, segmento e descrição oficiais via brapi.
+        </div>
+      )}
+
+      {links.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {links.map(l => (
+            <a key={l.label} href={l.url} target="_blank" rel="noopener noreferrer"
+               style={{ display: "inline-flex", alignItems: "center", gap: 5, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 999, padding: "4px 11px", fontSize: 11.5, color: T.gold, textDecoration: "none", fontWeight: 600 }}>
+              <ExternalLink size={11} /> {l.label}
+            </a>
+          ))}
+        </div>
+      )}
+      {perfil?.atualizadoEm && (
+        <div style={{ fontSize: 10, color: T.faint, marginTop: 8 }}>
+          Perfil atualizado em {new Date(perfil.atualizadoEm).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} · fonte: brapi.
+        </div>
+      )}
+    </div>
   );
 }
