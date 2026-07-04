@@ -15,6 +15,10 @@ const KEY_META = "af4:mapa-div:meta-mensal:v1";
 const CARD = { background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16 };
 const TIPOS = [{ v: "acao", l: "Ação" }, { v: "fii", l: "FII" }, { v: "stock", l: "Stock (US)" }, { v: "reit", l: "REIT (US)" }];
 
+// Tabelas da calculadora — mesmo visual alinhado dos relatórios (Projeção).
+const thCal = (align = "right") => ({ textAlign: align, padding: "8px 12px", fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 700, borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap" });
+const tdCal = (align = "right") => ({ textAlign: align, padding: "7px 12px", borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap" });
+
 const ler = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; } catch { return fb; } };
 const grava = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 const oculto = (v, h) => (h ? "•••" : v);
@@ -229,19 +233,37 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
             <div style={{ fontSize: 11, color: T.muted, marginBottom: 8 }}>
               O que cada ativo gera por mês <b>hoje</b>:
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {rendaPorAtivoHoje.map((x) => (
-                <span key={`${x.ticker}-${x.origem}`}
-                      title={x.origem === "juros" ? "Juros estimados (renda fixa)" : x.origem === "real" ? "Proventos reais (últimos 12 meses)" : "Proventos estimados por DY"}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 999, padding: "4px 11px", fontSize: 11.5 }}>
-                  <b style={{ color: T.ink }}>{x.ticker}</b>
-                  <span className="num" style={{ color: T.green, fontWeight: 700 }}>{oculto(fmt(x.rendaMensal), hidden)}</span>
-                  <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase",
-                                 color: x.origem === "juros" ? (T.blue || "#5b9bd5") : x.origem === "real" ? T.green : T.muted }}>
-                    {x.origem === "juros" ? "juros" : x.origem}
-                  </span>
-                </span>
-              ))}
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", minWidth: 420, borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th style={thCal("left")}>Ativo</th>
+                    <th style={thCal("left")}>Origem</th>
+                    <th style={thCal()}>Renda / mês</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rendaPorAtivoHoje.map((x) => (
+                    <tr key={`${x.ticker}-${x.origem}`}
+                        title={x.origem === "juros" ? "Juros estimados (renda fixa)" : x.origem === "real" ? "Proventos reais (últimos 12 meses)" : "Proventos estimados por DY"}>
+                      <td style={{ ...tdCal("left"), fontWeight: 700, color: T.ink }}>{x.ticker}</td>
+                      <td style={tdCal("left")}>
+                        <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", padding: "1px 6px", borderRadius: 4,
+                                       background: x.origem === "juros" ? `${T.blue || "#5b9bd5"}22` : x.origem === "real" ? `${T.green}22` : `${T.border}`,
+                                       color: x.origem === "juros" ? (T.blue || "#5b9bd5") : x.origem === "real" ? T.green : T.muted }}>
+                          {x.origem}
+                        </span>
+                      </td>
+                      <td className="num" style={{ ...tdCal(), color: T.green, fontWeight: 700 }}>{oculto(fmt(x.rendaMensal), hidden)}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td style={{ ...tdCal("left"), fontWeight: 700, color: T.ink, borderBottom: "none" }}>Total</td>
+                    <td style={{ ...tdCal("left"), borderBottom: "none" }} />
+                    <td className="num" style={{ ...tdCal(), fontWeight: 800, color: T.green, borderBottom: "none" }}>{oculto(fmt(meta.rendaMensalAtual), hidden)}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -251,23 +273,33 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
             <div style={{ fontSize: 11, color: T.muted, marginBottom: 8 }}>
               Quanto aportar pra fechar a meta <b>usando só aquele ativo</b> (DY maior = menos aporte — combine ativos pra diversificar):
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 8 }}>
-              {meta.sugestoes.slice(0, 8).map((s) => (
-                <div key={s.ticker} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "9px 11px" }}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                    <b style={{ color: T.ink, fontSize: 13 }}>{s.ticker}</b>
-                    {s.candidato && <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 4, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase" }}>plano</span>}
-                    {s.real && <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 4, background: `${T.green}22`, color: T.green, fontWeight: 700, textTransform: "uppercase" }}>real</span>}
-                    <span style={{ marginLeft: "auto", fontSize: 11.5, color: T.green, fontWeight: 700 }}>{s.dy.toFixed(1)}%</span>
-                  </div>
-                  <div className="num" style={{ fontSize: 14, fontWeight: 700, color: T.gold, marginTop: 3 }}>
-                    {oculto(fmt(s.aporteNecessario), hidden)}
-                  </div>
-                  <div style={{ fontSize: 10, color: T.faint }}>
-                    {s.cotas ? `≈ ${s.cotas.toLocaleString("pt-BR")} cotas a ${fmt(s.preco)}` : "aporte adicional necessário"}
-                  </div>
-                </div>
-              ))}
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", minWidth: 520, borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th style={thCal("left")}>Ativo</th>
+                    <th style={thCal()}>DY 12m</th>
+                    <th style={thCal()}>Aporte necessário</th>
+                    <th style={thCal()}>≈ Cotas</th>
+                    <th style={thCal()}>Preço</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {meta.sugestoes.slice(0, 8).map((s, i, arr) => (
+                    <tr key={s.ticker}>
+                      <td style={{ ...tdCal("left"), borderBottom: i === arr.length - 1 ? "none" : tdCal().borderBottom }}>
+                        <span style={{ fontWeight: 700, color: T.ink }}>{s.ticker}</span>
+                        {s.candidato && <span style={{ marginLeft: 6, fontSize: 8.5, padding: "1px 5px", borderRadius: 4, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase" }}>plano</span>}
+                        {s.real && <span style={{ marginLeft: 6, fontSize: 8.5, padding: "1px 5px", borderRadius: 4, background: `${T.green}22`, color: T.green, fontWeight: 700, textTransform: "uppercase" }}>real</span>}
+                      </td>
+                      <td className="num" style={{ ...tdCal(), color: T.green, fontWeight: 700, borderBottom: i === arr.length - 1 ? "none" : tdCal().borderBottom }}>{s.dy.toFixed(1)}%</td>
+                      <td className="num" style={{ ...tdCal(), color: T.gold, fontWeight: 700, borderBottom: i === arr.length - 1 ? "none" : tdCal().borderBottom }}>{oculto(fmt(s.aporteNecessario), hidden)}</td>
+                      <td className="num" style={{ ...tdCal(), color: T.ink, borderBottom: i === arr.length - 1 ? "none" : tdCal().borderBottom }}>{s.cotas ? s.cotas.toLocaleString("pt-BR") : "—"}</td>
+                      <td className="num" style={{ ...tdCal(), color: T.muted, borderBottom: i === arr.length - 1 ? "none" : tdCal().borderBottom }}>{s.preco ? fmt(s.preco) : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -284,16 +316,33 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
               Ou <b>mantendo o mix atual da carteira</b> (yield ponderado {(proporcional.yieldMensal * 100).toFixed(2)}%/mês): aporte total de{" "}
               <b className="num" style={{ color: T.gold, fontSize: 13 }}>{oculto(fmt(proporcional.total), hidden)}</b>, dividido assim:
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {proporcional.itens.map((x) => (
-                <span key={x.ticker}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 999, padding: "4px 11px", fontSize: 11.5 }}>
-                  <b style={{ color: T.ink }}>{x.ticker}</b>
-                  <span style={{ color: T.faint, fontSize: 10 }}>{(x.peso * 100).toFixed(0)}%</span>
-                  <span className="num" style={{ color: T.gold, fontWeight: 700 }}>{oculto(fmt(x.aporte), hidden)}</span>
-                  {x.cotas && <span style={{ color: T.faint, fontSize: 10 }}>≈ {x.cotas.toLocaleString("pt-BR")} cotas</span>}
-                </span>
-              ))}
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", minWidth: 460, borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th style={thCal("left")}>Ativo</th>
+                    <th style={thCal()}>Peso</th>
+                    <th style={thCal()}>Aporte</th>
+                    <th style={thCal()}>≈ Cotas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {proporcional.itens.map((x) => (
+                    <tr key={x.ticker}>
+                      <td style={{ ...tdCal("left"), fontWeight: 700, color: T.ink }}>{x.ticker}</td>
+                      <td className="num" style={{ ...tdCal(), color: T.muted }}>{(x.peso * 100).toFixed(0)}%</td>
+                      <td className="num" style={{ ...tdCal(), color: T.gold, fontWeight: 700 }}>{oculto(fmt(x.aporte), hidden)}</td>
+                      <td className="num" style={{ ...tdCal(), color: T.ink }}>{x.cotas ? x.cotas.toLocaleString("pt-BR") : "—"}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td style={{ ...tdCal("left"), fontWeight: 700, color: T.ink, borderBottom: "none" }}>Total</td>
+                    <td style={{ ...tdCal(), borderBottom: "none" }} />
+                    <td className="num" style={{ ...tdCal(), fontWeight: 800, color: T.gold, borderBottom: "none" }}>{oculto(fmt(proporcional.total), hidden)}</td>
+                    <td style={{ ...tdCal(), borderBottom: "none" }} />
+                  </tr>
+                </tbody>
+              </table>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
               <span style={{ fontSize: 11.5, color: T.muted }}>Aportando</span>
