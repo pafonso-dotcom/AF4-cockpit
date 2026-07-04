@@ -4,8 +4,9 @@ import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
 import { toast } from "../../../lib/toast.js";
 import PageHeader from "../../ui/PageHeader.jsx";
-import { getListaMercado } from "../../../lib/brapi.js";
+import { getListaMercado, getDividendos } from "../../../lib/brapi.js";
 import { gerarJSONGemini } from "../../../lib/gemini.js";
+import { proventosPorCota12m } from "../../../lib/mapaDividendos.js";
 import { carregarWatchlist, salvarWatchlist, adicionarPapel } from "../../../lib/mercadoWatchlist.js";
 import {
   normalizarLista, filtrarOrdenar, setoresDaLista,
@@ -15,6 +16,7 @@ import {
 
 const CARD = { background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16 };
 const KEY_CAND = "af4:mapa-div:candidatos:v1";
+const KEY_PROV = "af4:mapa-div:proventos-brapi:v1"; // compartilhado com Mapa de Dividendos/YoC
 const TIPOS = [
   { v: "todos", l: "Todos" },
   { v: "stock", l: "Ações" },
@@ -50,11 +52,46 @@ export default function Screener({ hidden }) {
   const [iaRodando, setIaRodando] = useState(false);
   const [analise, setAnalise] = useState(null); // { analises:[{ticker,nota,parecer}], resumo }
   const [limite, setLimite] = useState(50);
+  // Cache de proventos reais — COMPARTILHADO com o Mapa de Dividendos/YoC.
+  const [provCache, setProvCache] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(KEY_PROV) || "null")?.porTicker || {}; } catch { return {}; }
+  });
+  const [buscandoDY, setBuscandoDY] = useState(false);
 
   const lista = cache?.lista || [];
   const setores = useMemo(() => setoresDaLista(lista), [lista]);
-  const filtrada = useMemo(() => filtrarOrdenar(lista, filtros), [lista, filtros]);
+  // Enriquece com DY 12m (proventos reais ÷ preço atual) quando o ticker já
+  // tem histórico no cache — assim a coluna DY também é ordenável/filtrável.
+  const listaComDy = useMemo(() => lista.map((x) => {
+    const porCota = proventosPorCota12m(provCache[x.ticker]);
+    return { ...x, dy: porCota > 0 && x.preco > 0 ? (porCota / x.preco) * 100 : null };
+  }), [lista, provCache]);
+  const filtrada = useMemo(() => filtrarOrdenar(listaComDy, filtros), [listaComDy, filtros]);
   const visiveis = filtrada.slice(0, limite);
+
+  // Busca proventos reais dos primeiros N papéis filtrados que ainda não têm
+  // histórico (1 requisição POR papel — por isso é manual e limitado).
+  async function buscarDYTopN(n = 20) {
+    const alvos = filtrada.slice(0, n).map((x) => x.ticker).filter((tk) => !provCache[tk]);
+    if (!alvos.length) { toast.info(`Os ${Math.min(n, filtrada.length)} primeiros já têm proventos buscados.`); return; }
+    setBuscandoDY(true);
+    const porTicker = { ...provCache };
+    let ok = 0, semDados = 0;
+    for (const tk of alvos) {
+      try {
+        const divs = await getDividendos(tk);
+        if (divs.length) { porTicker[tk] = divs.map((d) => ({ pagamento: d.pagamento, valor: d.valor })); ok++; }
+        else { porTicker[tk] = []; semDados++; } // marca como consultado, sem repetir a req
+      } catch (e) {
+        if (/token/i.test(e.message || "")) { toast.error(e.message); setBuscandoDY(false); return; }
+        semDados++;
+      }
+    }
+    setProvCache(porTicker);
+    try { localStorage.setItem(KEY_PROV, JSON.stringify({ atualizadoEm: new Date().toISOString(), porTicker })); } catch {}
+    setBuscandoDY(false);
+    toast.success(`Proventos buscados: ${ok} com histórico${semDados ? ` · ${semDados} sem dados` : ""} (${alvos.length} req).`);
+  }
   const analisePorTicker = useMemo(() => {
     const m = {};
     (analise?.analises || []).forEach((a) => { m[(a.ticker || "").toUpperCase()] = a; });
@@ -173,6 +210,11 @@ export default function Screener({ hidden }) {
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.gold, border: "none", color: "#fff", borderRadius: 10, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: iaRodando ? "wait" : "pointer", opacity: !filtrada.length ? 0.5 : 1 }}>
           <Sparkles size={13} className={iaRodando ? "spin" : ""} /> Analisar top 15
         </button>
+        <button type="button" onClick={() => buscarDYTopN(20)} disabled={buscandoDY || !filtrada.length}
+                title="Busca os proventos anunciados dos 20 primeiros papéis filtrados e calcula o DY 12m real (1 requisição brapi POR papel; fica em cache e alimenta também o Mapa de Dividendos)"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.green}`, color: T.green, borderRadius: 10, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: buscandoDY ? "wait" : "pointer", opacity: !filtrada.length ? 0.5 : 1 }}>
+          <RefreshCw size={13} className={buscandoDY ? "spin" : ""} /> {buscandoDY ? "Buscando…" : "Buscar DY (top 20)"}
+        </button>
       </form>
 
       {/* Filtros manuais */}
@@ -225,6 +267,7 @@ export default function Screener({ hidden }) {
                 {th("Papel", "ticker", false)}
                 {th("Preço", "preco")}
                 {th("Var. dia", "variacaoPct")}
+                {th("DY 12m", "dy")}
                 {th("Volume", "volume")}
                 {th("Mkt cap", "marketCap")}
                 <th style={{ textAlign: "right", padding: "9px 10px", fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 700 }}>Ações</th>
@@ -252,6 +295,10 @@ export default function Screener({ hidden }) {
                     <td className="num" style={{ textAlign: "right", padding: "9px 10px", whiteSpace: "nowrap", color: x.variacaoPct == null ? T.faint : x.variacaoPct >= 0 ? T.green : T.red }}>
                       {x.variacaoPct == null ? "—" : `${x.variacaoPct >= 0 ? "+" : ""}${fmtN(x.variacaoPct, 2)}%`}
                     </td>
+                    <td className="num" title={x.dy != null ? "Proventos reais dos últimos 12 meses ÷ preço atual" : "Sem histórico buscado — use o botão 'Buscar DY'"}
+                        style={{ textAlign: "right", padding: "9px 10px", whiteSpace: "nowrap", color: x.dy != null ? T.green : T.faint, fontWeight: x.dy != null ? 700 : 400 }}>
+                      {x.dy != null ? `${fmtN(x.dy, 1)}%` : "—"}
+                    </td>
                     <td className="num" style={{ textAlign: "right", padding: "9px 10px", color: T.muted, whiteSpace: "nowrap" }}>{fmtVol(x.volume)}</td>
                     <td className="num" style={{ textAlign: "right", padding: "9px 10px", color: T.muted, whiteSpace: "nowrap" }}>{fmtCap(x.marketCap)}</td>
                     <td style={{ textAlign: "right", padding: "9px 10px", whiteSpace: "nowrap" }}>
@@ -276,7 +323,7 @@ export default function Screener({ hidden }) {
         )}
       </div>
       <div style={{ fontSize: 11, color: T.faint, marginTop: 6 }}>
-        Fonte: brapi /quote/list (1 requisição, cache 24h) · dados de pregão com atraso no plano free · fundamentos profundos (DY, P/L) não vêm nesta lista — use o Pesquisador de mercado pra 1 papel por vez.
+        Fonte: brapi /quote/list (1 requisição, cache 24h) · dados de pregão com atraso no plano free · DY 12m vem de "Buscar DY" (1 req/papel, cache compartilhado com o Mapa de Dividendos) · P/L e demais fundamentos: use o Pesquisador de mercado pra 1 papel por vez.
       </div>
     </div>
   );

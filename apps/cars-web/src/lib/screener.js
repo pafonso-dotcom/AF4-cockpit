@@ -99,7 +99,7 @@ Filtros disponíveis (JSON): {
   "volumeMin": <número ou null>,
   "variacaoMin": <% ou null>, "variacaoMax": <% ou null>,
   "marketCapMin": <número ou null>,
-  "ordenarPor": "<volume|preco|variacaoPct|marketCap|ticker>",
+  "ordenarPor": "<volume|preco|variacaoPct|dy|marketCap|ticker>",  // dy = dividend yield 12m (só tem valor pra papéis já enriquecidos)
   "direcao": "<asc|desc>"
 }
 
