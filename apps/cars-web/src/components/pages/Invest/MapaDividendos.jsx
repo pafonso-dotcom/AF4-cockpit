@@ -6,7 +6,7 @@ import { toast } from "../../../lib/toast.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import { carregarFundamentos } from "../../../lib/fundamentosLocal.js";
 import { getDividendos } from "../../../lib/brapi.js";
-import { montarMapaDividendos, metaProventos, rendaFixaMensal, MESES_PT } from "../../../lib/mapaDividendos.js";
+import { montarMapaDividendos, metaProventos, rendaFixaMensal, aporteProporcional, mesesAteMeta, MESES_PT } from "../../../lib/mapaDividendos.js";
 
 const KEY_OV = "af4:mapa-div:overrides:v1";
 const KEY_CAND = "af4:mapa-div:candidatos:v1";
@@ -57,6 +57,19 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
     () => metaProventos({ rows: mapa.rows, metaMensal, precos: precosPorTicker, rendaExtraMensal: rf.total }),
     [mapa.rows, metaMensal, precosPorTicker, rf.total]
   );
+  // Aporte mantendo o MIX atual da carteira (dividido entre os seus ativos).
+  const [aporteMensalSim, setAporteMensalSim] = useState(0);
+  const proporcional = useMemo(
+    () => (meta.gapMensal > 0 ? aporteProporcional({ rows: mapa.rows, rfPorAtivo: rf.porAtivo, gapMensal: meta.gapMensal, precos: precosPorTicker }) : null),
+    [mapa.rows, rf.porAtivo, meta.gapMensal, precosPorTicker]
+  );
+  const mesesSim = useMemo(() => {
+    if (!proporcional || !(aporteMensalSim > 0)) return null;
+    const capitalAtual = proporcional.total > 0 ? (meta.rendaMensalAtual / proporcional.yieldMensal) : 0;
+    const capitalAlvo = metaMensal / proporcional.yieldMensal;
+    return mesesAteMeta({ yieldMensal: proporcional.yieldMensal, capitalAtual, capitalAlvo, aporteMensal: aporteMensalSim });
+  }, [proporcional, aporteMensalSim, meta.rendaMensalAtual, metaMensal]);
+
   // Renda mensal por ativo HOJE: proventos (grade) + juros (RF), maior primeiro.
   const rendaPorAtivoHoje = useMemo(() => {
     const divs = mapa.rows
@@ -261,6 +274,40 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
         {metaMensal > 0 && !meta.atingida && meta.sugestoes.length === 0 && (
           <div style={{ marginTop: 12, fontSize: 12, color: T.faint, fontStyle: "italic" }}>
             Sem ativos com DY conhecido pra sugerir — use "Atualizar proventos reais" ou adicione candidatos com DY abaixo.
+          </div>
+        )}
+
+        {/* Aporte MANTENDO O MIX da carteira — dividido entre os seus ativos */}
+        {metaMensal > 0 && !meta.atingida && proporcional && (
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${T.border}` }}>
+            <div style={{ fontSize: 11, color: T.muted, marginBottom: 8 }}>
+              Ou <b>mantendo o mix atual da carteira</b> (yield ponderado {(proporcional.yieldMensal * 100).toFixed(2)}%/mês): aporte total de{" "}
+              <b className="num" style={{ color: T.gold, fontSize: 13 }}>{oculto(fmt(proporcional.total), hidden)}</b>, dividido assim:
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {proporcional.itens.map((x) => (
+                <span key={x.ticker}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 999, padding: "4px 11px", fontSize: 11.5 }}>
+                  <b style={{ color: T.ink }}>{x.ticker}</b>
+                  <span style={{ color: T.faint, fontSize: 10 }}>{(x.peso * 100).toFixed(0)}%</span>
+                  <span className="num" style={{ color: T.gold, fontWeight: 700 }}>{oculto(fmt(x.aporte), hidden)}</span>
+                  {x.cotas && <span style={{ color: T.faint, fontSize: 10 }}>≈ {x.cotas.toLocaleString("pt-BR")} cotas</span>}
+                </span>
+              ))}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11.5, color: T.muted }}>Aportando</span>
+              <span style={{ fontSize: 12, color: T.muted }}>R$</span>
+              <input value={aporteMensalSim || ""} onChange={(e) => setAporteMensalSim(Number(e.target.value) || 0)}
+                     placeholder="1.000" inputMode="numeric"
+                     style={{ width: 100, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 9, padding: "6px 9px", color: T.ink, fontSize: 13, fontWeight: 700, fontFamily: "inherit" }} />
+              <span style={{ fontSize: 11.5, color: T.muted }}>/mês nesse mix (reinvestindo os proventos), você alcança a meta em</span>
+              <b style={{ fontSize: 13, color: aporteMensalSim > 0 && mesesSim != null ? T.green : T.faint }}>
+                {aporteMensalSim > 0 && mesesSim != null
+                  ? mesesSim <= 24 ? `≈ ${mesesSim} ${mesesSim === 1 ? "mês" : "meses"}` : `≈ ${(mesesSim / 12).toFixed(1)} anos`
+                  : "—"}
+              </b>
+            </div>
           </div>
         )}
       </div>

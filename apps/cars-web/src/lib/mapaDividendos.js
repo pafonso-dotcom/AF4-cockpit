@@ -221,3 +221,59 @@ export function metaProventos({ rows = [], metaMensal = 0, precos = {}, rendaExt
 
   return { rendaMensalAtual, gapMensal: atingida ? 0 : gapMensal, pctAtingido, atingida, sugestoes };
 }
+
+/**
+ * Aporte necessário MANTENDO O MIX atual da carteira: divide o aporte total
+ * proporcionalmente ao valor de cada ativo gerador de renda (proventos + RF).
+ * aporteTotal = gap mensal ÷ yield mensal ponderado da carteira.
+ * Retorna null quando a carteira não gera renda (mix indefinido).
+ * @param {object} p
+ * @param {Array}  p.rows        linhas de montarMapaDividendos (usa só carteira, não candidatos)
+ * @param {Array}  [p.rfPorAtivo] porAtivo de rendaFixaMensal
+ * @param {number} p.gapMensal   quanto falta de renda mensal (R$)
+ * @param {object} [p.precos]    { [TICKER]: preço por cota }
+ */
+export function aporteProporcional({ rows = [], rfPorAtivo = [], gapMensal = 0, precos = {} } = {}) {
+  const base = [
+    ...rows.filter((r) => !r.candidato && Number(r.valor) > 0 && Number(r.rendaAnual) > 0)
+      .map((r) => ({ ticker: r.ticker, tipo: r.tipo, valor: Number(r.valor), rendaMensal: Number(r.rendaAnual) / 12 })),
+    ...(rfPorAtivo || []).filter((x) => Number(x.valor) > 0 && Number(x.rendaMensal) > 0)
+      .map((x) => ({ ticker: x.ticker, tipo: x.tipo, valor: Number(x.valor), rendaMensal: Number(x.rendaMensal) })),
+  ];
+  const V = base.reduce((s, x) => s + x.valor, 0);
+  const R = base.reduce((s, x) => s + x.rendaMensal, 0);
+  if (V <= 0 || R <= 0 || !(gapMensal > 0)) return null;
+
+  const yieldMensal = R / V;
+  const total = gapMensal / yieldMensal;
+  const itens = base
+    .map((x) => {
+      const peso = x.valor / V;
+      const aporte = total * peso;
+      const preco = Number(precos[x.ticker]) || null;
+      return { ticker: x.ticker, tipo: x.tipo, peso, aporte, preco, cotas: preco ? Math.ceil(aporte / preco) : null };
+    })
+    .sort((a, b) => b.aporte - a.aporte);
+
+  return { total, yieldMensal, itens };
+}
+
+/**
+ * Em quantos meses a meta é alcançada, reinvestindo a renda e aportando
+ * `aporteMensal` por mês: C_{n+1} = C_n × (1+y) + A, até C ≥ capitalAlvo.
+ * Fórmula fechada; null quando nunca alcança (sem yield e sem aporte).
+ */
+export function mesesAteMeta({ yieldMensal = 0, capitalAtual = 0, capitalAlvo = 0, aporteMensal = 0 } = {}) {
+  const y = Number(yieldMensal) || 0;
+  const C0 = Number(capitalAtual) || 0;
+  const alvo = Number(capitalAlvo) || 0;
+  const A = Number(aporteMensal) || 0;
+  if (C0 >= alvo) return 0;
+  if (y <= 0) {
+    if (A <= 0) return null;
+    return Math.ceil((alvo - C0) / A);
+  }
+  // n = ln((A + y·alvo) / (A + y·C0)) / ln(1+y)
+  const n = Math.log((A + y * alvo) / (A + y * C0)) / Math.log(1 + y);
+  return Number.isFinite(n) ? Math.ceil(n - 1e-9) : null;
+}
