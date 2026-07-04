@@ -1,5 +1,55 @@
 import { describe, it, expect } from "vitest";
-import { normalizarLista, filtrarOrdenar, setoresDaLista } from "../screener.js";
+import { normalizarLista, filtrarOrdenar, setoresDaLista, indicadoresDoResultado, lotes } from "../screener.js";
+
+describe("indicadoresDoResultado", () => {
+  it("extrai P/L, P/VP, ROE e EV/EBITDA da resposta da brapi", () => {
+    const r = {
+      symbol: "WEGE3",
+      priceEarnings: 32.5,
+      defaultKeyStatistics: { priceToBook: 8.77, enterpriseToEbitda: 22.4 },
+      financialData: { returnOnEquity: 0.271 }, // fração estilo Yahoo
+    };
+    const ind = indicadoresDoResultado(r);
+    expect(ind.pl).toBeCloseTo(32.5, 2);
+    expect(ind.pvp).toBeCloseTo(8.77, 2);
+    expect(ind.roe).toBeCloseTo(27.1, 1); // normalizado pra %
+    expect(ind.evEbitda).toBeCloseTo(22.4, 1);
+  });
+  it("ROE já em % não é multiplicado; campos ausentes ficam null", () => {
+    const ind = indicadoresDoResultado({ financialData: { returnOnEquity: 27.1 } });
+    expect(ind.roe).toBeCloseTo(27.1, 1);
+    expect(ind.pl).toBe(null);
+    expect(ind.pvp).toBe(null);
+  });
+  it("resposta vazia não quebra", () => {
+    const ind = indicadoresDoResultado(null);
+    expect(ind).toEqual({ pl: null, pvp: null, roe: null, evEbitda: null });
+  });
+});
+
+describe("lotes", () => {
+  it("divide em blocos de N", () => {
+    expect(lotes([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+    expect(lotes([], 20)).toEqual([]);
+  });
+});
+
+describe("filtrarOrdenar · indicadores fundamentalistas", () => {
+  const lista = [
+    { ticker: "BARATA3", nome: "Barata", preco: 10, variacaoPct: 0, volume: 1e6, marketCap: 1e9, setor: "", tipo: "stock", pl: 5.2, pvp: 0.8, roe: 18 },
+    { ticker: "CARA3", nome: "Cara", preco: 90, variacaoPct: 0, volume: 2e6, marketCap: 9e9, setor: "", tipo: "stock", pl: 41.0, pvp: 6.1, roe: 22 },
+    { ticker: "SEMDADO3", nome: "Sem dado", preco: 20, variacaoPct: 0, volume: 3e6, marketCap: 2e9, setor: "", tipo: "stock", pl: null, pvp: null, roe: null },
+  ];
+  it("filtra por P/L máx, P/VP máx e ROE mín (sem dado fica fora do filtro)", () => {
+    expect(filtrarOrdenar(lista, { plMax: 10 }).map(x => x.ticker)).toEqual(["BARATA3"]);
+    expect(filtrarOrdenar(lista, { pvpMax: 1 }).map(x => x.ticker)).toEqual(["BARATA3"]);
+    expect(filtrarOrdenar(lista, { roeMin: 20 }).map(x => x.ticker)).toEqual(["CARA3"]);
+  });
+  it("ordena por pl asc com null no fim", () => {
+    const r = filtrarOrdenar(lista, { ordenarPor: "pl", direcao: "asc" });
+    expect(r.map(x => x.ticker)).toEqual(["SEMDADO3", "BARATA3", "CARA3"]);
+  });
+});
 
 const raw = {
   stocks: [

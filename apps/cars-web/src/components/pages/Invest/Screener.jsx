@@ -4,19 +4,21 @@ import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
 import { toast } from "../../../lib/toast.js";
 import PageHeader from "../../ui/PageHeader.jsx";
-import { getListaMercado, getDividendos } from "../../../lib/brapi.js";
+import { getListaMercado, getDividendos, getFundamentosLote } from "../../../lib/brapi.js";
 import { gerarJSONGemini } from "../../../lib/gemini.js";
 import { proventosPorCota12m } from "../../../lib/mapaDividendos.js";
 import { carregarWatchlist, salvarWatchlist, adicionarPapel } from "../../../lib/mercadoWatchlist.js";
 import {
   normalizarLista, filtrarOrdenar, setoresDaLista,
   lerCacheLista, cacheValido, gravarCacheLista,
+  indicadoresDoResultado, lotes,
   montarPromptFiltros, montarPromptShortlist,
 } from "../../../lib/screener.js";
 
 const CARD = { background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16 };
 const KEY_CAND = "af4:mapa-div:candidatos:v1";
 const KEY_PROV = "af4:mapa-div:proventos-brapi:v1"; // compartilhado com Mapa de Dividendos/YoC
+const KEY_FUND = "af4:screener-fundamentos:v1"; // indicadores P/L·P/VP·ROE por ticker
 const TIPOS = [
   { v: "todos", l: "Todos" },
   { v: "stock", l: "Ações" },
@@ -27,6 +29,7 @@ const FILTROS_VAZIOS = {
   busca: "", tipo: "todos", setor: "",
   precoMin: null, precoMax: null, volumeMin: null,
   variacaoMin: null, variacaoMax: null, marketCapMin: null,
+  plMax: null, pvpMax: null, roeMin: null,
   ordenarPor: "volume", direcao: "desc",
 };
 
@@ -57,6 +60,12 @@ export default function Screener({ hidden }) {
     try { return JSON.parse(localStorage.getItem(KEY_PROV) || "null")?.porTicker || {}; } catch { return {}; }
   });
   const [buscandoDY, setBuscandoDY] = useState(false);
+  // Indicadores fundamentalistas (P/L, P/VP, ROE, EV/EBITDA) por ticker —
+  // plano pago da brapi: 20 tickers por requisição.
+  const [fundCache, setFundCache] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(KEY_FUND) || "null")?.porTicker || {}; } catch { return {}; }
+  });
+  const [buscandoFund, setBuscandoFund] = useState(false);
 
   const lista = cache?.lista || [];
   const setores = useMemo(() => setoresDaLista(lista), [lista]);
@@ -64,8 +73,13 @@ export default function Screener({ hidden }) {
   // tem histórico no cache — assim a coluna DY também é ordenável/filtrável.
   const listaComDy = useMemo(() => lista.map((x) => {
     const porCota = proventosPorCota12m(provCache[x.ticker]);
-    return { ...x, dy: porCota > 0 && x.preco > 0 ? (porCota / x.preco) * 100 : null };
-  }), [lista, provCache]);
+    const f = fundCache[x.ticker] || {};
+    return {
+      ...x,
+      dy: porCota > 0 && x.preco > 0 ? (porCota / x.preco) * 100 : null,
+      pl: f.pl ?? null, pvp: f.pvp ?? null, roe: f.roe ?? null, evEbitda: f.evEbitda ?? null,
+    };
+  }), [lista, provCache, fundCache]);
   const filtrada = useMemo(() => filtrarOrdenar(listaComDy, filtros), [listaComDy, filtros]);
   const visiveis = filtrada.slice(0, limite);
 
@@ -114,6 +128,38 @@ export default function Screener({ hidden }) {
     } finally {
       setCarregando(false);
     }
+  }
+
+  // Enriquece os N primeiros papéis FILTRADOS com P/L·P/VP·ROE·EV/EBITDA —
+  // 20 tickers por requisição (plano pago). 200 papéis = 10 requisições.
+  async function buscarIndicadores(n = 200) {
+    const alvos = filtrada.slice(0, n).map((x) => x.ticker).filter((tk) => !fundCache[tk]);
+    if (!alvos.length) { toast.info(`Os ${Math.min(n, filtrada.length)} primeiros já têm indicadores.`); return; }
+    setBuscandoFund(true);
+    const porTicker = { ...fundCache };
+    let ok = 0, reqs = 0;
+    for (const lote of lotes(alvos, 20)) {
+      try {
+        reqs++;
+        const results = await getFundamentosLote(lote);
+        const vistos = new Set();
+        for (const r of results) {
+          const tk = String(r?.symbol || "").toUpperCase();
+          if (!tk) continue;
+          vistos.add(tk);
+          porTicker[tk] = indicadoresDoResultado(r);
+          ok++;
+        }
+        // marca os que a brapi não devolveu pra não repetir a requisição
+        lote.forEach((tk) => { if (!vistos.has(tk)) porTicker[tk] = { pl: null, pvp: null, roe: null, evEbitda: null }; });
+      } catch (e) {
+        if (/token|plano|recusou/i.test(e.message || "")) { toast.error(e.message); setBuscandoFund(false); return; }
+      }
+    }
+    setFundCache(porTicker);
+    try { localStorage.setItem(KEY_FUND, JSON.stringify({ atualizadoEm: new Date().toISOString(), porTicker })); } catch {}
+    setBuscandoFund(false);
+    toast.success(`Indicadores buscados: ${ok} papéis em ${reqs} requisição(ões).`);
   }
 
   async function perguntarIA(e) {
@@ -212,6 +258,11 @@ export default function Screener({ hidden }) {
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.gold, border: "none", color: "#fff", borderRadius: 10, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: iaRodando ? "wait" : "pointer", opacity: !filtrada.length ? 0.5 : 1 }}>
           <Sparkles size={13} className={iaRodando ? "spin" : ""} /> Analisar top 15
         </button>
+        <button type="button" onClick={() => buscarIndicadores(200)} disabled={buscandoFund || !filtrada.length}
+                title="Busca P/L, P/VP, ROE e EV/EBITDA dos 200 primeiros papéis filtrados — 20 tickers por requisição (10 req no total). Fica em cache."
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.gold}`, color: T.gold, borderRadius: 10, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: buscandoFund ? "wait" : "pointer", opacity: !filtrada.length ? 0.5 : 1 }}>
+          <RefreshCw size={13} className={buscandoFund ? "spin" : ""} /> {buscandoFund ? "Buscando…" : "Buscar indicadores (top 200)"}
+        </button>
         <button type="button" onClick={() => buscarDYTopN(20)} disabled={buscandoDY || !filtrada.length}
                 title="Busca os proventos anunciados dos 20 primeiros papéis filtrados e calcula o DY 12m real (1 requisição brapi POR papel; fica em cache e alimenta também o Mapa de Dividendos). Atenção: o histórico de dividendos pode não estar incluso no plano free da brapi."
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.green}`, color: T.green, borderRadius: 10, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: buscandoDY ? "wait" : "pointer", opacity: !filtrada.length ? 0.5 : 1 }}>
@@ -239,6 +290,9 @@ export default function Screener({ hidden }) {
         <input placeholder="R$ mín" inputMode="decimal" value={filtros.precoMin ?? ""} onChange={setNum("precoMin")} style={inpStyle} />
         <input placeholder="R$ máx" inputMode="decimal" value={filtros.precoMax ?? ""} onChange={setNum("precoMax")} style={inpStyle} />
         <input placeholder="Vol. mín" inputMode="numeric" value={filtros.volumeMin ?? ""} onChange={setNum("volumeMin")} style={inpStyle} />
+        <input placeholder="P/L máx" inputMode="decimal" value={filtros.plMax ?? ""} onChange={setNum("plMax")} style={{ ...inpStyle, width: 78 }} title="Só papéis com P/L até este valor (requer indicadores buscados)" />
+        <input placeholder="P/VP máx" inputMode="decimal" value={filtros.pvpMax ?? ""} onChange={setNum("pvpMax")} style={{ ...inpStyle, width: 82 }} title="Só papéis com P/VP até este valor" />
+        <input placeholder="ROE mín %" inputMode="decimal" value={filtros.roeMin ?? ""} onChange={setNum("roeMin")} style={{ ...inpStyle, width: 86 }} title="Só papéis com ROE a partir deste %" />
         <button onClick={() => { setFiltros(FILTROS_VAZIOS); setAnalise(null); }}
                 style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 9, padding: "7px 11px", fontSize: 11.5, cursor: "pointer" }}>
           Limpar
@@ -263,13 +317,16 @@ export default function Screener({ hidden }) {
             Clique em <b style={{ color: T.gold }}>Carregar mercado</b> — a lista completa da B3 custa só 1 requisição da sua cota brapi e fica em cache por 24h.
           </div>
         ) : (
-          <table style={{ width: "100%", minWidth: 760, borderCollapse: "collapse", fontSize: 12.5 }}>
+          <table style={{ width: "100%", minWidth: 980, borderCollapse: "collapse", fontSize: 12.5 }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${T.border}` }}>
                 {th("Papel", "ticker", false)}
                 {th("Preço", "preco")}
                 {th("Var. dia", "variacaoPct")}
                 {th("DY 12m", "dy")}
+                {th("P/L", "pl")}
+                {th("P/VP", "pvp")}
+                {th("ROE", "roe")}
                 {th("Volume", "volume")}
                 {th("Mkt cap", "marketCap")}
                 <th style={{ textAlign: "right", padding: "9px 10px", fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 700 }}>Ações</th>
@@ -301,6 +358,16 @@ export default function Screener({ hidden }) {
                         style={{ textAlign: "right", padding: "9px 10px", whiteSpace: "nowrap", color: x.dy != null ? T.green : T.faint, fontWeight: x.dy != null ? 700 : 400 }}>
                       {x.dy != null ? `${fmtN(x.dy, 1)}%` : "—"}
                     </td>
+                    <td className="num" title={x.evEbitda != null ? `EV/EBITDA ${fmtN(x.evEbitda, 1)}` : "Use 'Buscar indicadores'"}
+                        style={{ textAlign: "right", padding: "9px 10px", whiteSpace: "nowrap", color: x.pl != null ? T.ink : T.faint }}>
+                      {x.pl != null ? fmtN(x.pl, 1) : "—"}
+                    </td>
+                    <td className="num" style={{ textAlign: "right", padding: "9px 10px", whiteSpace: "nowrap", color: x.pvp != null ? T.ink : T.faint }}>
+                      {x.pvp != null ? fmtN(x.pvp, 2) : "—"}
+                    </td>
+                    <td className="num" style={{ textAlign: "right", padding: "9px 10px", whiteSpace: "nowrap", color: x.roe != null ? (x.roe >= 10 ? T.green : T.ink) : T.faint }}>
+                      {x.roe != null ? `${fmtN(x.roe, 1)}%` : "—"}
+                    </td>
                     <td className="num" style={{ textAlign: "right", padding: "9px 10px", color: T.muted, whiteSpace: "nowrap" }}>{fmtVol(x.volume)}</td>
                     <td className="num" style={{ textAlign: "right", padding: "9px 10px", color: T.muted, whiteSpace: "nowrap" }}>{fmtCap(x.marketCap)}</td>
                     <td style={{ textAlign: "right", padding: "9px 10px", whiteSpace: "nowrap" }}>
@@ -325,7 +392,7 @@ export default function Screener({ hidden }) {
         )}
       </div>
       <div style={{ fontSize: 11, color: T.faint, marginTop: 6 }}>
-        Fonte: brapi /quote/list (1 requisição, cache 24h) · dados de pregão com atraso no plano free · DY 12m vem de "Buscar DY" (1 req/papel, cache compartilhado com o Mapa de Dividendos) · P/L e demais fundamentos: use o Pesquisador de mercado pra 1 papel por vez.
+        Fonte: brapi /quote/list (1 requisição, cache 24h) · DY 12m vem de "Buscar DY" (1 req/papel, cache compartilhado com o Mapa de Dividendos) · P/L, P/VP, ROE e EV/EBITDA vêm de "Buscar indicadores" (20 papéis/req) — filtre primeiro (ex.: FIIs) e depois busque, os filtros de P/L·P/VP·ROE passam a valer.
       </div>
     </div>
   );
