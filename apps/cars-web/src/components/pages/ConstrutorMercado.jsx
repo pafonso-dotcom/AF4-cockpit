@@ -3,10 +3,11 @@ import { Trash2, Scale, Copy, Check, Search, PieChart, Loader2 } from "lucide-re
 import { T } from "../../lib/theme.js";
 import { fmt } from "../../lib/format.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import PesquisadorMercado from "./PesquisadorMercado.jsx";
 import { getQuotes } from "../../lib/brapi.js";
 import {
   carregarWatchlist, salvarWatchlist, removerPapel,
-  definirPeso, somaPesos, normalizarPesos,
+  definirPeso, somaPesos, normalizarPesos, adicionarPapel,
 } from "../../lib/mercadoWatchlist.js";
 
 const CARD = { background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16 };
@@ -15,7 +16,7 @@ const CARD = { background: T.card, border: `1px solid ${T.border}`, borderRadius
  * Construtor de mercado — pega os papéis acompanhados (watchlist) e monta uma
  * carteira-alvo com pesos. Normaliza pra 100% e exporta o plano.
  */
-export default function ConstrutorMercado({ onIrPesquisador, onIrMonteCarteira }) {
+export default function ConstrutorMercado({ onIrMonteCarteira }) {
   const [lista, setLista] = useState(() => carregarWatchlist());
   const [precos, setPrecos] = useState({}); // symbol -> { price, name }
   const [loading, setLoading] = useState(false);
@@ -61,7 +62,8 @@ export default function ConstrutorMercado({ onIrPesquisador, onIrMonteCarteira }
         title={<>Construtor de <em>mercado.</em></>}
         sub="Defina os pesos-alvo dos papéis que você acompanha e monte sua carteira ideal."
         action={
-          <button onClick={onIrPesquisador} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 10, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
+          <button onClick={() => document.getElementById("pesquisador-embutido")?.scrollIntoView({ behavior: "smooth" })}
+                  style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 10, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
             <Search size={13} /> Pesquisar papéis
           </button>
         }
@@ -71,10 +73,7 @@ export default function ConstrutorMercado({ onIrPesquisador, onIrMonteCarteira }
         <div style={{ ...CARD, marginTop: 12, textAlign: "center", padding: 32 }}>
           <PieChart size={28} style={{ color: T.faint, marginBottom: 10 }} />
           <div style={{ color: T.ink, fontWeight: 600, fontSize: 14 }}>Nenhum papel acompanhado ainda.</div>
-          <div style={{ color: T.faint, fontSize: 12.5, marginTop: 4 }}>Use o Pesquisador de mercado e clique em “Acompanhar” pra trazer papéis pra cá.</div>
-          <button onClick={onIrPesquisador} style={{ marginTop: 14, background: T.gold, color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
-            Ir ao Pesquisador
-          </button>
+          <div style={{ color: T.faint, fontSize: 12.5, marginTop: 4 }}>Pesquise um papel logo abaixo e clique em “Acompanhar” pra trazê-lo pra cá.</div>
         </div>
       ) : (
         <>
@@ -146,6 +145,21 @@ export default function ConstrutorMercado({ onIrPesquisador, onIrMonteCarteira }
           </div>
         </>
       )}
+
+      {/* Pesquisador embutido — pesquisa e "Acompanhar" sem trocar de tela.
+          A watchlist é a MESMA lista deste construtor (estado único). */}
+      <div id="pesquisador-embutido" style={{ ...CARD, marginTop: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <Search size={15} style={{ color: T.gold }} />
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: T.ink, margin: 0 }}>Pesquisar papéis</h3>
+          <span style={{ fontSize: 11, color: T.faint }}>cotação, faixa de 52 semanas e "Acompanhar" direto pra lista acima</span>
+        </div>
+        <PesquisadorMercado
+          embutido
+          watchExterna={lista}
+          onAcompanhar={(p) => setLista((prev) => adicionarPapel(prev, p))}
+        />
+      </div>
       <style>{`.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
