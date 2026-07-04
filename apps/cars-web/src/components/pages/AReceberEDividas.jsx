@@ -875,9 +875,12 @@ export default function AReceberEDividas({
   };
 
   // Ordenação: por data de vencimento (mais próxima primeiro; sem data no fim) ou por nome.
-  const ordenarPorData = (a, b) => (a.vencimento || "9999-12-31").localeCompare(b.vencimento || "9999-12-31");
-  const ordenarPorNome = (a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR", { sensitivity: "base" });
-  const sorter = ordem === "nome" ? ordenarPorNome : ordenarPorData;
+  // ⚠️ Nomes distintos do import ordenarPorNome (lib/categoriaSort, recebe LISTA):
+  // um comparador local homônimo sombreava o import e derrubava o app ao abrir
+  // os modais de baixa/edição (b chegava undefined).
+  const cmpPorData = (a, b) => (a.vencimento || "9999-12-31").localeCompare(b.vencimento || "9999-12-31");
+  const cmpPorNome = (a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR", { sensitivity: "base" });
+  const sorter = ordem === "nome" ? cmpPorNome : cmpPorData;
   const receberMes = devAbertos.filter(filtroMes).sort(sorter);
   const pagarMes   = divAbertas.filter(filtroMes).sort(sorter);
 
