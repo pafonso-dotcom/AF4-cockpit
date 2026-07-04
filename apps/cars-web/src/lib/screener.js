@@ -37,6 +37,7 @@ export function filtrarOrdenar(lista = [], filtros = {}) {
     busca = "", tipo = "todos", setor = "",
     precoMin = null, precoMax = null, volumeMin = null,
     variacaoMin = null, variacaoMax = null, marketCapMin = null,
+    plMax = null, pvpMax = null, roeMin = null,
     ordenarPor = "volume", direcao = "desc",
   } = filtros;
 
@@ -51,6 +52,9 @@ export function filtrarOrdenar(lista = [], filtros = {}) {
     if (variacaoMin != null && (x.variacaoPct == null || x.variacaoPct < variacaoMin)) return false;
     if (variacaoMax != null && (x.variacaoPct == null || x.variacaoPct > variacaoMax)) return false;
     if (marketCapMin != null && (x.marketCap == null || x.marketCap < marketCapMin)) return false;
+    if (plMax != null && !(x.pl != null && x.pl > 0 && x.pl <= plMax)) return false;
+    if (pvpMax != null && !(x.pvp != null && x.pvp > 0 && x.pvp <= pvpMax)) return false;
+    if (roeMin != null && !(x.roe != null && x.roe >= roeMin)) return false;
     return true;
   });
 
@@ -66,6 +70,31 @@ export function filtrarOrdenar(lista = [], filtros = {}) {
 /** Setores únicos presentes na lista (pra popular o filtro). */
 export function setoresDaLista(lista = []) {
   return [...new Set(lista.map((x) => x.setor).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Indicadores fundamentalistas de um result da brapi (fundamental/modules).
+ * ROE normalizado pra % (Yahoo às vezes manda fração 0.271, às vezes 27.1).
+ */
+export function indicadoresDoResultado(r) {
+  const out = { pl: null, pvp: null, roe: null, evEbitda: null };
+  if (!r || typeof r !== "object") return out;
+  const ks = r.defaultKeyStatistics || {};
+  const fin = r.financialData || {};
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
+  out.pl = num(r.priceEarnings) ?? num(ks.trailingPE) ?? num(ks.forwardPE);
+  out.pvp = num(ks.priceToBook);
+  const roeRaw = num(fin.returnOnEquity);
+  out.roe = roeRaw == null ? null : Math.round((Math.abs(roeRaw) < 1 ? roeRaw * 100 : roeRaw) * 10) / 10;
+  out.evEbitda = num(ks.enterpriseToEbitda);
+  return out;
+}
+
+/** Divide uma lista em lotes de N (a brapi paga aceita 20 tickers/req). */
+export function lotes(arr = [], n = 20) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
+  return out;
 }
 
 /* ---------- Cache local da lista ---------- */
@@ -99,7 +128,10 @@ Filtros disponíveis (JSON): {
   "volumeMin": <número ou null>,
   "variacaoMin": <% ou null>, "variacaoMax": <% ou null>,
   "marketCapMin": <número ou null>,
-  "ordenarPor": "<volume|preco|variacaoPct|dy|marketCap|ticker>",  // dy = dividend yield 12m (só tem valor pra papéis já enriquecidos)
+  "plMax": <número ou null>,   // P/L máximo (ex.: "P/L abaixo de 10" → 10)
+  "pvpMax": <número ou null>,  // P/VP máximo (ex.: "P/VP menor que 1" → 1)
+  "roeMin": <% ou null>,       // ROE mínimo (ex.: "ROE acima de 15%" → 15)
+  "ordenarPor": "<volume|preco|variacaoPct|dy|pl|pvp|roe|marketCap|ticker>",  // dy/pl/pvp/roe só têm valor pra papéis já enriquecidos
   "direcao": "<asc|desc>"
 }
 
@@ -113,6 +145,10 @@ export function montarPromptShortlist(lista, pergunta = "") {
   const compacta = lista.slice(0, 15).map((x) => ({
     ticker: x.ticker, nome: x.nome, tipo: x.tipo, setor: x.setor,
     preco: x.preco, variacaoPct: x.variacaoPct, volume: x.volume, marketCap: x.marketCap,
+    ...(x.dy != null ? { dyPct: Math.round(x.dy * 10) / 10 } : {}),
+    ...(x.pl != null ? { pl: x.pl } : {}),
+    ...(x.pvp != null ? { pvp: x.pvp } : {}),
+    ...(x.roe != null ? { roePct: x.roe } : {}),
   }));
   return `Você é um analista de investimentos brasileiro, direto e cético. Abaixo, uma shortlist de papéis da B3 filtrada pelo investidor${pergunta ? ` (critério dele: "${pergunta}")` : ""}.
 

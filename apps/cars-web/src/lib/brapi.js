@@ -138,6 +138,17 @@ export async function getPerfilAtivo(ticker) {
   };
 }
 
+/**
+ * Fundamentos em LOTE (plano pago: até 20 tickers por requisição).
+ * Retorna o array results cru — indicadores extraídos em lib/screener.js.
+ */
+export async function getFundamentosLote(tickers = []) {
+  if (!tickers.length) return [];
+  const lista = tickers.map(encodeURIComponent).join(",");
+  const data = await brapiFetch(`/quote/${lista}?modules=defaultKeyStatistics,financialData&fundamental=true`);
+  return data.results || [];
+}
+
 export async function getIndices() {
   try {
     const data = await brapiFetch("/quote/list?type=index");
