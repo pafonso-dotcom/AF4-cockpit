@@ -114,14 +114,6 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
     toast.success(`Proventos reais atualizados: ${ok} ${ok === 1 ? "ativo" : "ativos"}${falhas ? ` · ${falhas} sem dados` : ""}.`);
   }
 
-  const maxTotal = Math.max(...mapa.totaisPorMes, 1);
-
-  function toggleMes(row, m) {
-    const atuais = new Set(row.meses);
-    if (atuais.has(m)) atuais.delete(m); else atuais.add(m);
-    setOverrides((prev) => ({ ...prev, [row.ticker]: { meses: [...atuais].sort((a, b) => a - b) } }));
-  }
-
   function addCandidato(e) {
     e?.preventDefault();
     const tk = form.ticker.trim().toUpperCase();
@@ -361,81 +353,10 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
         )}
       </div>
 
-      {/* Grade Ativo × Mês */}
-      <div style={{ ...CARD, marginTop: 12, padding: 0, overflowX: "auto" }}>
-        {mapa.rows.length === 0 ? (
-          <div style={{ padding: 28, textAlign: "center", color: T.faint, fontSize: 13, fontStyle: "italic" }}>
-            Nenhum ativo pagador de dividendos. Adicione candidatos abaixo ou inclua ações/FIIs na sua carteira.
-          </div>
-        ) : (
-          <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", fontSize: 11.5 }}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${T.border}` }}>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: T.muted, fontWeight: 600, position: "sticky", left: 0, background: T.card }}>Ativo</th>
-                <th style={{ textAlign: "right", padding: "10px 6px", color: T.muted, fontWeight: 600 }}>DY</th>
-                {MESES_PT.map((m, i) => (
-                  <th key={i} style={{ textAlign: "center", padding: "10px 2px", color: T.faint, fontWeight: 600, minWidth: 26 }}>{m[0]}</th>
-                ))}
-                <th style={{ textAlign: "right", padding: "10px 12px", color: T.muted, fontWeight: 600 }}>Ano</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mapa.rows.map((r) => (
-                <tr key={r.ticker} style={{ borderBottom: `1px solid ${T.border}` }}>
-                  <td style={{ padding: "8px 12px", position: "sticky", left: 0, background: T.card }}>
-                    <div style={{ fontWeight: 700, color: T.ink, display: "flex", alignItems: "center", gap: 6 }}>
-                      {r.ticker}
-                      {r.candidato && <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 4, background: `${T.gold}22`, color: T.gold, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase" }}>plano</span>}
-                      {r.real && <span title="Valores dos proventos anunciados de verdade (brapi), últimos 12 meses" style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 4, background: `${T.green}22`, color: T.green, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase" }}>real</span>}
-                    </div>
-                    <div style={{ fontSize: 9.5, color: T.faint, textTransform: "uppercase", letterSpacing: ".05em" }}>{r.tipo}</div>
-                  </td>
-                  <td style={{ textAlign: "right", padding: "8px 6px", color: T.muted, whiteSpace: "nowrap" }}>{r.dy.toFixed(1)}%</td>
-                  {MESES_PT.map((_, m) => {
-                    const paga = r.meses.includes(m);
-                    return (
-                      <td key={m} style={{ textAlign: "center", padding: "6px 2px" }}>
-                        <button
-                          onClick={() => toggleMes(r, m)}
-                          title={paga ? `${oculto(fmt(r.rendaPorMes[m]), hidden)} — clique pra tirar` : "clique pra marcar pagamento"}
-                          style={{
-                            width: 18, height: 18, borderRadius: 5, cursor: "pointer",
-                            border: paga ? "none" : `1px dashed ${T.border}`,
-                            background: paga ? T.green : "transparent",
-                            display: "inline-block",
-                          }}
-                        />
-                      </td>
-                    );
-                  })}
-                  <td style={{ textAlign: "right", padding: "8px 12px", color: T.ink, fontWeight: 600, whiteSpace: "nowrap" }}>{oculto(fmt(r.rendaAnual), hidden)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr style={{ borderTop: `2px solid ${T.border}` }}>
-                <td style={{ padding: "10px 12px", fontWeight: 700, color: T.ink, position: "sticky", left: 0, background: T.card }}>Renda / mês</td>
-                <td />
-                {mapa.totaisPorMes.map((v, m) => {
-                  const lac = v <= 0.005;
-                  return (
-                    <td key={m} style={{ textAlign: "center", padding: "8px 2px", verticalAlign: "bottom" }}>
-                      <div title={lac ? "lacuna — sem renda" : oculto(fmt(v), hidden)} style={{
-                        width: 10, height: Math.max(3, (v / maxTotal) * 34), margin: "0 auto",
-                        borderRadius: 2, background: lac ? T.red : T.green, opacity: lac ? 0.5 : 1,
-                      }} />
-                      <div style={{ fontSize: 8, color: lac ? T.red : T.faint, marginTop: 2 }}>{lac ? "—" : ""}</div>
-                    </td>
-                  );
-                })}
-                <td style={{ textAlign: "right", padding: "10px 12px", fontWeight: 800, color: T.green, whiteSpace: "nowrap" }}>{oculto(fmt(mapa.rendaAnualTotal), hidden)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        )}
-      </div>
+      {/* Rodapé informativo (a grade Ativo × Mês foi removida a pedido —
+          a calculadora acima cobre a leitura da renda) */}
       <div style={{ fontSize: 11, color: T.faint, marginTop: 6 }}>
-        ● mês com pagamento (clique numa célula pra marcar/tirar). Linhas com selo <b style={{ color: T.green }}>real</b> usam os proventos anunciados (brapi, últimos 12 meses); as demais estimam pelo DY.
+        Linhas com selo <b style={{ color: T.green }}>real</b> usam os proventos anunciados (brapi, últimos 12 meses); as demais estimam pelo DY.
         {realCache?.atualizadoEm && (
           <> · Proventos reais atualizados em {new Date(realCache.atualizadoEm).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}.</>
         )}
