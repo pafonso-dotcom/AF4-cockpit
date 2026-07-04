@@ -80,7 +80,6 @@ const Despesas = lz(() => import("./components/pages/Despesas.jsx"));
 const Planejamento = lz(() => import("./components/pages/Planejamento/index.jsx"));
 const AnaliseFatura = lz(() => import("./components/pages/AnaliseFatura.jsx"));
 const Investimentos = lz(() => import("./components/pages/Investimentos.jsx"));
-const Mercado = lz(() => import("./components/pages/Mercado.jsx"));
 const Screener = lz(() => import("./components/pages/Invest/Screener.jsx"));
 const Simulador = lz(() => import("./components/pages/Simulador.jsx"));
 const CalculadoraRenda = lz(() => import("./components/pages/Invest/CalculadoraRenda.jsx"));
@@ -94,7 +93,6 @@ const MapaDividendos = lz(() => import("./components/pages/Invest/MapaDividendos
 const RelatoriosInvest = lz(() => import("./components/pages/Invest/RelatoriosInvest.jsx"));
 const RelatoriosFinancas = lz(() => import("./components/pages/RelatoriosFinancas.jsx"));
 const RevisorGanhos = lz(() => import("./components/pages/RevisorGanhos.jsx"));
-const PesquisadorMercado = lz(() => import("./components/pages/PesquisadorMercado.jsx"));
 const ConstrutorMercado = lz(() => import("./components/pages/ConstrutorMercado.jsx"));
 const Cheques = lz(() => import("./components/pages/Cheques.jsx"));
 const Inteligencia = lz(() => import("./components/pages/Inteligencia.jsx"));
@@ -1156,11 +1154,6 @@ export default function App() {
         </div>
       )}
       {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} transacoes={transacoes} patrimonioHistorico={patrimonioHistorico} proventos={[]} operacoes={[]} hidden={hidden} />}
-      {tab === "mercado" && (
-        <div className="px-6 md:px-10">
-          <Mercado ativos={ativos} apiKeys={apiKeys} />
-        </div>
-      )}
       {tab === "screener" && (
         <div className="px-6 md:px-10">
           <Screener hidden={hidden} />
@@ -1169,12 +1162,10 @@ export default function App() {
       {/* Movidos de renderFinancas: as abas estão no módulo Investimentos
           desde o PR #439, mas os blocos de render tinham ficado pra trás —
           clicar nelas dava tela em branco. */}
-      {tab === "pesquisador-mercado" && (
-        <PesquisadorMercado onIrConstrutor={() => { setModulo("invest"); setTab("construtor-mercado"); }} />
-      )}
-      {tab === "construtor-mercado" && (
+      {/* Pesquisador foi embutido no Construtor; "pesquisador-mercado" e a
+          antiga "mercado" (apagada) viram alias — link antigo não fica em branco. */}
+      {(tab === "construtor-mercado" || tab === "pesquisador-mercado" || tab === "mercado") && (
         <ConstrutorMercado
-          onIrPesquisador={() => { setModulo("invest"); setTab("pesquisador-mercado"); }}
           onIrMonteCarteira={() => { setModulo("invest"); irParaTab("monte-carteira"); }}
         />
       )}

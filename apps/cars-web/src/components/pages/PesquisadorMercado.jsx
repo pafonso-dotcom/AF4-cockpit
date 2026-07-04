@@ -51,7 +51,10 @@ function Sparkline({ pontos }) {
  * Cotação, faixa de 52 semanas, mini-gráfico e leitura rápida. Botão pra
  * acompanhar (alimenta o Construtor de mercado).
  */
-export default function PesquisadorMercado({ onIrConstrutor }) {
+// `embutido`: renderizado dentro do Construtor de mercado — esconde o
+// PageHeader/botões de navegação e delega o "Acompanhar" pro pai
+// (watchExterna/onAcompanhar), evitando dois estados da mesma watchlist.
+export default function PesquisadorMercado({ onIrConstrutor, embutido = false, watchExterna = null, onAcompanhar = null }) {
   const [ticker, setTicker] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
@@ -59,9 +62,12 @@ export default function PesquisadorMercado({ onIrConstrutor }) {
   const [hist, setHist] = useState([]);
   const [watch, setWatch] = useState(() => carregarWatchlist());
 
-  useEffect(() => { salvarWatchlist(watch); }, [watch]);
+  // Embutido: quem persiste é o pai (senão o estado local, defasado, poderia
+  // sobrescrever pesos editados no Construtor).
+  useEffect(() => { if (!watchExterna) salvarWatchlist(watch); }, [watch, watchExterna]);
 
-  const naWatchlist = quote && watch.some((x) => x.symbol === quote.symbol);
+  const watchAtual = watchExterna ?? watch;
+  const naWatchlist = quote && watchAtual.some((x) => x.symbol === quote.symbol);
 
   async function pesquisar(e) {
     e?.preventDefault();
@@ -88,6 +94,7 @@ export default function PesquisadorMercado({ onIrConstrutor }) {
 
   function acompanhar() {
     if (!quote) return;
+    if (onAcompanhar) { onAcompanhar({ symbol: quote.symbol, name: quote.name || quote.symbol }); return; }
     setWatch((prev) => adicionarPapel(prev, { symbol: quote.symbol, name: quote.name || quote.symbol }));
   }
 
@@ -95,17 +102,19 @@ export default function PesquisadorMercado({ onIrConstrutor }) {
   const pos = quote ? posFaixa(quote.price, quote.fiftyTwoWeekLow, quote.fiftyTwoWeekHigh) : 50;
 
   return (
-    <div className="fade-up py-8 px-6">
+    <div className={embutido ? "" : "fade-up py-8 px-6"}>
+      {!embutido && (
       <PageHeader
         eyebrow="Finanças · Pesquisador de mercado"
         title={<>Pesquisador de <em>mercado.</em></>}
         sub="Consulte um papel: cotação, faixa de 52 semanas e mini-gráfico. Acompanhe pra montar carteira."
         action={
           <button onClick={onIrConstrutor} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 10, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
-            <Star size={13} /> {watch.length} acompanhados
+            <Star size={13} /> {watchAtual.length} acompanhados
           </button>
         }
       />
+      )}
 
       <form onSubmit={pesquisar} style={{ display: "flex", gap: 8, marginTop: 8 }}>
         <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "0 12px" }}>
@@ -172,7 +181,7 @@ export default function PesquisadorMercado({ onIrConstrutor }) {
               style={{ display: "flex", alignItems: "center", gap: 6, background: naWatchlist ? "transparent" : T.gold, color: naWatchlist ? T.muted : "#fff", border: naWatchlist ? `1px solid ${T.border}` : "none", borderRadius: 10, padding: "9px 14px", fontSize: 13.5, fontWeight: 700, cursor: naWatchlist ? "default" : "pointer" }}>
               <Star size={15} fill={naWatchlist ? T.gold : "none"} /> {naWatchlist ? "Acompanhando" : "Acompanhar"}
             </button>
-            {watch.length > 0 && (
+            {!embutido && watchAtual.length > 0 && (
               <button onClick={onIrConstrutor} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", color: T.gold, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 14px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
                 Montar carteira <ArrowUpRight size={15} />
               </button>
