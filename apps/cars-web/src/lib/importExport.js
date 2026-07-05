@@ -86,13 +86,37 @@ const downloadFile = (content, filename, mime = "text/plain;charset=utf-8") => {
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 };
 const printHTML = (html) => {
+  // Safari — inclusive o app instalado (PWA) no Mac/iPad — ignora
+  // silenciosamente o print() de iframe oculto. Pra ele, abrimos uma janela
+  // dedicada com o relatório e auto-print (e Cmd+P funciona como plano B).
+  const ua = navigator.userAgent || "";
+  const ehSafari = /safari/i.test(ua) && !/chrome|chromium|crios|android|edg/i.test(ua);
+  const ehPwa = window.navigator.standalone === true
+    || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  if (ehSafari || ehPwa) {
+    const w = window.open("", "_blank");
+    if (w) {
+      const auto = `<script>window.addEventListener("load",function(){setTimeout(function(){window.focus();window.print();},400);});</` + "script>";
+      const comAuto = html.includes("</body>") ? html.replace("</body>", auto + "</body>") : html + auto;
+      w.document.open(); w.document.write(comAuto); w.document.close();
+      return;
+    }
+    // popup bloqueado → tenta o caminho do iframe mesmo assim
+  }
   const iframe = document.createElement("iframe");
   iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
   document.body.appendChild(iframe);
   const doc = iframe.contentDocument || iframe.contentWindow.document;
   doc.open(); doc.write(html); doc.close();
   const trigger = () => {
-    try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) {}
+    try {
+      const cw = iframe.contentWindow;
+      cw.focus();
+      // Safari antigo só imprime iframe via execCommand; Chrome usa print().
+      let ok = false;
+      try { ok = cw.document.execCommand("print", false, null); } catch {}
+      if (!ok) cw.print();
+    } catch (e) {}
     setTimeout(() => { try { document.body.removeChild(iframe); } catch {} }, 3000);
   };
   // Wait for fonts/images
