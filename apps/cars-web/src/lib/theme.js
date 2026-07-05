@@ -40,9 +40,11 @@ const THEMES = {
     green: "#56784f", red: "#9a4032", blue: "#3f6a8c", yellow: "#b8862a",
   },
   linho: {
-    dark: false, id: "linho", nome: "Linho", subtitulo: "Verde oliva sobre linho",
-    bg: "#f3efe7", bgSoft: "#ebe5d8", card: "#fbf9f3", cardHi: "#f3efe7",
-    border: "#d0c8b6", borderHi: "#a89d83",
+    // Fundo branco a pedido do usuário (antes era creme #f3efe7) — o acento
+    // verde-oliva e o clima do tema continuam os mesmos.
+    dark: false, id: "linho", nome: "Linho", subtitulo: "Verde oliva · fundo branco",
+    bg: "#ffffff", bgSoft: "#f5f3ee", card: "#ffffff", cardHi: "#f7f5f0",
+    border: "#ddd6c8", borderHi: "#a89d83",
     ink: "#222018", muted: "#4b463a", faint: "#766e5d",
     gold: "#5d7548", goldHi: "#7a9460",
     green: "#56784f", red: "#a14a3a", blue: "#3f6a8c", yellow: "#a87a2a",

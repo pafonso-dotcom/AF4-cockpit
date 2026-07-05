@@ -84,8 +84,10 @@ body { color: var(--text-color, inherit); }
   --sc: #56784f; --dn: #9a4032; --wn: #b8862a; --info: #3f6a8c;
 }
 [data-c="linho"] {
-  --bg: #f3efe7; --be: #ebe5d8; --bc: #fbf9f3; --bc2: #f3efe7;
-  --bd: #d0c8b6; --bd2: #a89d83;
+  /* Fundo branco a pedido do usuário (antes creme #f3efe7) — acento oliva mantido.
+     Espelha lib/theme.js; os dois precisam andar juntos. */
+  --bg: #ffffff; --be: #f5f3ee; --bc: #ffffff; --bc2: #f7f5f0;
+  --bd: #ddd6c8; --bd2: #a89d83;
   --tx: #222018; --tm: #5a5346; --td: #857d6c;
   --ac: #5d7548; --ac2: #7a9460;
   --sc: #56784f; --dn: #a14a3a; --wn: #a87a2a; --info: #3f6a8c;
