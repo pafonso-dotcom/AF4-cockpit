@@ -50,4 +50,16 @@ describe("getGanhosDoMes · atrasados (incluirAtrasados)", () => {
     expect(g).toHaveLength(1);
     expect(g[0].status).toBe("pendente");
   });
+
+  it("atrasadosDesde limita o alcance: parcela do ano anterior NÃO é puxada", () => {
+    const st = {
+      devedores: [
+        { id: "d2025", nome: "Boa Bola", valor: 2553, vencimento: "2025-11-05", recebido: false }, // ano anterior
+        { id: "d2026", nome: "Boa Bola", valor: 2553, vencimento: "2026-06-05", recebido: false }, // atrasado no ano
+      ],
+    };
+    const g = getGanhosDoMes("2026-07", st, undefined, { incluirAtrasados: true, atrasadosDesde: "2026-01" });
+    expect(g.find(x => x.id === "d2025")).toBeUndefined(); // fora do piso
+    expect(g.find(x => x.id === "d2026")).toBeTruthy();    // dentro do ano da projeção
+  });
 });
