@@ -12,7 +12,10 @@ import ControleAnual from "../Relatorios/ControleAnual.jsx";
  * clicar (acordeão, uma seção por vez). Sem "Visão Executiva".
  */
 export default function Planejamento(props) {
-  const { devedores = [], fixas = [], fixaOcorrencias = [], hidden } = props;
+  const {
+    devedores = [], fixas = [], fixaOcorrencias = [],
+    dividas = [], parcelamentos = [], transacoes = [], hidden,
+  } = props;
   const [aberto, setAberto] = useState(null); // "areceber" | "fixas" | "anual" | null
 
   const toggle = (id) => setAberto(prev => (prev === id ? null : id));
@@ -44,6 +47,59 @@ export default function Planejamento(props) {
     return { recebido, pendente: pendenteMes, atrasado, total: recebido + abertoTotal, aReceber: abertoTotal };
   }, [devedores]);
 
+  // A Pagar: espelha o "em aberto" da tela A Receber & Dívidas — dívidas +
+  // fixas pendentes + parcelas de cartão + despesas avulsas não compensadas.
+  // "do mês" = vence no mês corrente; "cartões" = só as parcelas de cartão.
+  const resumoPagar = useMemo(() => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const mes = hoje.slice(0, 7);
+    const ymOf = (v) => {
+      if (!v) return "";
+      if (typeof v === "string") return v.slice(0, 7);
+      try { return new Date(v).toISOString().slice(0, 7); } catch { return ""; }
+    };
+    // Cada item vira { valor, venc, cartao }
+    const itens = [];
+    // 1) Dívidas tradicionais em aberto
+    dividas.filter(d => !d.pago).forEach(d => itens.push({ valor: Number(d.valor) || 0, venc: d.vencimento, cartao: false }));
+    // 2) Ocorrências de despesas fixas pendentes (com fixa existente)
+    (fixaOcorrencias || []).filter(o => o.status === "pendente" && fixas.some(f => f.id === o.fixaId))
+      .forEach(o => itens.push({ valor: Number(o.valor) || 0, venc: o.dataVencimento, cartao: false }));
+    // 3) Parcelas de cartão ainda não pagas
+    (parcelamentos || []).forEach(p => {
+      const total = p.totalParcelas || 0;
+      if (total <= 0) return;
+      const valorPorParcela = (p.valorTotal || 0) / total;
+      const pagas = new Set(p.parcelasPagas || []);
+      const base = p.dataPrimeira || p.dataCompra;
+      if (!base) return;
+      const [bY, bM, bD] = base.split("-").map(Number);
+      const startMonth = p.dataPrimeira ? bM : bM + 1;
+      for (let n = 1; n <= total; n++) {
+        if (pagas.has(n)) continue;
+        const offset = n - 1;
+        const dt = new Date(bY, startMonth - 1 + offset, 1);
+        const ultDia = new Date(bY, startMonth + offset, 0).getDate();
+        dt.setDate(Math.min(bD, ultDia));
+        const vencISO = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+        itens.push({ valor: valorPorParcela, venc: vencISO, cartao: true });
+      }
+    });
+    // 4) Despesas avulsas (transações de despesa não compensadas, sem origem fixa/parcela)
+    (transacoes || []).filter(t => t.tipo === "despesa" && !t.compensado
+      && !t.origemFixaOcorrenciaId && !t.origemParcelamentoId)
+      .forEach(t => itens.push({ valor: Number(t.valor) || 0, venc: t.vencimento || t.data, cartao: false }));
+
+    let total = 0, pagarMes = 0, cartoes = 0;
+    itens.forEach(it => {
+      total += it.valor;
+      if (it.cartao) cartoes += it.valor;
+      // sem data cai no mês corrente (mesma regra da tela A Pagar)
+      if (!it.venc || ymOf(it.venc) === mes) pagarMes += it.valor;
+    });
+    return { total, pagarMes, cartoes };
+  }, [dividas, fixas, fixaOcorrencias, parcelamentos, transacoes]);
+
   // Despesas Fixas · mês: já pago / pendente / atrasado / total previsto.
   const resumoFixas = useMemo(() => {
     const hoje = new Date().toISOString().slice(0, 10);
@@ -72,6 +128,41 @@ export default function Planejamento(props) {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+
+  // Visão geral em DOIS grupos (o que entra × o que sai) — usada na seção
+  // "A Receber & Dívidas". Cada grupo tem seus próprios cards.
+  const Card = ({ lbl, v, cor, hint }) => (
+    <div style={{ background: T.bgSoft, borderRadius: 12, padding: "10px 11px", borderLeft: `3px solid ${cor}`, minWidth: 0 }}>
+      <div style={{ fontSize: 8.5, letterSpacing: ".05em", textTransform: "uppercase", color: T.faint, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lbl}</div>
+      <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 14, fontWeight: 700, color: cor, marginTop: 4, whiteSpace: "nowrap" }}>
+        {hidden ? "•••" : fmt(v)}
+      </div>
+      {hint && <div style={{ fontSize: 9, color: T.faint, marginTop: 2 }}>{hint}</div>}
+    </div>
+  );
+  const VisaoGeralGrupos = ({ legenda, entra, sai }) => (
+    <div style={{ borderTop: `1px solid ${T.border}`, padding: "10px 16px 12px" }}>
+      <div style={{ fontSize: 8.5, letterSpacing: ".14em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 8 }}>{legenda}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(0,3fr)", gap: 14, alignItems: "stretch" }} className="vg-grupos">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 8.5, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700, color: T.green }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green }} /> A Receber
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 8 }}>
+            {entra.map(it => <Card key={it.lbl} {...it} />)}
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 8.5, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700, color: T.red }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.red }} /> A Pagar
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
+            {sai.map(it => <Card key={it.lbl} {...it} />)}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -122,13 +213,16 @@ export default function Planejamento(props) {
           id="areceber"
           titulo="A Receber & Dívidas"
           overview={
-            <VisaoGeral
+            <VisaoGeralGrupos
               legenda="Visão geral · todos os meses"
-              itens={[
-                { lbl: "Recebido", v: resumoReceber.recebido, cor: T.green },
-                { lbl: "Pendente (mês)", v: resumoReceber.pendente, cor: T.gold },
-                { lbl: "Atrasado", v: resumoReceber.atrasado, cor: T.red },
-                { lbl: "Total a receber", v: resumoReceber.aReceber, cor: T.ink },
+              entra={[
+                { lbl: "Total a receber", v: resumoReceber.aReceber, cor: T.green, hint: "tudo em aberto" },
+                { lbl: "A receber do mês", v: resumoReceber.pendente, cor: T.gold, hint: "vence este mês" },
+              ]}
+              sai={[
+                { lbl: "Total a pagar", v: resumoPagar.total, cor: T.red, hint: "tudo em aberto" },
+                { lbl: "A pagar do mês", v: resumoPagar.pagarMes, cor: T.yellow, hint: "vence este mês" },
+                { lbl: "Cartões a pagar", v: resumoPagar.cartoes, cor: T.blue, hint: "parcelas em aberto" },
               ]}
             />
           }
