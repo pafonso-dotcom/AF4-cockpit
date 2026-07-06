@@ -63,3 +63,24 @@ describe("getGanhosDoMes · atrasados (incluirAtrasados)", () => {
     expect(g.find(x => x.id === "d2026")).toBeTruthy();    // dentro do ano da projeção
   });
 });
+
+describe("getGanhosDoMes · juros de empréstimo abatidos no relatório", () => {
+  const emprestimo = {
+    id: "e1", nome: "Jorge", emprestimo: true, principal: 85000, jurosMensal: 4862,
+    meses: 6, dataEmprestimo: "2026-06-22", vencimento: "2026-12-22", recebido: false,
+    jurosRecebidos: ["2026-07"], // juros de julho já recebido
+  };
+  it("mês de juros já recebido vem como paga (abate na projeção)", () => {
+    const g = getGanhosDoMes("2026-07", { devedores: [emprestimo] });
+    const juros = g.find(x => x.id === "e1::juros::1");
+    expect(juros).toBeTruthy();
+    expect(juros.valor).toBe(4862);
+    expect(juros.status).toBe("paga");
+  });
+  it("mês de juros ainda não recebido vem como pendente", () => {
+    const g = getGanhosDoMes("2026-08", { devedores: [emprestimo] });
+    const juros = g.find(x => x.id === "e1::juros::2");
+    expect(juros).toBeTruthy();
+    expect(juros.status).toBe("pendente");
+  });
+});
