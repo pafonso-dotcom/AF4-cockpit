@@ -210,8 +210,19 @@ export function getDespesasDoMes(mesISO, state = {}, escopo) {
  * Retorna ganhos previstos/realizados do mês.
  * Cada item: { id, fonte, tipo: "ganho", descricao, data, valor, status, categoria }
  */
-export function getGanhosDoMes(mesISO, state = {}, escopo) {
+export function getGanhosDoMes(mesISO, state = {}, escopo, opts = {}) {
   state = aplicarEscopo(state, escopo);
+  // incluirAtrasados: pendências com vencimento em MÊS ANTERIOR entram neste
+  // mês com status "atrasada" (útil na projeção, que começa no mês corrente —
+  // sem isto, um a-receber vencido simplesmente sumia do relatório).
+  const { incluirAtrasados = false } = opts;
+  const mesOuAtrasado = (iso) => {
+    const m = (iso || "").slice(0, 7);
+    if (!m) return null;
+    if (m === mesISO) return "no-mes";
+    if (incluirAtrasados && m < mesISO) return "atrasado";
+    return null;
+  };
   const out = [];
 
   // 1. Devedores com recebimento no mês
@@ -260,12 +271,12 @@ export function getGanhosDoMes(mesISO, state = {}, escopo) {
           const dt = new Date(by, bm - 1 + (meses - 1), 1);
           princISO = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
         }
-        if (princISO === mesISO) {
+        if (princISO === mesISO || (incluirAtrasados && princISO && princISO < mesISO)) {
           out.push({
             id: `${d.id}::princ`, fonte: "devedor", tipo: "ganho",
             descricao: `A receber (principal) de ${d.nome}`,
             data: `${mesISO}-28`, valor: principal,
-            status: "pendente", categoria: "Empréstimo (principal)",
+            status: princISO === mesISO ? "pendente" : "atrasada", categoria: "Empréstimo (principal)",
           });
         }
       }
@@ -279,12 +290,17 @@ export function getGanhosDoMes(mesISO, state = {}, escopo) {
         data: d.dataRecebimento, valor: Number(d.valor) || 0,
         status: "paga", categoria: d.categoria || "Receita",
       });
-    } else if (d.vencimento && d.vencimento.startsWith(mesISO)) {
+    } else {
+      const quando = mesOuAtrasado(d.vencimento);
+      if (!quando) return;
+      // Recebimento PARCIAL: o que resta a receber é valor − valorRecebido.
+      const aberto = (Number(d.valor) || 0) - (Number(d.valorRecebido) || 0);
+      if (aberto <= 0.005) return;
       out.push({
         id: d.id, fonte: "devedor", tipo: "ganho",
         descricao: `A receber de ${d.nome}`,
-        data: d.vencimento, valor: Number(d.valor) || 0,
-        status: "pendente", categoria: d.categoria || "Receita",
+        data: d.vencimento, valor: aberto,
+        status: quando === "atrasado" ? "atrasada" : "pendente", categoria: d.categoria || "Receita",
       });
     }
   });
@@ -310,12 +326,13 @@ export function getGanhosDoMes(mesISO, state = {}, escopo) {
   // (Compensado entra pela transação tipo receita; devolvido não conta.)
   (state.cheques || []).forEach(c => {
     if (c.status !== "aguardando") return;
-    if (!(c.vencimento || "").startsWith(mesISO)) return;
+    const quando = mesOuAtrasado(c.vencimento);
+    if (!quando) return;
     out.push({
       id: `cheque::${c.id}`, fonte: "cheque", tipo: "ganho",
       descricao: `Cheque de ${c.de || "—"}`,
       data: c.vencimento, valor: Number(c.valor) || 0,
-      status: "pendente", categoria: "Cheques",
+      status: quando === "atrasado" ? "atrasada" : "pendente", categoria: "Cheques",
     });
   });
 

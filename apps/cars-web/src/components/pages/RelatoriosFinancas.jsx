@@ -228,9 +228,11 @@ export default function RelatoriosFinancas({
 
     // ===== A receber (entradas previstas) — por categoria =====
     const recMap = {};
-    proximosMeses.forEach(m => {
+    proximosMeses.forEach((m, idx) => {
       let gan = [];
-      try { gan = getGanhosDoMes(m.iso, state, escopoAtivo); } catch {}
+      // 1º mês da janela puxa também os ATRASADOS (a-receber vencidos em meses
+      // anteriores — inclusive parciais) pra ninguém sumir do relatório.
+      try { gan = getGanhosDoMes(m.iso, state, escopoAtivo, { incluirAtrasados: idx === 0 }); } catch {}
       gan.forEach(g => {
         const baseG = g.categoria || "Receita";
         const subG = (g.subcategoria || "").trim();
@@ -293,13 +295,14 @@ export default function RelatoriosFinancas({
       const contasEsc = filtrarPorEscopo(contasRaw || [], escopo);
       const saldoInicial = somaContasBRL(contasEsc);
       let acc = saldoInicial;
-      const porMes = proximosMeses.map(m => {
+      const porMes = proximosMeses.map((m, idx) => {
         // Só o que ainda está EM ABERTO (não pago/recebido) — o que já foi
         // pago/recebido já está refletido no saldo das contas (saldoInicial),
         // contá-lo de novo aqui somaria/descontaria em dobro.
+        // 1º mês também soma os a-receber ATRASADOS (vencidos antes da janela).
         let saidas = 0, receber = 0;
         try { saidas = getDespesasDoMes(m.iso, stateRaw, escopo).filter(d => d.status !== "paga").reduce((s, d) => s + (Number(d.valor) || 0), 0); } catch {}
-        try { receber = getGanhosDoMes(m.iso, stateRaw, escopo).filter(g => g.status !== "paga").reduce((s, g) => s + (Number(g.valor) || 0), 0); } catch {}
+        try { receber = getGanhosDoMes(m.iso, stateRaw, escopo, { incluirAtrasados: idx === 0 }).filter(g => g.status !== "paga").reduce((s, g) => s + (Number(g.valor) || 0), 0); } catch {}
         acc += receber - saidas;
         return acc;
       });
