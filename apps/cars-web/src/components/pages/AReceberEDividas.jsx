@@ -1785,6 +1785,15 @@ export default function AReceberEDividas({
               )}
             </div>
 
+            {/* Juros de empréstimo — valor editável (recebeu diferente do previsto). */}
+            {isReceber && baixaForm.modoEmprestimo === "juros" && (
+              <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12, marginBottom: 14 }}>
+                <Field label="Valor do juros a receber (R$)" hint="Ajuste se o valor recebido foi diferente do previsto — o mês fica marcado como recebido de qualquer forma.">
+                  <MoneyInput value={baixaForm.valor} onChange={v => setBaixaForm({ ...baixaForm, valor: v })} />
+                </Field>
+              </div>
+            )}
+
             {/* Recebimento parcial — só A Receber (não em empréstimo, que usa juros/quitar) */}
             {isReceber && !baixaForm.modoEmprestimo && (
               <div style={{
