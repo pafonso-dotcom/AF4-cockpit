@@ -115,7 +115,10 @@ export default function Dashboard({
   const mesISO = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}`;
   const ehMesAtual = (data) => (data || "").startsWith(mesISO);
 
-  const totalContas = useMemo(() => somaContasBRL(contas), [contas]);
+  // Patrimônio Total sempre soma as contas do Negócio, mesmo com o seletor em
+  // "Pessoal" — é o total geral do que você tem. O resto do Painel (receitas/
+  // despesas do mês) segue o escopo ativo. (Decisão do usuário · 2026-07-06.)
+  const totalContas = useMemo(() => somaContasBRL(contasRaw || []), [contasRaw]);
   // Patrimônio conta só a parte Brasil dos investimentos. Ativos em dólar
   // (Stocks/REITs) ficam fora do total (decisão do usuário).
   const totalInvest = useMemo(() => ativos.reduce((s, a) => {
