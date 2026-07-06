@@ -215,12 +215,15 @@ export function getGanhosDoMes(mesISO, state = {}, escopo, opts = {}) {
   // incluirAtrasados: pendências com vencimento em MÊS ANTERIOR entram neste
   // mês com status "atrasada" (útil na projeção, que começa no mês corrente —
   // sem isto, um a-receber vencido simplesmente sumia do relatório).
-  const { incluirAtrasados = false } = opts;
+  // atrasadosDesde ("YYYY-MM"): piso do alcance — só puxa atrasados a partir
+  // desse mês (a projeção passa o início do ANO, pra não trazer parcelas do
+  // ano anterior amontoadas no 1º mês).
+  const { incluirAtrasados = false, atrasadosDesde = null } = opts;
   const mesOuAtrasado = (iso) => {
     const m = (iso || "").slice(0, 7);
     if (!m) return null;
     if (m === mesISO) return "no-mes";
-    if (incluirAtrasados && m < mesISO) return "atrasado";
+    if (incluirAtrasados && m < mesISO && (!atrasadosDesde || m >= atrasadosDesde)) return "atrasado";
     return null;
   };
   const out = [];
@@ -271,7 +274,7 @@ export function getGanhosDoMes(mesISO, state = {}, escopo, opts = {}) {
           const dt = new Date(by, bm - 1 + (meses - 1), 1);
           princISO = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
         }
-        if (princISO === mesISO || (incluirAtrasados && princISO && princISO < mesISO)) {
+        if (princISO === mesISO || (incluirAtrasados && princISO && princISO < mesISO && (!atrasadosDesde || princISO >= atrasadosDesde))) {
           out.push({
             id: `${d.id}::princ`, fonte: "devedor", tipo: "ganho",
             descricao: `A receber (principal) de ${d.nome}`,

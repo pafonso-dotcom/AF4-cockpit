@@ -231,8 +231,9 @@ export default function RelatoriosFinancas({
     proximosMeses.forEach((m, idx) => {
       let gan = [];
       // 1º mês da janela puxa também os ATRASADOS (a-receber vencidos em meses
-      // anteriores — inclusive parciais) pra ninguém sumir do relatório.
-      try { gan = getGanhosDoMes(m.iso, state, escopoAtivo, { incluirAtrasados: idx === 0 }); } catch {}
+      // anteriores — inclusive parciais), mas SÓ dentro do ano da projeção
+      // (pra não amontoar parcelas do ano anterior no 1º mês).
+      try { gan = getGanhosDoMes(m.iso, state, escopoAtivo, { incluirAtrasados: idx === 0, atrasadosDesde: `${anoProj}-01` }); } catch {}
       gan.forEach(g => {
         const baseG = g.categoria || "Receita";
         const subG = (g.subcategoria || "").trim();
@@ -260,7 +261,7 @@ export default function RelatoriosFinancas({
     const saldoTotal = (receber ? receber.subTotal : 0) - totalGeral;
 
     return { grupos, totaisMes, totalGeral, media: totalGeral / n, receber, saldoMes, saldoTotal, saldoMedia: saldoTotal / n, vazio: todas.length === 0 && !receber };
-  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, escopoAtivo, proximosMeses]);
+  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, escopoAtivo, proximosMeses, anoProj]);
 
   // ===== Cheques a receber — TODOS, independente da janela de projeção =====
   // A matriz acima só cobre 6 meses; um cheque com vencimento fora dessa janela
@@ -302,7 +303,7 @@ export default function RelatoriosFinancas({
         // 1º mês também soma os a-receber ATRASADOS (vencidos antes da janela).
         let saidas = 0, receber = 0;
         try { saidas = getDespesasDoMes(m.iso, stateRaw, escopo).filter(d => d.status !== "paga").reduce((s, d) => s + (Number(d.valor) || 0), 0); } catch {}
-        try { receber = getGanhosDoMes(m.iso, stateRaw, escopo, { incluirAtrasados: idx === 0 }).filter(g => g.status !== "paga").reduce((s, g) => s + (Number(g.valor) || 0), 0); } catch {}
+        try { receber = getGanhosDoMes(m.iso, stateRaw, escopo, { incluirAtrasados: idx === 0, atrasadosDesde: `${anoProj}-01` }).filter(g => g.status !== "paga").reduce((s, g) => s + (Number(g.valor) || 0), 0); } catch {}
         acc += receber - saidas;
         return acc;
       });
@@ -315,7 +316,7 @@ export default function RelatoriosFinancas({
       bensTotal: foraPatrimonio.reduce((s, c) => s + saldoContaBRL(c), 0),
       bensNomes: foraPatrimonio.map(c => c.nome).join(", "),
     };
-  }, [transacoesRaw, contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, proximosMeses]);
+  }, [transacoesRaw, contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, proximosMeses, anoProj]);
 
   const periodoLabel = proximosMeses.length
     ? `${proximosMeses[0].label} a ${proximosMeses[proximosMeses.length - 1].label}` : "";
