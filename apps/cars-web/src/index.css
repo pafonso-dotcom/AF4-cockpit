@@ -841,3 +841,15 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   }
   body[data-print-only] .no-print { display: none !important; }
 }
+
+/* ============================================================
+   VISÃO GERAL · A Receber & Dívidas — dois grupos (entra × sai)
+   Em telas estreitas os grupos empilham; os cards de cada grupo
+   passam a 2 colunas para não espremer os valores.
+   ============================================================ */
+@media (max-width: 720px) {
+  .vg-grupos { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 520px) {
+  .vg-grupos > div > div:last-child { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
