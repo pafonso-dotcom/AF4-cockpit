@@ -26,9 +26,15 @@ export default function Planejamento(props) {
     devedores.forEach(d => {
       const valor = Number(d.valor) || 0;
       const vr = Number(d.valorRecebido) || 0;
+      // Juros de empréstimo já recebidos (mês a mês) contam como recebido e
+      // abatem do que ainda falta receber. Sem isto, o juros baixado sumia:
+      // não entrava em "Recebido" e o total continuava cheio.
+      const jurosRec = d.emprestimo && Array.isArray(d.recebimentos)
+        ? d.recebimentos.filter(r => r && r.tipo === "juros").reduce((s, r) => s + (Number(r.valor) || 0), 0)
+        : 0;
       if (d.recebido) { recebido += vr > 0 ? vr : valor; return; }
-      recebido += vr; // recebimentos parciais já contam como "recebido"
-      const restante = Math.max(0, valor - vr);
+      recebido += vr + jurosRec; // parciais e juros já contam como "recebido"
+      const restante = Math.max(0, valor - vr - jurosRec);
       if (restante <= 0) return;
       abertoTotal += restante;
       if (d.vencimento && d.vencimento < hoje) atrasado += restante;
