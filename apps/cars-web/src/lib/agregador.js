@@ -241,17 +241,26 @@ export function getGanhosDoMes(mesISO, state = {}, escopo, opts = {}) {
         : +(((Number(d.juros) || 0) / meses)).toFixed(2); // fallback p/ empréstimos antigos
       const baseISO = (d.dataEmprestimo || d.vencimento || "").slice(0, 7);
       const jurosRecebidos = new Set(Array.isArray(d.jurosRecebidos) ? d.jurosRecebidos : []);
-      // Juros — 1 lançamento por mês do período (paga se aquele mês já foi recebido).
+      // Valor REALMENTE recebido por mês (usuário pode ajustar o juros a
+      // menor/maior na baixa) — some as baixas de juros por mês.
+      const jurosValorPorMes = {};
+      (Array.isArray(d.recebimentos) ? d.recebimentos : []).forEach((r) => {
+        if (r && r.tipo === "juros" && r.mesJuros) jurosValorPorMes[r.mesJuros] = (jurosValorPorMes[r.mesJuros] || 0) + (Number(r.valor) || 0);
+      });
+      // Juros — 1 lançamento por mês do período (paga se aquele mês já foi
+      // recebido; usa o valor real recebido, não o agendado).
       if (jurosMensal > 0 && baseISO) {
         const [by, bm] = baseISO.split("-").map(Number);
         const [my, mm] = mesISO.split("-").map(Number);
         const offset = (my - by) * 12 + (mm - bm);
         if (offset >= 0 && offset < meses) {
+          const recebidoNoMes = jurosRecebidos.has(mesISO);
+          const valorMes = recebidoNoMes && jurosValorPorMes[mesISO] != null ? jurosValorPorMes[mesISO] : jurosMensal;
           out.push({
             id: `${d.id}::juros::${offset}`, fonte: "devedor", tipo: "ganho",
             descricao: `Juros de ${d.nome} (${offset + 1}/${meses})`,
-            data: `${mesISO}-15`, valor: jurosMensal,
-            status: jurosRecebidos.has(mesISO) ? "paga" : "pendente",
+            data: `${mesISO}-15`, valor: valorMes,
+            status: recebidoNoMes ? "paga" : "pendente",
             categoria: "Juros de empréstimo",
           });
         }

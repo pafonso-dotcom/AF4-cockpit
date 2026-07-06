@@ -83,4 +83,18 @@ describe("getGanhosDoMes · juros de empréstimo abatidos no relatório", () => 
     expect(juros).toBeTruthy();
     expect(juros.status).toBe("pendente");
   });
+
+  it("juros recebido A MENOR usa o valor REAL recebido (não o agendado)", () => {
+    const emp = {
+      ...emprestimo, jurosRecebidos: ["2026-07"],
+      recebimentos: [{ id: "r1", tipo: "juros", mesJuros: "2026-07", valor: 3000 }],
+    };
+    const g = getGanhosDoMes("2026-07", { devedores: [emp] });
+    const juros = g.find(x => x.id === "e1::juros::1");
+    expect(juros.valor).toBe(3000);      // real, não 4862
+    expect(juros.status).toBe("paga");
+    // mês seguinte, ainda não recebido, mantém o agendado
+    const g8 = getGanhosDoMes("2026-08", { devedores: [emp] });
+    expect(g8.find(x => x.id === "e1::juros::2").valor).toBe(4862);
+  });
 });
