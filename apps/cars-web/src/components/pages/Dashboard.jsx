@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState } from "react";
-import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar, Plus, Eye, EyeOff } from "lucide-react";
+import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, ArrowUpRight, ArrowDownLeft, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar, CreditCard, Receipt, Plus, Eye, EyeOff } from "lucide-react";
 import { CARD_SHADOW } from "../../lib/styles.js";
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
@@ -576,15 +576,49 @@ function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, m
   );
 }
 
+// Mini-sparkline (linha suave) — traços ilustrativos de tendência por bloco.
+// `points` são valores relativos (0..n); depois dá pra plugar série real.
+function Sparkline({ points = [], cor, w = 52, h = 20 }) {
+  if (points.length < 2) return null;
+  const max = Math.max(...points), min = Math.min(...points);
+  const range = max - min || 1;
+  const step = w / (points.length - 1);
+  const d = points.map((p, i) =>
+    `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)} ${(h - 1.5 - ((p - min) / range) * (h - 3)).toFixed(1)}`
+  ).join(" ");
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ flexShrink: 0, overflow: "visible" }} aria-hidden>
+      <path d={d} fill="none" stroke={cor} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
+    </svg>
+  );
+}
+
+// Ícone dentro de um anel fino — identidade dos blocos estilo widget.
+function RingIcon({ icon: Icon, cor, size = 34, stroke }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%", flexShrink: 0,
+      border: `1.4px solid ${cor}`, color: cor,
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      <Icon size={Math.round(size * 0.44)} strokeWidth={1.6} style={stroke ? { color: stroke } : undefined} />
+    </div>
+  );
+}
+
 function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
   // Sempre começa oculto; só revela quando o usuário clica no card. O modo
   // privado global (hidden) tem prioridade e mantém oculto.
   const [revelado, setRevelado] = useState(false);
   const visivel = revelado && !hidden;
   const animado = useCountUp(value, visivel);
-  const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
+  // Topo "aurora" (variação B) — superfície colorida própria, texto branco.
+  const bg = `radial-gradient(120% 90% at 15% 20%, #7fa8c4 0%, transparent 55%),`
+    + `radial-gradient(120% 100% at 85% 15%, #c9b48a 0%, transparent 50%),`
+    + `radial-gradient(140% 120% at 70% 90%, #5b8a8f 0%, transparent 55%),`
+    + `linear-gradient(135deg, #6f93a6, #52756c)`;
   const Linha = ({ rotulo, v, sinal }) => (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "rgba(255,255,255,0.75)" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "rgba(255,255,255,0.8)" }}>
       <span>{rotulo}</span>
       <span className="num">{sinal === "-" ? "− " : sinal === "+" ? "+ " : ""}{fmt(v)}</span>
     </div>
@@ -592,19 +626,37 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
   return (
     <div onClick={() => setRevelado(v => !v)}
          title={visivel ? "Toque para ocultar" : "Toque para ver"}
-         style={{ background: bg, color: "#fff", borderRadius: 18, padding: 14, position: "relative", overflow: "hidden", minHeight: 110, cursor: "pointer", userSelect: "none" }}>
-      <div style={{ fontSize: 11, color: "#86efac", letterSpacing: ".03em" }}>Patrimônio Total</div>
-      <div className="num" style={{ fontFamily: T.serif, fontSize: 24, fontWeight: 700, marginTop: 6 }}>{visivel ? fmt(animado) : "••••••"}</div>
-      <div style={{ fontSize: 11, color: "#86efac", marginTop: 4 }}>
+         style={{ background: bg, color: "#fff", borderRadius: 22, padding: "16px 17px 18px", position: "relative", overflow: "hidden", minHeight: 120, cursor: "pointer", userSelect: "none" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <RingIcon icon={Wallet} cor="rgba(255,255,255,0.55)" size={34} stroke="rgba(255,255,255,0.9)" />
+        <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", color: "#38504a" }}>
+          <ArrowUpRight size={16} strokeWidth={2} />
+        </div>
+      </div>
+      <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.92)", fontWeight: 500, marginTop: 18, letterSpacing: ".01em" }}>Patrimônio Total</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 6 }}>
+        <div className="num" style={{ fontSize: 32, fontWeight: 300, letterSpacing: "-.02em", lineHeight: 1 }}>
+          {visivel ? fmt(animado) : "••••••"}
+        </div>
+        {/* stepper decorativo (estilo widget) */}
+        <div style={{ display: "flex", alignItems: "center", paddingBottom: 5, opacity: 0.9 }} aria-hidden>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "rgba(255,255,255,.55)" }} />
+          <span style={{ width: 14, height: 1.5, background: "rgba(255,255,255,.4)" }} />
+          <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#fff" }} />
+          <span style={{ width: 14, height: 1.5, background: "rgba(255,255,255,.4)" }} />
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "rgba(255,255,255,.55)" }} />
+        </div>
+      </div>
+      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.85)", marginTop: 5 }}>
         {visivel ? (
           <>{mom >= 0 ? "↗" : "↘"} {fmtN(mom, 2)}%
-          <span style={{ color: "rgba(255,255,255,0.55)", marginLeft: 4 }}>vs mês anterior</span></>
+          <span style={{ color: "rgba(255,255,255,0.6)", marginLeft: 4 }}>vs mês anterior</span></>
         ) : (
-          <span style={{ color: "rgba(255,255,255,0.55)" }}>toque para revelar</span>
+          <span style={{ color: "rgba(255,255,255,0.7)" }}>toque para revelar</span>
         )}
       </div>
       {visivel && breakdown && (
-        <div style={{ position: "relative", zIndex: 1, marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.15)", display: "flex", flexDirection: "column", gap: 2 }}>
+        <div style={{ position: "relative", zIndex: 1, marginTop: 10, paddingTop: 9, borderTop: "1px solid rgba(255,255,255,0.22)", display: "flex", flexDirection: "column", gap: 3 }}>
           <Linha rotulo="Contas" v={breakdown.contas} sinal="+" />
           <Linha rotulo="A receber" v={breakdown.aReceber} sinal="+" />
           {breakdown.cheques > 0 && <Linha rotulo="Cheques a receber" v={breakdown.cheques} sinal="+" />}
@@ -612,19 +664,6 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
           <Linha rotulo="A pagar (ano)" v={breakdown.aPagar} sinal="-" />
         </div>
       )}
-      <div style={{ position: "absolute", right: 0, bottom: 0, left: 0, height: 46, opacity: 0.6, pointerEvents: "none" }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={evolucao}>
-            <defs>
-              <linearGradient id="grad-hero" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22c55e" stopOpacity={0.7} />
-                <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <Area type="monotone" dataKey="saldo" stroke="#22c55e" fill="url(#grad-hero)" strokeWidth={1.5} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
     </div>
   );
 }
@@ -760,19 +799,17 @@ function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Contas</div>
         <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver todas</button>
       </div>
-      {/* Mini-pastas — versão compacta dos folder cards roxos da tela de Contas */}
+      {/* Cards de conta — mesmo estilo widget do Centro de Controle */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {contas.slice(0, 4).map(c => (
           <button key={c.id} onClick={() => onContaClick?.(c)}
-            style={{ position: "relative", paddingTop: 6, background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
-            {/* aba da pasta */}
-            <div aria-hidden style={{ position: "absolute", top: 0, left: "30%", right: "12%", height: 9, borderRadius: "6px 6px 0 0", background: "rgba(147,197,253,.55)", opacity: .9 }} />
-            <div style={{ position: "relative", background: "linear-gradient(155deg, rgba(255,255,255,.58) 0%, rgba(196,225,255,.45) 100%)", backdropFilter: "blur(12px) saturate(170%)", WebkitBackdropFilter: "blur(12px) saturate(170%)", color: "#1e3a5f", borderRadius: 12, padding: "9px 10px", border: "1px solid rgba(255,255,255,.6)", boxShadow: "0 8px 20px rgba(30,64,107,.18)" }}>
-              <BankIcon c={c} size={26} />
-              <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
-              <div className="num" style={{ fontFamily: T.serif, fontSize: 12.5, color: c.saldo < 0 ? "#c0392b" : "#1e3a5f", whiteSpace: "nowrap" }}>
-                {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
-              </div>
+            style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "11px 12px", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 9, minHeight: 84 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              <BankIcon c={c} size={30} />
+              <div style={{ fontSize: 11.5, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
+            </div>
+            <div className="num" style={{ fontSize: 16, fontWeight: 400, color: c.saldo < 0 ? T.red : T.ink, letterSpacing: "-.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
             </div>
           </button>
         ))}
@@ -1007,14 +1044,15 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
   });
 
   const apagarMesVal = aPagarMes?.total || 0;
-  // Os 6 totais do "Centro de Controle".
+  // Os 6 totais do "Centro de Controle" — estilo widget: ícone em anel, número
+  // fino e mini-sparkline (traço ilustrativo de tendência; série real depois).
   const resumo = [
-    { id: "areceber",    label: "Total a receber",    valor: totalReceber, cor: T.green },
-    { id: "arecebermes", label: "A receber (mês)",     valor: receberMes,   cor: T.gold },
-    { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted },
-    { id: "apagarmes",   label: "A pagar (mês)",       valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted },
-    { id: "cartoes",     label: "Cartões (parcelas)", valor: cartoesTotal, cor: cartoesTotal > 0 ? T.yellow : T.muted },
-    { id: "cheques",     label: "Cheques",            valor: chequesTotal, cor: chequesTotal > 0 ? (T.blue || "#60a5fa") : T.muted },
+    { id: "areceber",    label: "Total a receber",    valor: totalReceber, cor: T.green, icon: ArrowDownLeft, spark: [3, 4, 3, 6, 5, 8] },
+    { id: "arecebermes", label: "A receber (mês)",     valor: receberMes,   cor: T.gold,  icon: Calendar,     spark: [4, 6, 4, 6, 4, 6] },
+    { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted, icon: ArrowUpRight, spark: [8, 6, 7, 4, 5, 3] },
+    { id: "apagarmes",   label: "A pagar (mês)",       valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted, icon: Calendar, spark: [6, 3, 7, 4, 6, 3] },
+    { id: "cartoes",     label: "Cartões (parcelas)", valor: cartoesTotal, cor: cartoesTotal > 0 ? T.yellow : T.muted, icon: CreditCard, spark: [4, 5, 4, 6, 5, 6] },
+    { id: "cheques",     label: "Cheques",            valor: chequesTotal, cor: chequesTotal > 0 ? (T.blue || "#60a5fa") : T.muted, icon: Receipt, spark: [3, 6, 4, 5, 3, 6] },
   ];
 
   const proximos = abertos
@@ -1052,19 +1090,23 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
         {abertos.length} {abertos.length === 1 ? "recebível em aberto" : "recebíveis em aberto"}
       </div>
 
-      {/* 6 totais do Centro de Controle — ocultáveis pelo botão do olho */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
+      {/* 6 totais do Centro de Controle — estilo widget, ocultáveis pelo olho */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
         {resumo.map(b => (
           <div key={b.id} style={{
-            background: T.bgSoft, border: `1px solid ${T.border}`,
-            borderRadius: 14, padding: "8px 10px",
-            display: "flex", flexDirection: "column", gap: 2,
+            background: T.card, border: `1px solid ${T.border}`,
+            borderRadius: 16, padding: "11px 12px", minHeight: 92,
+            display: "flex", flexDirection: "column", justifyContent: "space-between",
           }}>
-            <div style={{ fontSize: 10, color: b.cor, fontWeight: 700, letterSpacing: ".03em", textTransform: "uppercase" }}>
-              {b.label}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <RingIcon icon={b.icon} cor={b.cor} size={30} />
+              <div style={{ fontSize: 10.5, lineHeight: 1.15, color: T.muted, fontWeight: 600 }}>{b.label}</div>
             </div>
-            <div className="num" style={{ fontSize: 13, fontWeight: 700, color: b.cor }}>
-              {oculto ? "•••" : fmt(b.valor)}
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 6, marginTop: 10 }}>
+              <div className="num" style={{ fontSize: 16, fontWeight: 400, color: T.ink, letterSpacing: "-.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {oculto ? "•••" : fmt(b.valor)}
+              </div>
+              {!oculto && <Sparkline points={b.spark} cor={b.cor} w={44} h={20} />}
             </div>
           </div>
         ))}
