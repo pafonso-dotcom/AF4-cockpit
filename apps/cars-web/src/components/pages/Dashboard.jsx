@@ -148,6 +148,17 @@ export default function Dashboard({
     return (cheques || []).reduce((s, c) =>
       (c.status === "aguardando" && noEsc(c)) ? s + (Number(c.valor) || 0) : s, 0);
   }, [cheques, escopoAtivo]);
+  // Cartões: total das parcelas de cartão ainda EM ABERTO (não pagas),
+  // somando todos os meses — mesma base do "Cartões a pagar" do Planejamento.
+  const cartoesTotal = useMemo(() => {
+    return (parcelamentos || []).reduce((s, p) => {
+      const total = p.totalParcelas || 0;
+      if (total <= 0) return s;
+      const valorPorParcela = (p.valorTotal || 0) / total;
+      const pagas = (p.parcelasPagas || []).length;
+      return s + valorPorParcela * Math.max(0, total - pagas);
+    }, 0);
+  }, [parcelamentos]);
   // aPagarAno e patrimonioTotal são calculados mais abaixo, após `stateAgg`.
   const receitasMes = useMemo(() => transacoes.filter(t => t.tipo === "receita" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
   const despesasMes = useMemo(() => transacoes.filter(t => t.tipo === "despesa" && t.origem !== "fatura-pagamento" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
@@ -429,7 +440,7 @@ export default function Dashboard({
       <section className="dash-bot-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} chequesTotal={chequesAReceber} hidden={hidden}
+        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
         <ProjecaoCard projecao={projecao} patrimonio={patrimonio} hidden={hidden} />
@@ -955,7 +966,7 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, chequesTotal = 0, hidden, onSeeAll, onVerPagar }) {
+function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, chequesTotal = 0, cartoesTotal = 0, hidden, onSeeAll, onVerPagar }) {
   // Total a receber começa oculto (•••); clica pra revelar — igual ao Patrimônio.
   const [mostrarTotal, setMostrarTotal] = useState(false);
   const hoje = new Date().toISOString().slice(0, 10);
@@ -971,15 +982,14 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, chequ
   // mês corrente), Atrasado (vencidos). Juros de empréstimo já recebidos
   // contam como recebido e abatem do que falta.
   const mesAtual = hoje.slice(0, 7);
-  let recebidoTot = 0, pendenteMes = 0, atrasadoTot = 0;
+  let pendenteMes = 0, atrasadoTot = 0;
   devedores.forEach(d => {
     const valor = Number(d.valor) || 0;
     const vr = Number(d.valorRecebido) || 0;
     const jurosRec = d.emprestimo && Array.isArray(d.recebimentos)
       ? d.recebimentos.filter(r => r && r.tipo === "juros").reduce((s, r) => s + (Number(r.valor) || 0), 0)
       : 0;
-    if (d.recebido) { recebidoTot += vr > 0 ? vr : valor; return; }
-    recebidoTot += vr + jurosRec;
+    if (d.recebido) return;
     const restante = Math.max(0, valor - vr - jurosRec);
     if (restante <= 0) return;
     if (d.vencimento && d.vencimento < hoje) atrasadoTot += restante;
@@ -987,13 +997,13 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, chequ
   });
 
   const apagarMesVal = aPagarMes?.total || 0;
-  // 6 números pedidos: Total a receber (hero) + estes 5 blocos.
+  // Total a receber (hero) + estes blocos. Sem "Recebido"; com "Cartões".
   const resumo = [
-    { id: "recebido", label: "Recebido",       valor: recebidoTot, cor: T.green },
     { id: "pendente", label: "Pendente (mês)", valor: pendenteMes, cor: T.gold },
     { id: "atrasado", label: "Atrasado",       valor: atrasadoTot, cor: atrasadoTot > 0 ? T.red : T.muted },
     { id: "cheques",  label: "Cheques",        valor: chequesTotal, cor: T.blue || "#60a5fa" },
     { id: "apagar",   label: "A pagar (mês)",  valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted },
+    { id: "cartoes",  label: "Cartões",        valor: cartoesTotal, cor: cartoesTotal > 0 ? T.yellow : T.muted },
   ];
 
   const proximos = abertos
