@@ -365,14 +365,10 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
         const bandeira = (m) => ({ USD: "🇺🇸", EUR: "🇪🇺", GBP: "🇬🇧", JPY: "🇯🇵", CHF: "🇨🇭", CAD: "🇨🇦", AUD: "🇦🇺", ARS: "🇦🇷" }[m] || "🌎");
 
         // Card de uma conta — mantém TODOS os handlers/ações originais.
-        // Card em forma de PASTA (folder) — roxo uniforme; a cor da conta vai só
-        // no ícone. Clique abre a conta; "⋯" expande as ações (mover/app/Tx/editar/excluir).
-        const PASTA_BG = "linear-gradient(155deg, rgba(255,255,255,.58) 0%, rgba(196,225,255,.45) 100%)";
-        const PASTA_TAB = "rgba(147,197,253,.55)";
-        const PASTA_INK = "#1e3a5f";
-        const PASTA_MUTED = "rgba(30,58,95,.62)";
+        // Estilo widget: card branco arredondado; a cor da conta vai no ícone.
+        // Clique abre a conta; "⋯" expande as ações (mover/app/Tx/editar/excluir).
         const acaoBtn = {
-          background: "rgba(30,58,95,.10)", border: "none", color: PASTA_INK,
+          background: T.bgSoft, border: `1px solid ${T.border}`, color: T.muted,
           borderRadius: 8, padding: "5px 8px", cursor: "pointer", fontSize: 10, fontWeight: 600,
           letterSpacing: ".04em", textTransform: "uppercase",
           display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
@@ -385,68 +381,60 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           const vi = contasVisiveis.findIndex(x => x.id === c.id);
           const primeiro = vi <= 0, ultimo = vi >= contasVisiveis.length - 1;
           return (
-          <div key={c.id} style={{ position: "relative", paddingTop: 10 }}>
-            {/* aba/papéis espiando atrás do topo (cara de pasta) */}
-            <div aria-hidden style={{ position: "absolute", top: 0, left: "34%", right: "10%", height: 16, borderRadius: "10px 10px 0 0", background: PASTA_TAB, opacity: .9, zIndex: 0 }} />
-            <div aria-hidden style={{ position: "absolute", top: 3, left: "20%", right: "24%", height: 14, borderRadius: "10px 10px 0 0", background: PASTA_TAB, opacity: .45, zIndex: 0 }} />
-            {/* corpo da pasta */}
-            <div onClick={() => onContaClick && onContaClick(c)}
-                 role={onContaClick ? "button" : undefined}
-                 tabIndex={onContaClick ? 0 : undefined}
-                 onKeyDown={(e) => { if (onContaClick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onContaClick(c); } }}
-                 style={{
-                   position: "relative", zIndex: 1, background: PASTA_BG, color: PASTA_INK,
-                   backdropFilter: "blur(16px) saturate(170%)", WebkitBackdropFilter: "blur(16px) saturate(170%)",
-                   border: `1px solid ${ativa ? T.gold : "rgba(255,255,255,.6)"}`,
-                   borderRadius: 18, padding: 14, minHeight: 130,
-                   cursor: onContaClick ? "pointer" : "default",
-                   display: "flex", flexDirection: "column",
-                   boxShadow: "0 10px 30px rgba(30,64,107,.20)",
-                 }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                <BankIcon c={c} />
-                {/* No mobile a tela fica só informativa: esconde o ⋯ (Mais ações). */}
-                {!isMobile && (
-                  <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
-                          aria-label={exp ? "Recolher" : "Mais ações"}
-                          style={{ background: "rgba(30,58,95,.10)", border: "none", color: PASTA_INK, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                    <MoreHorizontal size={15} />
-                  </button>
-                )}
-              </div>
-              <div style={{ flex: 1, minHeight: 10 }} />
-              <div style={{ fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
-              <div className="num" style={{ fontFamily: T.serif, fontVariantNumeric: "tabular-nums", fontSize: 16, marginTop: 2, color: c.saldo < 0 ? "#c0392b" : PASTA_INK, whiteSpace: "nowrap" }}>
-                {!ehBRL(c) && <span style={{ fontSize: 12, marginRight: 3 }} aria-hidden="true">{bandeira(c.moeda)}</span>}
-                {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
-              </div>
-              {(selo || !ehBRL(c) || c.instituicao) && (
-                <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                  {selo && <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: "rgba(30,58,95,.12)", color: PASTA_INK, whiteSpace: "nowrap" }}>{selo}</span>}
-                  {!ehBRL(c) && <span style={{ fontSize: 9, color: Number(c.cotacao) > 0 ? PASTA_MUTED : T.gold }}>{Number(c.cotacao) > 0 ? `≈ ${hidden ? "•••" : fmt(saldoContaBRL(c))}` : "sem cotação"}</span>}
-                  {c.instituicao && !selo && <span style={{ fontSize: 9, color: PASTA_MUTED, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.instituicao}</span>}
-                </div>
-              )}
-              {exp && (
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10, paddingTop: 8, borderTop: "1px dashed rgba(30,58,95,.22)" }} onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => moverConta(c, -1)} disabled={primeiro} title="Mover para cima" style={{ ...acaoBtn, padding: "5px 7px", opacity: primeiro ? .4 : 1, cursor: primeiro ? "default" : "pointer" }}><ChevronUp size={13} /></button>
-                  <button onClick={() => moverConta(c, 1)} disabled={ultimo} title="Mover para baixo" style={{ ...acaoBtn, padding: "5px 7px", opacity: ultimo ? .4 : 1, cursor: ultimo ? "default" : "pointer" }}><ChevronDown size={13} /></button>
-                  {c.appUrl && <button onClick={() => window.open(c.appUrl, "_blank", "noopener")} title="Abrir app do banco" style={{ ...acaoBtn, color: T.gold }}>🔗 Banco</button>}
-                  {onCreateTransacao && <button onClick={() => onCreateTransacao(c.nome)} style={{ ...acaoBtn, background: T.gold, color: T.bg }}>+ Tx</button>}
-                  <button onClick={() => setForm({ ...c })} style={acaoBtn}><Edit3 size={11} /> Editar</button>
-                  <button onClick={async () => {
-                            const ok = await confirm({
-                              title: `Excluir "${c.nome}"?`,
-                              body: `A conta será removida. Transações ligadas a ela continuam mas ficam sem conta vinculada.`,
-                              danger: true, confirmLabel: "Excluir",
-                            });
-                            if (!ok) return;
-                            setContas(contas.filter(x => x.id !== c.id));
-                            toast.success(`${c.nome} excluída.`);
-                          }} style={{ ...acaoBtn, color: "#c0392b" }}><Trash2 size={11} /> Excluir</button>
-                </div>
+          <div key={c.id} onClick={() => onContaClick && onContaClick(c)}
+               role={onContaClick ? "button" : undefined}
+               tabIndex={onContaClick ? 0 : undefined}
+               onKeyDown={(e) => { if (onContaClick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onContaClick(c); } }}
+               style={{
+                 background: T.card, color: T.ink,
+                 border: `1px solid ${ativa ? T.gold : T.border}`,
+                 borderRadius: 16, padding: 14, minHeight: 126,
+                 cursor: onContaClick ? "pointer" : "default",
+                 display: "flex", flexDirection: "column",
+               }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+              <BankIcon c={c} />
+              {/* No mobile a tela fica só informativa: esconde o ⋯ (Mais ações). */}
+              {!isMobile && (
+                <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
+                        aria-label={exp ? "Recolher" : "Mais ações"}
+                        style={{ background: T.bgSoft, border: `1px solid ${T.border}`, color: T.muted, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  <MoreHorizontal size={15} />
+                </button>
               )}
             </div>
+            <div style={{ flex: 1, minHeight: 10 }} />
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
+            <div className="num" style={{ fontVariantNumeric: "tabular-nums", fontSize: 18, fontWeight: 400, letterSpacing: "-.01em", marginTop: 2, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap" }}>
+              {!ehBRL(c) && <span style={{ fontSize: 12, marginRight: 3 }} aria-hidden="true">{bandeira(c.moeda)}</span>}
+              {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
+            </div>
+            {(selo || !ehBRL(c) || c.instituicao) && (
+              <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                {selo && <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>{selo}</span>}
+                {!ehBRL(c) && <span style={{ fontSize: 9, color: Number(c.cotacao) > 0 ? T.muted : T.gold }}>{Number(c.cotacao) > 0 ? `≈ ${hidden ? "•••" : fmt(saldoContaBRL(c))}` : "sem cotação"}</span>}
+                {c.instituicao && !selo && <span style={{ fontSize: 9, color: T.faint, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.instituicao}</span>}
+              </div>
+            )}
+            {exp && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10, paddingTop: 8, borderTop: `1px dashed ${T.border}` }} onClick={(e) => e.stopPropagation()}>
+                <button onClick={() => moverConta(c, -1)} disabled={primeiro} title="Mover para cima" style={{ ...acaoBtn, padding: "5px 7px", opacity: primeiro ? .4 : 1, cursor: primeiro ? "default" : "pointer" }}><ChevronUp size={13} /></button>
+                <button onClick={() => moverConta(c, 1)} disabled={ultimo} title="Mover para baixo" style={{ ...acaoBtn, padding: "5px 7px", opacity: ultimo ? .4 : 1, cursor: ultimo ? "default" : "pointer" }}><ChevronDown size={13} /></button>
+                {c.appUrl && <button onClick={() => window.open(c.appUrl, "_blank", "noopener")} title="Abrir app do banco" style={{ ...acaoBtn, color: T.gold }}>🔗 Banco</button>}
+                {onCreateTransacao && <button onClick={() => onCreateTransacao(c.nome)} style={{ ...acaoBtn, background: T.gold, color: T.bg, border: `1px solid ${T.gold}` }}>+ Tx</button>}
+                <button onClick={() => setForm({ ...c })} style={acaoBtn}><Edit3 size={11} /> Editar</button>
+                <button onClick={async () => {
+                          const ok = await confirm({
+                            title: `Excluir "${c.nome}"?`,
+                            body: `A conta será removida. Transações ligadas a ela continuam mas ficam sem conta vinculada.`,
+                            danger: true, confirmLabel: "Excluir",
+                          });
+                          if (!ok) return;
+                          setContas(contas.filter(x => x.id !== c.id));
+                          toast.success(`${c.nome} excluída.`);
+                        }} style={{ ...acaoBtn, color: T.red }}><Trash2 size={11} /> Excluir</button>
+              </div>
+            )}
           </div>
           );
         };
