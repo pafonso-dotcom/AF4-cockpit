@@ -381,6 +381,38 @@ td.neg { color:#b3261e; }
 </body></html>`);
   };
 
+  // Imprime SÓ a relação de cheques a receber (A4 retrato). Lista os aguardando
+  // e os já compensados (riscados), com o total aguardando ao pé.
+  const imprimirCheques = () => {
+    const esc = (s) => String(s ?? "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+    const linhas = chequesAReceber.lista.map(c => {
+      const situ = c.compensado ? "compensado" : c.vencido ? "vencido" : "aguardando";
+      const banco = [c.banco, c.numero ? `nº ${c.numero}` : ""].filter(Boolean).join(" · ") || "—";
+      return `<tr class="${c.compensado ? "comp" : ""}"><td>${esc(fmtData(c.vencimento))}</td><td>${esc(c.de || "—")}</td><td>${esc(banco)}</td><td class="situ">${esc(situ)}</td><td class="n">${esc(fmt(Number(c.valor) || 0))}</td></tr>`;
+    }).join("");
+    const total = `<tr class="tfoot"><td colspan="4">Total aguardando</td><td class="n">${esc(fmt(chequesAReceber.total))}</td></tr>`;
+    printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Cheques a receber</title>
+<style>
+@page { size: A4 portrait; margin: 12mm; }
+body { font-family:${FONTE_ARRED_PRINT}; color:#111; margin:0; }
+h1 { font-size:16px; margin:0 0 2px; }
+.sub-head { color:#666; font-size:10.5px; margin:0 0 10px; }
+table { width:100%; border-collapse:collapse; font-size:11px; }
+th,td { padding:5px 8px; border-bottom:1px solid #e5e5e5; text-align:left; }
+th { text-transform:uppercase; font-size:8.5px; letter-spacing:.04em; color:#666; }
+td.n, th.n { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+td.situ { text-transform:uppercase; font-size:8.5px; letter-spacing:.04em; color:#666; }
+tr.comp td { color:#888; text-decoration:line-through; }
+tr.comp td.situ { text-decoration:none; color:#1f7a44; }
+.tfoot td { font-weight:700; border-top:2px solid #111; border-bottom:none; font-size:12px; text-decoration:none; }
+</style></head><body>
+<h1>Cheques a receber</h1>
+<div class="sub-head">Relação de cheques · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</div>
+<table><thead><tr><th>Vencimento</th><th>Emitente</th><th>Banco · nº</th><th>Situação</th><th class="n">Valor</th></tr></thead>
+<tbody>${linhas || `<tr><td colspan="5">Nenhum cheque.</td></tr>`}${total}</tbody></table>
+</body></html>`);
+  };
+
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
       <div className="eb">Finanças · Relatórios</div>
@@ -542,9 +574,14 @@ td.neg { color:#b3261e; }
             <div style={{ fontFamily: FONTE_ARRED, fontSize: 17, fontWeight: 700, color: T.ink }}>Cheques a receber</div>
           </div>
           {chequesAReceber.lista.length > 0 && (
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Total aguardando</div>
-              <div className="num" style={{ fontSize: 18, fontWeight: 700, color: T.gold }}>{hidden ? "•••" : fmt(chequesAReceber.total)}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Total aguardando</div>
+                <div className="num" style={{ fontSize: 18, fontWeight: 700, color: T.gold }}>{hidden ? "•••" : fmt(chequesAReceber.total)}</div>
+              </div>
+              <button onClick={imprimirCheques} className="btn-gold" style={{ padding: "8px 14px", fontSize: 12, whiteSpace: "nowrap" }}>
+                🖨️ Imprimir cheques
+              </button>
             </div>
           )}
         </div>
