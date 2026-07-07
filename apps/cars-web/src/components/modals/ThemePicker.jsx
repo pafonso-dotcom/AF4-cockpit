@@ -67,7 +67,7 @@ export default function ThemePicker({ themeId, setThemeId, onClose }) {
           Escolha sua paleta
         </h3>
         <div style={{ color: T.muted, fontSize: 15, fontStyle: "italic", marginBottom: 24 }}>
-          Seis interpretações editoriais — do dourado clássico ao pergaminho claro.
+          Claras e escuras — do suave Névoa ao dourado clássico.
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
