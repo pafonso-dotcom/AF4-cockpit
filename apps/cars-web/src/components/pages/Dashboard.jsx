@@ -186,6 +186,42 @@ export default function Dashboard({
     () => ({ transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques }),
     [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques]
   );
+  // Séries mensais (6 meses à frente) para os sparklines do Centro de Controle.
+  const sparks = useMemo(() => {
+    const meses = [];
+    const [y, m] = mesISO.split("-").map(Number);
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(y, m - 1 + i, 1);
+      meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    const receber = [], pagar = [], cartoesS = [], chequesS = [];
+    meses.forEach(iso => {
+      let g = 0, d = 0;
+      try { g = getGanhosDoMes(iso, stateAgg, escopoAtivo).filter(x => x.status !== "paga").reduce((s, x) => s + (Number(x.valor) || 0), 0); } catch {}
+      try { d = getDespesasDoMes(iso, stateAgg, escopoAtivo).filter(x => x.status !== "paga").reduce((s, x) => s + (Number(x.valor) || 0), 0); } catch {}
+      receber.push(g); pagar.push(d);
+      const cart = (parcelamentos || []).reduce((s, p) => {
+        const total = p.totalParcelas || 0;
+        if (total <= 0) return s;
+        const vpp = (p.valorTotal || 0) / total;
+        const pagas = new Set(p.parcelasPagas || []);
+        const base = p.dataPrimeira || p.dataCompra;
+        if (!base) return s;
+        const [bY, bM, bD] = base.split("-").map(Number);
+        const start = p.dataPrimeira ? bM : bM + 1;
+        for (let n = 1; n <= total; n++) {
+          if (pagas.has(n)) continue;
+          const dt = new Date(bY, start - 1 + (n - 1), 1);
+          const mm = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+          if (mm === iso) s += vpp;
+        }
+        return s;
+      }, 0);
+      cartoesS.push(cart);
+      chequesS.push((cheques || []).reduce((s, c) => (c.status === "aguardando" && (c.vencimento || "").slice(0, 7) === iso) ? s + (Number(c.valor) || 0) : s, 0));
+    });
+    return { receber, pagar, cartoes: cartoesS, cheques: chequesS };
+  }, [mesISO, stateAgg, escopoAtivo, parcelamentos, cheques]);
   // A pagar do ano: compromissos pendentes/atrasados (fixas, variáveis, parcelas
   // e dívidas) do MÊS CORRENTE em diante. Meses já fechados (passados) não somam
   // — o que já passou/pagou já está refletido no saldo. Mesma regra do "riscado
@@ -454,7 +490,7 @@ export default function Dashboard({
       <section className="dash-bot-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} hidden={hidden}
+        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} sparks={sparks} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
         <ProjecaoCard projecao={projecao} patrimonio={patrimonio} hidden={hidden} />
@@ -987,7 +1023,7 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, hidden, onSeeAll, onVerPagar }) {
+function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, sparks = null, hidden, onSeeAll, onVerPagar }) {
   // Valores começam ocultos (•••); botão do olho revela — igual ao Patrimônio.
   const [revelar, setRevelar] = useState(false);
   const oculto = hidden || !revelar;
@@ -1018,12 +1054,12 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
   // Os 6 totais do "Centro de Controle" — estilo widget: ícone em anel, número
   // fino e mini-sparkline (traço ilustrativo de tendência; série real depois).
   const resumo = [
-    { id: "areceber",    label: "Total a receber",    valor: totalReceber, cor: T.green, icon: ArrowDownLeft, spark: [3, 4, 3, 6, 5, 8] },
-    { id: "arecebermes", label: "A receber (mês)",     valor: receberMes,   cor: T.gold,  icon: Calendar,     spark: [4, 6, 4, 6, 4, 6] },
-    { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted, icon: ArrowUpRight, spark: [8, 6, 7, 4, 5, 3] },
-    { id: "apagarmes",   label: "A pagar (mês)",       valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted, icon: Calendar, spark: [6, 3, 7, 4, 6, 3] },
-    { id: "cartoes",     label: "Cartões (parcelas)", valor: cartoesTotal, cor: cartoesTotal > 0 ? T.yellow : T.muted, icon: CreditCard, spark: [4, 5, 4, 6, 5, 6] },
-    { id: "cheques",     label: "Cheques",            valor: chequesTotal, cor: chequesTotal > 0 ? (T.blue || "#60a5fa") : T.muted, icon: Receipt, spark: [3, 6, 4, 5, 3, 6] },
+    { id: "areceber",    label: "Total a receber",    valor: totalReceber, cor: T.green, icon: ArrowDownLeft, spark: sparks?.receber },
+    { id: "arecebermes", label: "A receber (mês)",     valor: receberMes,   cor: T.gold,  icon: Calendar,     spark: sparks?.receber },
+    { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted, icon: ArrowUpRight, spark: sparks?.pagar },
+    { id: "apagarmes",   label: "A pagar (mês)",       valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted, icon: Calendar, spark: sparks?.pagar },
+    { id: "cartoes",     label: "Cartões (parcelas)", valor: cartoesTotal, cor: cartoesTotal > 0 ? T.yellow : T.muted, icon: CreditCard, spark: sparks?.cartoes },
+    { id: "cheques",     label: "Cheques",            valor: chequesTotal, cor: chequesTotal > 0 ? (T.blue || "#60a5fa") : T.muted, icon: Receipt, spark: sparks?.cheques },
   ];
 
   const proximos = abertos

@@ -104,6 +104,38 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
 
   const totalUsado = Object.values(usedByCard).reduce((s, v) => s + v, 0);
 
+  // Séries reais p/ sparklines: parcelas de cartão por mês (6 meses à frente) e
+  // o comprometido decrescente (o que ainda falta pagar a partir de cada mês).
+  const cartaoSeries = useMemo(() => {
+    const meses = [];
+    const now = new Date();
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    const porMes = {};
+    (parcelamentos || []).forEach(p => {
+      const total = p.totalParcelas || 0;
+      if (total <= 0) return;
+      const vpp = (p.valorTotal || 0) / total;
+      const pagas = new Set(p.parcelasPagas || []);
+      const base = p.dataPrimeira || p.dataCompra;
+      if (!base) return;
+      const [bY, bM] = base.split("-").map(Number);
+      const start = p.dataPrimeira ? bM : bM + 1;
+      for (let n = 1; n <= total; n++) {
+        if (pagas.has(n)) continue;
+        const dt = new Date(bY, start - 1 + (n - 1), 1);
+        const mm = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+        porMes[mm] = (porMes[mm] || 0) + vpp;
+      }
+    });
+    const mes = meses.map(iso => porMes[iso] || 0);
+    // comprometido a partir de cada mês = soma do mês em diante
+    const comprometido = mes.map((_, i) => mes.slice(i).reduce((s, v) => s + v, 0));
+    return { mes, comprometido };
+  }, [parcelamentos]);
+
   const [formErrors, setFormErrors] = useState({});
   const [parcErrors, setParcErrors] = useState({});
 
@@ -577,9 +609,9 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
 
       {/* Stats — estilo widget (ícone em anel + número fino + sparkline) */}
       <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: 8, marginBottom: 32 }}>
-        <StatTile label="A pagar no mês" valor={cartoes.reduce((s, c) => s + valorAPagarMes(c, parcelamentos), 0)} hidden={hidden} cor={T.gold} icon={CreditCard} sub={`${cartoes.length} ${cartoes.length === 1 ? "cartão" : "cartões"}`} spark={[4, 5, 4, 6, 5, 7]} />
-        <StatTile label="Comprometido (total)" valor={totalUsado} hidden={hidden} cor={T.red} icon={TrendingDown} sub="soma de todas as parcelas" spark={[8, 6, 7, 5, 6, 4]} />
-        <StatTile label="Parcelamentos ativos" valor={String(parcelamentos.filter(p => (p.parcelasPagas?.length || 0) < p.totalParcelas).length)} cor={T.blue} icon={Repeat} sub="em aberto" spark={[3, 4, 4, 5, 4, 5]} />
+        <StatTile label="A pagar no mês" valor={cartoes.reduce((s, c) => s + valorAPagarMes(c, parcelamentos), 0)} hidden={hidden} cor={T.gold} icon={CreditCard} sub={`${cartoes.length} ${cartoes.length === 1 ? "cartão" : "cartões"}`} spark={cartaoSeries.mes} />
+        <StatTile label="Comprometido (total)" valor={totalUsado} hidden={hidden} cor={T.red} icon={TrendingDown} sub="soma de todas as parcelas" spark={cartaoSeries.comprometido} />
+        <StatTile label="Parcelamentos ativos" valor={String(parcelamentos.filter(p => (p.parcelasPagas?.length || 0) < p.totalParcelas).length)} cor={T.blue} icon={Repeat} sub="em aberto" />
       </div>
 
       {/* Lista de cartões — recolhida por padrão */}
