@@ -7,7 +7,7 @@ import { confirm } from "../../lib/confirm.js";
 import { BANK_BRANDS } from "../../data/banks.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
-import StatCard from "../ui/StatCard.jsx";
+import { StatTile } from "../ui/widget.jsx";
 import Modal from "../ui/Modal.jsx";
 import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
 import AnaliseFatura from "./AnaliseFatura.jsx";
@@ -575,12 +575,11 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         }
       />
 
-      {/* Stats — sem limite (a pedido): foco no que se paga no mês */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-px mb-8" style={{ background: T.border }}>
-        <StatCard label="A pagar no mês" value={hidden ? "•••••" : fmt(cartoes.reduce((s, c) => s + valorAPagarMes(c, parcelamentos), 0))} accent={T.gold} icon={CreditCard} sub={`${cartoes.length} cartões`} />
-        <StatCard label="Comprometido (total)" value={hidden ? "•••••" : fmt(totalUsado)} accent={T.red} icon={TrendingDown} sub="soma de todas as parcelas" />
-        <StatCard label="Parcelamentos ativos" value={String(parcelamentos.filter(p => (p.parcelasPagas?.length || 0) < p.totalParcelas).length)}
-                  accent={T.blue} icon={Repeat} />
+      {/* Stats — estilo widget (ícone em anel + número fino + sparkline) */}
+      <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: 8, marginBottom: 32 }}>
+        <StatTile label="A pagar no mês" valor={cartoes.reduce((s, c) => s + valorAPagarMes(c, parcelamentos), 0)} hidden={hidden} cor={T.gold} icon={CreditCard} sub={`${cartoes.length} ${cartoes.length === 1 ? "cartão" : "cartões"}`} spark={[4, 5, 4, 6, 5, 7]} />
+        <StatTile label="Comprometido (total)" valor={totalUsado} hidden={hidden} cor={T.red} icon={TrendingDown} sub="soma de todas as parcelas" spark={[8, 6, 7, 5, 6, 4]} />
+        <StatTile label="Parcelamentos ativos" valor={String(parcelamentos.filter(p => (p.parcelasPagas?.length || 0) < p.totalParcelas).length)} cor={T.blue} icon={Repeat} sub="em aberto" spark={[3, 4, 4, 5, 4, 5]} />
       </div>
 
       {/* Lista de cartões — recolhida por padrão */}

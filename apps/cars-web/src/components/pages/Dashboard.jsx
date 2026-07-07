@@ -15,6 +15,7 @@ import { calcOrcamentoCategorias } from "../../lib/orcamentos.js";
 import { useLayout } from "../../lib/useLayout.js";
 import { supabase } from "../../lib/supabase.js";
 import Card from "../ui/Card.jsx";
+import { Sparkline, RingIcon } from "../ui/widget.jsx";
 
 // Paleta moderna e harmônica (tons mais suaves, sem primários puros gritando).
 const CORES_CAT = ["#6366f1","#0ea5e9","#22c08b","#f5a623","#f0728a","#a78bfa","#2dd4bf","#fb923c","#94a3b8"];
@@ -573,36 +574,6 @@ function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, m
         </div>
       )}
     </>
-  );
-}
-
-// Mini-sparkline (linha suave) — traços ilustrativos de tendência por bloco.
-// `points` são valores relativos (0..n); depois dá pra plugar série real.
-function Sparkline({ points = [], cor, w = 52, h = 20 }) {
-  if (points.length < 2) return null;
-  const max = Math.max(...points), min = Math.min(...points);
-  const range = max - min || 1;
-  const step = w / (points.length - 1);
-  const d = points.map((p, i) =>
-    `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)} ${(h - 1.5 - ((p - min) / range) * (h - 3)).toFixed(1)}`
-  ).join(" ");
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ flexShrink: 0, overflow: "visible" }} aria-hidden>
-      <path d={d} fill="none" stroke={cor} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
-    </svg>
-  );
-}
-
-// Ícone dentro de um anel fino — identidade dos blocos estilo widget.
-function RingIcon({ icon: Icon, cor, size = 34, stroke }) {
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%", flexShrink: 0,
-      border: `1.4px solid ${cor}`, color: cor,
-      display: "flex", alignItems: "center", justifyContent: "center",
-    }}>
-      <Icon size={Math.round(size * 0.44)} strokeWidth={1.6} style={stroke ? { color: stroke } : undefined} />
-    </div>
   );
 }
 

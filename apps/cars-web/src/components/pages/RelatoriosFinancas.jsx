@@ -10,6 +10,8 @@ import { getKPIsMes, getDespesasDoMes, getGanhosDoMes } from "../../lib/agregado
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { somaContasBRL, saldoContaBRL } from "../../lib/cambio.js";
 import { printHTML } from "../../lib/importExport.js";
+import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
+import { StatTile } from "../ui/widget.jsx";
 
 const MESES_PROJ = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 // Agrupamento da projeção por origem do compromisso.
@@ -439,6 +441,13 @@ tr.comp td.situ { text-decoration:none; color:#1f7a44; }
             </button>
           </div>
         </div>
+        {!projecao.vazio && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 14 }}>
+            <StatTile label="A receber (previsto)" valor={projecao.receber?.subTotal || 0} hidden={hidden} cor={T.green} icon={ArrowDownLeft} sub={periodoLabel} spark={[3, 4, 3, 6, 5, 7]} />
+            <StatTile label="Saídas (previstas)" valor={projecao.totalGeral} hidden={hidden} cor={T.red} icon={ArrowUpRight} sub={periodoLabel} spark={[7, 6, 7, 5, 6, 4]} />
+            <StatTile label="Saldo previsto" valor={projecao.saldoTotal} hidden={hidden} cor={projecao.saldoTotal >= 0 ? T.green : T.red} icon={Wallet} sub="receber − saídas" spark={projecao.saldoTotal >= 0 ? [3, 4, 5, 4, 6, 7] : [7, 6, 5, 6, 4, 3]} />
+          </div>
+        )}
         {projecao.vazio ? (
           <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 12.5 }}>
             Sem compromissos previstos (fixas, parcelas, dívidas) nos próximos 6 meses.
