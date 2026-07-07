@@ -156,7 +156,7 @@ export default function App() {
   const [hidden, setHidden] = useState(false);
   const [perfisOpen, setPerfisOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [themeId, setThemeId] = useState("moderno");
+  const [themeId, setThemeId] = useState("nevoa");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modulesEnabled, setModulesEnabled] = useState({ financas: true, invest: true });
@@ -1255,14 +1255,14 @@ export default function App() {
             const isDark = THEMES[themeId]?.dark;
             try {
               if (isDark) {
-                const lastLight = localStorage.getItem("af4:last-theme:light") || "linho";
+                const lastLight = localStorage.getItem("af4:last-theme:light") || "nevoa";
                 setThemeId(lastLight);
               } else {
                 const lastDark = localStorage.getItem("af4:last-theme:dark") || "gold";
                 setThemeId(lastDark);
               }
             } catch {
-              setThemeId(isDark ? "linho" : "gold");
+              setThemeId(isDark ? "nevoa" : "gold");
             }
           }
           if (kind === "perfis") setPerfisOpen(true);

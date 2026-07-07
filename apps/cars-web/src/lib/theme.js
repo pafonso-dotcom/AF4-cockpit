@@ -31,6 +31,17 @@ const THEMES = {
   ice:     { ...DARK_BASE, id: "ice",     nome: "Gelo",           subtitulo: "Mono · clean",              gold: "#e5e7eb", goldHi: "#f3f4f6" },
 
   // ----- LIGHT -----
+  nevoa: {
+    // "Suave & moderno" (escolha do usuário 2026-07-07): neutro frio, acento
+    // sálvia, e os semânticos (verde/vermelho/azul/amarelo) na mesma família de
+    // saturação pra não brigarem. Espelha [data-c="nevoa"] no index.css.
+    dark: false, id: "nevoa", nome: "Névoa", subtitulo: "Neutro frio · sálvia suave",
+    bg: "#f6f7f8", bgSoft: "#eef0f2", card: "#ffffff", cardHi: "#f4f6f8",
+    border: "#e6e9ec", borderHi: "#cdd3d9",
+    ink: "#1f2429", muted: "#5c6570", faint: "#949ba4",
+    gold: "#5b9279", goldHi: "#74a992",
+    green: "#4f9d76", red: "#cf7d6a", blue: "#6d8fb3", yellow: "#c1954b",
+  },
   papel: {
     dark: false, id: "papel", nome: "Papel", subtitulo: "Sépia · fundo branco",
     bg: "#ffffff", bgSoft: "#f7f5f0", card: "#ffffff", cardHi: "#f7f5f0",
