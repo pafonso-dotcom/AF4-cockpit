@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Activity, Plus, Trash2, Edit3, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText, Mic } from "lucide-react";
 import EmptyState from "../ui/EmptyState.jsx";
+import { StatTile } from "../ui/widget.jsx";
 import { T } from "../../lib/theme.js";
 import { MESES_CURTO } from "../../lib/meses.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
@@ -461,6 +462,22 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
           </div>
         }
       />
+
+      {/* Resumo do período filtrado — estilo widget */}
+      {filtered.length > 0 && (() => {
+        const recArr = filtered.filter(t => t.tipo === "receita");
+        const desArr = filtered.filter(t => t.tipo === "despesa");
+        const rec = recArr.reduce((s, t) => s + Number(t.valor || 0), 0);
+        const des = desArr.reduce((s, t) => s + Number(t.valor || 0), 0);
+        const saldo = rec - des;
+        return (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 16 }}>
+            <StatTile label="Receitas (filtro)" valor={rec} hidden={hidden} cor={T.green} icon={ArrowUpRight} sub={`${recArr.length} ${recArr.length === 1 ? "lançamento" : "lançamentos"}`} />
+            <StatTile label="Despesas (filtro)" valor={des} hidden={hidden} cor={T.red} icon={ArrowDownRight} sub={`${desArr.length} ${desArr.length === 1 ? "lançamento" : "lançamentos"}`} />
+            <StatTile label="Saldo (filtro)" valor={saldo} hidden={hidden} cor={saldo >= 0 ? T.green : T.red} icon={Activity} sub="receitas − despesas" />
+          </div>
+        );
+      })()}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-4" style={{ background: T.card, border: `1px solid ${T.border}`, padding: 10, borderRadius: 11 }}>

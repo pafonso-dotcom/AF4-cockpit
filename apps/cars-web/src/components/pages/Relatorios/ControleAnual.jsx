@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from "react";
-import { Printer, Download, ClipboardCopy, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Printer, Download, ClipboardCopy, ChevronDown, ChevronUp, Trash2, TrendingUp, TrendingDown, Wallet, CreditCard } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, todayISO } from "../../../lib/format.js";
 import PageHeader from "../../ui/PageHeader.jsx";
+import { StatTile } from "../../ui/widget.jsx";
 import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import { getAnualPorMes } from "../../../lib/agregador.js";
@@ -306,6 +307,14 @@ export default function ControleAnual({
           </select>
         </div>
       )}
+
+      {/* Resumo do ano no estilo widget — sparklines com o real (12 meses) */}
+      <div className="no-print" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 12 }}>
+        <StatTile label="Ganhos (ano)" valor={totais.ganhos} hidden={hidden} cor={T.green} icon={TrendingUp} sub={String(ano)} spark={linhas.map(l => l.ganhos)} />
+        <StatTile label="Gastos (ano)" valor={totais.fixas + totais.variaveis + totais.parcelas} hidden={hidden} cor={T.red} icon={TrendingDown} sub="fixas + variáveis + parcelas" spark={linhas.map(l => l.fixas + l.variaveis + l.parcelas)} />
+        <StatTile label="Dívidas pagas" valor={totais.dividasPagas} hidden={hidden} cor={T.gold} icon={CreditCard} sub={String(ano)} spark={linhas.map(l => l.dividasPagas)} />
+        <StatTile label="Balanço (ano)" valor={totais.balanco} hidden={hidden} cor={totais.balanco >= 0 ? T.green : T.red} icon={Wallet} sub="ganhos − saídas" spark={linhas.map(l => l.balanco)} />
+      </div>
 
       <div className="print-area" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "auto" }}>
         <table className="tbl" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 900 }}>
