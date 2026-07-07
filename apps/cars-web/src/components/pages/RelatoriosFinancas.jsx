@@ -443,9 +443,9 @@ tr.comp td.situ { text-decoration:none; color:#1f7a44; }
         </div>
         {!projecao.vazio && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 14 }}>
-            <StatTile label="A receber (previsto)" valor={projecao.receber?.subTotal || 0} hidden={hidden} cor={T.green} icon={ArrowDownLeft} sub={periodoLabel} spark={[3, 4, 3, 6, 5, 7]} />
-            <StatTile label="Saídas (previstas)" valor={projecao.totalGeral} hidden={hidden} cor={T.red} icon={ArrowUpRight} sub={periodoLabel} spark={[7, 6, 7, 5, 6, 4]} />
-            <StatTile label="Saldo previsto" valor={projecao.saldoTotal} hidden={hidden} cor={projecao.saldoTotal >= 0 ? T.green : T.red} icon={Wallet} sub="receber − saídas" spark={projecao.saldoTotal >= 0 ? [3, 4, 5, 4, 6, 7] : [7, 6, 5, 6, 4, 3]} />
+            <StatTile label="A receber (previsto)" valor={projecao.receber?.subTotal || 0} hidden={hidden} cor={T.green} icon={ArrowDownLeft} sub={periodoLabel} spark={projecao.receber?.subPorMes} />
+            <StatTile label="Saídas (previstas)" valor={projecao.totalGeral} hidden={hidden} cor={T.red} icon={ArrowUpRight} sub={periodoLabel} spark={projecao.totaisMes} />
+            <StatTile label="Saldo previsto" valor={projecao.saldoTotal} hidden={hidden} cor={projecao.saldoTotal >= 0 ? T.green : T.red} icon={Wallet} sub="receber − saídas" spark={projecao.saldoMes} />
           </div>
         )}
         {projecao.vazio ? (
