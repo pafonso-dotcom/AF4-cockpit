@@ -429,7 +429,7 @@ export default function Dashboard({
       <section className="dash-bot-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} hidden={hidden}
+        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} chequesTotal={chequesAReceber} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
         <ProjecaoCard projecao={projecao} patrimonio={patrimonio} hidden={hidden} />
@@ -955,20 +955,10 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, hidden, onSeeAll, onVerPagar }) {
+function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, chequesTotal = 0, hidden, onSeeAll, onVerPagar }) {
   // Total a receber começa oculto (•••); clica pra revelar — igual ao Patrimônio.
   const [mostrarTotal, setMostrarTotal] = useState(false);
   const hoje = new Date().toISOString().slice(0, 10);
-  const fimSemana = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().slice(0, 10);
-  })();
-  const fimMes = (() => {
-    const d = new Date();
-    const ultimoDia = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-    return ultimoDia.toISOString().slice(0, 10);
-  })();
 
   const abertos = devedores.filter(d => !d.recebido);
   // Quanto ainda FALTA receber (desconta recebimentos parciais já feitos).
@@ -976,18 +966,34 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, hidde
   const total = abertos.reduce((s, d) => s + restanteDe(d), 0);
   const totalAnimado = useCountUp(total, mostrarTotal && !hidden);
 
-  const atrasados = abertos.filter(d => d.vencimento && d.vencimento < hoje);
-  const hojeArr   = abertos.filter(d => d.vencimento === hoje);
-  const semana    = abertos.filter(d => d.vencimento && d.vencimento > hoje && d.vencimento <= fimSemana);
-  const mes       = abertos.filter(d => d.vencimento && d.vencimento > fimSemana && d.vencimento <= fimMes);
+  // Totais "Controle Geral" — mesma base do módulo "A Receber & Dívidas":
+  // Recebido (tudo já recebido, inclui parciais e juros), Pendente (vence no
+  // mês corrente), Atrasado (vencidos). Juros de empréstimo já recebidos
+  // contam como recebido e abatem do que falta.
+  const mesAtual = hoje.slice(0, 7);
+  let recebidoTot = 0, pendenteMes = 0, atrasadoTot = 0;
+  devedores.forEach(d => {
+    const valor = Number(d.valor) || 0;
+    const vr = Number(d.valorRecebido) || 0;
+    const jurosRec = d.emprestimo && Array.isArray(d.recebimentos)
+      ? d.recebimentos.filter(r => r && r.tipo === "juros").reduce((s, r) => s + (Number(r.valor) || 0), 0)
+      : 0;
+    if (d.recebido) { recebidoTot += vr > 0 ? vr : valor; return; }
+    recebidoTot += vr + jurosRec;
+    const restante = Math.max(0, valor - vr - jurosRec);
+    if (restante <= 0) return;
+    if (d.vencimento && d.vencimento < hoje) atrasadoTot += restante;
+    else if (!d.vencimento || d.vencimento.slice(0, 7) === mesAtual) pendenteMes += restante;
+  });
 
-  const somar = (arr) => arr.reduce((s, d) => s + restanteDe(d), 0);
-
-  const buckets = [
-    { id: "atrasado", label: "Atrasados", icon: AlertCircle, cor: T.red,   qtd: atrasados.length, valor: somar(atrasados) },
-    { id: "hoje",     label: "Vence hoje", icon: Clock,       cor: T.gold,  qtd: hojeArr.length,   valor: somar(hojeArr) },
-    { id: "semana",   label: "Esta semana", icon: Calendar,   cor: T.blue || "#60a5fa", qtd: semana.length, valor: somar(semana) },
-    { id: "apagar",   label: "A pagar · mês", icon: AlertCircle, cor: T.red, qtd: aPagarMes?.qtd || 0, valor: aPagarMes?.total || 0 },
+  const apagarMesVal = aPagarMes?.total || 0;
+  // 6 números pedidos: Total a receber (hero) + estes 5 blocos.
+  const resumo = [
+    { id: "recebido", label: "Recebido",       valor: recebidoTot, cor: T.green },
+    { id: "pendente", label: "Pendente (mês)", valor: pendenteMes, cor: T.gold },
+    { id: "atrasado", label: "Atrasado",       valor: atrasadoTot, cor: atrasadoTot > 0 ? T.red : T.muted },
+    { id: "cheques",  label: "Cheques",        valor: chequesTotal, cor: T.blue || "#60a5fa" },
+    { id: "apagar",   label: "A pagar (mês)",  valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted },
   ];
 
   const proximos = abertos
@@ -1008,7 +1014,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, hidde
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <HandCoins size={16} style={{ color: T.gold }} />
-          <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>A Receber</div>
+          <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Controle Geral</div>
         </div>
         <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.gold, fontSize: 11, cursor: "pointer" }}>
           Ver tudo
@@ -1024,36 +1030,30 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, hidde
         {abertos.length} {abertos.length === 1 ? "recebível em aberto" : "recebíveis em aberto"}
       </div>
 
+      {/* Totais "Controle Geral" — sempre visíveis (Recebido · Pendente · Atrasado · Cheques · A pagar) */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
+        {resumo.map(b => (
+          <div key={b.id} style={{
+            background: T.bgSoft, border: `1px solid ${T.border}`,
+            borderRadius: 14, padding: "8px 10px",
+            display: "flex", flexDirection: "column", gap: 2,
+          }}>
+            <div style={{ fontSize: 10, color: b.cor, fontWeight: 700, letterSpacing: ".03em", textTransform: "uppercase" }}>
+              {b.label}
+            </div>
+            <div className="num" style={{ fontSize: 13, fontWeight: 700, color: b.cor }}>
+              {hidden ? "•••" : fmt(b.valor)}
+            </div>
+          </div>
+        ))}
+      </div>
+
       {abertos.length === 0 ? (
-        <div style={{ padding: "20px 0", textAlign: "center", fontSize: 12, color: T.faint, fontStyle: "italic" }}>
+        <div style={{ padding: "16px 0 2px", textAlign: "center", fontSize: 12, color: T.faint, fontStyle: "italic" }}>
           Nenhum recebível pendente.
         </div>
       ) : (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
-            {buckets.map(b => {
-              const Icon = b.icon;
-              const ativo = b.qtd > 0;
-              return (
-                <div key={b.id} style={{
-                  background: ativo ? `${b.cor}11` : T.bgSoft,
-                  border: `1px solid ${ativo ? `${b.cor}55` : T.border}`,
-                  borderRadius: 14, padding: "8px 10px",
-                  display: "flex", flexDirection: "column", gap: 2,
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: ativo ? b.cor : T.faint, fontWeight: 600, letterSpacing: ".03em" }}>
-                    <Icon size={10} /> {b.label}
-                  </div>
-                  <div className="num" style={{ fontSize: 13, fontWeight: 600, color: ativo ? T.ink : T.faint }}>
-                    {hidden ? "•••" : (ativo ? fmt(b.valor) : "—")}
-                  </div>
-                  <div style={{ fontSize: 9.5, color: T.muted }}>
-                    {b.qtd} {b.qtd === 1 ? "item" : "itens"}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
 
           {proximos.length > 0 && (
             <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
