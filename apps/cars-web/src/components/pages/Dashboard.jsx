@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState } from "react";
-import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar, Plus } from "lucide-react";
+import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar, Plus, Eye, EyeOff } from "lucide-react";
 import { CARD_SHADOW } from "../../lib/styles.js";
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
@@ -159,6 +159,19 @@ export default function Dashboard({
       return s + valorPorParcela * Math.max(0, total - pagas);
     }, 0);
   }, [parcelamentos]);
+  // Total a pagar (tudo em aberto, todos os meses) — mesma base do "A Receber &
+  // Dívidas": dívidas + fixas pendentes + parcelas de cartão + avulsas.
+  const aPagarTotal = useMemo(() => {
+    let s = 0;
+    (dividas || []).filter(d => !d.pago).forEach(d => { s += Number(d.valor) || 0; });
+    (fixaOcorrencias || []).filter(o => o.status === "pendente" && (fixas || []).some(f => f.id === o.fixaId))
+      .forEach(o => { s += Number(o.valor) || 0; });
+    s += cartoesTotal; // parcelas de cartão em aberto
+    (transacoes || []).filter(t => t.tipo === "despesa" && !t.compensado
+      && !t.origemFixaOcorrenciaId && !t.origemParcelamentoId)
+      .forEach(t => { s += Number(t.valor) || 0; });
+    return s;
+  }, [dividas, fixaOcorrencias, fixas, cartoesTotal, transacoes]);
   // aPagarAno e patrimonioTotal são calculados mais abaixo, após `stateAgg`.
   const receitasMes = useMemo(() => transacoes.filter(t => t.tipo === "receita" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
   const despesasMes = useMemo(() => transacoes.filter(t => t.tipo === "despesa" && t.origem !== "fatura-pagamento" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
@@ -440,7 +453,7 @@ export default function Dashboard({
       <section className="dash-bot-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} hidden={hidden}
+        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
         <ProjecaoCard projecao={projecao} patrimonio={patrimonio} hidden={hidden} />
@@ -966,44 +979,42 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, chequesTotal = 0, cartoesTotal = 0, hidden, onSeeAll, onVerPagar }) {
-  // Total a receber começa oculto (•••); clica pra revelar — igual ao Patrimônio.
-  const [mostrarTotal, setMostrarTotal] = useState(false);
+function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, hidden, onSeeAll, onVerPagar }) {
+  // Valores começam ocultos (•••); botão do olho revela — igual ao Patrimônio.
+  const [revelar, setRevelar] = useState(false);
+  const oculto = hidden || !revelar;
   const hoje = new Date().toISOString().slice(0, 10);
 
   const abertos = devedores.filter(d => !d.recebido);
   // Quanto ainda FALTA receber (desconta recebimentos parciais já feitos).
   const restanteDe = (d) => Math.max(0, (Number(d.valor) || 0) - (Number(d.valorRecebido) || 0));
-  const total = abertos.reduce((s, d) => s + restanteDe(d), 0);
-  const totalAnimado = useCountUp(total, mostrarTotal && !hidden);
+  const totalReceber = abertos.reduce((s, d) => s + restanteDe(d), 0);
 
-  // Totais "Controle Geral" — mesma base do módulo "A Receber & Dívidas":
-  // Recebido (tudo já recebido, inclui parciais e juros), Pendente (vence no
-  // mês corrente), Atrasado (vencidos). Juros de empréstimo já recebidos
-  // contam como recebido e abatem do que falta.
+  // A receber (mês): recebíveis que vencem no mês corrente (juros de empréstimo
+  // já recebidos abatem). Mesma base do módulo "A Receber & Dívidas".
   const mesAtual = hoje.slice(0, 7);
-  let pendenteMes = 0, atrasadoTot = 0;
+  let receberMes = 0;
   devedores.forEach(d => {
+    if (d.recebido) return;
     const valor = Number(d.valor) || 0;
     const vr = Number(d.valorRecebido) || 0;
     const jurosRec = d.emprestimo && Array.isArray(d.recebimentos)
       ? d.recebimentos.filter(r => r && r.tipo === "juros").reduce((s, r) => s + (Number(r.valor) || 0), 0)
       : 0;
-    if (d.recebido) return;
     const restante = Math.max(0, valor - vr - jurosRec);
     if (restante <= 0) return;
-    if (d.vencimento && d.vencimento < hoje) atrasadoTot += restante;
-    else if (!d.vencimento || d.vencimento.slice(0, 7) === mesAtual) pendenteMes += restante;
+    if (!d.vencimento || d.vencimento.slice(0, 7) === mesAtual) receberMes += restante;
   });
 
   const apagarMesVal = aPagarMes?.total || 0;
-  // Total a receber (hero) + estes blocos. Sem "Recebido"; com "Cartões".
+  // Os 6 totais do "Centro de Controle".
   const resumo = [
-    { id: "pendente", label: "Pendente (mês)", valor: pendenteMes, cor: T.gold },
-    { id: "atrasado", label: "Atrasado",       valor: atrasadoTot, cor: atrasadoTot > 0 ? T.red : T.muted },
-    { id: "cheques",  label: "Cheques",        valor: chequesTotal, cor: T.blue || "#60a5fa" },
-    { id: "apagar",   label: "A pagar (mês)",  valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted },
-    { id: "cartoes",  label: "Cartões",        valor: cartoesTotal, cor: cartoesTotal > 0 ? T.yellow : T.muted },
+    { id: "areceber",    label: "Total a receber",    valor: totalReceber, cor: T.green },
+    { id: "arecebermes", label: "A receber (mês)",     valor: receberMes,   cor: T.gold },
+    { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted },
+    { id: "apagarmes",   label: "A pagar (mês)",       valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted },
+    { id: "cartoes",     label: "Cartões (parcelas)", valor: cartoesTotal, cor: cartoesTotal > 0 ? T.yellow : T.muted },
+    { id: "cheques",     label: "Cheques",            valor: chequesTotal, cor: chequesTotal > 0 ? (T.blue || "#60a5fa") : T.muted },
   ];
 
   const proximos = abertos
@@ -1021,26 +1032,27 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, chequ
 
   return (
     <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <HandCoins size={16} style={{ color: T.gold }} />
-          <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Controle Geral</div>
+          <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Centro de Controle</div>
         </div>
-        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.gold, fontSize: 11, cursor: "pointer" }}>
-          Ver tudo
-        </button>
-      </div>
-
-      <div className="num" onClick={() => setMostrarTotal(v => !v)}
-        title={mostrarTotal ? "Toque para ocultar" : "Toque para ver"}
-        style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 600, color: T.ink, lineHeight: 1.1, cursor: "pointer", userSelect: "none" }}>
-        {(mostrarTotal && !hidden) ? fmt(totalAnimado) : "•••••"}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button onClick={() => setRevelar(v => !v)} disabled={hidden}
+            title={oculto ? "Mostrar valores" : "Ocultar valores"}
+            style={{ background: "transparent", border: "none", color: T.muted, cursor: hidden ? "default" : "pointer", display: "inline-flex", alignItems: "center", opacity: hidden ? 0.4 : 1, padding: 0 }}>
+            {oculto ? <EyeOff size={15} /> : <Eye size={15} />}
+          </button>
+          <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.gold, fontSize: 11, cursor: "pointer" }}>
+            Ver tudo
+          </button>
+        </div>
       </div>
       <div style={{ fontSize: 11, color: T.muted, marginBottom: 12 }}>
         {abertos.length} {abertos.length === 1 ? "recebível em aberto" : "recebíveis em aberto"}
       </div>
 
-      {/* Totais "Controle Geral" — sempre visíveis (Recebido · Pendente · Atrasado · Cheques · A pagar) */}
+      {/* 6 totais do Centro de Controle — ocultáveis pelo botão do olho */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
         {resumo.map(b => (
           <div key={b.id} style={{
@@ -1052,7 +1064,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, chequ
               {b.label}
             </div>
             <div className="num" style={{ fontSize: 13, fontWeight: 700, color: b.cor }}>
-              {hidden ? "•••" : fmt(b.valor)}
+              {oculto ? "•••" : fmt(b.valor)}
             </div>
           </div>
         ))}
@@ -1083,7 +1095,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, chequ
                       </div>
                     </div>
                     <div className="num" style={{ color: T.ink, fontWeight: 600, marginLeft: 8, flexShrink: 0 }}>
-                      {hidden ? "•••" : fmt(restanteDe(d))}
+                      {oculto ? "•••" : fmt(restanteDe(d))}
                     </div>
                   </div>
                 );
@@ -1103,7 +1115,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, chequ
               <AlertCircle size={11} /> A pagar hoje
             </div>
             <div className="num" style={{ fontSize: 12, fontWeight: 700, color: T.red }}>
-              {hidden ? "•••" : fmt(aPagarHoje.reduce((s, p) => s + (Number(p.valor) || 0), 0))}
+              {oculto ? "•••" : fmt(aPagarHoje.reduce((s, p) => s + (Number(p.valor) || 0), 0))}
             </div>
           </div>
           {aPagarHoje.slice(0, 3).map(p => (
@@ -1112,7 +1124,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, chequ
                 {p.nome}
               </div>
               <div className="num" style={{ color: T.red, fontWeight: 600, marginLeft: 8, flexShrink: 0 }}>
-                {hidden ? "•••" : fmt(Number(p.valor) || 0)}
+                {oculto ? "•••" : fmt(Number(p.valor) || 0)}
               </div>
             </div>
           ))}
