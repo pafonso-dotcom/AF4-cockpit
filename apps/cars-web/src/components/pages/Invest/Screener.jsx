@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { RefreshCw, Sparkles, Search, Bookmark, CalendarPlus, ArrowUp, ArrowDown, Star, Globe } from "lucide-react";
+import { RefreshCw, Sparkles, Search, Bookmark, CalendarPlus, ArrowUp, ArrowDown, Star, Globe, LineChart } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
 import { toast } from "../../../lib/toast.js";
@@ -124,6 +124,12 @@ export default function Screener({ hidden }) {
   const buscarNaWeb = (x) => {
     const q = `${x.ticker} ${x.tipo === "fund" ? "fundo imobiliário" : "ação"} cotação`;
     window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank", "noopener");
+  };
+  // Abrir a página completa do ativo no Status Invest (roteia FII / BDR / ação).
+  const verNoStatusInvest = (x) => {
+    const tk = (x.ticker || "").toLowerCase();
+    const seg = x.tipo === "fund" ? "fundos-imobiliarios" : x.tipo === "bdr" ? "bdrs" : "acoes";
+    window.open(`https://statusinvest.com.br/${seg}/${tk}`, "_blank", "noopener");
   };
 
   async function carregarMercado(force = false) {
@@ -393,6 +399,8 @@ export default function Screener({ hidden }) {
                     <td className="num" style={{ textAlign: "right", padding: "9px 10px", color: T.muted, whiteSpace: "nowrap" }}>{fmtVol(x.volume)}</td>
                     <td className="num" style={{ textAlign: "right", padding: "9px 10px", color: T.muted, whiteSpace: "nowrap" }}>{fmtCap(x.marketCap)}</td>
                     <td style={{ textAlign: "right", padding: "9px 10px", whiteSpace: "nowrap" }}>
+                      <button onClick={() => verNoStatusInvest(x)} title={`Abrir ${x.ticker} no Status Invest`}
+                              style={{ color: T.yellow || "#e0a53b", padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><LineChart size={14} /></button>
                       <button onClick={() => buscarNaWeb(x)} title={`Pesquisar ${x.ticker} na internet`}
                               style={{ color: T.blue || "#60a5fa", padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Globe size={14} /></button>
                       <button onClick={() => addWatchlist(x)} title="Adicionar à watchlist (Construtor de mercado)"
