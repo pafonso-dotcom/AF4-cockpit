@@ -463,69 +463,6 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
         }
       />
 
-      {/* Resumo do período filtrado — estilo widget */}
-      {filtered.length > 0 && (() => {
-        const recArr = filtered.filter(t => t.tipo === "receita");
-        const desArr = filtered.filter(t => t.tipo === "despesa");
-        const rec = recArr.reduce((s, t) => s + Number(t.valor || 0), 0);
-        const des = desArr.reduce((s, t) => s + Number(t.valor || 0), 0);
-        const saldo = rec - des;
-        return (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 16 }}>
-            <StatTile label="Receitas (filtro)" valor={rec} hidden={hidden} cor={T.green} icon={ArrowUpRight} sub={`${recArr.length} ${recArr.length === 1 ? "lançamento" : "lançamentos"}`} />
-            <StatTile label="Despesas (filtro)" valor={des} hidden={hidden} cor={T.red} icon={ArrowDownRight} sub={`${desArr.length} ${desArr.length === 1 ? "lançamento" : "lançamentos"}`} />
-            <StatTile label="Saldo (filtro)" valor={saldo} hidden={hidden} cor={saldo >= 0 ? T.green : T.red} icon={Activity} sub="receitas − despesas" />
-          </div>
-        );
-      })()}
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-4" style={{ background: T.card, border: `1px solid ${T.border}`, padding: 10, borderRadius: 11 }}>
-        <div className="flex items-center gap-2 flex-1 min-w-[180px] max-w-[320px]" style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 5, padding: "0 10px" }}>
-          <Search size={13} style={{ color: T.muted, flexShrink: 0 }} />
-          <input style={{ border: "none", background: "transparent", flex: 1, padding: "6px 0", fontSize: 12.5 }}
-                 placeholder="Buscar descrição/obs…" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)} style={{ width: "auto", flex: "0 1 160px" }}>
-          <option value="todas">Todos os tipos</option>
-          <option value="receita">Receitas</option>
-          <option value="despesa">Despesas</option>
-        </select>
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ width: "auto", flex: "0 1 200px" }}>
-          <option value="todas">Todas as categorias</option>
-          {ordenarPorNome(categorias).map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-        </select>
-        <select value={filterConta} onChange={e => setFilterConta(e.target.value)} style={{ width: "auto", flex: "0 1 220px" }}>
-          <option value="todas">🏦 Banco · todos</option>
-          <optgroup label="── Contas cadastradas ──">
-            {(contas || []).map(c => (
-              <option key={c.id} value={c.nome}>
-                {c.nome}{c.instituicao ? ` (${c.instituicao})` : ""}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="── Origem ──">
-            <option value="particular">👤 Particular / sem conta</option>
-          </optgroup>
-        </select>
-        <select value={filterComp} onChange={e => setFilterComp(e.target.value)} style={{ width: "auto", flex: "0 1 180px" }}>
-          <option value="todas">Compensação · todas</option>
-          <option value="compensadas">Apenas compensadas</option>
-          <option value="pendentes">Apenas pendentes</option>
-        </select>
-        <select value={filterPeriodo} onChange={e => setFilterPeriodo(e.target.value)} style={{ width: "auto", flex: "0 1 180px" }}>
-          <option value="todos">Período · todos</option>
-          <option value="mes-atual">Mês atual</option>
-          <option value="mes-anterior">Mês anterior</option>
-          <option value="ano-atual">Ano atual</option>
-          {mesesDisponiveis.length > 0 && <option disabled value="">─────────</option>}
-          {mesesDisponiveis.map(m => {
-            const [y, mm] = m.split("-");
-            return <option key={m} value={m}>{MESES_CURTO[parseInt(mm) - 1]}/{y}</option>;
-          })}
-        </select>
-      </div>
-
       {/* Chips: Recorrência (Todas / Fixas / Variáveis) + toggle de visão */}
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
