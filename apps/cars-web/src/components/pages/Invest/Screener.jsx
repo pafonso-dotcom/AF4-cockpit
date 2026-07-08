@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { RefreshCw, Sparkles, Search, Bookmark, CalendarPlus, ArrowUp, ArrowDown } from "lucide-react";
+import { RefreshCw, Sparkles, Search, Bookmark, CalendarPlus, ArrowUp, ArrowDown, Star, Globe } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN } from "../../../lib/format.js";
 import { toast } from "../../../lib/toast.js";
@@ -51,6 +51,7 @@ export default function Screener({ hidden }) {
   const [cache, setCache] = useState(() => lerCacheLista());
   const [carregando, setCarregando] = useState(false);
   const [filtros, setFiltros] = useState(FILTROS_VAZIOS);
+  const [soIA910, setSoIA910] = useState(false); // régua: só papéis com nota IA 9–10
   const [pergunta, setPergunta] = useState("");
   const [iaRodando, setIaRodando] = useState(false);
   const [analise, setAnalise] = useState(null); // { analises:[{ticker,nota,parecer}], resumo }
@@ -81,7 +82,6 @@ export default function Screener({ hidden }) {
     };
   }), [lista, provCache, fundCache]);
   const filtrada = useMemo(() => filtrarOrdenar(listaComDy, filtros), [listaComDy, filtros]);
-  const visiveis = filtrada.slice(0, limite);
 
   // Busca proventos reais dos primeiros N papéis filtrados que ainda não têm
   // histórico (1 requisição POR papel — por isso é manual e limitado).
@@ -113,6 +113,18 @@ export default function Screener({ hidden }) {
     (analise?.analises || []).forEach((a) => { m[(a.ticker || "").toUpperCase()] = a; });
     return m;
   }, [analise]);
+  // Régua "IA 9–10": mostra só papéis cuja nota da IA é 9 ou 10 (a nota só
+  // existe nos papéis já analisados pelo "Analisar top 15").
+  const filtradaIA = useMemo(() => {
+    if (!soIA910) return filtrada;
+    return filtrada.filter((x) => (analisePorTicker[(x.ticker || "").toUpperCase()]?.nota ?? -1) >= 9);
+  }, [filtrada, soIA910, analisePorTicker]);
+  const visiveis = filtradaIA.slice(0, limite);
+  // Abrir pesquisa do ativo na internet (Google) — cotação, notícias, fundamentos.
+  const buscarNaWeb = (x) => {
+    const q = `${x.ticker} ${x.tipo === "fund" ? "fundo imobiliário" : "ação"} cotação`;
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank", "noopener");
+  };
 
   async function carregarMercado(force = false) {
     if (!force && cacheValido(cache)) { toast.info("Lista ainda fresca (cache de 24h). Use ⟳ pra forçar."); return; }
@@ -281,6 +293,16 @@ export default function Screener({ hidden }) {
             {t.l}
           </button>
         ))}
+        {/* Régua: só papéis com nota IA 9–10 */}
+        <button onClick={() => setSoIA910((v) => !v)}
+                title="Mostra só os papéis com nota IA 9 ou 10 · rode 'Analisar top 15' antes (a nota vem da IA)"
+                style={{ padding: "6px 13px", borderRadius: 100, fontSize: 11.5, fontWeight: 700, cursor: "pointer",
+                         display: "inline-flex", alignItems: "center", gap: 5,
+                         border: `1px solid ${soIA910 ? T.green : T.border}`,
+                         background: soIA910 ? `${T.green}22` : "transparent",
+                         color: soIA910 ? T.green : T.muted }}>
+          <Star size={12} /> IA 9–10
+        </button>
         <select value={filtros.setor} onChange={(e) => setFiltros((f) => ({ ...f, setor: e.target.value }))}
                 style={{ ...inpStyle, width: "auto", maxWidth: 220 }}>
           <option value="">Setor · todos</option>
@@ -293,12 +315,12 @@ export default function Screener({ hidden }) {
         <input placeholder="P/L máx" inputMode="decimal" value={filtros.plMax ?? ""} onChange={setNum("plMax")} style={{ ...inpStyle, width: 78 }} title="Só papéis com P/L até este valor (requer indicadores buscados)" />
         <input placeholder="P/VP máx" inputMode="decimal" value={filtros.pvpMax ?? ""} onChange={setNum("pvpMax")} style={{ ...inpStyle, width: 82 }} title="Só papéis com P/VP até este valor" />
         <input placeholder="ROE mín %" inputMode="decimal" value={filtros.roeMin ?? ""} onChange={setNum("roeMin")} style={{ ...inpStyle, width: 86 }} title="Só papéis com ROE a partir deste %" />
-        <button onClick={() => { setFiltros(FILTROS_VAZIOS); setAnalise(null); }}
+        <button onClick={() => { setFiltros(FILTROS_VAZIOS); setAnalise(null); setSoIA910(false); }}
                 style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 9, padding: "7px 11px", fontSize: 11.5, cursor: "pointer" }}>
           Limpar
         </button>
         <span style={{ marginLeft: "auto", fontSize: 11.5, color: T.faint }}>
-          {lista.length ? <>{filtrada.length} de {lista.length} papéis</> : "mercado não carregado"}
+          {lista.length ? (soIA910 ? <>{filtradaIA.length} com IA 9–10</> : <>{filtrada.length} de {lista.length} papéis</>) : "mercado não carregado"}
           {cache?.fetchedAt && <> · lista de {new Date(cache.fetchedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</>}
         </span>
       </div>
@@ -371,6 +393,8 @@ export default function Screener({ hidden }) {
                     <td className="num" style={{ textAlign: "right", padding: "9px 10px", color: T.muted, whiteSpace: "nowrap" }}>{fmtVol(x.volume)}</td>
                     <td className="num" style={{ textAlign: "right", padding: "9px 10px", color: T.muted, whiteSpace: "nowrap" }}>{fmtCap(x.marketCap)}</td>
                     <td style={{ textAlign: "right", padding: "9px 10px", whiteSpace: "nowrap" }}>
+                      <button onClick={() => buscarNaWeb(x)} title={`Pesquisar ${x.ticker} na internet`}
+                              style={{ color: T.blue || "#60a5fa", padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Globe size={14} /></button>
                       <button onClick={() => addWatchlist(x)} title="Adicionar à watchlist (Construtor de mercado)"
                               style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Bookmark size={14} /></button>
                       <button onClick={() => addCandidato(x)} title="Virar candidato no Mapa de Dividendos"
@@ -382,11 +406,16 @@ export default function Screener({ hidden }) {
             </tbody>
           </table>
         )}
-        {filtrada.length > limite && (
+        {lista.length > 0 && soIA910 && filtradaIA.length === 0 && (
+          <div style={{ padding: 24, textAlign: "center", color: T.muted, fontSize: 12.5, lineHeight: 1.6 }}>
+            Nenhum papel com nota <b style={{ color: T.green }}>IA 9–10</b>. Rode <b style={{ color: T.gold }}>Analisar top 15</b> primeiro — a nota da IA aparece só nos papéis analisados.
+          </div>
+        )}
+        {filtradaIA.length > limite && (
           <div style={{ padding: 10, textAlign: "center" }}>
             <button onClick={() => setLimite((l) => l + 50)}
                     style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 9, padding: "7px 16px", fontSize: 12, cursor: "pointer" }}>
-              Mostrar mais ({filtrada.length - limite} restantes)
+              Mostrar mais ({filtradaIA.length - limite} restantes)
             </button>
           </div>
         )}
