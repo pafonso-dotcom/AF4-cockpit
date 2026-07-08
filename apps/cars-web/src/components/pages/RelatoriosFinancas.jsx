@@ -266,27 +266,6 @@ export default function RelatoriosFinancas({
     return { grupos, totaisMes, totalGeral, media: totalGeral / n, receber, saldoMes, saldoTotal, saldoMedia: saldoTotal / n, vazio: todas.length === 0 && !receber };
   }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, escopoAtivo, proximosMeses, anoProj]);
 
-  // ===== Cheques a receber — TODOS, independente da janela de projeção =====
-  // A matriz acima só cobre 6 meses; um cheque com vencimento fora dessa janela
-  // (ex.: ano seguinte) não aparece lá. Lista aguardando + compensados (estes
-  // riscados, já recebidos). O total conta só os aguardando.
-  const chequesAReceber = useMemo(() => {
-    const noEsc = (c) => escopoAtivo === "tudo" || (c.escopo || "pessoal") === escopoAtivo;
-    const hoje = new Date().toISOString().slice(0, 10);
-    const lista = (cheques || [])
-      .filter(c => (c.status === "aguardando" || c.status === "compensado") && noEsc(c))
-      .slice()
-      .sort((a, b) => (a.vencimento || "").localeCompare(b.vencimento || ""))
-      .map(c => ({
-        ...c,
-        compensado: c.status === "compensado",
-        vencido: c.status === "aguardando" && (c.vencimento || "") < hoje,
-      }));
-    const total = lista.filter(c => !c.compensado).reduce((s, c) => s + (Number(c.valor) || 0), 0);
-    return { lista, total };
-  }, [cheques, escopoAtivo]);
-  const fmtData = (d) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "—";
-
   // ===== Cenários de Saldo previsto =====
   // Parte do SALDO ATUAL das contas e acumula (A receber − Saídas) mês a mês.
   // Dois cenários: Pessoal (só contas/dados pessoais) e Pessoal + Negócio (tudo).
@@ -381,38 +360,6 @@ td.neg { color:#b3261e; }
 <div class="sub-head">Saídas previstas (fixas, parcelas, dívidas, avulsas) e entradas a receber · ${esc(periodoLabel)} · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</div>
 <table><thead><tr><th>Categoria</th>${ths}<th>Total</th></tr></thead>
 <tbody>${corpo}${rodape}${receberHtml}${saldo}</tbody></table>
-</body></html>`);
-  };
-
-  // Imprime SÓ a relação de cheques a receber (A4 retrato). Lista os aguardando
-  // e os já compensados (riscados), com o total aguardando ao pé.
-  const imprimirCheques = () => {
-    const esc = (s) => String(s ?? "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
-    const linhas = chequesAReceber.lista.map(c => {
-      const situ = c.compensado ? "compensado" : c.vencido ? "vencido" : "aguardando";
-      const banco = [c.banco, c.numero ? `nº ${c.numero}` : ""].filter(Boolean).join(" · ") || "—";
-      return `<tr class="${c.compensado ? "comp" : ""}"><td>${esc(fmtData(c.vencimento))}</td><td>${esc(c.de || "—")}</td><td>${esc(banco)}</td><td class="situ">${esc(situ)}</td><td class="n">${esc(fmt(Number(c.valor) || 0))}</td></tr>`;
-    }).join("");
-    const total = `<tr class="tfoot"><td colspan="4">Total aguardando</td><td class="n">${esc(fmt(chequesAReceber.total))}</td></tr>`;
-    printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Cheques a receber</title>
-<style>
-@page { size: A4 portrait; margin: 12mm; }
-body { font-family:${FONTE_ARRED_PRINT}; color:#111; margin:0; }
-h1 { font-size:16px; margin:0 0 2px; }
-.sub-head { color:#666; font-size:10.5px; margin:0 0 10px; }
-table { width:100%; border-collapse:collapse; font-size:11px; }
-th,td { padding:5px 8px; border-bottom:1px solid #e5e5e5; text-align:left; }
-th { text-transform:uppercase; font-size:8.5px; letter-spacing:.04em; color:#666; }
-td.n, th.n { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
-td.situ { text-transform:uppercase; font-size:8.5px; letter-spacing:.04em; color:#666; }
-tr.comp td { color:#888; text-decoration:line-through; }
-tr.comp td.situ { text-decoration:none; color:#1f7a44; }
-.tfoot td { font-weight:700; border-top:2px solid #111; border-bottom:none; font-size:12px; text-decoration:none; }
-</style></head><body>
-<h1>Cheques a receber</h1>
-<div class="sub-head">Relação de cheques · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</div>
-<table><thead><tr><th>Vencimento</th><th>Emitente</th><th>Banco · nº</th><th>Situação</th><th class="n">Valor</th></tr></thead>
-<tbody>${linhas || `<tr><td colspan="5">Nenhum cheque.</td></tr>`}${total}</tbody></table>
 </body></html>`);
   };
 
@@ -578,65 +525,6 @@ tr.comp td.situ { text-decoration:none; color:#1f7a44; }
         )}
       </div>
 
-      {/* Cheques a receber — todos os aguardando, independente do ano/janela */}
-      <div style={{ marginTop: 16, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, boxShadow: CARD_SHADOW, fontFamily: FONTE_ARRED }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-          <div>
-            <div style={{ fontSize: 11, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Recebíveis</div>
-            <div style={{ fontFamily: FONTE_ARRED, fontSize: 17, fontWeight: 700, color: T.ink }}>Cheques a receber</div>
-          </div>
-          {chequesAReceber.lista.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Total aguardando</div>
-                <div className="num" style={{ fontSize: 18, fontWeight: 700, color: T.gold }}>{hidden ? "•••" : fmt(chequesAReceber.total)}</div>
-              </div>
-              <button onClick={imprimirCheques} className="btn-gold" style={{ padding: "8px 14px", fontSize: 12, whiteSpace: "nowrap" }}>
-                🖨️ Imprimir cheques
-              </button>
-            </div>
-          )}
-        </div>
-        {chequesAReceber.lista.length === 0 ? (
-          <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 12.5 }}>
-            Nenhum cheque aguardando compensação.
-          </div>
-        ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table className="tbl" style={{ width: "100%", minWidth: 520, fontSize: 12 }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: "left" }}>Vencimento</th>
-                  <th style={{ textAlign: "left" }}>Emitente</th>
-                  <th style={{ textAlign: "left" }}>Banco · nº</th>
-                  <th style={{ textAlign: "right" }}>Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {chequesAReceber.lista.map(c => {
-                  // Compensado = já recebido → linha riscada.
-                  const deco = c.compensado ? "line-through" : "none";
-                  const corBase = c.compensado ? T.faint : T.ink;
-                  return (
-                  <tr key={c.id} style={{ opacity: c.compensado ? 0.75 : 1 }}>
-                    <td style={{ color: c.compensado ? T.green : (c.vencido ? T.red : T.ink), fontWeight: 700, whiteSpace: "nowrap", textDecoration: deco }}>
-                      {fmtData(c.vencimento)}{c.compensado ? " · compensado" : c.vencido ? " · vencido" : ""}
-                    </td>
-                    <td style={{ color: corBase, fontWeight: 500, textDecoration: deco }}>{c.de || "—"}</td>
-                    <td style={{ color: T.muted, textDecoration: deco }}>{[c.banco, c.numero ? `nº ${c.numero}` : ""].filter(Boolean).join(" · ") || "—"}</td>
-                    <td className="num" style={{ textAlign: "right", color: corBase, fontWeight: 600, textDecoration: deco }}>{hidden ? "•••" : fmt(c.valor)}</td>
-                  </tr>
-                  );
-                })}
-                <tr>
-                  <td colSpan={3} style={{ fontWeight: 700, color: T.ink, borderTop: `2px solid ${T.ink}` }}>Total</td>
-                  <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.gold, borderTop: `2px solid ${T.ink}` }}>{hidden ? "•••" : fmt(chequesAReceber.total)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
