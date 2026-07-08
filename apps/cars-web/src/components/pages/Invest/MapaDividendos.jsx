@@ -84,17 +84,23 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
     return [...divs, ...juros].sort((a, b) => b.rendaMensal - a.rendaMensal);
   }, [mapa.rows, rf.porAtivo]);
 
-  // CDI 12m (Banco Central) — base do comparativo com CDB. Lê do cache e
-  // atualiza em segundo plano (API pública do BCB, cache de 12h).
+  // CDI e IPCA 12m (Banco Central) — base do comparativo com renda fixa. Lê do
+  // cache e atualiza em segundo plano (API pública do BCB, cache de 12h).
   const [cdiAnual, setCdiAnual] = useState(() => {
     try { return JSON.parse(localStorage.getItem("af4:bcb-benchmarks:v1") || "null")?.cdi12m ?? null; } catch { return null; }
   });
-  useEffect(() => { buscarBenchmarks12m().then((b) => { if (b?.cdi12m != null) setCdiAnual(b.cdi12m); }).catch(() => {}); }, []);
-  // Ajustes do CDB no comparativo: % do CDI (ex.: 90%, 110%) e faixa de IR
-  // (regressivo por prazo; "bruto" = sem IR). FII/ação são isentos pra PF.
+  const [ipcaAnual, setIpcaAnual] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("af4:bcb-benchmarks:v1") || "null")?.ipca12m ?? null; } catch { return null; }
+  });
+  useEffect(() => { buscarBenchmarks12m().then((b) => { if (b?.cdi12m != null) setCdiAnual(b.cdi12m); if (b?.ipca12m != null) setIpcaAnual(b.ipca12m); }).catch(() => {}); }, []);
+  // Ajustes: % do CDI, IR da renda fixa (regressivo), crescimento esperado dos
+  // ativos (%/ano · valorização além dos dividendos) e juros real do Tesouro
+  // IPCA+ (nominal = IPCA + juros real). FII/ação são isentos pra PF.
   const [pctCDI, setPctCDI] = useState(() => { try { return Number(localStorage.getItem("af4:mapa-div:cdb-pct")) || 100; } catch { return 100; } });
   const [irCDB, setIrCDB] = useState(() => { try { const v = localStorage.getItem("af4:mapa-div:cdb-ir"); return v == null ? 0.15 : Number(v) || 0; } catch { return 0.15; } });
-  useEffect(() => { try { localStorage.setItem("af4:mapa-div:cdb-pct", String(pctCDI)); localStorage.setItem("af4:mapa-div:cdb-ir", String(irCDB)); } catch {} }, [pctCDI, irCDB]);
+  const [crescAtivos, setCrescAtivos] = useState(() => { try { const v = localStorage.getItem("af4:mapa-div:cresc"); return v == null ? 0 : Number(v) || 0; } catch { return 0; } });
+  const [jurosRealTesouro, setJurosRealTesouro] = useState(() => { try { const v = localStorage.getItem("af4:mapa-div:tesouro-real"); return v == null ? 6 : Number(v) || 0; } catch { return 6; } });
+  useEffect(() => { try { localStorage.setItem("af4:mapa-div:cdb-pct", String(pctCDI)); localStorage.setItem("af4:mapa-div:cdb-ir", String(irCDB)); localStorage.setItem("af4:mapa-div:cresc", String(crescAtivos)); localStorage.setItem("af4:mapa-div:tesouro-real", String(jurosRealTesouro)); } catch {} }, [pctCDI, irCDB, crescAtivos, jurosRealTesouro]);
   const IR_FAIXAS = [
     { v: 0, l: "Bruto" },
     { v: 0.225, l: "22,5% · até 180d" },
@@ -103,8 +109,9 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
     { v: 0.15, l: "15% · +720d" },
   ];
 
-  // Comparativo: quanto de capital seria preciso pra bater a meta mensal via os
-  // dividendos da carteira (pelo DY médio dela) × via CDB (% do CDI, líq. de IR).
+  // Comparativo: capital pra bater a meta de renda × e, sobre esse capital, qual
+  // caminho MAIS cresce o patrimônio em 1 ano — ações/FIIs (dividendos +
+  // valorização) × CDB (% do CDI) × Tesouro IPCA+ (IPCA + juros real), líq. de IR.
   const comparativo = useMemo(() => {
     if (!(metaMensal > 0)) return null;
     const divRows = mapa.rows.filter((r) => !r.candidato && Number(r.valor) > 0 && Number(r.rendaAnual) > 0);
@@ -113,13 +120,35 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
     const dyAnual = capitalDiv > 0 ? (rendaAnualDiv / capitalDiv) * 100 : null;
     const metaAnual = metaMensal * 12;
     const capMetaDiv = dyAnual > 0 ? metaAnual / (dyAnual / 100) : null;
-    // Taxa efetiva do CDB = CDI × (%CDI) × (1 − IR).
+    // Taxas efetivas líquidas (%/ano).
     const cdbAnual = cdiAnual > 0 ? cdiAnual * (pctCDI / 100) * (1 - irCDB) : null;
+    const tesouroAnual = ipcaAnual != null ? (ipcaAnual + jurosRealTesouro) * (1 - irCDB) : null;
     const capMetaCDB = cdbAnual > 0 ? metaAnual / (cdbAnual / 100) : null;
-    // Mesma-capital: os R$ que a carteira precisaria, se fossem num CDB, dariam:
+    const capMetaTesouro = tesouroAnual > 0 ? metaAnual / (tesouroAnual / 100) : null;
     const rendaMensalCDBnoCapDiv = capMetaDiv != null && cdbAnual > 0 ? (capMetaDiv * (cdbAnual / 100)) / 12 : null;
-    return { capitalDiv, dyAnual, capMetaDiv, capMetaCDB, cdbAnual, rendaMensalCDBnoCapDiv, metaAnual };
-  }, [metaMensal, mapa.rows, cdiAnual, pctCDI, irCDB]);
+    // Retorno total dos ativos = dividendos + valorização (crescimento).
+    const retornoAtivos = dyAnual != null ? dyAnual + crescAtivos : null;
+    // Crescimento de patrimônio em 1 ano sobre o capital-base (o da meta via div).
+    const base = capMetaDiv;
+    const ganho = base != null ? {
+      ativosDiv: base * (dyAnual / 100),
+      ativosVal: base * (crescAtivos / 100),
+      ativosTotal: base * ((dyAnual + crescAtivos) / 100),
+      cdb: cdbAnual != null ? base * (cdbAnual / 100) : null,
+      tesouro: tesouroAnual != null ? base * (tesouroAnual / 100) : null,
+    } : null;
+    // Vencedor (maior crescimento de patrimônio no ano).
+    let melhor = null;
+    if (ganho) {
+      const cand = [
+        { id: "ativos", label: "Ações / FIIs", valor: ganho.ativosTotal },
+        ...(ganho.cdb != null ? [{ id: "cdb", label: "CDB", valor: ganho.cdb }] : []),
+        ...(ganho.tesouro != null ? [{ id: "tesouro", label: "Tesouro IPCA+", valor: ganho.tesouro }] : []),
+      ];
+      melhor = cand.reduce((a, b) => (b.valor > a.valor ? b : a), cand[0]);
+    }
+    return { capitalDiv, dyAnual, capMetaDiv, capMetaCDB, capMetaTesouro, cdbAnual, tesouroAnual, retornoAtivos, rendaMensalCDBnoCapDiv, metaAnual, base, ganho, melhor };
+  }, [metaMensal, mapa.rows, cdiAnual, ipcaAnual, pctCDI, irCDB, crescAtivos, jurosRealTesouro]);
 
   // Busca o histórico real de proventos na brapi pra cada ativo pagador da
   // carteira (1 requisição por ticker — por isso é manual, não automático).
@@ -391,76 +420,113 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
         )}
       </div>
 
-      {/* ===== Comparativo: capital pra bater a meta — dividendos × CDB ===== */}
+      {/* ===== Comparativo: qual caminho cresce mais o patrimônio ===== */}
       {comparativo && (
-        <div style={{ ...CARD, marginTop: 12, borderLeft: `3px solid ${T.blue || "#5b9bd5"}` }}>
+        <div style={{ ...CARD, marginTop: 12, borderLeft: `3px solid ${T.gold}` }}>
           <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
-            🆚 Capital pra bater a meta — dividendos × CDB
+            🆚 Qual caminho cresce mais o patrimônio
           </div>
           <div style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>
-            Quanto precisaria estar aplicado pra gerar <b style={{ color: T.ink }}>{oculto(fmt(metaMensal), hidden)}/mês</b>:
+            Dividendos (ações/FIIs, com valorização) × renda fixa (CDB · Tesouro IPCA+) — pra meta de <b style={{ color: T.ink }}>{oculto(fmt(metaMensal), hidden)}/mês</b>.
           </div>
 
-          {/* Ajustes do CDB: % do CDI + faixa de IR */}
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 10 }}>
-            <span style={{ fontSize: 11, color: T.muted, fontWeight: 600 }}>CDB a</span>
+          {/* Controles */}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 7, marginTop: 10, fontSize: 11 }}>
+            <span style={{ color: T.muted, fontWeight: 700 }}>CDB</span>
             <input value={pctCDI || ""} onChange={(e) => setPctCDI(Number(e.target.value) || 0)} inputMode="numeric"
-                   style={{ width: 58, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 8, padding: "5px 8px", color: T.ink, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", textAlign: "right" }} />
-            <span style={{ fontSize: 12, color: T.muted }}>% do CDI</span>
+                   style={{ width: 50, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 8, padding: "4px 7px", color: T.ink, fontSize: 12, fontWeight: 700, fontFamily: "inherit", textAlign: "right" }} />
+            <span style={{ color: T.muted }}>% CDI</span>
             {[90, 100, 110].map((p) => (
               <button key={p} onClick={() => setPctCDI(p)}
-                      style={{ padding: "4px 9px", borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: "pointer",
+                      style={{ padding: "3px 8px", borderRadius: 100, fontSize: 10.5, fontWeight: 700, cursor: "pointer",
                                border: `1px solid ${pctCDI === p ? (T.blue || "#5b9bd5") : T.border}`,
                                background: pctCDI === p ? `${T.blue || "#5b9bd5"}22` : "transparent",
                                color: pctCDI === p ? (T.blue || "#5b9bd5") : T.muted }}>{p}%</button>
             ))}
-            <span style={{ fontSize: 11, color: T.muted, fontWeight: 600, marginLeft: 6 }}>IR</span>
+            <span style={{ color: T.muted, fontWeight: 700, marginLeft: 4 }}>IR RF</span>
             <select value={irCDB} onChange={(e) => setIrCDB(Number(e.target.value))}
-                    style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 8, padding: "5px 8px", color: T.ink, fontSize: 12, fontFamily: "inherit" }}>
+                    style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 8, padding: "4px 7px", color: T.ink, fontSize: 11.5, fontFamily: "inherit" }}>
               {IR_FAIXAS.map((f) => <option key={f.v} value={f.v}>{f.l}</option>)}
             </select>
+            <span style={{ color: T.muted, fontWeight: 700, marginLeft: 4 }}>Cresc. ativos</span>
+            <input value={crescAtivos || ""} onChange={(e) => setCrescAtivos(Number(e.target.value) || 0)} inputMode="decimal" placeholder="0"
+                   style={{ width: 46, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 8, padding: "4px 7px", color: T.ink, fontSize: 12, fontWeight: 700, fontFamily: "inherit", textAlign: "right" }} />
+            <span style={{ color: T.muted }}>%/ano</span>
+            <span style={{ color: T.muted, fontWeight: 700, marginLeft: 4 }}>Tesouro IPCA+</span>
+            <input value={jurosRealTesouro || ""} onChange={(e) => setJurosRealTesouro(Number(e.target.value) || 0)} inputMode="decimal"
+                   style={{ width: 46, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 8, padding: "4px 7px", color: T.ink, fontSize: 12, fontWeight: 700, fontFamily: "inherit", textAlign: "right" }} />
+            <span style={{ color: T.muted }}>% real</span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, marginTop: 12 }}>
-            {/* Seus ativos (dividendos) */}
-            <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: T.green }}>Seus ativos · dividendos</div>
-              <div style={{ fontSize: 11.5, color: T.muted, marginTop: 4 }}>
-                rentabilidade {comparativo.dyAnual != null ? <b style={{ color: T.green }}>{comparativo.dyAnual.toFixed(2)}%/ano</b> : "—"} <span style={{ color: T.faint }}>(DY médio da carteira)</span>
+          {/* A) Capital pra a renda mensal (só o que paga em dinheiro) */}
+          <div style={{ fontSize: 10, color: T.faint, marginTop: 12, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase" }}>Capital pra a renda mensal</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 8, marginTop: 6 }}>
+            {[
+              { l: "Ações / FIIs · dividendos", cor: T.green, r: comparativo.dyAnual, cap: comparativo.capMetaDiv, sub: "DY médio (renda)" },
+              { l: `CDB · ${pctCDI}% CDI${irCDB > 0 ? " líq." : ""}`, cor: T.blue || "#5b9bd5", r: comparativo.cdbAnual, cap: comparativo.capMetaCDB, sub: cdiAnual != null ? `CDI ${cdiAnual.toFixed(1)}%` : "CDI · BCB" },
+              { l: "Tesouro IPCA+", cor: T.gold, r: comparativo.tesouroAnual, cap: comparativo.capMetaTesouro, sub: ipcaAnual != null ? `IPCA ${ipcaAnual.toFixed(1)}% + ${jurosRealTesouro}%` : "IPCA · BCB" },
+            ].map((t) => (
+              <div key={t.l} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
+                <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: t.cor }}>{t.l}</div>
+                <div style={{ fontSize: 11, color: T.muted, marginTop: 3 }}>{t.r != null ? <b style={{ color: t.cor }}>{t.r.toFixed(2)}%/ano</b> : "—"} <span style={{ color: T.faint }}>· {t.sub}</span></div>
+                <div className="num" style={{ fontSize: 19, fontWeight: 800, color: t.cor, marginTop: 6 }}>{t.cap != null ? oculto(fmt(t.cap), hidden) : "—"}</div>
+                <div style={{ fontSize: 10, color: T.faint }}>capital necessário</div>
               </div>
-              <div className="num" style={{ fontSize: 22, fontWeight: 800, color: T.green, marginTop: 8 }}>
-                {comparativo.capMetaDiv != null ? oculto(fmt(comparativo.capMetaDiv), hidden) : "—"}
-              </div>
-              <div style={{ fontSize: 10.5, color: T.faint }}>capital necessário</div>
-            </div>
-            {/* CDB (100% CDI) */}
-            <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: T.blue || "#5b9bd5" }}>CDB · {pctCDI}% do CDI{irCDB > 0 ? " · líq. IR" : " · bruto"}</div>
-              <div style={{ fontSize: 11.5, color: T.muted, marginTop: 4 }}>
-                rentabilidade {comparativo.cdbAnual != null ? <b style={{ color: T.blue || "#5b9bd5" }}>{comparativo.cdbAnual.toFixed(2)}%/ano</b> : "—"} <span style={{ color: T.faint }}>{cdiAnual != null ? `(CDI ${cdiAnual.toFixed(1)}%${irCDB > 0 ? ` · −${(irCDB * 100).toFixed(1).replace(".", ",")}% IR` : ""})` : "(CDI 12m · BCB)"}</span>
-              </div>
-              <div className="num" style={{ fontSize: 22, fontWeight: 800, color: T.blue || "#5b9bd5", marginTop: 8 }}>
-                {comparativo.capMetaCDB != null ? oculto(fmt(comparativo.capMetaCDB), hidden) : "—"}
-              </div>
-              <div style={{ fontSize: 10.5, color: T.faint }}>capital necessário</div>
-            </div>
+            ))}
           </div>
 
-          {/* Conclusão */}
-          {comparativo.capMetaDiv != null && comparativo.capMetaCDB != null && (
-            <div style={{ marginTop: 12, fontSize: 12, color: T.muted, lineHeight: 1.6 }}>
-              {comparativo.dyAnual >= comparativo.cdbAnual ? (
-                <>Seus ativos rendem <b style={{ color: T.green }}>mais</b> que o CDB — pra mesma renda você precisa de <b style={{ color: T.green }}>{oculto(fmt(comparativo.capMetaCDB - comparativo.capMetaDiv), hidden)}</b> a menos de capital.</>
-              ) : (
-                <>O CDB rende <b style={{ color: T.blue || "#5b9bd5" }}>mais</b> que a carteira hoje — pra mesma renda ele exige <b style={{ color: T.blue || "#5b9bd5" }}>{oculto(fmt(comparativo.capMetaDiv - comparativo.capMetaCDB), hidden)}</b> a menos de capital.</>
+          {/* B) Patrimônio em 1 ano — o que responde "qual cresce mais" */}
+          {comparativo.base != null && comparativo.ganho && (
+            <>
+              <div style={{ fontSize: 10, color: T.faint, marginTop: 14, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase" }}>
+                Em 1 ano, investindo {oculto(fmt(comparativo.base), hidden)} — quanto o patrimônio cresce
+              </div>
+              <div style={{ overflowX: "auto", marginTop: 6 }}>
+                <table style={{ width: "100%", minWidth: 480, borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th style={thCal("left")}>Caminho</th>
+                      <th style={thCal()}>Rentab.</th>
+                      <th style={thCal()}>Ganho no ano</th>
+                      <th style={thCal()}>Patrimônio (fim)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { id: "ativos", l: "Ações / FIIs", cor: T.green, r: comparativo.retornoAtivos, g: comparativo.ganho.ativosTotal, sub: `${comparativo.dyAnual.toFixed(1)}% div + ${crescAtivos}% cresc.` },
+                      ...(comparativo.ganho.cdb != null ? [{ id: "cdb", l: "CDB", cor: T.blue || "#5b9bd5", r: comparativo.cdbAnual, g: comparativo.ganho.cdb, sub: `${pctCDI}% CDI${irCDB > 0 ? " líq." : ""}` }] : []),
+                      ...(comparativo.ganho.tesouro != null ? [{ id: "tesouro", l: "Tesouro IPCA+", cor: T.gold, r: comparativo.tesouroAnual, g: comparativo.ganho.tesouro, sub: `IPCA+${jurosRealTesouro}%${irCDB > 0 ? " líq." : ""}` }] : []),
+                    ].map((x) => {
+                      const win = comparativo.melhor?.id === x.id;
+                      return (
+                        <tr key={x.id} style={{ background: win ? `${x.cor}12` : "transparent" }}>
+                          <td style={{ ...tdCal("left") }}>
+                            <span style={{ fontWeight: 700, color: x.cor }}>{x.l}</span>
+                            {win && <span style={{ marginLeft: 6, fontSize: 8.5, padding: "1px 6px", borderRadius: 4, background: `${x.cor}22`, color: x.cor, fontWeight: 800, textTransform: "uppercase" }}>+ patrimônio</span>}
+                            <div style={{ fontSize: 9.5, color: T.faint }}>{x.sub}</div>
+                          </td>
+                          <td className="num" style={{ ...tdCal(), color: x.cor, fontWeight: 700 }}>{x.r != null ? `${x.r.toFixed(2)}%` : "—"}</td>
+                          <td className="num" style={{ ...tdCal(), color: x.cor, fontWeight: 700 }}>+{oculto(fmt(x.g), hidden)}</td>
+                          <td className="num" style={{ ...tdCal(), color: T.ink, fontWeight: 700 }}>{oculto(fmt(comparativo.base + x.g), hidden)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {comparativo.melhor && (
+                <div style={{ marginTop: 10, fontSize: 12, color: T.muted, lineHeight: 1.6 }}>
+                  Pra <b style={{ color: T.ink }}>aumentar o patrimônio</b> no ano, o caminho que mais cresce é{" "}
+                  <b style={{ color: comparativo.melhor.id === "ativos" ? T.green : comparativo.melhor.id === "cdb" ? (T.blue || "#5b9bd5") : T.gold }}>{comparativo.melhor.label}</b>{" "}
+                  (<b>+{oculto(fmt(comparativo.melhor.valor), hidden)}</b>).{" "}
+                  {crescAtivos === 0 && <span style={{ color: T.faint }}>Ative um <b>crescimento dos ativos</b> acima pra contar a valorização (não só os dividendos).</span>}
+                </div>
               )}
-              {comparativo.rendaMensalCDBnoCapDiv != null && (
-                <> Os <b>{oculto(fmt(comparativo.capMetaDiv), hidden)}</b> num CDB dariam <b style={{ color: T.blue || "#5b9bd5" }}>{oculto(fmt(comparativo.rendaMensalCDBnoCapDiv), hidden)}/mês</b>.</>
-              )}
-            </div>
+            </>
           )}
+
           <div style={{ fontSize: 10.5, color: T.faint, marginTop: 8, lineHeight: 1.5 }}>
-            CDB a <b>{pctCDI}% do CDI</b>, {irCDB > 0 ? <>líquido de <b>{(irCDB * 100).toFixed(1).replace(".", ",")}% de IR</b></> : <><b>bruto</b> (sem IR)</>} — dividendos de FII/ação são isentos pra pessoa física. DY médio = proventos anuais ÷ capital investido nos ativos pagadores.
+            Ações/FIIs = dividendos (isentos pra PF) + valorização estimada. CDB a <b>{pctCDI}% do CDI</b> e Tesouro IPCA+ ({ipcaAnual != null ? `IPCA ${ipcaAnual.toFixed(1)}% + ` : "IPCA + "}<b>{jurosRealTesouro}%</b> real){irCDB > 0 ? <>, líquidos de <b>{(irCDB * 100).toFixed(1).replace(".", ",")}% de IR</b></> : ", brutos"}. CDI/IPCA de 12m (Banco Central). Estimativa — a valorização real varia.
           </div>
         </div>
       )}
