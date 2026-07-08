@@ -24,31 +24,36 @@ function nomeMes(mesISO) {
  * Mostra total vs mês anterior, composição da renda, recorrentes que não
  * entraram e receitas duplicadas. Só dados locais.
  */
-export default function RevisorGanhos({ transacoes = [], hidden = false }) {
+export default function RevisorGanhos({ transacoes = [], hidden = false, embed = false }) {
   const [mes, setMes] = useState(() => todayISO().slice(0, 7));
   const rev = useMemo(() => revisarGanhos(transacoes, mes), [transacoes, mes]);
 
   const maxSerie = Math.max(...rev.serie.map((s) => s.total), 1);
   const sobe = rev.variacaoPct != null && rev.variacaoPct >= 0;
 
+  const seletorMes = (
+    <input
+      type="month"
+      value={mes}
+      onChange={(e) => setMes(e.target.value)}
+      style={{
+        background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`,
+        borderRadius: 10, padding: "6px 10px", fontSize: 13, fontFamily: "inherit",
+      }}
+    />
+  );
   return (
-    <div className="fade-up py-8 px-6">
-      <PageHeader
-        eyebrow="Finanças · Revisor de ganhos"
-        title={<>Revisor de <em>ganhos.</em></>}
-        sub="Auditoria das suas receitas: variação, fontes, recorrentes que faltaram e duplicadas."
-        action={
-          <input
-            type="month"
-            value={mes}
-            onChange={(e) => setMes(e.target.value)}
-            style={{
-              background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`,
-              borderRadius: 10, padding: "6px 10px", fontSize: 13, fontFamily: "inherit",
-            }}
-          />
-        }
-      />
+    <div className={embed ? "" : "fade-up py-8 px-6"}>
+      {!embed ? (
+        <PageHeader
+          eyebrow="Finanças · Revisor de ganhos"
+          title={<>Revisor de <em>ganhos.</em></>}
+          sub="Auditoria das suas receitas: variação, fontes, recorrentes que faltaram e duplicadas."
+          action={seletorMes}
+        />
+      ) : (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>{seletorMes}</div>
+      )}
 
       {/* KPI principal + série */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12, marginTop: 8 }}>

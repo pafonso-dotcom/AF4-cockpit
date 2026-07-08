@@ -1,0 +1,89 @@
+import React, { useState } from "react";
+import { ChevronDown, BarChart3, Brain, TrendingUp, History } from "lucide-react";
+import { T } from "../../lib/theme.js";
+import PageHeader from "../ui/PageHeader.jsx";
+import RelatoriosFinancas from "./RelatoriosFinancas.jsx";
+import Inteligencia from "./Inteligencia.jsx";
+import RevisorGanhos from "./RevisorGanhos.jsx";
+import AuditLog from "./AuditLog.jsx";
+
+const KEY = "af4:analises-hub:abertos:v1";
+const ler = () => { try { return new Set(JSON.parse(localStorage.getItem(KEY) || '["relatorios"]')); } catch { return new Set(["relatorios"]); } };
+
+/**
+ * Hub "Análises & Relatórios" — junta Relatórios, Inteligência, Revisor de
+ * ganhos e Histórico de alterações num módulo só, em seções recolhíveis
+ * (acordeão), pra a tela não ficar gigante. Cada seção abre/fecha independente;
+ * o estado fica salvo.
+ */
+export default function AnalisesFinancas(props) {
+  const [abertos, setAbertos] = useState(ler);
+
+  const toggle = (id) => setAbertos((prev) => {
+    const n = new Set(prev);
+    n.has(id) ? n.delete(id) : n.add(id);
+    try { localStorage.setItem(KEY, JSON.stringify([...n])); } catch {}
+    return n;
+  });
+
+  const Secao = ({ id, icon: Icon, titulo, desc, children }) => {
+    const on = abertos.has(id);
+    return (
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
+        <button onClick={() => toggle(id)}
+          style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
+                   padding: "14px 16px", background: on ? T.bgSoft : "transparent", border: "none", cursor: "pointer", textAlign: "left", color: T.ink }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            <Icon size={17} style={{ color: on ? T.gold : T.muted, flexShrink: 0 }} />
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 14, fontWeight: 700, letterSpacing: ".02em", color: on ? T.gold : T.ink }}>{titulo}</span>
+              <span style={{ display: "block", fontSize: 11.5, color: T.faint, marginTop: 1 }}>{desc}</span>
+            </span>
+          </span>
+          <ChevronDown size={18} style={{ color: on ? T.gold : T.muted, transform: on ? "rotate(180deg)" : "none", transition: "transform .2s", flexShrink: 0 }} />
+        </button>
+        {on && <div style={{ padding: "0 16px 16px" }}>{children}</div>}
+      </div>
+    );
+  };
+
+  return (
+    <div className="fade-up py-6 px-6">
+      <PageHeader
+        eyebrow="Finanças"
+        title={<>Análises &amp; <em>Relatórios.</em></>}
+        sub="Relatórios do período, inteligência, revisor de ganhos e histórico de alterações num lugar só. Abra as seções conforme precisar."
+      />
+      <div style={{ marginTop: 8 }}>
+        <Secao id="relatorios" icon={BarChart3} titulo="Relatórios"
+               desc="Receita × despesa, projeção do ano, evolução de patrimônio e exportação (PDF/CSV/PNG).">
+          <RelatoriosFinancas
+            transacoes={props.transacoes} contas={props.contas}
+            categorias={props.categorias}
+            fixas={props.fixas} fixaOcorrencias={props.fixaOcorrencias}
+            parcelamentos={props.parcelamentos} dividas={props.dividas} devedores={props.devedores}
+            cheques={props.cheques}
+            patrimonioHistorico={props.patrimonioHistorico}
+            escopoAtivo={props.escopoAtivo}
+            hidden={props.hidden} embed />
+        </Secao>
+        <Secao id="inteligencia" icon={Brain} titulo="Inteligência"
+               desc="Score financeiro, insights, assinaturas, projeção de caixa e saúde da carteira.">
+          <Inteligencia
+            transacoes={props.transacoes} contas={props.contas} ativos={props.ativos}
+            cartoes={props.cartoes} parcelamentos={props.parcelamentos} metas={props.metas}
+            fixas={props.fixas}
+            escopoAtivo={props.escopoAtivo} hidden={props.hidden} onTabChange={props.onTabChange} embed />
+        </Secao>
+        <Secao id="revisor" icon={TrendingUp} titulo="Revisor de ganhos"
+               desc="Auditoria das receitas do mês: variação, fontes, recorrentes que faltaram e duplicadas.">
+          <RevisorGanhos transacoes={props.transacoes} hidden={props.hidden} embed />
+        </Secao>
+        <Secao id="historico" icon={History} titulo="Histórico"
+               desc="Registro de tudo que mudou no cockpit — útil pra revisar erros, auditar e debugar.">
+          <AuditLog embed />
+        </Secao>
+      </div>
+    </div>
+  );
+}

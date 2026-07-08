@@ -5,6 +5,7 @@ import { fmt } from "../../../lib/format.js";
 import AReceberEDividas from "../AReceberEDividas.jsx";
 import DespesasFixas from "../DespesasFixas.jsx";
 import ControleAnual from "../Relatorios/ControleAnual.jsx";
+import Cheques from "../Cheques.jsx";
 
 /**
  * Centro de Controle — cada seção mostra uma VISÃO GERAL simples sempre visível
@@ -16,7 +17,7 @@ export default function Planejamento(props) {
     devedores = [], fixas = [], fixaOcorrencias = [],
     dividas = [], parcelamentos = [], transacoes = [], hidden,
   } = props;
-  const [aberto, setAberto] = useState(null); // "areceber" | "fixas" | "anual" | null
+  const [aberto, setAberto] = useState(props.secaoInicial ?? null); // "areceber" | "fixas" | "cheques" | "anual" | null
 
   const toggle = (id) => setAberto(prev => (prev === id ? null : id));
 
@@ -246,6 +247,13 @@ export default function Planejamento(props) {
           }
         >
           <DespesasFixas {...props} embed />
+        </Secao>
+
+        <Secao id="cheques" titulo="Cheques">
+          <Cheques cheques={props.cheques} setCheques={props.setCheques}
+                   contas={props.contas} setContas={props.setContas}
+                   transacoes={props.transacoes} setTransacoes={props.setTransacoes}
+                   escopoAtivo={props.escopoAtivo} hidden={props.hidden} embed />
         </Secao>
 
         <Secao id="anual" titulo="Controle Anual">

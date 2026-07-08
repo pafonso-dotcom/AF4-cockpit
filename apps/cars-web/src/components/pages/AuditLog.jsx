@@ -14,7 +14,7 @@ const FILTROS = [
   { id: "system", label: "Sistema" },
 ];
 
-export default function AuditLog() {
+export default function AuditLog({ embed = false }) {
   const [filtro, setFiltro] = useState("todos");
   const [busca, setBusca] = useState("");
   const [reload, setReload] = useState(0);
@@ -58,21 +58,25 @@ export default function AuditLog() {
     toast.success("Histórico limpo.");
   };
 
+  const acaoLimpar = entries.length > 0 && (
+    <button onClick={limparTudo} className="btn-ghost"
+            style={{ color: T.red, borderColor: T.red, display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <Trash2 size={12} /> Limpar histórico
+    </button>
+  );
+
   return (
-    <div className="fade-up py-8 px-6">
-      <PageHeader
-        eyebrow="Finanças · Auditoria"
-        title={<>Histórico de <em>alterações.</em></>}
-        sub="Registro de tudo que mudou no cockpit · útil pra revisar erros, auditar mudanças e debugar."
-        action={
-          entries.length > 0 && (
-            <button onClick={limparTudo} className="btn-ghost"
-                    style={{ color: T.red, borderColor: T.red, display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Trash2 size={12} /> Limpar histórico
-            </button>
-          )
-        }
-      />
+    <div className={embed ? "" : "fade-up py-8 px-6"}>
+      {!embed ? (
+        <PageHeader
+          eyebrow="Finanças · Auditoria"
+          title={<>Histórico de <em>alterações.</em></>}
+          sub="Registro de tudo que mudou no cockpit · útil pra revisar erros, auditar mudanças e debugar."
+          action={acaoLimpar}
+        />
+      ) : (
+        acaoLimpar && <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>{acaoLimpar}</div>
+      )}
 
       {/* Filtros */}
       <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
