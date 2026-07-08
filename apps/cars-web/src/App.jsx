@@ -82,7 +82,6 @@ const AnaliseFatura = lz(() => import("./components/pages/AnaliseFatura.jsx"));
 const Investimentos = lz(() => import("./components/pages/Investimentos.jsx"));
 const Screener = lz(() => import("./components/pages/Invest/Screener.jsx"));
 const Simulador = lz(() => import("./components/pages/Simulador.jsx"));
-const CalculadoraRenda = lz(() => import("./components/pages/Invest/CalculadoraRenda.jsx"));
 const Projecao = lz(() => import("./components/pages/Invest/Projecao.jsx"));
 const AnalisesUnificada = lz(() => import("./components/pages/Invest/Analises.jsx"));
 const PlanejarCarteira = lz(() => import("./components/pages/Invest/PlanejarCarteira.jsx"));
@@ -90,6 +89,7 @@ const Planejador = lz(() => import("./components/pages/Invest/Planejador.jsx"));
 const InvestPainel = lz(() => import("./components/pages/Invest/InvestPainel.jsx"));
 const Proventos = lz(() => import("./components/pages/Invest/Proventos.jsx"));
 const MapaDividendos = lz(() => import("./components/pages/Invest/MapaDividendos.jsx"));
+const RendaDividendos = lz(() => import("./components/pages/Invest/RendaDividendos.jsx"));
 const RelatoriosInvest = lz(() => import("./components/pages/Invest/RelatoriosInvest.jsx"));
 const RelatoriosFinancas = lz(() => import("./components/pages/RelatoriosFinancas.jsx"));
 const RevisorGanhos = lz(() => import("./components/pages/RevisorGanhos.jsx"));
@@ -1148,9 +1148,9 @@ export default function App() {
           transacoes={transacoes} setTransacoes={setTransacoes}
         />
       )}
-      {tab === "mapa-dividendos" && (
+      {(tab === "mapa-dividendos" || tab === "calc-renda") && (
         <div className="px-6 md:px-10">
-          <MapaDividendos ativos={ativos} proventosManuais={proventosManuais} hidden={hidden} />
+          <RendaDividendos ativos={ativos} proventosManuais={proventosManuais} hidden={hidden} />
         </div>
       )}
       {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} transacoes={transacoes} patrimonioHistorico={patrimonioHistorico} proventos={[]} operacoes={[]} hidden={hidden} />}
@@ -1174,11 +1174,7 @@ export default function App() {
           <Simulador />
         </div>
       )}
-      {tab === "calc-renda" && (
-        <div className="px-6 md:px-10">
-          <CalculadoraRenda />
-        </div>
-      )}
+      {/* calc-renda foi fundida no hub "Renda & Dividendos" (render acima, junto de mapa-dividendos) */}
       {tab === "planejador" && (
         <div className="px-6 md:px-10">
           <Planejador transacoes={transacoes} hidden={hidden} />
