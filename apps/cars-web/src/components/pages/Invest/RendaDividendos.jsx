@@ -1,20 +1,24 @@
-import React, { useState } from "react";
-import { ChevronDown, TrendingUp, CalendarDays, Calculator } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ChevronDown, CalendarDays, Calculator, LineChart } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 import MapaDividendos from "./MapaDividendos.jsx";
 import CalculadoraRenda from "./CalculadoraRenda.jsx";
+import Projecao from "./Projecao.jsx";
 
 const KEY = "af4:renda-hub:abertos:v1";
 const ler = () => { try { return new Set(JSON.parse(localStorage.getItem(KEY) || '["mapa"]')); } catch { return new Set(["mapa"]); } };
 
 /**
- * Hub "Renda & Dividendos" — junta o Mapa de Dividendos e a Calculadora de
- * Renda num módulo só, em seções recolhíveis (acordeão), pra a tela não ficar
- * gigante. Cada seção abre/fecha de forma independente; o estado fica salvo.
+ * Hub "Renda & Dividendos" — junta o Mapa de Dividendos, a Calculadora de Renda
+ * e a Projeção num módulo só, em seções recolhíveis (acordeão), pra a tela não
+ * ficar gigante. Cada seção abre/fecha independente; o estado fica salvo.
  */
-export default function RendaDividendos({ ativos = [], proventosManuais = [], hidden = false }) {
+export default function RendaDividendos({ ativos = [], proventosManuais = [], hidden = false, apiKeys = {}, alvoInicial, onConsumirAlvo }) {
   const [abertos, setAbertos] = useState(ler);
+  // Veio um "projetar alvo" de outra tela → abre a seção Projeção.
+  useEffect(() => { if (alvoInicial) setAbertos((prev) => new Set(prev).add("projecao")); }, [alvoInicial]);
+
   const toggle = (id) => setAbertos((prev) => {
     const n = new Set(prev);
     n.has(id) ? n.delete(id) : n.add(id);
@@ -48,7 +52,7 @@ export default function RendaDividendos({ ativos = [], proventosManuais = [], hi
       <PageHeader
         eyebrow="Investimentos"
         title={<>Renda &amp; <em>Dividendos.</em></>}
-        sub="Meta de renda, mapa de proventos e simulador de renda fixa num lugar só. Abra as seções conforme precisar."
+        sub="Meta de renda, mapa de proventos, simulador de renda fixa e projeção num lugar só. Abra as seções conforme precisar."
       />
       <div style={{ marginTop: 8 }}>
         <Secao id="mapa" icon={CalendarDays} titulo="Mapa de Dividendos"
@@ -58,6 +62,10 @@ export default function RendaDividendos({ ativos = [], proventosManuais = [], hi
         <Secao id="calc" icon={Calculator} titulo="Calculadora de Renda"
                desc="Simule quanto um capital em renda fixa rende por mês — bruto, líquido e preservando o patrimônio.">
           <CalculadoraRenda embed />
+        </Secao>
+        <Secao id="projecao" icon={LineChart} titulo="Projeção"
+               desc="Simule a evolução de um ativo (da carteira ou personalizado) com aporte regular.">
+          <Projecao ativos={ativos} hidden={hidden} apiKeys={apiKeys} alvoInicial={alvoInicial} onConsumirAlvo={onConsumirAlvo} embed />
         </Secao>
       </div>
     </div>
