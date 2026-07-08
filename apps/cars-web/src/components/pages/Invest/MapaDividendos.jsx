@@ -7,6 +7,7 @@ import PageHeader from "../../ui/PageHeader.jsx";
 import { carregarFundamentos } from "../../../lib/fundamentosLocal.js";
 import { getDividendos } from "../../../lib/brapi.js";
 import { montarMapaDividendos, metaProventos, rendaFixaMensal, aporteProporcional, mesesAteMeta, MESES_PT } from "../../../lib/mapaDividendos.js";
+import { buscarBenchmarks12m } from "../../../lib/bcb.js";
 
 const KEY_OV = "af4:mapa-div:overrides:v1";
 const KEY_CAND = "af4:mapa-div:candidatos:v1";
@@ -82,6 +83,29 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
     const juros = rf.porAtivo.map((x) => ({ ticker: x.ticker, tipo: x.tipo, rendaMensal: x.rendaMensal, origem: "juros" }));
     return [...divs, ...juros].sort((a, b) => b.rendaMensal - a.rendaMensal);
   }, [mapa.rows, rf.porAtivo]);
+
+  // CDI 12m (Banco Central) — base do comparativo com CDB. Lê do cache e
+  // atualiza em segundo plano (API pública do BCB, cache de 12h).
+  const [cdiAnual, setCdiAnual] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("af4:bcb-benchmarks:v1") || "null")?.cdi12m ?? null; } catch { return null; }
+  });
+  useEffect(() => { buscarBenchmarks12m().then((b) => { if (b?.cdi12m != null) setCdiAnual(b.cdi12m); }).catch(() => {}); }, []);
+
+  // Comparativo: quanto de capital seria preciso pra bater a meta mensal via os
+  // dividendos da carteira (pelo DY médio dela) × via CDB (100% do CDI).
+  const comparativo = useMemo(() => {
+    if (!(metaMensal > 0)) return null;
+    const divRows = mapa.rows.filter((r) => !r.candidato && Number(r.valor) > 0 && Number(r.rendaAnual) > 0);
+    const capitalDiv = divRows.reduce((s, r) => s + r.valor, 0);
+    const rendaAnualDiv = divRows.reduce((s, r) => s + r.rendaAnual, 0);
+    const dyAnual = capitalDiv > 0 ? (rendaAnualDiv / capitalDiv) * 100 : null;
+    const metaAnual = metaMensal * 12;
+    const capMetaDiv = dyAnual > 0 ? metaAnual / (dyAnual / 100) : null;
+    const capMetaCDB = cdiAnual > 0 ? metaAnual / (cdiAnual / 100) : null;
+    // Mesma-capital: os R$ que a carteira precisaria, se fossem num CDB, dariam:
+    const rendaMensalCDBnoCapDiv = capMetaDiv != null && cdiAnual > 0 ? (capMetaDiv * (cdiAnual / 100)) / 12 : null;
+    return { capitalDiv, dyAnual, capMetaDiv, capMetaCDB, rendaMensalCDBnoCapDiv, metaAnual };
+  }, [metaMensal, mapa.rows, cdiAnual]);
 
   // Busca o histórico real de proventos na brapi pra cada ativo pagador da
   // carteira (1 requisição por ticker — por isso é manual, não automático).
@@ -352,6 +376,60 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
           </div>
         )}
       </div>
+
+      {/* ===== Comparativo: capital pra bater a meta — dividendos × CDB ===== */}
+      {comparativo && (
+        <div style={{ ...CARD, marginTop: 12, borderLeft: `3px solid ${T.blue || "#5b9bd5"}` }}>
+          <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
+            🆚 Capital pra bater a meta — dividendos × CDB
+          </div>
+          <div style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>
+            Quanto precisaria estar aplicado pra gerar <b style={{ color: T.ink }}>{oculto(fmt(metaMensal), hidden)}/mês</b>:
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, marginTop: 12 }}>
+            {/* Seus ativos (dividendos) */}
+            <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: T.green }}>Seus ativos · dividendos</div>
+              <div style={{ fontSize: 11.5, color: T.muted, marginTop: 4 }}>
+                rentabilidade {comparativo.dyAnual != null ? <b style={{ color: T.green }}>{comparativo.dyAnual.toFixed(2)}%/ano</b> : "—"} <span style={{ color: T.faint }}>(DY médio da carteira)</span>
+              </div>
+              <div className="num" style={{ fontSize: 22, fontWeight: 800, color: T.green, marginTop: 8 }}>
+                {comparativo.capMetaDiv != null ? oculto(fmt(comparativo.capMetaDiv), hidden) : "—"}
+              </div>
+              <div style={{ fontSize: 10.5, color: T.faint }}>capital necessário</div>
+            </div>
+            {/* CDB (100% CDI) */}
+            <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: T.blue || "#5b9bd5" }}>CDB · 100% do CDI</div>
+              <div style={{ fontSize: 11.5, color: T.muted, marginTop: 4 }}>
+                rentabilidade {cdiAnual != null ? <b style={{ color: T.blue || "#5b9bd5" }}>{cdiAnual.toFixed(2)}%/ano</b> : "—"} <span style={{ color: T.faint }}>(CDI 12m · BCB)</span>
+              </div>
+              <div className="num" style={{ fontSize: 22, fontWeight: 800, color: T.blue || "#5b9bd5", marginTop: 8 }}>
+                {comparativo.capMetaCDB != null ? oculto(fmt(comparativo.capMetaCDB), hidden) : "—"}
+              </div>
+              <div style={{ fontSize: 10.5, color: T.faint }}>capital necessário</div>
+            </div>
+          </div>
+
+          {/* Conclusão */}
+          {comparativo.capMetaDiv != null && comparativo.capMetaCDB != null && (
+            <div style={{ marginTop: 12, fontSize: 12, color: T.muted, lineHeight: 1.6 }}>
+              {comparativo.dyAnual >= cdiAnual ? (
+                <>Seus ativos rendem <b style={{ color: T.green }}>mais</b> que o CDB — pra mesma renda você precisa de <b style={{ color: T.green }}>{oculto(fmt(comparativo.capMetaCDB - comparativo.capMetaDiv), hidden)}</b> a menos de capital.</>
+              ) : (
+                <>O CDB rende <b style={{ color: T.blue || "#5b9bd5" }}>mais</b> que a carteira hoje — pra mesma renda ele exige <b style={{ color: T.blue || "#5b9bd5" }}>{oculto(fmt(comparativo.capMetaDiv - comparativo.capMetaCDB), hidden)}</b> a menos de capital.</>
+              )}
+              {comparativo.rendaMensalCDBnoCapDiv != null && (
+                <> Os <b>{oculto(fmt(comparativo.capMetaDiv), hidden)}</b> num CDB dariam <b style={{ color: T.blue || "#5b9bd5" }}>{oculto(fmt(comparativo.rendaMensalCDBnoCapDiv), hidden)}/mês</b>.</>
+              )}
+            </div>
+          )}
+          <div style={{ fontSize: 10.5, color: T.faint, marginTop: 8, lineHeight: 1.5 }}>
+            CDB estimado a 100% do CDI, <b>bruto</b> — lembre do IR (15–22,5%) no resgate; dividendos de FII/ação são isentos pra pessoa física. DY médio = proventos anuais ÷ capital investido nos ativos pagadores.
+          </div>
+        </div>
+      )}
 
       {/* Rodapé informativo (a grade Ativo × Mês foi removida a pedido —
           a calculadora acima cobre a leitura da renda) */}
