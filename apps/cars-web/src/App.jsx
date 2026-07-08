@@ -24,6 +24,7 @@ import ConfirmDialog from "./components/ui/ConfirmDialog.jsx";
 import InstallPWA from "./components/ui/InstallPWA.jsx";
 
 import ThemePicker from "./components/modals/ThemePicker.jsx";
+import VarreduraDuplicidades from "./components/modals/VarreduraDuplicidades.jsx";
 import SettingsModal from "./components/modals/SettingsModal.jsx";
 import PerfisModal from "./components/modals/PerfisModal.jsx";
 import { getPerfilAtivo } from "./lib/perfis.js";
@@ -157,6 +158,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [themeId, setThemeId] = useState("nevoa");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [varreduraOpen, setVarreduraOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modulesEnabled, setModulesEnabled] = useState({ financas: true, invest: true });
   const [apiKeys, setApiKeys] = useState({ brapi: "", alphavantage: "", anthropic: "", useRealMarket: true });
@@ -1195,6 +1197,7 @@ export default function App() {
     <Configuracoes subtab={tab}
                    themeId={themeId} setThemeId={setThemeId}
                    apiKeys={apiKeys} setApiKeys={setApiKeys}
+                   onVerificarDuplicidades={() => setVarreduraOpen(true)}
                    modulesEnabled={modulesEnabled} setModulesEnabled={setModulesEnabled}
                    onClearModule={async (id) => {
                      // Calcula snapshot zerado e força save imediato
@@ -1267,6 +1270,13 @@ export default function App() {
         ativos={ativos} cartoes={cartoes}
       />
 
+      {varreduraOpen && (
+        <VarreduraDuplicidades
+          dados={{ transacoes, dividas, devedores, fixas, cheques, parcelamentos, cartoes, contas, categorias }}
+          setters={{ transacoes: setTransacoes, dividas: setDividas, devedores: setDevedores, fixas: setFixas, cheques: setCheques, parcelamentos: setParcelamentos, cartoes: setCartoes, contas: setContas, categorias: setCategorias }}
+          onClose={() => setVarreduraOpen(false)}
+        />
+      )}
       {pickerOpen && (
         <ThemePicker themeId={themeId} setThemeId={setThemeId} onClose={() => setPickerOpen(false)} />
       )}
