@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { CalendarDays, Plus, Trash2, Info, RefreshCw, TrendingUp } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Info, RefreshCw, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
@@ -104,7 +104,10 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
   const [crescAtivos, setCrescAtivos] = useState(() => { try { const v = localStorage.getItem("af4:mapa-div:cresc"); return v == null ? 0 : Number(v) || 0; } catch { return 0; } });
   const [jurosRealTesouro, setJurosRealTesouro] = useState(() => { try { const v = localStorage.getItem("af4:mapa-div:tesouro-real"); return v == null ? 6 : Number(v) || 0; } catch { return 6; } });
   const [anosProj, setAnosProj] = useState(() => { try { return Number(localStorage.getItem("af4:mapa-div:anos")) || 10; } catch { return 10; } });
-  useEffect(() => { try { localStorage.setItem("af4:mapa-div:cdb-pct", String(pctCDI)); localStorage.setItem("af4:mapa-div:cdb-ir", String(irCDB)); localStorage.setItem("af4:mapa-div:cresc", String(crescAtivos)); localStorage.setItem("af4:mapa-div:tesouro-real", String(jurosRealTesouro)); localStorage.setItem("af4:mapa-div:anos", String(anosProj)); } catch {} }, [pctCDI, irCDB, crescAtivos, jurosRealTesouro, anosProj]);
+  // Recolher o detalhe da meta (tabelas, comparativo e gráfico) pra deixar o
+  // card compacto — fica só a meta + barra de progresso.
+  const [detalhesMeta, setDetalhesMeta] = useState(() => { try { return localStorage.getItem("af4:mapa-div:meta-det") !== "0"; } catch { return true; } });
+  useEffect(() => { try { localStorage.setItem("af4:mapa-div:cdb-pct", String(pctCDI)); localStorage.setItem("af4:mapa-div:cdb-ir", String(irCDB)); localStorage.setItem("af4:mapa-div:cresc", String(crescAtivos)); localStorage.setItem("af4:mapa-div:tesouro-real", String(jurosRealTesouro)); localStorage.setItem("af4:mapa-div:anos", String(anosProj)); localStorage.setItem("af4:mapa-div:meta-det", detalhesMeta ? "1" : "0"); } catch {} }, [pctCDI, irCDB, crescAtivos, jurosRealTesouro, anosProj, detalhesMeta]);
   const IR_FAIXAS = [
     { v: 0, l: "Bruto" },
     { v: 0.225, l: "22,5% · até 180d" },
@@ -316,10 +319,18 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
               <div style={{ fontSize: 10.5, color: T.faint, marginTop: 4 }}>{meta.pctAtingido.toFixed(0)}% da meta</div>
             </div>
           )}
+          {metaMensal > 0 && (
+            <button onClick={() => setDetalhesMeta((v) => !v)}
+                    title={detalhesMeta ? "Recolher detalhes (tabelas, comparativo e gráfico)" : "Mostrar detalhes"}
+                    style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 4, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 9, padding: "6px 10px", fontSize: 11.5, cursor: "pointer", whiteSpace: "nowrap" }}>
+              {detalhesMeta ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              {detalhesMeta ? "Recolher" : "Detalhes"}
+            </button>
+          )}
         </div>
 
         {/* Renda mensal por ativo HOJE — proventos + juros, maior primeiro */}
-        {rendaPorAtivoHoje.length > 0 && (
+        {detalhesMeta && rendaPorAtivoHoje.length > 0 && (
           <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${T.border}` }}>
             <div style={{ fontSize: 11, color: T.muted, marginBottom: 8 }}>
               O que cada ativo gera por mês <b>hoje</b>:
@@ -359,7 +370,7 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
           </div>
         )}
 
-        {metaMensal > 0 && !meta.atingida && meta.sugestoes.length > 0 && (
+        {detalhesMeta && metaMensal > 0 && !meta.atingida && meta.sugestoes.length > 0 && (
           <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${T.border}` }}>
             <div style={{ fontSize: 11, color: T.muted, marginBottom: 8 }}>
               Quanto aportar pra fechar a meta <b>usando só aquele ativo</b> (DY maior = menos aporte — combine ativos pra diversificar):
@@ -394,14 +405,14 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
             </div>
           </div>
         )}
-        {metaMensal > 0 && !meta.atingida && meta.sugestoes.length === 0 && (
+        {detalhesMeta && metaMensal > 0 && !meta.atingida && meta.sugestoes.length === 0 && (
           <div style={{ marginTop: 12, fontSize: 12, color: T.faint, fontStyle: "italic" }}>
             Sem ativos com DY conhecido pra sugerir — use "Atualizar proventos reais" ou adicione candidatos com DY abaixo.
           </div>
         )}
 
         {/* Aporte MANTENDO O MIX da carteira — dividido entre os seus ativos */}
-        {metaMensal > 0 && !meta.atingida && proporcional && (
+        {detalhesMeta && metaMensal > 0 && !meta.atingida && proporcional && (
           <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${T.border}` }}>
             <div style={{ fontSize: 11, color: T.muted, marginBottom: 8 }}>
               Ou <b>mantendo o mix atual da carteira</b> (yield ponderado {(proporcional.yieldMensal * 100).toFixed(2)}%/mês): aporte total de{" "}
@@ -453,7 +464,7 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
       </div>
 
       {/* ===== Comparativo: qual caminho cresce mais o patrimônio ===== */}
-      {comparativo && (
+      {detalhesMeta && comparativo && (
         <div style={{ ...CARD, marginTop: 12, borderLeft: `3px solid ${T.gold}` }}>
           <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
             🆚 Qual caminho cresce mais o patrimônio
@@ -564,7 +575,7 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
       )}
 
       {/* ===== Gráfico: patrimônio projetado em N anos ===== */}
-      {projecao && (
+      {detalhesMeta && projecao && (
         <div style={{ ...CARD, marginTop: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
             <div>
