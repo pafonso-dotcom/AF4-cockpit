@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { CalendarDays, Plus, Trash2, Info, RefreshCw } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Info, RefreshCw, TrendingUp } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import { toast } from "../../../lib/toast.js";
@@ -20,6 +21,8 @@ const TIPOS = [{ v: "acao", l: "Ação" }, { v: "fii", l: "FII" }, { v: "stock",
 const thCal = (align = "right") => ({ textAlign: align, padding: "8px 12px", fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 700, borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap" });
 const tdCal = (align = "right") => ({ textAlign: align, padding: "7px 12px", borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap" });
 
+const LABEL_PROJ = { ativos: "Ações / FIIs", cdb: "CDB", tesouro: "Tesouro IPCA+" };
+const fmtCompactBRL = (v) => (v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${Math.round(v / 1e3)}k` : `${Math.round(v)}`);
 const ler = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; } catch { return fb; } };
 const grava = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 const oculto = (v, h) => (h ? "•••" : v);
@@ -100,7 +103,8 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
   const [irCDB, setIrCDB] = useState(() => { try { const v = localStorage.getItem("af4:mapa-div:cdb-ir"); return v == null ? 0.15 : Number(v) || 0; } catch { return 0.15; } });
   const [crescAtivos, setCrescAtivos] = useState(() => { try { const v = localStorage.getItem("af4:mapa-div:cresc"); return v == null ? 0 : Number(v) || 0; } catch { return 0; } });
   const [jurosRealTesouro, setJurosRealTesouro] = useState(() => { try { const v = localStorage.getItem("af4:mapa-div:tesouro-real"); return v == null ? 6 : Number(v) || 0; } catch { return 6; } });
-  useEffect(() => { try { localStorage.setItem("af4:mapa-div:cdb-pct", String(pctCDI)); localStorage.setItem("af4:mapa-div:cdb-ir", String(irCDB)); localStorage.setItem("af4:mapa-div:cresc", String(crescAtivos)); localStorage.setItem("af4:mapa-div:tesouro-real", String(jurosRealTesouro)); } catch {} }, [pctCDI, irCDB, crescAtivos, jurosRealTesouro]);
+  const [anosProj, setAnosProj] = useState(() => { try { return Number(localStorage.getItem("af4:mapa-div:anos")) || 10; } catch { return 10; } });
+  useEffect(() => { try { localStorage.setItem("af4:mapa-div:cdb-pct", String(pctCDI)); localStorage.setItem("af4:mapa-div:cdb-ir", String(irCDB)); localStorage.setItem("af4:mapa-div:cresc", String(crescAtivos)); localStorage.setItem("af4:mapa-div:tesouro-real", String(jurosRealTesouro)); localStorage.setItem("af4:mapa-div:anos", String(anosProj)); } catch {} }, [pctCDI, irCDB, crescAtivos, jurosRealTesouro, anosProj]);
   const IR_FAIXAS = [
     { v: 0, l: "Bruto" },
     { v: 0.225, l: "22,5% · até 180d" },
@@ -149,6 +153,34 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
     }
     return { capitalDiv, dyAnual, capMetaDiv, capMetaCDB, capMetaTesouro, cdbAnual, tesouroAnual, retornoAtivos, rendaMensalCDBnoCapDiv, metaAnual, base, ganho, melhor };
   }, [metaMensal, mapa.rows, cdiAnual, ipcaAnual, pctCDI, irCDB, crescAtivos, jurosRealTesouro]);
+
+  // Projeção de patrimônio em N anos (juros compostos, reinvestindo tudo) —
+  // parte do capital-base da meta e aplica a taxa efetiva de cada caminho.
+  const projecao = useMemo(() => {
+    const C = comparativo?.base;
+    if (!(C > 0)) return null;
+    const anos = Math.max(1, Math.min(50, Math.round(anosProj) || 10));
+    const rA = (comparativo.retornoAtivos || 0) / 100;
+    const rC = comparativo.cdbAnual != null ? comparativo.cdbAnual / 100 : null;
+    const rT = comparativo.tesouroAnual != null ? comparativo.tesouroAnual / 100 : null;
+    const pts = [];
+    for (let y = 0; y <= anos; y++) {
+      pts.push({
+        ano: y,
+        ativos: C * Math.pow(1 + rA, y),
+        ...(rC != null ? { cdb: C * Math.pow(1 + rC, y) } : {}),
+        ...(rT != null ? { tesouro: C * Math.pow(1 + rT, y) } : {}),
+      });
+    }
+    const fim = pts[pts.length - 1];
+    const cand = [
+      { id: "ativos", label: "Ações / FIIs", cor: T.green, valor: fim.ativos },
+      ...(fim.cdb != null ? [{ id: "cdb", label: "CDB", cor: T.blue || "#5b9bd5", valor: fim.cdb }] : []),
+      ...(fim.tesouro != null ? [{ id: "tesouro", label: "Tesouro IPCA+", cor: T.gold, valor: fim.tesouro }] : []),
+    ];
+    const melhor = cand.reduce((a, b) => (b.valor > a.valor ? b : a), cand[0]);
+    return { pts, anos, capital: C, cand, melhor };
+  }, [comparativo, anosProj]);
 
   // Busca o histórico real de proventos na brapi pra cada ativo pagador da
   // carteira (1 requisição por ticker — por isso é manual, não automático).
@@ -527,6 +559,68 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
 
           <div style={{ fontSize: 10.5, color: T.faint, marginTop: 8, lineHeight: 1.5 }}>
             Ações/FIIs = dividendos (isentos pra PF) + valorização estimada. CDB a <b>{pctCDI}% do CDI</b> e Tesouro IPCA+ ({ipcaAnual != null ? `IPCA ${ipcaAnual.toFixed(1)}% + ` : "IPCA + "}<b>{jurosRealTesouro}%</b> real){irCDB > 0 ? <>, líquidos de <b>{(irCDB * 100).toFixed(1).replace(".", ",")}% de IR</b></> : ", brutos"}. CDI/IPCA de 12m (Banco Central). Estimativa — a valorização real varia.
+          </div>
+        </div>
+      )}
+
+      {/* ===== Gráfico: patrimônio projetado em N anos ===== */}
+      {projecao && (
+        <div style={{ ...CARD, marginTop: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <TrendingUp size={14} style={{ color: T.gold }} /> Patrimônio projetado
+              </div>
+              <div style={{ fontSize: 12, color: T.muted, marginTop: 3 }}>
+                Partindo de <b style={{ color: T.ink }}>{oculto(fmt(projecao.capital), hidden)}</b>, reinvestindo tudo (juros compostos).
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              {[5, 10, 20, 30].map((n) => (
+                <button key={n} onClick={() => setAnosProj(n)}
+                        style={{ padding: "4px 9px", borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: "pointer",
+                                 border: `1px solid ${anosProj === n ? T.gold : T.border}`,
+                                 background: anosProj === n ? `${T.gold}22` : "transparent",
+                                 color: anosProj === n ? T.gold : T.muted }}>{n}a</button>
+              ))}
+              <input value={anosProj || ""} onChange={(e) => setAnosProj(Number(e.target.value) || 0)} inputMode="numeric"
+                     style={{ width: 46, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 8, padding: "4px 7px", color: T.ink, fontSize: 12, fontWeight: 700, fontFamily: "inherit", textAlign: "right" }} />
+              <span style={{ fontSize: 11, color: T.muted }}>anos</span>
+            </div>
+          </div>
+
+          <div style={{ width: "100%", height: 240, marginTop: 12 }}>
+            <ResponsiveContainer>
+              <LineChart data={projecao.pts} margin={{ top: 6, right: 14, bottom: 0, left: 4 }}>
+                <CartesianGrid stroke={T.border} strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="ano" tick={{ fontSize: 10, fill: T.muted }} tickFormatter={(y) => `${y}a`} />
+                <YAxis tick={{ fontSize: 10, fill: T.muted }} width={46} tickFormatter={fmtCompactBRL} />
+                <Tooltip
+                  formatter={(v, name) => [hidden ? "•••" : fmt(v), LABEL_PROJ[name] || name]}
+                  labelFormatter={(y) => `Ano ${y}`}
+                  contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11, borderRadius: 8 }} />
+                <Line type="monotone" dataKey="ativos" name="ativos" stroke={T.green} strokeWidth={2.2} dot={false} />
+                <Line type="monotone" dataKey="cdb" name="cdb" stroke={T.blue || "#5b9bd5"} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="tesouro" name="tesouro" stroke={T.gold} strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Finais + vencedor */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 8 }}>
+            {projecao.cand.map((c) => (
+              <div key={c.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5 }}>
+                <span style={{ width: 12, height: 3, borderRadius: 2, background: c.cor }} />
+                <span style={{ color: T.muted }}>{c.label}</span>
+                <b className="num" style={{ color: c.cor }}>{oculto(fmt(c.valor), hidden)}</b>
+                {projecao.melhor.id === c.id && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 4, background: `${c.cor}22`, color: c.cor, fontWeight: 800, textTransform: "uppercase" }}>melhor</span>}
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: T.muted, marginTop: 8, lineHeight: 1.6 }}>
+            Em <b style={{ color: T.ink }}>{projecao.anos} anos</b>, o caminho que mais cresce é{" "}
+            <b style={{ color: projecao.melhor.cor }}>{projecao.melhor.label}</b> — chegando a <b style={{ color: projecao.melhor.cor }}>{oculto(fmt(projecao.melhor.valor), hidden)}</b>.
+            <span style={{ color: T.faint }}> Estimativa a taxa constante; retorno real varia ano a ano.</span>
           </div>
         </div>
       )}
