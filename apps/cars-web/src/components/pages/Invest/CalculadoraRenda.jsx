@@ -54,7 +54,7 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency", currency: "BRL", maximumFractionDigits: 0,
 });
 
-export default function CalculadoraRenda() {
+export default function CalculadoraRenda({ embed = false } = {}) {
   const [valor, setValor]             = useState(DEFAULTS.valor);
   const [taxaAnualPct, setTaxa]       = useState(DEFAULTS.taxaAnualPct);
   const [irPct, setIr]                = useState(DEFAULTS.irPct);
@@ -162,17 +162,19 @@ export default function CalculadoraRenda() {
 
 
   return (
-    <div className="fade-up py-6 px-6 calc-root">
-      <PageHeader
-        eyebrow="Investimentos · Simulador"
-        title="Calculadora de Renda Mensal"
-        sub="Simule quanto seu investimento em renda fixa pode gerar por mês — bruto, líquido e o que preserva o patrimônio contra a inflação."
-        action={
-          <button onClick={resetTudo} className="btn-ghost" title="Restaurar defaults">
-            <RefreshCw size={12} className="inline mr-1.5" /> Reset
-          </button>
-        }
-      />
+    <div className={embed ? "calc-root" : "fade-up py-6 px-6 calc-root"}>
+      {!embed && (
+        <PageHeader
+          eyebrow="Investimentos · Simulador"
+          title="Calculadora de Renda Mensal"
+          sub="Simule quanto seu investimento em renda fixa pode gerar por mês — bruto, líquido e o que preserva o patrimônio contra a inflação."
+          action={
+            <button onClick={resetTudo} className="btn-ghost" title="Restaurar defaults">
+              <RefreshCw size={12} className="inline mr-1.5" /> Reset
+            </button>
+          }
+        />
+      )}
 
       {/* Botão único de cenários — abre popover com os 5 grupos colapsados */}
       <div style={{ marginBottom: 10, position: "relative" }}>

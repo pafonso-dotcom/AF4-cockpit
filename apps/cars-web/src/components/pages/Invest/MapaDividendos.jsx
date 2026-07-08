@@ -33,7 +33,7 @@ const oculto = (v, h) => (h ? "•••" : v);
  * inferidos do histórico de proventos e ajustáveis no clique. Inclui candidatos
  * (planejados) pra preencher as lacunas antes de comprar.
  */
-export default function MapaDividendos({ ativos = [], proventosManuais = [], hidden = false }) {
+export default function MapaDividendos({ ativos = [], proventosManuais = [], hidden = false, embed = false }) {
   const [overrides, setOverrides] = useState(() => ler(KEY_OV, {}));
   const [candidatos, setCandidatos] = useState(() => ler(KEY_CAND, []));
   const [form, setForm] = useState({ ticker: "", tipo: "fii", valorPlanejado: "", dy: "" });
@@ -233,25 +233,30 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
     setOverrides((prev) => { const n = { ...prev }; delete n[tk]; return n; });
   };
 
+  const acoesMapa = (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <button onClick={atualizarProventosReais} disabled={buscandoReal}
+              title="Busca na brapi os proventos anunciados de verdade (data e valor por cota) de cada ativo da carteira"
+              style={{ display: "flex", alignItems: "center", gap: 6, background: T.gold, border: "none", color: "#fff", borderRadius: 10, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: buscandoReal ? "wait" : "pointer", opacity: buscandoReal ? 0.7 : 1 }}>
+        <RefreshCw size={13} className={buscandoReal ? "spin" : ""} /> {buscandoReal ? "Buscando…" : "Atualizar proventos reais"}
+      </button>
+      <button onClick={() => setVerDicas((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 10, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
+        <Info size={13} /> Como usar
+      </button>
+    </div>
+  );
   return (
-    <div className="fade-up py-8 px-6">
-      <PageHeader
-        eyebrow="Investimentos · Mapa de Dividendos"
-        title={<>Mapa de <em>Dividendos.</em></>}
-        sub="Combine ativos com calendários complementares e monte uma renda que paga o ano todo."
-        action={
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={atualizarProventosReais} disabled={buscandoReal}
-                    title="Busca na brapi os proventos anunciados de verdade (data e valor por cota) de cada ativo da carteira"
-                    style={{ display: "flex", alignItems: "center", gap: 6, background: T.gold, border: "none", color: "#fff", borderRadius: 10, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: buscandoReal ? "wait" : "pointer", opacity: buscandoReal ? 0.7 : 1 }}>
-              <RefreshCw size={13} className={buscandoReal ? "spin" : ""} /> {buscandoReal ? "Buscando…" : "Atualizar proventos reais"}
-            </button>
-            <button onClick={() => setVerDicas((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 10, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
-              <Info size={13} /> Como usar
-            </button>
-          </div>
-        }
-      />
+    <div className={embed ? "" : "fade-up py-8 px-6"}>
+      {!embed ? (
+        <PageHeader
+          eyebrow="Investimentos · Mapa de Dividendos"
+          title={<>Mapa de <em>Dividendos.</em></>}
+          sub="Combine ativos com calendários complementares e monte uma renda que paga o ano todo."
+          action={acoesMapa}
+        />
+      ) : (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>{acoesMapa}</div>
+      )}
 
       {verDicas && (
         <div style={{ ...CARD, marginTop: 8, fontSize: 12.5, color: T.muted, lineHeight: 1.6 }}>
