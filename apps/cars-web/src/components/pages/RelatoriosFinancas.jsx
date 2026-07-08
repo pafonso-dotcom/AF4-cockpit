@@ -32,6 +32,7 @@ export default function RelatoriosFinancas({
   patrimonioHistorico = [],
   escopoAtivo = "tudo",
   hidden,
+  embed = false,
 }) {
   // Aplica filtro de escopo (Pessoal / Negócio / Tudo) — contas de negócio
   // não entram nos relatórios quando o escopo é "pessoal", e vice-versa.
@@ -416,10 +417,12 @@ tr.comp td.situ { text-decoration:none; color:#1f7a44; }
   };
 
   return (
-    <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
-      <div className="eb">Finanças · Relatórios</div>
-      <h1 className="h1">Análises <em>do período.</em></h1>
-      <p className="hs">Projeção dos próximos meses por categoria.</p>
+    <div className={embed ? "" : "fade-up"} style={embed ? undefined : { padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
+      {!embed && <>
+        <div className="eb">Finanças · Relatórios</div>
+        <h1 className="h1">Análises <em>do período.</em></h1>
+        <p className="hs">Projeção dos próximos meses por categoria.</p>
+      </>}
 
       {/* Projeção · Meses a vencer — por categoria (matriz, imprime em 1 folha A4) */}
       <div style={{ marginTop: 16, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, boxShadow: CARD_SHADOW, fontFamily: FONTE_ARRED }}>

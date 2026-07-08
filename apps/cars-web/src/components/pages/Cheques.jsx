@@ -21,7 +21,7 @@ const STATUS = {
   devolvido:  { label: "Devolvido",  cor: "#EF4444" },
 };
 
-export default function Cheques({ cheques = [], setCheques, contas = [], setContas, transacoes = [], setTransacoes, escopoAtivo = "tudo", hidden }) {
+export default function Cheques({ cheques = [], setCheques, contas = [], setContas, transacoes = [], setTransacoes, escopoAtivo = "tudo", hidden, embed = false }) {
   const [form, setForm] = useState(null);         // novo/editar
   const [loteForm, setLoteForm] = useState(null); // vários cheques do mesmo emitente
   const [compForm, setCompForm] = useState(null); // compensar
@@ -147,19 +147,24 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
   const fmtDataLonga = (d) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "— sem data —";
   const btnGhost = { background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "5px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5 };
 
+  const acoesCheques = (
+    <div className="flex gap-2 flex-wrap">
+      <button className="btn-ghost" onClick={novoLote}><Layers size={13} className="inline mr-1.5" /> Vários</button>
+      <button className="btn-gold" onClick={novo}><Plus size={13} className="inline mr-1.5" /> Novo cheque</button>
+    </div>
+  );
   return (
-    <div className="fade-up py-8 px-6">
-      <PageHeader
-        eyebrow="Finanças · Recebíveis"
-        title={<>Cheques.</>}
-        sub="Cheques a receber. Ao compensar, o dinheiro entra na conta escolhida e vira receita. Cheques aguardando aparecem no relatório."
-        action={
-          <div className="flex gap-2 flex-wrap">
-            <button className="btn-ghost" onClick={novoLote}><Layers size={13} className="inline mr-1.5" /> Vários</button>
-            <button className="btn-gold" onClick={novo}><Plus size={13} className="inline mr-1.5" /> Novo cheque</button>
-          </div>
-        }
-      />
+    <div className={embed ? "" : "fade-up py-8 px-6"}>
+      {!embed ? (
+        <PageHeader
+          eyebrow="Finanças · Recebíveis"
+          title={<>Cheques.</>}
+          sub="Cheques a receber. Ao compensar, o dinheiro entra na conta escolhida e vira receita. Cheques aguardando aparecem no relatório."
+          action={acoesCheques}
+        />
+      ) : (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>{acoesCheques}</div>
+      )}
 
       {/* KPIs */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>

@@ -16,7 +16,7 @@ const safe = (fn, fallback) => { try { return fn(); } catch { return fallback; }
 export default function Inteligencia({
   transacoes = [], contas = [], ativos = [], cartoes = [], parcelamentos = [], metas = [],
   fixas = [],
-  escopoAtivo = "tudo", hidden = false, onTabChange,
+  escopoAtivo = "tudo", hidden = false, onTabChange, embed = false,
 }) {
   const fin = useMemo(() => escoparFinancas(transacoes, contas, escopoAtivo), [transacoes, contas, escopoAtivo]);
   const score = useMemo(() => safe(() => calcularScore(fin.transacoes, fin.contas, ativos, cartoes, parcelamentos, metas), null), [fin, ativos, cartoes, parcelamentos, metas]);
@@ -25,12 +25,14 @@ export default function Inteligencia({
   const projecao = useMemo(() => safe(() => projetarCashflow(fin.transacoes, fin.contas, 3) || [], []), [fin]);
 
   return (
-    <div className="fade-up py-8 px-6">
-      <PageHeader
-        eyebrow="Finanças · Inteligência"
-        title={<>Painel de <em>Inteligência.</em></>}
-        sub="Score, insights, assinaturas e projeção — mais a saúde da carteira. Tudo calculado no seu aparelho."
-      />
+    <div className={embed ? "" : "fade-up py-8 px-6"}>
+      {!embed && (
+        <PageHeader
+          eyebrow="Finanças · Inteligência"
+          title={<>Painel de <em>Inteligência.</em></>}
+          sub="Score, insights, assinaturas e projeção — mais a saúde da carteira. Tudo calculado no seu aparelho."
+        />
+      )}
 
       <Grupo titulo="Finanças">
         <Secao titulo="Score financeiro"><ScoreCard score={score} hidden={hidden} /></Secao>

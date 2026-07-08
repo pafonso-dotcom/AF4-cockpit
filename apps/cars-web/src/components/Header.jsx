@@ -140,18 +140,14 @@ function HeaderHorizontal({
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "planejamento", label: "Centro de controle", icon: Target },
-      { id: "cheques",      label: "Cheques",      icon: FileText },
-      { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
+      { id: "relatorios-f", label: "Análises & Relatórios", icon: BarChart3 },
       // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
       // que ficam escondidas até clicar aqui.
       { id: "inicio",       label: "Agenda",       icon: Calendar, agenda: true },
       // O resto:
       { id: "transacoes",   label: "Transações",   icon: Receipt },
-      { id: "inteligencia", label: "Inteligência", icon: Brain },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
-      { id: "revisor-ganhos",      label: "Revisor de ganhos",      icon: LineIcon },
-      { id: "audit",        label: "Histórico",    icon: History },
     ],
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
@@ -651,18 +647,14 @@ function HeaderVertical({
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "planejamento", label: "Centro de controle", icon: Target },
-      { id: "cheques",      label: "Cheques",      icon: FileText },
-      { id: "relatorios-f", label: "Relatórios",   icon: BarChart3 },
+      { id: "relatorios-f", label: "Análises & Relatórios", icon: BarChart3 },
       // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
       // que ficam escondidas até clicar aqui.
       { id: "inicio",       label: "Agenda",       icon: Calendar, agenda: true },
       // O resto:
       { id: "transacoes",   label: "Transações",   icon: Receipt },
-      { id: "inteligencia", label: "Inteligência", icon: Brain },
       { id: "categorias",   label: "Categorias",   icon: Tag },
       { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
-      { id: "revisor-ganhos",      label: "Revisor de ganhos",      icon: LineIcon },
-      { id: "audit",        label: "Histórico",    icon: History },
     ],
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },

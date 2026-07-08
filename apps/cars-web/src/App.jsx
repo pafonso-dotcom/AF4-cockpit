@@ -91,14 +91,10 @@ const Proventos = lz(() => import("./components/pages/Invest/Proventos.jsx"));
 const MapaDividendos = lz(() => import("./components/pages/Invest/MapaDividendos.jsx"));
 const RendaDividendos = lz(() => import("./components/pages/Invest/RendaDividendos.jsx"));
 const RelatoriosInvest = lz(() => import("./components/pages/Invest/RelatoriosInvest.jsx"));
-const RelatoriosFinancas = lz(() => import("./components/pages/RelatoriosFinancas.jsx"));
-const RevisorGanhos = lz(() => import("./components/pages/RevisorGanhos.jsx"));
+const AnalisesFinancas = lz(() => import("./components/pages/AnalisesFinancas.jsx"));
 const ConstrutorMercado = lz(() => import("./components/pages/ConstrutorMercado.jsx"));
-const Cheques = lz(() => import("./components/pages/Cheques.jsx"));
-const Inteligencia = lz(() => import("./components/pages/Inteligencia.jsx"));
 const CartaoExtrato = lz(() => import("./components/pages/CartaoExtrato.jsx"));
 const ContaExtrato = lz(() => import("./components/pages/ContaExtrato.jsx"));
-const AuditLog = lz(() => import("./components/pages/AuditLog.jsx"));
 const PergunteAoClaude = lz(() => import("./components/pages/PergunteAoClaude.jsx"));
 const Configuracoes = lz(() => import("./components/pages/Configuracoes.jsx"));
 const NegocioPainel = lz(() => import("./components/pages/Negocio/NegocioPainel.jsx"));
@@ -758,14 +754,14 @@ export default function App() {
                         onVoltar={() => setContaAberta(null)} />
         </div>
       )}
-      {(tab === "areceber" || tab === "fixas" || tab === "relatorios-anual" || tab === "planejamento") && (
+      {(tab === "areceber" || tab === "fixas" || tab === "relatorios-anual" || tab === "planejamento" || tab === "cheques") && (
         <Planejamento
           transacoes={transacoes} setTransacoes={setTransacoes}
           contas={contas} setContas={setContas}
           categorias={categorias} setCategorias={setCategorias}
           devedores={devedores} setDevedores={setDevedores}
           dividas={dividas} setDividas={setDividas}
-          cheques={cheques}
+          cheques={cheques} setCheques={setCheques}
           fixas={fixas} setFixas={setFixas}
           fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
           parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
@@ -773,6 +769,7 @@ export default function App() {
           metas={metas} setMetas={setMetas}
           escopoAtivo={escopoAtivo}
           tab={tab}
+          secaoInicial={tab === "cheques" ? "cheques" : tab === "fixas" ? "fixas" : tab === "areceber" ? "areceber" : tab === "relatorios-anual" ? "anual" : null}
           hidden={hidden}
         />
       )}
@@ -789,11 +786,6 @@ export default function App() {
           hidden={hidden}
         />
       )}
-      {tab === "audit" && (
-        <div className="px-6 md:px-10">
-          <AuditLog />
-        </div>
-      )}
       {tab === "perguntar" && (
         <div className="px-6 md:px-10">
           <PergunteAoClaude
@@ -803,9 +795,6 @@ export default function App() {
             devedores={devedores} dividas={dividas} cheques={cheques}
           />
         </div>
-      )}
-      {tab === "revisor-ganhos" && (
-        <RevisorGanhos transacoes={transacoes} hidden={hidden} />
       )}
       {tab === "cartoes" && !cartaoAberto && (
         <div className="px-6 md:px-10">
@@ -834,24 +823,18 @@ export default function App() {
                          hidden={hidden} />
         </div>
       )}
-      {tab === "relatorios-f" && (
-        <RelatoriosFinancas transacoes={transacoes} contas={contas}
-                            categorias={categorias}
-                            fixas={fixas} fixaOcorrencias={fixaOcorrencias}
-                            parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
-                            cheques={cheques}
-                            patrimonioHistorico={patrimonioHistorico}
-                            escopoAtivo={escopoAtivo}
-                            hidden={hidden} />
+      {(tab === "relatorios-f" || tab === "inteligencia" || tab === "revisor-ganhos" || tab === "audit") && (
+        <AnalisesFinancas
+          transacoes={transacoes} contas={contas} ativos={ativos}
+          categorias={categorias}
+          fixas={fixas} fixaOcorrencias={fixaOcorrencias}
+          parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
+          cheques={cheques} cartoes={cartoes} metas={metas}
+          patrimonioHistorico={patrimonioHistorico}
+          escopoAtivo={escopoAtivo}
+          hidden={hidden} onTabChange={setTab} />
       )}
-      {tab === "cheques" && (
-        <Cheques
-          cheques={cheques} setCheques={setCheques}
-          contas={contas} setContas={setContas}
-          transacoes={transacoes} setTransacoes={setTransacoes}
-          escopoAtivo={escopoAtivo} hidden={hidden}
-        />
-      )}
+      {/* Cheques agora é seção do Centro de controle (render acima, junto de A Receber) */}
       {tab === "transacoes" && (
         <Transacoes transacoes={transacoes} setTransacoes={setTransacoes}
                     categorias={categorias} contas={contas} setContas={setContas}
@@ -867,14 +850,7 @@ export default function App() {
         <Categorias categorias={categorias} setCategorias={setCategorias} transacoes={transacoes}
                     escopoAtivo={escopoAtivo} hidden={hidden} />
       )}
-      {tab === "inteligencia" && (
-        <Inteligencia
-          transacoes={transacoes} contas={contas} ativos={ativos}
-          cartoes={cartoes} parcelamentos={parcelamentos} metas={metas}
-          fixas={fixas}
-          escopoAtivo={escopoAtivo} hidden={hidden} onTabChange={setTab}
-        />
-      )}
+      {/* Relatórios, Inteligência, Revisor de ganhos e Histórico consolidados em Análises & Relatórios — ver bloco unificado acima */}
       {/* Rotas antigas (fixas, relatorios-anual, areceber) consolidadas em Planejamento — ver bloco unificado acima */}
       {tab === "analiseia" && (
         <AnaliseFatura
