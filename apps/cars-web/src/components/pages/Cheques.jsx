@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
-import { Plus, Trash2, Edit3, Check, RotateCcw, CalendarDays, X, Layers } from "lucide-react";
+import { Plus, Trash2, Edit3, Check, RotateCcw, CalendarDays, X, Layers, Printer } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
+import { printHTML } from "../../lib/importExport.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import Field from "../ui/Field.jsx";
@@ -147,8 +148,49 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
   const fmtDataLonga = (d) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "— sem data —";
   const btnGhost = { background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "5px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5 };
 
+  // Imprime a relação de cheques a receber (A4 retrato): aguardando + já
+  // compensados (riscados), com o total aguardando ao pé. Respeita o escopo.
+  const FONTE_PRINT = "ui-rounded,'SF Pro Rounded','Varela Round','Nunito',system-ui,-apple-system,Segoe UI,Roboto,sans-serif";
+  const imprimirCheques = () => {
+    const esc = (s) => String(s ?? "").replace(/[<>&]/g, ch => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[ch]));
+    const listaImp = doEscopo
+      .filter(c => c.status === "aguardando" || c.status === "compensado")
+      .slice()
+      .sort((a, b) => (a.vencimento || "").localeCompare(b.vencimento || ""));
+    const totalImp = listaImp.filter(c => c.status !== "compensado").reduce((s, c) => s + (Number(c.valor) || 0), 0);
+    const linhas = listaImp.map(c => {
+      const comp = c.status === "compensado";
+      const vencido = c.status === "aguardando" && (c.vencimento || "") < hoje;
+      const situ = comp ? "compensado" : vencido ? "vencido" : "aguardando";
+      const banco = [c.banco, c.numero ? `nº ${c.numero}` : ""].filter(Boolean).join(" · ") || "—";
+      return `<tr class="${comp ? "comp" : ""}"><td>${esc(fmtDataLonga(c.vencimento))}</td><td>${esc(c.de || "—")}</td><td>${esc(banco)}</td><td class="situ">${esc(situ)}</td><td class="n">${esc(fmt(Number(c.valor) || 0))}</td></tr>`;
+    }).join("");
+    const total = `<tr class="tfoot"><td colspan="4">Total aguardando</td><td class="n">${esc(fmt(totalImp))}</td></tr>`;
+    printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Cheques a receber</title>
+<style>
+@page { size: A4 portrait; margin: 12mm; }
+body { font-family:${FONTE_PRINT}; color:#111; margin:0; }
+h1 { font-size:16px; margin:0 0 2px; }
+.sub-head { color:#666; font-size:10.5px; margin:0 0 10px; }
+table { width:100%; border-collapse:collapse; font-size:11px; }
+th,td { padding:5px 8px; border-bottom:1px solid #e5e5e5; text-align:left; }
+th { text-transform:uppercase; font-size:8.5px; letter-spacing:.04em; color:#666; }
+td.n, th.n { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+td.situ { text-transform:uppercase; font-size:8.5px; letter-spacing:.04em; color:#666; }
+tr.comp td { color:#888; text-decoration:line-through; }
+tr.comp td.situ { text-decoration:none; color:#1f7a44; }
+.tfoot td { font-weight:700; border-top:2px solid #111; border-bottom:none; font-size:12px; text-decoration:none; }
+</style></head><body>
+<h1>Cheques a receber</h1>
+<div class="sub-head">Relação de cheques · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</div>
+<table><thead><tr><th>Vencimento</th><th>Emitente</th><th>Banco · nº</th><th>Situação</th><th class="n">Valor</th></tr></thead>
+<tbody>${linhas || `<tr><td colspan="5">Nenhum cheque.</td></tr>`}${total}</tbody></table>
+</body></html>`);
+  };
+
   const acoesCheques = (
     <div className="flex gap-2 flex-wrap">
+      <button className="btn-ghost" onClick={imprimirCheques}><Printer size={13} className="inline mr-1.5" /> Imprimir</button>
       <button className="btn-ghost" onClick={novoLote}><Layers size={13} className="inline mr-1.5" /> Vários</button>
       <button className="btn-gold" onClick={novo}><Plus size={13} className="inline mr-1.5" /> Novo cheque</button>
     </div>
