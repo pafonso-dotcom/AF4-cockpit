@@ -90,9 +90,21 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
     try { return JSON.parse(localStorage.getItem("af4:bcb-benchmarks:v1") || "null")?.cdi12m ?? null; } catch { return null; }
   });
   useEffect(() => { buscarBenchmarks12m().then((b) => { if (b?.cdi12m != null) setCdiAnual(b.cdi12m); }).catch(() => {}); }, []);
+  // Ajustes do CDB no comparativo: % do CDI (ex.: 90%, 110%) e faixa de IR
+  // (regressivo por prazo; "bruto" = sem IR). FII/ação são isentos pra PF.
+  const [pctCDI, setPctCDI] = useState(() => { try { return Number(localStorage.getItem("af4:mapa-div:cdb-pct")) || 100; } catch { return 100; } });
+  const [irCDB, setIrCDB] = useState(() => { try { const v = localStorage.getItem("af4:mapa-div:cdb-ir"); return v == null ? 0.15 : Number(v) || 0; } catch { return 0.15; } });
+  useEffect(() => { try { localStorage.setItem("af4:mapa-div:cdb-pct", String(pctCDI)); localStorage.setItem("af4:mapa-div:cdb-ir", String(irCDB)); } catch {} }, [pctCDI, irCDB]);
+  const IR_FAIXAS = [
+    { v: 0, l: "Bruto" },
+    { v: 0.225, l: "22,5% · até 180d" },
+    { v: 0.20, l: "20% · 181–360d" },
+    { v: 0.175, l: "17,5% · 361–720d" },
+    { v: 0.15, l: "15% · +720d" },
+  ];
 
   // Comparativo: quanto de capital seria preciso pra bater a meta mensal via os
-  // dividendos da carteira (pelo DY médio dela) × via CDB (100% do CDI).
+  // dividendos da carteira (pelo DY médio dela) × via CDB (% do CDI, líq. de IR).
   const comparativo = useMemo(() => {
     if (!(metaMensal > 0)) return null;
     const divRows = mapa.rows.filter((r) => !r.candidato && Number(r.valor) > 0 && Number(r.rendaAnual) > 0);
@@ -101,11 +113,13 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
     const dyAnual = capitalDiv > 0 ? (rendaAnualDiv / capitalDiv) * 100 : null;
     const metaAnual = metaMensal * 12;
     const capMetaDiv = dyAnual > 0 ? metaAnual / (dyAnual / 100) : null;
-    const capMetaCDB = cdiAnual > 0 ? metaAnual / (cdiAnual / 100) : null;
+    // Taxa efetiva do CDB = CDI × (%CDI) × (1 − IR).
+    const cdbAnual = cdiAnual > 0 ? cdiAnual * (pctCDI / 100) * (1 - irCDB) : null;
+    const capMetaCDB = cdbAnual > 0 ? metaAnual / (cdbAnual / 100) : null;
     // Mesma-capital: os R$ que a carteira precisaria, se fossem num CDB, dariam:
-    const rendaMensalCDBnoCapDiv = capMetaDiv != null && cdiAnual > 0 ? (capMetaDiv * (cdiAnual / 100)) / 12 : null;
-    return { capitalDiv, dyAnual, capMetaDiv, capMetaCDB, rendaMensalCDBnoCapDiv, metaAnual };
-  }, [metaMensal, mapa.rows, cdiAnual]);
+    const rendaMensalCDBnoCapDiv = capMetaDiv != null && cdbAnual > 0 ? (capMetaDiv * (cdbAnual / 100)) / 12 : null;
+    return { capitalDiv, dyAnual, capMetaDiv, capMetaCDB, cdbAnual, rendaMensalCDBnoCapDiv, metaAnual };
+  }, [metaMensal, mapa.rows, cdiAnual, pctCDI, irCDB]);
 
   // Busca o histórico real de proventos na brapi pra cada ativo pagador da
   // carteira (1 requisição por ticker — por isso é manual, não automático).
@@ -387,6 +401,26 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
             Quanto precisaria estar aplicado pra gerar <b style={{ color: T.ink }}>{oculto(fmt(metaMensal), hidden)}/mês</b>:
           </div>
 
+          {/* Ajustes do CDB: % do CDI + faixa de IR */}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 10 }}>
+            <span style={{ fontSize: 11, color: T.muted, fontWeight: 600 }}>CDB a</span>
+            <input value={pctCDI || ""} onChange={(e) => setPctCDI(Number(e.target.value) || 0)} inputMode="numeric"
+                   style={{ width: 58, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 8, padding: "5px 8px", color: T.ink, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", textAlign: "right" }} />
+            <span style={{ fontSize: 12, color: T.muted }}>% do CDI</span>
+            {[90, 100, 110].map((p) => (
+              <button key={p} onClick={() => setPctCDI(p)}
+                      style={{ padding: "4px 9px", borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: "pointer",
+                               border: `1px solid ${pctCDI === p ? (T.blue || "#5b9bd5") : T.border}`,
+                               background: pctCDI === p ? `${T.blue || "#5b9bd5"}22` : "transparent",
+                               color: pctCDI === p ? (T.blue || "#5b9bd5") : T.muted }}>{p}%</button>
+            ))}
+            <span style={{ fontSize: 11, color: T.muted, fontWeight: 600, marginLeft: 6 }}>IR</span>
+            <select value={irCDB} onChange={(e) => setIrCDB(Number(e.target.value))}
+                    style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 8, padding: "5px 8px", color: T.ink, fontSize: 12, fontFamily: "inherit" }}>
+              {IR_FAIXAS.map((f) => <option key={f.v} value={f.v}>{f.l}</option>)}
+            </select>
+          </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, marginTop: 12 }}>
             {/* Seus ativos (dividendos) */}
             <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: 14 }}>
@@ -401,9 +435,9 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
             </div>
             {/* CDB (100% CDI) */}
             <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: T.blue || "#5b9bd5" }}>CDB · 100% do CDI</div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: T.blue || "#5b9bd5" }}>CDB · {pctCDI}% do CDI{irCDB > 0 ? " · líq. IR" : " · bruto"}</div>
               <div style={{ fontSize: 11.5, color: T.muted, marginTop: 4 }}>
-                rentabilidade {cdiAnual != null ? <b style={{ color: T.blue || "#5b9bd5" }}>{cdiAnual.toFixed(2)}%/ano</b> : "—"} <span style={{ color: T.faint }}>(CDI 12m · BCB)</span>
+                rentabilidade {comparativo.cdbAnual != null ? <b style={{ color: T.blue || "#5b9bd5" }}>{comparativo.cdbAnual.toFixed(2)}%/ano</b> : "—"} <span style={{ color: T.faint }}>{cdiAnual != null ? `(CDI ${cdiAnual.toFixed(1)}%${irCDB > 0 ? ` · −${(irCDB * 100).toFixed(1).replace(".", ",")}% IR` : ""})` : "(CDI 12m · BCB)"}</span>
               </div>
               <div className="num" style={{ fontSize: 22, fontWeight: 800, color: T.blue || "#5b9bd5", marginTop: 8 }}>
                 {comparativo.capMetaCDB != null ? oculto(fmt(comparativo.capMetaCDB), hidden) : "—"}
@@ -415,7 +449,7 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
           {/* Conclusão */}
           {comparativo.capMetaDiv != null && comparativo.capMetaCDB != null && (
             <div style={{ marginTop: 12, fontSize: 12, color: T.muted, lineHeight: 1.6 }}>
-              {comparativo.dyAnual >= cdiAnual ? (
+              {comparativo.dyAnual >= comparativo.cdbAnual ? (
                 <>Seus ativos rendem <b style={{ color: T.green }}>mais</b> que o CDB — pra mesma renda você precisa de <b style={{ color: T.green }}>{oculto(fmt(comparativo.capMetaCDB - comparativo.capMetaDiv), hidden)}</b> a menos de capital.</>
               ) : (
                 <>O CDB rende <b style={{ color: T.blue || "#5b9bd5" }}>mais</b> que a carteira hoje — pra mesma renda ele exige <b style={{ color: T.blue || "#5b9bd5" }}>{oculto(fmt(comparativo.capMetaDiv - comparativo.capMetaCDB), hidden)}</b> a menos de capital.</>
@@ -426,7 +460,7 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
             </div>
           )}
           <div style={{ fontSize: 10.5, color: T.faint, marginTop: 8, lineHeight: 1.5 }}>
-            CDB estimado a 100% do CDI, <b>bruto</b> — lembre do IR (15–22,5%) no resgate; dividendos de FII/ação são isentos pra pessoa física. DY médio = proventos anuais ÷ capital investido nos ativos pagadores.
+            CDB a <b>{pctCDI}% do CDI</b>, {irCDB > 0 ? <>líquido de <b>{(irCDB * 100).toFixed(1).replace(".", ",")}% de IR</b></> : <><b>bruto</b> (sem IR)</>} — dividendos de FII/ação são isentos pra pessoa física. DY médio = proventos anuais ÷ capital investido nos ativos pagadores.
           </div>
         </div>
       )}
