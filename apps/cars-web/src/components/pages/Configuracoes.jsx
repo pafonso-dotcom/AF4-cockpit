@@ -21,6 +21,7 @@ export default function Configuracoes({
   apiKeys, setApiKeys,
   modulesEnabled, setModulesEnabled,
   onClearModule,
+  onVerificarDuplicidades,
 }) {
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
@@ -42,6 +43,18 @@ export default function Configuracoes({
         <>
           <MigracaoSupabase />
           <SyncGist />
+          {onVerificarDuplicidades && (
+            <>
+              <div className="st"><h2>Manutenção · Duplicidades</h2><div className="mt">Varredura do Financeiro</div></div>
+              <div className="fb">
+                <h4>🔎 Verificar duplicidades</h4>
+                <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 14 }}>
+                  Procura informações repetidas no Financeiro — transações, dívidas, a receber, despesas fixas, cheques, cartões, parcelamentos, contas e categorias. Mostra o que encontrou e remove os extras (mantém 1 de cada), com <strong>desfazer</strong>.
+                </p>
+                <button className="btn-gold" onClick={onVerificarDuplicidades}>🔎 Verificar duplicidades</button>
+              </div>
+            </>
+          )}
           <Backup />
         </>
       )}
