@@ -15,7 +15,7 @@ const TAXA_SUGERIDA = {
   cripto: 1.50, rf: 0.80, tesouro: 0.75, cdb: 0.85, outro: 0.85,
 };
 
-export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicial, onConsumirAlvo }) {
+export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicial, onConsumirAlvo, embed = false }) {
   // Carteira com posição (qtd > 0)
   const ativosComPosicao = useMemo(
     () => (ativos || []).filter(a => Number(a.qtd || 0) > 0),
@@ -162,19 +162,24 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
     return anos;
   }, [projecao, prazoAnos]);
 
+  const acoesProj = (
+    <button className="btn-gold" onClick={() => setSugestaoOpen(true)}>
+      <Sparkles size={13} className="inline mr-2" />
+      Sugestão de Aporte (IA)
+    </button>
+  );
   return (
-    <div className="fade-up py-8">
-      <PageHeader
-        eyebrow="Capítulo VIII"
-        title="Projeção"
-        sub="Simule a evolução de um ativo (da sua carteira ou personalizado) com aporte regular."
-        action={
-          <button className="btn-gold" onClick={() => setSugestaoOpen(true)}>
-            <Sparkles size={13} className="inline mr-2" />
-            Sugestão de Aporte (IA)
-          </button>
-        }
-      />
+    <div className={embed ? "" : "fade-up py-8"}>
+      {!embed ? (
+        <PageHeader
+          eyebrow="Capítulo VIII"
+          title="Projeção"
+          sub="Simule a evolução de um ativo (da sua carteira ou personalizado) com aporte regular."
+          action={acoesProj}
+        />
+      ) : (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>{acoesProj}</div>
+      )}
 
       <SugestaoAporte
         open={sugestaoOpen}
