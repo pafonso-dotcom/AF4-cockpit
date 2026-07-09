@@ -9,12 +9,13 @@
  *     - Transferir pra conta real (cria receita)
  *     - Comprar ativo (saída pra reinvestimento avulso)
  */
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import {
   Check, ArrowDownToLine, Wallet, ChevronDown, ChevronRight,
-  ArrowUpRight, ShoppingCart, X,
+  ArrowUpRight, ShoppingCart, X, MoreHorizontal,
 } from "lucide-react";
 import { T } from "../../../lib/theme.js";
+import { CARD_SHADOW_ELEVATED } from "../../../lib/styles.js";
 import { MESES_LONGO } from "../../../lib/meses.js";
 import { fmt, fmtN, uid } from "../../../lib/format.js";
 import { calendarioProventos } from "../../../lib/invest-metrics.js";
@@ -52,6 +53,17 @@ export default function Proventos({
   // e podem ter ticker fora da carteira (proventos antigos, ETFs, etc).
   // Os ignorados somem por padrão; toggle "Mostrar ignorados" no header.
   const [mostrarIgnorados, setMostrarIgnorados] = useState(false);
+
+  // Menu "⋯ Ações" do cabeçalho — junta as ações secundárias num só botão pra
+  // não lotar a barra. Fecha ao clicar fora.
+  const [menuAcoes, setMenuAcoes] = useState(false);
+  const menuRef = useRef(null);
+  useEffect(() => {
+    if (!menuAcoes) return;
+    const onDoc = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuAcoes(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [menuAcoes]);
 
   // Taxas mensais reais (CDI/Selic/IPCA acumulado no mês) via BCB, pra projetar
   // o rendimento da renda fixa. Se a API falhar, cai no CDI anual salvo no app.
@@ -544,38 +556,39 @@ export default function Proventos({
         title="Calendário & Carteira"
         sub="Dividendos, JCP e rendimentos previstos + carteira virtual pra acumular ou reinvestir."
         action={
-          <div className="flex gap-2 flex-wrap">
-            <button onClick={atualizarCotasReais} disabled={buscandoReais} className="btn-gold" style={{ fontSize: 11 }}
-                    title="Busca na brapi os proventos anunciados de cada ativo — o calendário passa a usar a cota real (e projeta FIIs com a última cota anunciada)">
-              {buscandoReais ? "Buscando…" : "⟳ Atualizar cotas reais"}
-            </button>
-            {totalIgnorados > 0 && (
-              <button onClick={() => setMostrarIgnorados(v => !v)} className="btn-ghost"
-                      style={{ fontSize: 11 }}>
-                {mostrarIgnorados ? "Esconder" : "Mostrar"} ignorados ({totalIgnorados})
-              </button>
-            )}
-            <button className="btn-ghost" style={{ fontSize: 11, opacity: carteiraProventos.saldo <= 0 ? 0.4 : 1 }}
-                    disabled={carteiraProventos.saldo <= 0}
-                    onClick={() => setTransferirForm({
-                      valor: carteiraProventos.saldo.toFixed(2),
-                      contaDestino: contas[0]?.nome || "",
-                    })}>
-              <ArrowUpRight size={12} className="inline mr-1" />
-              Transferir pra conta
-            </button>
-            <button className="btn-ghost" style={{ fontSize: 11, opacity: carteiraProventos.saldo <= 0 ? 0.4 : 1 }}
-                    disabled={carteiraProventos.saldo <= 0}
-                    onClick={() => setComprarForm({
-                      valor: carteiraProventos.saldo.toFixed(2),
-                      ativoId: ativos[0]?.id || "",
-                    })}>
-              <ShoppingCart size={12} className="inline mr-1" />
-              Reinvestir
-            </button>
+          <div className="flex gap-2 flex-wrap" style={{ position: "relative" }} ref={menuRef}>
             <button onClick={abrirNovoManual} className="btn-gold" style={{ fontSize: 11 }}>
               + Lançar manual
             </button>
+            <button onClick={() => setMenuAcoes(v => !v)} className="btn-ghost"
+                    title="Mais ações" aria-haspopup="menu" aria-expanded={menuAcoes}
+                    style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <MoreHorizontal size={14} /> Ações
+            </button>
+            {menuAcoes && (
+              <div role="menu" style={{
+                position: "absolute", top: "100%", right: 0, marginTop: 6, zIndex: 60,
+                minWidth: 244, background: T.card, border: `1px solid ${T.border}`,
+                borderRadius: 12, boxShadow: CARD_SHADOW_ELEVATED, overflow: "hidden",
+              }}>
+                <MenuItem onClick={() => { atualizarCotasReais(); setMenuAcoes(false); }} disabled={buscandoReais}>
+                  {buscandoReais ? "Buscando…" : "⟳ Atualizar cotas reais"}
+                </MenuItem>
+                {totalIgnorados > 0 && (
+                  <MenuItem onClick={() => { setMostrarIgnorados(v => !v); setMenuAcoes(false); }}>
+                    {mostrarIgnorados ? "Esconder" : "Mostrar"} ignorados ({totalIgnorados})
+                  </MenuItem>
+                )}
+                <MenuItem disabled={carteiraProventos.saldo <= 0}
+                          onClick={() => { setTransferirForm({ valor: carteiraProventos.saldo.toFixed(2), contaDestino: contas[0]?.nome || "" }); setMenuAcoes(false); }}>
+                  <ArrowUpRight size={13} /> Transferir pra conta
+                </MenuItem>
+                <MenuItem disabled={carteiraProventos.saldo <= 0}
+                          onClick={() => { setComprarForm({ valor: carteiraProventos.saldo.toFixed(2), ativoId: ativos[0]?.id || "" }); setMenuAcoes(false); }}>
+                  <ShoppingCart size={13} /> Reinvestir
+                </MenuItem>
+              </div>
+            )}
           </div>
         }
       />
@@ -1296,6 +1309,22 @@ function Kpi({ label, valor, sub, cor }) {
       </div>
       <div style={{ fontSize: 10.5, color: T.muted, marginTop: 3 }}>{sub}</div>
     </div>
+  );
+}
+
+function MenuItem({ children, onClick, disabled }) {
+  return (
+    <button role="menuitem" onClick={onClick} disabled={disabled}
+      style={{
+        width: "100%", textAlign: "left", background: "transparent", border: "none",
+        borderBottom: `1px solid ${T.border}`, color: disabled ? T.faint : T.ink,
+        padding: "10px 14px", fontSize: 12.5, cursor: disabled ? "default" : "pointer",
+        opacity: disabled ? 0.6 : 1, display: "flex", alignItems: "center", gap: 8,
+      }}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = T.bgSoft; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+      {children}
+    </button>
   );
 }
 
