@@ -58,3 +58,35 @@ export async function buscarBenchmarks12m({ force = false } = {}) {
   try { localStorage.setItem(KEY_CACHE, JSON.stringify(out)); } catch {}
   return out;
 }
+
+const KEY_TAXAS_MES = "af4:bcb-taxas-mensais:v1";
+
+/**
+ * Últimas taxas MENSAIS (acumulado no mês, % a.m.) de CDI, Selic e IPCA.
+ *   série 4391 = CDI a.m. · 4390 = Selic a.m. · 433 = IPCA a.m.
+ * Usadas pra projetar o rendimento de renda fixa (CDI/Tesouro). Cache de 12h.
+ * @returns {{ fetchedAt:number, cdiMes:number|null, selicMes:number|null, ipcaMes:number|null }}
+ */
+export async function buscarTaxasMensais({ force = false } = {}) {
+  if (!force) {
+    try {
+      const c = JSON.parse(localStorage.getItem(KEY_TAXAS_MES) || "null");
+      if (c && Date.now() - c.fetchedAt < TTL_MS) return c;
+    } catch {}
+  }
+  const [cdi, selic, ipca] = await Promise.allSettled([
+    sgs(4391, 1),
+    sgs(4390, 1),
+    sgs(433, 1),
+  ]);
+  const ult = (r) =>
+    r.status === "fulfilled" && r.value?.length ? Number(r.value[r.value.length - 1].valor) : null;
+  const out = {
+    fetchedAt: Date.now(),
+    cdiMes: ult(cdi),
+    selicMes: ult(selic),
+    ipcaMes: ult(ipca),
+  };
+  try { localStorage.setItem(KEY_TAXAS_MES, JSON.stringify(out)); } catch {}
+  return out;
+}
