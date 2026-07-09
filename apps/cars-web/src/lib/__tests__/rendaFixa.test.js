@@ -57,19 +57,27 @@ describe("rendaFixa", () => {
     expect(rendimentoMesRF(ativo, TAXAS)).toBeLessThan(540);
   });
 
-  it("resumo agrega total do mês e ignora ativos sem taxa", () => {
+  it("aceita taxa com vírgula (pt-BR)", () => {
+    const ativo = { tipo: "cdb", rfIndexador: "cdi", rfTaxa: "104,5", qtd: 1, preco: 60000 };
+    expect(temTaxaRF(ativo)).toBe(true);
+    expect(rotuloTaxaRF(ativo)).toBe("104,5% CDI");
+    expect(taxaMensalRF(ativo, TAXAS)).toBeCloseTo(CDI_MES * 1.045, 6);
+  });
+
+  it("resumo inclui todos os RF (sem taxa entram com temTaxa=false) e só soma os com taxa", () => {
     const ativos = [
       { id: "a", tipo: "cdb", rfIndexador: "cdi", rfTaxa: 104.5, qtd: 1, preco: 60000 },
       { id: "b", tipo: "tesouro", rfIndexador: "selic", rfTaxa: 0.07, qtd: 1, preco: 20000 },
-      { id: "c", tipo: "acao", qtd: 100, preco: 30 },          // não é RF
-      { id: "d", tipo: "cdb", qtd: 1, preco: 1000 },           // RF sem taxa
+      { id: "c", tipo: "acao", qtd: 100, preco: 30 },          // não é RF → fora
+      { id: "d", tipo: "cdb", qtd: 1, preco: 1000 },           // RF sem taxa → entra com temTaxa=false
     ];
     const r = resumoRendaFixa(ativos, TAXAS);
-    expect(r.itens).toHaveLength(2);
-    expect(r.totalBase).toBe(80000);
+    expect(r.itens).toHaveLength(3);                            // a, b, d (não a "c")
+    expect(r.itens.find(i => i.id === "d").temTaxa).toBe(false);
+    expect(r.totalBase).toBe(80000);                           // só a+b
     expect(r.totalMes).toBeCloseTo(
       rendimentoMesRF(ativos[0], TAXAS) + rendimentoMesRF(ativos[1], TAXAS), 4);
-    // ordenado por rendimento desc → CDB (maior) primeiro
+    // ordenado por rendimento desc → CDB configurado (maior) primeiro
     expect(r.itens[0].id).toBe("a");
   });
 });

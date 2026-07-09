@@ -640,13 +640,19 @@ export default function Proventos({
               </thead>
               <tbody>
                 {rf.itens.map(i => (
-                  <tr key={i.id} style={{ borderTop: `1px solid ${T.border}` }}>
+                  <tr key={i.id} style={{ borderTop: `1px solid ${T.border}`, opacity: i.temTaxa ? 1 : 0.7 }}>
                     <Td><strong>{i.ticker}</strong></Td>
-                    <Td>{i.rotulo}</Td>
+                    <Td>
+                      {i.temTaxa ? i.rotulo : (
+                        <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: `${T.gold}22`, color: T.gold, fontWeight: 700, letterSpacing: ".03em" }}>
+                          definir taxa
+                        </span>
+                      )}
+                    </Td>
                     <Td align="right" mono>{hidden ? "•••" : fmt(i.base)}</Td>
-                    <Td align="right" mono>{fmtN(i.taxaMes, 3)}%</Td>
-                    <Td align="right" mono style={{ color: T.green, fontWeight: 600 }}>
-                      {hidden ? "•••" : fmt(i.rendimentoMes)}
+                    <Td align="right" mono>{i.temTaxa ? `${fmtN(i.taxaMes, 3)}%` : "—"}</Td>
+                    <Td align="right" mono style={{ color: i.temTaxa ? T.green : T.faint, fontWeight: 600 }}>
+                      {i.temTaxa ? (hidden ? "•••" : fmt(i.rendimentoMes)) : "—"}
                     </Td>
                   </tr>
                 ))}
