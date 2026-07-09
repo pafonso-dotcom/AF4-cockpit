@@ -522,8 +522,6 @@ export default function Dashboard({
           .dash-atalhos { display: none !important; }
           .dash-prox { display: none !important; }
           .dash-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
-          /* Os 6 totais do Centro de Controle em 1 coluna: valor inteiro visível. */
-          .cc-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
@@ -1035,6 +1033,14 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
+// Superfície colorida (aurora) pros cards do Centro de Controle — mesma pegada
+// do card de Patrimônio, tingida na cor de cada total. Um brilho claro no topo
+// e um escurecimento embaixo garantem contraste do texto/valor branco.
+function auroraChip(cor) {
+  return `radial-gradient(115% 90% at 18% 12%, rgba(255,255,255,0.22) 0%, transparent 52%),`
+    + `linear-gradient(150deg, ${cor} 0%, ${cor} 40%, rgba(15,20,24,0.5) 125%)`;
+}
+
 function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, sparks = null, hidden, onSeeAll, onVerPagar }) {
   // Valores começam ocultos (•••); botão do olho revela — igual ao Patrimônio.
   const [revelar, setRevelar] = useState(false);
@@ -1109,24 +1115,27 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
         {abertos.length} {abertos.length === 1 ? "recebível em aberto" : "recebíveis em aberto"}
       </div>
 
-      {/* 6 totais do Centro de Controle — estilo widget, ocultáveis pelo olho.
-          No mobile viram 1 coluna (largura total) pra não cortar os valores. */}
-      <div className="cc-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+      {/* 6 totais do Centro de Controle — 2 colunas (lado a lado). Cada card usa
+          uma superfície colorida (gradiente/aurora) na cor do item, texto branco,
+          no mesmo espírito do card de Patrimônio Total. */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
         {resumo.map(b => (
           <div key={b.id} style={{
-            background: T.card, border: `1px solid ${T.border}`,
+            background: auroraChip(b.cor),
+            border: "1px solid rgba(255,255,255,0.14)",
             borderRadius: 16, padding: "11px 12px", minHeight: 92,
             display: "flex", flexDirection: "column", justifyContent: "space-between",
+            color: "#fff", overflow: "hidden",
           }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-              <RingIcon icon={b.icon} cor={b.cor} size={30} />
-              <div style={{ fontSize: 10.5, lineHeight: 1.15, color: T.muted, fontWeight: 600 }}>{b.label}</div>
+              <RingIcon icon={b.icon} cor="rgba(255,255,255,0.45)" stroke="rgba(255,255,255,0.95)" size={30} />
+              <div style={{ fontSize: 10.5, lineHeight: 1.15, color: "rgba(255,255,255,0.9)", fontWeight: 600 }}>{b.label}</div>
             </div>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 6, marginTop: 10 }}>
-              <div className="num" style={{ fontSize: 16, fontWeight: 400, color: T.ink, letterSpacing: "-.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div className="num" style={{ fontSize: 16, fontWeight: 500, color: "#fff", letterSpacing: "-.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {oculto ? "•••" : fmt(b.valor)}
               </div>
-              {!oculto && <Sparkline points={b.spark} cor={b.cor} w={44} h={20} />}
+              {!oculto && <Sparkline points={b.spark} cor="rgba(255,255,255,0.92)" w={44} h={20} />}
             </div>
           </div>
         ))}
