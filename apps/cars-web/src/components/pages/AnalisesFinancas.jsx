@@ -42,13 +42,21 @@ export default function AnalisesFinancas(props) {
           </span>
           <ChevronDown size={18} style={{ color: on ? T.gold : T.muted, transform: on ? "rotate(180deg)" : "none", transition: "transform .2s", flexShrink: 0 }} />
         </button>
-        {on && <div style={{ padding: "0 16px 16px" }}>{children}</div>}
+        {on && <div className="analises-sec-body" style={{ padding: "0 16px 16px" }}>{children}</div>}
       </div>
     );
   };
 
   return (
-    <div className="fade-up py-6 px-6">
+    <div className="fade-up py-6 px-6 analises-hub">
+      {/* No mobile encolhe as laterais pro conteúdo usar quase a tela toda
+          (o padding empilhava: hub + card da seção + card interno do relatório). */}
+      <style>{`
+        @media (max-width: 768px) {
+          .analises-hub { padding-left: 8px !important; padding-right: 8px !important; }
+          .analises-hub .analises-sec-body { padding-left: 4px !important; padding-right: 4px !important; }
+        }
+      `}</style>
       <PageHeader
         eyebrow="Finanças"
         title={<>Análises &amp; <em>Relatórios.</em></>}
