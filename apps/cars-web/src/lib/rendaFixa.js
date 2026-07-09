@@ -19,15 +19,22 @@ export function ehRendaFixa(ativo) {
   return ["cdb", "tesouro", "rf"].includes(String(ativo?.tipo || "").toLowerCase());
 }
 
+// Lê a taxa aceitando número ou string (com vírgula pt-BR, ex.: "104,5").
+export function parseTaxaRF(v) {
+  if (typeof v === "number") return v;
+  if (v == null || v === "") return NaN;
+  return parseFloat(String(v).trim().replace(/\s/g, "").replace(",", "."));
+}
+
 // Tem indexador + taxa preenchidos (dá pra projetar)?
 export function temTaxaRF(ativo) {
-  return ehRendaFixa(ativo) && !!ativo?.rfIndexador && Number.isFinite(Number(ativo?.rfTaxa));
+  return ehRendaFixa(ativo) && !!ativo?.rfIndexador && Number.isFinite(parseTaxaRF(ativo?.rfTaxa));
 }
 
 // Rótulo curto da taxa: "104,5% CDI", "Selic + 0,07%", "IPCA + 5,5%", "Pré 11%".
 export function rotuloTaxaRF(ativo) {
   const idx = ativo?.rfIndexador;
-  const taxa = Number(ativo?.rfTaxa);
+  const taxa = parseTaxaRF(ativo?.rfTaxa);
   if (!idx || !Number.isFinite(taxa)) return null;
   const n = taxa.toLocaleString("pt-BR", { maximumFractionDigits: 4 });
   if (idx === "cdi")   return `${n}% CDI`;
@@ -46,7 +53,7 @@ function anualParaMensal(aaPct) {
 // cdiMes/selicMes/ipcaMes = acumulado do mês (% a.m.) do BCB.
 export function taxaMensalRF(ativo, { cdiMes = 0, selicMes = 0, ipcaMes = 0 } = {}) {
   const idx = ativo?.rfIndexador;
-  const taxa = Number(ativo?.rfTaxa);
+  const taxa = parseTaxaRF(ativo?.rfTaxa);
   if (!idx || !Number.isFinite(taxa)) return null;
   if (idx === "cdi")   return cdiMes * (taxa / 100);       // ex.: 0,836% × 1,045
   if (idx === "selic") return selicMes + anualParaMensal(taxa); // Selic + spread
@@ -72,20 +79,27 @@ export function rendimentoMesRF(ativo, taxas = {}) {
   return valorBaseRF(ativo) * (tm / 100);
 }
 
-// Resumo de todos os ativos de renda fixa com taxa: lista + total do mês.
+// Resumo de TODOS os ativos de renda fixa (CDB/Tesouro/RF): lista + total do
+// mês. Ativos sem indexador+taxa entram com temTaxa=false (aparecem na tela com
+// aviso "definir taxa"), mas não somam no total.
 export function resumoRendaFixa(ativos = [], taxas = {}) {
   const itens = (ativos || [])
-    .filter(temTaxaRF)
-    .map((a) => ({
-      id: a.id,
-      ticker: a.ticker,
-      rotulo: rotuloTaxaRF(a),
-      base: valorBaseRF(a),
-      taxaMes: taxaMensalRF(a, taxas),
-      rendimentoMes: rendimentoMesRF(a, taxas),
-    }))
+    .filter(ehRendaFixa)
+    .map((a) => {
+      const comTaxa = temTaxaRF(a);
+      return {
+        id: a.id,
+        ticker: a.ticker,
+        temTaxa: comTaxa,
+        rotulo: comTaxa ? rotuloTaxaRF(a) : null,
+        base: valorBaseRF(a),
+        taxaMes: comTaxa ? taxaMensalRF(a, taxas) : null,
+        rendimentoMes: comTaxa ? rendimentoMesRF(a, taxas) : null,
+      };
+    })
     .sort((a, b) => (b.rendimentoMes || 0) - (a.rendimentoMes || 0));
-  const totalMes = itens.reduce((s, i) => s + (i.rendimentoMes || 0), 0);
-  const totalBase = itens.reduce((s, i) => s + (i.base || 0), 0);
+  const comTaxa = itens.filter((i) => i.temTaxa);
+  const totalMes = comTaxa.reduce((s, i) => s + (i.rendimentoMes || 0), 0);
+  const totalBase = comTaxa.reduce((s, i) => s + (i.base || 0), 0);
   return { itens, totalMes, totalBase };
 }
