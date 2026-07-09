@@ -209,8 +209,12 @@ export default function InvestPainel({
         @media (max-width: 900px) {
           .ip-top { grid-template-columns: 1fr !important; }
         }
-        @media (max-width: 560px) {
+        @media (max-width: 768px) {
           .ip-kpi4 { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (max-width: 480px) {
+          /* Celular: KPIs em 1 coluna (largura total), valores sem cortar. */
+          .ip-kpi4 { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 380px) {
           .ip-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
