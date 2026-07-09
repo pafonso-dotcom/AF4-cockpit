@@ -74,18 +74,29 @@ export async function buscarTaxasMensais({ force = false } = {}) {
       if (c && Date.now() - c.fetchedAt < TTL_MS) return c;
     } catch {}
   }
+  // Busca alguns meses e usa o ÚLTIMO MÊS FECHADO — a série "acumulado no mês"
+  // inclui o mês corrente com valor PARCIAL (o mês ainda não terminou), o que
+  // subestimaria a projeção. As datas vêm como "DD/MM/YYYY" (1º dia do mês-ref).
   const [cdi, selic, ipca] = await Promise.allSettled([
-    sgs(4391, 1),
-    sgs(4390, 1),
-    sgs(433, 1),
+    sgs(4391, 3),
+    sgs(4390, 3),
+    sgs(433, 3),
   ]);
-  const ult = (r) =>
-    r.status === "fulfilled" && r.value?.length ? Number(r.value[r.value.length - 1].valor) : null;
+  const agora = new Date();
+  const mmAtual = `${String(agora.getMonth() + 1).padStart(2, "0")}/${agora.getFullYear()}`;
+  const ultFechado = (r) => {
+    if (r.status !== "fulfilled" || !r.value?.length) return null;
+    const pts = r.value;
+    // descarta o mês corrente (parcial), se presente
+    const fechados = pts.filter((p) => (p.data || "").slice(3) !== mmAtual);
+    const alvo = fechados.length ? fechados : pts;
+    return Number(alvo[alvo.length - 1].valor);
+  };
   const out = {
     fetchedAt: Date.now(),
-    cdiMes: ult(cdi),
-    selicMes: ult(selic),
-    ipcaMes: ult(ipca),
+    cdiMes: ultFechado(cdi),
+    selicMes: ultFechado(selic),
+    ipcaMes: ultFechado(ipca),
   };
   try { localStorage.setItem(KEY_TAXAS_MES, JSON.stringify(out)); } catch {}
   return out;
