@@ -522,6 +522,8 @@ export default function Dashboard({
           .dash-atalhos { display: none !important; }
           .dash-prox { display: none !important; }
           .dash-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+          /* Os 6 totais do Centro de Controle em 1 coluna: valor inteiro visível. */
+          .cc-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
@@ -1107,8 +1109,9 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
         {abertos.length} {abertos.length === 1 ? "recebível em aberto" : "recebíveis em aberto"}
       </div>
 
-      {/* 6 totais do Centro de Controle — estilo widget, ocultáveis pelo olho */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+      {/* 6 totais do Centro de Controle — estilo widget, ocultáveis pelo olho.
+          No mobile viram 1 coluna (largura total) pra não cortar os valores. */}
+      <div className="cc-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
         {resumo.map(b => (
           <div key={b.id} style={{
             background: T.card, border: `1px solid ${T.border}`,
