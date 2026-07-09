@@ -163,6 +163,27 @@ export default function Proventos({
     return Object.entries(map).sort();
   }, [proventos, proventosRecebidos]);
 
+  // Calendário de cima = só PENDENTES (os recebidos vão pra seção do rodapé).
+  const pendentesPorMes = useMemo(() =>
+    porMes
+      .map(([mes, lista]) => [mes, lista.filter(p => !proventosRecebidos[p.id])])
+      .filter(([, lista]) => lista.length > 0),
+    [porMes, proventosRecebidos]);
+
+  // Recebidos (baixados) agrupados por mês — TODOS, independente dos filtros de
+  // "mostrar recebidos anteriores"/"ignorados". Mais recente primeiro.
+  const recebidosPorMes = useMemo(() => {
+    const auto = calendarioProventos(ativos, new Date(), provReais);
+    const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
+    const map = {};
+    [...auto, ...manuais]
+      .filter(p => proventosRecebidos[p.id])
+      .forEach(p => { const k = (p.data || "").slice(0, 7); (map[k] ||= []).push(p); });
+    Object.values(map).forEach(lista => lista.sort((a, b) => (b.data || "").localeCompare(a.data || "")));
+    return Object.entries(map).sort().reverse();
+  }, [ativos, provReais, proventosManuais, proventosRecebidos]);
+  const valorRecebido = (p) => Number(proventosRecebidos[p.id]?.valor ?? p.total) || 0;
+
   const hoje = new Date();
   const mesAtual = hoje.toISOString().slice(0, 7);
 
@@ -534,12 +555,6 @@ export default function Proventos({
                 {mostrarIgnorados ? "Esconder" : "Mostrar"} ignorados ({totalIgnorados})
               </button>
             )}
-            {totalRecebidosAnteriores > 0 && (
-              <button onClick={() => setMostrarRecebidosAnteriores(v => !v)} className="btn-ghost"
-                      style={{ fontSize: 11 }} title="Proventos já recebidos de meses anteriores">
-                {mostrarRecebidosAnteriores ? "Esconder" : "Mostrar"} recebidos anteriores ({totalRecebidosAnteriores})
-              </button>
-            )}
             <button className="btn-ghost" style={{ fontSize: 11, opacity: carteiraProventos.saldo <= 0 ? 0.4 : 1 }}
                     disabled={carteiraProventos.saldo <= 0}
                     onClick={() => setTransferirForm({
@@ -615,7 +630,7 @@ export default function Proventos({
                 <div className="label-eyebrow" style={{ color: T.blue || "#5b9bd5" }}>Renda Fixa · rendimento previsto do mês</div>
                 <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>
                   CDI {fmtN(taxasEfetivas.cdiMes, 3)}% a.m. · Selic {fmtN(taxasEfetivas.selicMes, 3)}% a.m.
-                  {taxasEfetivas.real ? " · fonte BCB" : " · estimado (CDI do app)"}
+                  {taxasEfetivas.real ? " · BCB (último mês fechado)" : " · estimado (CDI do app)"}
                 </div>
               </div>
             </button>
@@ -712,16 +727,18 @@ export default function Proventos({
         </div>
       )}
 
-      {/* CALENDÁRIO */}
-      {porMes.length === 0 ? (
+      {/* CALENDÁRIO — só pendentes (recebidos ficam na seção do rodapé) */}
+      {pendentesPorMes.length === 0 ? (
         <div style={{
           padding: 40, textAlign: "center",
           background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
           color: T.muted, fontSize: 13,
         }}>
-          Adicione ações e FIIs para ver o calendário de proventos.
+          {porMes.length === 0
+            ? "Adicione ações e FIIs para ver o calendário de proventos."
+            : "Nenhum provento pendente — os recebidos estão logo abaixo."}
         </div>
-      ) : porMes.map(([mes, lista]) => {
+      ) : pendentesPorMes.map(([mes, lista]) => {
         const mesRecolhido = recolhidos.has(mes);
         const totalMesLista = lista.reduce((s, p) => s + (p.total || 0), 0);
         return (
@@ -900,6 +917,73 @@ export default function Proventos({
         </div>
         );
       })}
+
+      {/* PROVENTOS RECEBIDOS · por mês (rodapé, no estilo da Renda Fixa) */}
+      {recebidosPorMes.length > 0 && (() => {
+        const totalGeral = recebidosPorMes.reduce((s, [, l]) => s + l.reduce((ss, p) => ss + valorRecebido(p), 0), 0);
+        const nBaixas = recebidosPorMes.reduce((s, [, l]) => s + l.length, 0);
+        const secRecolhida = recolhidos.has("recebidos");
+        return (
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "14px 16px", marginTop: 6, marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <button onClick={() => toggleRecolher("recebidos")}
+                      style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 8, textAlign: "left" }}>
+                {secRecolhida ? <ChevronRight size={16} style={{ color: T.muted }} /> : <ChevronDown size={16} style={{ color: T.muted }} />}
+                <div>
+                  <div className="label-eyebrow" style={{ color: T.green }}>Proventos recebidos · por mês</div>
+                  <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>{nBaixas} baixa(s)</div>
+                </div>
+              </button>
+              <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, color: T.green }}>
+                {hidden ? "•••" : fmt(totalGeral)}
+              </div>
+            </div>
+            {!secRecolhida && (
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+                {recebidosPorMes.map(([mes, lista]) => {
+                  const mRec = recolhidos.has("rec-" + mes);
+                  const totalMes = lista.reduce((s, p) => s + valorRecebido(p), 0);
+                  return (
+                    <div key={mes}>
+                      <button onClick={() => toggleRecolher("rec-" + mes)} className="label-eyebrow"
+                              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, marginBottom: 6, display: "flex", alignItems: "center", gap: 6, color: T.muted }}>
+                        {mRec ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                        {nomeMes(mes)} · {lista.length} baixa(s)
+                        <span className="num" style={{ color: T.green, fontWeight: 700, marginLeft: 4, textTransform: "none", letterSpacing: 0 }}>{hidden ? "•••" : fmt(totalMes)}</span>
+                      </button>
+                      {!mRec && (
+                        <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+                            <thead>
+                              <tr><Th>Data</Th><Th>Ticker</Th><Th>Tipo</Th><Th align="right">Recebido</Th><Th align="right">Ação</Th></tr>
+                            </thead>
+                            <tbody>
+                              {lista.map(p => (
+                                <tr key={p.id} style={{ borderTop: `1px solid ${T.border}` }}>
+                                  <Td>{p.data.slice(8, 10)}/{p.data.slice(5, 7)}</Td>
+                                  <Td><strong>{p.ticker}</strong></Td>
+                                  <Td>{p.tipo}</Td>
+                                  <Td align="right" mono style={{ color: T.green, fontWeight: 600 }}>{hidden ? "•••" : fmt(valorRecebido(p))}</Td>
+                                  <Td align="right">
+                                    <button onClick={() => estornarBaixa(p)} title="Estornar baixa"
+                                            style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.red, padding: "3px 8px", borderRadius: 5, cursor: "pointer", fontSize: 10.5 }}>
+                                      Estornar
+                                    </button>
+                                  </Td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* MODAL: LANÇAMENTO MANUAL */}
       {manualForm && (
