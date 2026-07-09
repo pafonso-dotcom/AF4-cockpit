@@ -9,6 +9,7 @@ import { parseValorBR, printHTML } from "../../lib/importExport.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import ActionMenu from "../ui/ActionMenu.jsx";
 import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
 import MoneyInput from "../ui/MoneyInput.jsx";
@@ -409,56 +410,15 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
         sub="O fluxo cotidiano. Receitas e despesas registradas com método."
         action={
           <div className="flex gap-2 flex-wrap">
-            <button onClick={() => setVoiceOpen(true)}
-                    style={{
-                      background: `${T.gold}22`, color: T.gold,
-                      border: `1px solid ${T.gold}`,
-                      padding: "10px 16px", fontFamily: T.sans, fontSize: 12,
-                      letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500,
-                      cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-                    }}
-                    title="Registrar transação por voz (Gemini)">
-              <Mic size={12} />
-              <span>Voz</span>
-            </button>
-            <button onClick={() => setOcrOpen(true)}
-                    style={{
-                      background: `${T.blue || "#60a5fa"}22`, color: T.blue || "#60a5fa",
-                      border: `1px solid ${T.blue || "#60a5fa"}`,
-                      padding: "10px 16px", fontFamily: T.sans, fontSize: 12,
-                      letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500,
-                      cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-                    }}
-                    title="Tirar foto do comprovante (OCR via Gemini Vision)">
-              <Camera size={12} />
-              <span>Foto</span>
-            </button>
-            <button onClick={() => setIeOpen(true)}
-                    style={{
-                      background: `${T.gold}22`, color: T.gold,
-                      border: `1px solid ${T.gold}`,
-                      padding: "10px 16px", fontFamily: T.sans, fontSize: 12,
-                      letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500,
-                      cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-                    }}>
-              <Download size={12} />
-              <span>Backup JSON</span>
-            </button>
-            <button onClick={exportarPDF}
-                    style={{
-                      background: T.card, color: T.ink,
-                      border: `1px solid ${T.border}`,
-                      padding: "10px 16px", fontFamily: T.sans, fontSize: 12,
-                      letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500,
-                      cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-                    }}
-                    title="Exportar transações filtradas para PDF">
-              <FileText size={12} />
-              <span>PDF</span>
-            </button>
             <button className="btn-gold" onClick={() => setForm({ id: null, tipo: "despesa", valor: "", descricao: "", categoria: "", conta: contas[0]?.nome || "", data: todayISO(), obs: "", compensado: true, fixa: false, vencimento: null })}>
               <Plus size={14} className="inline mr-2" />Nova Transação
             </button>
+            <ActionMenu itens={[
+              { label: "Registrar por voz", icon: Mic, onClick: () => setVoiceOpen(true) },
+              { label: "Foto do comprovante (OCR)", icon: Camera, onClick: () => setOcrOpen(true) },
+              { label: "Backup JSON (importar/exportar)", icon: Download, onClick: () => setIeOpen(true) },
+              { label: "Exportar PDF (filtrado)", icon: FileText, onClick: exportarPDF },
+            ]} />
           </div>
         }
       />
