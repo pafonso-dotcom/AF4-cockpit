@@ -439,8 +439,8 @@ export default function Dashboard({
   return (
     <div className="fade-up" style={{ paddingTop: 12 }}>
 
-      {/* Faixa de atalhos rápidos */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 10, marginBottom: 16 }}>
+      {/* Faixa de atalhos rápidos — escondida no mobile (largura pros cards de info) */}
+      <div className="dash-atalhos" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 10, marginBottom: 16 }}>
         {[
           { lbl: "Nova transação", icon: Plus, cor: T.gold, on: () => (onQuickAction ? onQuickAction("transacao") : onTabChange?.("transacoes")) },
           { lbl: "Novo cheque", icon: FileText, cor: T.green, on: () => onTabChange?.("cheques") },
@@ -473,7 +473,9 @@ export default function Dashboard({
       }}>
         <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
                  breakdown={{ contas: totalContas, aReceber: aReceber, cheques: chequesAReceber, invest: totalInvest, aPagar: aPagarAno }} />
-        <ProximoCompromissoCard item={proximoCompromisso} total={aPagarMes} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
+        <span className="dash-prox">
+          <ProximoCompromissoCard item={proximoCompromisso} total={aPagarMes} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
+        </span>
       </section>
 
 
@@ -505,12 +507,20 @@ export default function Dashboard({
         <PergunteIACard onClick={() => onTabChange?.("perguntar")} />
       </section>
 
+      {/* Normalmente o wrapper .dash-prox some do fluxo (o Card vira item do grid);
+          no mobile ele é escondido junto com os atalhos, liberando a largura toda. */}
       <style>{`
+        .dash-prox { display: contents; }
         @media (max-width: 1024px) {
           .dash-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .dash-mid-grid, .dash-bot-grid, .dash-metas-grid { grid-template-columns: 1fr !important; }
         }
-        @media (max-width: 380px) {
+        @media (max-width: 768px) {
+          /* Mobile: fora os atalhos e o "próximo compromisso"; patrimônio e
+             cards de informação (A receber, investimentos, financeiro) na
+             largura máxima. */
+          .dash-atalhos { display: none !important; }
+          .dash-prox { display: none !important; }
           .dash-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
         }
       `}</style>
