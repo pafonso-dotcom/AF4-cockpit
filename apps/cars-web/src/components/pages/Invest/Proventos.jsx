@@ -682,51 +682,6 @@ export default function Proventos({
         );
       })()}
 
-      {/* Histórico da carteira de proventos (colapsível) */}
-      {(carteiraProventos.historico || []).length > 0 && (
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 14px", marginBottom: 14 }}>
-          <button onClick={() => setHistoricoAberto(!historicoAberto)}
-                  style={{
-                    background: "transparent", border: "none", color: T.muted,
-                    cursor: "pointer", padding: 0, fontSize: 11, fontWeight: 600,
-                    letterSpacing: ".05em", textTransform: "uppercase",
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                  }}>
-            {historicoAberto ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            Histórico · {(carteiraProventos.historico || []).length} movimentação(ões)
-          </button>
-          {historicoAberto && (
-            <div style={{ marginTop: 8, maxHeight: 280, overflowY: "auto" }}>
-              {(carteiraProventos.historico || []).slice().reverse().map(h => {
-                const positivo = h.valor > 0;
-                return (
-                  <div key={h.id} style={{
-                    display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10,
-                    alignItems: "center",
-                    padding: "8px 10px", marginBottom: 4,
-                    background: T.bgSoft, borderRadius: 11,
-                    borderLeft: `2px solid ${positivo ? T.green : T.red}`,
-                  }}>
-                    <div style={{ fontSize: 10.5, color: T.muted, fontFamily: T.mono, minWidth: 56 }}>
-                      {h.data.slice(8, 10)}/{h.data.slice(5, 7)}
-                    </div>
-                    <div style={{ fontSize: 12, color: T.ink, minWidth: 0 }}>
-                      {h.descricao}
-                    </div>
-                    <div className="num" style={{
-                      fontSize: 13, fontWeight: 600,
-                      color: positivo ? T.green : T.red, whiteSpace: "nowrap",
-                    }}>
-                      {positivo ? "+ " : "− "}{hidden ? "•••" : fmt(Math.abs(h.valor))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* CALENDÁRIO — só pendentes (recebidos ficam na seção do rodapé) */}
       {pendentesPorMes.length === 0 ? (
         <div style={{
@@ -742,18 +697,18 @@ export default function Proventos({
         const mesRecolhido = recolhidos.has(mes);
         const totalMesLista = lista.reduce((s, p) => s + (p.total || 0), 0);
         return (
-        <div key={mes} style={{ marginBottom: 18 }}>
+        <div key={mes} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "12px 14px", marginBottom: 12 }}>
           <button onClick={() => toggleRecolher(mes)}
                   className="label-eyebrow"
-                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, marginBottom: 8, display: "flex", alignItems: "center", gap: 6, color: T.muted }}>
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 6, color: T.muted, width: "100%" }}>
             {mesRecolhido ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
             {nomeMes(mes)} · {lista.length} pagamento(s)
-            {mesRecolhido && <span className="num" style={{ color: T.green, fontWeight: 700, marginLeft: 4, textTransform: "none", letterSpacing: 0 }}>{hidden ? "•••" : fmt(totalMesLista)}</span>}
+            <span className="num" style={{ color: T.green, fontWeight: 700, marginLeft: "auto", textTransform: "none", letterSpacing: 0 }}>{hidden ? "•••" : fmt(totalMesLista)}</span>
           </button>
           {!mesRecolhido && (
           <div style={{
-            background: T.card, border: `1px solid ${T.border}`,
-            borderRadius: 16, overflow: "hidden",
+            marginTop: 10, border: `1px solid ${T.border}`,
+            borderRadius: 12, overflow: "hidden",
           }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
               <thead>
@@ -984,6 +939,51 @@ export default function Proventos({
           </div>
         );
       })()}
+
+      {/* Histórico da carteira de proventos (colapsível) — sempre por último */}
+      {(carteiraProventos.historico || []).length > 0 && (
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 14px", marginBottom: 14 }}>
+          <button onClick={() => setHistoricoAberto(!historicoAberto)}
+                  style={{
+                    background: "transparent", border: "none", color: T.muted,
+                    cursor: "pointer", padding: 0, fontSize: 11, fontWeight: 600,
+                    letterSpacing: ".05em", textTransform: "uppercase",
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                  }}>
+            {historicoAberto ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            Histórico · {(carteiraProventos.historico || []).length} movimentação(ões)
+          </button>
+          {historicoAberto && (
+            <div style={{ marginTop: 8, maxHeight: 280, overflowY: "auto" }}>
+              {(carteiraProventos.historico || []).slice().reverse().map(h => {
+                const positivo = h.valor > 0;
+                return (
+                  <div key={h.id} style={{
+                    display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10,
+                    alignItems: "center",
+                    padding: "8px 10px", marginBottom: 4,
+                    background: T.bgSoft, borderRadius: 11,
+                    borderLeft: `2px solid ${positivo ? T.green : T.red}`,
+                  }}>
+                    <div style={{ fontSize: 10.5, color: T.muted, fontFamily: T.mono, minWidth: 56 }}>
+                      {h.data.slice(8, 10)}/{h.data.slice(5, 7)}
+                    </div>
+                    <div style={{ fontSize: 12, color: T.ink, minWidth: 0 }}>
+                      {h.descricao}
+                    </div>
+                    <div className="num" style={{
+                      fontSize: 13, fontWeight: 600,
+                      color: positivo ? T.green : T.red, whiteSpace: "nowrap",
+                    }}>
+                      {positivo ? "+ " : "− "}{hidden ? "•••" : fmt(Math.abs(h.valor))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* MODAL: LANÇAMENTO MANUAL */}
       {manualForm && (
