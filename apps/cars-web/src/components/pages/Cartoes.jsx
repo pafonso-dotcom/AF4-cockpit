@@ -6,6 +6,7 @@ import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import { BANK_BRANDS } from "../../data/banks.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import ActionMenu from "../ui/ActionMenu.jsx";
 import Field from "../ui/Field.jsx";
 import { StatTile } from "../ui/widget.jsx";
 import Modal from "../ui/Modal.jsx";
@@ -589,20 +590,16 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         sub="Limites, fechamentos e parcelamentos sob controle."
         action={
           <div className="flex gap-2 flex-wrap">
-            <button className="btn-ghost" onClick={() => setAnaliseAberta(true)}
-                    title="Analisar fatura do cartão com IA (Gemini)">
-              <Sparkles size={12} className="inline mr-2" />Análise IA
-            </button>
-            <button className="btn-ghost" onClick={limparDuplicadosFatura}
-                    title="Remove cópias de parcela e pagamentos vazios criados por importações antigas">
-              <Trash2 size={12} className="inline mr-2" />Limpar duplicados
-            </button>
             <button className="btn-ghost" onClick={() => setParcForm({ id: null, descricao: "", dataCompra: todayISO(), dataPrimeira: todayISO(), cartaoId: cartoes[0]?.id || "", valorTotal: "", totalParcelas: "", categoria: "", escopo: "pessoal", parcelasPagas: [] })}>
               <Plus size={12} className="inline mr-2" />Parcelamento
             </button>
             <button className="btn-gold" onClick={() => setForm({ id: null, nome: "", banco: "outro", limite: "", vencimento: 5, fechamento: 28, tipo: "principal", tags: [], ativo: true })}>
               <Plus size={14} className="inline mr-2" />Novo Cartão
             </button>
+            <ActionMenu itens={[
+              { label: "Análise de fatura com IA", icon: Sparkles, onClick: () => setAnaliseAberta(true) },
+              { label: "Limpar duplicados da fatura", icon: Trash2, danger: true, onClick: limparDuplicadosFatura },
+            ]} />
           </div>
         }
       />
