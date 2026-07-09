@@ -604,13 +604,19 @@ export default function App() {
   const refreshMarket = async () => {
     setRefreshing(true);
 
+    // Renda fixa (CDB/Tesouro) fica FIXA no valor que o usuário colocou — não
+    // recebe tick simulado nem cotação de mercado. A rentabilidade contratada
+    // (ex.: 104,5% CDI, Selic + 0,07%) é projetada em Proventos, não muda o
+    // preço aqui. (CDB de meta capitaliza a CDI por conta própria.)
+    const rendaFixaFixa = (a) =>
+      a._cdbMeta || ["cdb", "tesouro", "rf"].includes(String(a.tipo || "").toLowerCase());
+
     // Modo simulado: tick aleatório (sem chave necessária)
     if (!apiKeys.useRealMarket) {
       setTimeout(() => {
         setAtivos(prev => prev.map(a => {
-          // CDB de meta rende a CDI sozinho — não recebe tick aleatório de mercado.
-          if (a._cdbMeta) return a;
-          const vol = a.tipo === "cripto" ? 0.04 : a.tipo === "fii" ? 0.012 : a.tipo === "tesouro" ? 0.005 : 0.025;
+          if (rendaFixaFixa(a)) return a;
+          const vol = a.tipo === "cripto" ? 0.04 : a.tipo === "fii" ? 0.012 : 0.025;
           return { ...a, preco: +simulateTick(a.preco, vol).toFixed(2), ultimaAtt: new Date().toISOString(), realtime: false };
         }));
         setMarketStatus({ at: new Date(), mode: "sim", okCount: 0, total: ativos.length });
@@ -623,7 +629,7 @@ export default function App() {
     try {
       // Para Binance, traduz ticker BR de cripto (BTC, ETH) pra pair USDT.
       // CDBs de meta rendem a CDI sozinhos — fora da cotação de mercado.
-      const ativosComSymbol = ativos.filter(a => !a._cdbMeta).map(a => {
+      const ativosComSymbol = ativos.filter(a => !rendaFixaFixa(a)).map(a => {
         if (a.tipo === "cripto" && !/USDT$/i.test(a.ticker)) {
           return { ...a, _symbolCotacao: `${a.ticker.toUpperCase()}USDT` };
         }
@@ -635,8 +641,8 @@ export default function App() {
 
       let okCount = 0;
       setAtivos(prev => prev.map(a => {
-        // CDB de meta rende a CDI sozinho — nunca recebe cotação nem tick de mercado.
-        if (a._cdbMeta) return a;
+        // Renda fixa fica fixa no valor informado — sem cotação nem tick.
+        if (rendaFixaFixa(a)) return a;
         const sym = a.tipo === "cripto" && !/USDT$/i.test(a.ticker)
           ? `${a.ticker.toUpperCase()}USDT`
           : a.ticker;
@@ -653,7 +659,7 @@ export default function App() {
           };
         }
         // Fallback: tick simulado pra ativos sem cotação real
-        const vol = a.tipo === "tesouro" ? 0.005 : a.tipo === "cdb" ? 0.003 : 0.012;
+        const vol = 0.012;
         return { ...a, preco: +simulateTick(a.preco, vol).toFixed(2), ultimaAtt: new Date().toISOString(), realtime: false };
       }));
 
