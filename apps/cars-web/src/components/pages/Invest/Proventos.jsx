@@ -9,15 +9,18 @@
  *     - Transferir pra conta real (cria receita)
  *     - Comprar ativo (saída pra reinvestimento avulso)
  */
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Check, ArrowDownToLine, Wallet, ChevronDown, ChevronRight,
   ArrowUpRight, ShoppingCart, X,
 } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { MESES_LONGO } from "../../../lib/meses.js";
-import { fmt, uid } from "../../../lib/format.js";
+import { fmt, fmtN, uid } from "../../../lib/format.js";
 import { calendarioProventos } from "../../../lib/invest-metrics.js";
+import { resumoRendaFixa } from "../../../lib/rendaFixa.js";
+import { buscarTaxasMensais } from "../../../lib/bcb.js";
+import { getCdiAnual } from "../../../lib/cdbMeta.js";
 import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import PageHeader from "../../ui/PageHeader.jsx";
@@ -49,6 +52,36 @@ export default function Proventos({
   // e podem ter ticker fora da carteira (proventos antigos, ETFs, etc).
   // Os ignorados somem por padrão; toggle "Mostrar ignorados" no header.
   const [mostrarIgnorados, setMostrarIgnorados] = useState(false);
+
+  // Taxas mensais reais (CDI/Selic/IPCA acumulado no mês) via BCB, pra projetar
+  // o rendimento da renda fixa. Se a API falhar, cai no CDI anual salvo no app.
+  const [taxasMes, setTaxasMes] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    buscarTaxasMensais().then(t => { if (vivo) setTaxasMes(t); }).catch(() => {});
+    return () => { vivo = false; };
+  }, []);
+  const taxasEfetivas = useMemo(() => {
+    const cdiAnual = getCdiAnual();
+    const cdiFallback = (Math.pow(1 + cdiAnual / 100, 1 / 12) - 1) * 100;
+    const cdiMes = taxasMes?.cdiMes ?? cdiFallback;
+    const selicMes = taxasMes?.selicMes ?? cdiMes; // Selic ≈ CDI
+    const ipcaMes = taxasMes?.ipcaMes ?? 0.4;
+    return { cdiMes, selicMes, ipcaMes, real: !!taxasMes?.cdiMes };
+  }, [taxasMes]);
+  const rf = useMemo(() => resumoRendaFixa(ativos, taxasEfetivas), [ativos, taxasEfetivas]);
+
+  // Recolher seções da tela (renda fixa + meses do calendário). Estado salvo.
+  const [recolhidos, setRecolhidos] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("af4:proventos-recolhidos:v1") || "[]")); }
+    catch { return new Set(); }
+  });
+  const toggleRecolher = (k) => setRecolhidos(prev => {
+    const n = new Set(prev);
+    n.has(k) ? n.delete(k) : n.add(k);
+    try { localStorage.setItem("af4:proventos-recolhidos:v1", JSON.stringify([...n])); } catch {}
+    return n;
+  });
   // Recebidos de meses anteriores somem por padrão (ficam só pra consulta).
   const [mostrarRecebidosAnteriores, setMostrarRecebidosAnteriores] = useState(false);
   const [manualForm, setManualForm] = useState(null);
@@ -569,6 +602,65 @@ export default function Proventos({
         />
       </div>
 
+      {/* Renda Fixa · rendimento previsto do mês (CDI/Tesouro por taxa contratada) */}
+      {rf.itens.length > 0 && (() => {
+        const recolhido = recolhidos.has("rendafixa");
+        return (
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: recolhido ? 0 : 10 }}>
+            <button onClick={() => toggleRecolher("rendafixa")}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
+              {recolhido ? <ChevronRight size={16} style={{ color: T.muted }} /> : <ChevronDown size={16} style={{ color: T.muted }} />}
+              <div>
+                <div className="label-eyebrow" style={{ color: T.blue || "#5b9bd5" }}>Renda Fixa · rendimento previsto do mês</div>
+                <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>
+                  CDI {fmtN(taxasEfetivas.cdiMes, 3)}% a.m. · Selic {fmtN(taxasEfetivas.selicMes, 3)}% a.m.
+                  {taxasEfetivas.real ? " · fonte BCB" : " · estimado (CDI do app)"}
+                </div>
+              </div>
+            </button>
+            <div style={{ textAlign: "right" }}>
+              <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, color: T.green }}>
+                {hidden ? "•••" : fmt(rf.totalMes)}
+              </div>
+              <div style={{ fontSize: 10, color: T.muted }}>sobre {hidden ? "•••" : fmt(rf.totalBase)} investido</div>
+            </div>
+          </div>
+          {!recolhido && <>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+              <thead>
+                <tr>
+                  <Th>Ativo</Th>
+                  <Th>Taxa</Th>
+                  <Th align="right">Investido</Th>
+                  <Th align="right">% mês</Th>
+                  <Th align="right">Rendimento/mês</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {rf.itens.map(i => (
+                  <tr key={i.id} style={{ borderTop: `1px solid ${T.border}` }}>
+                    <Td><strong>{i.ticker}</strong></Td>
+                    <Td>{i.rotulo}</Td>
+                    <Td align="right" mono>{hidden ? "•••" : fmt(i.base)}</Td>
+                    <Td align="right" mono>{fmtN(i.taxaMes, 3)}%</Td>
+                    <Td align="right" mono style={{ color: T.green, fontWeight: 600 }}>
+                      {hidden ? "•••" : fmt(i.rendimentoMes)}
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ fontSize: 10, color: T.faint, marginTop: 8, fontStyle: "italic" }}>
+            Projeção com a taxa contratada de cada aplicação sobre o valor de mercado atual. Configure indexador e taxa no cadastro do ativo (CDB/Tesouro).
+          </div>
+          </>}
+        </div>
+        );
+      })()}
+
       {/* Histórico da carteira de proventos (colapsível) */}
       {(carteiraProventos.historico || []).length > 0 && (
         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 14px", marginBottom: 14 }}>
@@ -623,11 +715,19 @@ export default function Proventos({
         }}>
           Adicione ações e FIIs para ver o calendário de proventos.
         </div>
-      ) : porMes.map(([mes, lista]) => (
+      ) : porMes.map(([mes, lista]) => {
+        const mesRecolhido = recolhidos.has(mes);
+        const totalMesLista = lista.reduce((s, p) => s + (p.total || 0), 0);
+        return (
         <div key={mes} style={{ marginBottom: 18 }}>
-          <div className="label-eyebrow" style={{ marginBottom: 8 }}>
+          <button onClick={() => toggleRecolher(mes)}
+                  className="label-eyebrow"
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, marginBottom: 8, display: "flex", alignItems: "center", gap: 6, color: T.muted }}>
+            {mesRecolhido ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
             {nomeMes(mes)} · {lista.length} pagamento(s)
-          </div>
+            {mesRecolhido && <span className="num" style={{ color: T.green, fontWeight: 700, marginLeft: 4, textTransform: "none", letterSpacing: 0 }}>{hidden ? "•••" : fmt(totalMesLista)}</span>}
+          </button>
+          {!mesRecolhido && (
           <div style={{
             background: T.card, border: `1px solid ${T.border}`,
             borderRadius: 16, overflow: "hidden",
@@ -790,8 +890,10 @@ export default function Proventos({
               </tbody>
             </table>
           </div>
+          )}
         </div>
-      ))}
+        );
+      })}
 
       {/* MODAL: LANÇAMENTO MANUAL */}
       {manualForm && (
