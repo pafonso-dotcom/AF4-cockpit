@@ -7,7 +7,7 @@ import { calcAlocacaoPorClasse, calcRentabilidadeAtivo } from "../../../lib/inve
 import { buscarCotacao } from "../../../lib/cambio.js";
 import { getHistorico, getPerfilAtivo } from "../../../lib/brapi.js";
 import { detectarFonte } from "../../../lib/cotacoes.js";
-import { CARD_SHADOW } from "../../../lib/styles.js";
+import { CARD_SHADOW, AURORA_BG } from "../../../lib/styles.js";
 import IndicesGlobais from "../IndicesGlobais.jsx";
 
 export default function InvestPainel({
@@ -287,31 +287,31 @@ function MoedaCard({ valorBR = 0, valorUSA = 0, usdRate, hidden, fmtUSD, fill = 
   const pctUSA = totalBRL > 0 ? (usaEmBRL / totalBRL) * 100 : 0;
   const temUSA = valorUSA > 0;
   return (
-    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 13, padding: 10, boxShadow: CARD_SHADOW, width: "100%", height: fill ? "100%" : undefined }}>
-      <div style={{ fontFamily: T.serif, fontSize: 13.5, fontWeight: 600, marginBottom: 8 }}>Alocação por Moeda</div>
+    <div className="ip-card" style={{ background: AURORA_BG, color: "#fff", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 13, padding: 10, boxShadow: CARD_SHADOW, width: "100%", height: fill ? "100%" : undefined, overflow: "hidden" }}>
+      <div style={{ fontFamily: T.serif, fontSize: 13.5, fontWeight: 600, marginBottom: 8, color: "#fff" }}>Alocação por Moeda</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 17 }} aria-hidden="true">🇧🇷</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10.5, color: T.muted }}>Brasil · R$</div>
-            <div className="num" style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{hidden ? "•••••" : fmt(valorBR)}</div>
+            <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.8)" }}>Brasil · R$</div>
+            <div className="num" style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{hidden ? "•••••" : fmt(valorBR)}</div>
           </div>
-          <span style={{ fontSize: 12, fontWeight: 600, color: T.gold }}>{fmtN(pctBR, 0)}%</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{fmtN(pctBR, 0)}%</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 17, opacity: temUSA ? 1 : 0.4 }} aria-hidden="true">🇺🇸</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10.5, color: T.muted }}>EUA · US$</div>
-            <div className="num" style={{ fontSize: 14, fontWeight: 700, color: temUSA ? T.ink : T.muted }}>{hidden ? "•••••" : fmtUSD(valorUSA)}</div>
+            <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.8)" }}>EUA · US$</div>
+            <div className="num" style={{ fontSize: 14, fontWeight: 700, color: temUSA ? "#fff" : "rgba(255,255,255,0.55)" }}>{hidden ? "•••••" : fmtUSD(valorUSA)}</div>
           </div>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#2dd4bf" }}>{temUSA ? `${fmtN(pctUSA, 0)}%` : "—"}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: temUSA ? "#fff" : "rgba(255,255,255,0.6)" }}>{temUSA ? `${fmtN(pctUSA, 0)}%` : "—"}</span>
         </div>
         {/* Barra dividida */}
-        <div style={{ display: "flex", height: 10, borderRadius: 999, overflow: "hidden", background: T.bgSoft, marginTop: 2 }}>
-          <div style={{ width: `${pctBR}%`, background: T.gold }} />
-          <div style={{ width: `${pctUSA}%`, background: "#2dd4bf" }} />
+        <div style={{ display: "flex", height: 10, borderRadius: 999, overflow: "hidden", background: "rgba(255,255,255,0.22)", marginTop: 2 }}>
+          <div style={{ width: `${pctBR}%`, background: "#f5e6c8" }} />
+          <div style={{ width: `${pctUSA}%`, background: "#bff3ec" }} />
         </div>
-        <div style={{ fontSize: 9.5, color: T.faint, fontStyle: "italic" }}>
+        <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.72)", fontStyle: "italic" }}>
           {temUSA
             ? (usdRate ? `Proporção convertida ao dólar ${fmt(usdRate)}.` : "Carregando dólar para a proporção…")
             : "Sem ativos em dólar."}

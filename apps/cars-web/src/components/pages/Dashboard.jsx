@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useState } from "react";
 import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, ArrowUpRight, ArrowDownLeft, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar, CreditCard, Receipt, Plus, Eye, EyeOff } from "lucide-react";
-import { CARD_SHADOW } from "../../lib/styles.js";
+import { CARD_SHADOW, AURORA_BG } from "../../lib/styles.js";
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import BankIcon from "../ui/BankIcon.jsx";
@@ -630,10 +630,7 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
   const visivel = revelado && !hidden;
   const animado = useCountUp(value, visivel);
   // Topo "aurora" (variação B) — superfície colorida própria, texto branco.
-  const bg = `radial-gradient(120% 90% at 15% 20%, #7fa8c4 0%, transparent 55%),`
-    + `radial-gradient(120% 100% at 85% 15%, #c9b48a 0%, transparent 50%),`
-    + `radial-gradient(140% 120% at 70% 90%, #5b8a8f 0%, transparent 55%),`
-    + `linear-gradient(135deg, #6f93a6, #52756c)`;
+  const bg = AURORA_BG;
   const Linha = ({ rotulo, v, sinal }) => (
     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "rgba(255,255,255,0.8)" }}>
       <span>{rotulo}</span>
@@ -1033,14 +1030,6 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-// Superfície colorida (aurora) pros cards do Centro de Controle — mesma pegada
-// do card de Patrimônio, tingida na cor de cada total. Um brilho claro no topo
-// e um escurecimento embaixo garantem contraste do texto/valor branco.
-function auroraChip(cor) {
-  return `radial-gradient(115% 90% at 18% 12%, rgba(255,255,255,0.22) 0%, transparent 52%),`
-    + `linear-gradient(150deg, ${cor} 0%, ${cor} 40%, rgba(15,20,24,0.5) 125%)`;
-}
-
 function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, sparks = null, hidden, onSeeAll, onVerPagar }) {
   // Valores começam ocultos (•••); botão do olho revela — igual ao Patrimônio.
   const [revelar, setRevelar] = useState(false);
@@ -1115,13 +1104,12 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
         {abertos.length} {abertos.length === 1 ? "recebível em aberto" : "recebíveis em aberto"}
       </div>
 
-      {/* 6 totais do Centro de Controle — 2 colunas (lado a lado). Cada card usa
-          uma superfície colorida (gradiente/aurora) na cor do item, texto branco,
-          no mesmo espírito do card de Patrimônio Total. */}
+      {/* 6 totais do Centro de Controle — 2 colunas (lado a lado). Todos usam a
+          MESMA superfície "aurora" do card de Patrimônio Total, texto branco. */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
         {resumo.map(b => (
           <div key={b.id} style={{
-            background: auroraChip(b.cor),
+            background: AURORA_BG,
             border: "1px solid rgba(255,255,255,0.14)",
             borderRadius: 16, padding: "11px 12px", minHeight: 92,
             display: "flex", flexDirection: "column", justifyContent: "space-between",
