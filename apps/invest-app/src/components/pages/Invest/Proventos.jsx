@@ -97,6 +97,38 @@ export default function Proventos({
     return Object.entries(map).sort();
   }, [proventos]);
 
+  // Calendário de cima = só PENDENTES (os recebidos vão pra seção do rodapé).
+  const pendentesPorMes = useMemo(() =>
+    porMes
+      .map(([mes, lista]) => [mes, lista.filter(p => !proventosRecebidos[p.id])])
+      .filter(([, lista]) => lista.length > 0),
+    [porMes, proventosRecebidos]);
+
+  // Recebidos (baixados) agrupados por mês — mais recente primeiro.
+  const recebidosPorMes = useMemo(() => {
+    const auto = calendarioProventos(ativos);
+    const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
+    const map = {};
+    [...auto, ...manuais]
+      .filter(p => proventosRecebidos[p.id])
+      .forEach(p => { const k = (p.data || "").slice(0, 7); (map[k] ||= []).push(p); });
+    Object.values(map).forEach(lista => lista.sort((a, b) => (b.data || "").localeCompare(a.data || "")));
+    return Object.entries(map).sort().reverse();
+  }, [ativos, proventosManuais, proventosRecebidos]);
+  const valorRecebido = (p) => Number(proventosRecebidos[p.id]?.valor ?? p.total) || 0;
+
+  // Recolher seções (meses do calendário + recebidos). Estado salvo.
+  const [recolhidos, setRecolhidos] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("aureus:proventos-recolhidos:v1") || "[]")); }
+    catch { return new Set(); }
+  });
+  const toggleRecolher = (k) => setRecolhidos(prev => {
+    const n = new Set(prev);
+    n.has(k) ? n.delete(k) : n.add(k);
+    try { localStorage.setItem("aureus:proventos-recolhidos:v1", JSON.stringify([...n])); } catch {}
+    return n;
+  });
+
   const hoje = new Date();
   const mesAtual = hoje.toISOString().slice(0, 7);
 
@@ -641,22 +673,31 @@ export default function Proventos({
         </div>
       )}
 
-      {/* CALENDÁRIO */}
-      {porMes.length === 0 ? (
+      {/* CALENDÁRIO — só pendentes (recebidos ficam na seção do rodapé) */}
+      {pendentesPorMes.length === 0 ? (
         <div style={{
           padding: 40, textAlign: "center",
           background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10,
           color: T.muted, fontSize: 13,
         }}>
-          Adicione ações e FIIs para ver o calendário de proventos.
+          {porMes.length === 0
+            ? "Adicione ações e FIIs para ver o calendário de proventos."
+            : "Nenhum provento pendente — os recebidos estão logo abaixo."}
         </div>
-      ) : porMes.map(([mes, lista]) => (
-        <div key={mes} style={{ marginBottom: 18 }}>
-          <div className="label-eyebrow" style={{ marginBottom: 8 }}>
+      ) : pendentesPorMes.map(([mes, lista]) => {
+        const mesRecolhido = recolhidos.has(mes);
+        const totalMesLista = lista.reduce((s, p) => s + (p.total || 0), 0);
+        return (
+        <div key={mes} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
+          <button onClick={() => toggleRecolher(mes)} className="label-eyebrow"
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 6, color: T.muted, width: "100%" }}>
+            {mesRecolhido ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
             {nomeMes(mes)} · {lista.length} pagamento(s)
-          </div>
+            <span className="num" style={{ color: T.green, fontWeight: 700, marginLeft: "auto", textTransform: "none", letterSpacing: 0 }}>{hidden ? "•••" : fmt(totalMesLista)}</span>
+          </button>
+          {!mesRecolhido && (
           <div style={{
-            background: T.card, border: `1px solid ${T.border}`,
+            marginTop: 10, border: `1px solid ${T.border}`,
             borderRadius: 10, overflow: "hidden",
           }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
@@ -797,8 +838,77 @@ export default function Proventos({
               </tbody>
             </table>
           </div>
+          )}
         </div>
-      ))}
+        );
+      })}
+
+      {/* PROVENTOS RECEBIDOS · por mês (rodapé, no estilo da Renda Fixa) */}
+      {recebidosPorMes.length > 0 && (() => {
+        const totalGeral = recebidosPorMes.reduce((s, [, l]) => s + l.reduce((ss, p) => ss + valorRecebido(p), 0), 0);
+        const nBaixas = recebidosPorMes.reduce((s, [, l]) => s + l.length, 0);
+        const secRecolhida = recolhidos.has("recebidos");
+        return (
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 16px", marginTop: 6, marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <button onClick={() => toggleRecolher("recebidos")}
+                      style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 8, textAlign: "left" }}>
+                {secRecolhida ? <ChevronRight size={16} style={{ color: T.muted }} /> : <ChevronDown size={16} style={{ color: T.muted }} />}
+                <div>
+                  <div className="label-eyebrow" style={{ color: T.green }}>Proventos recebidos · por mês</div>
+                  <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>{nBaixas} baixa(s)</div>
+                </div>
+              </button>
+              <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, color: T.green }}>
+                {hidden ? "•••" : fmt(totalGeral)}
+              </div>
+            </div>
+            {!secRecolhida && (
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+                {recebidosPorMes.map(([mes, lista]) => {
+                  const mRec = recolhidos.has("rec-" + mes);
+                  const totalMes = lista.reduce((s, p) => s + valorRecebido(p), 0);
+                  return (
+                    <div key={mes}>
+                      <button onClick={() => toggleRecolher("rec-" + mes)} className="label-eyebrow"
+                              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, marginBottom: 6, display: "flex", alignItems: "center", gap: 6, color: T.muted }}>
+                        {mRec ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                        {nomeMes(mes)} · {lista.length} baixa(s)
+                        <span className="num" style={{ color: T.green, fontWeight: 700, marginLeft: 4, textTransform: "none", letterSpacing: 0 }}>{hidden ? "•••" : fmt(totalMes)}</span>
+                      </button>
+                      {!mRec && (
+                        <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+                            <thead>
+                              <tr><Th>Data</Th><Th>Ticker</Th><Th>Tipo</Th><Th align="right">Recebido</Th><Th align="right">Ação</Th></tr>
+                            </thead>
+                            <tbody>
+                              {lista.map(p => (
+                                <tr key={p.id} style={{ borderTop: `1px solid ${T.border}` }}>
+                                  <Td>{p.data.slice(8, 10)}/{p.data.slice(5, 7)}</Td>
+                                  <Td><strong>{p.ticker}</strong></Td>
+                                  <Td>{p.tipo}</Td>
+                                  <Td align="right" mono style={{ color: T.green, fontWeight: 600 }}>{hidden ? "•••" : fmt(valorRecebido(p))}</Td>
+                                  <Td align="right">
+                                    <button onClick={() => estornarBaixa(p)} title="Estornar baixa"
+                                            style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.red, padding: "3px 8px", borderRadius: 5, cursor: "pointer", fontSize: 10.5 }}>
+                                      Estornar
+                                    </button>
+                                  </Td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* MODAL: LANÇAMENTO MANUAL */}
       {manualForm && (
