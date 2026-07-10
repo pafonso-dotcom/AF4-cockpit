@@ -191,10 +191,14 @@ export default function App() {
   /* ---------- Refresh de mercado ---------- */
   const refreshMarket = async () => {
     setRefreshing(true);
+    // Renda fixa (CDB/Tesouro/RF) fica FIXA no valor informado — não recebe tick
+    // simulado nem cotação. A rentabilidade contratada é projetada em Proventos.
+    const rendaFixaFixa = (a) => ["cdb", "tesouro", "rf"].includes(String(a.tipo || "").toLowerCase());
     if (!apiKeys.useRealMarket) {
       setTimeout(() => {
         setAtivos(prev => prev.map(a => {
-          const vol = a.tipo === "cripto" ? 0.04 : a.tipo === "fii" ? 0.012 : a.tipo === "tesouro" ? 0.005 : 0.025;
+          if (rendaFixaFixa(a)) return a;
+          const vol = a.tipo === "cripto" ? 0.04 : a.tipo === "fii" ? 0.012 : 0.025;
           return { ...a, preco: +simulateTick(a.preco, vol).toFixed(2), ultimaAtt: new Date().toISOString(), realtime: false };
         }));
         setMarketStatus({ at: new Date(), mode: "sim", okCount: 0, total: ativos.length });
@@ -203,7 +207,7 @@ export default function App() {
       return;
     }
     try {
-      const ativosComSymbol = ativos.map(a => {
+      const ativosComSymbol = ativos.filter(a => !rendaFixaFixa(a)).map(a => {
         if (a.tipo === "cripto" && !/USDT$/i.test(a.ticker)) {
           return { ...a, _symbolCotacao: `${a.ticker.toUpperCase()}USDT` };
         }
@@ -213,13 +217,14 @@ export default function App() {
       const { cotacoes, erros } = await atualizarCarteira(lista);
       let okCount = 0;
       setAtivos(prev => prev.map(a => {
+        if (rendaFixaFixa(a)) return a;
         const sym = a.tipo === "cripto" && !/USDT$/i.test(a.ticker) ? `${a.ticker.toUpperCase()}USDT` : a.ticker;
         const cot = cotacoes[sym];
         if (cot && cot.price) {
           okCount++;
           return { ...a, preco: +parseFloat(cot.price).toFixed(2), variacao24h: cot.changePercent ?? a.variacao24h, ultimaAtt: new Date().toISOString(), realtime: true, fonteCotacao: cot.fonte };
         }
-        const vol = a.tipo === "tesouro" ? 0.005 : a.tipo === "cdb" ? 0.003 : 0.012;
+        const vol = 0.012;
         return { ...a, preco: +simulateTick(a.preco, vol).toFixed(2), ultimaAtt: new Date().toISOString(), realtime: false };
       }));
       setMarketStatus({ at: new Date(), mode: okCount > 0 ? "real" : "sim", okCount, total: ativos.length, erros });

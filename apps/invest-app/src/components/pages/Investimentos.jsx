@@ -4,6 +4,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, fmtP, uid, generateHistory, todayISO } from "../../lib/format.js";
 import { API, COIN_MAP } from "../../lib/api.js";
+import { RF_INDEXADORES } from "../../lib/rendaFixa.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import PageHeader from "../ui/PageHeader.jsx";
@@ -733,6 +734,31 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
             </Field>
           </div>
           <SegmentoField form={form} setForm={setForm} />
+          {(form.tipo === "cdb" || form.tipo === "tesouro") && (() => {
+            const opt = RF_INDEXADORES.find(o => o.v === form.rfIndexador);
+            return (
+              <div style={{ background: `${T.gold}0d`, border: `1px solid ${T.gold}33`, borderRadius: 12, padding: 12, marginBottom: 4 }}>
+                <div className="label-eyebrow" style={{ color: T.gold, marginBottom: 8 }}>Rentabilidade contratada (renda fixa)</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label="Indexador">
+                    <select value={form.rfIndexador || ""} onChange={e => setForm({ ...form, rfIndexador: e.target.value })}>
+                      <option value="">— não calcular —</option>
+                      {RF_INDEXADORES.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+                    </select>
+                  </Field>
+                  <Field label={opt?.campo || "Taxa"}>
+                    <input type="number" step="0.0001" value={form.rfTaxa ?? ""}
+                           onChange={e => setForm({ ...form, rfTaxa: e.target.value })}
+                           placeholder={form.rfIndexador === "cdi" ? "104,5" : form.rfIndexador === "selic" ? "0,07" : "Ex.: 5,5"}
+                           disabled={!form.rfIndexador} />
+                  </Field>
+                </div>
+                <div style={{ fontSize: 10.5, color: T.faint, marginTop: 6, fontStyle: "italic" }}>
+                  Ex.: CDI 104,5% · Tesouro Selic + 0,07%. O rendimento previsto do mês aparece em Proventos.
+                </div>
+              </div>
+            );
+          })()}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label="Quantidade">
               <input type="number" step="0.00000001" value={form.qtd} onChange={e => setForm({ ...form, qtd: e.target.value })} placeholder="8" />
