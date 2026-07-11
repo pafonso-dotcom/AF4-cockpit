@@ -4,6 +4,11 @@ import { supabaseConfigured, getSession, onAuthChange } from "./lib/supabase.js"
 import Login from "./components/auth/Login.jsx";
 import NovaSenha from "./components/auth/NovaSenha.jsx";
 
+// ⚠️ PROVISÓRIO — login DESATIVADO enquanto fazemos as alterações.
+// Entra direto no app (dados no localStorage). Para REATIVAR o login,
+// troque para false (ou remova este bloco e o `if (BYPASS_LOGIN)` abaixo).
+const BYPASS_LOGIN = true;
+
 // Link de recuperação de senha chega com "#type=recovery&..." na URL.
 const hashRecovery = () =>
   typeof window !== "undefined" && /type=recovery/.test(window.location.hash || "");
@@ -29,6 +34,22 @@ export default function AuthGate({ children }) {
     });
     return () => { vivo = false; off(); };
   }, []);
+
+  // ⚠️ PROVISÓRIO — login desativado: entra direto no app.
+  if (BYPASS_LOGIN) {
+    return (
+      <>
+        <div style={{
+          position: "fixed", bottom: 8, right: 8, zIndex: 9999,
+          fontSize: 10.5, color: "#1a1407", background: T.gold,
+          borderRadius: 6, padding: "4px 8px", fontWeight: 600, opacity: 0.9,
+        }}>
+          🔓 login desativado (provisório)
+        </div>
+        {children}
+      </>
+    );
+  }
 
   // Modo local (dev) — sem backend configurado.
   if (!supabaseConfigured) {
