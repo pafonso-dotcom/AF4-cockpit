@@ -103,6 +103,9 @@ export default function Login() {
 
 function traduzErro(m = "") {
   const s = m.toLowerCase();
+  // Erro de rede (iOS Safari: "Load failed"; Chrome: "Failed to fetch"; etc.)
+  if (/load failed|failed to fetch|networkerror|network error|network request failed|timeout|aborted|typeerror/.test(s))
+    return "Não foi possível conectar ao servidor. Verifique sua conexão e tente de novo em instantes. Se persistir, o backend (Supabase) pode estar temporariamente indisponível — confira se o projeto não está pausado.";
   if (s.includes("invalid login")) return "E-mail ou senha incorretos.";
   if (s.includes("already registered") || s.includes("already exists")) return "Esse e-mail já tem conta. Faça login.";
   if (s.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar.";
