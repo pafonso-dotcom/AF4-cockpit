@@ -269,7 +269,12 @@ export default function CalculadoraRenda() {
         <div className="calc-sliders-grid" style={{
           display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16,
         }}>
-          <ValorInvestidoInput valor={valor} onChange={setValor} />
+          <CampoValor
+            label="Valor investido"
+            value={valor}
+            min={0} max={10_000_000} step={100_000}
+            onChange={setValor}
+          />
           <Slider
             label="Taxa de juros ao ano"
             value={taxaAnualPct}
@@ -342,24 +347,24 @@ export default function CalculadoraRenda() {
         display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: 10,
       }}>
         <ResultCard
-          titulo="Bruto / mês"
+          titulo="Rende por mês (antes do IR)"
           valor={resultado.brutoMes}
-          descricao="Rendimento mensal sem desconto de IR."
+          descricao="O total que o investimento rende no mês, sem descontar imposto."
           cor={T.muted}
         />
         <ResultCard
-          titulo="Líquido / mês (saca tudo)"
+          titulo="Pode tirar no máximo"
           valor={resultado.liquidoMes}
-          descricao="Quanto você pode retirar todo mês, descontado o IR."
+          descricao="Tirando isso todo mês você vive do rendimento — mas o patrimônio perde valor com a inflação."
           cor={T.gold}
           destaque
         />
         <ResultCard
-          titulo="Renda real / mês (preserva)"
+          titulo="Tirar sem gastar o patrimônio"
           valor={resultado.rendaRealMes}
           descricao={resultado.rendaRealMes > 0
-            ? "Quanto retirar mantendo o poder de compra do principal."
-            : "A inflação consome todo o rendimento líquido — preservação inviável neste cenário."}
+            ? "Tirando só isso, o dinheiro nunca acaba e mantém o mesmo valor lá na frente."
+            : "Neste cenário a inflação come todo o rendimento — qualquer saque encolhe o patrimônio."}
           cor={resultado.rendaRealMes > 0 ? T.green : T.red}
         />
       </div>
@@ -517,29 +522,45 @@ export default function CalculadoraRenda() {
 }
 
 // Campo digitável para o valor investido (substitui a régua/slider).
-function ValorInvestidoInput({ valor, onChange }) {
+function CampoValor({ label, value, min, max, step, onChange }) {
+  const [texto, setTexto] = useState("");
+  const [focado, setFocado] = useState(false);
+  // Enquanto não está editando, mostra formatado; ao focar, mostra número cru.
+  const exibir = focado ? texto : fmtBRL.format(value);
+  const commit = (raw) => {
+    const limpo = String(raw).replace(/[^\d]/g, "");
+    let n = limpo ? parseInt(limpo, 10) : 0;
+    if (n < min) n = min;
+    if (n > max) n = max;
+    onChange(n);
+  };
   return (
     <div>
-      <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "baseline",
-        marginBottom: 6, gap: 10,
-      }}>
-        <span style={{ fontSize: 12, color: T.ink, fontWeight: 500 }}>Valor investido</span>
-        <span className="num" style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.gold }}>
-          {fmtBRL.format(valor || 0)}
-        </span>
+      <div style={{ marginBottom: 6 }}>
+        <span className="calc-slider-label" style={{ fontSize: 12, color: T.ink, fontWeight: 500 }}>{label}</span>
       </div>
       <input
-        type="number" inputMode="numeric" min={0} step={1000}
-        value={valor || ""}
-        onChange={e => onChange(Math.max(0, Number(e.target.value) || 0))}
-        placeholder="Digite o valor (ex.: 50000)"
+        type="text" inputMode="numeric"
+        value={focado ? exibir : fmtBRL.format(value)}
+        onFocus={() => { setFocado(true); setTexto(String(value)); }}
+        onBlur={() => { setFocado(false); commit(texto); }}
+        onChange={e => { setTexto(e.target.value); commit(e.target.value); }}
         style={{
-          width: "100%", padding: "10px 12px", borderRadius: 8,
-          border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink,
-          fontSize: 15, fontFamily: T.serif,
+          width: "100%", padding: "7px 10px", borderRadius: 6,
+          background: T.bgSoft, border: `1px solid ${T.border}`,
+          color: T.gold, fontFamily: T.serif, fontSize: 18, fontWeight: 600,
+          outline: "none",
         }}
       />
+      <input type="range"
+             min={min} max={max} step={step}
+             value={value}
+             onChange={e => onChange(Number(e.target.value))}
+             style={{ width: "100%", accentColor: T.gold, cursor: "pointer", marginTop: 6 }} />
+      <div className="calc-slider-range" style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: T.faint, marginTop: 2 }}>
+        <span>{fmtBRL.format(min)}</span>
+        <span>{fmtBRL.format(max)}</span>
+      </div>
     </div>
   );
 }
