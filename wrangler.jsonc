@@ -1,5 +1,5 @@
 {
-  // Cloudflare Workers para AF4 Cockpit.
+  // Cloudflare Workers para o Numvi (numvi-financas).
   // Serve a SPA estática + /api/ping (health check).
   //
   // Sync de dados entre dispositivos é via GitHub Gist (cliente),
@@ -7,7 +7,7 @@
   // Se ainda houver binding KV no painel do Cloudflare (de versão
   // anterior), pode remover — é só "Settings → Variables and Secrets
   // → KV namespace bindings → Remove".
-  "name": "af4cockpit",
+  "name": "numvi-financas",
   "compatibility_date": "2026-05-22",
   "main": "./worker/index.js",
   "assets": {
