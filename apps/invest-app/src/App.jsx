@@ -278,7 +278,8 @@ export default function App() {
   }
 
   // Trava de assinatura (só quando a cobrança está ligada).
-  if (billingEnabled && !acessoLiberado(sub)) {
+  // O admin (dono) NUNCA é travado — sempre tem acesso, mesmo com cobrança on.
+  if (billingEnabled && !acessoLiberado(sub) && !ehAdmin(usuario)) {
     return (
       <Paywall
         motivo={sub && sub.status !== "none" ? "expirada" : ""}

@@ -1,14 +1,14 @@
 /* ============================================================
    FUNDAMENTOS (local) · base de curadoria pessoal + classificação
 
-   Versão do Numvi (app pessoal, 1 usuário). Diferente do Aureus:
+   Versão do Numvi (app pessoal, 1 usuário). Diferente do AF.invest:
    - NÃO usa servidor/admin nem service_role. Os fundamentos e a
      metodologia ficam no próprio navegador (localStorage), junto com o
      resto do estado pessoal.
    - "Analisar com IA" chama o Gemini DIRETO, com a chave que já está
      configurada em ⚙ Configurações (localStorage "af4:gemini-key").
    - Classifica os ativos (nota + selo + recomendação) com os mesmos
-     critérios IdV do Aureus (criteriosIdV.js + scoreIdV.js).
+     critérios IdV do AF.invest (criteriosIdV.js + scoreIdV.js).
    ============================================================ */
 import { CRITERIOS_FII, CRITERIOS_ACOES, CRITERIOS_STOCK, CRITERIOS_REIT } from "./criteriosIdV.js";
 import { calcularScoreIdV } from "./scoreIdV.js";
