@@ -4,7 +4,7 @@
 
 // Endereço público oficial do app (domínio próprio).
 // O .pages.dev segue funcionando, mas a URL "de marca" é esta.
-export const APP_URL = "https://aureus.inf.br";
+export const APP_URL = "https://afinvest.inf.br";
 
 // Nome do produto (para textos/convites).
 export const APP_NOME = "AF.invest";
