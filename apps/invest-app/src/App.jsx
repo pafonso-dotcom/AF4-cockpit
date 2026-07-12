@@ -3,7 +3,7 @@ import {
   RefreshCw, Eye, EyeOff, LogOut, LayoutGrid, Settings2, Check,
   LayoutDashboard, Briefcase, TrendingUp, Target, Copy, PieChart,
   Calculator, LineChart, Award, Coins, FileText, Plus, Settings, ChevronDown, Shield,
-  Search, CalendarClock, Boxes,
+  Search, CalendarClock, Boxes, MessageCircle,
 } from "lucide-react";
 
 import { T, applyTheme, THEMES } from "./lib/theme.js";
@@ -11,7 +11,7 @@ import { simulateTick } from "./lib/format.js";
 import { atualizarCarteira } from "./lib/cotacoes.js";
 import { loadInvestState, saveInvestState } from "./lib/cloudStore.js";
 import { supabaseConfigured, signOut, getUser, getSession } from "./lib/supabase.js";
-import { PLANO_PRECO } from "./lib/config.js";
+import { PLANO_PRECO, APP_NOME } from "./lib/config.js";
 import { iniciarAssinatura } from "./lib/checkout.js";
 import { billingEnabled, getSubscription, acessoLiberado } from "./lib/subscription.js";
 import { ehAdmin } from "./lib/admin.js";
@@ -409,6 +409,17 @@ export default function App() {
                   background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
                   padding: 8, width: "min(260px, calc(100vw - 24px))", boxShadow: `0 10px 30px ${T.bg}aa`,
                 }}>
+                  {/* Convidar por WhatsApp — aponta pro app atual (preview ou produção) */}
+                  <MenuItem onClick={() => {
+                    setConfigAberto(false);
+                    const url = typeof window !== "undefined" ? window.location.origin : "";
+                    const msg = `Olá! 👋 Te convido pra testar a ${APP_NOME} — plataforma de investimentos.\n\nÉ grátis nesta fase de testes: crie sua conta e organize sua carteira com clareza (cotações, carteira, proventos, análises e mais). 🪙\n\nAcesse: ${url}\n\nDepois me conta o que achou! 🙏`;
+                    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+                  }}>
+                    <MessageCircle size={15} /> Convidar por WhatsApp
+                  </MenuItem>
+                  <div style={{ height: 1, background: T.border, margin: "4px 6px" }} />
+
                   {/* Paleta de cores (submenu inline) */}
                   <div style={{ padding: "8px 10px 4px", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
                     Paleta de cores
