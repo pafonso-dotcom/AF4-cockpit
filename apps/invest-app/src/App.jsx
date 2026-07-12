@@ -3,6 +3,7 @@ import {
   RefreshCw, Eye, EyeOff, LogOut, LayoutGrid, Settings2, Check,
   LayoutDashboard, Briefcase, TrendingUp, Target, Copy, PieChart,
   Calculator, LineChart, Award, Coins, FileText, Plus, Settings, ChevronDown, Shield,
+  Search, CalendarClock, Boxes,
 } from "lucide-react";
 
 import { T, applyTheme, THEMES } from "./lib/theme.js";
@@ -34,6 +35,10 @@ import RelatoriosInvest from "./components/pages/Invest/RelatoriosInvest.jsx";
 import CalculadoraRenda from "./components/pages/Invest/CalculadoraRenda.jsx";
 import Projecao from "./components/pages/Invest/Projecao.jsx";
 import EvolucaoPatrimonio from "./components/pages/Invest/EvolucaoPatrimonio.jsx";
+import Planejador from "./components/pages/Invest/Planejador.jsx";
+import RendaDividendos from "./components/pages/Invest/RendaDividendos.jsx";
+import Screener from "./components/pages/Invest/Screener.jsx";
+import ConstrutorMercado from "./components/pages/ConstrutorMercado.jsx";
 import AnaliseTrade from "./components/pages/Trade/Analise.jsx";
 
 /* ============================================================
@@ -48,14 +53,16 @@ const lset = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } cat
 const TABS = [
   { id: "investimentos", label: "Painel", icon: LayoutDashboard },
   { id: "carteira", label: "Carteira", icon: Briefcase },
-  { id: "evolucao", label: "Evolução", icon: TrendingUp },
+  { id: "monte-carteira", label: "Monte sua Carteira", icon: PieChart },
   { id: "objetivos", label: "Objetivos", icon: Target },
   { id: "modelo", label: "Carteira modelo", icon: Copy },
-  { id: "monte-carteira", label: "Monte sua carteira", icon: PieChart },
-  { id: "calc-renda", label: "Calculadora", icon: Calculator },
-  { id: "projecao", label: "Projeção", icon: LineChart },
-  { id: "analises", label: "Análise", icon: Award },
+  { id: "planejador", label: "Planejador", icon: CalendarClock },
+  { id: "analises", label: "Análises", icon: Award },
   { id: "proventos", label: "Proventos", icon: Coins },
+  { id: "renda-dividendos", label: "Renda & Dividendos", icon: Calculator },
+  { id: "screener", label: "Screener", icon: Search },
+  { id: "construtor-mercado", label: "Construtor de mercado", icon: Boxes },
+  { id: "evolucao", label: "Evolução", icon: TrendingUp },
   { id: "relatorios-i", label: "Relatórios", icon: FileText },
 ];
 
@@ -517,6 +524,25 @@ export default function App() {
         )}
         {tab === "relatorios-i" && (
           <RelatoriosInvest ativos={ativos} proventos={[]} operacoes={[]} hidden={hidden} />
+        )}
+        {tab === "planejador" && (
+          <div className="px-6 md:px-10">
+            <Planejador transacoes={transacoes} hidden={hidden} />
+          </div>
+        )}
+        {(tab === "renda-dividendos" || tab === "mapa-dividendos") && (
+          <div className="px-6 md:px-10">
+            <RendaDividendos ativos={ativos} proventosManuais={proventosManuais} hidden={hidden}
+              apiKeys={apiKeys} alvoInicial={projetarAlvo} onConsumirAlvo={() => setProjetarAlvo(null)} />
+          </div>
+        )}
+        {tab === "screener" && (
+          <div className="px-6 md:px-10">
+            <Screener hidden={hidden} />
+          </div>
+        )}
+        {(tab === "construtor-mercado" || tab === "pesquisador-mercado") && (
+          <ConstrutorMercado onIrMonteCarteira={() => irParaTab("monte-carteira")} />
         )}
         {tab === "gerencial" && ehAdmin(usuario) && <Admin />}
         {tab === "trade-ativo" && (

@@ -89,6 +89,54 @@ export async function getCurrencies(pairs = ["USD-BRL", "EUR-BRL", "BTC-BRL"]) {
   }));
 }
 
+export async function getDividendos(ticker) {
+  const data = await brapiFetch(`/quote/${encodeURIComponent(ticker)}?dividends=true`);
+  const divs = data.results?.[0]?.dividendsData?.cashDividends || [];
+  return divs
+    .filter((d) => d && d.paymentDate && Number(d.rate) > 0)
+    .map((d) => ({
+      pagamento: String(d.paymentDate).slice(0, 10),
+      dataCom: d.lastDatePrior ? String(d.lastDatePrior).slice(0, 10) : null,
+      valor: Number(d.rate),
+      tipo: d.label || "Dividendo",
+    }))
+    .sort((a, b) => b.pagamento.localeCompare(a.pagamento));
+}
+
+export async function getListaMercado() {
+  return brapiFetch("/quote/list?limit=3000");
+}
+
+export async function getFundamentosBrapi(ticker) {
+  const data = await brapiFetch(`/quote/${encodeURIComponent(ticker)}?modules=defaultKeyStatistics,financialData&fundamental=true`);
+  return data.results?.[0] || null;
+}
+
+export async function getFundamentosLote(tickers = []) {
+  if (!tickers.length) return [];
+  const lista = tickers.map(encodeURIComponent).join(",");
+  const data = await brapiFetch(`/quote/${lista}?modules=defaultKeyStatistics,financialData&fundamental=true`);
+  return data.results || [];
+}
+
+export async function getPerfilAtivo(ticker) {
+  const data = await brapiFetch(`/quote/${encodeURIComponent(ticker)}?modules=summaryProfile`);
+  const r = data.results?.[0] || null;
+  if (!r) return null;
+  const p = r.summaryProfile || {};
+  return {
+    ticker: r.symbol || String(ticker).toUpperCase(),
+    nome: r.longName || r.shortName || "",
+    preco: r.regularMarketPrice ?? null,
+    setor: p.sector || "",
+    industria: p.industry || "",
+    site: p.website || "",
+    cidade: [p.city, p.state].filter(Boolean).join(" · "),
+    funcionarios: p.fullTimeEmployees ?? null,
+    resumo: p.longBusinessSummary || "",
+  };
+}
+
 export async function pingBRAPI(token) {
   try {
     const useToken = token || getToken();
