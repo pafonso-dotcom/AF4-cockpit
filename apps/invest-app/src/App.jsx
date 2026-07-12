@@ -276,18 +276,54 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, color: T.ink }}>
+    <div style={{ minHeight: "100vh", background: T.bg, color: T.ink, display: "flex", alignItems: "stretch" }}>
       <GlobalStyles />
       <style>{`.invest-nav::-webkit-scrollbar{display:none}.invest-nav{scrollbar-width:none}`}</style>
 
-      {/* Cabeçalho — barra de marca, sempre escura (independente da paleta) */}
-      <header style={{
-        display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
-        padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,.08)", background: "#23272E",
+      {/* Barra lateral — marca + navegação (estilo AF.finanças) */}
+      <aside style={{
+        width: 216, flexShrink: 0, background: "#23272E",
+        borderRight: "1px solid rgba(255,255,255,.08)",
+        display: "flex", flexDirection: "column",
+        position: "sticky", top: 0, height: "100vh",
       }}>
-        <div style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em" }}>
+        <div style={{ padding: "16px 16px 12px" }}>
           <Logo size={26} />
         </div>
+        <div style={{ padding: "2px 18px 8px", fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(240,235,225,.38)", fontWeight: 700 }}>
+          Investimentos
+        </div>
+        <nav className="invest-nav" style={{
+          display: "flex", flexDirection: "column", gap: 2,
+          padding: "0 10px 12px", overflowY: "auto", flex: 1,
+        }}>
+          {tabsVisiveis.map(t => {
+            const ativo = tab === t.id;
+            return (
+              <button key={t.id} onClick={() => irParaTab(t.id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "9px 12px", fontSize: 13, cursor: "pointer",
+                  background: ativo ? "rgba(232,194,90,.14)" : "transparent",
+                  border: "none", borderLeft: `3px solid ${ativo ? "#E8C25A" : "transparent"}`,
+                  borderRadius: 8, textAlign: "left",
+                  color: ativo ? "#E8C25A" : "rgba(240,235,225,.66)", fontWeight: ativo ? 600 : 400,
+                  whiteSpace: "nowrap",
+                }}>
+                {t.label}
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* Coluna de conteúdo */}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+      {/* Cabeçalho — barra de utilidades (ações à direita) */}
+      <header style={{
+        display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+        padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,.08)", background: "#23272E",
+      }}>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
           {billingEnabled && sub?.emTrial && sub.trialRestante > 0 && (
             <span title="Período de teste" style={{
@@ -322,11 +358,6 @@ export default function App() {
                   background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
                   padding: 8, width: "min(260px, calc(100vw - 24px))", boxShadow: `0 10px 30px ${T.bg}aa`,
                 }}>
-                  {/* Orientação do menu */}
-                  <MenuItem onClick={() => { toggleNav(); }}>
-                    <LayoutGrid size={15} /> Menu {navVertical ? "horizontal" : "vertical"}
-                  </MenuItem>
-
                   {/* Paleta de cores (submenu inline) */}
                   <div style={{ padding: "8px 10px 4px", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
                     Paleta de cores
@@ -367,34 +398,6 @@ export default function App() {
           </div>
         </div>
       </header>
-
-      {/* Navegação + conteúdo. Menu em grafite fixo (independe da paleta);
-          horizontal (faixa rolável) por padrão, vertical (lateral) opcional. */}
-      <div style={{ display: "flex", flexDirection: navVertical ? "row" : "column", alignItems: "stretch" }}>
-      <nav className="invest-nav" style={{
-        display: "flex", gap: navVertical ? 2 : 6, padding: navVertical ? "10px 12px" : "8px 16px", background: "#23272E",
-        ...(navVertical
-          ? { flexDirection: "column", borderRight: "1px solid rgba(255,255,255,.08)", minWidth: 176, flexShrink: 0 }
-          : { borderBottom: "1px solid rgba(255,255,255,.08)", flexWrap: "nowrap", overflowX: "auto", WebkitOverflowScrolling: "touch" }),
-      }}>
-        {tabsVisiveis.map(t => {
-          const ativo = tab === t.id;
-          return (
-            <button key={t.id} onClick={() => irParaTab(t.id)}
-                    style={{
-                      padding: navVertical ? "9px 12px" : "8px 6px", fontSize: 13, cursor: "pointer",
-                      background: navVertical && ativo ? "rgba(232,194,90,.12)" : "transparent",
-                      border: "none",
-                      borderRadius: navVertical ? 8 : 0,
-                      borderBottom: navVertical ? "none" : `2px solid ${ativo ? "#E8C25A" : "transparent"}`,
-                      color: ativo ? "#E8C25A" : "rgba(240,235,225,.66)", fontWeight: ativo ? 600 : 400,
-                      whiteSpace: "nowrap", flexShrink: 0, textAlign: navVertical ? "left" : "center",
-                    }}>
-              {t.label}
-            </button>
-          );
-        })}
-      </nav>
 
       <main className="fade-up" style={{ paddingBottom: 40, flex: 1, minWidth: 0 }}>
         {tab === "investimentos" && (
@@ -482,9 +485,9 @@ export default function App() {
           </div>
         )}
       </main>
+      <Footer />
       </div>
 
-      <Footer />
       <ToastContainer />
       <ConfirmDialog />
     </div>
