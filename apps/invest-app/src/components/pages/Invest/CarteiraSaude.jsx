@@ -25,6 +25,7 @@ export default function CarteiraSaude({ ativos = [], hidden }) {
 
   const stats = useMemo(() => {
     const ativosValidos = (ativos || []).filter(a => {
+      if (a?.tipo === "capitalSocial") return false; // fora dos cálculos de saúde/alocação
       const v = Number(a.qtd || 0) * Number(a.preco || 0);
       return v > 0;
     });
@@ -128,31 +129,24 @@ export default function CarteiraSaude({ ativos = [], hidden }) {
                    : "Atenção";
 
   return (
-    <div className="no-print invest-saude-grid" style={{
-      display: "grid",
-      gridTemplateColumns: "minmax(220px, 1fr) minmax(220px, 1.2fr) minmax(220px, 1fr)",
-      gap: 12,
-      marginBottom: 18,
-    }}>
-      {/* SCORE */}
+    <div className="no-print" style={{ marginBottom: 18 }}>
+      {/* SCORE — Saúde da carteira (alocação e insight saíram da carteira) */}
       <div style={cardStyle(T)}>
-        <div className="label-eyebrow" style={{ marginBottom: 8 }}>Saúde da carteira</div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <div style={{
-            fontFamily: T.serif, fontSize: 44, fontWeight: 600,
-            color: scoreCor, lineHeight: 1, fontVariantNumeric: "tabular-nums",
-          }}>
-            {stats.score}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+          <div className="label-eyebrow">Saúde da carteira</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+            <div style={{ fontFamily: T.serif, fontSize: 32, fontWeight: 600, color: scoreCor, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+              {stats.score}
+            </div>
+            <div style={{ fontSize: 12, color: T.muted }}>/ 100</div>
+            <div style={{ fontSize: 11, color: scoreCor, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", marginLeft: 4 }}>
+              {scoreLabel}
+            </div>
           </div>
-          <div style={{ fontSize: 13, color: T.muted }}>/ 100</div>
-        </div>
-        <div style={{ fontSize: 11, color: scoreCor, fontWeight: 600, letterSpacing: ".05em",
-                       textTransform: "uppercase", marginTop: 4 }}>
-          {scoreLabel}
         </div>
 
-        {/* Mini metricas que compõem o score */}
-        <div style={{ marginTop: 14, display: "grid", gap: 6, fontSize: 11, color: T.muted }}>
+        {/* Mini métricas que compõem o score */}
+        <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "6px 18px", fontSize: 11, color: T.muted }}>
           <Row label="Ativos" value={stats.totalAtivos} />
           <Row label="No lucro" value={`${stats.noLucro} (${stats.pctLucro.toFixed(0)}%)`} />
           <Row label="Diversificação" value={
@@ -163,71 +157,6 @@ export default function CarteiraSaude({ ativos = [], hidden }) {
           <Row label="Patrimônio" value={hidden ? "•••••" : fmt(stats.total)} />
         </div>
       </div>
-
-      {/* PIE: ALOCAÇÃO */}
-      <div style={cardStyle(T)}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-          <div className="label-eyebrow">Alocação</div>
-          <div style={{ display: "inline-flex", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 5, padding: 2 }}>
-            {[{ id: "classe", l: "Classe" }, { id: "segmento", l: "Segmento" }].map(o => (
-              <button key={o.id} onClick={() => setAgruparPor(o.id)}
-                style={{
-                  padding: "3px 9px", fontSize: 9.5, letterSpacing: ".05em", textTransform: "uppercase",
-                  fontWeight: 600, border: "none", borderRadius: 3, cursor: "pointer",
-                  background: agruparPor === o.id ? T.gold : "transparent",
-                  color: agruparPor === o.id ? T.bg : T.muted,
-                }}>
-                {o.l}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 10, alignItems: "center" }}>
-          <div style={{ width: 120, height: 120 }}>
-            <AlocacaoPieChart data={stats.pieData} hidden={hidden} innerRadius={32} outerRadius={56} height={120} />
-          </div>
-          <div style={{ display: "grid", gap: 4, fontSize: 11, overflow: "auto", maxHeight: 130 }}>
-            {stats.pieData.slice(0, 6).map((p, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: p.cor, flexShrink: 0 }} />
-                <span style={{ color: T.ink, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nome}</span>
-                <span style={{ color: T.muted, fontVariantNumeric: "tabular-nums" }}>{p.pct.toFixed(1)}%</span>
-              </div>
-            ))}
-            {stats.pieData.length > 6 && (
-              <div style={{ color: T.faint, fontSize: 10 }}>+ {stats.pieData.length - 6} outros</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* INSIGHT */}
-      <div style={{ ...cardStyle(T), borderLeft: `3px solid ${stats.insight.cor}` }}>
-        <div className="label-eyebrow" style={{ marginBottom: 8 }}>Insight</div>
-        <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-          <span style={{ color: stats.insight.cor, flexShrink: 0, marginTop: 2 }}>
-            {stats.insight.tipo === "queda" ? <TrendingDown size={18} />
-              : stats.insight.tipo === "lucro" ? <TrendingUp size={18} />
-              : stats.insight.tipo === "concentracao" ? <AlertCircle size={18} />
-              : <Activity size={18} />}
-          </span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, color: stats.insight.cor, fontWeight: 600 }}>
-              {stats.insight.titulo}
-            </div>
-            <div style={{ fontSize: 11.5, color: T.muted, marginTop: 4, lineHeight: 1.45 }}>
-              {stats.insight.detalhe}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stack vertical em mobile via style global escopado */}
-      <style>{`
-        @media (max-width: 768px) {
-          .invest-saude-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -235,7 +164,7 @@ export default function CarteiraSaude({ ativos = [], hidden }) {
 const cardStyle = (T) => ({
   background: T.card,
   border: `1px solid ${T.border}`,
-  borderRadius: 8,
+  borderRadius: 14,
   padding: 14,
 });
 

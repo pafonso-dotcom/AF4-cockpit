@@ -15,7 +15,7 @@ const TAXA_SUGERIDA = {
   cripto: 1.50, rf: 0.80, tesouro: 0.75, cdb: 0.85, outro: 0.85,
 };
 
-export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicial, onConsumirAlvo }) {
+export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicial, onConsumirAlvo, embed = false }) {
   // Carteira com posição (qtd > 0)
   const ativosComPosicao = useMemo(
     () => (ativos || []).filter(a => Number(a.qtd || 0) > 0),
@@ -41,7 +41,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
   const [aporteModo, setAporteModo] = useState("mensal"); // "mensal" | "total"
   const [prazoAnos, setPrazoAnos] = useState(10);
   const [taxaMensal, setTaxaMensal] = useState("0.85");
-  const [valorInicialManual, setValorInicialManual] = useState("0");
+  const [valorInicialManual, setValorInicialManual] = useState("10000");
   // Ativo futuro (Personalizado): nome + classe
   const [tickerManual, setTickerManual] = useState("");
   const [tipoManual, setTipoManual] = useState("fii");
@@ -162,19 +162,24 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
     return anos;
   }, [projecao, prazoAnos]);
 
+  const acoesProj = (
+    <button className="btn-gold" onClick={() => setSugestaoOpen(true)}>
+      <Sparkles size={13} className="inline mr-2" />
+      Sugestão de Aporte (IA)
+    </button>
+  );
   return (
-    <div className="fade-up py-8">
-      <PageHeader
-        eyebrow="Capítulo VIII"
-        title="Projeção"
-        sub="Simule a evolução de um ativo (da sua carteira ou personalizado) com aporte regular."
-        action={
-          <button className="btn-gold" onClick={() => setSugestaoOpen(true)}>
-            <Sparkles size={13} className="inline mr-2" />
-            Sugestão de Aporte (IA)
-          </button>
-        }
-      />
+    <div className={embed ? "" : "fade-up py-8"}>
+      {!embed ? (
+        <PageHeader
+          eyebrow="Capítulo VIII"
+          title="Projeção"
+          sub="Simule a evolução de um ativo (da sua carteira ou personalizado) com aporte regular."
+          action={acoesProj}
+        />
+      ) : (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>{acoesProj}</div>
+      )}
 
       <SugestaoAporte
         open={sugestaoOpen}
@@ -185,7 +190,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
       />
 
       {/* Form */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, marginBottom: 18 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20, marginBottom: 18 }}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Ativo">
             <select value={ativoId} onChange={e => setAtivoId(e.target.value)}>
@@ -330,7 +335,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
       </div>
 
       {/* Gráfico */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, marginBottom: 18 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20, marginBottom: 18 }}>
         <div style={{ fontFamily: T.serif, fontSize: 18, fontWeight: 600, color: T.ink, marginBottom: 4 }}>
           Evolução em {prazoAnos} {prazoAnos === 1 ? "ano" : "anos"}
         </div>
@@ -404,7 +409,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
       </div>
 
       {/* Marcos por ano */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, marginBottom: 18 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20, marginBottom: 18 }}>
         <div style={{ fontFamily: T.serif, fontSize: 18, fontWeight: 600, color: T.ink, marginBottom: 14 }}>
           Marcos no caminho
         </div>
@@ -439,7 +444,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
       </div>
 
       {/* Comparativos */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 20 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.ink, marginBottom: 12 }}>
           Comparativos
         </div>
@@ -451,7 +456,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
           const melhor = diff >= 0;
           return (
             <div style={{
-              padding: 12, marginBottom: 10, borderRadius: 8,
+              padding: 12, marginBottom: 10, borderRadius: 14,
               background: melhor ? `${T.green}10` : `${T.red}10`,
               border: `1px solid ${melhor ? T.green : T.red}33`,
             }}>
@@ -468,7 +473,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
         })()}
 
         {/* Sem aporte */}
-        <div style={{ padding: 12, borderRadius: 8, background: T.bgSoft, border: `1px solid ${T.border}` }}>
+        <div style={{ padding: 12, borderRadius: 14, background: T.bgSoft, border: `1px solid ${T.border}` }}>
           <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.6 }}>
             <strong style={{ color: T.ink }}>E se você não aportasse?</strong><br />
             Mantendo só {fmt(valorInicial)} na mesma taxa do ativo, em {prazoAnos} {prazoAnos === 1 ? "ano" : "anos"} você teria <strong style={{ color: T.ink }}>{fmt(cenarioSemAporte)}</strong>.
@@ -490,7 +495,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
 
 function KpiCard({ label, value, sub, icon: Icon, cor }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 14 }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <div style={{ fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
           {label}

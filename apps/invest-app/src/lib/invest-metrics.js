@@ -18,15 +18,37 @@ export const retornoMensal = (ativo) => {
 };
 
 /**
- * Gera série sintética de 12 retornos mensais ao redor do retorno real do ativo.
- * Apenas pra alimentar Sharpe/Drawdown com dados verossímeis.
+ * Gera série sintética de retornos mensais ao redor do retorno real do ativo —
+ * usada só como ESTIMATIVA ILUSTRATIVA quando não há histórico real de preços.
+ * DETERMINÍSTICA: mesma carteira → mesma série (seed derivada dos ativos),
+ * em vez de Math.random() que mudava os números a cada render.
  */
-const gerarSerie = (retornoAlvo, vol = 0.05, n = 12) => {
+function seedFrom(str = "") {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return h >>> 0;
+}
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const seedDaCarteira = (ativos = []) =>
+  ativos.map((a) => `${a.ticker}:${a.qtd}:${a.pm}`).join("|") || "af4";
+
+const gerarSerie = (retornoAlvo, vol = 0.05, n = 12, seedStr = "af4") => {
+  const rnd = mulberry32(seedFrom(seedStr));
   const serie = [];
   for (let i = 0; i < n; i++) {
     // ruído normal aproximado por Box-Muller simplificado
-    const u1 = Math.random() || 0.001;
-    const u2 = Math.random();
+    const u1 = rnd() || 0.001;
+    const u2 = rnd();
     const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
     serie.push(retornoAlvo / n + z * vol);
   }
@@ -54,7 +76,7 @@ export const sharpeRatio = (ativos) => {
   if (!ativos || ativos.length === 0) return null;
   const r = retornoCarteira(ativos);
   const rAnualizado = (1 + r) ** 12 - 1;
-  const serie = gerarSerie(r, 0.04);
+  const serie = gerarSerie(r, 0.04, 12, seedDaCarteira(ativos));
   const media = serie.reduce((s, x) => s + x, 0) / serie.length;
   const variancia = serie.reduce((s, x) => s + (x - media) ** 2, 0) / serie.length;
   const vol = Math.sqrt(variancia) * Math.sqrt(12); // anualizado
@@ -69,7 +91,7 @@ export const sortinoRatio = (ativos) => {
   if (!ativos || ativos.length === 0) return null;
   const r = retornoCarteira(ativos);
   const rAnualizado = (1 + r) ** 12 - 1;
-  const serie = gerarSerie(r, 0.04);
+  const serie = gerarSerie(r, 0.04, 12, seedDaCarteira(ativos));
   const negativos = serie.filter(x => x < 0);
   if (negativos.length === 0) return "∞";
   const downsideVar = negativos.reduce((s, x) => s + x ** 2, 0) / negativos.length;
@@ -84,7 +106,7 @@ export const sortinoRatio = (ativos) => {
 export const maxDrawdown = (ativos) => {
   if (!ativos || ativos.length === 0) return null;
   const r = retornoCarteira(ativos);
-  const serie = gerarSerie(r, 0.05);
+  const serie = gerarSerie(r, 0.05, 12, seedDaCarteira(ativos));
   let pico = 1, valor = 1, maxDD = 0;
   for (const ret of serie) {
     valor *= (1 + ret);
@@ -101,7 +123,7 @@ export const maxDrawdown = (ativos) => {
 export const volatilidade = (ativos) => {
   if (!ativos || ativos.length === 0) return null;
   const r = retornoCarteira(ativos);
-  const serie = gerarSerie(r, 0.04);
+  const serie = gerarSerie(r, 0.04, 12, seedDaCarteira(ativos));
   const media = serie.reduce((s, x) => s + x, 0) / serie.length;
   const variancia = serie.reduce((s, x) => s + (x - media) ** 2, 0) / serie.length;
   const vol = Math.sqrt(variancia) * Math.sqrt(12) * 100;
@@ -114,7 +136,7 @@ export const volatilidade = (ativos) => {
 export const valueAtRisk = (ativos, percentil = 0.95) => {
   if (!ativos || ativos.length === 0) return null;
   const r = retornoCarteira(ativos);
-  const serie = gerarSerie(r, 0.04, 240); // 20 anos pra ter cauda
+  const serie = gerarSerie(r, 0.04, 240, seedDaCarteira(ativos)); // 20 anos pra ter cauda
   serie.sort((a, b) => a - b);
   const idx = Math.floor(serie.length * (1 - percentil));
   const perdaPercent = serie[idx];
@@ -200,8 +222,15 @@ export const stressTest = (ativos) => {
 };
 
 /**
- * Calendário de proventos simulado para os próximos 90 dias.
- * Cada ativo tipo "acao" ou "fii" gera 1 provento por mês.
+ * Calendário de proventos para os próximos ~90 dias.
+ *
+ * Com `historicoReal` (proventos anunciados via brapi — o mesmo cache do Mapa
+ * de Dividendos/Screener), o calendário fica REAL:
+ *   - pagamentos anunciados na janela entram com a cota exata (flag real);
+ *   - FII sem anúncio num mês é projetado com a ÚLTIMA cota real, no mesmo
+ *     dia do último pagamento (flag estimado) — "cota atualizada";
+ *   - ação com histórico só mostra anunciados (dividendo de ação é irregular).
+ * Sem histórico real do ticker, cai na simulação legada (pseudoRandom).
  */
 // Pseudo-random determinístico baseado em string (mesma seed = mesmo resultado)
 function pseudoRandom(seed) {
@@ -211,8 +240,18 @@ function pseudoRandom(seed) {
   return ((h * 9301 + 49297) % 233280) / 233280;
 }
 
-export const calendarioProventos = (ativos, hoje = new Date()) => {
+const isoDe = (y, mIdx, d) => {
+  const ultDia = new Date(y, mIdx + 1, 0).getDate();
+  const dia = Math.min(d, ultDia);
+  return `${y}-${String(mIdx + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+};
+
+export const calendarioProventos = (ativos, hoje = new Date(), historicoReal = {}) => {
   const proventos = [];
+  // Janela: do 1º dia do mês corrente até ~90 dias à frente.
+  const inicioISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
+  const fim = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 92);
+  const fimISO = fim.toISOString().slice(0, 10);
 
   ativos.forEach(a => {
     const tipo = (a.tipo || "").toLowerCase();
@@ -222,8 +261,58 @@ export const calendarioProventos = (ativos, hoje = new Date()) => {
     const preco = Number(a.preco || 0);
     if (qtd <= 0 || preco <= 0) return;
 
+    const tk = String(a.ticker || "").toUpperCase();
+    const divs = (historicoReal[tk] || []).filter(d => d && d.pagamento && Number(d.valor) > 0);
+
+    // ===== Caminho REAL (proventos anunciados via brapi) =====
+    if (divs.length > 0) {
+      const tipoProv = tipo === "fii" ? "Rendimento" : "Dividendo";
+      const ordenados = [...divs].sort((x, y) => y.pagamento.localeCompare(x.pagamento));
+      const mesesComAnuncio = new Set();
+
+      ordenados.forEach(d => {
+        if (d.pagamento < inicioISO || d.pagamento > fimISO) return;
+        mesesComAnuncio.add(d.pagamento.slice(0, 7));
+        proventos.push({
+          id: `${tk}-${d.pagamento}-${tipoProv}`,
+          data: d.pagamento,
+          ticker: tk,
+          tipo: tipoProv,
+          valorPorCota: Number(d.valor),
+          qtd,
+          total: Number(d.valor) * qtd,
+          real: true,
+        });
+      });
+
+      // FII paga todo mês: projeta os meses da janela ainda sem anúncio com a
+      // última cota real, no mesmo dia do último pagamento.
+      if (tipo === "fii") {
+        const ultimo = ordenados[0];
+        const cota = Number(ultimo.valor);
+        const diaPagto = Number(ultimo.pagamento.slice(8, 10)) || 15;
+        for (let m = 0; m < 3; m++) {
+          const ym = `${new Date(hoje.getFullYear(), hoje.getMonth() + m, 1).getFullYear()}-${String(new Date(hoje.getFullYear(), hoje.getMonth() + m, 1).getMonth() + 1).padStart(2, "0")}`;
+          if (mesesComAnuncio.has(ym)) continue;
+          const dataISO = isoDe(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)) - 1, diaPagto);
+          if (dataISO > fimISO) continue;
+          proventos.push({
+            id: `${tk}-${dataISO}-${tipoProv}`,
+            data: dataISO,
+            ticker: tk,
+            tipo: tipoProv,
+            valorPorCota: cota,
+            qtd,
+            total: cota * qtd,
+            estimado: true, // projeção com a última cota real
+          });
+        }
+      }
+      return;
+    }
+
+    // ===== Caminho legado (sem histórico real): simulação =====
     // FII: rendimento ~ 0,7-1,2% ao mês. Ação: dividendo ~ 0,5-1,5% (trimestral).
-    // Usa pseudoRandom estável (mesma seed = mesmo valor a cada render)
     let valorPorCota = 0;
     let frequencia = 1;
     let tipoProv = "";

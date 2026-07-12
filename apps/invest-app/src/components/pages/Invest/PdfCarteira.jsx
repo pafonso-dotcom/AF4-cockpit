@@ -95,7 +95,7 @@ export default function PdfCarteira({ ativos = [], proventos = [], operacoes = [
 
       <div className="no-print" style={{
         maxHeight: 140, overflowY: "auto", padding: 8,
-        background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 6,
+        background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 11,
         marginBottom: 16, fontSize: 12,
       }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
@@ -111,7 +111,7 @@ export default function PdfCarteira({ ativos = [], proventos = [], operacoes = [
       </div>
 
       {/* ===== Área de impressão ===== */}
-      <div className="print-area" style={{ background: "#fff", color: "#111", padding: 24, borderRadius: 6 }}>
+      <div className="print-area" style={{ background: "#fff", color: "#111", padding: 24, borderRadius: 11 }}>
         {/* CAPA */}
         <div style={{ minHeight: 600, paddingBottom: 30 }}>
           <div style={{ borderBottom: "3px solid #c9a574", paddingBottom: 16, marginBottom: 24 }}>
@@ -119,7 +119,7 @@ export default function PdfCarteira({ ativos = [], proventos = [], operacoes = [
               Carteira de Investimentos
             </h1>
             <div style={{ fontSize: 13, color: "#666", marginTop: 4 }}>
-              AF4 Cockpit · Relatório completo · {todayISO()}
+              Afinanças · Relatório completo · {todayISO()}
             </div>
           </div>
 

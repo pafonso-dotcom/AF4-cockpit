@@ -7,7 +7,7 @@ import { getHistorico, getQuotes } from "../../../lib/brapi.js";
 import { calcRSI, calcMACD, calcTrend, calcVolumeChange, calcEMA } from "../../../lib/indicadores.js";
 import { calcularScore, direcaoSinal, confiancaSinal } from "../../../lib/score.js";
 import { toast } from "../../../lib/toast.js";
-import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS } from "../../../lib/invest-constants.js";
+import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, TIPOS_ANALISAVEIS } from "../../../lib/invest-constants.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 
 const INTERVALOS_BINANCE = [
@@ -15,8 +15,6 @@ const INTERVALOS_BINANCE = [
   { v: "1d",  l: "1d"  }, { v: "1w", l: "1w" },
 ];
 const BRAPI_TF = { "1d": { range: "3mo", interval: "1d" }, "1w": { range: "3mo", interval: "1wk" } };
-
-const TIPOS_ANALISAVEIS = ["acao", "fii", "stock", "reit", "etf", "cripto"];
 
 async function analisarAtivo(asset, intervaloUI) {
   // Roteia a fonte de dados pelo tipo do ativo
@@ -162,7 +160,7 @@ export default function AnaliseCarteira({ ativos = [], hidden, onAnalisar }) {
 
       {/* Filtros */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
         padding: 12, marginBottom: 14, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center",
       }}>
         <div style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
@@ -187,7 +185,7 @@ export default function AnaliseCarteira({ ativos = [], hidden, onAnalisar }) {
       </div>
 
       {/* Tabela */}
-      <div className="analise-tabela-wrap" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+      <div className="analise-tabela-wrap" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
         <div className="analise-tabela-scroll" style={{ overflowX: "auto" }}>
           <div className="analise-tabela-inner" style={{ minWidth: 620 }}>
             <div style={{
@@ -243,7 +241,7 @@ function KpiCell({ label, valor, cor }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${cor}`, borderRadius: 8, padding: 12,
+      borderLeft: `3px solid ${cor}`, borderRadius: 14, padding: 12,
     }}>
       <div style={{ fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>{label}</div>
       <div className="num" style={{ fontFamily: T.serif, fontSize: 22, color: cor, fontWeight: 600, marginTop: 5, lineHeight: 1.1 }}>{valor}</div>
@@ -252,7 +250,7 @@ function KpiCell({ label, valor, cor }) {
 }
 
 function LinhaAtivo({ ativo, r, hidden, onAnalisar }) {
-  const moeda = ativo.tipo === "acao" || ativo.tipo === "fii" ? "R$" : "US$";
+  const moeda = (ativo.tipo === "stock" || ativo.tipo === "reit") ? "US$" : "R$";
   const corClasse = ASSET_CLASS_COLORS[ativo.tipo] || "#9ca3af";
   const d = r?.data;
   const dir = d?.direcao || "";

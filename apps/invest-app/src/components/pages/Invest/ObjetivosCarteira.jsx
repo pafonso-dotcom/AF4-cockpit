@@ -28,6 +28,7 @@ import {
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN, uid } from "../../../lib/format.js";
 import { parseValorBR } from "../../../lib/importExport.js";
+import { semCapitalSocial } from "../../../lib/invest-constants.js";
 import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import PageHeader from "../../ui/PageHeader.jsx";
@@ -61,12 +62,13 @@ const CLASSES_DISPONIVEIS = [
 ];
 
 export default function ObjetivosCarteira({
-  ativos = [],
+  ativos: ativosProp = [],
   objetivosCarteira,
   setObjetivosCarteira,
   hidden,
   apiKeys = {},
 }) {
+  const ativos = semCapitalSocial(ativosProp); // Capital Social fora dos objetivos
   const tree = (objetivosCarteira && objetivosCarteira.length > 0) ? objetivosCarteira : DEFAULT_TREE;
   const [editando, setEditando] = useState(null); // node sendo editado
   const [sugestaoOpen, setSugestaoOpen] = useState(false);
@@ -285,7 +287,7 @@ export default function ObjetivosCarteira({
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10,
       }} className="objetivos-resumo">
         <div style={{
-          background: T.card, border: `1px solid ${T.border}`, borderRadius: 8,
+          background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
           padding: 10,
         }}>
           <div className="label-eyebrow">
@@ -306,7 +308,7 @@ export default function ObjetivosCarteira({
           background: `linear-gradient(135deg, ${T.gold}11, ${T.card})`,
           border: `1px solid ${T.gold}66`,
           borderLeft: `3px solid ${T.gold}`,
-          borderRadius: 8, padding: 10,
+          borderRadius: 14, padding: 10,
         }}>
           <div className="label-eyebrow" style={{ color: T.gold }}>
             <ArrowRight size={10} className="inline mr-1" />
@@ -335,7 +337,7 @@ export default function ObjetivosCarteira({
         <div style={{
           padding: 12, background: `${T.gold}11`,
           border: `1px solid ${T.gold}55`, borderLeft: `3px solid ${T.gold}`,
-          borderRadius: 8, marginBottom: 14,
+          borderRadius: 14, marginBottom: 14,
         }}>
           <div style={{ fontSize: 11, color: T.gold, fontWeight: 700, marginBottom: 4, letterSpacing: ".05em", textTransform: "uppercase" }}>
             <AlertCircle size={12} className="inline mr-1" /> Atenção
@@ -346,71 +348,91 @@ export default function ObjetivosCarteira({
         </div>
       )}
 
-      {/* Árvore */}
-      {raizes.length === 0 ? (
-        <div style={{
-          textAlign: "center", padding: "60px 24px",
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 12,
-        }}>
-          <Target size={36} style={{ color: T.gold, marginBottom: 12 }} />
-          <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, margin: "0 0 8px", fontWeight: 600 }}>
-            Sem objetivos definidos
-          </h3>
-          <p style={{ color: T.muted, fontSize: 13, margin: 0 }}>
-            Clique em "Restaurar padrão" pra começar com a árvore IdV ou "Adicionar nó".
-          </p>
-        </div>
-      ) : (
-        <div style={{
-          background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 10,
-          padding: 12, overflowX: "auto",
-        }}>
-          {/* DESKTOP: org-chart visual */}
-          <div className="objetivos-tree-desktop">
-            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-              {raizes.map(raiz => (
-                <TreeOrgNode
-                  key={raiz.id}
-                  node={raiz}
-                  tree={tree}
-                  valorPorNo={valorPorNo}
-                  valorAlvo={valorAlvo}
-                  distribuicaoAporte={distribuicaoAporte}
-                  aporteN={aporteN}
-                  hidden={hidden}
-                  onEditar={(n) => setEditando(n)}
-                  onExcluir={excluirNo}
-                  onAdicionarFilho={(p) => setEditando({ id: null, parentId: p.id, label: "", percent: 0, classeMatch: null })}
-                  onSugerir={(n, v) => abrirSugestao(n, v)}
-                  onVer={(n) => setVerAtivosNo(n)}
-                />
-              ))}
-            </div>
-          </div>
+      {/* Layout: árvore + plano lado a lado */}
+      <div className="objetivos-split">
 
-          {/* MOBILE: lista vertical indentada */}
-          <div className="objetivos-tree-mobile" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {raizes.map(raiz => (
-              <TreeListNode
-                key={raiz.id}
-                node={raiz}
-                tree={tree}
-                valorPorNo={valorPorNo}
-                valorAlvo={valorAlvo}
-                distribuicaoAporte={distribuicaoAporte}
-                aporteN={aporteN}
-                hidden={hidden}
-                onEditar={(n) => setEditando(n)}
-                onExcluir={excluirNo}
-                onAdicionarFilho={(p) => setEditando({ id: null, parentId: p.id, label: "", percent: 0, classeMatch: null })}
-                onSugerir={(n, v) => abrirSugestao(n, v)}
-                onVer={(n) => setVerAtivosNo(n)}
-                nivel={0}
-              />
-            ))}
-          </div>
+        {/* Coluna esquerda: árvore */}
+        <div className="objetivos-split-tree">
+          {raizes.length === 0 ? (
+            <div style={{
+              textAlign: "center", padding: "60px 24px",
+              background: T.card, border: `1px dashed ${T.border}`, borderRadius: 18,
+            }}>
+              <Target size={36} style={{ color: T.gold, marginBottom: 12 }} />
+              <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, margin: "0 0 8px", fontWeight: 600 }}>
+                Sem objetivos definidos
+              </h3>
+              <p style={{ color: T.muted, fontSize: 13, margin: 0 }}>
+                Clique em "Restaurar padrão" pra começar com a árvore IdV ou "Adicionar nó".
+              </p>
+            </div>
+          ) : (
+            <div style={{
+              background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 16,
+              padding: 12, overflowX: "auto",
+            }}>
+              {/* DESKTOP: org-chart visual */}
+              <div className="objetivos-tree-desktop">
+                <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                  {raizes.map(raiz => (
+                    <TreeOrgNode
+                      key={raiz.id}
+                      node={raiz}
+                      tree={tree}
+                      valorPorNo={valorPorNo}
+                      valorAlvo={valorAlvo}
+                      distribuicaoAporte={distribuicaoAporte}
+                      aporteN={aporteN}
+                      hidden={hidden}
+                      onEditar={(n) => setEditando(n)}
+                      onExcluir={excluirNo}
+                      onAdicionarFilho={(p) => setEditando({ id: null, parentId: p.id, label: "", percent: 0, classeMatch: null })}
+                      onSugerir={(n, v) => abrirSugestao(n, v)}
+                      onVer={(n) => setVerAtivosNo(n)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* MOBILE: lista vertical indentada */}
+              <div className="objetivos-tree-mobile" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {raizes.map(raiz => (
+                  <TreeListNode
+                    key={raiz.id}
+                    node={raiz}
+                    tree={tree}
+                    valorPorNo={valorPorNo}
+                    valorAlvo={valorAlvo}
+                    distribuicaoAporte={distribuicaoAporte}
+                    aporteN={aporteN}
+                    hidden={hidden}
+                    onEditar={(n) => setEditando(n)}
+                    onExcluir={excluirNo}
+                    onAdicionarFilho={(p) => setEditando({ id: null, parentId: p.id, label: "", percent: 0, classeMatch: null })}
+                    onSugerir={(n, v) => abrirSugestao(n, v)}
+                    onVer={(n) => setVerAtivosNo(n)}
+                    nivel={0}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Coluna direita: Plano deste mês (sidebar) */}
+        <div className="objetivos-split-plan">
+          <PlanoDeMes
+            tree={tree}
+            distribuicaoAporte={distribuicaoAporte}
+            valorPorNo={valorPorNo}
+            valorAlvo={valorAlvo}
+            aporteN={aporteN}
+            hidden={hidden}
+            onSugerir={(n, v) => abrirSugestao(n, v)}
+          />
+        </div>
+
+      </div>
 
       {/* Modal Editar/Adicionar nó */}
       {editando && (
@@ -450,6 +472,25 @@ export default function ObjetivosCarteira({
         .objetivos-resumo { grid-template-columns: 1fr 1fr; }
         .objetivos-tree-desktop { display: block; }
         .objetivos-tree-mobile { display: none; }
+
+        /* Split layout */
+        .objetivos-split { display: flex; gap: 20px; align-items: flex-start; }
+        .objetivos-split-tree { flex: 1 1 0; min-width: 0; }
+        .objetivos-split-plan { flex: 0 0 300px; min-width: 260px; position: sticky; top: 80px; }
+
+        /* Card hover actions */
+        .obj-card-actions { opacity: 0; transition: opacity .15s; }
+        .obj-card:hover .obj-card-actions { opacity: 1; }
+
+        @media (max-width: 600px) {
+          .objetivos-split { flex-direction: column; }
+          .objetivos-split-plan { flex: 1 1 auto; width: 100%; position: static; min-width: 0; }
+        }
+        @media (max-width: 900px) {
+          /* Painel um pouco mais estreito pra árvore e plano caberem lado a lado. */
+          .objetivos-split-plan { flex: 0 0 260px; min-width: 220px; }
+          .obj-card-actions { opacity: 1; }
+        }
         @media (max-width: 768px) {
           .objetivos-resumo { grid-template-columns: 1fr !important; }
           .objetivos-tree-desktop { display: none; }
@@ -597,125 +638,110 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
 
   if (modo === "org") {
     return (
-      <div style={{
-        background: `linear-gradient(135deg, ${corStatus}22, ${T.card})`,
-        border: `1px solid ${corStatus}`,
-        borderRadius: 6,
-        padding: 6, minWidth: 108, maxWidth: 132,
+      <div className="obj-card" style={{
         position: "relative",
+        background: T.card,
+        border: `1px solid ${T.border}`,
+        borderTop: `3px solid ${corStatus}`,
+        borderRadius: 16,
+        padding: "10px 12px",
+        minWidth: 148, maxWidth: 200,
+        boxShadow: `0 2px 6px rgba(0,0,0,.12)`,
       }}>
-        {/* Botão editar — canto sup esq */}
-        <button onClick={() => onEditar(node)} title="Editar"
-                style={{
-                  position: "absolute", top: -6, left: -6,
-                  width: 15, height: 15, borderRadius: "50%",
-                  background: T.card, border: `1px solid ${T.border}`,
-                  color: T.muted, cursor: "pointer",
-                  display: "grid", placeItems: "center",
-                }}>
-          <Edit3 size={8} />
-        </button>
+        {/* Ações flutuantes no canto superior direito (hover) */}
+        <div className="obj-card-actions" style={{
+          position: "absolute", top: 6, right: 6,
+          display: "flex", gap: 2,
+        }}>
+          <button onClick={() => onVer && onVer(node)} title="Ver ativos" style={iconBtnStyle(T.muted)}><Eye size={11} /></button>
+          <button onClick={() => onAdicionarFilho(node)} title="Adicionar filho" style={iconBtnStyle(T.muted)}><Plus size={11} /></button>
+          <button onClick={() => onEditar(node)} title="Editar" style={iconBtnStyle(T.muted)}><Edit3 size={11} /></button>
+          <button onClick={() => onExcluir(node)} title="Excluir" disabled={temFilhos}
+                  style={{ ...iconBtnStyle(T.red), opacity: temFilhos ? 0.3 : 1 }}><Trash2 size={11} /></button>
+        </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+        {/* Header: ícone + label + % */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, paddingRight: 60 }}>
           <div style={{
-            width: 18, height: 18, borderRadius: 4,
+            width: 28, height: 28, borderRadius: 12, flexShrink: 0,
             background: `${corClasse}22`, color: corClasse,
-            display: "grid", placeItems: "center", flexShrink: 0,
+            display: "grid", placeItems: "center",
           }}>
-            <Icon size={9} />
+            <Icon size={14} />
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, color: T.ink, lineHeight: 1.15 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: T.ink, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {node.label}
             </div>
-            <div className="num" style={{ fontSize: 12, color: T.gold, fontWeight: 700, lineHeight: 1.1 }}>
+            <div className="num" style={{ fontSize: 13, color: T.gold, fontWeight: 700, lineHeight: 1.1 }}>
               {Number(node.percent).toFixed(1)}%
             </div>
           </div>
+          {noAlvo && <CheckCircle2 size={13} style={{ color: T.green, flexShrink: 0 }} />}
         </div>
 
+        {/* Barra de progresso + valores */}
         {alvo > 0 && (
           <>
-            <div style={{ height: 2, background: T.border, borderRadius: 999, overflow: "hidden", marginTop: 2 }}>
-              <div style={{ width: `${pctAlvo}%`, height: "100%", background: corStatus, transition: "width .4s" }} />
+            <div style={{ height: 6, background: T.border, borderRadius: 999, overflow: "hidden" }}>
+              <div style={{
+                width: `${pctAlvo}%`, height: "100%",
+                background: corStatus, borderRadius: 999,
+                transition: "width .4s",
+              }} />
             </div>
-            <div style={{ fontSize: 8.5, color: T.muted, marginTop: 3, textAlign: "center", lineHeight: 1.2 }}>
-              {hidden ? "•••" : fmt(atual)} / {hidden ? "•••" : fmt(alvo)}
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, color: T.muted }}>
+              <span>{hidden ? "•••" : fmt(atual)}</span>
+              <span style={{ color: T.faint }}>{hidden ? "•••" : fmt(alvo)}</span>
             </div>
             {!noAlvo && (
-              <div style={{ fontSize: 8.5, color: corStatus, marginTop: 1, textAlign: "center", fontWeight: 600 }}>
-                {abaixo ? `Falta ${hidden ? "•••" : fmt(-diff)}` : `Sobra ${hidden ? "•••" : fmt(diff)}`}
-              </div>
-            )}
-            {noAlvo && (
-              <div style={{ fontSize: 8.5, color: T.green, marginTop: 1, textAlign: "center", fontWeight: 600 }}>
-                <CheckCircle2 size={8} className="inline mr-1" /> No alvo
+              <div style={{ fontSize: 11, color: corStatus, fontWeight: 700, textAlign: "center", marginTop: 2 }}>
+                {abaixo ? `↓ falta ${hidden ? "•••" : fmt(-diff)}` : `↑ sobra ${hidden ? "•••" : fmt(diff)}`}
               </div>
             )}
           </>
         )}
 
-        {/* Aporte sugerido + botão IA — só pra folhas com aporte > 0 */}
+        {/* Aporte: badge compacto + botão IA pequeno */}
         {!temFilhos && temAporte && (
           <div style={{
-            marginTop: 4, padding: "3px 5px",
-            background: `${T.gold}15`, border: `1px solid ${T.gold}55`,
-            borderRadius: 4,
+            marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "5px 8px", background: `${T.gold}12`, border: `1px solid ${T.gold}44`, borderRadius: 11,
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <span style={{ fontSize: 8, color: T.gold, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>
+            <div>
+              <div style={{ fontSize: 9, color: T.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em" }}>
                 Aportar
-              </span>
-              <span style={{ fontSize: 8, color: T.faint }}>
-                {pctDoAporte.toFixed(0)}%
-              </span>
-            </div>
-            <div className="num" style={{ fontSize: 10.5, fontWeight: 700, color: T.gold, lineHeight: 1.1, marginTop: 1 }}>
-              {hidden ? "•••" : fmt(aporteSugerido)}
+              </div>
+              <div className="num" style={{ fontSize: 13, color: T.gold, fontWeight: 700, lineHeight: 1 }}>
+                {hidden ? "•••" : fmt(aporteSugerido)}
+              </div>
             </div>
             <button onClick={() => onSugerir(node, aporteSugerido)} title="Sugerir ticker com IA"
                     style={{
-                      marginTop: 3, width: "100%",
-                      background: T.gold, color: T.bg,
-                      border: "none", padding: "2px 4px",
-                      fontSize: 8.5, fontWeight: 700, borderRadius: 3,
-                      cursor: "pointer", letterSpacing: ".03em",
-                      display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3,
+                      background: T.gold, color: T.bg, border: "none",
+                      padding: "4px 7px", fontSize: 9.5, fontWeight: 700, borderRadius: 5,
+                      cursor: "pointer", display: "flex", alignItems: "center", gap: 3,
                     }}>
-              <Sparkles size={7} /> IA
+              <Sparkles size={9} /> IA
             </button>
           </div>
         )}
 
-        {/* Sem aporte mensal mas abaixo do alvo: botão IA simples */}
+        {/* Sem aporte mas abaixo do alvo: botão IA */}
         {!temFilhos && !temAporte && abaixo && (
-          <button onClick={() => onSugerir(node)} title="Sugerir aporte com IA"
+          <button onClick={() => onSugerir(node)}
                   style={{
-                    marginTop: 4, width: "100%",
-                    background: `${T.gold}22`, color: T.gold,
-                    border: `1px solid ${T.gold}55`, padding: "2px 5px",
-                    fontSize: 9, fontWeight: 700, borderRadius: 4,
+                    marginTop: 6, width: "100%",
+                    background: `${T.gold}15`, color: T.gold,
+                    border: `1px solid ${T.gold}55`, padding: "4px 8px",
+                    fontSize: 10, fontWeight: 700, borderRadius: 5,
                     cursor: "pointer",
-                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
                   }}>
-            <Sparkles size={8} /> IA aporte
+            <Sparkles size={10} /> IA aporte
           </button>
         )}
 
-        {/* Ações no rodapé */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 2, marginTop: 4, paddingTop: 3, borderTop: `1px dashed ${T.border}` }}>
-          <button onClick={() => onVer && onVer(node)} title="Ver ativos deste objetivo"
-                  style={iconBtnStyle(T.gold)}>
-            <Eye size={9} />
-          </button>
-          <button onClick={() => onAdicionarFilho(node)} title="Adicionar filho" style={iconBtnStyle(T.muted)}>
-            <Plus size={9} />
-          </button>
-          <button onClick={() => onExcluir(node)} title="Excluir" disabled={temFilhos}
-                  style={{ ...iconBtnStyle(T.red), opacity: temFilhos ? 0.3 : 1 }}>
-            <Trash2 size={9} />
-          </button>
-        </div>
       </div>
     );
   }
@@ -726,14 +752,14 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
       background: T.card,
       border: `1px solid ${T.border}`,
       borderLeft: `4px solid ${corStatus}`,
-      borderRadius: 8,
+      borderRadius: 14,
       padding: 12,
       display: "grid",
       gridTemplateColumns: "auto 1fr auto",
       gap: 10, alignItems: "center",
     }}>
       <div style={{
-        width: 32, height: 32, borderRadius: 7,
+        width: 32, height: 32, borderRadius: 12,
         background: `${corClasse}22`, color: corClasse,
         display: "grid", placeItems: "center", flexShrink: 0,
       }}>
@@ -764,7 +790,7 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
             </div>
             {!temFilhos && temAporte && (
               <div style={{
-                marginTop: 6, padding: "5px 8px", borderRadius: 6,
+                marginTop: 6, padding: "5px 8px", borderRadius: 11,
                 background: `${T.gold}15`, border: `1px solid ${T.gold}55`,
                 display: "flex", justifyContent: "space-between", alignItems: "center",
               }}>
@@ -946,6 +972,107 @@ function caminhoNo(node, tree) {
 }
 
 /* ============================================================
+   PlanoDeMes — distribuição do aporte mensal por folha
+   ============================================================ */
+function PlanoDeMes({ tree, distribuicaoAporte, valorPorNo, valorAlvo, aporteN, hidden, onSugerir }) {
+  if (aporteN <= 0) return null;
+
+  const folhas = tree
+    .filter(n => !tree.some(c => c.parentId === n.id))
+    .filter(n => (distribuicaoAporte.get(n.id) || 0) > 0.5)
+    .sort((a, b) => (distribuicaoAporte.get(b.id) || 0) - (distribuicaoAporte.get(a.id) || 0));
+
+  if (folhas.length === 0) return null;
+
+  return (
+    <div>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "10px 14px", marginBottom: 12,
+        background: `${T.gold}10`, border: `1px solid ${T.gold}40`,
+        borderLeft: `3px solid ${T.gold}`, borderRadius: 14,
+      }}>
+        <Target size={15} style={{ color: T.gold, flexShrink: 0 }} />
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: T.gold, textTransform: "uppercase", letterSpacing: ".08em" }}>
+            Plano deste mês
+          </div>
+          <div style={{ fontSize: 10.5, color: T.muted }}>
+            Distribuição de {fmt(aporteN)}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {folhas.map(node => {
+          const sugerido = distribuicaoAporte.get(node.id) || 0;
+          const pctAporte = (sugerido / aporteN) * 100;
+          const cor = corDaClasse(node.classeMatch);
+          const Icon = iconeDaClasse(node.classeMatch);
+          const atual = valorPorNo.get(node.id) || 0;
+          const alvo = valorAlvo.get(node.id) || 0;
+          const pctAlvoAtual = alvo > 0 ? Math.min(100, (atual / alvo) * 100) : 0;
+
+          return (
+            <div key={node.id} style={{
+              background: T.card, border: `1px solid ${T.border}`,
+              borderLeft: `3px solid ${cor}`, borderRadius: 14,
+              padding: "12px 14px",
+              display: "grid", gridTemplateColumns: "auto 1fr auto",
+              gap: 12, alignItems: "center",
+            }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 9,
+                background: `${cor}20`, color: cor,
+                display: "grid", placeItems: "center", flexShrink: 0,
+              }}>
+                <Icon size={17} />
+              </div>
+
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 600, color: T.ink }}>{node.label}</span>
+                  <span style={{
+                    fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                    background: `${cor}18`, color: cor, fontWeight: 700,
+                  }}>
+                    {pctAporte.toFixed(0)}% do aporte
+                  </span>
+                </div>
+                <div style={{ height: 6, background: T.border, borderRadius: 999, overflow: "hidden" }}>
+                  <div style={{
+                    width: `${pctAporte}%`, height: "100%",
+                    background: cor, borderRadius: 999, transition: "width .4s",
+                  }} />
+                </div>
+                <div style={{ fontSize: 10.5, color: T.faint, marginTop: 4 }}>
+                  meta: {hidden ? "•••" : fmt(alvo)} · alocado {pctAlvoAtual.toFixed(0)}%
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+                <div className="num" style={{ fontSize: 17, fontWeight: 700, color: T.gold }}>
+                  {hidden ? "•••" : fmt(sugerido)}
+                </div>
+                <button onClick={() => onSugerir(node, sugerido)}
+                        style={{
+                          background: T.gold, color: T.bg, border: "none",
+                          padding: "5px 10px", fontSize: 10.5, fontWeight: 700,
+                          borderRadius: 5, cursor: "pointer",
+                          display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
+                        }}>
+                  <Sparkles size={9} /> IA
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    VerAtivosModal — visualização rápida dos ativos de um objetivo
    ============================================================ */
 function VerAtivosModal({ node, ativos, valorTotal, hidden, onClose }) {
@@ -979,7 +1106,7 @@ function VerAtivosModal({ node, ativos, valorTotal, hidden, onClose }) {
         padding: 12, marginBottom: 12,
         background: `${cor}11`, border: `1px solid ${cor}44`,
         borderLeft: `3px solid ${cor}`,
-        borderRadius: 8,
+        borderRadius: 14,
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
         <span style={{ fontSize: 11, color: T.muted, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 600 }}>
@@ -996,7 +1123,7 @@ function VerAtivosModal({ node, ativos, valorTotal, hidden, onClose }) {
       {ordenados.length === 0 ? (
         <div style={{
           textAlign: "center", padding: "40px 24px",
-          background: T.bgSoft, border: `1px dashed ${T.border}`, borderRadius: 10,
+          background: T.bgSoft, border: `1px dashed ${T.border}`, borderRadius: 16,
         }}>
           <Target size={32} style={{ color: T.muted, marginBottom: 10 }} />
           <div style={{ fontSize: 14, color: T.ink, fontWeight: 600, marginBottom: 4 }}>
@@ -1018,7 +1145,7 @@ function VerAtivosModal({ node, ativos, valorTotal, hidden, onClose }) {
               <div key={a.id} style={{
                 background: T.card, border: `1px solid ${T.border}`,
                 borderLeft: `3px solid ${cor}`,
-                borderRadius: 8, padding: "10px 12px",
+                borderRadius: 14, padding: "10px 12px",
                 display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center",
               }}>
                 <div style={{

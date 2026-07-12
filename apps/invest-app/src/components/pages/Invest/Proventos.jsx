@@ -9,14 +9,19 @@
  *     - Transferir pra conta real (cria receita)
  *     - Comprar ativo (saída pra reinvestimento avulso)
  */
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import {
-  Check, TrendingUp, ArrowDownToLine, Wallet, ChevronDown, ChevronRight,
-  ArrowUpRight, ShoppingCart, X, AlertCircle, Sparkles,
+  Check, ArrowDownToLine, Wallet, ChevronDown, ChevronRight,
+  ArrowUpRight, ShoppingCart, X, MoreHorizontal,
 } from "lucide-react";
 import { T } from "../../../lib/theme.js";
-import { fmt, uid } from "../../../lib/format.js";
+import { CARD_SHADOW_ELEVATED } from "../../../lib/styles.js";
+import { MESES_LONGO } from "../../../lib/meses.js";
+import { fmt, fmtN, uid } from "../../../lib/format.js";
 import { calendarioProventos } from "../../../lib/invest-metrics.js";
+import { resumoRendaFixa } from "../../../lib/rendaFixa.js";
+import { buscarTaxasMensais } from "../../../lib/bcb.js";
+import { getCdiAnual } from "../../../lib/cdbMeta.js";
 import { toast } from "../../../lib/toast.js";
 import { confirm } from "../../../lib/confirm.js";
 import PageHeader from "../../ui/PageHeader.jsx";
@@ -25,8 +30,7 @@ import Modal from "../../ui/Modal.jsx";
 
 const nomeMes = (k) => {
   const [y, m] = k.split("-");
-  const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  return `${meses[parseInt(m) - 1]} ${y}`;
+  return `${MESES_LONGO[parseInt(m) - 1]} ${y}`;
 };
 
 export default function Proventos({
@@ -49,33 +53,148 @@ export default function Proventos({
   // e podem ter ticker fora da carteira (proventos antigos, ETFs, etc).
   // Os ignorados somem por padrão; toggle "Mostrar ignorados" no header.
   const [mostrarIgnorados, setMostrarIgnorados] = useState(false);
+
+  // Menu "⋯ Ações" do cabeçalho — junta as ações secundárias num só botão pra
+  // não lotar a barra. Fecha ao clicar fora.
+  const [menuAcoes, setMenuAcoes] = useState(false);
+  const menuRef = useRef(null);
+  useEffect(() => {
+    if (!menuAcoes) return;
+    const onDoc = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuAcoes(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [menuAcoes]);
+
+  // Taxas mensais reais (CDI/Selic/IPCA acumulado no mês) via BCB, pra projetar
+  // o rendimento da renda fixa. Se a API falhar, cai no CDI anual salvo no app.
+  const [taxasMes, setTaxasMes] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    buscarTaxasMensais().then(t => { if (vivo) setTaxasMes(t); }).catch(() => {});
+    return () => { vivo = false; };
+  }, []);
+  const taxasEfetivas = useMemo(() => {
+    const cdiAnual = getCdiAnual();
+    const cdiFallback = (Math.pow(1 + cdiAnual / 100, 1 / 12) - 1) * 100;
+    const cdiMes = taxasMes?.cdiMes ?? cdiFallback;
+    const selicMes = taxasMes?.selicMes ?? cdiMes; // Selic ≈ CDI
+    const ipcaMes = taxasMes?.ipcaMes ?? 0.4;
+    return { cdiMes, selicMes, ipcaMes, real: !!taxasMes?.cdiMes };
+  }, [taxasMes]);
+  const rf = useMemo(() => resumoRendaFixa(ativos, taxasEfetivas), [ativos, taxasEfetivas]);
+
+  // Recolher seções da tela (renda fixa + meses do calendário). Estado salvo.
+  const [recolhidos, setRecolhidos] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("af4:proventos-recolhidos:v1") || "[]")); }
+    catch { return new Set(); }
+  });
+  const toggleRecolher = (k) => setRecolhidos(prev => {
+    const n = new Set(prev);
+    n.has(k) ? n.delete(k) : n.add(k);
+    try { localStorage.setItem("af4:proventos-recolhidos:v1", JSON.stringify([...n])); } catch {}
+    return n;
+  });
+  // Recebidos de meses anteriores somem por padrão (ficam só pra consulta).
+  const [mostrarRecebidosAnteriores, setMostrarRecebidosAnteriores] = useState(false);
   const [manualForm, setManualForm] = useState(null);
+
+  // Proventos ANUNCIADOS de verdade (brapi) — mesmo cache do Mapa de
+  // Dividendos/Screener. Com ele, o calendário usa a cota real anunciada
+  // (flag real) e projeta FIIs com a última cota (flag estimado).
+  const [provReais, setProvReais] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("af4:mapa-div:proventos-brapi:v1") || "null")?.porTicker || {}; } catch { return {}; }
+  });
+  const [buscandoReais, setBuscandoReais] = useState(false);
+  async function atualizarCotasReais() {
+    const tickers = [...new Set(
+      (ativos || []).filter(a => ["acao", "fii"].includes((a.tipo || "").toLowerCase()) && Number(a.qtd) > 0)
+        .map(a => (a.ticker || "").toUpperCase()).filter(Boolean)
+    )];
+    if (!tickers.length) { toast.info("Nenhuma ação/FII na carteira."); return; }
+    setBuscandoReais(true);
+    const { getDividendos } = await import("../../../lib/brapi.js");
+    const porTicker = { ...provReais };
+    let ok = 0;
+    for (const tk of tickers) {
+      try {
+        const divs = await getDividendos(tk);
+        if (divs.length) { porTicker[tk] = divs.map(d => ({ pagamento: d.pagamento, valor: d.valor })); ok++; }
+      } catch (e) {
+        if (/token|plano|recusou/i.test(e.message || "")) { toast.error(e.message); setBuscandoReais(false); return; }
+      }
+    }
+    setProvReais(porTicker);
+    try { localStorage.setItem("af4:mapa-div:proventos-brapi:v1", JSON.stringify({ atualizadoEm: new Date().toISOString(), porTicker })); } catch {}
+    setBuscandoReais(false);
+    toast.success(`Cotas reais atualizadas: ${ok} de ${tickers.length} ativos.`);
+  }
+
   const proventos = useMemo(() => {
-    const auto = calendarioProventos(ativos);
+    const auto = calendarioProventos(ativos, new Date(), provReais);
     const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
     const todos = [...auto, ...manuais].sort((a, b) => (a.data || "").localeCompare(b.data || ""));
-    return mostrarIgnorados ? todos : todos.filter(p => !proventosIgnorados[p.id]);
-  }, [ativos, proventosIgnorados, mostrarIgnorados, proventosManuais]);
+    const mesKey = new Date().toISOString().slice(0, 7);
+    let lista = mostrarIgnorados ? todos : todos.filter(p => !proventosIgnorados[p.id]);
+    if (!mostrarRecebidosAnteriores) {
+      // esconde proventos JÁ RECEBIDOS de meses ANTERIORES ao corrente
+      lista = lista.filter(p => !(proventosRecebidos[p.id] && String(p.data || "").slice(0, 7) < mesKey));
+    }
+    return lista;
+  }, [ativos, provReais, proventosIgnorados, mostrarIgnorados, proventosManuais, proventosRecebidos, mostrarRecebidosAnteriores]);
+  const totalRecebidosAnteriores = useMemo(() => {
+    const auto = calendarioProventos(ativos, new Date(), provReais);
+    const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
+    const mesKey = new Date().toISOString().slice(0, 7);
+    return [...auto, ...manuais].filter(p => proventosRecebidos[p.id] && String(p.data || "").slice(0, 7) < mesKey).length;
+  }, [ativos, provReais, proventosManuais, proventosRecebidos]);
   const totalIgnorados = useMemo(() => {
-    const auto = calendarioProventos(ativos);
+    const auto = calendarioProventos(ativos, new Date(), provReais);
     const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
     return [...auto, ...manuais].filter(p => proventosIgnorados[p.id]).length;
-  }, [ativos, proventosIgnorados, proventosManuais]);
+  }, [ativos, provReais, proventosIgnorados, proventosManuais]);
 
   const [baixaForm, setBaixaForm] = useState(null);
   const [transferirForm, setTransferirForm] = useState(null);
   const [comprarForm, setComprarForm] = useState(null);
   const [historicoAberto, setHistoricoAberto] = useState(false);
 
-  // Agrupar por mês
+  // Agrupar por mês — dentro do mês, os já recebidos (baixados) vão pro fim
+  // (arquivados), deixando os pendentes em cima.
   const porMes = useMemo(() => {
     const map = {};
     proventos.forEach(p => {
       const k = p.data.slice(0, 7);
       (map[k] ||= []).push(p);
     });
+    Object.values(map).forEach(lista => lista.sort((a, b) => {
+      const ra = proventosRecebidos[a.id] ? 1 : 0;
+      const rb = proventosRecebidos[b.id] ? 1 : 0;
+      if (ra !== rb) return ra - rb;            // pendentes primeiro, recebidos por último
+      return (a.data || "").localeCompare(b.data || "");
+    }));
     return Object.entries(map).sort();
-  }, [proventos]);
+  }, [proventos, proventosRecebidos]);
+
+  // Calendário de cima = só PENDENTES (os recebidos vão pra seção do rodapé).
+  const pendentesPorMes = useMemo(() =>
+    porMes
+      .map(([mes, lista]) => [mes, lista.filter(p => !proventosRecebidos[p.id])])
+      .filter(([, lista]) => lista.length > 0),
+    [porMes, proventosRecebidos]);
+
+  // Recebidos (baixados) agrupados por mês — TODOS, independente dos filtros de
+  // "mostrar recebidos anteriores"/"ignorados". Mais recente primeiro.
+  const recebidosPorMes = useMemo(() => {
+    const auto = calendarioProventos(ativos, new Date(), provReais);
+    const manuais = (proventosManuais || []).map(m => ({ ...m, manual: true }));
+    const map = {};
+    [...auto, ...manuais]
+      .filter(p => proventosRecebidos[p.id])
+      .forEach(p => { const k = (p.data || "").slice(0, 7); (map[k] ||= []).push(p); });
+    Object.values(map).forEach(lista => lista.sort((a, b) => (b.data || "").localeCompare(a.data || "")));
+    return Object.entries(map).sort().reverse();
+  }, [ativos, provReais, proventosManuais, proventosRecebidos]);
+  const valorRecebido = (p) => Number(proventosRecebidos[p.id]?.valor ?? p.total) || 0;
 
   const hoje = new Date();
   const mesAtual = hoje.toISOString().slice(0, 7);
@@ -330,7 +449,11 @@ export default function Proventos({
       toast.success(`Provento ${ticker} atualizado.`);
     } else {
       setProventosManuais([...(proventosManuais || []), novo]);
-      toast.success(`Provento ${ticker} lançado.`);
+      toast.success(`Provento ${ticker} ${f._origemAuto ? "corrigido" : "lançado"}.`);
+    }
+    // Editou um provento automático: ignora o original pra não duplicar com a estimativa.
+    if (f._origemAuto && setProventosIgnorados) {
+      setProventosIgnorados({ ...proventosIgnorados, [f._origemAuto]: true });
     }
     setManualForm(null);
   };
@@ -433,118 +556,60 @@ export default function Proventos({
         title="Calendário & Carteira"
         sub="Dividendos, JCP e rendimentos previstos + carteira virtual pra acumular ou reinvestir."
         action={
-          <div className="flex gap-2 flex-wrap">
-            {totalIgnorados > 0 && (
-              <button onClick={() => setMostrarIgnorados(v => !v)} className="btn-ghost"
-                      style={{ fontSize: 11 }}>
-                {mostrarIgnorados ? "Esconder" : "Mostrar"} ignorados ({totalIgnorados})
-              </button>
-            )}
+          <div className="flex gap-2 flex-wrap" style={{ position: "relative" }} ref={menuRef}>
             <button onClick={abrirNovoManual} className="btn-gold" style={{ fontSize: 11 }}>
               + Lançar manual
             </button>
+            <button onClick={() => setMenuAcoes(v => !v)} className="btn-ghost"
+                    title="Mais ações" aria-haspopup="menu" aria-expanded={menuAcoes}
+                    style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <MoreHorizontal size={14} /> Ações
+            </button>
+            {menuAcoes && (
+              <div role="menu" style={{
+                position: "absolute", top: "100%", right: 0, marginTop: 6, zIndex: 60,
+                minWidth: 244, background: T.card, border: `1px solid ${T.border}`,
+                borderRadius: 12, boxShadow: CARD_SHADOW_ELEVATED, overflow: "hidden",
+              }}>
+                <MenuItem onClick={() => { atualizarCotasReais(); setMenuAcoes(false); }} disabled={buscandoReais}>
+                  {buscandoReais ? "Buscando…" : "⟳ Atualizar cotas reais"}
+                </MenuItem>
+                {totalIgnorados > 0 && (
+                  <MenuItem onClick={() => { setMostrarIgnorados(v => !v); setMenuAcoes(false); }}>
+                    {mostrarIgnorados ? "Esconder" : "Mostrar"} ignorados ({totalIgnorados})
+                  </MenuItem>
+                )}
+                <MenuItem disabled={carteiraProventos.saldo <= 0}
+                          onClick={() => { setTransferirForm({ valor: carteiraProventos.saldo.toFixed(2), contaDestino: contas[0]?.nome || "" }); setMenuAcoes(false); }}>
+                  <ArrowUpRight size={13} /> Transferir pra conta
+                </MenuItem>
+                <MenuItem disabled={carteiraProventos.saldo <= 0}
+                          onClick={() => { setComprarForm({ valor: carteiraProventos.saldo.toFixed(2), ativoId: ativos[0]?.id || "" }); setMenuAcoes(false); }}>
+                  <ShoppingCart size={13} /> Reinvestir
+                </MenuItem>
+              </div>
+            )}
           </div>
         }
       />
 
-      {/* CARD CARTEIRA DE PROVENTOS */}
-      <div style={{
-        background: `linear-gradient(135deg, ${T.gold}11, ${T.card})`,
-        border: `1px solid ${T.gold}55`,
-        borderLeft: `3px solid ${T.gold}`,
-        borderRadius: 12, padding: 16, marginBottom: 14,
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <div className="label-eyebrow" style={{ color: T.gold }}>
-              <Wallet size={11} className="inline mr-1" />
-              Carteira de Proventos
-            </div>
-            <div className="num" style={{
-              fontFamily: T.serif, fontSize: 32, color: T.ink, fontWeight: 600,
-              marginTop: 4, letterSpacing: "-0.02em",
-            }}>
-              {hidden ? "•••" : fmt(carteiraProventos.saldo)}
-            </div>
-            <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>
-              Total já recebido: <strong style={{ color: T.green }} className="num">
-                {hidden ? "•••" : fmt(totalRecebido)}
-              </strong>
-              {" · "}{(carteiraProventos.historico || []).filter(h => h.tipo === "recebimento").length} entradas
-            </div>
+      {/* Resumo em linha única: Carteira de Proventos junto dos KPIs
+          (pedido do usuário — antes o card grande empurrava tudo pra baixo). */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3" style={{ marginBottom: 14 }}>
+        <div style={{
+          background: `linear-gradient(135deg, ${T.gold}11, ${T.card})`,
+          border: `1px solid ${T.gold}55`, borderLeft: `3px solid ${T.gold}`,
+          borderRadius: 16, padding: "12px 14px",
+        }}>
+          <div className="label-eyebrow" style={{ color: T.gold }}>
+            <Wallet size={11} className="inline mr-1" />
+            Carteira de Proventos
           </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <button className="btn-ghost"
-                    disabled={carteiraProventos.saldo <= 0}
-                    onClick={() => setTransferirForm({
-                      valor: carteiraProventos.saldo.toFixed(2),
-                      contaDestino: contas[0]?.nome || "",
-                    })}
-                    style={{ opacity: carteiraProventos.saldo <= 0 ? 0.4 : 1 }}>
-              <ArrowUpRight size={13} className="inline mr-1.5" />
-              Transferir pra conta
-            </button>
-            <button className="btn-gold"
-                    disabled={carteiraProventos.saldo <= 0}
-                    onClick={() => setComprarForm({
-                      valor: carteiraProventos.saldo.toFixed(2),
-                      ativoId: ativos[0]?.id || "",
-                    })}
-                    style={{ opacity: carteiraProventos.saldo <= 0 ? 0.4 : 1 }}>
-              <ShoppingCart size={13} className="inline mr-1.5" />
-              Reinvestir
-            </button>
+          <div className="num" style={{ fontFamily: T.serif, fontSize: 24, color: T.ink, fontWeight: 600, marginTop: 4, letterSpacing: "-0.02em" }}>
+            {hidden ? "•••" : fmt(carteiraProventos.saldo)}
           </div>
+          <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>saldo acumulado pra usar</div>
         </div>
-
-        {/* Histórico colapsível */}
-        {(carteiraProventos.historico || []).length > 0 && (
-          <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${T.border}` }}>
-            <button onClick={() => setHistoricoAberto(!historicoAberto)}
-                    style={{
-                      background: "transparent", border: "none", color: T.muted,
-                      cursor: "pointer", padding: 0, fontSize: 11, fontWeight: 600,
-                      letterSpacing: ".05em", textTransform: "uppercase",
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                    }}>
-              {historicoAberto ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-              Histórico · {(carteiraProventos.historico || []).length} movimentação(ões)
-            </button>
-            {historicoAberto && (
-              <div style={{ marginTop: 8, maxHeight: 280, overflowY: "auto" }}>
-                {(carteiraProventos.historico || []).slice().reverse().map(h => {
-                  const positivo = h.valor > 0;
-                  return (
-                    <div key={h.id} style={{
-                      display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10,
-                      alignItems: "center",
-                      padding: "8px 10px", marginBottom: 4,
-                      background: T.bgSoft, borderRadius: 6,
-                      borderLeft: `2px solid ${positivo ? T.green : T.red}`,
-                    }}>
-                      <div style={{ fontSize: 10.5, color: T.muted, fontFamily: T.mono, minWidth: 56 }}>
-                        {h.data.slice(8, 10)}/{h.data.slice(5, 7)}
-                      </div>
-                      <div style={{ fontSize: 12, color: T.ink, minWidth: 0 }}>
-                        {h.descricao}
-                      </div>
-                      <div className="num" style={{
-                        fontSize: 13, fontWeight: 600,
-                        color: positivo ? T.green : T.red, whiteSpace: "nowrap",
-                      }}>
-                        {positivo ? "+ " : "− "}{hidden ? "•••" : fmt(Math.abs(h.valor))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3" style={{ marginBottom: 14 }}>
         <Kpi
           label="Pendentes este mês"
           valor={hidden ? "•••" : fmt(totalMes)}
@@ -565,23 +630,98 @@ export default function Proventos({
         />
       </div>
 
-      {/* CALENDÁRIO */}
-      {porMes.length === 0 ? (
+      {/* Renda Fixa · rendimento previsto do mês (CDI/Tesouro por taxa contratada) */}
+      {rf.itens.length > 0 && (() => {
+        const recolhido = recolhidos.has("rendafixa");
+        return (
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "14px 16px", marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: recolhido ? 0 : 10 }}>
+            <button onClick={() => toggleRecolher("rendafixa")}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
+              {recolhido ? <ChevronRight size={16} style={{ color: T.muted }} /> : <ChevronDown size={16} style={{ color: T.muted }} />}
+              <div>
+                <div className="label-eyebrow" style={{ color: T.blue || "#5b9bd5" }}>Renda Fixa · rendimento previsto do mês</div>
+                <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>
+                  CDI {fmtN(taxasEfetivas.cdiMes, 3)}% a.m. · Selic {fmtN(taxasEfetivas.selicMes, 3)}% a.m.
+                  {taxasEfetivas.real ? " · BCB (último mês fechado)" : " · estimado (CDI do app)"}
+                </div>
+              </div>
+            </button>
+            <div style={{ textAlign: "right" }}>
+              <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, color: T.green }}>
+                {hidden ? "•••" : fmt(rf.totalMes)}
+              </div>
+              <div style={{ fontSize: 10, color: T.muted }}>sobre {hidden ? "•••" : fmt(rf.totalBase)} investido</div>
+            </div>
+          </div>
+          {!recolhido && <>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+              <thead>
+                <tr>
+                  <Th>Ativo</Th>
+                  <Th>Taxa</Th>
+                  <Th align="right">Investido</Th>
+                  <Th align="right">% mês</Th>
+                  <Th align="right">Rendimento/mês</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {rf.itens.map(i => (
+                  <tr key={i.id} style={{ borderTop: `1px solid ${T.border}`, opacity: i.temTaxa ? 1 : 0.7 }}>
+                    <Td><strong>{i.ticker}</strong></Td>
+                    <Td>
+                      {i.temTaxa ? i.rotulo : (
+                        <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: `${T.gold}22`, color: T.gold, fontWeight: 700, letterSpacing: ".03em" }}>
+                          definir taxa
+                        </span>
+                      )}
+                    </Td>
+                    <Td align="right" mono>{hidden ? "•••" : fmt(i.base)}</Td>
+                    <Td align="right" mono>{i.temTaxa ? `${fmtN(i.taxaMes, 3)}%` : "—"}</Td>
+                    <Td align="right" mono style={{ color: i.temTaxa ? T.green : T.faint, fontWeight: 600 }}>
+                      {i.temTaxa ? (hidden ? "•••" : fmt(i.rendimentoMes)) : "—"}
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ fontSize: 10, color: T.faint, marginTop: 8, fontStyle: "italic" }}>
+            Projeção com a taxa contratada de cada aplicação sobre o valor de mercado atual. Configure indexador e taxa no cadastro do ativo (CDB/Tesouro).
+          </div>
+          </>}
+        </div>
+        );
+      })()}
+
+      {/* CALENDÁRIO — só pendentes (recebidos ficam na seção do rodapé) */}
+      {pendentesPorMes.length === 0 ? (
         <div style={{
           padding: 40, textAlign: "center",
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 10,
+          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
           color: T.muted, fontSize: 13,
         }}>
-          Adicione ações e FIIs para ver o calendário de proventos.
+          {porMes.length === 0
+            ? "Adicione ações e FIIs para ver o calendário de proventos."
+            : "Nenhum provento pendente — os recebidos estão logo abaixo."}
         </div>
-      ) : porMes.map(([mes, lista]) => (
-        <div key={mes} style={{ marginBottom: 18 }}>
-          <div className="label-eyebrow" style={{ marginBottom: 8 }}>
+      ) : pendentesPorMes.map(([mes, lista]) => {
+        const mesRecolhido = recolhidos.has(mes);
+        const totalMesLista = lista.reduce((s, p) => s + (p.total || 0), 0);
+        return (
+        <div key={mes} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "12px 14px", marginBottom: 12 }}>
+          <button onClick={() => toggleRecolher(mes)}
+                  className="label-eyebrow"
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 6, color: T.muted, width: "100%" }}>
+            {mesRecolhido ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
             {nomeMes(mes)} · {lista.length} pagamento(s)
-          </div>
+            <span className="num" style={{ color: T.green, fontWeight: 700, marginLeft: "auto", textTransform: "none", letterSpacing: 0 }}>{hidden ? "•••" : fmt(totalMesLista)}</span>
+          </button>
+          {!mesRecolhido && (
           <div style={{
-            background: T.card, border: `1px solid ${T.border}`,
-            borderRadius: 10, overflow: "hidden",
+            marginTop: 10, border: `1px solid ${T.border}`,
+            borderRadius: 12, overflow: "hidden",
           }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
               <thead>
@@ -614,6 +754,26 @@ export default function Proventos({
                                   letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700,
                                 }}>
                             Manual
+                          </span>
+                        )}
+                        {p.real && (
+                          <span title="Provento anunciado — data e cota oficiais (brapi)"
+                                style={{
+                                  marginLeft: 6, fontSize: 8.5, padding: "1px 5px", borderRadius: 3,
+                                  background: `${T.green}33`, color: T.green,
+                                  letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700,
+                                }}>
+                            Real
+                          </span>
+                        )}
+                        {p.estimado && (
+                          <span title="Projeção com a última cota real anunciada (o mês ainda não tem anúncio)"
+                                style={{
+                                  marginLeft: 6, fontSize: 8.5, padding: "1px 5px", borderRadius: 3,
+                                  background: `${T.border}`, color: T.muted,
+                                  letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700,
+                                }}>
+                            Projeção
                           </span>
                         )}
                       </Td>
@@ -690,18 +850,18 @@ export default function Proventos({
                                     }}>
                               <ArrowDownToLine size={11} /> Baixar
                             </button>
-                            {p.manual && (
-                              <button onClick={() => setManualForm({ ...p, qtd: String(p.qtd), valorPorCota: String(p.valorPorCota) })}
-                                      title="Editar lançamento manual"
-                                      aria-label={`Editar lançamento manual ${p.ticker}`}
-                                      style={{
-                                        background: "transparent", border: `1px solid ${T.border}`,
-                                        color: T.muted, padding: "2px 7px", borderRadius: 4,
-                                        cursor: "pointer", fontSize: 10, letterSpacing: ".05em",
-                                      }}>
-                                ✎
-                              </button>
-                            )}
+                            <button onClick={() => setManualForm(p.manual
+                                      ? { ...p, qtd: String(p.qtd), valorPorCota: String(p.valorPorCota) }
+                                      : { ...p, id: null, _origemAuto: p.id, qtd: String(p.qtd), valorPorCota: String(p.valorPorCota) })}
+                                    title={p.manual ? "Editar lançamento" : "Editar (corrige o valor — vira lançamento manual)"}
+                                    aria-label={`Editar provento ${p.ticker}`}
+                                    style={{
+                                      background: "transparent", border: `1px solid ${T.border}`,
+                                      color: T.muted, padding: "2px 7px", borderRadius: 4,
+                                      cursor: "pointer", fontSize: 10, letterSpacing: ".05em",
+                                    }}>
+                              ✎
+                            </button>
                             <button onClick={() => p.manual ? excluirManual(p) : ignorarProvento(p)}
                                     title={p.manual ? "Excluir lançamento manual" : "Excluir/ignorar este provento previsto"}
                                     aria-label={p.manual ? `Excluir lançamento manual ${p.ticker}` : `Excluir provento previsto ${p.ticker}`}
@@ -721,8 +881,122 @@ export default function Proventos({
               </tbody>
             </table>
           </div>
+          )}
         </div>
-      ))}
+        );
+      })}
+
+      {/* PROVENTOS RECEBIDOS · por mês (rodapé, no estilo da Renda Fixa) */}
+      {recebidosPorMes.length > 0 && (() => {
+        const totalGeral = recebidosPorMes.reduce((s, [, l]) => s + l.reduce((ss, p) => ss + valorRecebido(p), 0), 0);
+        const nBaixas = recebidosPorMes.reduce((s, [, l]) => s + l.length, 0);
+        const secRecolhida = recolhidos.has("recebidos");
+        return (
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "14px 16px", marginTop: 6, marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <button onClick={() => toggleRecolher("recebidos")}
+                      style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 8, textAlign: "left" }}>
+                {secRecolhida ? <ChevronRight size={16} style={{ color: T.muted }} /> : <ChevronDown size={16} style={{ color: T.muted }} />}
+                <div>
+                  <div className="label-eyebrow" style={{ color: T.green }}>Proventos recebidos · por mês</div>
+                  <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>{nBaixas} baixa(s)</div>
+                </div>
+              </button>
+              <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, color: T.green }}>
+                {hidden ? "•••" : fmt(totalGeral)}
+              </div>
+            </div>
+            {!secRecolhida && (
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+                {recebidosPorMes.map(([mes, lista]) => {
+                  const mRec = recolhidos.has("rec-" + mes);
+                  const totalMes = lista.reduce((s, p) => s + valorRecebido(p), 0);
+                  return (
+                    <div key={mes}>
+                      <button onClick={() => toggleRecolher("rec-" + mes)} className="label-eyebrow"
+                              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, marginBottom: 6, display: "flex", alignItems: "center", gap: 6, color: T.muted }}>
+                        {mRec ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                        {nomeMes(mes)} · {lista.length} baixa(s)
+                        <span className="num" style={{ color: T.green, fontWeight: 700, marginLeft: 4, textTransform: "none", letterSpacing: 0 }}>{hidden ? "•••" : fmt(totalMes)}</span>
+                      </button>
+                      {!mRec && (
+                        <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+                            <thead>
+                              <tr><Th>Data</Th><Th>Ticker</Th><Th>Tipo</Th><Th align="right">Recebido</Th><Th align="right">Ação</Th></tr>
+                            </thead>
+                            <tbody>
+                              {lista.map(p => (
+                                <tr key={p.id} style={{ borderTop: `1px solid ${T.border}` }}>
+                                  <Td>{p.data.slice(8, 10)}/{p.data.slice(5, 7)}</Td>
+                                  <Td><strong>{p.ticker}</strong></Td>
+                                  <Td>{p.tipo}</Td>
+                                  <Td align="right" mono style={{ color: T.green, fontWeight: 600 }}>{hidden ? "•••" : fmt(valorRecebido(p))}</Td>
+                                  <Td align="right">
+                                    <button onClick={() => estornarBaixa(p)} title="Estornar baixa"
+                                            style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.red, padding: "3px 8px", borderRadius: 5, cursor: "pointer", fontSize: 10.5 }}>
+                                      Estornar
+                                    </button>
+                                  </Td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Histórico da carteira de proventos (colapsível) — sempre por último */}
+      {(carteiraProventos.historico || []).length > 0 && (
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 14px", marginBottom: 14 }}>
+          <button onClick={() => setHistoricoAberto(!historicoAberto)}
+                  style={{
+                    background: "transparent", border: "none", color: T.muted,
+                    cursor: "pointer", padding: 0, fontSize: 11, fontWeight: 600,
+                    letterSpacing: ".05em", textTransform: "uppercase",
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                  }}>
+            {historicoAberto ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            Histórico · {(carteiraProventos.historico || []).length} movimentação(ões)
+          </button>
+          {historicoAberto && (
+            <div style={{ marginTop: 8, maxHeight: 280, overflowY: "auto" }}>
+              {(carteiraProventos.historico || []).slice().reverse().map(h => {
+                const positivo = h.valor > 0;
+                return (
+                  <div key={h.id} style={{
+                    display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10,
+                    alignItems: "center",
+                    padding: "8px 10px", marginBottom: 4,
+                    background: T.bgSoft, borderRadius: 11,
+                    borderLeft: `2px solid ${positivo ? T.green : T.red}`,
+                  }}>
+                    <div style={{ fontSize: 10.5, color: T.muted, fontFamily: T.mono, minWidth: 56 }}>
+                      {h.data.slice(8, 10)}/{h.data.slice(5, 7)}
+                    </div>
+                    <div style={{ fontSize: 12, color: T.ink, minWidth: 0 }}>
+                      {h.descricao}
+                    </div>
+                    <div className="num" style={{
+                      fontSize: 13, fontWeight: 600,
+                      color: positivo ? T.green : T.red, whiteSpace: "nowrap",
+                    }}>
+                      {positivo ? "+ " : "− "}{hidden ? "•••" : fmt(Math.abs(h.valor))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* MODAL: LANÇAMENTO MANUAL */}
       {manualForm && (
@@ -770,7 +1044,7 @@ export default function Proventos({
             return total > 0 ? (
               <div style={{
                 padding: 10, marginTop: 4, background: `${T.green}11`,
-                border: `1px solid ${T.green}33`, borderRadius: 6,
+                border: `1px solid ${T.green}33`, borderRadius: 11,
                 fontSize: 12.5, color: T.muted, display: "flex", justifyContent: "space-between",
               }}>
                 <span>Total previsto:</span>
@@ -800,7 +1074,7 @@ export default function Proventos({
         return (
           <Modal title={`Baixar ${p.ticker} (${p.tipo})`} onClose={() => setBaixaForm(null)}>
             <div style={{
-              padding: 12, background: T.bgSoft, borderRadius: 7,
+              padding: 12, background: T.bgSoft, borderRadius: 12,
               fontSize: 12, marginBottom: 14,
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", color: T.muted, marginBottom: 4 }}>
@@ -842,7 +1116,7 @@ export default function Proventos({
                             padding: "10px 12px",
                             background: ativo ? `${T.gold}22` : T.bgSoft,
                             border: `1px solid ${ativo ? T.gold : T.border}`,
-                            borderRadius: 7, cursor: "pointer", textAlign: "left",
+                            borderRadius: 12, cursor: "pointer", textAlign: "left",
                             display: "flex", alignItems: "flex-start", gap: 10,
                           }}>
                     <div style={{
@@ -892,7 +1166,7 @@ export default function Proventos({
                 {ativoDestino && precoAtivo > 0 && (
                   <div style={{
                     padding: 10, background: `${T.green}11`,
-                    border: `1px solid ${T.green}33`, borderRadius: 6,
+                    border: `1px solid ${T.green}33`, borderRadius: 11,
                     fontSize: 11.5, color: T.muted, marginBottom: 10,
                   }}>
                     Vai comprar <strong className="num" style={{ color: T.green }}>
@@ -927,7 +1201,7 @@ export default function Proventos({
       {transferirForm && (
         <Modal title="Transferir da Carteira de Proventos" onClose={() => setTransferirForm(null)}>
           <div style={{
-            padding: 12, background: T.bgSoft, borderRadius: 7,
+            padding: 12, background: T.bgSoft, borderRadius: 12,
             fontSize: 12, marginBottom: 14,
           }}>
             Saldo disponível: <strong className="num" style={{ color: T.gold, fontSize: 16 }}>
@@ -949,7 +1223,7 @@ export default function Proventos({
           </Field>
           <div style={{
             padding: 10, background: `${T.green}11`, border: `1px solid ${T.green}33`,
-            borderRadius: 6, fontSize: 11.5, color: T.green, marginTop: 8,
+            borderRadius: 11, fontSize: 11.5, color: T.green, marginTop: 8,
           }}>
             ✓ Cria transação de receita "Transferência da Carteira de Proventos"<br />
             ✓ Aumenta saldo da conta destino<br />
@@ -973,7 +1247,7 @@ export default function Proventos({
         return (
           <Modal title="Reinvestir saldo da Carteira" onClose={() => setComprarForm(null)}>
             <div style={{
-              padding: 12, background: T.bgSoft, borderRadius: 7,
+              padding: 12, background: T.bgSoft, borderRadius: 12,
               fontSize: 12, marginBottom: 14,
             }}>
               Saldo disponível: <strong className="num" style={{ color: T.gold, fontSize: 16 }}>
@@ -998,7 +1272,7 @@ export default function Proventos({
             {ativoSel && preco > 0 && (
               <div style={{
                 padding: 10, background: `${T.green}11`, border: `1px solid ${T.green}33`,
-                borderRadius: 6, fontSize: 11.5, color: T.muted, marginTop: 8,
+                borderRadius: 11, fontSize: 11.5, color: T.muted, marginTop: 8,
               }}>
                 Vai comprar <strong className="num" style={{ color: T.green }}>
                   {qtdCompravel.toFixed(6)} {ativoSel.ticker}
@@ -1025,7 +1299,7 @@ function Kpi({ label, valor, sub, cor }) {
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
       borderLeft: `3px solid ${cor || T.gold}`,
-      borderRadius: 10, padding: 12,
+      borderRadius: 16, padding: 12,
     }}>
       <div className="label-eyebrow">{label}</div>
       <div className="num" style={{
@@ -1035,6 +1309,22 @@ function Kpi({ label, valor, sub, cor }) {
       </div>
       <div style={{ fontSize: 10.5, color: T.muted, marginTop: 3 }}>{sub}</div>
     </div>
+  );
+}
+
+function MenuItem({ children, onClick, disabled }) {
+  return (
+    <button role="menuitem" onClick={onClick} disabled={disabled}
+      style={{
+        width: "100%", textAlign: "left", background: "transparent", border: "none",
+        borderBottom: `1px solid ${T.border}`, color: disabled ? T.faint : T.ink,
+        padding: "10px 14px", fontSize: 12.5, cursor: disabled ? "default" : "pointer",
+        opacity: disabled ? 0.6 : 1, display: "flex", alignItems: "center", gap: 8,
+      }}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = T.bgSoft; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+      {children}
+    </button>
   );
 }
 

@@ -1,26 +1,28 @@
 /* ============================================================
-   THEME · AF4 Cockpit · 7 paletas escuras + 3 claras (estilo demo v7)
+   THEME · NUMVI · 7 paletas escuras + 3 claras (estilo demo v7)
    ============================================================ */
 
 const FONTS = {
-  serif: '"Poppins", system-ui, -apple-system, sans-serif',
-  body:  '"Poppins", system-ui, -apple-system, sans-serif',
-  mono:  '"Poppins", ui-monospace, monospace',
-  sans:  '"Poppins", system-ui, -apple-system, sans-serif',
+  serif: '"Inter", "Nunito", system-ui, -apple-system, sans-serif',
+  body:  '"Inter", "Nunito", system-ui, -apple-system, sans-serif',
+  mono:  '"Inter", ui-monospace, monospace',
+  sans:  '"Inter", "Nunito", system-ui, -apple-system, sans-serif',
 };
 
 // Base ESCURA — todas as variantes mudam só o acento
 const DARK_BASE = {
   dark: true,
-  bg: "#0a0a0c", bgSoft: "#111114", card: "#131317", cardHi: "#17171c",
-  border: "#1f1f24", borderHi: "#2a2a30",
-  ink: "#f5f5f7", muted: "#8a8a93", faint: "#54545c",
-  green: "#4ade80", red: "#f87171", blue: "#60a5fa", yellow: "#fbbf24",
+  // Base grafite (#23272E) em vez de quase-preto — fundo mais elegante,
+  // mantendo a hierarquia de profundidade (bg < bgSoft < card < cardHi).
+  bg: "#23272E", bgSoft: "#282c34", card: "#2d323b", cardHi: "#333945",
+  border: "#343a44", borderHi: "#3f4550",
+  ink: "#f5f5f7", muted: "#a3a8b3", faint: "#6e7480",
+  green: "#4ade80", red: "#f87171", blue: "#ed9355", yellow: "#fbbf24",
 };
 
 const THEMES = {
   // ----- DARK -----
-  gold:    { ...DARK_BASE, id: "gold",    nome: "Editorial Gold", subtitulo: "Preto e dourado · padrão", gold: "#c9a961", goldHi: "#d4b87a" },
+  gold:    { ...DARK_BASE, id: "gold",    nome: "Esmeralda Suave", subtitulo: "Verde-água suave · padrão", gold: "#5bbf9a", goldHi: "#7ccdb0", blue: "#6f9fd8" },
   emerald: { ...DARK_BASE, id: "emerald", nome: "Esmeralda",      subtitulo: "Verde profissional",        gold: "#10b981", goldHi: "#34d399" },
   cyan:    { ...DARK_BASE, id: "cyan",    nome: "Cyan",           subtitulo: "Tech moderno",              gold: "#06b6d4", goldHi: "#22d3ee" },
   violet:  { ...DARK_BASE, id: "violet",  nome: "Violeta",        subtitulo: "Sofisticado",               gold: "#8b5cf6", goldHi: "#a78bfa" },
@@ -29,19 +31,32 @@ const THEMES = {
   ice:     { ...DARK_BASE, id: "ice",     nome: "Gelo",           subtitulo: "Mono · clean",              gold: "#e5e7eb", goldHi: "#f3f4f6" },
 
   // ----- LIGHT -----
+  nevoa: {
+    // "Suave & moderno" (escolha do usuário 2026-07-07): neutro frio, acento
+    // sálvia, e os semânticos (verde/vermelho/azul/amarelo) na mesma família de
+    // saturação pra não brigarem. Espelha [data-c="nevoa"] no index.css.
+    dark: false, id: "nevoa", nome: "Névoa", subtitulo: "Neutro frio · sálvia suave",
+    bg: "#f6f7f8", bgSoft: "#eef0f2", card: "#ffffff", cardHi: "#f4f6f8",
+    border: "#e6e9ec", borderHi: "#cdd3d9",
+    ink: "#1f2429", muted: "#5c6570", faint: "#949ba4",
+    gold: "#5b9279", goldHi: "#74a992",
+    green: "#4f9d76", red: "#cf7d6a", blue: "#6d8fb3", yellow: "#c1954b",
+  },
   papel: {
-    dark: false, id: "papel", nome: "Papel", subtitulo: "Sépia · papel antigo",
-    bg: "#f4ecd8", bgSoft: "#ede3ca", card: "#fbf6e8", cardHi: "#f4ecd8",
+    dark: false, id: "papel", nome: "Papel", subtitulo: "Sépia · fundo branco",
+    bg: "#ffffff", bgSoft: "#f7f5f0", card: "#ffffff", cardHi: "#f7f5f0",
     border: "#d9c9a3", borderHi: "#bfae87",
-    ink: "#2a2218", muted: "#5e503c", faint: "#8a7b62",
+    ink: "#2a2218", muted: "#4f432f", faint: "#796a52",
     gold: "#8a5a28", goldHi: "#a87440",
     green: "#56784f", red: "#9a4032", blue: "#3f6a8c", yellow: "#b8862a",
   },
   linho: {
-    dark: false, id: "linho", nome: "Linho", subtitulo: "Verde oliva sobre linho",
-    bg: "#f3efe7", bgSoft: "#ebe5d8", card: "#fbf9f3", cardHi: "#f3efe7",
-    border: "#d0c8b6", borderHi: "#a89d83",
-    ink: "#222018", muted: "#5a5346", faint: "#857d6c",
+    // Fundo branco a pedido do usuário (antes era creme #f3efe7) — o acento
+    // verde-oliva e o clima do tema continuam os mesmos.
+    dark: false, id: "linho", nome: "Linho", subtitulo: "Verde oliva · fundo branco",
+    bg: "#ffffff", bgSoft: "#f5f3ee", card: "#ffffff", cardHi: "#f7f5f0",
+    border: "#ddd6c8", borderHi: "#a89d83",
+    ink: "#222018", muted: "#4b463a", faint: "#766e5d",
     gold: "#5d7548", goldHi: "#7a9460",
     green: "#56784f", red: "#a14a3a", blue: "#3f6a8c", yellow: "#a87a2a",
   },
@@ -49,9 +64,17 @@ const THEMES = {
     dark: false, id: "perola", nome: "Pérola", subtitulo: "Branco perolado · azul",
     bg: "#f5f5f7", bgSoft: "#eaeaef", card: "#ffffff", cardHi: "#f5f5f7",
     border: "#d8d8de", borderHi: "#a8a8b0",
-    ink: "#1a1a1f", muted: "#5a5a64", faint: "#8888a0",
+    ink: "#1a1a1f", muted: "#4c4c57", faint: "#76768c",
     gold: "#4a5a8a", goldHi: "#6a7aaa",
     green: "#3c8c5a", red: "#c14a4a", blue: "#3f6a8c", yellow: "#b88c2a",
+  },
+  moderno: {
+    dark: false, id: "moderno", nome: "Moderno", subtitulo: "Cinza minimalista · índigo (SaaS)",
+    bg: "#f4f5f7", bgSoft: "#eceef2", card: "#ffffff", cardHi: "#f8f9fb",
+    border: "#e4e6ec", borderHi: "#cfd3dc",
+    ink: "#14151a", muted: "#5b6172", faint: "#9aa0b0",
+    gold: "#4f46e5", goldHi: "#6366f1",
+    green: "#15a06b", red: "#e0566a", blue: "#3b82f6", yellow: "#d99a2b",
   },
 };
 
