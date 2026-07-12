@@ -38,11 +38,12 @@ const ICONE_CLASSE = {
   reit:  Building2,
 };
 
+// Paleta suave por classe (desaturada — sem amarelo/vermelho berrante).
 const COR_CLASSE = {
-  fii:   "#fbbf24",
-  acao:  "#f87171",
-  stock: "#a78bfa",
-  reit:  "#fb7185",
+  fii:   "#5fa877",  // verde suave (era amarelo gritante)
+  acao:  "#c58b83",  // terracota suave
+  stock: "#9a8fc7",  // lavanda suave
+  reit:  "#c496a6",  // rosé suave
 };
 
 export default function CarteiraModelo({

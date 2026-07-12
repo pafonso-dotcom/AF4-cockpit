@@ -101,7 +101,7 @@ const getTheme = (id) => {
 
 export { THEMES };
 
-export const T = { ...getTheme("gold") };
+export const T = { ...getTheme("linho") };
 
 // Aplica vars CSS de tamanho/cor de texto no root. Idempotente.
 export const applyTextStyle = () => {

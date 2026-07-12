@@ -80,7 +80,7 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [marketStatus, setMarketStatus] = useState({ at: null, mode: "sim", okCount: 0, total: 0 });
   // Paleta de cores escolhida (preferência do dispositivo).
-  const [themeId, setThemeId] = useState(() => { try { return localStorage.getItem("invest:theme") || "gold"; } catch { return "gold"; } });
+  const [themeId, setThemeId] = useState(() => { try { return localStorage.getItem("invest:theme") || "linho"; } catch { return "linho"; } });
   const [configAberto, setConfigAberto] = useState(false); // menu compacto de ferramentas/config
   const trocarTema = (id) => { setThemeId(id); try { localStorage.setItem("invest:theme", id); } catch {} };
   // Orientação do menu: horizontal (padrão) ou vertical (opcional).

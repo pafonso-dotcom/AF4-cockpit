@@ -626,7 +626,9 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
   const noAlvo = alvo > 0 && Math.abs(diff) <= alvo * 0.03;
   const acima = diff > 0;
   const abaixo = diff < 0 && alvo > 0;
-  const corStatus = noAlvo ? T.green : acima ? "#fbbf24" : abaixo ? T.red : T.muted;
+  // Paleta suave: no alvo = verde calmo · sobra = cinza-azulado (neutro, sem
+  // amarelo) · falta = terracota suave (sem vermelho de alerta).
+  const corStatus = noAlvo ? "#4f9e75" : acima ? "#8a94a3" : abaixo ? "#c58b83" : T.muted;
 
   // Aporte sugerido pra esta folha (só relevante quando aporteN > 0 e é folha)
   const aporteSugerido = !temFilhos && distribuicaoAporte ? (distribuicaoAporte.get(node.id) || 0) : 0;
@@ -844,10 +846,10 @@ const iconBtnStyle = (cor) => ({
 
 function corDaClasse(classeMatch) {
   if (!classeMatch || classeMatch.length === 0) return "#a8a8b0";
-  if (classeMatch.includes("fii")) return "#fbbf24";
-  if (classeMatch.includes("acao") || classeMatch.includes("stock")) return "#f87171";
-  if (classeMatch.includes("reit")) return "#fb7185";
-  if (classeMatch.includes("etf")) return "#a78bfa";
+  if (classeMatch.includes("fii")) return "#5fa877";   // verde suave (era amarelo)
+  if (classeMatch.includes("acao") || classeMatch.includes("stock")) return "#c58b83";  // terracota suave
+  if (classeMatch.includes("reit")) return "#c496a6";  // rosé suave
+  if (classeMatch.includes("etf")) return "#9a8fc7";   // lavanda suave
   if (classeMatch.includes("cdb") || classeMatch.includes("tesouro") || classeMatch.includes("rf")) return "#60a5fa";
   if (classeMatch.includes("cripto")) return "#34d399";
   return T.gold;
