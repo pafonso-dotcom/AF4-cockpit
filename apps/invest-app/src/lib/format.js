@@ -13,10 +13,21 @@ export const fmtN = (v, d = 2) =>
 
 export const fmtP = (v) => `${v >= 0 ? "+" : ""}${fmtN(v, 2)}%`;
 
+export const fmtUSD = (v) =>
+  "US$ " + (Number(v) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export const uid = () =>
   Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);
+
+/* Máscara de moeda "estilo caixa": pega só os dígitos digitados e trata os
+   2 últimos como centavos. Ex.: "150050" → 1500.50, "1500" → 15.00, "" → 0. */
+export const digitosParaValor = (str) => {
+  const digits = String(str ?? "").replace(/\D/g, "");
+  if (!digits) return 0;
+  return parseInt(digits, 10) / 100;
+};
 
 /* Simulação de variação de preço (fallback quando APIs não respondem) */
 export const simulateTick = (preco, vol = 0.015) => {

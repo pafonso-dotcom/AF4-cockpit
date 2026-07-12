@@ -154,3 +154,20 @@ export function calcCarteiraSaude(ativos) {
     total,
   };
 }
+
+/**
+ * Soma dos proventos REALMENTE recebidos por ticker, a partir do histórico da
+ * carteira de proventos (entradas tipo "recebimento" baixadas na tela
+ * Proventos). Base do "Proventos acumulados" por posição na Carteira.
+ * @param {Array} historico  carteiraProventos.historico
+ * @returns {{ [TICKER]: number }}
+ */
+export function proventosRecebidosPorTicker(historico = []) {
+  const m = {};
+  for (const h of historico || []) {
+    if (!h || h.tipo !== "recebimento" || !h.ticker) continue;
+    const tk = String(h.ticker).trim().toUpperCase();
+    m[tk] = (m[tk] || 0) + (Number(h.valor) || 0);
+  }
+  return m;
+}
