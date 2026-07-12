@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { RefreshCw, Eye, EyeOff, LogOut, LayoutGrid, Settings2, Check } from "lucide-react";
+import {
+  RefreshCw, Eye, EyeOff, LogOut, LayoutGrid, Settings2, Check,
+  LayoutDashboard, Briefcase, TrendingUp, Target, Copy, PieChart,
+  Calculator, LineChart, Award, Coins, FileText, Plus, Settings, ChevronDown, Shield,
+} from "lucide-react";
 
 import { T, applyTheme, THEMES } from "./lib/theme.js";
 import { simulateTick } from "./lib/format.js";
@@ -42,17 +46,17 @@ const lget = (k, fb) => { try { const v = localStorage.getItem(k); return v != n
 const lset = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
 const TABS = [
-  { id: "investimentos", label: "Painel" },
-  { id: "carteira", label: "Carteira" },
-  { id: "evolucao", label: "Evolução" },
-  { id: "objetivos", label: "Objetivos" },
-  { id: "modelo", label: "Carteira modelo" },
-  { id: "monte-carteira", label: "Monte sua carteira" },
-  { id: "calc-renda", label: "Calculadora" },
-  { id: "projecao", label: "Projeção" },
-  { id: "analises", label: "Análise" },
-  { id: "proventos", label: "Proventos" },
-  { id: "relatorios-i", label: "Relatórios" },
+  { id: "investimentos", label: "Painel", icon: LayoutDashboard },
+  { id: "carteira", label: "Carteira", icon: Briefcase },
+  { id: "evolucao", label: "Evolução", icon: TrendingUp },
+  { id: "objetivos", label: "Objetivos", icon: Target },
+  { id: "modelo", label: "Carteira modelo", icon: Copy },
+  { id: "monte-carteira", label: "Monte sua carteira", icon: PieChart },
+  { id: "calc-renda", label: "Calculadora", icon: Calculator },
+  { id: "projecao", label: "Projeção", icon: LineChart },
+  { id: "analises", label: "Análise", icon: Award },
+  { id: "proventos", label: "Proventos", icon: Coins },
+  { id: "relatorios-i", label: "Relatórios", icon: FileText },
 ];
 
 export default function App() {
@@ -184,7 +188,7 @@ export default function App() {
     carregarFundamentos().then(setFundamentos).catch(() => {});
   }, [loading]);
 
-  const tabsVisiveis = ehAdmin(usuario) ? [...TABS, { id: "gerencial", label: "Gerencial" }] : TABS;
+  const tabsVisiveis = ehAdmin(usuario) ? [...TABS, { id: "gerencial", label: "Gerencial", icon: Shield }] : TABS;
 
   /* ---------- Refresh de mercado ---------- */
   const refreshMarket = async () => {
@@ -282,39 +286,76 @@ export default function App() {
 
       {/* Barra lateral — marca + navegação (estilo AF.finanças) */}
       <aside style={{
-        width: 216, flexShrink: 0, background: "#23272E",
+        width: 224, flexShrink: 0, background: "#23272E",
         borderRight: "1px solid rgba(255,255,255,.08)",
         display: "flex", flexDirection: "column",
         position: "sticky", top: 0, height: "100vh",
       }}>
-        <div style={{ padding: "16px 16px 12px" }}>
+        <div style={{ padding: "16px 16px 14px" }}>
           <Logo size={26} />
         </div>
-        <div style={{ padding: "2px 18px 8px", fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(240,235,225,.38)", fontWeight: 700 }}>
-          Investimentos
+
+        <div style={{ padding: "0 18px 6px", fontSize: 10, letterSpacing: ".16em", textTransform: "uppercase", color: "rgba(240,235,225,.34)", fontWeight: 700 }}>
+          Módulos
         </div>
+
         <nav className="invest-nav" style={{
-          display: "flex", flexDirection: "column", gap: 2,
+          display: "flex", flexDirection: "column", gap: 1,
           padding: "0 10px 12px", overflowY: "auto", flex: 1,
         }}>
-          {tabsVisiveis.map(t => {
-            const ativo = tab === t.id;
-            return (
-              <button key={t.id} onClick={() => irParaTab(t.id)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "9px 12px", fontSize: 13, cursor: "pointer",
-                  background: ativo ? "rgba(232,194,90,.14)" : "transparent",
-                  border: "none", borderLeft: `3px solid ${ativo ? "#E8C25A" : "transparent"}`,
-                  borderRadius: 8, textAlign: "left",
-                  color: ativo ? "#E8C25A" : "rgba(240,235,225,.66)", fontWeight: ativo ? 600 : 400,
-                  whiteSpace: "nowrap",
-                }}>
-                {t.label}
-              </button>
-            );
-          })}
+          {/* Módulo Investimentos (único do app) — sempre "aberto" */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 9,
+            padding: "9px 12px", borderRadius: 8, marginBottom: 2,
+            background: "rgba(232,194,90,.10)", color: "#E8C25A", fontWeight: 600, fontSize: 13,
+          }}>
+            <Briefcase size={16} />
+            <span>Investimentos</span>
+            <ChevronDown size={14} style={{ marginLeft: "auto", opacity: .7 }} />
+          </div>
+
+          {/* Sub-itens com conector à esquerda */}
+          <div style={{ marginLeft: 19, paddingLeft: 10, borderLeft: "1px solid rgba(255,255,255,.10)", display: "flex", flexDirection: "column", gap: 1 }}>
+            {tabsVisiveis.map(t => {
+              const ativo = tab === t.id;
+              const Icon = t.icon || LayoutDashboard;
+              return (
+                <button key={t.id} onClick={() => irParaTab(t.id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 9,
+                    padding: "8px 10px", fontSize: 12.5, cursor: "pointer",
+                    background: ativo ? "rgba(232,194,90,.14)" : "transparent",
+                    border: "none", borderRadius: 7, textAlign: "left",
+                    color: ativo ? "#E8C25A" : "rgba(240,235,225,.62)", fontWeight: ativo ? 600 : 400,
+                    whiteSpace: "nowrap",
+                  }}>
+                  <Icon size={15} style={{ flexShrink: 0, opacity: ativo ? 1 : .8 }} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </nav>
+
+        {/* Rodapé: Novo aporte + Configurações */}
+        <div style={{ padding: "10px 12px 14px", borderTop: "1px solid rgba(255,255,255,.08)", display: "flex", flexDirection: "column", gap: 6 }}>
+          <button onClick={() => irParaTab("carteira")}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer",
+              background: "rgba(60,140,90,.18)", color: "#7ed4a2", fontWeight: 600, fontSize: 13,
+            }}>
+            <Plus size={16} /> Novo aporte
+          </button>
+          <button onClick={() => setConfigAberto(true)}
+            style={{
+              display: "flex", alignItems: "center", gap: 9,
+              padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer",
+              background: "transparent", color: "rgba(240,235,225,.6)", fontSize: 13, textAlign: "left",
+            }}>
+            <Settings size={16} /> Configurações
+          </button>
+        </div>
       </aside>
 
       {/* Coluna de conteúdo */}
