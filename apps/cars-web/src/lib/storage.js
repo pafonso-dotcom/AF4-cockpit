@@ -37,6 +37,26 @@ const local = {
    loadAll / saveAll — estado completo do app (localStorage)
    ============================================================ */
 
+// Proteção contra sumiço de dados: NUNCA deixar uma coleção VAZIA vinda da
+// nuvem apagar uma coleção CHEIA que já existe no aparelho. Ex.: se um estado
+// com `cheques: []` (de outro aparelho, ou salvo antes dos dados carregarem)
+// for pra nuvem, o carregamento seguinte não deve zerar os cheques locais.
+// Regra: array cheio local vence array vazio/ausente remoto; no resto, remoto
+// vence (é a fonte mais recente). Escalares e objetos seguem o remoto.
+export function preservarNaoVazio(remote, localCache) {
+  if (!remote || typeof remote !== "object") return remote;
+  const base = localCache && typeof localCache === "object" ? localCache : {};
+  const out = { ...base, ...remote }; // por padrão o remoto vence
+  for (const k of Object.keys(base)) {
+    const l = base[k];
+    const r = remote[k];
+    const localCheio = Array.isArray(l) && l.length > 0;
+    const remotoVazio = r == null || (Array.isArray(r) && r.length === 0);
+    if (localCheio && remotoVazio) out[k] = l; // preserva o local cheio
+  }
+  return out;
+}
+
 export const loadAll = async () => {
   // Supabase (legado) — só se logado
   if (supabaseConfigured) {
@@ -44,8 +64,10 @@ export const loadAll = async () => {
     if (session) {
       const remote = await fetchAurumState();
       if (remote) {
-        local.set(STORE_KEY, remote);
-        return remote;
+        // Merge de segurança: coleção cheia local não é apagada por vazia remota.
+        const merged = preservarNaoVazio(remote, local.get(STORE_KEY));
+        local.set(STORE_KEY, merged);
+        return merged;
       }
       const cached = local.get(STORE_KEY);
       if (cached) {
