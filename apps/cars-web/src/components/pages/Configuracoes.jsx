@@ -22,6 +22,7 @@ export default function Configuracoes({
   modulesEnabled, setModulesEnabled,
   onClearModule,
   onVerificarDuplicidades,
+  onAbrirBackups,
 }) {
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
@@ -43,6 +44,18 @@ export default function Configuracoes({
         <>
           <MigracaoSupabase />
           <SyncGist />
+          {onAbrirBackups && (
+            <>
+              <div className="st"><h2>Segurança · Pontos de restauração</h2><div className="mt">Backup automático local</div></div>
+              <div className="fb">
+                <h4>🛡️ Pontos de restauração</h4>
+                <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 14 }}>
+                  O app guarda sozinho cópias dos seus dados (uma por dia e sempre antes de ações que apagam), aqui no aparelho. Se algo sumir, dá pra <strong>restaurar</strong> um ponto anterior — ou baixar o JSON.
+                </p>
+                <button className="btn-gold" onClick={onAbrirBackups}>🛡️ Ver pontos de restauração</button>
+              </div>
+            </>
+          )}
           {onVerificarDuplicidades && (
             <>
               <div className="st"><h2>Manutenção · Duplicidades</h2><div className="mt">Varredura do Financeiro</div></div>
