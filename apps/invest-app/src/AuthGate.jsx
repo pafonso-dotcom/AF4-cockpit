@@ -7,7 +7,7 @@ import NovaSenha from "./components/auth/NovaSenha.jsx";
 // ⚠️ PROVISÓRIO — login DESATIVADO enquanto fazemos as alterações.
 // Entra direto no app (dados no localStorage). Para REATIVAR o login,
 // troque para false (ou remova este bloco e o `if (BYPASS_LOGIN)` abaixo).
-const BYPASS_LOGIN = true;
+const BYPASS_LOGIN = false;
 
 // Link de recuperação de senha chega com "#type=recovery&..." na URL.
 const hashRecovery = () =>
