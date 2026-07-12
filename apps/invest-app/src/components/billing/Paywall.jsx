@@ -8,7 +8,10 @@ import Logo from "../ui/Logo.jsx";
  * Mostrada quando a cobrança está ligada e o cliente não tem assinatura ativa.
  * O botão "Assinar" liga ao checkout do Mercado Pago (a ser configurado).
  */
-export default function Paywall({ onAssinar, onSair, motivo }) {
+export default function Paywall({ onAssinar, onSair, motivo, preco }) {
+  const precoFmt = preco != null
+    ? preco.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : "—";
   const beneficios = [
     "Carteira na nuvem, acesse de qualquer lugar",
     "Cotações e análises sempre atualizadas",
@@ -32,7 +35,7 @@ export default function Paywall({ onAssinar, onSair, motivo }) {
             Plano Pro
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6, marginBottom: 14 }}>
-            <span className="num" style={{ fontFamily: T.serif, fontSize: 30, fontWeight: 600, color: T.ink }}>R$ —</span>
+            <span className="num" style={{ fontFamily: T.serif, fontSize: 30, fontWeight: 600, color: T.ink }}>R$ {precoFmt}</span>
             <span style={{ fontSize: 12, color: T.muted }}>/ mês</span>
           </div>
 

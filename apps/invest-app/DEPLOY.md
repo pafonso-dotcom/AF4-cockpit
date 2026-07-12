@@ -173,3 +173,38 @@ no servidor — o cliente não vê chave nenhuma). Aí a nota/recomendação sae
 
 > A IA faz estimativas a partir do que conhece — revise os valores quando quiser.
 > É ferramenta de apoio, não recomendação de investimento.
+
+---
+
+## Parte 10 · Cobrança com Mercado Pago (liberar a comercialização)
+
+Com isto, o cliente assina (recorrente mensal) e o acesso é liberado sozinho.
+O checkout e o webhook rodam no servidor — nenhuma credencial fica no navegador.
+
+**1. Banco:** rode `sql/002_subscriptions.sql` no Supabase (se ainda não rodou).
+
+**2. Mercado Pago:** crie/entre em uma conta em mercadopago.com.br →
+**Seu negócio → Configurações → Credenciais** → copie o **Access Token (Produção)**.
+
+**3. Variáveis no Cloudflare Pages (projeto invest-app) → Settings → Environment variables (Production):**
+
+| Variável | Onde | Pra quê |
+|---|---|---|
+| `MERCADOPAGO_ACCESS_TOKEN` | Production (secret) | Token do Mercado Pago (⚠️ secreta, só no servidor) |
+| `PLANO_PRECO` | Production | Valor mensal cobrado, ex.: `29.90` |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE` | Production | já usados pelo Gerencial (Parte 6) |
+| `VITE_PLANO_PRECO` | Production | mesmo valor (só pra a tela de planos mostrar) |
+| `VITE_BILLING_ENABLED` | Production | `true` **liga a trava** (quem não assina vê o Paywall) |
+| `VITE_TRIAL_DIAS` | Production | dias grátis pra conta nova antes de cobrar (ex.: `7`) |
+
+**4. Webhook no Mercado Pago:** em **Suas integrações → (sua aplicação) →
+Webhooks/Notificações**, cadastre a URL:
+`https://SEU-DOMINIO/api/mp-webhook` e marque o evento **Assinaturas (preapproval)**.
+
+**5. Retry deployment.** Pronto: quando `VITE_BILLING_ENABLED=true`, quem não
+tem assinatura ativa (nem trial) vê a tela de planos. Ao clicar **Assinar**, o
+app cria a preapproval no MP e leva o cliente ao pagamento; o **webhook** ativa
+a assinatura no banco e o acesso é liberado automaticamente.
+
+> Enquanto estiver testando, deixe `VITE_BILLING_ENABLED` **desligada** (ou sem
+> definir) — aí todo mundo entra sem cobrança. Ligue quando for comercializar.

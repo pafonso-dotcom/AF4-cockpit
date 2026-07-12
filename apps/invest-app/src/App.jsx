@@ -10,7 +10,9 @@ import { T, applyTheme, THEMES } from "./lib/theme.js";
 import { simulateTick } from "./lib/format.js";
 import { atualizarCarteira } from "./lib/cotacoes.js";
 import { loadInvestState, saveInvestState } from "./lib/cloudStore.js";
-import { supabaseConfigured, signOut, getUser } from "./lib/supabase.js";
+import { supabaseConfigured, signOut, getUser, getSession } from "./lib/supabase.js";
+import { PLANO_PRECO } from "./lib/config.js";
+import { iniciarAssinatura } from "./lib/checkout.js";
 import { billingEnabled, getSubscription, acessoLiberado } from "./lib/subscription.js";
 import { ehAdmin } from "./lib/admin.js";
 import { toast } from "./lib/toast.js";
@@ -280,8 +282,9 @@ export default function App() {
     return (
       <Paywall
         motivo={sub && sub.status !== "none" ? "expirada" : ""}
+        preco={PLANO_PRECO}
         onSair={() => signOut()}
-        onAssinar={() => toast.success("Pagamento via Mercado Pago será ativado em breve.")}
+        onAssinar={iniciarAssinatura}
       />
     );
   }
