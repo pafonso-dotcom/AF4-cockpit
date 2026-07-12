@@ -9,6 +9,8 @@ import { API, COIN_MAP } from "./lib/api.js";
 import { generateRecurringForCurrentMonth } from "./lib/recorrencia.js";
 import { lerEscopo, salvarEscopo } from "./lib/escopo.js";
 import { aplicarDadosCarregados, aplicarSeeds } from "./lib/appPersistencia.js";
+import { backupDiario, criarBackup, obterBackup } from "./lib/autobackup.js";
+import BackupsModal from "./components/modals/BackupsModal.jsx";
 import { toast } from "./lib/toast.js";
 import { createBackup, shouldAutoBackup } from "./lib/autoBackup.js";
 import { audit } from "./lib/auditLog.js";
@@ -155,6 +157,7 @@ export default function App() {
   const [themeId, setThemeId] = useState("nevoa");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [varreduraOpen, setVarreduraOpen] = useState(false);
+  const [backupsOpen, setBackupsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modulesEnabled, setModulesEnabled] = useState({ financas: true, invest: true });
   const [apiKeys, setApiKeys] = useState({ brapi: "", alphavantage: "", anthropic: "", useRealMarket: true });
@@ -267,6 +270,52 @@ export default function App() {
   // abrir direto em "carteira-analise" ou "idv", esse state sinaliza.
   const [analiseViewInicial, setAnaliseViewInicial] = useState(null);
 
+  // Setters usados no load e na restauração de backup (fonte única).
+  const SETTERS = {
+    setContas, setCategorias, setTransacoes, setAtivos, setMetas, setNotas,
+    setCartoes, setParcelamentos, setDevedores, setDividas, setCheques,
+    setFixas, setFixaOcorrencias, setAgenda, setHabitos, setDiario, setCompras,
+    setIdeias, setTarefas, setSugestoes, setLembretes, setConversaHistorico,
+    setExerciciosDB, setTreinoTemplates, setTreinos, setPatrimonioHistorico,
+    setNegocioVeiculos, setNegocioVendasVeiculos, setNegocioServicos,
+    setNegocioVendasServicos, setNegocioContratos, setNegocioClientes,
+    setNegocioInstaladores, setObjetivosCarteira, setCarteirasModeloCustom,
+    setModeloAtivoId, setCarteiraProventos, setCaixaNegocio, setNegocioBancos,
+    setNegocioFinContas, setNegocioFinCategorias, setNegocioFinDespesasFixas, setNegocioFinDespesasVar,
+    setNegocioLojas, setNegocioLojaAtiva, setNegocioRecebimentos,
+    setProventosRecebidos, setProventosIgnorados, setProventosManuais,
+    setTradeWatchlist, setTradeHistorico, setTradeAnalisesIdV,
+    setTradeOnboardingVisto, setThemeId,
+  };
+
+  // Blob completo do estado atual (mesmo formato que vai pro saveAll/backup).
+  const montarDados = () => ({
+    contas, categorias, transacoes, ativos, metas, notas,
+    cartoes, parcelamentos, devedores, dividas, cheques,
+    fixas, fixaOcorrencias, agenda,
+    habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
+    negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes, negocioInstaladores,
+    carteirasModeloCustom, modeloAtivoId,
+    carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
+    caixaNegocio, negocioBancos,
+    negocioFinContas, negocioFinCategorias, negocioFinDespesasFixas, negocioFinDespesasVar,
+    negocioLojas, negocioLojaAtiva, negocioRecebimentos,
+    tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
+    lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
+    themeId,
+  });
+
+  // Restaura um ponto de restauração (aplica o blob + salva + backup de segurança).
+  const restaurarBackup = async (id) => {
+    const dados = await obterBackup(id);
+    if (!dados) { toast.error("Backup não encontrado."); return; }
+    await criarBackup(montarDados(), "antes de restaurar");
+    aplicarDadosCarregados(dados, SETTERS);
+    await saveAll(dados, { immediate: true });
+    setBackupsOpen(false);
+    toast.success("Dados restaurados do ponto de restauração.");
+  };
+
   /* ---------- Load on mount ---------- */
   useEffect(() => {
     (async () => {
@@ -279,22 +328,6 @@ export default function App() {
         data = null; keys = null;
       }
       try {
-      const SETTERS = {
-        setContas, setCategorias, setTransacoes, setAtivos, setMetas, setNotas,
-        setCartoes, setParcelamentos, setDevedores, setDividas, setCheques,
-        setFixas, setFixaOcorrencias, setAgenda, setHabitos, setDiario, setCompras,
-        setIdeias, setTarefas, setSugestoes, setLembretes, setConversaHistorico,
-        setExerciciosDB, setTreinoTemplates, setTreinos, setPatrimonioHistorico,
-        setNegocioVeiculos, setNegocioVendasVeiculos, setNegocioServicos,
-        setNegocioVendasServicos, setNegocioContratos, setNegocioClientes,
-        setNegocioInstaladores, setObjetivosCarteira, setCarteirasModeloCustom,
-        setModeloAtivoId, setCarteiraProventos, setCaixaNegocio, setNegocioBancos,
-        setNegocioFinContas, setNegocioFinCategorias, setNegocioFinDespesasFixas, setNegocioFinDespesasVar,
-        setNegocioLojas, setNegocioLojaAtiva, setNegocioRecebimentos,
-        setProventosRecebidos, setProventosIgnorados, setProventosManuais,
-        setTradeWatchlist, setTradeHistorico, setTradeAnalisesIdV,
-        setTradeOnboardingVisto, setThemeId,
-      };
       if (data) aplicarDadosCarregados(data, SETTERS);
       else aplicarSeeds(SETTERS);
         if (keys) {
@@ -325,21 +358,7 @@ export default function App() {
   /* ---------- Save on change ---------- */
   useEffect(() => {
     if (loading) return;
-    saveAll({
-      contas, categorias, transacoes, ativos, metas, notas,
-      cartoes, parcelamentos, devedores, dividas, cheques,
-      fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
-      negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes, negocioInstaladores,
-      carteirasModeloCustom, modeloAtivoId,
-      carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
-      caixaNegocio, negocioBancos,
-      negocioFinContas, negocioFinCategorias, negocioFinDespesasFixas, negocioFinDespesasVar,
-      negocioLojas, negocioLojaAtiva, negocioRecebimentos,
-      tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
-      lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
-      themeId,
-    });
+    saveAll(montarDados());
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas, cheques,
       fixas, fixaOcorrencias, agenda,
       habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira,
@@ -357,6 +376,14 @@ export default function App() {
     if (loading) return;
     saveKeys(apiKeys);
   }, [apiKeys, loading]);
+
+  /* ---------- Backup automático diário (ponto de restauração local) ---------- */
+  useEffect(() => {
+    if (loading) return;
+    // 1x por dia: guarda um snapshot do estado atual em IndexedDB (rotativo).
+    const t = setTimeout(() => backupDiario(montarDados()), 4000);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   /* ---------- Command Palette: Ctrl/Cmd+K abre busca rápida de abas ---------- */
   useEffect(() => {
@@ -1180,8 +1207,11 @@ export default function App() {
                    themeId={themeId} setThemeId={setThemeId}
                    apiKeys={apiKeys} setApiKeys={setApiKeys}
                    onVerificarDuplicidades={() => setVarreduraOpen(true)}
+                   onAbrirBackups={() => setBackupsOpen(true)}
                    modulesEnabled={modulesEnabled} setModulesEnabled={setModulesEnabled}
                    onClearModule={async (id) => {
+                     // Ponto de restauração ANTES de limpar (segurança).
+                     await criarBackup(montarDados(), `antes de limpar ${id}`);
                      // Calcula snapshot zerado e força save imediato
                      // (bypass do debounce de 1.5s — senão recarregar
                      // antes do timer faz a versão antiga voltar do cloud).
@@ -1258,6 +1288,9 @@ export default function App() {
           setters={{ transacoes: setTransacoes, dividas: setDividas, devedores: setDevedores, fixas: setFixas, cheques: setCheques, parcelamentos: setParcelamentos, cartoes: setCartoes, contas: setContas, categorias: setCategorias }}
           onClose={() => setVarreduraOpen(false)}
         />
+      )}
+      {backupsOpen && (
+        <BackupsModal onRestaurar={restaurarBackup} onClose={() => setBackupsOpen(false)} />
       )}
       {pickerOpen && (
         <ThemePicker themeId={themeId} setThemeId={setThemeId} onClose={() => setPickerOpen(false)} />
