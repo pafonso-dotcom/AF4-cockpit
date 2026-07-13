@@ -1106,7 +1106,6 @@ export default function Proventos({
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
               {[
                 { id: "carteira",   label: "Deixar na Carteira de Proventos",  desc: "Acumula pra usar depois." },
-                { id: "conta",      label: "Depositar em conta bancária",      desc: "Vira receita real na conta (extrato + relatórios)." },
                 { id: "reinvestir", label: "Reinvestir agora em um ativo",     desc: "Compra mais cotas direto." },
               ].map(opt => {
                 const ativo = baixaForm.destino === opt.id;
