@@ -439,31 +439,6 @@ export default function Dashboard({
   return (
     <div className="fade-up" style={{ paddingTop: 12 }}>
 
-      {/* Faixa de atalhos rápidos — escondida no mobile (largura pros cards de info) */}
-      <div className="dash-atalhos" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 10, marginBottom: 16 }}>
-        {[
-          { lbl: "Nova transação", icon: Plus, cor: T.gold, on: () => (onQuickAction ? onQuickAction("transacao") : onTabChange?.("transacoes")) },
-          { lbl: "Novo cheque", icon: FileText, cor: T.green, on: () => onTabChange?.("cheques") },
-          { lbl: "Conferir banco", icon: Wallet, cor: T.blue || "#60a5fa", on: () => onTabChange?.("contas") },
-        ].map(a => {
-          const I = a.icon;
-          return (
-            <button key={a.lbl} onClick={a.on}
-              style={{
-                display: "flex", alignItems: "center", gap: 10, padding: "11px 14px",
-                background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
-                boxShadow: CARD_SHADOW, cursor: "pointer", textAlign: "left",
-                color: T.ink, fontWeight: 600, fontSize: 13,
-              }}>
-              <span style={{ width: 34, height: 34, borderRadius: 11, background: `${a.cor}1f`, color: a.cor, display: "grid", placeItems: "center", flexShrink: 0 }}>
-                <I size={17} />
-              </span>
-              {a.lbl}
-            </button>
-          );
-        })}
-      </div>
-
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
 
@@ -516,10 +491,8 @@ export default function Dashboard({
           .dash-mid-grid, .dash-bot-grid, .dash-metas-grid { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 768px) {
-          /* Mobile: fora os atalhos e o "próximo compromisso"; patrimônio e
-             cards de informação (A receber, investimentos, financeiro) na
-             largura máxima. */
-          .dash-atalhos { display: none !important; }
+          /* Mobile: fora o "próximo compromisso"; patrimônio e cards de
+             informação (A receber, investimentos, financeiro) na largura máxima. */
           .dash-prox { display: none !important; }
           .dash-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
         }
