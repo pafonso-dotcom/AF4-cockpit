@@ -351,8 +351,9 @@ export default function ObjetivosCarteira({
       {/* Layout: árvore + plano lado a lado */}
       <div className="objetivos-split">
 
-        {/* Coluna esquerda: árvore */}
+        {/* Card esquerdo: Árvore */}
         <div className="objetivos-split-tree">
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, marginBottom: 8 }}>Árvore</div>
           {raizes.length === 0 ? (
             <div style={{
               textAlign: "center", padding: "60px 24px",
@@ -371,33 +372,9 @@ export default function ObjetivosCarteira({
               background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 16,
               padding: 12, overflowX: "auto",
             }}>
-              {/* DESKTOP: org-chart visual */}
-              <div className="objetivos-tree-desktop">
-                <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                  {raizes.map(raiz => (
-                    <TreeOrgNode
-                      key={raiz.id}
-                      node={raiz}
-                      tree={tree}
-                      valorPorNo={valorPorNo}
-                      valorAlvo={valorAlvo}
-                      distribuicaoAporte={distribuicaoAporte}
-                      aporteN={aporteN}
-                      hidden={hidden}
-                      onEditar={(n) => setEditando(n)}
-                      onExcluir={excluirNo}
-                      onAdicionarFilho={(p) => setEditando({ id: null, parentId: p.id, label: "", percent: 0, classeMatch: null })}
-                      onSugerir={(n, v) => abrirSugestao(n, v)}
-                      onVer={(n) => setVerAtivosNo(n)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* MOBILE: lista vertical indentada */}
-              <div className="objetivos-tree-mobile" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
                 {raizes.map(raiz => (
-                  <TreeListNode
+                  <TreeOrgNode
                     key={raiz.id}
                     node={raiz}
                     tree={tree}
@@ -411,7 +388,6 @@ export default function ObjetivosCarteira({
                     onAdicionarFilho={(p) => setEditando({ id: null, parentId: p.id, label: "", percent: 0, classeMatch: null })}
                     onSugerir={(n, v) => abrirSugestao(n, v)}
                     onVer={(n) => setVerAtivosNo(n)}
-                    nivel={0}
                   />
                 ))}
               </div>
@@ -419,8 +395,42 @@ export default function ObjetivosCarteira({
           )}
         </div>
 
-        {/* Coluna direita: Plano deste mês (sidebar) */}
+        {/* Card direito: Ativos (lista) */}
         <div className="objetivos-split-plan">
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, marginBottom: 8 }}>Ativos</div>
+          {raizes.length === 0 ? (
+            <div style={{ padding: 24, textAlign: "center", color: T.muted, fontSize: 13, background: T.bgSoft, border: `1px dashed ${T.border}`, borderRadius: 16 }}>
+              Sem ativos ainda.
+            </div>
+          ) : (
+            <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 16, padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+              {raizes.map(raiz => (
+                <TreeListNode
+                  key={raiz.id}
+                  node={raiz}
+                  tree={tree}
+                  valorPorNo={valorPorNo}
+                  valorAlvo={valorAlvo}
+                  distribuicaoAporte={distribuicaoAporte}
+                  aporteN={aporteN}
+                  hidden={hidden}
+                  onEditar={(n) => setEditando(n)}
+                  onExcluir={excluirNo}
+                  onAdicionarFilho={(p) => setEditando({ id: null, parentId: p.id, label: "", percent: 0, classeMatch: null })}
+                  onSugerir={(n, v) => abrirSugestao(n, v)}
+                  onVer={(n) => setVerAtivosNo(n)}
+                  nivel={0}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* Plano deste mês (abaixo dos dois cards) */}
+      {raizes.length > 0 && (
+        <div style={{ marginTop: 16 }}>
           <PlanoDeMes
             tree={tree}
             distribuicaoAporte={distribuicaoAporte}
@@ -431,8 +441,7 @@ export default function ObjetivosCarteira({
             onSugerir={(n, v) => abrirSugestao(n, v)}
           />
         </div>
-
-      </div>
+      )}
 
       {/* Modal Editar/Adicionar nó */}
       {editando && (
@@ -470,31 +479,23 @@ export default function ObjetivosCarteira({
 
       <style>{`
         .objetivos-resumo { grid-template-columns: 1fr 1fr; }
-        .objetivos-tree-desktop { display: block; }
-        .objetivos-tree-mobile { display: none; }
 
-        /* Split layout */
+        /* Split layout — dois cards lado a lado (Árvore | Ativos) */
         .objetivos-split { display: flex; gap: 20px; align-items: flex-start; }
         .objetivos-split-tree { flex: 1 1 0; min-width: 0; }
-        .objetivos-split-plan { flex: 0 0 300px; min-width: 260px; position: sticky; top: 80px; }
+        .objetivos-split-plan { flex: 0 0 340px; min-width: 280px; }
 
         /* Card hover actions */
         .obj-card-actions { opacity: 0; transition: opacity .15s; }
         .obj-card:hover .obj-card-actions { opacity: 1; }
 
-        @media (max-width: 600px) {
-          .objetivos-split { flex-direction: column; }
-          .objetivos-split-plan { flex: 1 1 auto; width: 100%; position: static; min-width: 0; }
-        }
         @media (max-width: 900px) {
-          /* Painel um pouco mais estreito pra árvore e plano caberem lado a lado. */
-          .objetivos-split-plan { flex: 0 0 260px; min-width: 220px; }
+          .objetivos-split { flex-direction: column; }
+          .objetivos-split-plan { flex: 1 1 auto; width: 100%; min-width: 0; }
           .obj-card-actions { opacity: 1; }
         }
         @media (max-width: 768px) {
           .objetivos-resumo { grid-template-columns: 1fr !important; }
-          .objetivos-tree-desktop { display: none; }
-          .objetivos-tree-mobile { display: flex; }
         }
       `}</style>
     </div>
