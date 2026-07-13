@@ -317,6 +317,10 @@ export default function Dashboard({
   const gastosCat = useMemo(() => {
     let desp = [];
     try { desp = getDespesasDoMes(mesISO, stateAgg, escopoAtivo); } catch {}
+    // Só GASTO de verdade (consumo). Fora transferências, depósitos e
+    // investimentos/aportes/resgates — são movimentação de dinheiro, não gasto.
+    const naoEhGasto = (nome) => /investim|transfer|dep[oó]sito|aporte|resgate/i.test(String(nome || ""));
+    desp = desp.filter(d => !naoEhGasto(d.categoria) && !d.transferenciaId);
     const m = {};
     desp.forEach(d => { const k = d.categoria || "Outros"; m[k] = (m[k] || 0) + (Number(d.valor) || 0); });
     const tot = Object.values(m).reduce((s,v) => s+v, 0) || 1;
