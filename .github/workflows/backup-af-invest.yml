@@ -1,0 +1,51 @@
+name: Backup AF.invest (diário)
+
+# Baixa TODAS as tabelas importantes do Supabase (dados dos clientes) e guarda
+# como artefato PRIVADO do repositório, retido por 90 dias. É a rede de
+# segurança: se o Supabase for perdido, dá pra restaurar daqui.
+#
+# Precisa dos secrets (Settings -> Secrets and variables -> Actions):
+#   SUPABASE_URL           (ex.: https://xxxx.supabase.co)
+#   SUPABASE_SERVICE_ROLE  (Supabase -> Settings -> API -> service_role — SECRETA)
+
+on:
+  schedule:
+    - cron: "37 6 * * *"   # todo dia, 06:37 UTC
+  workflow_dispatch: {}       # permite rodar manualmente
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exportar tabelas do Supabase
+        run: |
+          if [ -z "${{ secrets.SUPABASE_URL }}" ] || [ -z "${{ secrets.SUPABASE_SERVICE_ROLE }}" ]; then
+            echo "Defina os secrets SUPABASE_URL e SUPABASE_SERVICE_ROLE."
+            exit 1
+          fi
+          mkdir -p backup
+          stamp=$(date -u +%Y%m%d-%H%M)
+          for tabela in invest_state subscriptions fundamentos metodologia; do
+            echo "Exportando: $tabela"
+            code=$(curl -s -w "%{http_code}" \
+              -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE }}" \
+              "${{ secrets.SUPABASE_URL }}/rest/v1/${tabela}?select=*" \
+              -o "backup/${tabela}-${stamp}.json")
+            echo "  HTTP $code"
+            # 200 = ok; 404 = tabela não existe (ok, ignora); outros = falha
+            if [ "$code" != "200" ] && [ "$code" != "404" ]; then
+              echo "  Falha ao exportar $tabela (HTTP $code)"; exit 1
+            fi
+          done
+          echo "== Resumo =="
+          for f in backup/*.json; do
+            [ -f "$f" ] && echo "$f: $(grep -o '{' "$f" | wc -l) registro(s) aprox."
+          done
+
+      - name: Subir o backup como artefato (90 dias)
+        uses: actions/upload-artifact@v4
+        with:
+          name: af-invest-backup
+          path: backup/*.json
+          retention-days: 90
