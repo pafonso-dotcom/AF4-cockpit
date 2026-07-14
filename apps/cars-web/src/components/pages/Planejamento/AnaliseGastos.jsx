@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { TrendingUp, TrendingDown, AlertTriangle, PieChart, SlidersHorizontal, X, Plus } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, PieChart, SlidersHorizontal, X, Plus, ChevronRight, ChevronDown } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import { MESES_LONGO } from "../../../lib/meses.js";
-import { filtrarPorEscopo } from "../../../lib/escopo.js";
-import { analiseGastosMes } from "../../../lib/analiseGastos.js";
+import { getDespesasDoMes } from "../../../lib/agregador.js";
+import { analiseGastosMes, mesAnterior } from "../../../lib/analiseGastos.js";
 
 const AJUSTE_KEY = "financas:analise-gastos:v1";
 const lerAjuste = () => {
@@ -23,40 +23,55 @@ const oculto = (v, hidden) => (hidden ? "•••" : fmt(v));
 const pctStr = (v) => `${v >= 0 ? "+" : ""}${v.toFixed(0)}%`;
 const semDup = (arr) => Array.from(new Set(arr));
 
-// Análise de GASTO por categoria do mês (só consumo). Barra de participação,
-// variação vs mês anterior e destaque da maior alta. Respeita o escopo ativo.
-// Ajuste avulso: tirar categoria de consumo ou colocar uma de movimentação.
-export default function AnaliseGastos({ transacoes = [], contas = [], categorias = [], escopoAtivo = "tudo", hidden = false }) {
+// Chip de variação (sobe = vermelho, cai = verde) ou selo "novo".
+function Variacao({ nova, variacao }) {
+  if (nova) {
+    return <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 100, background: `${T.blue || "#5b9bd5"}22`, color: T.blue || "#5b9bd5", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em" }}>novo</span>;
+  }
+  if (variacao == null) return null;
+  const subiu = variacao >= 0;
+  return <span style={{ fontSize: 10.5, fontWeight: 700, color: subiu ? T.red : T.green }}>{pctStr(variacao)}</span>;
+}
+
+// Análise de GASTO por categoria do mês (só consumo), agrupada por categoria-pai
+// com as subcategorias dentro. Fonte: getDespesasDoMes (transações + fixas +
+// parcelas de cartão + dívidas). Respeita o escopo ativo.
+export default function AnaliseGastos(props) {
+  const { escopoAtivo = "tudo", hidden = false, categorias = [] } = props;
   const [ajuste, setAjuste] = useState(lerAjuste);
   const [editar, setEditar] = useState(false);
+  const [abertos, setAbertos] = useState({}); // grupos expandidos
 
   const aplicar = (next) => { setAjuste(next); salvarAjuste(next); };
-  // Tirar da análise uma categoria que hoje conta.
+  const addExcluir = (nomes) => aplicar({ incluir: ajuste.incluir.filter((n) => !nomes.includes(n)), excluir: semDup([...ajuste.excluir, ...nomes]) });
   const tirar = (nome, forcada) => aplicar(forcada
     ? { ...ajuste, incluir: ajuste.incluir.filter((n) => n !== nome) }
     : { ...ajuste, excluir: semDup([...ajuste.excluir, nome]) });
-  // Colocar de volta uma categoria que está fora.
   const colocar = (nome, motivo) => aplicar(motivo === "manual"
     ? { ...ajuste, excluir: ajuste.excluir.filter((n) => n !== nome) }
     : { ...ajuste, incluir: semDup([...ajuste.incluir, nome]) });
+  const toggleGrupo = (nome) => setAbertos((s) => ({ ...s, [nome]: !s[nome] }));
 
   const analise = useMemo(() => {
-    const contasEscopo = escopoAtivo === "tudo"
-      ? null
-      : new Set(filtrarPorEscopo(contas || [], escopoAtivo).map((c) => c.nome));
-    const tx = contasEscopo ? (transacoes || []).filter((t) => contasEscopo.has(t.conta)) : transacoes;
-    const nomesCat = (categorias || [])
-      .filter((c) => !c.tipo || c.tipo === "despesa")
-      .map((c) => c.nome)
-      .filter(Boolean);
-    return analiseGastosMes(tx || [], { excluir: ajuste.excluir, incluir: ajuste.incluir, categorias: nomesCat });
-  }, [transacoes, contas, categorias, escopoAtivo, ajuste]);
+    const state = {
+      transacoes: props.transacoes || [], fixas: props.fixas || [], fixaOcorrencias: props.fixaOcorrencias || [],
+      dividas: props.dividas || [], parcelamentos: props.parcelamentos || [], contas: props.contas || [],
+      categorias: props.categorias || [], devedores: props.devedores || [], cheques: props.cheques || [],
+    };
+    const mes = new Date().toISOString().slice(0, 7);
+    const mesAnt = mesAnterior(mes);
+    let itensMes = [], itensMesAnt = [];
+    try { itensMes = getDespesasDoMes(mes, state, escopoAtivo); } catch {}
+    try { itensMesAnt = getDespesasDoMes(mesAnt, state, escopoAtivo); } catch {}
+    const cadastro = (categorias || []).filter((c) => !c.tipo || c.tipo === "despesa");
+    return analiseGastosMes(itensMes, itensMesAnt, { mes, mesAnt, excluir: ajuste.excluir, incluir: ajuste.incluir, categorias: cadastro });
+  }, [props.transacoes, props.fixas, props.fixaOcorrencias, props.dividas, props.parcelamentos, props.contas, props.devedores, props.cheques, categorias, escopoAtivo, ajuste]);
 
-  const { total, totalPct, categorias: linhas, foraDaAnalise, maiorAlta, mes } = analise;
+  const { total, totalPct, grupos, foraDaAnalise, maiorAlta, mes } = analise;
   const sobe = totalPct != null && totalPct >= 0;
   const temAjuste = ajuste.excluir.length > 0 || ajuste.incluir.length > 0;
 
-  if (!linhas.length && !foraDaAnalise.length) {
+  if (!grupos.length && !foraDaAnalise.length) {
     return (
       <div style={{ padding: 20, textAlign: "center", color: T.faint, fontSize: 13, fontStyle: "italic" }}>
         Nenhum gasto de consumo em {nomeMes(mes)}. (Investimentos, transferências e depósitos ficam de fora.)
@@ -69,6 +84,12 @@ export default function AnaliseGastos({ transacoes = [], contas = [], categorias
     border: `1px solid ${T.border}`, background: T.bgSoft, color: T.muted, fontSize: 11.5, fontWeight: 600,
     cursor: "pointer", ...extra,
   });
+  const botaoX = (onClick, titulo) => (
+    <button onClick={onClick} title={titulo}
+      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: 6, border: "none", background: `${T.red}18`, color: T.red, cursor: "pointer", flexShrink: 0 }}>
+      <X size={12} />
+    </button>
+  );
 
   return (
     <div>
@@ -107,38 +128,54 @@ export default function AnaliseGastos({ transacoes = [], contas = [], categorias
         </button>
       </div>
 
-      {/* Lista por categoria */}
+      {/* Grupos (pai) com subcategorias */}
       <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-        {linhas.map((c) => {
-          const subiu = c.variacao != null && c.variacao >= 0;
+        {grupos.map((g) => {
+          const aberto = !!abertos[g.nome];
+          const temFilhos = !g.solo && g.filhos.length > 0;
           return (
-            <div key={c.nome}>
+            <div key={g.nome}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 12.5, marginBottom: 3, gap: 8 }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.ink, fontWeight: 600, minWidth: 0 }}>
-                  {editar && (
-                    <button onClick={() => tirar(c.nome, c.forcada)} title="Tirar da análise"
-                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: 6, border: "none", background: `${T.red}18`, color: T.red, cursor: "pointer", flexShrink: 0 }}>
-                      <X size={12} />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.ink, fontWeight: 700, minWidth: 0 }}>
+                  {editar && botaoX(() => addExcluir(g.filhos.map((f) => f.nome)), "Tirar o grupo inteiro da análise")}
+                  {temFilhos ? (
+                    <button onClick={() => toggleGrupo(g.nome)} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "none", border: "none", padding: 0, cursor: "pointer", color: T.ink, fontWeight: 700, minWidth: 0 }}>
+                      {aberto ? <ChevronDown size={13} style={{ color: T.muted }} /> : <ChevronRight size={13} style={{ color: T.muted }} />}
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.nome}</span>
+                      <span style={{ fontSize: 10, color: T.faint, fontWeight: 500 }}>· {g.filhos.length}</span>
                     </button>
-                  )}
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</span>
-                  {c.forcada && (
-                    <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", flexShrink: 0 }}>avulso</span>
+                  ) : (
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.nome}</span>
                   )}
                 </span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                  {c.nova ? (
-                    <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 100, background: `${T.blue || "#5b9bd5"}22`, color: T.blue || "#5b9bd5", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em" }}>novo</span>
-                  ) : c.variacao != null ? (
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: subiu ? T.red : T.green }}>{pctStr(c.variacao)}</span>
-                  ) : null}
-                  <span className="num" style={{ color: T.muted, minWidth: 90, textAlign: "right" }}>{oculto(c.valor, hidden)}</span>
-                  <span style={{ color: T.faint, fontSize: 11, minWidth: 34, textAlign: "right" }}>{c.pct.toFixed(0)}%</span>
+                  <Variacao nova={g.nova} variacao={g.variacao} />
+                  <span className="num" style={{ color: T.ink, fontWeight: 700, minWidth: 90, textAlign: "right" }}>{oculto(g.valor, hidden)}</span>
+                  <span style={{ color: T.faint, fontSize: 11, minWidth: 34, textAlign: "right" }}>{g.pct.toFixed(0)}%</span>
                 </span>
               </div>
               <div style={{ height: 7, background: T.bgSoft, borderRadius: 5, overflow: "hidden" }}>
-                <div style={{ width: `${c.pct}%`, height: "100%", background: c.forcada ? T.blue || "#5b9bd5" : T.gold, borderRadius: 5 }} />
+                <div style={{ width: `${g.pct}%`, height: "100%", background: T.gold, borderRadius: 5 }} />
               </div>
+
+              {/* Subcategorias */}
+              {temFilhos && aberto && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 7, paddingLeft: 14, borderLeft: `2px solid ${T.border}`, marginLeft: 6 }}>
+                  {g.filhos.map((f) => (
+                    <div key={f.nome} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 12, gap: 8 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.muted, minWidth: 0 }}>
+                        {editar && botaoX(() => tirar(f.nome, f.forcada), "Tirar da análise")}
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.nome}</span>
+                        {f.forcada && <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase" }}>avulso</span>}
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                        <Variacao nova={f.nova} variacao={f.variacao} />
+                        <span className="num" style={{ color: T.muted, minWidth: 84, textAlign: "right" }}>{oculto(f.valor, hidden)}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
@@ -169,7 +206,7 @@ export default function AnaliseGastos({ transacoes = [], contas = [], categorias
       )}
 
       <div style={{ fontSize: 10, color: T.faint, marginTop: 10, fontStyle: "italic" }}>
-        Só gasto de consumo — investimentos, transferências e depósitos ficam de fora
+        Só gasto de consumo (transações, fixas, cartão e dívidas) — investimentos, transferências e depósitos ficam de fora
         {temAjuste ? ", fora os ajustes que você fez." : "."}
       </div>
     </div>
