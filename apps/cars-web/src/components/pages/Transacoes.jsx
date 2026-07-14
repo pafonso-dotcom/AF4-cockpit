@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Activity, Plus, Trash2, Edit3, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText, Mic } from "lucide-react";
+import { Activity, Plus, Trash2, Edit3, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText, Mic, Sparkles } from "lucide-react";
 import EmptyState from "../ui/EmptyState.jsx";
 import { StatTile } from "../ui/widget.jsx";
 import { T } from "../../lib/theme.js";
@@ -16,6 +16,7 @@ import MoneyInput from "../ui/MoneyInput.jsx";
 import ImportExportModal from "../modals/ImportExportModal.jsx";
 import OCRComprovante from "../modals/OCRComprovante.jsx";
 import VoiceTransacao from "../modals/VoiceTransacao.jsx";
+import AutoCategorizarModal from "../modals/AutoCategorizarModal.jsx";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
 
 export default function Transacoes({ transacoes, setTransacoes, categorias, contas, setContas, ativos, totais, hidden, pendingTransacao, clearPendingTransacao, parcelamentos, cartoes, apiKey, escopoAtivo = "tudo" }) {
@@ -23,6 +24,7 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
   const [ieOpen, setIeOpen] = useState(false);
   const [ocrOpen, setOcrOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [autoCatOpen, setAutoCatOpen] = useState(false);
   const [filterTipo, setFilterTipo] = useState("todas");
   const [filterCat, setFilterCat] = useState("todas");
   const [filterConta, setFilterConta] = useState("todas"); // "todas" | nome de conta | "particular"
@@ -79,6 +81,17 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
 
   // "Sem categoria" = vazia OU fora do cadastro (órfã) — as que poluem a análise.
   const semCategoria = (t) => !t.categoria || !categorias.some(c => c.nome === t.categoria);
+
+  // Auto-categorização em massa (aplicada só após aprovação no modal).
+  const aplicarAutoCat = (mapa) => {
+    const ids = Object.keys(mapa || {});
+    if (ids.length === 0) return;
+    const backup = transacoes.map(t => ({ ...t }));
+    setTransacoes(transacoes.map(t => (mapa[t.id] ? { ...t, categoria: mapa[t.id], subcategoria: "" } : t)));
+    toast.success(`${ids.length} transação${ids.length !== 1 ? "ões" : ""} categorizada${ids.length !== 1 ? "s" : ""}.`, {
+      action: { label: "Desfazer", onClick: () => setTransacoes(backup) },
+    });
+  };
 
   const filtered = useMemo(() => {
     const now = new Date();
@@ -437,6 +450,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
               <Plus size={14} className="inline mr-2" />Nova Transação
             </button>
             <ActionMenu itens={[
+              { label: "Auto-categorizar (Outros)", icon: Sparkles, onClick: () => setAutoCatOpen(true) },
               { label: "Registrar por voz", icon: Mic, onClick: () => setVoiceOpen(true) },
               { label: "Foto do comprovante (OCR)", icon: Camera, onClick: () => setOcrOpen(true) },
               { label: "Backup JSON (importar/exportar)", icon: Download, onClick: () => setIeOpen(true) },
@@ -936,6 +950,14 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
           contas={contas} categorias={categorias}
           transacoes={transacoes} setTransacoes={setTransacoes}
           onClose={() => setVoiceOpen(false)}
+        />
+      )}
+
+      {autoCatOpen && (
+        <AutoCategorizarModal
+          transacoes={transacoes} categorias={categorias}
+          onAplicar={aplicarAutoCat}
+          onClose={() => setAutoCatOpen(false)}
         />
       )}
 
