@@ -3,6 +3,7 @@ import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, Trendi
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, fmtP, fmtUSD, uid, generateHistory, todayISO } from "../../lib/format.js";
+import { tempoDeCarteira } from "../../lib/tempoCarteira.js";
 import { ehUS, fmtMoedaAtivo, TIPOS_ANALISAVEIS } from "../../lib/invest-constants.js";
 import { RF_INDEXADORES } from "../../lib/rendaFixa.js";
 import { API, COIN_MAP } from "../../lib/api.js";
@@ -532,6 +533,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   {a.criadoEm && (
                     <div style={{ color: T.faint, fontSize: 9.5, marginTop: 2 }} title="Data de criação/compra do ativo">
                       desde {String(a.criadoEm).slice(0, 10).split("-").reverse().join("/")}
+                      {(() => { const t = tempoDeCarteira(a.criadoEm); return t ? ` · ${t}` : ""; })()}
                     </div>
                   )}
                   {a.tipo !== "capitalSocial" && valorPorTipo[a.tipo] > 0 && (
@@ -745,6 +747,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                         {a.criadoEm && (
                           <div style={{ color: T.faint, fontSize: 10, marginTop: 2 }} title="Data de criação/compra do ativo">
                             desde {String(a.criadoEm).slice(0, 10).split("-").reverse().join("/")}
+                            {(() => { const t = tempoDeCarteira(a.criadoEm); return t ? ` · ${t}` : ""; })()}
                           </div>
                         )}
                       </div>
