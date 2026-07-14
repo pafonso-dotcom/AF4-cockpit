@@ -4,6 +4,7 @@ import { T } from "../../lib/theme.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import { calcularScore, gerarInsights, detectarAssinaturas, projetarCashflow } from "../../lib/intelligence.js";
 import { escoparFinancas } from "../../lib/inteligenciaPainel.js";
+import { montarResumoMes } from "../../lib/iaFinancas.js";
 import ScoreCard from "./Inteligencia/ScoreCard.jsx";
 import InsightsList from "./Inteligencia/InsightsList.jsx";
 import AssinaturasCard from "./Inteligencia/AssinaturasCard.jsx";
@@ -23,6 +24,15 @@ export default function Inteligencia({
   const insights = useMemo(() => safe(() => gerarInsights(fin.transacoes, fin.contas, ativos, cartoes, parcelamentos) || [], []), [fin, ativos, cartoes, parcelamentos]);
   const assinaturas = useMemo(() => safe(() => detectarAssinaturas(fin.transacoes) || [], []), [fin]);
   const projecao = useMemo(() => safe(() => projetarCashflow(fin.transacoes, fin.contas, 3) || [], []), [fin]);
+
+  // Dados compactos p/ a Análise com IA (resumo do mês).
+  const resumoIA = useMemo(() => montarResumoMes(fin.transacoes), [fin]);
+  const extrasIA = useMemo(() => ({
+    score: score ? String(score.total ?? score.valor ?? score.nota ?? (typeof score === "number" ? score : "")) : null,
+    alertas: (insights || []).slice(0, 3).map((i) => i?.titulo || i?.texto || i?.msg || i?.title || (typeof i === "string" ? i : "")).filter(Boolean),
+    assinaturasQtd: assinaturas?.length || 0,
+    assinaturasTotal: (assinaturas || []).reduce((s, a) => s + (Number(a?.valor) || 0), 0),
+  }), [score, insights, assinaturas]);
 
   return (
     <div className={embed ? "" : "fade-up py-8 px-6"}>
@@ -46,7 +56,7 @@ export default function Inteligencia({
       </Grupo>
 
       <Grupo titulo="Inteligência artificial">
-        <Secao titulo="Análise com IA"><IAAnaliseCard /></Secao>
+        <Secao titulo="Análise com IA"><IAAnaliseCard resumo={resumoIA} extras={extrasIA} /></Secao>
       </Grupo>
     </div>
   );
