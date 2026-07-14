@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, AlertCircle, Trash2, KeyRound } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { perguntarAoClaude, buildContext, SUGESTOES } from "../../lib/aiChat.js";
+import { gerarTextoGemini } from "../../lib/gemini.js";
 import PageHeader from "../ui/PageHeader.jsx";
 
 export default function PergunteAoClaude({
@@ -26,11 +27,13 @@ export default function PergunteAoClaude({
     }
   }, [historico, pensando]);
 
+  const temGeminiKey = (() => { try { return !!localStorage.getItem("af4:gemini-key"); } catch { return false; } })();
+
   const enviar = async (texto) => {
     const q = (texto ?? pergunta).trim();
     if (!q || pensando) return;
-    if (!apiKey) {
-      setErro("Configure a chave Anthropic em Configurações → API Keys antes de usar o chat.");
+    if (!apiKey && !temGeminiKey) {
+      setErro("Configure a chave da Anthropic (ou do Gemini) em Configurações → API Keys antes de usar o chat.");
       return;
     }
 
@@ -41,20 +44,39 @@ export default function PergunteAoClaude({
     const novoHist = [...historico, { role: "user", content: q }];
     setHistorico(novoHist);
 
+    const contextoDados = buildContext({
+      transacoes, contas, ativos, vendas, veiculos,
+      devedores, dividas, cheques,
+    });
+
+    // Fallback pro Gemini (quando não há chave Anthropic ou o Claude falha —
+    // ex.: sem créditos). Mesmo contexto agregado, num prompt único.
+    const viaGemini = async () => {
+      const ctx = typeof contextoDados === "string" ? contextoDados : JSON.stringify(contextoDados);
+      const hist = novoHist.slice(-7, -1).map(m => `${m.role === "user" ? "Usuário" : "Assistente"}: ${m.content}`).join("\n");
+      const prompt = `Você é um assistente financeiro pessoal. Responda em português do Brasil, direto e útil, com base APENAS nos dados agregados abaixo. Não invente números.\n\n=== DADOS ===\n${ctx}\n\n${hist ? `=== CONVERSA ===\n${hist}\n\n` : ""}Pergunta: ${q}`;
+      return (await gerarTextoGemini(prompt, { temperature: 0.4, maxOutputTokens: 1200 })).trim();
+    };
+
     try {
-      const contextoDados = buildContext({
-        transacoes, contas, ativos, vendas, veiculos,
-        devedores, dividas, cheques,
-      });
-      const resposta = await perguntarAoClaude({
-        apiKey,
-        pergunta: q,
-        historico: novoHist.slice(0, -1), // tudo menos a pergunta atual (já vai no msg)
-        contextoDados,
-      });
+      let resposta;
+      if (apiKey) {
+        try {
+          resposta = await perguntarAoClaude({
+            apiKey, pergunta: q,
+            historico: novoHist.slice(0, -1),
+            contextoDados,
+          });
+        } catch (claudeErr) {
+          if (temGeminiKey) resposta = await viaGemini(); // ex.: Claude sem créditos
+          else throw claudeErr;
+        }
+      } else {
+        resposta = await viaGemini();
+      }
       setHistorico([...novoHist, { role: "assistant", content: resposta }]);
     } catch (err) {
-      setErro(err.message || "Erro ao consultar Claude.");
+      setErro(err.message || "Erro ao consultar a IA.");
       setHistorico(novoHist);
     } finally {
       setPensando(false);
