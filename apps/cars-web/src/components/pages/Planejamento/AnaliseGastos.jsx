@@ -26,7 +26,7 @@ const semDup = (arr) => Array.from(new Set(arr));
 // Análise de GASTO por categoria do mês (só consumo). Barra de participação,
 // variação vs mês anterior e destaque da maior alta. Respeita o escopo ativo.
 // Ajuste avulso: tirar categoria de consumo ou colocar uma de movimentação.
-export default function AnaliseGastos({ transacoes = [], contas = [], escopoAtivo = "tudo", hidden = false }) {
+export default function AnaliseGastos({ transacoes = [], contas = [], categorias = [], escopoAtivo = "tudo", hidden = false }) {
   const [ajuste, setAjuste] = useState(lerAjuste);
   const [editar, setEditar] = useState(false);
 
@@ -45,14 +45,18 @@ export default function AnaliseGastos({ transacoes = [], contas = [], escopoAtiv
       ? null
       : new Set(filtrarPorEscopo(contas || [], escopoAtivo).map((c) => c.nome));
     const tx = contasEscopo ? (transacoes || []).filter((t) => contasEscopo.has(t.conta)) : transacoes;
-    return analiseGastosMes(tx || [], { excluir: ajuste.excluir, incluir: ajuste.incluir });
-  }, [transacoes, contas, escopoAtivo, ajuste]);
+    const nomesCat = (categorias || [])
+      .filter((c) => !c.tipo || c.tipo === "despesa")
+      .map((c) => c.nome)
+      .filter(Boolean);
+    return analiseGastosMes(tx || [], { excluir: ajuste.excluir, incluir: ajuste.incluir, categorias: nomesCat });
+  }, [transacoes, contas, categorias, escopoAtivo, ajuste]);
 
-  const { total, totalPct, categorias, foraDaAnalise, maiorAlta, mes } = analise;
+  const { total, totalPct, categorias: linhas, foraDaAnalise, maiorAlta, mes } = analise;
   const sobe = totalPct != null && totalPct >= 0;
   const temAjuste = ajuste.excluir.length > 0 || ajuste.incluir.length > 0;
 
-  if (!categorias.length && !foraDaAnalise.length) {
+  if (!linhas.length && !foraDaAnalise.length) {
     return (
       <div style={{ padding: 20, textAlign: "center", color: T.faint, fontSize: 13, fontStyle: "italic" }}>
         Nenhum gasto de consumo em {nomeMes(mes)}. (Investimentos, transferências e depósitos ficam de fora.)
@@ -105,7 +109,7 @@ export default function AnaliseGastos({ transacoes = [], contas = [], escopoAtiv
 
       {/* Lista por categoria */}
       <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-        {categorias.map((c) => {
+        {linhas.map((c) => {
           const subiu = c.variacao != null && c.variacao >= 0;
           return (
             <div key={c.nome}>
@@ -146,16 +150,20 @@ export default function AnaliseGastos({ transacoes = [], contas = [], escopoAtiv
           <div style={{ fontSize: 11, color: T.muted, fontWeight: 700, marginBottom: 7 }}>
             Fora da análise <span style={{ color: T.faint, fontWeight: 500 }}>— toque em + para colocar no gasto</span>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-            {foraDaAnalise.map((f) => (
-              <button key={f.nome} onClick={() => colocar(f.nome, f.motivo)}
-                title={f.motivo === "movimentacao" ? "Movimentação (normalmente fora) — colocar mesmo assim" : "Você tirou — colocar de volta"}
-                style={chipBtn()}>
-                <Plus size={12} style={{ color: T.green }} />
-                <span style={{ color: T.ink }}>{f.nome}</span>
-                <span className="num" style={{ color: T.faint }}>{oculto(f.valor, hidden)}</span>
-              </button>
-            ))}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, maxHeight: 240, overflowY: "auto" }}>
+            {foraDaAnalise.map((f) => {
+              const titulo = f.motivo === "movimentacao"
+                ? "Movimentação (normalmente fora) — colocar mesmo assim"
+                : f.motivo === "manual" ? "Você tirou — colocar de volta"
+                : "Sem gasto neste mês — colocar na análise";
+              return (
+                <button key={f.nome} onClick={() => colocar(f.nome, f.motivo)} title={titulo} style={chipBtn()}>
+                  <Plus size={12} style={{ color: T.green }} />
+                  <span style={{ color: T.ink }}>{f.nome}</span>
+                  {f.valor > 0 && <span className="num" style={{ color: T.faint }}>{oculto(f.valor, hidden)}</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
