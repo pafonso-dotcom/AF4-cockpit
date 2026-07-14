@@ -57,6 +57,18 @@ export function preservarNaoVazio(remote, localCache) {
   return out;
 }
 
+// Decide entre o estado da NUVEM e o LOCAL usando o carimbo `_savedAt`.
+// Se o local for mais novo que o remoto (edição feita e ainda não sincronizada,
+// ex.: usuário fechou antes do debounce), o LOCAL vence — senão a nuvem antiga
+// reverteria a edição ("troquei a categoria e voltou"). Sem carimbos, cai no
+// comportamento antigo (remoto vence, com preservarNaoVazio).
+export function mesclarEstado(remote, localCache) {
+  const rt = Number(remote && remote._savedAt) || 0;
+  const lt = Number(localCache && localCache._savedAt) || 0;
+  if (localCache && lt > rt) return { estado: localCache, localVenceu: true };
+  return { estado: preservarNaoVazio(remote, localCache), localVenceu: false };
+}
+
 export const loadAll = async () => {
   // Supabase (legado) — só se logado
   if (supabaseConfigured) {
@@ -64,10 +76,14 @@ export const loadAll = async () => {
     if (session) {
       const remote = await fetchAurumState();
       if (remote) {
-        // Merge de segurança: coleção cheia local não é apagada por vazia remota.
-        const merged = preservarNaoVazio(remote, local.get(STORE_KEY));
-        local.set(STORE_KEY, merged);
-        return merged;
+        // Última escrita vence pelo carimbo _savedAt (+ proteção de coleção
+        // cheia local vs. vazia remota). Se o local é mais novo, reenvia p/ nuvem.
+        const { estado, localVenceu } = mesclarEstado(remote, local.get(STORE_KEY));
+        local.set(STORE_KEY, estado);
+        if (localVenceu) {
+          supabaseSaveState(estado).catch(e => console.warn("[storage] reenvio falhou:", e.message));
+        }
+        return estado;
       }
       const cached = local.get(STORE_KEY);
       if (cached) {
@@ -87,9 +103,13 @@ let lastDataRef = null;
 const REMOTE_DEBOUNCE_MS = 1500;
 
 export const saveAll = async (data, opts = {}) => {
+  // Carimbo de última escrita — usado no load pra não deixar a nuvem antiga
+  // reverter uma edição local ainda não sincronizada.
+  const carimbado = { ...data, _savedAt: Date.now() };
   // SEMPRE persiste local imediatamente
-  local.set(STORE_KEY, data);
-  lastDataRef = data;
+  local.set(STORE_KEY, carimbado);
+  lastDataRef = carimbado;
+  data = carimbado;
 
   // Sync no Supabase legado (se logado) — debounce
   if (!supabaseConfigured) return;
