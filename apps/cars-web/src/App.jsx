@@ -625,6 +625,14 @@ export default function App() {
     setPendingTransacao(null);
   }, []);
 
+  // Análise de gastos → abre Transações já filtrada por aquela categoria.
+  const verCategoriaTransacoes = useCallback((nome) => {
+    if (!nome) return;
+    setCartaoAberto(null); setContaAberta(null);
+    setPendingTransacao({ filtroCategoria: nome });
+    setModulo("financas"); setTab("transacoes");
+  }, []);
+
   const handleOpenPicker = useCallback(() => setPickerOpen(true), []);
   const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
 
@@ -803,6 +811,7 @@ export default function App() {
           escopoAtivo={escopoAtivo}
           tab={tab}
           secaoInicial={tab === "cheques" ? "cheques" : tab === "fixas" ? "fixas" : tab === "areceber" ? "areceber" : tab === "relatorios-anual" ? "anual" : null}
+          onVerCategoria={verCategoriaTransacoes}
           hidden={hidden}
         />
       )}

@@ -255,7 +255,7 @@ export default function Planejamento(props) {
                          categorias={props.categorias} fixas={props.fixas}
                          fixaOcorrencias={props.fixaOcorrencias} dividas={props.dividas}
                          parcelamentos={props.parcelamentos} devedores={props.devedores}
-                         cheques={props.cheques}
+                         cheques={props.cheques} onVerCategoria={props.onVerCategoria}
                          escopoAtivo={props.escopoAtivo} hidden={props.hidden} />
         </Secao>
 

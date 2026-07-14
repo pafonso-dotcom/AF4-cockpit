@@ -37,7 +37,8 @@ function Variacao({ nova, variacao }) {
 // com as subcategorias dentro. Fonte: getDespesasDoMes (transações + fixas +
 // parcelas de cartão + dívidas). Respeita o escopo ativo.
 export default function AnaliseGastos(props) {
-  const { escopoAtivo = "tudo", hidden = false, categorias = [] } = props;
+  const { escopoAtivo = "tudo", hidden = false, categorias = [], onVerCategoria } = props;
+  const podeAbrir = typeof onVerCategoria === "function";
   const [ajuste, setAjuste] = useState(lerAjuste);
   const [editar, setEditar] = useState(false);
   const [abertos, setAbertos] = useState({}); // grupos expandidos
@@ -89,6 +90,17 @@ export default function AnaliseGastos(props) {
       style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: 6, border: "none", background: `${T.red}18`, color: T.red, cursor: "pointer", flexShrink: 0 }}>
       <X size={12} />
     </button>
+  );
+  // Nome de categoria: clicável (abre Transações filtrada) fora do modo Ajustar.
+  const NomeFolha = ({ nome, style }) => (
+    podeAbrir && !editar ? (
+      <button onClick={() => onVerCategoria(nome)} title={`Ver transações de "${nome}"`}
+        style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "inherit", font: "inherit", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "underline", textDecorationColor: T.border, textUnderlineOffset: 2, ...style }}>
+        {nome}
+      </button>
+    ) : (
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", ...style }}>{nome}</span>
+    )
   );
 
   return (
@@ -145,7 +157,7 @@ export default function AnaliseGastos(props) {
                       <span style={{ fontSize: 10, color: T.faint, fontWeight: 500 }}>· {g.filhos.length}</span>
                     </button>
                   ) : (
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.nome}</span>
+                    <NomeFolha nome={g.nome} />
                   )}
                 </span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
@@ -165,7 +177,7 @@ export default function AnaliseGastos(props) {
                     <div key={f.nome} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 12, gap: 8 }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.muted, minWidth: 0 }}>
                         {editar && botaoX(() => tirar(f.nome, f.forcada), "Tirar da análise")}
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.nome}</span>
+                        <NomeFolha nome={f.nome} />
                         {f.forcada && <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase" }}>avulso</span>}
                       </span>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>

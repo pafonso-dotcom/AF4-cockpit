@@ -52,6 +52,13 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
       clearPendingTransacao?.();
       return;
     }
+    // Veio da Análise de gastos: filtra por uma categoria e mostra a lista.
+    if (pendingTransacao?.filtroCategoria) {
+      setFilterCat(pendingTransacao.filtroCategoria);
+      setVisaoPersist?.("lista");
+      clearPendingTransacao?.();
+      return;
+    }
     if (pendingTransacao?.conta) {
       setForm({
         id: null,
@@ -507,6 +514,28 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
           })}
         </div>
       </div>
+
+      {/* Banner de filtro por categoria (vindo da Análise de gastos) */}
+      {filterCat !== "todas" && (
+        <div style={{
+          background: `${T.gold}11`, border: `1px solid ${T.gold}66`, borderRadius: 10,
+          padding: "8px 12px", marginBottom: 10,
+          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+        }}>
+          <span style={{ fontSize: 12.5, color: T.ink }}>
+            Filtrando por categoria: <b>{filterCat}</b>
+            <span style={{ color: T.muted }}> · {filtered.length} transaç{filtered.length === 1 ? "ão" : "ões"}</span>
+          </span>
+          <button onClick={() => setFilterCat("todas")}
+            style={{
+              marginLeft: "auto", background: T.bgSoft, border: `1px solid ${T.border}`,
+              borderRadius: 100, padding: "3px 10px", fontSize: 11, fontWeight: 600,
+              color: T.muted, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5,
+            }}>
+            <X size={12} /> Limpar filtro
+          </button>
+        </div>
+      )}
 
       {/* Bulk actions bar */}
       {selectedIds.size > 0 && (
