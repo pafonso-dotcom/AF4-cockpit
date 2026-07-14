@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { preservarNaoVazio } from "../storage.js";
+import { preservarNaoVazio, mesclarEstado } from "../storage.js";
 
 describe("preservarNaoVazio — não deixa nuvem vazia apagar dado local cheio", () => {
   it("array vazio remoto NÃO apaga array cheio local", () => {
@@ -42,5 +42,40 @@ describe("preservarNaoVazio — não deixa nuvem vazia apagar dado local cheio",
     const out = preservarNaoVazio(remote, null);
     expect(out.cheques).toEqual([]);
     expect(out.contas).toHaveLength(1);
+  });
+});
+
+describe("mesclarEstado — última escrita vence pelo _savedAt", () => {
+  it("local mais NOVO que a nuvem vence (edição não sincronizada não some)", () => {
+    const remote = { _savedAt: 100, transacoes: [{ id: "t1", categoria: "Moradia" }] };
+    const local = { _savedAt: 200, transacoes: [{ id: "t1", categoria: "Alimentação" }] };
+    const { estado, localVenceu } = mesclarEstado(remote, local);
+    expect(localVenceu).toBe(true);
+    expect(estado.transacoes[0].categoria).toBe("Alimentação");
+  });
+
+  it("nuvem mais NOVA vence (sincroniza de outro aparelho)", () => {
+    const remote = { _savedAt: 300, transacoes: [{ id: "t1", categoria: "Lazer" }] };
+    const local = { _savedAt: 200, transacoes: [{ id: "t1", categoria: "Alimentação" }] };
+    const { estado, localVenceu } = mesclarEstado(remote, local);
+    expect(localVenceu).toBe(false);
+    expect(estado.transacoes[0].categoria).toBe("Lazer");
+  });
+
+  it("sem carimbos → comportamento antigo (remoto vence + preservarNaoVazio)", () => {
+    const remote = { transacoes: [{ id: "t1", categoria: "Lazer" }], cheques: [] };
+    const local = { transacoes: [{ id: "t1", categoria: "Alimentação" }], cheques: [{ id: "ch1" }] };
+    const { estado, localVenceu } = mesclarEstado(remote, local);
+    expect(localVenceu).toBe(false);
+    expect(estado.transacoes[0].categoria).toBe("Lazer"); // remoto vence
+    expect(estado.cheques).toHaveLength(1);               // mas não apaga cheio local
+  });
+
+  it("local mais novo ainda respeita proteção: mantém tudo do local", () => {
+    const remote = { _savedAt: 100, transacoes: [], cheques: [{ id: "r" }] };
+    const local = { _savedAt: 200, transacoes: [{ id: "t1" }], cheques: [{ id: "l" }] };
+    const { estado } = mesclarEstado(remote, local);
+    expect(estado.transacoes).toHaveLength(1);
+    expect(estado.cheques[0].id).toBe("l");
   });
 });
