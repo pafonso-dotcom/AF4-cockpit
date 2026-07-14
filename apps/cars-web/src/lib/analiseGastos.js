@@ -1,16 +1,23 @@
 // Análise de GASTO por categoria (só consumo). Exclui movimentação de dinheiro
-// (investimento, transferência, depósito, aporte, resgate) e transferências.
-// Compara o mês com o anterior por categoria e no total.
+// (investimento, transferência, depósito, aporte, resgate).
 //
-// Ajuste avulso: o usuário pode TIRAR uma categoria de consumo da análise
-// (excluir) ou COLOCAR uma categoria de movimentação que normalmente ficaria
-// de fora (incluir). Essas listas vêm de fora e são persistidas pela UI.
+// FONTE: lista de despesas JÁ AGREGADA do mês (getDespesasDoMes), que unifica as
+// 4 fontes — transações, despesas fixas, parcelas de cartão e dívidas. Assim uma
+// categoria cujo gasto vem de uma fixa ou do cartão também aparece (antes,
+// olhando só `transacoes`, ela sumia).
+//
+// HIERARQUIA: agrupa por categoria-pai (parentId) com as subcategorias dentro,
+// igual à tela de Categorias. Categorias sem pai (ou fora do cadastro) viram
+// grupos "solo".
+//
+// Ajuste avulso: TIRAR (excluir) uma subcategoria de consumo ou COLOCAR (incluir)
+// uma categoria que normalmente ficaria de fora. Listas persistidas pela UI.
 
 const NAO_GASTO = /investim|transfer|dep[oó]sito|aporte|resgate/i;
 
-const mesAnterior = (mesISO) => {
-  const [y, m] = mesISO.split("-").map(Number);
-  const d = new Date(y, m - 2, 1);
+export const mesAnterior = (mesISO) => {
+  const [y, m] = String(mesISO || "").split("-").map(Number);
+  const d = new Date(y, (m || 1) - 2, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
 
@@ -24,66 +31,98 @@ const contaComoGasto = (cat, excSet, incSet) => {
   return !NAO_GASTO.test(c);
 };
 
+// Soma por nome de categoria a partir de itens agregados ({ categoria, valor }).
+const agrupar = (itens, filtro) => {
+  const m = {};
+  (itens || []).forEach((d) => {
+    if (d?.transferenciaId) return;
+    const k = d?.categoria || "Outros";
+    if (filtro && !filtro(k)) return;
+    m[k] = (m[k] || 0) + (Number(d?.valor) || 0);
+  });
+  return m;
+};
+
+const variacaoPct = (v, vAnt) => (vAnt > 0 ? ((v - vAnt) / vAnt) * 100 : null);
+
 /**
+ * @param {Array<{categoria,valor}>} itensMes   despesas agregadas do mês
+ * @param {Array<{categoria,valor}>} itensMesAnt despesas agregadas do mês anterior
  * @param {object} opts
- * @param {string} [opts.mesISO]
- * @param {string[]} [opts.excluir] categorias tiradas à mão
- * @param {string[]} [opts.incluir] categorias de movimentação colocadas à mão
- * @param {string[]} [opts.categorias] todas as categorias conhecidas (nomes) —
- *   entram como opção em foraDaAnalise mesmo sem gasto no mês.
+ * @param {string} [opts.mes] / [opts.mesAnt] rótulos "YYYY-MM"
+ * @param {string[]} [opts.excluir] / [opts.incluir] ajustes avulsos (nomes)
+ * @param {Array<{id,nome,parentId}>} [opts.categorias] cadastro de categorias de
+ *   despesa — usado pra montar a hierarquia e listar opções em foraDaAnalise.
  * @returns {{
  *   mes, mesAnt, total, totalAnterior, totalPct:number|null,
- *   categorias: Array<{ nome, valor, pct, valorAnterior, variacao:number|null, nova:boolean, forcada:boolean }>,
+ *   grupos: Array<{ nome, valor, valorAnterior, variacao, pct, nova, solo,
+ *                   filhos: Array<{ nome, valor, valorAnterior, variacao, pct, nova, forcada }> }>,
  *   foraDaAnalise: Array<{ nome, valor, motivo:"movimentacao"|"manual"|"semGasto" }>,
  *   maiorAlta: object|null
  * }}
- * variacao = % vs mês anterior; null quando a categoria não existia (nova).
  */
-export function analiseGastosMes(transacoes = [], { mesISO, excluir = [], incluir = [], categorias: categoriasConhecidas = [] } = {}) {
-  const mes = mesISO || new Date().toISOString().slice(0, 7);
-  const mesAnt = mesAnterior(mes);
+export function analiseGastosMes(itensMes = [], itensMesAnt = [], { mes = "", mesAnt = "", excluir = [], incluir = [], categorias: cadastro = [] } = {}) {
   const excSet = new Set(excluir);
   const incSet = new Set(incluir);
-
-  const despesasDoMes = (mk) => (transacoes || []).filter(
-    (t) => t?.tipo === "despesa"
-      && String(t?.data || "").startsWith(mk)
-      && !t?.transferenciaId,
-  );
-  const agrupar = (arr, filtro) => {
-    const m = {};
-    arr.forEach((t) => {
-      const k = t.categoria || "Outros";
-      if (filtro && !filtro(k)) return;
-      m[k] = (m[k] || 0) + (Number(t.valor) || 0);
-    });
-    return m;
-  };
-
   const dentro = (c) => contaComoGasto(c, excSet, incSet);
-  const atual = agrupar(despesasDoMes(mes), dentro);
-  const ant = agrupar(despesasDoMes(mesAnt), dentro);
+
+  const atual = agrupar(itensMes, dentro);
+  const ant = agrupar(itensMesAnt, dentro);
+  // Categoria colocada à mão (incluir) aparece SEMPRE, mesmo sem gasto no mês —
+  // assim o clique no "+" tem retorno visual (entra em R$ 0,00).
+  incSet.forEach((nome) => { if (!(nome in atual)) atual[nome] = 0; });
+
   const total = Object.values(atual).reduce((s, v) => s + v, 0);
   const totalAnterior = Object.values(ant).reduce((s, v) => s + v, 0);
 
-  const categorias = Object.entries(atual).map(([nome, valor]) => {
+  // Registro do cadastro pra resolver pai/filho (2 níveis).
+  const byNome = {};
+  const idToNome = {};
+  (cadastro || []).forEach((c) => { if (c?.nome) { byNome[c.nome] = c; if (c.id != null) idToNome[c.id] = c.nome; } });
+  const grupoDe = (nome) => {
+    const c = byNome[nome];
+    if (c && c.parentId != null && idToNome[c.parentId]) return idToNome[c.parentId];
+    return nome; // raiz ou avulsa (fora do cadastro)
+  };
+
+  // Monta grupos: cada folha contada cai no pai (ou em si mesma se raiz/avulsa).
+  const gmap = {};
+  Object.entries(atual).forEach(([nome, valor]) => {
+    const g = grupoDe(nome);
+    if (!gmap[g]) gmap[g] = { nome: g, valor: 0, valorAnterior: 0, filhos: [] };
     const valorAnterior = ant[nome] || 0;
-    const nova = valorAnterior === 0;
-    const variacao = valorAnterior > 0 ? ((valor - valorAnterior) / valorAnterior) * 100 : null;
+    gmap[g].valor += valor;
+    gmap[g].valorAnterior += valorAnterior;
+    gmap[g].filhos.push({
+      nome, valor, valorAnterior,
+      variacao: variacaoPct(valor, valorAnterior),
+      nova: valor > 0 && valorAnterior === 0,
+      forcada: incSet.has(nome),
+    });
+  });
+
+  const grupos = Object.values(gmap).map((g) => {
+    const filhos = g.filhos
+      .map((f) => ({ ...f, pct: g.valor > 0 ? (f.valor / g.valor) * 100 : 0 }))
+      .sort((a, b) => b.valor - a.valor);
     return {
-      nome, valor, pct: total > 0 ? (valor / total) * 100 : 0,
-      valorAnterior, variacao, nova, forcada: incSet.has(nome),
+      nome: g.nome,
+      valor: g.valor,
+      valorAnterior: g.valorAnterior,
+      variacao: variacaoPct(g.valor, g.valorAnterior),
+      pct: total > 0 ? (g.valor / total) * 100 : 0,
+      nova: g.valor > 0 && g.valorAnterior === 0,
+      solo: filhos.length === 1 && filhos[0].nome === g.nome,
+      filhos,
     };
   }).sort((a, b) => b.valor - a.valor);
 
-  // Fora da análise: TODA categoria conhecida que não está contando agora — para
-  // a UI oferecer como opção de "colocar". Inclui as com gasto no mês que ficaram
-  // de fora (movimentação/manual) e também as sem gasto no mês (semGasto).
+  // Fora da análise: TODA categoria conhecida que não está contando agora.
   const contadas = new Set(Object.keys(atual));
-  const todasDoMes = agrupar(despesasDoMes(mes), null);
+  const todasDoMes = agrupar(itensMes, null);
   const nomesFora = Array.from(new Set([
     ...Object.keys(todasDoMes),
-    ...(categoriasConhecidas || []),
+    ...(cadastro || []).map((c) => c?.nome).filter(Boolean),
   ])).filter((nome) => !contadas.has(nome));
   const motivoDe = (nome) => {
     if (excSet.has(nome)) return "manual";
@@ -94,12 +133,12 @@ export function analiseGastosMes(transacoes = [], { mesISO, excluir = [], inclui
     .map((nome) => ({ nome, valor: todasDoMes[nome] || 0, motivo: motivoDe(nome) }))
     .sort((a, b) => (b.valor - a.valor) || a.nome.localeCompare(b.nome));
 
-  const totalPct = totalAnterior > 0 ? ((total - totalAnterior) / totalAnterior) * 100 : null;
+  const totalPct = variacaoPct(total, totalAnterior);
 
-  // Destaque: maior ALTA em reais vs mês anterior (o que mais "pesou a mais").
-  const maiorAlta = categorias
-    .filter((c) => c.valorAnterior > 0 && c.valor > c.valorAnterior)
+  // Destaque: grupo que mais SUBIU em reais vs mês anterior.
+  const maiorAlta = grupos
+    .filter((g) => g.valorAnterior > 0 && g.valor > g.valorAnterior)
     .sort((a, b) => (b.valor - b.valorAnterior) - (a.valor - a.valorAnterior))[0] || null;
 
-  return { mes, mesAnt, total, totalAnterior, totalPct, categorias, foraDaAnalise, maiorAlta };
+  return { mes, mesAnt, total, totalAnterior, totalPct, grupos, foraDaAnalise, maiorAlta };
 }
