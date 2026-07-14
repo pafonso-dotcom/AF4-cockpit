@@ -57,6 +57,15 @@ describe("analiseGastosMes", () => {
     expect(lazerFora?.motivo).toBe("manual");
   });
 
+  it("categorias conhecidas sem gasto no mês entram como opção (semGasto, valor 0)", () => {
+    const x = analiseGastosMes(TX, { mesISO: "2026-07", categorias: ["Moradia", "Educação", "Pets"] });
+    const fora = x.foraDaAnalise.filter((f) => f.motivo === "semGasto").map((f) => f.nome);
+    expect(fora).toContain("Educação"); // conhecida, sem gasto no mês
+    expect(fora).toContain("Pets");
+    expect(fora).not.toContain("Moradia"); // já conta (tem gasto)
+    expect(x.foraDaAnalise.find((f) => f.nome === "Educação").valor).toBe(0);
+  });
+
   it("incluir coloca uma categoria de movimentação de volta no total", () => {
     const x = analiseGastosMes(TX, { mesISO: "2026-07", incluir: ["Investimento"] });
     expect(x.total).toBe(4800); // 2800 + 2000 (Investimento)

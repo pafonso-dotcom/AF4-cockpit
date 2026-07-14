@@ -29,15 +29,17 @@ const contaComoGasto = (cat, excSet, incSet) => {
  * @param {string} [opts.mesISO]
  * @param {string[]} [opts.excluir] categorias tiradas à mão
  * @param {string[]} [opts.incluir] categorias de movimentação colocadas à mão
+ * @param {string[]} [opts.categorias] todas as categorias conhecidas (nomes) —
+ *   entram como opção em foraDaAnalise mesmo sem gasto no mês.
  * @returns {{
  *   mes, mesAnt, total, totalAnterior, totalPct:number|null,
  *   categorias: Array<{ nome, valor, pct, valorAnterior, variacao:number|null, nova:boolean, forcada:boolean }>,
- *   foraDaAnalise: Array<{ nome, valor, motivo:"movimentacao"|"manual" }>,
+ *   foraDaAnalise: Array<{ nome, valor, motivo:"movimentacao"|"manual"|"semGasto" }>,
  *   maiorAlta: object|null
  * }}
  * variacao = % vs mês anterior; null quando a categoria não existia (nova).
  */
-export function analiseGastosMes(transacoes = [], { mesISO, excluir = [], incluir = [] } = {}) {
+export function analiseGastosMes(transacoes = [], { mesISO, excluir = [], incluir = [], categorias: categoriasConhecidas = [] } = {}) {
   const mes = mesISO || new Date().toISOString().slice(0, 7);
   const mesAnt = mesAnterior(mes);
   const excSet = new Set(excluir);
@@ -74,16 +76,23 @@ export function analiseGastosMes(transacoes = [], { mesISO, excluir = [], inclui
     };
   }).sort((a, b) => b.valor - a.valor);
 
-  // Fora da análise: despesas do mês que NÃO entraram — para a UI oferecer
-  // "colocar de volta". Motivo distingue movimentação (auto) de manual.
+  // Fora da análise: TODA categoria conhecida que não está contando agora — para
+  // a UI oferecer como opção de "colocar". Inclui as com gasto no mês que ficaram
+  // de fora (movimentação/manual) e também as sem gasto no mês (semGasto).
+  const contadas = new Set(Object.keys(atual));
   const todasDoMes = agrupar(despesasDoMes(mes), null);
-  const foraDaAnalise = Object.entries(todasDoMes)
-    .filter(([nome]) => !dentro(nome))
-    .map(([nome, valor]) => ({
-      nome, valor,
-      motivo: excSet.has(nome) ? "manual" : "movimentacao",
-    }))
-    .sort((a, b) => b.valor - a.valor);
+  const nomesFora = Array.from(new Set([
+    ...Object.keys(todasDoMes),
+    ...(categoriasConhecidas || []),
+  ])).filter((nome) => !contadas.has(nome));
+  const motivoDe = (nome) => {
+    if (excSet.has(nome)) return "manual";
+    if (NAO_GASTO.test(nome)) return "movimentacao";
+    return "semGasto";
+  };
+  const foraDaAnalise = nomesFora
+    .map((nome) => ({ nome, valor: todasDoMes[nome] || 0, motivo: motivoDe(nome) }))
+    .sort((a, b) => (b.valor - a.valor) || a.nome.localeCompare(b.nome));
 
   const totalPct = totalAnterior > 0 ? ((total - totalAnterior) / totalAnterior) * 100 : null;
 
