@@ -28,6 +28,7 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
   const [filterConta, setFilterConta] = useState("todas"); // "todas" | nome de conta | "particular"
   const [filterComp, setFilterComp] = useState("todas"); // todas | compensadas | pendentes
   const [filtroRecorrencia, setFiltroRecorrencia] = useState("todas"); // todas | fixas | variaveis
+  const [soSemCat, setSoSemCat] = useState(false); // só transações sem categoria (vazia/órfã)
   const [visao, setVisao] = useState(() => {
     try { return localStorage.getItem("af4:transacoes-visao") || "lista"; }
     catch { return "lista"; }
@@ -69,6 +70,9 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
     }
   }, [pendingTransacao, clearPendingTransacao, transacoes]);
 
+  // "Sem categoria" = vazia OU fora do cadastro (órfã) — as que poluem a análise.
+  const semCategoria = (t) => !t.categoria || !categorias.some(c => c.nome === t.categoria);
+
   const filtered = useMemo(() => {
     const now = new Date();
     const curY = now.getFullYear();
@@ -82,6 +86,7 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
       .filter(t => !contasEscopo || contasEscopo.has(t.conta))
       .filter(t => filterTipo === "todas" || t.tipo === filterTipo)
       .filter(t => filterCat === "todas" || t.categoria === filterCat)
+      .filter(t => !soSemCat || semCategoria(t))
       .filter(t => {
         if (filterConta === "todas") return true;
         if (filterConta === "particular") return !t.conta || !contas.find(c => c.nome === t.conta);
@@ -109,7 +114,7 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
       })
       .filter(t => !search || (t.descricao + " " + (t.obs || "")).toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => (b.data || "").localeCompare(a.data || ""));
-  }, [transacoes, filterTipo, filterCat, filterConta, filterComp, filterPeriodo, search, filtroRecorrencia, contas, escopoAtivo]);
+  }, [transacoes, filterTipo, filterCat, filterConta, filterComp, filterPeriodo, search, filtroRecorrencia, soSemCat, contas, categorias, escopoAtivo]);
 
   // Exporta as transações filtradas como PDF (via janela de impressão do navegador)
   const exportarPDF = () => {
@@ -176,7 +181,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
   }, [contas, transacoes]);
 
   // Limpa seleção quando filtros mudam
-  useEffect(() => { setSelectedIds(new Set()); }, [filterTipo, filterCat, filterConta, filterComp, filterPeriodo, search]);
+  useEffect(() => { setSelectedIds(new Set()); }, [filterTipo, filterCat, filterConta, filterComp, filterPeriodo, search, soSemCat]);
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => {
@@ -259,6 +264,17 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
     ));
     setSelectedIds(new Set());
     toast.success(`${count} transação${count !== 1 ? "ões" : ""} re-categorizada${count !== 1 ? "s" : ""} para "${categoriaNome}".`, {
+      action: { label: "Desfazer", onClick: () => setTransacoes(backup) },
+    });
+  };
+
+  // Troca a categoria de UMA transação na hora (edição inline, sem abrir o form).
+  const mudarCategoria = (id, categoriaNome) => {
+    const backup = transacoes.map(t => ({ ...t }));
+    setTransacoes(transacoes.map(t =>
+      t.id === id ? { ...t, categoria: categoriaNome, subcategoria: "" } : t
+    ));
+    toast.success(categoriaNome ? `Categoria alterada para "${categoriaNome}".` : "Categoria removida.", {
       action: { label: "Desfazer", onClick: () => setTransacoes(backup) },
     });
   };
@@ -448,6 +464,23 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
               </button>
             );
           })}
+          {(() => {
+            const nSemCat = transacoes.filter(semCategoria).length;
+            if (nSemCat === 0 && !soSemCat) return null;
+            return (
+              <button onClick={() => setSoSemCat(v => !v)}
+                title="Mostrar só as transações sem categoria (vazias ou fora do cadastro)"
+                style={{
+                  padding: "5px 11px", borderRadius: 100, fontSize: 11, fontWeight: 600,
+                  background: soSemCat ? `${T.red}22` : `${T.gold}14`,
+                  color: soSemCat ? T.red : T.gold,
+                  border: `1px solid ${soSemCat ? T.red : `${T.gold}66`}`,
+                  cursor: "pointer", whiteSpace: "nowrap", marginLeft: 4,
+                }}>
+                ⚠ Sem categoria{nSemCat > 0 ? ` · ${nSemCat}` : ""}
+              </button>
+            );
+          })()}
         </div>
 
         <div style={{ display: "flex", gap: 6, alignItems: "center", marginLeft: "auto" }}>
@@ -604,9 +637,24 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                     )}
                   </div>
                   <div style={{ fontSize: 10, color: T.muted, marginTop: 1, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    {cat && <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ width: 5, height: 5, background: cat.cor, borderRadius: "50%" }} />{cat.nome}
-                    </span>}
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} onClick={e => e.stopPropagation()}>
+                      <span style={{ width: 5, height: 5, background: cat ? cat.cor : T.red, borderRadius: "50%", flexShrink: 0 }} />
+                      <select
+                        value={cat ? cat.nome : ""}
+                        onChange={e => mudarCategoria(t.id, e.target.value)}
+                        title="Trocar a categoria"
+                        style={{
+                          appearance: "none", WebkitAppearance: "none",
+                          background: "transparent", border: "none", padding: "0 2px",
+                          fontSize: 10, color: cat ? T.muted : T.red, fontWeight: cat ? 400 : 600,
+                          cursor: "pointer", maxWidth: 150, textOverflow: "ellipsis",
+                        }}>
+                        {!cat && <option value="">⚠ {t.categoria ? `${t.categoria} (fora do cadastro)` : "Sem categoria"}</option>}
+                        {ordenarPorNome(categorias.filter(c => !c.tipo || c.tipo === t.tipo)).map(c => (
+                          <option key={c.id} value={c.nome}>{c.nome}</option>
+                        ))}
+                      </select>
+                    </span>
                     <span style={{ color: T.faint }}>· {t.conta}</span>
                     <span style={{ color: T.faint }}>· {t.data}</span>
                     {t.subcategoria && <span style={{ color: T.faint }}>· {t.subcategoria}</span>}
