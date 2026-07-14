@@ -237,7 +237,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       setAtivos(ativos.map(a => a.id === form.id ? data : a));
       toast.success(`${data.ticker} atualizado.`);
     } else {
-      setAtivos([...ativos, { ...data, id: uid() }]);
+      setAtivos([...ativos, { ...data, id: uid(), criadoEm: form.criadoEm || todayISO() }]);
       // Se escolheu conta/banco, lança a saída (compra) e debita o saldo dela.
       const contaPg = (contas || []).find(c => c.nome === form.conta);
       const totalAplicado = parseFloat(form.valorAplicado) || (data.qtd * data.pm) || 0;
@@ -529,6 +529,11 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   <div style={{ color: T.faint, fontSize: 10, marginTop: 4, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: T.sans }}>
                     {a.tipo} · {fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)} un.
                   </div>
+                  {a.criadoEm && (
+                    <div style={{ color: T.faint, fontSize: 9.5, marginTop: 2 }} title="Data de criação/compra do ativo">
+                      desde {String(a.criadoEm).slice(0, 10).split("-").reverse().join("/")}
+                    </div>
+                  )}
                   {a.tipo !== "capitalSocial" && valorPorTipo[a.tipo] > 0 && (
                     <div style={{ color: T.muted, fontSize: 9.5, marginTop: 2 }}>
                       {pesoNaCategoria(a).toFixed(0)}% da categoria
@@ -737,6 +742,11 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                             ) : null;
                           })()}
                         </div>
+                        {a.criadoEm && (
+                          <div style={{ color: T.faint, fontSize: 10, marginTop: 2 }} title="Data de criação/compra do ativo">
+                            desde {String(a.criadoEm).slice(0, 10).split("-").reverse().join("/")}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -915,6 +925,14 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
             </div>
             <div style={{ fontSize: 10.5, color: T.faint, marginTop: 4, fontStyle: "italic" }}>
               Use quando você sabe quanto investiu no total (R$) mas não sabe o preço médio por unidade. Tipo: comprou R$1.000 de Tesouro Selic e recebeu 9,43 unidades → Calcular PM.
+            </div>
+          </Field>
+
+          <Field label="Data de criação / compra">
+            <input type="date" value={form.criadoEm || ""}
+                   onChange={e => setForm({ ...form, criadoEm: e.target.value })} />
+            <div style={{ fontSize: 10.5, color: T.faint, marginTop: 4, fontStyle: "italic" }}>
+              Quando você adicionou/comprou este ativo. Em branco, usa a data de hoje.
             </div>
           </Field>
 
