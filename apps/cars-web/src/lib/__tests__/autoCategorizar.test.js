@@ -51,3 +51,49 @@ describe("sugerirCategorias", () => {
     expect(r.sugestoes).toHaveLength(0);
   });
 });
+
+describe("regras de extrato bancário (transferências, proventos, energia)", () => {
+  const CAD = [
+    { nome: "Taxas Bancos", tipo: "despesa" },
+    { nome: "Transferência", tipo: "despesa" },
+    { nome: "Rendimentos", tipo: "receita" },
+    { nome: "Energia", tipo: "despesa" },
+    { nome: "Investimento", tipo: "despesa" },
+  ];
+  const mapaDe = (r) => Object.fromEntries(r.sugestoes.map((s) => [s.id, s.sugerida]));
+
+  it("transferências viram Transferência (saem do gasto)", () => {
+    const t = [
+      tx(1, "Transferência de SANTANDER", "Outros", 5000),
+      tx(2, "Transferência para XP - Banco", "Outros", 3000),
+      tx(3, "Transferência enviada para conta investimento", "Outros", 2000),
+    ];
+    const r = sugerirCategorias(t, CAD);
+    const m = mapaDe(r);
+    expect(m[1]).toBe("Transferência");
+    expect(m[2]).toBe("Transferência");
+    expect(m[3]).toBe("Transferência");
+  });
+
+  it("proventos (receita) viram Rendimentos", () => {
+    const t = [
+      tx(1, "RECR11 · Rendimento", "Outros", 60, "receita"),
+      tx(2, "REND PAGO APLIC AUT MAIS", "Outros", 12, "receita"),
+    ];
+    const m = mapaDe(sugerirCategorias(t, CAD));
+    expect(m[1]).toBe("Rendimentos");
+    expect(m[2]).toBe("Rendimentos");
+  });
+
+  it("IRRF/CBLC (DESPESA com a palavra 'rendimento') vai pra Taxas, não Rendimentos", () => {
+    const t = [tx(1, "DEBITO CBLC IRRF S/ RENDIMENTO DE BTC B3SA", "Outros", 0.03, "despesa")];
+    const m = mapaDe(sugerirCategorias(t, CAD));
+    expect(m[1]).toBe("Taxas Bancos");
+  });
+
+  it("conta de energia (CERIPA) vai pra Energia", () => {
+    const t = [tx(1, "INT/CERIPA 19416590", "Outros", 180)];
+    const m = mapaDe(sugerirCategorias(t, CAD));
+    expect(m[1]).toBe("Energia");
+  });
+});
