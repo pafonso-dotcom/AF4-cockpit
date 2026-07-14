@@ -6,6 +6,7 @@ import AReceberEDividas from "../AReceberEDividas.jsx";
 import DespesasFixas from "../DespesasFixas.jsx";
 import ControleAnual from "../Relatorios/ControleAnual.jsx";
 import Cheques from "../Cheques.jsx";
+import AnaliseGastos from "./AnaliseGastos.jsx";
 
 /**
  * Centro de Controle — cada seção mostra uma VISÃO GERAL simples sempre visível
@@ -247,6 +248,11 @@ export default function Planejamento(props) {
           }
         >
           <DespesasFixas {...props} embed />
+        </Secao>
+
+        <Secao id="analise-gastos" titulo="Análise de gastos">
+          <AnaliseGastos transacoes={props.transacoes} contas={props.contas}
+                         escopoAtivo={props.escopoAtivo} hidden={props.hidden} />
         </Secao>
 
         <Secao id="cheques" titulo="Cheques">

@@ -10,3 +10,6 @@ out/
 coverage/
 next-env.d.ts
 .superpowers/
+
+# Arquivos temporários de sessão do agente (scripts/prints Playwright, etc.)
+scratchpad/
