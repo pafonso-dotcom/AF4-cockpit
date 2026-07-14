@@ -54,9 +54,10 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
       clearPendingTransacao?.();
       return;
     }
-    // Veio da Análise de gastos: filtra por uma categoria e mostra a lista.
+    // Veio da Análise de gastos: filtra por uma categoria (no mês) e mostra a lista.
     if (pendingTransacao?.filtroCategoria) {
       setFilterCat(pendingTransacao.filtroCategoria);
+      if (pendingTransacao.periodo) setFilterPeriodo(pendingTransacao.periodo);
       setVisaoPersist?.("lista");
       clearPendingTransacao?.();
       return;
@@ -530,26 +531,36 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
       </div>
 
       {/* Banner de filtro por categoria (vindo da Análise de gastos) */}
-      {filterCat !== "todas" && (
-        <div style={{
-          background: `${T.gold}11`, border: `1px solid ${T.gold}66`, borderRadius: 10,
-          padding: "8px 12px", marginBottom: 10,
-          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-        }}>
-          <span style={{ fontSize: 12.5, color: T.ink }}>
-            Filtrando por categoria: <b>{filterCat}</b>
-            <span style={{ color: T.muted }}> · {filtered.length} transaç{filtered.length === 1 ? "ão" : "ões"}</span>
-          </span>
-          <button onClick={() => setFilterCat("todas")}
-            style={{
-              marginLeft: "auto", background: T.bgSoft, border: `1px solid ${T.border}`,
-              borderRadius: 100, padding: "3px 10px", fontSize: 11, fontWeight: 600,
-              color: T.muted, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5,
-            }}>
-            <X size={12} /> Limpar filtro
-          </button>
-        </div>
-      )}
+      {filterCat !== "todas" && (() => {
+        const somaDesp = filtered.filter(t => t.tipo === "despesa").reduce((s, t) => s + (Number(t.valor) || 0), 0);
+        const somaRec = filtered.filter(t => t.tipo === "receita").reduce((s, t) => s + (Number(t.valor) || 0), 0);
+        const periodoLabel = {
+          "mes-atual": "mês atual", "mes-anterior": "mês anterior", "ano-atual": "ano atual", "todos": "todos os períodos",
+        }[filterPeriodo] || (/^\d{4}-\d{2}$/.test(filterPeriodo) ? filterPeriodo.split("-").reverse().join("/") : null);
+        return (
+          <div style={{
+            background: `${T.gold}11`, border: `1px solid ${T.gold}66`, borderRadius: 10,
+            padding: "8px 12px", marginBottom: 10,
+            display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+          }}>
+            <span style={{ fontSize: 12.5, color: T.ink }}>
+              <b>{filterCat}</b>
+              {periodoLabel && <span style={{ color: T.muted }}> · {periodoLabel}</span>}
+              <span style={{ color: T.muted }}> · {filtered.length} transaç{filtered.length === 1 ? "ão" : "ões"}</span>
+              {somaDesp > 0 && <span style={{ color: T.red, fontWeight: 700 }}> · {hidden ? "•••" : fmt(somaDesp)} em gastos</span>}
+              {somaRec > 0 && <span style={{ color: T.green, fontWeight: 600 }}> · {hidden ? "•••" : fmt(somaRec)} em entradas</span>}
+            </span>
+            <button onClick={() => { setFilterCat("todas"); setFilterPeriodo("todos"); }}
+              style={{
+                marginLeft: "auto", background: T.bgSoft, border: `1px solid ${T.border}`,
+                borderRadius: 100, padding: "3px 10px", fontSize: 11, fontWeight: 600,
+                color: T.muted, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5,
+              }}>
+              <X size={12} /> Limpar filtro
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Bulk actions bar */}
       {selectedIds.size > 0 && (

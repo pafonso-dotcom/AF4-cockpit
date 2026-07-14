@@ -629,7 +629,7 @@ export default function App() {
   const verCategoriaTransacoes = useCallback((nome) => {
     if (!nome) return;
     setCartaoAberto(null); setContaAberta(null);
-    setPendingTransacao({ filtroCategoria: nome });
+    setPendingTransacao({ filtroCategoria: nome, periodo: "mes-atual" });
     setModulo("financas"); setTab("transacoes");
   }, []);
 
