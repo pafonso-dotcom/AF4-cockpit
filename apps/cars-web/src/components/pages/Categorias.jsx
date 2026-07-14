@@ -523,6 +523,27 @@ function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {},
     toast.success(`Subcategoria "${sub.nome}" removida.`);
   };
 
+  // Exclui uma categoria (pai ou filha). Transações que a usam ficam sem
+  // categoria (não são apagadas); filhas de um pai excluído viram raiz.
+  const excluirCat = async (cat) => {
+    const suasFilhas = categorias.filter(x => x.parentId === cat.id);
+    const nUso = transacoes.filter(t => t.categoria === cat.nome).length;
+    const partes = [];
+    if (nUso > 0) partes.push(`${nUso} transaç${nUso === 1 ? "ão" : "ões"} que usa${nUso === 1 ? "" : "m"} essa categoria fica${nUso === 1 ? "" : "m"} sem categoria (não são apagadas).`);
+    if (suasFilhas.length > 0) partes.push(`As ${suasFilhas.length} subcategoria${suasFilhas.length === 1 ? "" : "s"} (${suasFilhas.map(f => f.nome).join(", ")}) viram categorias-raiz.`);
+    partes.push("Essa ação não pode ser desfeita.");
+    const ok = await confirm({
+      title: `Excluir "${cat.nome}"?`,
+      body: partes.join(" "),
+      danger: true, confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+    setCategorias(categorias
+      .filter(x => x.id !== cat.id)
+      .map(x => x.parentId === cat.id ? { ...x, parentId: null } : x));
+    toast.success(`Categoria "${cat.nome}" excluída.`);
+  };
+
   return (
     <div className="group" style={{ borderBottom: `1px solid ${T.border}` }}>
       <div className="flex items-center gap-2.5" style={{ padding: "7px 0", cursor: subs.length > 0 ? "pointer" : "default" }}
@@ -571,6 +592,12 @@ function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {},
                 aria-label={`Editar categoria ${c.nome}`}
                 style={{ color: T.muted, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}>
           <Edit3 size={12} />
+        </button>
+        <button onClick={e => { e.stopPropagation(); excluirCat(c); }}
+                aria-label={`Excluir categoria ${c.nome}`}
+                title="Excluir categoria"
+                style={{ color: T.muted, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}>
+          <Trash2 size={12} />
         </button>
       </div>
 
@@ -657,6 +684,12 @@ function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {},
                   aria-label={`Editar ${f.nome}`}
                   style={{ color: T.muted, background: "transparent", border: "none", cursor: "pointer", padding: 2 }}>
                   <Edit3 size={11} />
+                </button>
+                <button onClick={() => excluirCat(f)}
+                  aria-label={`Excluir ${f.nome}`}
+                  title="Excluir subcategoria"
+                  style={{ color: T.muted, background: "transparent", border: "none", cursor: "pointer", padding: 2 }}>
+                  <Trash2 size={11} />
                 </button>
               </div>
             );
