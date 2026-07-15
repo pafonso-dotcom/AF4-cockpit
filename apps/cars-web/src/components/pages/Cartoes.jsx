@@ -11,6 +11,7 @@ import Field from "../ui/Field.jsx";
 import { StatTile } from "../ui/widget.jsx";
 import Modal from "../ui/Modal.jsx";
 import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
+import BankIcon from "../ui/BankIcon.jsx";
 import AnaliseFatura from "./AnaliseFatura.jsx";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
 
@@ -613,10 +614,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
 
       {/* Lista de cartões — recolhida por padrão */}
       <SecaoColapsavel idKey="cartoes-lista" titulo="Meus cartões" count={cartoes.length} defaultAberto={false}>
-      {/* Visual cards · empilhados verticalmente (lista) */}
+      {/* Visual cards · grid lado a lado (mesmo padrão das Contas) */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: "1fr",
+        gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
         gap: 12,
         marginBottom: 30,
       }}>
@@ -646,32 +647,37 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                    background: ativaCard ? `${T.gold}10` : T.card,
                    border: `1px solid ${ativaCard ? T.gold : T.border}`,
                    borderLeft: `4px solid ${brand.bg}`,
-                   borderRadius: 11, overflow: "hidden",
+                   borderRadius: 16, overflow: "hidden",
                    transition: "all .15s",
+                   display: "flex", flexDirection: "column",
                  }}>
-              {/* Linha principal — pai */}
+              {/* Corpo do card — mesmo layout das Contas (logo · nome · valor · chip) */}
               <div onClick={() => onCartaoClick && onCartaoClick({ ...c, usado, faturaAtual: aPagar })}
                    style={{
-                     display: "flex", alignItems: "center", gap: 10,
-                     padding: "10px 12px",
-                     cursor: onCartaoClick ? "pointer" : "default",
+                     display: "flex", flexDirection: "column", minHeight: 118,
+                     padding: 14, cursor: onCartaoClick ? "pointer" : "default",
                    }}>
-                <CreditCard size={16} style={{ color: T.muted, flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
-                  <div style={{ fontSize: 10, color: T.muted }}>
-                    {fiPaga
-                      ? <span style={{ color: T.green }}>Fatura do mês paga</span>
-                      : aPagar > 0
-                        ? <>A pagar <span className="num" style={{ color: T.gold, fontWeight: 600 }}>{hidden ? "•••" : fmt(aPagar)}</span>{usado > 0 && <> · Restante <span className="num">{hidden ? "•••" : fmt(usado)}</span></>}</>
-                        : <span>Sem fatura no mês</span>}
-                  </div>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                  <BankIcon c={c} size={40} />
+                  <button onClick={(e) => { e.stopPropagation(); toggleExpandedCart(c.id); }}
+                          aria-label={exp ? "Recolher" : "Mais ações"}
+                          style={{ background: T.bgSoft, border: `1px solid ${T.border}`, color: T.muted, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                    <ChevronDown size={15} style={{ transform: exp ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+                  </button>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); toggleExpandedCart(c.id); }}
-                        aria-label={exp ? "Recolher" : "Mais ações"}
-                        style={{ background: "transparent", border: "none", color: T.muted, cursor: "pointer", padding: 4, lineHeight: 0 }}>
-                  <ChevronDown size={16} style={{ transform: exp ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
-                </button>
+                <div style={{ flex: 1, minHeight: 10 }} />
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
+                <div className="num" style={{ fontVariantNumeric: "tabular-nums", fontSize: 18, fontWeight: 400, letterSpacing: "-.01em", marginTop: 2, color: T.ink, whiteSpace: "nowrap" }}
+                     title="Restante a pagar (todas as parcelas em aberto)">
+                  {hidden ? "•••" : fmt(usado || aPagar || 0)}
+                </div>
+                <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                  {fiPaga
+                    ? <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.green}18`, color: T.green, whiteSpace: "nowrap" }}>Fatura paga</span>
+                    : aPagar > 0
+                      ? <span className="num" style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.gold}18`, color: T.gold, whiteSpace: "nowrap" }}>A pagar {hidden ? "•••" : fmt(aPagar)}</span>
+                      : <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>Sem fatura</span>}
+                </div>
               </div>
               {/* Filhos — expandido */}
               {exp && (
