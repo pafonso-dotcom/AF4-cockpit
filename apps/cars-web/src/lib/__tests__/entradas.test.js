@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { entradasDoMes } from "../entradas.js";
+import { entradasDoMes, entradasDeRecebiveis } from "../entradas.js";
 
 const tx = [
   { tipo: "receita", valor: 40000, data: "2026-07-05", categoria: "Salário" },
@@ -51,5 +51,37 @@ describe("entradasDoMes", () => {
   it("foraTotal soma tudo que não é entrada", () => {
     const r = entradasDoMes(tx, "2026-07");
     expect(r.foraTotal).toBe(3000 + 1000 + 8000);
+  });
+});
+
+describe("entradasDeRecebiveis (base getGanhosDoMes)", () => {
+  const ganhos = [
+    { categoria: "Salário", valor: 40000, status: "paga" },
+    { categoria: "Cheques", valor: 22200, status: "pendente" },
+    { categoria: "Vendas", valor: 5000, status: "paga" },
+    { categoria: "Juros de empréstimo", valor: 486, status: "paga" },
+    { categoria: "Empréstimo (principal)", valor: 8000, status: "pendente" },
+    { categoria: "Transferência", valor: 3000, status: "paga" },
+  ];
+
+  it("separa recebido de a receber e soma tudo", () => {
+    const r = entradasDeRecebiveis(ganhos);
+    expect(r.recebido).toBe(40000 + 5000 + 486);
+    expect(r.aReceber).toBe(22200);            // cheque pendente
+    expect(r.total).toBe(40000 + 5000 + 486 + 22200);
+  });
+
+  it("principal de empréstimo e transferência ficam fora; juros conta", () => {
+    const r = entradasDeRecebiveis(ganhos);
+    expect(r.porCategoria["Empréstimo (principal)"]).toBeUndefined();
+    expect(r.porCategoria["Transferência"]).toBeUndefined();
+    expect(r.porCategoria["Juros de empréstimo"]).toBe(486);
+    expect(r.foraPorMotivo.emprestimo).toBe(8000);
+    expect(r.foraPorMotivo.transferencia).toBe(3000);
+  });
+
+  it("ajuste manual força uma categoria a contar", () => {
+    const r = entradasDeRecebiveis(ganhos, { incluir: ["Empréstimo (principal)"] });
+    expect(r.porCategoria["Empréstimo (principal)"]).toBe(8000);
   });
 });

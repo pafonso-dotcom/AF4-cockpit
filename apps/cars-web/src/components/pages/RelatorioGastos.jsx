@@ -3,11 +3,11 @@ import { ChevronLeft, ChevronRight, Stethoscope, Puzzle, BarChart3, Repeat, Targ
 import { T } from "../../lib/theme.js";
 import { fmt } from "../../lib/format.js";
 import { MESES_LONGO } from "../../lib/meses.js";
-import { getDespesasDoMes } from "../../lib/agregador.js";
+import { getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
 import { totaisPorCategoria } from "../../lib/analiseGastos.js";
 import { montarRelatorioGastos } from "../../lib/relatorioGastos.js";
 import { promptDiagnostico } from "../../lib/diagnosticoGastos.js";
-import { entradasDoMes } from "../../lib/entradas.js";
+import { entradasDeRecebiveis } from "../../lib/entradas.js";
 import { perguntarAoClaude } from "../../lib/aiChat.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { printHTML } from "../../lib/importExport.js";
@@ -61,10 +61,11 @@ export default function RelatorioGastos(props) {
     for (let i = 1; i <= 6; i++) { const d = new Date(y, m - 1 - i, 1); historicoCats.push(catsDe(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`)); }
     let itensMes = []; try { itensMes = getDespesasDoMes(mesSel, state, escopoAtivo); } catch {}
 
-    // Transações do escopo (entradas usam transação crua, não getDespesas).
-    const contasEsc = new Set(filtrarPorEscopo(props.contas || [], escopoAtivo).map((c) => c.nome));
-    const txEsc = escopoAtivo === "tudo" ? (props.transacoes || []) : (props.transacoes || []).filter((t) => t.conta && contasEsc.has(t.conta));
-    const entradas = entradasDoMes(txEsc, mesSel, entradasAj);
+    // Entradas pela MESMA base dos recebíveis do relatório (getGanhosDoMes):
+    // cheques, parcelas a receber, juros, devedores, proventos, rendimentos e
+    // transações de receita — recebido + a receber. Escopo já aplicado dentro.
+    let ganhos = []; try { ganhos = getGanhosDoMes(mesSel, state, escopoAtivo); } catch {}
+    const entradas = entradasDeRecebiveis(ganhos, entradasAj);
 
     const fixas = filtrarPorEscopo(props.fixas || [], escopoAtivo);
     const rel = montarRelatorioGastos({ itensMes, historicoCats, entradas, ajuste: gastosAj, categorias: props.categorias || [], fixas, hojeISO, ehMesCorrente: mesSel === mesAtualISO });
@@ -153,7 +154,7 @@ ${linha("Saúde do mês", rel.score != null ? `${rel.score}/100` : "—")}${rel.
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 12 }} className="rg-kpis">
         {[
           { k: "Gasto do mês", v: oculto(rel.totalMes), s: rel.pctTotal != null ? `${pctStr(rel.pctTotal)} vs média 6m` : "", sc: rel.pctTotal > 5 ? T.red : T.green, a: T.red },
-          { k: "Entrou (real)", v: oculto(rel.receitaMes), s: entradas.foraTotal > 0 ? `${oculto(entradas.foraTotal)} não é entrada` : "dinheiro novo", sc: entradas.foraTotal > 0 ? T.muted : T.muted, a: T.green },
+          { k: "Entrada do mês", v: oculto(rel.receitaMes), s: entradas.aReceber > 0 ? `${oculto(entradas.recebido)} recebido + ${oculto(entradas.aReceber)} a receber` : "dinheiro novo", sc: T.muted, a: T.green },
           { k: "Taxa de consumo", v: rel.taxaConsumo != null ? `${rel.taxaConsumo.toFixed(0)}%` : "—", s: "da renda foi gasta", sc: T.gold, a: T.gold },
           { k: "Sobrou / poupou", v: oculto(rel.poupanca), s: rel.pctPoupanca != null ? `${rel.pctPoupanca.toFixed(0)}% da renda` : "", sc: rel.poupanca >= 0 ? T.green : T.red, a: rel.poupanca >= 0 ? T.green : T.red },
         ].map((t, i) => (
@@ -179,8 +180,14 @@ ${linha("Saúde do mês", rel.score != null ? `${rel.score}/100` : "—")}${rel.
                 <span className="num" style={{ color: T.green, fontWeight: 600 }}>{oculto(entradas.porCategoria[c.categoria] || c.valor)}</span>
               </div>
             ))}
+            {entradas.aReceber > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, paddingTop: 8, borderTop: `1px dashed ${T.border}`, fontSize: 11.5, color: T.muted }}>
+                <span>Recebido {oculto(entradas.recebido)} · ainda a receber</span>
+                <span className="num" style={{ color: T.gold, fontWeight: 700 }}>{oculto(entradas.aReceber)}</span>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
-              <span style={{ fontSize: 12, color: T.muted }}>Total que entrou de verdade</span>
+              <span style={{ fontSize: 12, color: T.muted }}>Total (recebido + a receber)</span>
               <span className="num" style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 700, color: T.green }}>{oculto(rel.receitaMes)}</span>
             </div>
           </div>
