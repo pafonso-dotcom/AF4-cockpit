@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { TrendingUp, TrendingDown, AlertTriangle, PieChart, SlidersHorizontal, X, Plus, ChevronRight, ChevronDown, ChevronLeft } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, PieChart, SlidersHorizontal, X, Plus, ChevronRight, ChevronDown, ChevronLeft, Target } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import { MESES_LONGO } from "../../../lib/meses.js";
@@ -37,11 +37,23 @@ function Variacao({ nova, variacao }) {
 // com as subcategorias dentro. Fonte: getDespesasDoMes (transações + fixas +
 // parcelas de cartão + dívidas). Respeita o escopo ativo.
 export default function AnaliseGastos(props) {
-  const { escopoAtivo = "tudo", hidden = false, categorias = [], onVerCategoria } = props;
+  const { escopoAtivo = "tudo", hidden = false, categorias = [], onVerCategoria, setCategorias } = props;
   const podeAbrir = typeof onVerCategoria === "function";
+  const podeOrcar = typeof setCategorias === "function";
   const [ajuste, setAjuste] = useState(lerAjuste);
   const [editar, setEditar] = useState(false);
+  const [orcarModo, setOrcarModo] = useState(false);
   const [abertos, setAbertos] = useState({}); // grupos expandidos
+
+  // Categoria de despesa registrada com esse nome (pra ler/gravar o limite mensal).
+  const catDespPorNome = (nome) => (categorias || []).find((c) => c.nome === nome && (!c.tipo || c.tipo === "despesa"));
+  const setLimite = (nome, valor) => {
+    if (!podeOrcar) return;
+    const cat = catDespPorNome(nome);
+    if (!cat) return;
+    const lim = valor === "" || valor == null ? null : Number(valor);
+    setCategorias((categorias || []).map((c) => (c.id === cat.id ? { ...c, limite: Number.isFinite(lim) ? lim : null } : c)));
+  };
   // Mês em análise (navegável). Default: mês atual.
   const mesAtualISO = new Date().toISOString().slice(0, 7);
   const [mesSel, setMesSel] = useState(mesAtualISO);
@@ -157,9 +169,16 @@ export default function AnaliseGastos(props) {
           <PieChart size={14} style={{ color: T.gold }} />
           <span style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Por categoria</span>
         </div>
-        <button onClick={() => setEditar((v) => !v)} style={chipBtn(editar ? { background: `${T.gold}22`, color: T.gold, borderColor: `${T.gold}55` } : {})}>
-          <SlidersHorizontal size={12} /> {editar ? "Concluir" : "Ajustar"}
-        </button>
+        <div style={{ display: "inline-flex", gap: 6 }}>
+          {podeOrcar && (
+            <button onClick={() => { setOrcarModo((v) => !v); setEditar(false); }} style={chipBtn(orcarModo ? { background: `${T.gold}22`, color: T.gold, borderColor: `${T.gold}55` } : {})}>
+              <Target size={12} /> {orcarModo ? "Concluir" : "Orçamento"}
+            </button>
+          )}
+          <button onClick={() => { setEditar((v) => !v); setOrcarModo(false); }} style={chipBtn(editar ? { background: `${T.gold}22`, color: T.gold, borderColor: `${T.gold}55` } : {})}>
+            <SlidersHorizontal size={12} /> {editar ? "Concluir" : "Ajustar"}
+          </button>
+        </div>
       </div>
 
       {/* Grupos (pai) com subcategorias */}
@@ -191,6 +210,39 @@ export default function AnaliseGastos(props) {
               <div style={{ height: 7, background: T.bgSoft, borderRadius: 5, overflow: "hidden" }}>
                 <div style={{ width: `${g.pct}%`, height: "100%", background: T.gold, borderRadius: 5 }} />
               </div>
+
+              {/* Orçamento: definir limite (modo Orçamento) ou barra gasto vs limite */}
+              {(() => {
+                const cat = catDespPorNome(g.nome);
+                if (orcarModo) {
+                  if (!cat) return null;
+                  return (
+                    <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: T.muted }}>
+                      <Target size={11} style={{ color: T.gold }} />
+                      <span>Limite mensal · R$</span>
+                      <input type="number" step="0.01" defaultValue={cat.limite ?? ""} placeholder="sem limite"
+                        onBlur={(e) => setLimite(g.nome, e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                        style={{ width: 100, padding: "3px 7px", fontSize: 12, borderRadius: 7, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink }} />
+                    </div>
+                  );
+                }
+                const limite = Number(cat?.limite) || 0;
+                if (limite <= 0) return null;
+                const pctL = (g.valor / limite) * 100;
+                const cor = pctL >= 100 ? T.red : pctL >= 80 ? T.gold : T.green;
+                return (
+                  <div style={{ marginTop: 5 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: T.muted, marginBottom: 2 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><Target size={10} style={{ color: cor }} /> Orçamento</span>
+                      <span className="num" style={{ color: cor, fontWeight: 700 }}>{oculto(g.valor, hidden)} / {oculto(limite, hidden)} · {pctL.toFixed(0)}%</span>
+                    </div>
+                    <div style={{ height: 5, background: T.bgSoft, borderRadius: 5, overflow: "hidden" }}>
+                      <div style={{ width: `${Math.min(100, pctL)}%`, height: "100%", background: cor, borderRadius: 5 }} />
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Subcategorias */}
               {temFilhos && aberto && (

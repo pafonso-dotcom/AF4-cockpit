@@ -258,7 +258,7 @@ export default function Planejamento(props) {
 
         <Secao id="analise-gastos" titulo="Análise de gastos">
           <AnaliseGastos transacoes={props.transacoes} contas={props.contas}
-                         categorias={props.categorias} fixas={props.fixas}
+                         categorias={props.categorias} setCategorias={props.setCategorias} fixas={props.fixas}
                          fixaOcorrencias={props.fixaOcorrencias} dividas={props.dividas}
                          parcelamentos={props.parcelamentos} devedores={props.devedores}
                          cheques={props.cheques} onVerCategoria={props.onVerCategoria}
