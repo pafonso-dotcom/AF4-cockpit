@@ -7,13 +7,22 @@ import { getDespesasDoMes } from "../../lib/agregador.js";
 import { totaisPorCategoria } from "../../lib/analiseGastos.js";
 import { montarRelatorioGastos } from "../../lib/relatorioGastos.js";
 import { promptDiagnostico } from "../../lib/diagnosticoGastos.js";
+import { entradasDoMes } from "../../lib/entradas.js";
 import { perguntarAoClaude } from "../../lib/aiChat.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { printHTML } from "../../lib/importExport.js";
+import { SlidersHorizontal } from "lucide-react";
 
 const PURPLE = "#8a6fb0";
 const nomeMes = (iso) => { const [a, m] = (iso || "").split("-").map(Number); return `${MESES_LONGO[(m || 1) - 1]} ${a || ""}`; };
 const pctStr = (v) => `${v >= 0 ? "+" : ""}${v.toFixed(0)}%`;
+const semDup = (arr) => Array.from(new Set(arr));
+
+// Ajuste de gastos é COMPARTILHADO com a Análise de gastos (mesma chave).
+const GASTOS_KEY = "financas:analise-gastos:v1";
+const ENTRADAS_KEY = "financas:relatorio-entradas:v1";
+const lerAjuste = (key) => { try { const v = JSON.parse(localStorage.getItem(key) || "{}"); return { excluir: Array.isArray(v.excluir) ? v.excluir : [], incluir: Array.isArray(v.incluir) ? v.incluir : [] }; } catch { return { excluir: [], incluir: [] }; } };
+const salvarAjuste = (key, a) => { try { localStorage.setItem(key, JSON.stringify(a)); } catch {} };
 
 export default function RelatorioGastos(props) {
   const { escopoAtivo = "tudo", hidden = false, apiKey, embed = false } = props;
@@ -30,23 +39,44 @@ export default function RelatorioGastos(props) {
   const [iaErro, setIaErro] = useState("");
   useEffect(() => { setIaTexto(""); setIaErro(""); }, [mesSel]);
 
-  const rel = useMemo(() => {
+  // Livre escolha do que compõe gastos (compartilhado com a Análise) e entradas.
+  const [gastosAj, setGastosAj] = useState(() => lerAjuste(GASTOS_KEY));
+  const [entradasAj, setEntradasAj] = useState(() => lerAjuste(ENTRADAS_KEY));
+  const [ajusteAberto, setAjusteAberto] = useState(false);
+  const aplicarGastos = (a) => { setGastosAj(a); salvarAjuste(GASTOS_KEY, a); };
+  const aplicarEntradas = (a) => { setEntradasAj(a); salvarAjuste(ENTRADAS_KEY, a); };
+  const toggleCat = (aj, aplicar, cat, contada) => aplicar(contada
+    ? { incluir: aj.incluir.filter((n) => n !== cat), excluir: semDup([...aj.excluir, cat]) }
+    : { excluir: aj.excluir.filter((n) => n !== cat), incluir: semDup([...aj.incluir, cat]) });
+
+  const { rel, entradas, gastosCats } = useMemo(() => {
     const state = {
       transacoes: props.transacoes || [], fixas: props.fixas || [], fixaOcorrencias: props.fixaOcorrencias || [],
       dividas: props.dividas || [], parcelamentos: props.parcelamentos || [], contas: props.contas || [],
       categorias: props.categorias || [], devedores: props.devedores || [], cheques: props.cheques || [],
     };
-    const catsDe = (iso) => { let it = []; try { it = getDespesasDoMes(iso, state, escopoAtivo); } catch {} return totaisPorCategoria(it); };
+    const catsDe = (iso) => { let it = []; try { it = getDespesasDoMes(iso, state, escopoAtivo); } catch {} return totaisPorCategoria(it, gastosAj); };
     const [y, m] = mesSel.split("-").map(Number);
     const historicoCats = [];
     for (let i = 1; i <= 6; i++) { const d = new Date(y, m - 1 - i, 1); historicoCats.push(catsDe(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`)); }
     let itensMes = []; try { itensMes = getDespesasDoMes(mesSel, state, escopoAtivo); } catch {}
-    const receitaMes = (props.transacoes || [])
-      .filter((t) => t.tipo === "receita" && String(t.data || "").startsWith(mesSel))
-      .reduce((s, t) => s + (Number(t.valor) || 0), 0);
+
+    // Transações do escopo (entradas usam transação crua, não getDespesas).
+    const contasEsc = new Set(filtrarPorEscopo(props.contas || [], escopoAtivo).map((c) => c.nome));
+    const txEsc = escopoAtivo === "tudo" ? (props.transacoes || []) : (props.transacoes || []).filter((t) => t.conta && contasEsc.has(t.conta));
+    const entradas = entradasDoMes(txEsc, mesSel, entradasAj);
+
     const fixas = filtrarPorEscopo(props.fixas || [], escopoAtivo);
-    return montarRelatorioGastos({ itensMes, historicoCats, receitaMes, categorias: props.categorias || [], fixas, hojeISO, ehMesCorrente: mesSel === mesAtualISO });
-  }, [props.transacoes, props.fixas, props.fixaOcorrencias, props.dividas, props.parcelamentos, props.contas, props.categorias, props.devedores, props.cheques, escopoAtivo, mesSel]);
+    const rel = montarRelatorioGastos({ itensMes, historicoCats, entradas, ajuste: gastosAj, categorias: props.categorias || [], fixas, hojeISO, ehMesCorrente: mesSel === mesAtualISO });
+
+    // Lista de categorias de gasto (todas) pro Ajustar
+    const rawG = {};
+    itensMes.forEach((it) => { const c = it.categoria || "Outros"; rawG[c] = (rawG[c] || 0) + (Number(it.valor) || 0); });
+    const contadas = new Set(Object.keys(totaisPorCategoria(itensMes, gastosAj)));
+    const gastosCats = Object.entries(rawG).map(([categoria, valor]) => ({ categoria, valor, contada: contadas.has(categoria) })).sort((a, b) => b.valor - a.valor);
+
+    return { rel, entradas, gastosCats };
+  }, [props.transacoes, props.fixas, props.fixaOcorrencias, props.dividas, props.parcelamentos, props.contas, props.categorias, props.devedores, props.cheques, escopoAtivo, mesSel, gastosAj, entradasAj]);
 
   const aprofundarIA = async () => {
     if (!apiKey) { setIaErro("Configure a chave Anthropic em Configurações → API Keys."); return; }
@@ -90,14 +120,40 @@ ${linha("Saúde do mês", rel.score != null ? `${rel.score}/100` : "—")}${rel.
           <button onClick={() => passo(1)} aria-label="Próximo mês" style={navBtn}><ChevronRight size={15} /></button>
           {mesSel !== mesAtualISO && <button onClick={() => setMesSel(mesAtualISO)} style={{ ...navBtn, width: "auto", padding: "0 8px", fontSize: 11 }}>hoje</button>}
         </div>
-        <button onClick={exportarPDF} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 11px", borderRadius: 9, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.muted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}><FileDown size={13} /> PDF</button>
+        <div style={{ display: "inline-flex", gap: 6 }}>
+          <button onClick={() => setAjusteAberto((v) => !v)} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 11px", borderRadius: 9, border: `1px solid ${ajusteAberto ? T.gold + "66" : T.border}`, background: ajusteAberto ? `${T.gold}18` : T.bgSoft, color: ajusteAberto ? T.gold : T.muted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}><SlidersHorizontal size={13} /> {ajusteAberto ? "Concluir" : "Ajustar"}</button>
+          <button onClick={exportarPDF} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 11px", borderRadius: 9, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.muted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}><FileDown size={13} /> PDF</button>
+        </div>
       </div>
+
+      {/* Ajustar: livre escolha do que compõe entradas e gastos */}
+      {ajusteAberto && (
+        <div style={card}>
+          <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 10 }}>Toque numa categoria pra <b style={{ color: T.green }}>contar</b> ou <b style={{ color: T.muted }}>tirar</b>. Fica salvo. O ajuste de gastos vale também na Análise de gastos.</div>
+          {[{ titulo: "Entradas", cor: T.green, itens: entradas.categorias, aj: entradasAj, aplicar: aplicarEntradas },
+            { titulo: "Gastos", cor: T.red, itens: gastosCats, aj: gastosAj, aplicar: aplicarGastos }].map((grp) => (
+            <div key={grp.titulo} style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: grp.cor, fontWeight: 700, marginBottom: 6 }}>{grp.titulo}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {grp.itens.length === 0 && <span style={{ fontSize: 11.5, color: T.faint, fontStyle: "italic" }}>Nada neste mês.</span>}
+                {grp.itens.map((it) => (
+                  <button key={it.categoria} onClick={() => toggleCat(grp.aj, grp.aplicar, it.categoria, it.contada)}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 100, cursor: "pointer", fontSize: 11, fontWeight: 600,
+                      border: `1px solid ${it.contada ? grp.cor + "66" : T.border}`, background: it.contada ? `${grp.cor}14` : T.bgSoft, color: it.contada ? grp.cor : T.faint }}>
+                    {it.contada ? "✓" : "＋"} {it.categoria} <span className="num" style={{ opacity: 0.7 }}>{oculto(it.valor)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 1. KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 12 }} className="rg-kpis">
         {[
           { k: "Gasto do mês", v: oculto(rel.totalMes), s: rel.pctTotal != null ? `${pctStr(rel.pctTotal)} vs média 6m` : "", sc: rel.pctTotal > 5 ? T.red : T.green, a: T.red },
-          { k: "Receita do mês", v: oculto(rel.receitaMes), s: "entrou", sc: T.muted, a: T.green },
+          { k: "Entrou (real)", v: oculto(rel.receitaMes), s: entradas.foraTotal > 0 ? `${oculto(entradas.foraTotal)} não é entrada` : "dinheiro novo", sc: entradas.foraTotal > 0 ? T.muted : T.muted, a: T.green },
           { k: "Taxa de consumo", v: rel.taxaConsumo != null ? `${rel.taxaConsumo.toFixed(0)}%` : "—", s: "da renda foi gasta", sc: T.gold, a: T.gold },
           { k: "Sobrou / poupou", v: oculto(rel.poupanca), s: rel.pctPoupanca != null ? `${rel.pctPoupanca.toFixed(0)}% da renda` : "", sc: rel.poupanca >= 0 ? T.green : T.red, a: rel.poupanca >= 0 ? T.green : T.red },
         ].map((t, i) => (
@@ -108,6 +164,39 @@ ${linha("Saúde do mês", rel.score != null ? `${rel.score}/100` : "—")}${rel.
             {t.s && <div className="num" style={{ fontSize: 10.5, marginTop: 3, color: t.sc }}>{t.s}</div>}
           </div>
         ))}
+      </div>
+
+      {/* Entradas do mês — de onde veio o dinheiro (só o que é entrada de verdade) */}
+      <div style={card}>
+        <div style={lbl}><TrendingUp size={13} style={{ color: T.green }} /> Entradas do mês</div>
+        {entradas.categorias.filter((c) => c.contada).length === 0 ? (
+          <div style={{ fontSize: 12, color: T.muted, fontStyle: "italic" }}>Nenhuma entrada registrada neste mês.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {entradas.categorias.filter((c) => c.contada).slice(0, 6).map((c) => (
+              <div key={c.categoria} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
+                <span style={{ color: T.ink }}>{c.categoria}</span>
+                <span className="num" style={{ color: T.green, fontWeight: 600 }}>{oculto(entradas.porCategoria[c.categoria] || c.valor)}</span>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
+              <span style={{ fontSize: 12, color: T.muted }}>Total que entrou de verdade</span>
+              <span className="num" style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 700, color: T.green }}>{oculto(rel.receitaMes)}</span>
+            </div>
+          </div>
+        )}
+        {entradas.foraTotal > 0 && (
+          <div style={{ fontSize: 10.5, color: T.faint, marginTop: 8, fontStyle: "italic" }}>
+            {oculto(entradas.foraTotal)} não contam como entrada
+            {(() => {
+              const f = entradas.foraPorMotivo; const p = [];
+              if (f.transferencia > 0) p.push(`transferências ${oculto(f.transferencia)}`);
+              if (f.resgate > 0) p.push(`resgates ${oculto(f.resgate)}`);
+              if (f.emprestimo > 0) p.push(`retorno de empréstimo ${oculto(f.emprestimo)}`);
+              return p.length ? ` — ${p.join(" · ")}` : "";
+            })()}. Use o <b>Ajustar</b> pra mudar.
+          </div>
+        )}
       </div>
 
       {/* 2. Saúde */}
