@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Plus, Trash2, Edit3, Zap, Package, Check } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, uid } from "../../lib/format.js";
@@ -17,6 +17,11 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
   const [pacoteAberto, setPacoteAberto] = useState(null); // null | "list" | pacoteId
   const [selecionadas, setSelecionadas] = useState({});   // { "<pacoteId>:<nome>": true }
   const [vista, setVista] = useState("despesa"); // "receita" | "despesa"
+  // Expandir/recolher tudo: expandSig incrementa a cada clique; os itens reagem
+  // no useEffect abrindo (expandTo=true) ou fechando (false) subs e filhas.
+  const [expandSig, setExpandSig] = useState(0);
+  const [expandTo, setExpandTo] = useState(false);
+  const expandirTudo = (v) => { setExpandTo(v); setExpandSig(s => s + 1); };
   // Mês de referência do orçamento (YYYY-MM). Orçamento é MENSAL.
   const [mesOrc, setMesOrc] = useState(() => new Date().toISOString().slice(0, 7));
 
@@ -193,35 +198,47 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
         </section>
       )}
 
-      {/* Toggle Receitas | Despesas */}
-      <div style={{
-        display: "inline-flex", gap: 0, marginBottom: 12,
-        background: T.bgSoft, padding: 3, borderRadius: 14, border: `1px solid ${T.border}`,
-      }}>
-        {[
-          { id: "receita", label: `Receitas (${receitas.length})`, cor: T.green },
-          { id: "despesa", label: `Despesas (${despesas.length})`, cor: T.red },
-        ].map(t => {
-          const ativo = vista === t.id;
-          return (
-            <button key={t.id} onClick={() => setVista(t.id)}
-              style={{
-                padding: "6px 14px", fontSize: 11.5, fontWeight: ativo ? 700 : 500,
-                background: ativo ? T.card : "transparent",
-                color: ativo ? t.cor : T.muted,
-                border: ativo ? `1px solid ${t.cor}55` : `1px solid transparent`,
-                borderRadius: 11, cursor: "pointer",
-              }}>
-              {t.label}
-            </button>
-          );
-        })}
+      {/* Toggle Receitas | Despesas + Expandir/Recolher tudo */}
+      <div className="flex items-center justify-between flex-wrap gap-2" style={{ marginBottom: 12 }}>
+        <div style={{
+          display: "inline-flex", gap: 0,
+          background: T.bgSoft, padding: 3, borderRadius: 14, border: `1px solid ${T.border}`,
+        }}>
+          {[
+            { id: "receita", label: `Receitas (${receitas.length})`, cor: T.green },
+            { id: "despesa", label: `Despesas (${despesas.length})`, cor: T.red },
+          ].map(t => {
+            const ativo = vista === t.id;
+            return (
+              <button key={t.id} onClick={() => setVista(t.id)}
+                style={{
+                  padding: "6px 14px", fontSize: 11.5, fontWeight: ativo ? 700 : 500,
+                  background: ativo ? T.card : "transparent",
+                  color: ativo ? t.cor : T.muted,
+                  border: ativo ? `1px solid ${t.cor}55` : `1px solid transparent`,
+                  borderRadius: 11, cursor: "pointer",
+                }}>
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="inline-flex gap-2">
+          <button className="btn-ghost" style={{ padding: "5px 12px", fontSize: 11 }}
+            onClick={() => expandirTudo(true)} title="Abrir todas as categorias-pai, filhas e subcategorias">
+            ▾ Expandir tudo
+          </button>
+          <button className="btn-ghost" style={{ padding: "5px 12px", fontSize: 11 }}
+            onClick={() => expandirTudo(false)} title="Recolher todas">
+            ▸ Recolher tudo
+          </button>
+        </div>
       </div>
 
       {vista === "receita" ? (
-        <CategoriaCol titulo="Receitas" cats={receitas} stats={stats} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.green} hidden={hidden} transacoes={transacoes} />
+        <CategoriaCol titulo="Receitas" cats={receitas} stats={stats} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.green} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} />
       ) : (
-        <CategoriaCol titulo="Despesas" cats={despesas} stats={stats} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.red} hidden={hidden} transacoes={transacoes} />
+        <CategoriaCol titulo="Despesas" cats={despesas} stats={stats} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.red} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} />
       )}
 
       {form && (
@@ -420,7 +437,7 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
   );
 }
 
-function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias, accent, hidden, transacoes }) {
+function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias, accent, hidden, transacoes, expandSig, expandTo }) {
   // Apenas categorias-raiz neste nível; filhas aparecem indentadas via CategoriaItem
   // (ambas em ordem alfabética)
   const raizes = ordenarPorNome(cats.filter(c => !c.parentId));
@@ -466,6 +483,8 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
             setForm={setForm}
             hidden={hidden}
             transacoes={transacoes}
+            expandSig={expandSig}
+            expandTo={expandTo}
           />
         ))}
       </div>
@@ -473,7 +492,7 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
   );
 }
 
-function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {}, categorias, setCategorias, setForm, hidden, transacoes }) {
+function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {}, categorias, setCategorias, setForm, hidden, transacoes, expandSig = 0, expandTo = false }) {
   const [open, setOpen] = useState(false);
   const [openFilhas, setOpenFilhas] = useState(false); // filhas colapsadas por default
   const [novaSub, setNovaSub] = useState("");
@@ -482,6 +501,13 @@ function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {},
   const pct = total > 0 ? (valor / total) * 100 : 0;
   const limiteUsado = c.limite > 0 ? Math.min(100, (valor / c.limite) * 100) : null;
   const temFilhas = filhas.length > 0;
+
+  // Expandir/recolher tudo (vem do topo da página): abre/fecha subs e filhas.
+  useEffect(() => {
+    if (expandSig === 0) return; // estado inicial: mantém colapsado
+    setOpen(expandTo && subs.length > 0);
+    setOpenFilhas(expandTo && temFilhas);
+  }, [expandSig]); // eslint-disable-line react-hooks/exhaustive-deps
   const valorPropriaShown = valorProprio != null ? valorProprio : valor;
 
   // Calcula uso por sub
