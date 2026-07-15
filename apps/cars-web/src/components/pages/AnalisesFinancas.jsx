@@ -1,19 +1,18 @@
 import React, { useState } from "react";
-import { ChevronDown, BarChart3, Brain, TrendingUp, History, Receipt } from "lucide-react";
+import { ChevronDown, BarChart3, Brain, History, Receipt } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import RelatorioGastos from "./RelatorioGastos.jsx";
 import RelatoriosFinancas from "./RelatoriosFinancas.jsx";
 import Inteligencia from "./Inteligencia.jsx";
-import RevisorGanhos from "./RevisorGanhos.jsx";
 import AuditLog from "./AuditLog.jsx";
 
 const KEY = "af4:analises-hub:abertos:v1";
 const ler = () => { try { return new Set(JSON.parse(localStorage.getItem(KEY) || '["relatorios"]')); } catch { return new Set(["relatorios"]); } };
 
 /**
- * Hub "Análises & Relatórios" — junta Relatórios, Inteligência, Revisor de
- * ganhos e Histórico de alterações num módulo só, em seções recolhíveis
+ * Hub "Análises & Relatórios" — junta Relatório de gastos, Relatórios,
+ * Inteligência e Histórico de alterações num módulo só, em seções recolhíveis
  * (acordeão), pra a tela não ficar gigante. Cada seção abre/fecha independente;
  * o estado fica salvo.
  */
@@ -61,7 +60,7 @@ export default function AnalisesFinancas(props) {
       <PageHeader
         eyebrow="Finanças"
         title={<>Análises &amp; <em>Relatórios.</em></>}
-        sub="Relatórios do período, inteligência, revisor de ganhos e histórico de alterações num lugar só. Abra as seções conforme precisar."
+        sub="Relatório de gastos, relatórios do período, inteligência e histórico de alterações num lugar só. Abra as seções conforme precisar."
       />
       <div style={{ marginTop: 8 }}>
         <Secao id="relatorio-gastos" icon={Receipt} titulo="Relatório de gastos"
@@ -93,10 +92,6 @@ export default function AnalisesFinancas(props) {
             cartoes={props.cartoes} parcelamentos={props.parcelamentos} metas={props.metas}
             fixas={props.fixas}
             escopoAtivo={props.escopoAtivo} hidden={props.hidden} onTabChange={props.onTabChange} embed />
-        </Secao>
-        <Secao id="revisor" icon={TrendingUp} titulo="Revisor de ganhos"
-               desc="Auditoria das receitas do mês: variação, fontes, recorrentes que faltaram e duplicadas.">
-          <RevisorGanhos transacoes={props.transacoes} hidden={props.hidden} embed />
         </Secao>
         <Secao id="historico" icon={History} titulo="Histórico"
                desc="Registro de tudo que mudou no cockpit — útil pra revisar erros, auditar e debugar.">
