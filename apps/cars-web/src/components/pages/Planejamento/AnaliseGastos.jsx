@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { TrendingUp, TrendingDown, AlertTriangle, PieChart, SlidersHorizontal, X, Plus, ChevronRight, ChevronDown } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, PieChart, SlidersHorizontal, X, Plus, ChevronRight, ChevronDown, ChevronLeft } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import { MESES_LONGO } from "../../../lib/meses.js";
@@ -42,6 +42,14 @@ export default function AnaliseGastos(props) {
   const [ajuste, setAjuste] = useState(lerAjuste);
   const [editar, setEditar] = useState(false);
   const [abertos, setAbertos] = useState({}); // grupos expandidos
+  // Mês em análise (navegável). Default: mês atual.
+  const mesAtualISO = new Date().toISOString().slice(0, 7);
+  const [mesSel, setMesSel] = useState(mesAtualISO);
+  const passoMes = (delta) => {
+    const [y, m] = mesSel.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setMesSel(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
 
   const aplicar = (next) => { setAjuste(next); salvarAjuste(next); };
   const addExcluir = (nomes) => aplicar({ incluir: ajuste.incluir.filter((n) => !nomes.includes(n)), excluir: semDup([...ajuste.excluir, ...nomes]) });
@@ -59,26 +67,20 @@ export default function AnaliseGastos(props) {
       dividas: props.dividas || [], parcelamentos: props.parcelamentos || [], contas: props.contas || [],
       categorias: props.categorias || [], devedores: props.devedores || [], cheques: props.cheques || [],
     };
-    const mes = new Date().toISOString().slice(0, 7);
+    const mes = mesSel;
     const mesAnt = mesAnterior(mes);
     let itensMes = [], itensMesAnt = [];
     try { itensMes = getDespesasDoMes(mes, state, escopoAtivo); } catch {}
     try { itensMesAnt = getDespesasDoMes(mesAnt, state, escopoAtivo); } catch {}
     const cadastro = (categorias || []).filter((c) => !c.tipo || c.tipo === "despesa");
     return analiseGastosMes(itensMes, itensMesAnt, { mes, mesAnt, excluir: ajuste.excluir, incluir: ajuste.incluir, categorias: cadastro });
-  }, [props.transacoes, props.fixas, props.fixaOcorrencias, props.dividas, props.parcelamentos, props.contas, props.devedores, props.cheques, categorias, escopoAtivo, ajuste]);
+  }, [props.transacoes, props.fixas, props.fixaOcorrencias, props.dividas, props.parcelamentos, props.contas, props.devedores, props.cheques, categorias, escopoAtivo, ajuste, mesSel]);
 
   const { total, totalPct, grupos, foraDaAnalise, maiorAlta, mes } = analise;
   const sobe = totalPct != null && totalPct >= 0;
   const temAjuste = ajuste.excluir.length > 0 || ajuste.incluir.length > 0;
 
-  if (!grupos.length && !foraDaAnalise.length) {
-    return (
-      <div style={{ padding: 20, textAlign: "center", color: T.faint, fontSize: 13, fontStyle: "italic" }}>
-        Nenhum gasto de consumo em {nomeMes(mes)}. (Investimentos, transferências e depósitos ficam de fora.)
-      </div>
-    );
-  }
+  const vazio = !grupos.length && !foraDaAnalise.length;
 
   const chipBtn = (extra = {}) => ({
     display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 100,
@@ -105,11 +107,25 @@ export default function AnaliseGastos(props) {
 
   return (
     <div>
-      {/* Topo: total do mês + variação */}
+      {/* Topo: total do mês + variação + navegação de mês */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
         <div>
-          <div style={{ fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
-            Gasto do mês · {nomeMes(mes)}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => passoMes(-1)} aria-label="Mês anterior"
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: 7, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.muted, cursor: "pointer", flexShrink: 0 }}>
+              <ChevronLeft size={14} />
+            </button>
+            <div style={{ fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 600, minWidth: 128, textAlign: "center" }}>
+              Gasto do mês · {nomeMes(mes)}
+            </div>
+            <button onClick={() => passoMes(1)} aria-label="Próximo mês"
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: 7, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.muted, cursor: "pointer", flexShrink: 0 }}>
+              <ChevronRight size={14} />
+            </button>
+            {mes !== mesAtualISO && (
+              <button onClick={() => setMesSel(mesAtualISO)} title="Voltar pro mês atual"
+                style={{ ...chipBtn(), padding: "2px 8px", fontSize: 10 }}>hoje</button>
+            )}
           </div>
           <div className="num" style={{ fontSize: 26, fontWeight: 800, color: T.ink, marginTop: 2 }}>{oculto(total, hidden)}</div>
         </div>
@@ -120,6 +136,12 @@ export default function AnaliseGastos(props) {
           </div>
         )}
       </div>
+
+      {vazio && (
+        <div style={{ padding: 20, textAlign: "center", color: T.faint, fontSize: 13, fontStyle: "italic" }}>
+          Nenhum gasto de consumo em {nomeMes(mes)}. (Investimentos, transferências e depósitos ficam de fora.)
+        </div>
+      )}
 
       {/* Destaque: maior alta */}
       {maiorAlta && (
