@@ -22,6 +22,13 @@ const STATUS = {
   devolvido:  { label: "Devolvido",  cor: "#EF4444" },
 };
 
+const MESES_LG = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const nomeMesAno = (mesK) => {
+  if (mesK === "sem-data") return "Sem vencimento";
+  const [y, m] = mesK.split("-").map(Number);
+  return `${MESES_LG[(m || 1) - 1]} ${y}`;
+};
+
 export default function Cheques({ cheques = [], setCheques, contas = [], setContas, transacoes = [], setTransacoes, escopoAtivo = "tudo", hidden, embed = false }) {
   const [form, setForm] = useState(null);         // novo/editar
   const [loteForm, setLoteForm] = useState(null); // vários cheques do mesmo emitente
@@ -36,6 +43,18 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
     doEscopo.filter(c => filtro === "todos" || c.status === filtro)
       .sort((a, b) => (a.vencimento || "").localeCompare(b.vencimento || "")),
     [doEscopo, filtro]);
+
+  // Agrupa por mês de vencimento (lista já vem ordenada, então as chaves saem
+  // em ordem cronológica). Cada mês vira um card com cabeçalho e subtotal.
+  const porMes = useMemo(() => {
+    const map = new Map();
+    lista.forEach(c => {
+      const k = (c.vencimento || "").slice(0, 7) || "sem-data";
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(c);
+    });
+    return Array.from(map.entries());
+  }, [lista]);
 
   const totalAguardando = doEscopo.filter(c => c.status === "aguardando").reduce((s, c) => s + (Number(c.valor) || 0), 0);
   const vencidos = doEscopo.filter(c => c.status === "aguardando" && (c.vencimento || "") < hoje);
@@ -237,12 +256,26 @@ tr.comp td.situ { text-decoration:none; color:#1f7a44; }
           Nenhum cheque {filtro !== "todos" ? STATUS[filtro]?.label.toLowerCase() : "cadastrado"}. Comece com <strong>Novo cheque</strong>.
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          {lista.map(c => {
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {porMes.map(([mesK, chs]) => {
+            const subtotal = chs.reduce((s, c) => s + (Number(c.valor) || 0), 0);
+            return (
+              <div key={mesK} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+                {/* Cabeçalho do mês + subtotal */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "8px 12px", background: T.bgSoft, borderBottom: `1px solid ${T.border}` }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: T.ink, textTransform: "capitalize" }}>
+                    {nomeMesAno(mesK)}
+                    <span style={{ color: T.faint, fontWeight: 500, textTransform: "none" }}> · {chs.length} {chs.length === 1 ? "cheque" : "cheques"}</span>
+                  </span>
+                  <span className="num" style={{ fontSize: 12.5, fontWeight: 700, color: T.gold }}>{hidden ? "•••" : fmt(subtotal)}</span>
+                </div>
+                {/* Cheques do mês */}
+                <div style={{ display: "flex", flexDirection: "column" }}>
+          {chs.map((c, idx) => {
             const st = STATUS[c.status] || STATUS.aguardando;
             const vencido = c.status === "aguardando" && (c.vencimento || "") < hoje;
             return (
-              <div key={c.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderLeft: `4px solid ${st.cor}`, borderRadius: 16, padding: "8px 12px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div key={c.id} style={{ background: T.card, borderLeft: `4px solid ${st.cor}`, borderTop: idx > 0 ? `1px solid ${T.border}` : "none", padding: "8px 12px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 {/* Data — vencimento em destaque */}
                 <div style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0,
                               background: vencido ? `${T.red}18` : `${T.gold}18`, color: vencido ? T.red : T.gold,
@@ -285,6 +318,10 @@ tr.comp td.situ { text-decoration:none; color:#1f7a44; }
                   )}
                   <button onClick={() => setForm({ ...c })} title="Editar" style={{ ...btnGhost, padding: "5px 7px" }}><Edit3 size={13} /></button>
                   <button onClick={() => excluir(c)} title="Excluir" style={{ ...btnGhost, color: T.red, borderColor: `${T.red}55`, padding: "5px 7px" }}><Trash2 size={13} /></button>
+                </div>
+              </div>
+            );
+          })}
                 </div>
               </div>
             );

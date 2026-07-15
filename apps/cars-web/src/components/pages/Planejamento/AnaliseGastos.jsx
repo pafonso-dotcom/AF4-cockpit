@@ -252,7 +252,7 @@ export default function AnaliseGastos(props) {
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.muted, minWidth: 0 }}>
                         {editar && botaoX(() => tirar(f.nome, f.forcada), "Tirar da análise")}
                         <NomeFolha nome={f.nome} />
-                        {f.forcada && <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase" }}>avulso</span>}
+                        {f.forcada && <span title="Colocada à mão na análise — normalmente ficaria de fora. Use o botão Ajustar pra tirar." style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase", cursor: "help" }}>avulso</span>}
                       </span>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                         <Variacao nova={f.nova} variacao={f.variacao} />
