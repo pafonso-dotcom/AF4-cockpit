@@ -36,12 +36,14 @@ function classeFonte(it) {
  * @param {boolean} [p.ehMesCorrente]
  */
 export function montarRelatorioGastos(p = {}) {
-  const itensMes = (p.itensMes || []).filter(consumo);
-  const mesCats = totaisPorCategoria(p.itensMes || []);
+  const mesCats = totaisPorCategoria(p.itensMes || [], p.ajuste || {});
+  const contadas = new Set(Object.keys(mesCats));
+  // Itens que entram no gasto (respeita o ajuste de include/exclude).
+  const itensMes = (p.itensMes || []).filter((it) => contadas.has(it.categoria || "Outros"));
   const diag = diagnosticoMes(mesCats, p.historicoCats || []);
 
   const totalMes = diag.totalMes;
-  const receitaMes = money(p.receitaMes);
+  const receitaMes = p.receitaMes != null ? money(p.receitaMes) : money(p.entradas && p.entradas.total);
   const poupanca = receitaMes - totalMes;
   const taxaConsumo = receitaMes > 0 ? (totalMes / receitaMes) * 100 : null;
   const pctPoupanca = receitaMes > 0 ? (poupanca / receitaMes) * 100 : null;
@@ -106,7 +108,7 @@ export function montarRelatorioGastos(p = {}) {
 
   return {
     ...diag,
-    receitaMes, poupanca, taxaConsumo, pctPoupanca,
+    receitaMes, entradas: p.entradas || null, poupanca, taxaConsumo, pctPoupanca,
     composicao, concentracaoPct, top3,
     recorrentes, recorrentesTotal,
     estouros,
