@@ -64,3 +64,53 @@ export function entradasDoMes(transacoes = [], mesISO = "", { excluir = [], incl
 
   return { total, porCategoria, categorias, foraTotal, foraPorMotivo };
 }
+
+// ===== Entradas a partir dos RECEBÍVEIS (getGanhosDoMes) =====
+// Base mais completa: junta cheques, parcelas a receber, juros, devedores,
+// proventos, rendimentos e as transações de receita — recebido + a receber.
+// Mantém a mesma regra: transferência, resgate e PRINCIPAL de empréstimo ficam
+// fora (só os juros contam). Separa "recebido" (status paga) de "a receber".
+
+const PRINCIPAL_EMPRESTIMO = /empr[ée]stimo \((principal|devolu)/i;
+
+export function contaComoEntradaCat(cat, excSet, incSet) {
+  const c = cat || "Outros";
+  if (incSet && incSet.has(c)) return true;
+  if (excSet && excSet.has(c)) return false;
+  if (PRINCIPAL_EMPRESTIMO.test(c)) return false;   // principal de empréstimo voltando
+  return !NAO_ENTRADA.test(c);                       // transferência/resgate/investimento fora
+}
+
+function motivoForaCat(cat) {
+  if (PRINCIPAL_EMPRESTIMO.test(cat)) return "emprestimo";
+  if (/resgate|investim|aporte|previd/i.test(cat)) return "resgate";
+  if (/transfer/i.test(cat)) return "transferencia";
+  return "outro";
+}
+
+export function entradasDeRecebiveis(ganhos = [], { excluir = [], incluir = [] } = {}) {
+  const excSet = new Set(excluir), incSet = new Set(incluir);
+  const porCategoria = {}, agg = {};
+  let total = 0, recebido = 0, aReceber = 0, foraTotal = 0;
+  const foraPorMotivo = { transferencia: 0, resgate: 0, emprestimo: 0, outro: 0 };
+
+  (ganhos || []).forEach((g) => {
+    const v = money(g.valor);
+    const cat = g.categoria || "Outros";
+    if (!agg[cat]) agg[cat] = { dentro: 0, fora: 0 };
+    if (contaComoEntradaCat(cat, excSet, incSet)) {
+      porCategoria[cat] = (porCategoria[cat] || 0) + v;
+      agg[cat].dentro += v; total += v;
+      if (g.status === "paga") recebido += v; else aReceber += v;
+    } else {
+      agg[cat].fora += v; foraTotal += v;
+      foraPorMotivo[motivoForaCat(cat)] += v;
+    }
+  });
+
+  const categorias = Object.entries(agg)
+    .map(([categoria, o]) => ({ categoria, valor: o.dentro + o.fora, contada: o.dentro > 0 || o.fora === 0 }))
+    .sort((a, b) => b.valor - a.valor);
+
+  return { total, recebido, aReceber, porCategoria, categorias, foraTotal, foraPorMotivo };
+}
