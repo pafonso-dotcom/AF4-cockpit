@@ -40,7 +40,7 @@ function Variacao({ nova, variacao }) {
 // com as subcategorias dentro. Fonte: getDespesasDoMes (transações + fixas +
 // parcelas de cartão + dívidas). Respeita o escopo ativo.
 export default function AnaliseGastos(props) {
-  const { escopoAtivo = "tudo", hidden = false, categorias = [], onVerCategoria, setCategorias, apiKey } = props;
+  const { escopoAtivo = "tudo", hidden = false, categorias = [], onVerCategoria, setCategorias, apiKey, onTabChange } = props;
   const podeAbrir = typeof onVerCategoria === "function";
   const podeOrcar = typeof setCategorias === "function";
   const [ajuste, setAjuste] = useState(lerAjuste);
@@ -434,6 +434,13 @@ export default function AnaliseGastos(props) {
               <div style={{ fontSize: 9.5, color: T.faint, marginTop: 7, fontStyle: "italic", textAlign: "center" }}>
                 A IA usa sua chave Anthropic (Configurações → API Keys) e recebe só os números por categoria.
               </div>
+
+              {typeof onTabChange === "function" && (
+                <button onClick={() => onTabChange("relatorios-f")}
+                  style={{ marginTop: 10, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.gold, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                  Ver relatório completo do mês →
+                </button>
+              )}
             </div>
           )}
         </div>

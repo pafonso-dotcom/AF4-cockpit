@@ -813,6 +813,7 @@ export default function App() {
           tab={tab}
           secaoInicial={tab === "cheques" ? "cheques" : tab === "fixas" ? "fixas" : tab === "areceber" ? "areceber" : tab === "relatorios-anual" ? "anual" : null}
           onVerCategoria={verCategoriaTransacoes}
+          onTabChange={setTab}
           hidden={hidden}
         />
       )}
@@ -874,6 +875,7 @@ export default function App() {
           parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
           cheques={cheques} cartoes={cartoes} metas={metas}
           patrimonioHistorico={patrimonioHistorico}
+          apiKey={apiKeys.anthropic}
           escopoAtivo={escopoAtivo}
           hidden={hidden} onTabChange={setTab} />
       )}
