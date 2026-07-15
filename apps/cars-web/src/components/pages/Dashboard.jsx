@@ -446,35 +446,39 @@ export default function Dashboard({
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
 
-      {/* KPI row */}
+      {/* Linha 1: Patrimônio · Próximo compromisso · Contas */}
       <section className="dash-kpi-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
                  breakdown={{ contas: totalContas, aReceber: aReceber, cheques: chequesAReceber, invest: totalInvest, aPagar: aPagarAno }} />
         <span className="dash-prox">
           <ProximoCompromissoCard item={proximoCompromisso} total={aPagarMes} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
         </span>
+        <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
       </section>
 
-
-      {/* Contas · Alocação Atual · Gastos por Categoria (Alocação antes de Gastos) */}
+      {/* Alocação Atual · Gastos por Categoria */}
       <section className="dash-mid-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
         <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
         <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
       </section>
 
-      {/* A Receber + Projeção */}
+      {/* Calendário do mês + A Receber */}
       <section className="dash-bot-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 12, marginBottom: 16,
       }}>
+        <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
         <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} sparks={sparks} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
-        <ProjecaoCard projecao={projecao} patrimonio={patrimonio} hidden={hidden} />
+      </section>
+
+      {/* Projeção · 6 meses — embaixo do "A receber" */}
+      <section style={{ marginBottom: 16 }}>
+        <ProjecaoMesesCard projecao={projecao} hidden={hidden} />
       </section>
 
       {/* Metas + Pergunte IA */}
@@ -493,12 +497,14 @@ export default function Dashboard({
         @media (max-width: 1024px) {
           .dash-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .dash-mid-grid, .dash-bot-grid, .dash-metas-grid { grid-template-columns: 1fr !important; }
+          .dash-proj-grid { grid-template-columns: repeat(3, 1fr) !important; }
         }
         @media (max-width: 768px) {
-          /* Mobile: fora o "próximo compromisso"; patrimônio e cards de
-             informação (A receber, investimentos, financeiro) na largura máxima. */
+          /* Mobile: fora o "próximo compromisso"; patrimônio e Contas na
+             largura máxima; projeção em 2 colunas. */
           .dash-prox { display: none !important; }
           .dash-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+          .dash-proj-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
       `}</style>
 
@@ -1175,55 +1181,94 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
   );
 }
 
-function ProjecaoCard({ projecao, patrimonio = 0, hidden }) {
-  // Linha de projeção do patrimônio: parte do valor atual e soma o saldo
-  // previsto de cada mês (tracejada = estimativa).
-  const projPatrim = (() => {
-    let acc = Number(patrimonio) || 0;
-    const pts = [{ label: "Hoje", valor: acc }];
-    projecao.forEach(p => { acc += Number(p.saldo) || 0; pts.push({ label: p.label, valor: acc }); });
-    return pts;
-  })();
-  const fim = projPatrim[projPatrim.length - 1]?.valor ?? 0;
-  const deltaTotal = fim - (Number(patrimonio) || 0);
+const CAL_MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+
+// Calendário do mês — marca dias com a pagar (vermelho), a receber/cheque
+// (verde) e evento da agenda (azul). Navegável; clicar abre o Calendário cheio.
+function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }) {
+  const hoje = new Date();
+  const [ref, setRef] = React.useState({ y: hoje.getFullYear(), m: hoje.getMonth() });
+  const monthISO = `${ref.y}-${String(ref.m + 1).padStart(2, "0")}`;
+
+  const marks = useMemo(() => {
+    const map = {};
+    const add = (dia, key) => { if (!dia) return; (map[dia] = map[dia] || {})[key] = true; };
+    const diaDe = (iso) => (iso || "").startsWith(monthISO) ? parseInt(iso.slice(8, 10), 10) : null;
+    try { getDespesasDoMes(monthISO, stateAgg, escopoAtivo).filter(d => d.status !== "paga").forEach(d => add(diaDe(d.data), "pagar")); } catch {}
+    try { getGanhosDoMes(monthISO, stateAgg, escopoAtivo).filter(g => g.status !== "paga").forEach(g => add(diaDe(g.data), "receber")); } catch {}
+    (agenda || []).forEach(ev => add(diaDe(ev.data), "agenda"));
+    return map;
+  }, [monthISO, stateAgg, escopoAtivo, agenda]);
+
+  const first = new Date(ref.y, ref.m, 1);
+  const startDow = first.getDay();
+  const diasNoMes = new Date(ref.y, ref.m + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < startDow; i++) cells.push(null);
+  for (let d = 1; d <= diasNoMes; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const ehHoje = (d) => d === hoje.getDate() && ref.m === hoje.getMonth() && ref.y === hoje.getFullYear();
+  const passo = (delta) => setRef(r => { const nd = new Date(r.y, r.m + delta, 1); return { y: nd.getFullYear(), m: nd.getMonth() }; });
+  const navBtn = { width: 22, height: 22, border: `1px solid ${T.border}`, borderRadius: 7, display: "grid", placeItems: "center", color: T.muted, background: T.bgSoft, cursor: "pointer", fontWeight: 600, lineHeight: 0 };
+  const Dot = ({ c }) => <span style={{ width: 4, height: 4, borderRadius: "50%", background: c }} />;
+
   return (
     <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 6 }}>
-        <div style={{ fontSize: 10, letterSpacing: ".15em", color: T.muted, fontWeight: 600 }}>PROJEÇÃO · MESES A VENCER</div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 4, fontSize: 10, cursor: "pointer", color: T.muted }}><FileText size={10}/>PDF</button>
-          <button style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 4, fontSize: 10, cursor: "pointer", color: T.muted }}><BarChart3 size={10}/>CSV</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8 }}>
+        <div style={{ fontSize: 10, letterSpacing: ".15em", color: T.muted, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Calendar size={12} style={{ color: T.gold }} /> CALENDÁRIO DO MÊS
+        </div>
+        <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+          {onVer && <button onClick={onVer} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Abrir</button>}
+          <button onClick={() => passo(-1)} aria-label="Mês anterior" style={navBtn}>‹</button>
+          <button onClick={() => passo(1)} aria-label="Próximo mês" style={navBtn}>›</button>
         </div>
       </div>
-      {/* Projeção do patrimônio (tracejada = estimativa) */}
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, color: T.muted }}>Patrimônio projetado (6 meses)</span>
-          <span className="num" style={{ fontSize: 12, fontWeight: 700, color: deltaTotal >= 0 ? T.green : T.red }}>
-            {hidden ? "•••" : fmt(fim)} <span style={{ fontSize: 9.5, fontWeight: 500 }}>({deltaTotal >= 0 ? "+" : "−"}{hidden ? "•••" : fmt(Math.abs(deltaTotal))})</span>
-          </span>
-        </div>
-        <div style={{ height: 96 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={projPatrim} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
-              <defs>
-                <linearGradient id="grad-proj" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={T.blue || "#60a5fa"} stopOpacity={0.25} />
-                  <stop offset="100%" stopColor={T.blue || "#60a5fa"} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="label" tick={{ fontSize: 8.5, fill: T.muted }} interval={0} />
-              <Tooltip contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11 }}
-                       formatter={(v) => [hidden ? "•••" : fmt(v), "Projeção"]} />
-              <Area type="monotone" dataKey="valor" stroke={T.blue || "#60a5fa"} strokeWidth={2}
-                    strokeDasharray="5 4" fill="url(#grad-proj)" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+      <div style={{ fontFamily: T.serif, fontSize: 15, fontWeight: 600, marginBottom: 8, textTransform: "capitalize" }}>{CAL_MESES[ref.m]} {ref.y}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, marginBottom: 4 }}>
+        {["D","S","T","Q","Q","S","S"].map((d, i) => <span key={i} style={{ fontSize: 9.5, textAlign: "center", color: T.faint, fontWeight: 700 }}>{d}</span>)}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4 }}>
+        {cells.map((d, i) => {
+          if (d == null) return <div key={i} />;
+          const mk = marks[d] || {};
+          return (
+            <div key={i} onClick={onVer} style={{
+              aspectRatio: "1", borderRadius: 9, background: T.bgSoft, position: "relative",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12,
+              color: T.ink, cursor: onVer ? "pointer" : "default",
+              outline: ehHoje(d) ? `2px solid ${T.green}` : "none", fontWeight: ehHoje(d) ? 800 : 400,
+            }}>
+              {d}
+              {(mk.pagar || mk.receber || mk.agenda) && (
+                <div style={{ display: "flex", gap: 2, position: "absolute", bottom: 5 }}>
+                  {mk.pagar && <Dot c={T.red} />}
+                  {mk.receber && <Dot c={T.green} />}
+                  {mk.agenda && <Dot c={T.blue || "#5b86c4"} />}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 12, marginTop: 9, fontSize: 10, color: T.muted, flexWrap: "wrap" }}>
+        <span><Dot c={T.red} /> <span style={{ verticalAlign: "middle", marginLeft: 4 }}>A pagar</span></span>
+        <span><Dot c={T.green} /> <span style={{ verticalAlign: "middle", marginLeft: 4 }}>A receber / cheque</span></span>
+        <span><Dot c={T.blue || "#5b86c4"} /> <span style={{ verticalAlign: "middle", marginLeft: 4 }}>Agenda</span></span>
+      </div>
+    </Card>
+  );
+}
+
+// Projeção — só os 6 cards de meses (sem gráfico). Vai embaixo do "A receber".
+function ProjecaoMesesCard({ projecao, hidden }) {
+  return (
+    <Card>
+      <div style={{ fontSize: 10, letterSpacing: ".15em", color: T.muted, fontWeight: 600, marginBottom: 10 }}>PROJEÇÃO · PRÓXIMOS 6 MESES</div>
+      <div className="dash-proj-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
         {projecao.map(p => (
-          <div key={p.label} style={{ background: T.bgSoft, borderRadius: 11, padding: 8, borderTop: `2px solid ${T.green}` }}>
+          <div key={p.label} style={{ background: T.bgSoft, borderRadius: 11, padding: 9, borderTop: `2px solid ${p.saldo >= 0 ? T.green : T.red}` }}>
             <div style={{ fontSize: 9.5, letterSpacing: ".1em", color: T.muted, fontWeight: 600 }}>{p.label}</div>
             <div className="num" style={{ fontSize: 11, color: T.green }}>+ {hidden ? "•••" : fmt(p.receita)}</div>
             <div className="num" style={{ fontSize: 11, color: T.red }}>− {hidden ? "•••" : fmt(p.despesa)}</div>
