@@ -4,7 +4,6 @@ import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import AReceberEDividas from "../AReceberEDividas.jsx";
 import DespesasFixas from "../DespesasFixas.jsx";
-import ControleAnual from "../Relatorios/ControleAnual.jsx";
 import Cheques from "../Cheques.jsx";
 import AnaliseGastos from "./AnaliseGastos.jsx";
 
@@ -18,7 +17,7 @@ export default function Planejamento(props) {
     devedores = [], fixas = [], fixaOcorrencias = [],
     dividas = [], parcelamentos = [], transacoes = [], hidden,
   } = props;
-  const [aberto, setAberto] = useState(props.secaoInicial ?? null); // "areceber" | "fixas" | "cheques" | "anual" | null
+  const [aberto, setAberto] = useState(props.secaoInicial ?? null); // "areceber" | "fixas" | "cheques" | null
 
   const toggle = (id) => setAberto(prev => (prev === id ? null : id));
 
@@ -264,10 +263,6 @@ export default function Planejamento(props) {
                    contas={props.contas} setContas={props.setContas}
                    transacoes={props.transacoes} setTransacoes={props.setTransacoes}
                    escopoAtivo={props.escopoAtivo} hidden={props.hidden} embed />
-        </Secao>
-
-        <Secao id="anual" titulo="Controle Anual">
-          <ControleAnual {...props} embed />
         </Secao>
       </div>
     </div>

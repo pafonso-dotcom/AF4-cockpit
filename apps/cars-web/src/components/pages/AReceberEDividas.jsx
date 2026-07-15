@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from "react";
-import { Plus, Trash2, Edit3, Check, X, MessageCircle, MoreHorizontal, RotateCcw, CalendarDays } from "lucide-react";
+import { Plus, Trash2, Edit3, Check, X, MessageCircle, MoreHorizontal, RotateCcw, CalendarDays, Tag } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { MESES_CURTO } from "../../lib/meses.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
@@ -2232,6 +2232,18 @@ function CompromissoCard({ item, hidden, dueLabel, corAccent, isReceber, labelAc
           <CalendarDays size={13} />
           <span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: ".01em" }}>
             {vencStr.slice(8, 10)}/{vencStr.slice(5, 7)}/{vencStr.slice(0, 4)}
+          </span>
+        </div>
+      )}
+      {/* Categoria — chip ao lado da data */}
+      {item.categoria && (
+        <div title={item.subcategoria ? `${item.categoria} › ${item.subcategoria}` : item.categoria}
+             style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0, maxWidth: 170,
+                      background: T.bgSoft, color: T.muted,
+                      border: `1px solid ${T.border}`, borderRadius: 8, padding: "3px 8px" }}>
+          <Tag size={11} />
+          <span style={{ fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {item.subcategoria ? `${item.categoria} · ${item.subcategoria}` : item.categoria}
           </span>
         </div>
       )}
