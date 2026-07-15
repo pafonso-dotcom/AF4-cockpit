@@ -1211,7 +1211,7 @@ function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }
   const ehHoje = (d) => d === hoje.getDate() && ref.m === hoje.getMonth() && ref.y === hoje.getFullYear();
   const passo = (delta) => setRef(r => { const nd = new Date(r.y, r.m + delta, 1); return { y: nd.getFullYear(), m: nd.getMonth() }; });
   const navBtn = { width: 22, height: 22, border: `1px solid ${T.border}`, borderRadius: 7, display: "grid", placeItems: "center", color: T.muted, background: T.bgSoft, cursor: "pointer", fontWeight: 600, lineHeight: 0 };
-  const Dot = ({ c }) => <span style={{ width: 4, height: 4, borderRadius: "50%", background: c }} />;
+  const Dot = ({ c }) => <span style={{ width: 5, height: 5, borderRadius: "50%", background: c }} />;
 
   return (
     <Card>
@@ -1233,16 +1233,23 @@ function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }
         {cells.map((d, i) => {
           if (d == null) return <div key={i} />;
           const mk = marks[d] || {};
+          const hasMov = !!(mk.pagar || mk.receber || mk.agenda);
+          // Cor dominante do dia (prioriza saída de dinheiro): tinge o fundo e a borda.
+          const corDom = mk.pagar ? T.red : mk.receber ? T.green : (T.blue || "#5b86c4");
+          const hoje = ehHoje(d);
+          const titulo = hasMov ? [mk.pagar && "a pagar", mk.receber && "a receber / cheque", mk.agenda && "agenda"].filter(Boolean).join(" · ") : undefined;
           return (
-            <div key={i} onClick={onVer} style={{
-              aspectRatio: "1", borderRadius: 9, background: T.bgSoft, position: "relative",
+            <div key={i} onClick={onVer} title={titulo} style={{
+              aspectRatio: "1", borderRadius: 9, position: "relative",
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12,
-              color: T.ink, cursor: onVer ? "pointer" : "default",
-              outline: ehHoje(d) ? `2px solid ${T.green}` : "none", fontWeight: ehHoje(d) ? 800 : 400,
+              color: hasMov ? corDom : T.ink, cursor: onVer ? "pointer" : "default",
+              background: hasMov ? `${corDom}1e` : T.bgSoft,
+              border: hoje ? `2px solid ${T.green}` : hasMov ? `1px solid ${corDom}66` : "1px solid transparent",
+              fontWeight: (hoje || hasMov) ? 700 : 400,
             }}>
               {d}
-              {(mk.pagar || mk.receber || mk.agenda) && (
-                <div style={{ display: "flex", gap: 2, position: "absolute", bottom: 5 }}>
+              {hasMov && (
+                <div style={{ display: "flex", gap: 3, position: "absolute", bottom: 4 }}>
                   {mk.pagar && <Dot c={T.red} />}
                   {mk.receber && <Dot c={T.green} />}
                   {mk.agenda && <Dot c={T.blue || "#5b86c4"} />}
