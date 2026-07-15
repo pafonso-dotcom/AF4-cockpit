@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { ChevronDown, BarChart3, Brain, TrendingUp, History } from "lucide-react";
+import { ChevronDown, BarChart3, Brain, TrendingUp, History, Receipt } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import RelatorioGastos from "./RelatorioGastos.jsx";
 import RelatoriosFinancas from "./RelatoriosFinancas.jsx";
 import Inteligencia from "./Inteligencia.jsx";
 import RevisorGanhos from "./RevisorGanhos.jsx";
@@ -63,6 +64,16 @@ export default function AnalisesFinancas(props) {
         sub="Relatórios do período, inteligência, revisor de ganhos e histórico de alterações num lugar só. Abra as seções conforme precisar."
       />
       <div style={{ marginTop: 8 }}>
+        <Secao id="relatorio-gastos" icon={Receipt} titulo="Relatório de gastos"
+               desc="Diagnóstico profundo do mês: taxa de consumo, saúde, composição, concentração, recorrentes, projeção de fechamento e cortes (com IA).">
+          <RelatorioGastos
+            transacoes={props.transacoes} contas={props.contas} categorias={props.categorias}
+            fixas={props.fixas} fixaOcorrencias={props.fixaOcorrencias}
+            parcelamentos={props.parcelamentos} dividas={props.dividas} devedores={props.devedores}
+            cheques={props.cheques}
+            apiKey={props.apiKey}
+            escopoAtivo={props.escopoAtivo} hidden={props.hidden} embed />
+        </Secao>
         <Secao id="relatorios" icon={BarChart3} titulo="Relatórios"
                desc="Receita × despesa, projeção do ano, evolução de patrimônio e exportação (PDF/CSV/PNG).">
           <RelatoriosFinancas
