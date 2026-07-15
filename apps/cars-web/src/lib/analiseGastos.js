@@ -45,6 +45,13 @@ const agrupar = (itens, filtro) => {
 
 const variacaoPct = (v, vAnt) => (vAnt > 0 ? ((v - vAnt) / vAnt) * 100 : null);
 
+// Totais por categoria (consumo) a partir de itens agregados de um mês —
+// mesma regra de "gasto" da análise. Usado pelo Diagnóstico do mês.
+export function totaisPorCategoria(itens = [], { excluir = [], incluir = [] } = {}) {
+  const excSet = new Set(excluir), incSet = new Set(incluir);
+  return agrupar(itens, (k) => contaComoGasto(k, excSet, incSet));
+}
+
 /**
  * @param {Array<{categoria,valor}>} itensMes   despesas agregadas do mês
  * @param {Array<{categoria,valor}>} itensMesAnt despesas agregadas do mês anterior

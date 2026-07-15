@@ -1,10 +1,13 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, AlertTriangle, PieChart, SlidersHorizontal, X, Plus, ChevronRight, ChevronDown, ChevronLeft, Target } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import { MESES_LONGO } from "../../../lib/meses.js";
 import { getDespesasDoMes } from "../../../lib/agregador.js";
-import { analiseGastosMes, mesAnterior } from "../../../lib/analiseGastos.js";
+import { analiseGastosMes, mesAnterior, totaisPorCategoria } from "../../../lib/analiseGastos.js";
+import { diagnosticoMes, promptDiagnostico } from "../../../lib/diagnosticoGastos.js";
+import { perguntarAoClaude } from "../../../lib/aiChat.js";
+import { Stethoscope, Scissors, Sparkles } from "lucide-react";
 
 const AJUSTE_KEY = "financas:analise-gastos:v1";
 const lerAjuste = () => {
@@ -37,7 +40,7 @@ function Variacao({ nova, variacao }) {
 // com as subcategorias dentro. Fonte: getDespesasDoMes (transações + fixas +
 // parcelas de cartão + dívidas). Respeita o escopo ativo.
 export default function AnaliseGastos(props) {
-  const { escopoAtivo = "tudo", hidden = false, categorias = [], onVerCategoria, setCategorias } = props;
+  const { escopoAtivo = "tudo", hidden = false, categorias = [], onVerCategoria, setCategorias, apiKey } = props;
   const podeAbrir = typeof onVerCategoria === "function";
   const podeOrcar = typeof setCategorias === "function";
   const [ajuste, setAjuste] = useState(lerAjuste);
@@ -93,6 +96,43 @@ export default function AnaliseGastos(props) {
   const temAjuste = ajuste.excluir.length > 0 || ajuste.incluir.length > 0;
 
   const vazio = !grupos.length && !foraDaAnalise.length;
+
+  // ===== Diagnóstico do mês (compara com a média dos últimos 6 meses) =====
+  const [diagAberto, setDiagAberto] = useState(false);
+  const [iaTexto, setIaTexto] = useState("");
+  const [iaPensando, setIaPensando] = useState(false);
+  const [iaErro, setIaErro] = useState("");
+  useEffect(() => { setIaTexto(""); setIaErro(""); }, [mesSel]); // troca de mês zera a leitura da IA
+
+  const diag = useMemo(() => {
+    const state = {
+      transacoes: props.transacoes || [], fixas: props.fixas || [], fixaOcorrencias: props.fixaOcorrencias || [],
+      dividas: props.dividas || [], parcelamentos: props.parcelamentos || [], contas: props.contas || [],
+      categorias: props.categorias || [], devedores: props.devedores || [], cheques: props.cheques || [],
+    };
+    const catsDe = (iso) => {
+      let itens = [];
+      try { itens = getDespesasDoMes(iso, state, escopoAtivo); } catch {}
+      return totaisPorCategoria(itens, { excluir: ajuste.excluir, incluir: ajuste.incluir });
+    };
+    const [y, m] = mesSel.split("-").map(Number);
+    const hist = [];
+    for (let i = 1; i <= 6; i++) {
+      const d = new Date(y, m - 1 - i, 1);
+      hist.push(catsDe(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`));
+    }
+    return diagnosticoMes(catsDe(mesSel), hist);
+  }, [props.transacoes, props.fixas, props.fixaOcorrencias, props.dividas, props.parcelamentos, props.contas, props.devedores, props.cheques, escopoAtivo, ajuste, mesSel]);
+
+  const aprofundarIA = async () => {
+    if (!apiKey) { setIaErro("Configure a chave Anthropic em Configurações → API Keys."); return; }
+    setIaPensando(true); setIaErro(""); setIaTexto("");
+    try {
+      const texto = await perguntarAoClaude({ apiKey, pergunta: promptDiagnostico(diag, nomeMes(mesSel)), contextoDados: "" });
+      setIaTexto(String(texto || "").trim());
+    } catch (e) { setIaErro(e?.message || "Falha ao consultar a IA."); }
+    finally { setIaPensando(false); }
+  };
 
   const chipBtn = (extra = {}) => ({
     display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 100,
@@ -288,6 +328,114 @@ export default function AnaliseGastos(props) {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ===== Diagnóstico do mês ===== */}
+      {!vazio && (
+        <div style={{ marginTop: 14, borderTop: `1px dashed ${T.border}`, paddingTop: 12 }}>
+          <button onClick={() => setDiagAberto((v) => !v)}
+            style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", gap: 8, background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700, color: T.ink }}>
+              <Stethoscope size={14} style={{ color: T.gold }} /> Diagnóstico do mês
+            </span>
+            <ChevronDown size={15} style={{ color: T.muted, transform: diagAberto ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+          </button>
+
+          {diagAberto && (
+            <div style={{ marginTop: 10 }}>
+              {/* Veredito */}
+              {diag.pctTotal != null ? (
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-start", background: `${T.gold}14`, border: `1px solid ${T.gold}44`, borderRadius: 12, padding: "10px 12px", marginBottom: 12 }}>
+                  <AlertTriangle size={15} style={{ color: T.gold, flexShrink: 0, marginTop: 1 }} />
+                  <div style={{ fontSize: 12.5, color: T.ink }}>
+                    {nomeMes(mes)} fechou <b>{pctStr(diag.pctTotal)}</b> {diag.deltaTotal >= 0 ? "acima" : "abaixo"} da sua média (6 meses) — <b>{oculto(Math.abs(diag.deltaTotal), hidden)}</b>.
+                    <div style={{ color: T.muted, fontSize: 11.5, marginTop: 3 }}>
+                      Gasto {oculto(diag.totalMes, hidden)} · média {oculto(diag.totalMedia, hidden)}
+                      {diag.maiorAlta ? <> · o que mais pesou: <b style={{ color: T.ink }}>{diag.maiorAlta.categoria}</b></> : null}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: T.muted, fontStyle: "italic", marginBottom: 12 }}>Sem histórico suficiente pra comparar ainda — o diagnóstico fica mais rico com alguns meses de dados.</div>
+              )}
+
+              {/* Fora do padrão */}
+              {diag.foraDoPadrao.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginBottom: 6 }}>Fora do seu padrão</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    {diag.foraDoPadrao.slice(0, 6).map((i) => {
+                      const cor = i.estado === "abaixo" ? T.green : T.red;
+                      const chip = i.estado === "pico" ? "novo pico"
+                        : i.estado === "abaixo" ? `${pctStr(i.pct)} · abaixo`
+                        : `${pctStr(i.pct)} · ${oculto(Math.abs(i.delta), hidden)}`;
+                      return (
+                        <div key={i.categoria} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{i.categoria}</div>
+                            <div className="num" style={{ fontSize: 10.5, color: T.muted }}>{oculto(i.valor, hidden)} este mês · média {oculto(i.media, hidden)}</div>
+                          </div>
+                          <span className="num" style={{ fontSize: 10.5, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: `${cor}18`, color: cor, whiteSpace: "nowrap", flexShrink: 0 }}>{chip}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Sugestões de corte */}
+              {diag.cortes.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginBottom: 6, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <Scissors size={12} style={{ color: T.gold }} /> Sugestões de corte
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {diag.cortes.slice(0, 5).map((c) => (
+                      <div key={c.categoria} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 700, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.categoria}</div>
+                          <div className="num" style={{ fontSize: 10.5, color: T.muted }}>
+                            {c.pico ? <>Pico de {oculto(c.valor, hidden)} — se foi pontual, não repete</> : <>Gastou {oculto(c.valor, hidden)} · alvo {oculto(c.alvo, hidden)}/mês</>}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <div className="num" style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 700, color: T.green }}>{oculto(c.economia, hidden)}</div>
+                          <div style={{ fontSize: 8.5, color: T.muted, textTransform: "uppercase", letterSpacing: ".05em" }}>{c.pico ? "se não repetir" : "economia/mês"}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
+                    <span style={{ fontSize: 12, color: T.muted }}>Potencial voltando à média</span>
+                    <span className="num" style={{ fontFamily: T.serif, fontSize: 17, fontWeight: 700, color: T.green }}>{oculto(diag.potencialTotal, hidden)}<span style={{ fontSize: 11, color: T.muted, fontWeight: 500 }}>/mês</span></span>
+                  </div>
+                </div>
+              )}
+
+              {diag.foraDoPadrao.length === 0 && diag.cortes.length === 0 && diag.pctTotal != null && (
+                <div style={{ fontSize: 12, color: T.green, fontWeight: 600 }}>Mês dentro do seu padrão — nada fora da curva. 👍</div>
+              )}
+
+              {/* Aprofundar com IA */}
+              <button onClick={aprofundarIA} disabled={iaPensando}
+                style={{ marginTop: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 10, borderRadius: 12, border: `1px solid ${T.green}55`, background: `${T.green}12`, color: T.green, fontWeight: 700, fontSize: 12.5, cursor: iaPensando ? "wait" : "pointer", opacity: iaPensando ? 0.7 : 1 }}>
+                <Sparkles size={14} /> {iaPensando ? "Analisando…" : iaTexto ? "Refazer análise da IA" : "Aprofundar com IA"}
+              </button>
+              {iaErro && <div style={{ fontSize: 11, color: T.red, marginTop: 7, textAlign: "center" }}>{iaErro}</div>}
+              {iaTexto && (
+                <div style={{ marginTop: 12, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "12px 14px", fontSize: 12.5, lineHeight: 1.55, color: T.ink }}>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 9.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: T.green, marginBottom: 6 }}>
+                    <Sparkles size={11} /> Leitura da IA
+                  </div>
+                  <div>{iaTexto}</div>
+                </div>
+              )}
+              <div style={{ fontSize: 9.5, color: T.faint, marginTop: 7, fontStyle: "italic", textAlign: "center" }}>
+                A IA usa sua chave Anthropic (Configurações → API Keys) e recebe só os números por categoria.
+              </div>
+            </div>
+          )}
         </div>
       )}
 

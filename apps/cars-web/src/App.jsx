@@ -808,6 +808,7 @@ export default function App() {
           parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
           cartoes={cartoes} setCartoes={setCartoes}
           metas={metas} setMetas={setMetas}
+          apiKey={apiKeys.anthropic}
           escopoAtivo={escopoAtivo}
           tab={tab}
           secaoInicial={tab === "cheques" ? "cheques" : tab === "fixas" ? "fixas" : tab === "areceber" ? "areceber" : tab === "relatorios-anual" ? "anual" : null}
