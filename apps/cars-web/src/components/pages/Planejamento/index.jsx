@@ -249,6 +249,13 @@ export default function Planejamento(props) {
           <DespesasFixas {...props} embed />
         </Secao>
 
+        <Secao id="cheques" titulo="Cheques">
+          <Cheques cheques={props.cheques} setCheques={props.setCheques}
+                   contas={props.contas} setContas={props.setContas}
+                   transacoes={props.transacoes} setTransacoes={props.setTransacoes}
+                   escopoAtivo={props.escopoAtivo} hidden={props.hidden} embed />
+        </Secao>
+
         <Secao id="analise-gastos" titulo="Análise de gastos">
           <AnaliseGastos transacoes={props.transacoes} contas={props.contas}
                          categorias={props.categorias} fixas={props.fixas}
@@ -256,13 +263,6 @@ export default function Planejamento(props) {
                          parcelamentos={props.parcelamentos} devedores={props.devedores}
                          cheques={props.cheques} onVerCategoria={props.onVerCategoria}
                          escopoAtivo={props.escopoAtivo} hidden={props.hidden} />
-        </Secao>
-
-        <Secao id="cheques" titulo="Cheques">
-          <Cheques cheques={props.cheques} setCheques={props.setCheques}
-                   contas={props.contas} setContas={props.setContas}
-                   transacoes={props.transacoes} setTransacoes={props.setTransacoes}
-                   escopoAtivo={props.escopoAtivo} hidden={props.hidden} embed />
         </Secao>
       </div>
     </div>
