@@ -650,6 +650,8 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                    borderRadius: 16, overflow: "hidden",
                    transition: "all .15s",
                    display: "flex", flexDirection: "column",
+                   // Expandido: ocupa a largura toda da grade pra os detalhes/ações respirarem.
+                   gridColumn: exp ? "1 / -1" : "auto",
                  }}>
               {/* Corpo do card — mesmo layout das Contas (logo · nome · valor · chip) */}
               <div onClick={() => onCartaoClick && onCartaoClick({ ...c, usado, faturaAtual: aPagar })}
