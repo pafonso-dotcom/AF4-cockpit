@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Plus, Trash2, Edit3, Zap, Package, Check } from "lucide-react";
+import { Plus, Trash2, Edit3, PieChart, Package, Check } from "lucide-react";
 import { T } from "../../lib/theme.js";
-import { fmt, fmtN, uid } from "../../lib/format.js";
+import { uid } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import { PACOTES } from "../../lib/categoriasPacotes.js";
@@ -22,48 +22,6 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
   const [expandSig, setExpandSig] = useState(0);
   const [expandTo, setExpandTo] = useState(false);
   const expandirTudo = (v) => { setExpandTo(v); setExpandSig(s => s + 1); };
-  // Mês de referência do orçamento (YYYY-MM). Orçamento é MENSAL.
-  const [mesOrc, setMesOrc] = useState(() => new Date().toISOString().slice(0, 7));
-
-  // Agregação de transações por ID de categoria (evita somar em dobro
-  // quando pai e filha partilham o mesmo nome).
-  const stats = useMemo(() => {
-    const m = {};
-    const idPorNome = {};
-    categorias.forEach(c => { idPorNome[c.nome] = c.id; });
-    transacoes.forEach(t => {
-      const id = idPorNome[t.categoria];
-      if (id == null) return;
-      m[id] = (m[id] || 0) + Number(t.valor || 0);
-    });
-    return m;
-  }, [transacoes, categorias]);
-
-  // Gasto do MÊS de referência por categoria — base correta pro orçamento mensal.
-  const gastoMes = useMemo(() => {
-    const m = {};
-    const idPorNome = {};
-    categorias.forEach(c => { idPorNome[c.nome] = c.id; });
-    transacoes.forEach(t => {
-      if (t.tipo !== "despesa") return;
-      if (!(t.data || "").startsWith(mesOrc)) return;
-      const id = idPorNome[t.categoria];
-      if (id == null) return;
-      m[id] = (m[id] || 0) + Number(t.valor || 0);
-    });
-    return m;
-  }, [transacoes, categorias, mesOrc]);
-
-  const mesOrcLabel = (() => {
-    const [y, mm] = mesOrc.split("-").map(Number);
-    const nomes = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
-    return `${nomes[mm - 1]} ${y}`;
-  })();
-  const passoMes = (delta) => {
-    const [y, mm] = mesOrc.split("-").map(Number);
-    const d = new Date(y, mm - 1 + delta, 1);
-    setMesOrc(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-  };
 
   const [formErrors, setFormErrors] = useState({});
 
@@ -93,14 +51,13 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
   const categoriasNoEscopo = filtrarPorEscopo(categorias || [], escopoAtivo);
   const receitas = categoriasNoEscopo.filter(c => c.tipo === "receita");
   const despesas = categoriasNoEscopo.filter(c => c.tipo === "despesa");
-  const despesasComLimite = despesas.filter(c => c.limite > 0);
 
   return (
     <div className="fade-up py-8">
       <PageHeader
         eyebrow="Capítulo VI"
         title="Categorias"
-        sub="A taxonomia do dinheiro. Defina limites e acompanhe o orçamento."
+        sub="A taxonomia do dinheiro. Cadastro de categorias, pais e subcategorias."
         action={
           <div className="flex items-center gap-2 flex-wrap">
             <button className="btn-ghost" onClick={() => { setSelecionadas({}); setPacoteAberto("list"); }}>
@@ -113,90 +70,15 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
         }
       />
 
-      {/* Limites de orçamento — visual cards (MENSAL) */}
-      {despesasComLimite.length > 0 && (
-        <section className="mb-4">
-          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            <div className="ornament" style={{ margin: 0 }}>
-              <span style={{ fontSize: 10, letterSpacing: "0.25em", textTransform: "uppercase", fontStyle: "normal" }}>
-                Orçamento do mês
-              </span>
-            </div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <button onClick={() => passoMes(-1)} style={{ padding: "4px 8px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 5, cursor: "pointer", color: T.muted }}>‹</button>
-              <span style={{ fontSize: 12, fontWeight: 600, color: T.ink, minWidth: 78, textAlign: "center", textTransform: "capitalize" }}>{mesOrcLabel}</span>
-              <button onClick={() => passoMes(1)} style={{ padding: "4px 8px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 5, cursor: "pointer", color: T.muted }}>›</button>
-            </div>
-          </div>
-          {(() => {
-            const totalLimite = despesasComLimite.reduce((s, c) => s + (Number(c.limite) || 0), 0);
-            const totalGasto = despesasComLimite.reduce((s, c) => s + (gastoMes[c.id] || 0), 0);
-            const pctTotal = totalLimite > 0 ? Math.min(100, (totalGasto / totalLimite) * 100) : 0;
-            const corTot = pctTotal >= 100 ? T.red : pctTotal >= 80 ? T.gold : T.green;
-            return (
-              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 12px", marginBottom: 8 }}>
-                <div className="flex justify-between text-xs mb-1" style={{ color: T.muted }}>
-                  <span>Total orçado · {mesOrcLabel}</span>
-                  <span className="num">{hidden ? "•••" : `${fmt(totalGasto)} de ${fmt(totalLimite)}`}</span>
-                </div>
-                <div style={{ background: T.border, height: 6, borderRadius: 1 }}>
-                  <div style={{ width: `${pctTotal}%`, background: corTot, height: "100%", transition: "width .6s" }} />
-                </div>
-              </div>
-            );
-          })()}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {despesasComLimite.map(c => {
-              const gasto = gastoMes[c.id] || 0;
-              const saldo = c.limite - gasto;
-              const pct = Math.min(100, (gasto / c.limite) * 100);
-              const estado = pct >= 100 ? "estourado" : pct >= 80 ? "alerta" : "ok";
-              const corEstado = estado === "estourado" ? T.red : estado === "alerta" ? T.gold : T.green;
-              return (
-                <div key={c.id} style={{ background: T.card, border: `1px solid ${T.border}`, padding: 11, position: "relative", overflow: "hidden", borderRadius: 12 }}>
-                  <div style={{ position: "absolute", top: 0, left: 0, height: 3, width: `${pct}%`, background: c.cor, transition: "width 0.6s" }} />
-                  <div className="flex items-start justify-between mb-1.5 mt-0.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div style={{ width: 9, height: 9, background: c.cor, borderRadius: 2, flexShrink: 0 }} />
-                      <h3 style={{ color: T.ink, fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em" }} className="truncate">
-                        {c.nome}
-                      </h3>
-                    </div>
-                    {estado === "estourado" && (
-                      <Zap size={14} style={{ color: T.red, flexShrink: 0 }} />
-                    )}
-                  </div>
-                  <div className="space-y-1.5 mb-3">
-                    <div className="flex justify-between text-xs">
-                      <span style={{ color: T.muted }}>Limite/mês</span>
-                      <span className="num" style={{ color: T.ink }}>{hidden ? "•••" : fmt(c.limite)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span style={{ color: T.muted }}>Gasto no mês</span>
-                      <span className="num" style={{ color: T.ink }}>{hidden ? "•••" : fmt(gasto)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm pt-1.5" style={{ borderTop: `1px solid ${T.border}` }}>
-                      <span style={{ color: T.muted, fontWeight: 500 }}>Saldo</span>
-                      <span className="num" style={{ color: corEstado, fontWeight: 600 }}>
-                        {hidden ? "•••" : fmt(saldo)}
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ background: T.border, height: 6, borderRadius: 1 }}>
-                    <div style={{
-                      width: `${pct}%`, background: corEstado, height: "100%",
-                      transition: "width 0.6s", boxShadow: estado === "estourado" ? `0 0 8px ${T.red}` : "none",
-                    }} />
-                  </div>
-                  <div className="num text-xs text-right mt-1" style={{ color: corEstado }}>
-                    {fmtN(pct, 1)}% usado
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {/* Aviso: valores e orçamento agora vivem na Análise de gastos */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
+        padding: "8px 12px", background: T.bgSoft, border: `1px solid ${T.border}`,
+        borderRadius: 10, color: T.muted, fontSize: 11.5,
+      }}>
+        <PieChart size={13} style={{ color: T.gold, flexShrink: 0 }} />
+        <span>Esta tela é só para <b style={{ color: T.ink }}>cadastro</b> das categorias. Valores gastos e orçamento (limites) ficam no <b style={{ color: T.ink }}>Centro de controle → Análise de gastos</b>.</span>
+      </div>
 
       {/* Toggle Receitas | Despesas + Expandir/Recolher tudo */}
       <div className="flex items-center justify-between flex-wrap gap-2" style={{ marginBottom: 12 }}>
@@ -236,9 +118,9 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
       </div>
 
       {vista === "receita" ? (
-        <CategoriaCol titulo="Receitas" cats={receitas} stats={stats} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.green} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} />
+        <CategoriaCol titulo="Receitas" cats={receitas} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.green} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} />
       ) : (
-        <CategoriaCol titulo="Despesas" cats={despesas} stats={stats} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.red} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} />
+        <CategoriaCol titulo="Despesas" cats={despesas} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.red} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} />
       )}
 
       {form && (
@@ -278,11 +160,9 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
             <ColorPicker value={form.cor} onChange={cor => setForm({ ...form, cor })} />
           </Field>
           {form.tipo === "despesa" && (
-            <Field label="Limite mensal de gastos (opcional)">
-              <input type="number" step="0.01" value={form.limite || ""}
-                     placeholder="Ex.: 800,00 — deixe em branco para sem limite"
-                     onChange={e => setForm({ ...form, limite: e.target.value ? parseFloat(e.target.value) : null })} />
-            </Field>
+            <div style={{ fontSize: 11, color: T.faint, marginTop: -2, marginBottom: 4 }}>
+              O limite mensal de gastos agora é definido na <b>Análise de gastos</b> (Centro de controle).
+            </div>
           )}
           <div className="flex gap-3 mt-6">
             <button className="btn-gold" onClick={save}>Salvar</button>
@@ -453,35 +333,21 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
     return map;
   }, [cats]);
 
-  // Total inclui valor próprio + filhas
-  const valorComFilhas = (c) => {
-    const propria = stats[c.id] || 0;
-    const filhas = (filhasPorPai[c.id] || []).reduce((s, f) => s + (stats[f.id] || 0), 0);
-    return propria + filhas;
-  };
-
-  const total = raizes.reduce((s, c) => s + valorComFilhas(c), 0);
-
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, padding: 14, borderRadius: 14 }}>
       <div className="flex items-baseline justify-between mb-2">
         <h3 style={{ fontFamily: T.serif, fontSize: 16, color: T.ink, fontWeight: 600 }}>{titulo}</h3>
-        <div className="num text-sm" style={{ color: accent }}>{hidden ? "•••" : fmt(total)}</div>
+        <span style={{ fontSize: 11, color: T.faint }}>{raizes.length} {raizes.length === 1 ? "categoria" : "categorias"}</span>
       </div>
       <div className="space-y-1">
         {raizes.map(c => (
           <CategoriaItem
             key={c.id}
             c={c}
-            total={total}
-            valor={valorComFilhas(c)}
-            valorProprio={stats[c.id] || 0}
             filhas={filhasPorPai[c.id] || []}
-            stats={stats}
             categorias={categorias}
             setCategorias={setCategorias}
             setForm={setForm}
-            hidden={hidden}
             transacoes={transacoes}
             expandSig={expandSig}
             expandTo={expandTo}
@@ -492,14 +358,12 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
   );
 }
 
-function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {}, categorias, setCategorias, setForm, hidden, transacoes, expandSig = 0, expandTo = false }) {
+function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, transacoes, expandSig = 0, expandTo = false }) {
   const [open, setOpen] = useState(false);
   const [openFilhas, setOpenFilhas] = useState(false); // filhas colapsadas por default
   const [novaSub, setNovaSub] = useState("");
 
   const subs = ordenarPorNome(c.subcategorias || []);
-  const pct = total > 0 ? (valor / total) * 100 : 0;
-  const limiteUsado = c.limite > 0 ? Math.min(100, (valor / c.limite) * 100) : null;
   const temFilhas = filhas.length > 0;
 
   // Expandir/recolher tudo (vem do topo da página): abre/fecha subs e filhas.
@@ -508,21 +372,6 @@ function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {},
     setOpen(expandTo && subs.length > 0);
     setOpenFilhas(expandTo && temFilhas);
   }, [expandSig]); // eslint-disable-line react-hooks/exhaustive-deps
-  const valorPropriaShown = valorProprio != null ? valorProprio : valor;
-
-  // Calcula uso por sub
-  const usoPorSub = useMemo(() => {
-    const m = {};
-    transacoes.forEach(t => {
-      if (t.categoria !== c.nome) return;
-      const s = t.subcategoria || "";
-      if (!s) return;
-      if (!m[s]) m[s] = { count: 0, soma: 0 };
-      m[s].count++;
-      m[s].soma += Number(t.valor || 0);
-    });
-    return m;
-  }, [transacoes, c.nome]);
 
   const addSub = () => {
     const nm = novaSub.trim();
@@ -594,19 +443,6 @@ function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {},
               </span>
             )}
           </div>
-          {pct > 0 && (
-            <div style={{ background: T.bgSoft, height: 3, marginTop: 4, borderRadius: 2, overflow: "hidden" }}>
-              <div style={{ width: `${pct}%`, background: c.cor, height: "100%", transition: "width .4s" }} />
-            </div>
-          )}
-          {c.limite > 0 && (
-            <div className="num" style={{ fontSize: 10, marginTop: 2, color: limiteUsado >= 100 ? T.red : limiteUsado >= 80 ? T.gold : T.muted }}>
-              Limite {fmt(c.limite)} · {fmtN(limiteUsado, 0)}%
-            </div>
-          )}
-        </div>
-        <div className="num" style={{ color: T.ink, fontSize: 12.5, fontWeight: 600, fontFamily: T.serif }}>
-          {hidden ? "•••" : fmt(valor)}
         </div>
         <button onClick={e => { e.stopPropagation(); setOpen(!open); }}
                 aria-label="Expandir subcategorias"
@@ -639,25 +475,19 @@ function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {},
               Nenhuma subcategoria ainda. Adicione abaixo.
             </div>
           ) : (
-            subs.map(sub => {
-              const u = usoPorSub[sub.nome] || { count: 0, soma: 0 };
-              return (
-                <div key={sub.id} style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "6px 0", borderBottom: `1px dashed ${T.border}`,
-                }}>
-                  <span style={{ flex: 1, color: T.ink }}>↳ {sub.nome}</span>
-                  <span style={{ color: T.muted, fontSize: 11 }}>
-                    {u.count > 0 ? `${u.count} · ${hidden ? "•••" : fmt(u.soma)}` : "—"}
-                  </span>
-                  <button onClick={() => removeSub(sub)}
-                          aria-label={`Remover subcategoria ${sub.nome}`}
-                          style={{ color: T.red, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}>
-                    <Trash2 size={11} />
-                  </button>
-                </div>
-              );
-            })
+            subs.map(sub => (
+              <div key={sub.id} style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "6px 0", borderBottom: `1px dashed ${T.border}`,
+              }}>
+                <span style={{ flex: 1, color: T.ink }}>↳ {sub.nome}</span>
+                <button onClick={() => removeSub(sub)}
+                        aria-label={`Remover subcategoria ${sub.nome}`}
+                        style={{ color: T.red, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}>
+                  <Trash2 size={11} />
+                </button>
+              </div>
+            ))
           )}
           <div style={{ display: "flex", gap: 6, marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${T.border}` }}>
             <input
@@ -683,19 +513,7 @@ function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {},
           paddingLeft: 32, marginTop: 4,
           background: `${T.bgSoft}66`, borderLeft: `2px solid ${T.gold}55`,
         }}>
-          {/* Linha "(sem subcategoria)" só se a pai tem transações próprias E filhas */}
-          {valorPropriaShown > 0 && (
-            <div style={{
-              padding: "8px 10px", fontSize: 11.5, color: T.muted,
-              fontStyle: "italic", display: "flex", justifyContent: "space-between",
-              borderBottom: `1px dashed ${T.border}`,
-            }}>
-              <span>↳ (sem subcategoria · direto na {c.nome})</span>
-              <span className="num">{hidden ? "•••" : fmt(valorPropriaShown)}</span>
-            </div>
-          )}
           {filhas.map(f => {
-            const valorF = stats[f.id] || 0;
             return (
               <div key={f.id} style={{
                 padding: "8px 10px", display: "flex", alignItems: "center", gap: 8,
@@ -703,9 +521,6 @@ function CategoriaItem({ c, total, valor, valorProprio, filhas = [], stats = {},
               }}>
                 <div style={{ width: 8, height: 8, background: f.cor, borderRadius: 2, flexShrink: 0 }} />
                 <span style={{ flex: 1, color: T.ink, fontSize: 12.5 }}>↳ {f.nome}</span>
-                <span className="num text-xs" style={{ color: T.muted }}>
-                  {hidden ? "•••" : fmt(valorF)}
-                </span>
                 <button onClick={() => setForm(f)}
                   aria-label={`Editar ${f.nome}`}
                   style={{ color: T.muted, background: "transparent", border: "none", cursor: "pointer", padding: 2 }}>
