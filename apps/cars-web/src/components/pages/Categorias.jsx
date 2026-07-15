@@ -63,7 +63,7 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
             <button className="btn-ghost" onClick={() => { setSelecionadas({}); setPacoteAberto("list"); }}>
               <Package size={14} className="inline mr-2" />📦 Importar pacote
             </button>
-            <button className="btn-gold" onClick={() => setForm({ id: null, nome: "", tipo: "despesa", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", cor: T.gold, limite: null })}>
+            <button className="btn-gold" onClick={() => setForm({ id: null, nome: "", tipo: vista, escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", cor: T.gold, limite: null })}>
               <Plus size={14} className="inline mr-2" />Nova Categoria
             </button>
           </div>
