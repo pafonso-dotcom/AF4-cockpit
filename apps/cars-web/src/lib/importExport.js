@@ -94,14 +94,35 @@ const printHTML = (html) => {
   const ehPwa = window.navigator.standalone === true
     || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
   if (ehSafari || ehPwa) {
-    const w = window.open("", "_blank");
-    if (w) {
-      const auto = `<script>window.addEventListener("load",function(){setTimeout(function(){window.focus();window.print();},400);});</` + "script>";
-      const comAuto = html.includes("</body>") ? html.replace("</body>", auto + "</body>") : html + auto;
-      w.document.open(); w.document.write(comAuto); w.document.close();
-      return;
-    }
-    // popup bloqueado → tenta o caminho do iframe mesmo assim
+    // Nova janela no PWA/iOS costuma jogar o usuário pra fora do app (abre no
+    // Safari) e a página não tem "Voltar". Em vez disso, mostramos o relatório
+    // num OVERLAY dentro do próprio app, com botões Voltar e Salvar PDF.
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    const inner = bodyMatch ? bodyMatch[1] : html;
+    const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+    const css = styleMatch ? styleMatch[1] : "";
+    const host = document.createElement("div");
+    host.id = "af4-report-overlay";
+    host.style.cssText = "position:fixed;inset:0;z-index:2147483000;background:#fff;overflow:auto;-webkit-overflow-scrolling:touch;";
+    host.innerHTML =
+      '<div class="af4-rep-bar" style="position:sticky;top:0;display:flex;gap:10px;align-items:center;padding:10px 14px;background:#20302a;color:#fff;font-family:system-ui,-apple-system,sans-serif">'
+      + '<button id="af4-rep-voltar" style="background:#fff;color:#20302a;border:none;border-radius:8px;padding:7px 14px;font-weight:700;font-size:14px;cursor:pointer">‹ Voltar</button>'
+      + '<button id="af4-rep-print" style="background:transparent;color:#fff;border:1px solid #ffffff66;border-radius:8px;padding:7px 14px;font-size:14px;cursor:pointer">🖨 Salvar PDF</button>'
+      + '<span style="opacity:.8;font-size:12px;margin-left:auto">Salvar PDF → escolha "Salvar em PDF"</span>'
+      + '</div>'
+      + '<div class="af4-rep-body" style="padding:16px">' + inner + '</div>'
+      + '<style>' + css
+      + '@media print{ body > *:not(#af4-report-overlay){ display:none !important; } #af4-report-overlay{ position:static !important; overflow:visible !important; } .af4-rep-bar{ display:none !important; } }'
+      + '</style>';
+    const bodyOverflow = document.body.style.overflow;
+    const fechar = () => { try { document.body.removeChild(host); document.body.style.overflow = bodyOverflow; window.removeEventListener("keydown", onKey); } catch {} };
+    const onKey = (e) => { if (e.key === "Escape") fechar(); };
+    document.body.appendChild(host);
+    document.body.style.overflow = "hidden";
+    host.querySelector("#af4-rep-voltar").addEventListener("click", fechar);
+    host.querySelector("#af4-rep-print").addEventListener("click", () => window.print());
+    window.addEventListener("keydown", onKey);
+    return;
   }
   const iframe = document.createElement("iframe");
   iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
