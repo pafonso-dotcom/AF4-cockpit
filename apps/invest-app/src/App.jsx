@@ -539,7 +539,7 @@ export default function App() {
                      transacoes={transacoes} setTransacoes={setTransacoes} />
         )}
         {tab === "relatorios-i" && (
-          <RelatoriosInvest ativos={ativos} proventos={[]} operacoes={[]} hidden={hidden} />
+          <RelatoriosInvest ativos={ativos} transacoes={transacoes} proventos={[]} operacoes={[]} hidden={hidden} />
         )}
         {tab === "planejador" && (
           <div className="px-6 md:px-10">

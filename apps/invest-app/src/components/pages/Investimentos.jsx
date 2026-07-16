@@ -251,6 +251,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       tx = {
         id: uid(),
         tipo: "despesa",
+        investOp: "compra", ticker: ativo.ticker, qtd: novaQtd, preco: precoCompra,
         valor: totalGasto,
         descricao: `Aporte ${ativo.ticker} (${novaQtd} × ${fmt(precoCompra)})`,
         categoria: catInv,
@@ -328,6 +329,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       tx = {
         id: uid(),
         tipo: "receita",
+        investOp: "venda", ticker: ativo.ticker, qtd: qtdVender, preco: precoVenda, resultado,
         valor: valorBruto,
         descricao: `Venda ${ativo.ticker} (${qtdVender} × ${fmt(precoVenda)})`,
         categoria: catInv,
