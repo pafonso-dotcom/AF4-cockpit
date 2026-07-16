@@ -68,6 +68,15 @@ body { color: var(--text-color, inherit); }
 [data-c="amber"]   { --ac: #f59e0b; --ac2: #fbbf24; }
 [data-c="ice"]     { --ac: #e5e7eb; --ac2: #f3f4f6; }
 
+/* Preto puro + verde-oliva (deck comercial) — base bem escura, não grafite. */
+[data-c="onyx"] {
+  --bg: #0c0d09; --be: #16180f; --bc: #1c1e12; --bc2: #24271a;
+  --bd: #2c2f1d; --bd2: #3f4327;
+  --tx: #f1f2e6; --tm: #c3c5ae; --td: #898b6f;
+  --ac: #9dba79; --ac2: #b0c493;
+  --sc: #7bbe86; --dn: #d98a72; --wn: #cea354; --info: #6d9bd8;
+}
+
 /* ===== LIGHT THEMES ===== */
 [data-c="papel"] {
   --bg: #f4ecd8; --be: #ede3ca; --bc: #fbf6e8; --bc2: #f4ecd8;

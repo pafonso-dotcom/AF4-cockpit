@@ -30,6 +30,17 @@ const THEMES = {
   amber:   { ...DARK_BASE, id: "amber",   nome: "Âmbar",          subtitulo: "Dourado vivo",              gold: "#f59e0b", goldHi: "#fbbf24" },
   ice:     { ...DARK_BASE, id: "ice",     nome: "Gelo",           subtitulo: "Mono · clean",              gold: "#e5e7eb", goldHi: "#f3f4f6" },
 
+  // Preto puro + verde-oliva (paleta do deck comercial). Base bem escura
+  // (#0c0d09) em vez do grafite, pro acento verde saltar como na apresentação.
+  onyx: {
+    dark: true, id: "onyx", nome: "Ônix", subtitulo: "Preto & verde-oliva",
+    bg: "#0c0d09", bgSoft: "#16180f", card: "#1c1e12", cardHi: "#24271a",
+    border: "#2c2f1d", borderHi: "#3f4327",
+    ink: "#f1f2e6", muted: "#c3c5ae", faint: "#898b6f",
+    gold: "#9dba79", goldHi: "#b0c493",
+    green: "#7bbe86", red: "#d98a72", blue: "#6d9bd8", yellow: "#cea354",
+  },
+
   // ----- LIGHT -----
   nevoa: {
     // "Suave & moderno" (escolha do usuário 2026-07-07): neutro frio, acento
