@@ -10,11 +10,11 @@ export function LogoMark({ size = 28 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="AF.invest" style={{ flexShrink: 0 }}>
       <defs>
-        {/* Gradiente ouro da paleta: Ouro Claro → Ouro → Ouro Profundo */}
+        {/* Gradiente verde-oliva da marca: Claro → Médio → Profundo */}
         <linearGradient id="aurumGold" x1="0" y1="0" x2="0.7" y2="1">
-          <stop offset="0" stopColor="#F6E3A1" />
-          <stop offset="0.5" stopColor="#E8C25A" />
-          <stop offset="1" stopColor="#C9961F" />
+          <stop offset="0" stopColor="#c2d6a5" />
+          <stop offset="0.5" stopColor="#9dba79" />
+          <stop offset="1" stopColor="#5d7548" />
         </linearGradient>
       </defs>
       {/* anel externo (moeda) */}
@@ -30,8 +30,8 @@ export function LogoMark({ size = 28 }) {
 
 /**
  * Marca completa: símbolo + "AF" + sufixo ".invest" → "AF.invest".
- * Cores FIXAS da marca: "A" em bordô + "F" dourado — não mudam com a paleta,
- * pra manter identidade consistente (o logo vive numa barra de fundo escuro).
+ * Cores FIXAS da marca: "AF" em verde-oliva — identidade consistente sobre a
+ * barra lateral de fundo escuro.
  */
 export default function Logo({ size = 28, sufixo = true }) {
   return (
@@ -42,8 +42,8 @@ export default function Logo({ size = 28, sufixo = true }) {
           fontFamily: T.serif, fontWeight: 600, fontSize: Math.round(size * 0.72),
           letterSpacing: "-0.01em", lineHeight: 1,
         }}>
-          <span style={{ color: "#8a1626" }}>A</span>
-          <span style={{ color: "#d4b87a" }}>F</span>
+          <span style={{ color: "#9dba79" }}>A</span>
+          <span style={{ color: "#c2d6a5" }}>F</span>
         </span>
         {sufixo && (
           <span style={{

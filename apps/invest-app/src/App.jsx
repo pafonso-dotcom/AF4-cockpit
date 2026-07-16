@@ -109,6 +109,9 @@ export default function App() {
   const [contas, setContas] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [transacoes, setTransacoes] = useState([]);
+  // Log de operações de investimento (compras/vendas) feitas SEM conta — assim
+  // as movimentações do mês ficam 100% cobertas mesmo sem lançamento no ledger.
+  const [movLog, setMovLog] = useState([]);
 
   // Navegação interna entre telas
   const [analiseAlvo, setAnaliseAlvo] = useState(null);
@@ -135,6 +138,7 @@ export default function App() {
       setContas(data.contas || []);
       setCategorias(data.categorias || []);
       setTransacoes(data.transacoes || []);
+      setMovLog(data.movLog || []);
       setPatrimonioHistorico(data.patrimonioHistorico || []);
     }
     // Sem dados salvos = carteira começa vazia (R$ 0,00). O cliente adiciona os próprios.
@@ -149,12 +153,12 @@ export default function App() {
     saveInvestState({
       ativos, objetivosCarteira, carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
-      tradeAnalisesIdV, tradeWatchlist, contas, categorias, transacoes,
+      tradeAnalisesIdV, tradeWatchlist, contas, categorias, transacoes, movLog,
       patrimonioHistorico,
     });
   }, [loading, ativos, objetivosCarteira, carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
-      tradeAnalisesIdV, tradeWatchlist, contas, categorias, transacoes, patrimonioHistorico]);
+      tradeAnalisesIdV, tradeWatchlist, contas, categorias, transacoes, movLog, patrimonioHistorico]);
 
   /* ---------- Snapshot diário do patrimônio (pra Evolução) ---------- */
   useEffect(() => {
@@ -318,7 +322,7 @@ export default function App() {
           <div style={{
             display: "flex", alignItems: "center", gap: 9,
             padding: "9px 12px", borderRadius: 8, marginBottom: 2,
-            background: "rgba(232,194,90,.10)", color: "#E8C25A", fontWeight: 600, fontSize: 13,
+            background: "rgba(157,186,121,.12)", color: "#b0c493", fontWeight: 600, fontSize: 13,
           }}>
             <Briefcase size={16} />
             <span>Investimentos</span>
@@ -335,9 +339,9 @@ export default function App() {
                   style={{
                     display: "flex", alignItems: "center", gap: 9,
                     padding: "8px 10px", fontSize: 12.5, cursor: "pointer",
-                    background: ativo ? "rgba(232,194,90,.14)" : "transparent",
+                    background: ativo ? "rgba(157,186,121,.16)" : "transparent",
                     border: "none", borderRadius: 7, textAlign: "left",
-                    color: ativo ? "#E8C25A" : "rgba(240,235,225,.62)", fontWeight: ativo ? 600 : 400,
+                    color: ativo ? "#b0c493" : "rgba(240,235,225,.62)", fontWeight: ativo ? 600 : 400,
                     whiteSpace: "nowrap",
                   }}>
                   <Icon size={15} style={{ flexShrink: 0, opacity: ativo ? 1 : .8 }} />
@@ -380,8 +384,8 @@ export default function App() {
           {billingEnabled && sub?.emTrial && sub.trialRestante > 0 && (
             <span title="Período de teste" style={{
               display: "inline-flex", alignItems: "center", padding: "6px 10px", borderRadius: 100,
-              fontSize: 11.5, fontWeight: 600, background: "rgba(232,194,90,.16)", color: "#E8C25A",
-              border: "1px solid rgba(232,194,90,.4)", whiteSpace: "nowrap",
+              fontSize: 11.5, fontWeight: 600, background: "rgba(157,186,121,.16)", color: "#b0c493",
+              border: "1px solid rgba(157,186,121,.4)", whiteSpace: "nowrap",
             }}>
               Teste · {sub.trialRestante}d
             </span>
@@ -478,6 +482,7 @@ export default function App() {
                            contas={contas} setContas={setContas}
                            categorias={categorias}
                            transacoes={transacoes} setTransacoes={setTransacoes}
+                           movLog={movLog} setMovLog={setMovLog}
                            onRefresh={refreshMarket} refreshing={refreshing}
                            onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
                            onProjetar={(ativo) => { setProjetarAlvo(ativo); setTab("projecao"); }}
@@ -539,7 +544,7 @@ export default function App() {
                      transacoes={transacoes} setTransacoes={setTransacoes} />
         )}
         {tab === "relatorios-i" && (
-          <RelatoriosInvest ativos={ativos} transacoes={transacoes} proventos={[]} operacoes={[]} hidden={hidden} />
+          <RelatoriosInvest ativos={ativos} transacoes={[...transacoes, ...movLog]} proventos={[]} operacoes={[]} hidden={hidden} />
         )}
         {tab === "planejador" && (
           <div className="px-6 md:px-10">

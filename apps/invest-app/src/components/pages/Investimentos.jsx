@@ -54,7 +54,7 @@ const SEGMENTOS = {
   ],
 };
 
-export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, onRefresh, refreshing, onAnalisar, onProjetar, hidden }) {
+export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, movLog, setMovLog, onRefresh, refreshing, onAnalisar, onProjetar, hidden }) {
   const [form, setForm] = useState(null);
   const [importarAberto, setImportarAberto] = useState(false);
   const [aporteForm, setAporteForm] = useState(null);
@@ -263,6 +263,13 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
         vencimento: null,
       };
       setTransacoes([tx, ...(transacoes || [])]);
+    } else if (setMovLog) {
+      // Sem conta: registra no log de operações pra aparecer nas Movimentações do mês.
+      setMovLog(prev => [{
+        id: uid(), tipo: "despesa", investOp: "compra",
+        ticker: ativo.ticker, qtd: novaQtd, preco: precoCompra, valor: totalGasto,
+        data: todayISO(), descricao: `Aporte ${ativo.ticker} (${novaQtd} × ${fmt(precoCompra)})`,
+      }, ...(prev || [])]);
     }
 
     setAporteForm(null);
@@ -341,6 +348,14 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
         vencimento: null,
       };
       setTransacoes([tx, ...(transacoes || [])]);
+    } else if (setMovLog) {
+      // Sem conta: registra no log de operações pra aparecer nas Movimentações do mês.
+      setMovLog(prev => [{
+        id: uid(), tipo: "receita", investOp: "venda",
+        ticker: ativo.ticker, qtd: qtdVender, preco: precoVenda, resultado, valor: valorBruto,
+        data: todayISO(), descricao: `Venda ${ativo.ticker} (${qtdVender} × ${fmt(precoVenda)})`,
+        obs: `Resultado: ${fmt(resultado)} (${resultado >= 0 ? "lucro" : "prejuízo"})`,
+      }, ...(prev || [])]);
     }
 
     setVendaForm(null);
