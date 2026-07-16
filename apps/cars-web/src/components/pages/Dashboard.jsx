@@ -160,6 +160,31 @@ export default function Dashboard({
       return s + valorPorParcela * Math.max(0, total - pagas);
     }, 0);
   }, [parcelamentos]);
+  // Só as parcelas de cartão que vencem no MÊS SEGUINTE (não pagas) — pra
+  // mostrar no tile "Cartões (parcelas)" um recorte do que compromete o
+  // próximo mês. Mesma lógica de datas dos sparklines (dataPrimeira/dataCompra).
+  const cartoesProxMes = useMemo(() => {
+    const [y, m] = mesISO.split("-").map(Number);
+    const nd = new Date(y, m, 1); // mês seguinte (m é 1-based do mês atual)
+    const proxKey = `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, "0")}`;
+    return (parcelamentos || []).reduce((s, p) => {
+      const total = p.totalParcelas || 0;
+      if (total <= 0) return s;
+      const vpp = (p.valorTotal || 0) / total;
+      const pagas = new Set(p.parcelasPagas || []);
+      const base = p.dataPrimeira || p.dataCompra;
+      if (!base) return s;
+      const [bY, bM] = base.split("-").map(Number);
+      const start = p.dataPrimeira ? bM : bM + 1;
+      for (let n = 1; n <= total; n++) {
+        if (pagas.has(n)) continue;
+        const dt = new Date(bY, start - 1 + (n - 1), 1);
+        const mm = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+        if (mm === proxKey) s += vpp;
+      }
+      return s;
+    }, 0);
+  }, [mesISO, parcelamentos]);
   // Total a pagar (tudo em aberto, todos os meses) — mesma base do "A Receber &
   // Dívidas": dívidas + fixas pendentes + parcelas de cartão + avulsas.
   const aPagarTotal = useMemo(() => {
@@ -471,7 +496,7 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
-        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} sparks={sparks} hidden={hidden}
+        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesProxMes={cartoesProxMes} sparks={sparks} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
       </section>
@@ -1013,7 +1038,7 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, sparks = null, hidden, onSeeAll, onVerPagar }) {
+function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, cartoesProxMes = 0, sparks = null, hidden, onSeeAll, onVerPagar }) {
   // Valores começam ocultos (•••); botão do olho revela — igual ao Patrimônio.
   const [revelar, setRevelar] = useState(false);
   const oculto = hidden || !revelar;
@@ -1048,7 +1073,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
     { id: "arecebermes", label: "A receber (mês)",     valor: receberMes,   cor: T.gold,  icon: Calendar,     spark: sparks?.receber },
     { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted, icon: ArrowUpRight, spark: sparks?.pagar },
     { id: "apagarmes",   label: "A pagar (mês)",       valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted, icon: Calendar, spark: sparks?.pagar },
-    { id: "cartoes",     label: "Cartões (parcelas)", valor: cartoesTotal, cor: cartoesTotal > 0 ? T.yellow : T.muted, icon: CreditCard, spark: sparks?.cartoes },
+    { id: "cartoes",     label: "Cartões (parcelas)", valor: cartoesTotal, cor: cartoesTotal > 0 ? T.yellow : T.muted, icon: CreditCard, spark: sparks?.cartoes, proxMes: cartoesProxMes },
     { id: "cheques",     label: "Cheques",            valor: chequesTotal, cor: chequesTotal > 0 ? (T.blue || "#60a5fa") : T.muted, icon: Receipt, spark: sparks?.cheques },
   ];
 
@@ -1108,6 +1133,11 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
               </div>
               {!oculto && <Sparkline points={b.spark} cor="rgba(255,255,255,0.92)" w={44} h={20} />}
             </div>
+            {b.proxMes > 0 && (
+              <div className="num" style={{ fontSize: 9.5, color: "rgba(255,255,255,0.78)", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                mês seguinte: {oculto ? "•••" : fmt(b.proxMes)}
+              </div>
+            )}
           </div>
         ))}
       </div>
