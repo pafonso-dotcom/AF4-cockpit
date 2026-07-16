@@ -7,6 +7,7 @@ import PdfCarteira from "./PdfCarteira.jsx";
 import { MESES_CURTO as MESES_PT, MESES_LONGO } from "../../../lib/meses.js";
 import { movimentacoesInvestMes } from "../../../lib/movimentacoesInvest.js";
 import { printHTML } from "../../../lib/importExport.js";
+import SecaoColapsavel from "../../ui/SecaoColapsavel.jsx";
 
 // Últimos 12 meses (do mais antigo pro atual), com iso "YYYY-MM" e fim do mês.
 function ultimos12Meses() {
@@ -253,11 +254,19 @@ ${tabela("Proventos", mov.proventos.map((p) => `<tr><td><b>${p.ticker}</b> · ${
   );
   const linha = (children) => <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: `1px dashed ${T.border}`, fontSize: 13 }}>{children}</div>;
 
+  const totalMov = mov.compras.length + mov.vendas.length + mov.proventos.length;
+
   return (
     <div style={{ marginTop: 14 }}>
+    <SecaoColapsavel
+      idKey="mov-invest-mes"
+      defaultAberto={false}
+      count={totalMov}
+      titulo={<>Movimentações · <span style={{ textTransform: "capitalize", color: T.gold }}>{nomeMesLongo(mes)}</span>{totalMov > 0 ? <span style={{ color: T.faint, fontWeight: 500 }}> · comprado {oculto(mov.totalComprado)} · proventos {oculto(mov.totalProventos)}</span> : null}</>}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 11, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginRight: 4 }}>Movimentações</span>
+          <span style={{ fontSize: 11, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginRight: 4 }}>Mês</span>
           <button onClick={() => passo(-1)} aria-label="Mês anterior" style={navB}>‹</button>
           <span style={{ fontFamily: T.serif, fontSize: 15, fontWeight: 600, textTransform: "capitalize", minWidth: 120, textAlign: "center" }}>{nomeMesLongo(mes)}</span>
           <button onClick={() => passo(1)} aria-label="Próximo mês" style={navB}>›</button>
@@ -320,6 +329,7 @@ ${tabela("Proventos", mov.proventos.map((p) => `<tr><td><b>${p.ticker}</b> · ${
         </>
       )}
       <style>{`@media (max-width:640px){ .mi-kpis{grid-template-columns:1fr 1fr !important} }`}</style>
+    </SecaoColapsavel>
     </div>
   );
 }
