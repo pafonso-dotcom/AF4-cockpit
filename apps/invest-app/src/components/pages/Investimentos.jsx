@@ -984,6 +984,7 @@ function DetalheAtivo({ ativo, onClose }) {
   const valor = ativo.qtd * ativo.preco;
   const custo = ativo.qtd * ativo.pm;
   const ganho = valor - custo;
+  const rendaFixa = ativo._cdbMeta || ["cdb", "tesouro", "rf"].includes(String(ativo.tipo || "").toLowerCase());
 
   return (
     <Modal title={`${ativo.ticker} — ${ativo.nome}`} onClose={onClose} wide>
@@ -999,6 +1000,15 @@ function DetalheAtivo({ ativo, onClose }) {
         <div>
           <div className="label-eyebrow">Preço Atual</div>
           <div className="num" style={{ color: T.gold, fontSize: 18, marginTop: 4 }}>{fmt(ativo.preco)}</div>
+          {!rendaFixa && (
+            <div style={{ fontSize: 9.5, fontWeight: 700, marginTop: 3, display: "inline-flex", alignItems: "center", gap: 4, color: ativo.realtime ? T.green : T.gold }}
+                 title={ativo.realtime
+                   ? `Cotação de mercado${ativo.fonteCotacao ? ` (${ativo.fonteCotacao})` : ""}${ativo.ultimaAtt ? ` · ${new Date(ativo.ultimaAtt).toLocaleString("pt-BR")}` : ""}`
+                   : "Preço SIMULADO — não é o da bolsa. Ative o Mercado real em Configurações → APIs → BRAPI e clique em Atualizar mercado pra puxar a cotação real."}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: ativo.realtime ? T.green : T.gold }} />
+              {ativo.realtime ? "tempo real" : "simulado — não é da bolsa"}
+            </div>
+          )}
         </div>
         <div>
           <div className="label-eyebrow">Resultado</div>
@@ -1024,7 +1034,7 @@ function DetalheAtivo({ ativo, onClose }) {
         </ResponsiveContainer>
       </div>
       <div style={{ color: T.muted, fontSize: 11, fontStyle: "italic", marginTop: 8, textAlign: "center" }}>
-        Histórico simulado · 30 dias
+        Histórico ilustrativo (simulado) · 30 dias{!rendaFixa && !ativo.realtime ? " · preço simulado — ative o Mercado real em Configurações → APIs → BRAPI" : ""}
       </div>
     </Modal>
   );
