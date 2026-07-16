@@ -337,6 +337,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
         obs: `Investimento em ${ativo.nome}`,
         fixa: false,
         vencimento: null,
+        // Marca a operação pro Relatório de movimentações do mês.
+        investOp: "compra", ticker: ativo.ticker, qtd: novaQtd, preco: precoCompra,
       };
       setTransacoes([tx, ...(transacoes || [])]);
     }
@@ -414,6 +416,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
         obs: `Resultado: ${fmt(resultado)} (${resultado >= 0 ? "lucro" : "prejuízo"})`,
         fixa: false,
         vencimento: null,
+        // Marca a operação pro Relatório de movimentações do mês.
+        investOp: "venda", ticker: ativo.ticker, qtd: qtdVender, preco: precoVenda, resultado,
       };
       setTransacoes([tx, ...(transacoes || [])]);
     }
