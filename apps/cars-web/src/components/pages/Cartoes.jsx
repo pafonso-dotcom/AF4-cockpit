@@ -69,6 +69,23 @@ function valorAPagarMes(cartao, parcelamentos = [], monthKey = mesAtualKey()) {
   const fiTotal = cartao.faturaImportada ? Number(cartao.faturaImportada.valorTotal) || 0 : 0;
   return fiTotal > 0 ? fiTotal : faturaMensalDoCartao(cartao, parcelamentos, monthKey);
 }
+// Próximo mês no formato YYYY-MM.
+const proximoMesKey = () => { const [y, m] = mesAtualKey().split("-").map(Number); const d = new Date(y, m, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
+const nomeMesCurto = (mk) => { const [, m] = mk.split("-").map(Number); return ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][(m || 1) - 1]; };
+// Só das PARCELAS em aberto: valor + quantidade que vencem em monthKey.
+function parcelasEmAbertoNoMes(cartao, parcelamentos = [], monthKey) {
+  let valor = 0, count = 0;
+  parcelasAtivasDoCartao(cartao, parcelamentos).forEach((p) => {
+    const pagas = new Set(p.parcelasPagas || []);
+    for (let n = 1; n <= (p.totalParcelas || 0); n++) {
+      if (pagas.has(n)) continue;
+      const dt = dataDaParcela(p, n);
+      if (!dt) continue;
+      if (`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}` === monthKey) { valor += valorDaParcela(p); count++; }
+    }
+  });
+  return { valor, count };
+}
 
 export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, fixas = [], setFixas, fixaOcorrencias = [], setFixaOcorrencias, categorias, setCategorias, apiKeys = {}, hidden, onCartaoClick, cartaoAtivo }) {
   const [analiseAberta, setAnaliseAberta] = useState(false);
@@ -639,6 +656,8 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           const fiPaga = !!(c.faturaImportada && c.faturaImportada.paga);
           const parcelasMes = faturaMensalDoCartao(c, parcelamentos);
           const aPagar = valorAPagarMes(c, parcelamentos);
+          // Parcelas já comprometidas que vencem no MÊS SEGUINTE (só parcelas em aberto).
+          const proxMes = parcelasEmAbertoNoMes(c, parcelamentos, proximoMesKey());
           // Diferença = compras à vista + fixas da fatura (o que não é parcela).
           const extrasMes = Math.max(0, aPagar - parcelasMes);
           return (
@@ -680,6 +699,11 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                       ? <span className="num" style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.gold}18`, color: T.gold, whiteSpace: "nowrap" }}>A pagar {hidden ? "•••" : fmt(aPagar)}</span>
                       : <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>Sem fatura</span>}
                 </div>
+                {proxMes.valor > 0 && (
+                  <div style={{ marginTop: 6, fontSize: 10.5, color: T.muted }} title={`Parcelas já comprometidas que vencem em ${nomeMesCurto(proximoMesKey())}`}>
+                    Mês seguinte (<span style={{ textTransform: "capitalize" }}>{nomeMesCurto(proximoMesKey())}</span>): <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(proxMes.valor)}</span> <span style={{ color: T.faint }}>· {proxMes.count} parcela{proxMes.count === 1 ? "" : "s"}</span>
+                  </div>
+                )}
               </div>
               {/* Filhos — expandido */}
               {exp && (
