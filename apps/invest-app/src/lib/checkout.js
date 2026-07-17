@@ -5,7 +5,13 @@ import { getUser } from "./supabase.js";
 import { toast } from "./toast.js";
 
 // Link do produto/checkout na Kiwify (painel Kiwify → produto → link de checkout).
-export const KIWIFY_CHECKOUT_URL = import.meta.env.VITE_KIWIFY_CHECKOUT_URL || "";
+// Aceita variações de nome da variável pra evitar erro de digitação no painel.
+export const KIWIFY_CHECKOUT_URL = (
+  import.meta.env.VITE_KIWIFY_CHECKOUT_URL ||
+  import.meta.env.VITE_KIWIFY_CHECKOUT ||
+  import.meta.env.VITE_KIWIFY_URL ||
+  ""
+).trim();
 
 export async function iniciarAssinatura() {
   try {
