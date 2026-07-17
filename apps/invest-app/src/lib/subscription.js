@@ -19,7 +19,7 @@ export const trialDias = Math.max(0, Number(import.meta.env.VITE_TRIAL_DIAS) || 
 // "Grandfather" do beta: contas criadas ANTES desta data têm acesso liberado
 // pra sempre (os testers atuais não pagam). Só quem criar conta depois precisa
 // assinar. Configurável por VITE_BETA_CUTOFF (ISO). Default: virada da comercialização.
-export const betaCutoff = import.meta.env.VITE_BETA_CUTOFF || "2026-07-18T00:00:00Z";
+export const betaCutoff = import.meta.env.VITE_BETA_CUTOFF || "2026-07-14T00:00:00Z";
 
 export async function getSubscription() {
   if (!supabaseConfigured) return { active: true, status: "local" };
