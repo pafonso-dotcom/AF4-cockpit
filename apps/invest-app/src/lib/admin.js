@@ -23,6 +23,21 @@ export async function fetchAdminOverview() {
   return data;
 }
 
+/** Remove um cliente: apaga a conta (Auth) e os dados (invest_state, subscriptions). */
+export async function removerCliente(userId) {
+  const s = await getSession();
+  const token = s?.access_token;
+  if (!token) throw new Error("Sessão não encontrada.");
+  const r = await fetch("/api/admin/remover", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ user_id: userId }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `Erro ${r.status}`);
+  return data;
+}
+
 /** Concede/estende (dias>0) ou encerra (dias<=0) o período de teste de um cliente. */
 export async function definirTrial(userId, dias) {
   const s = await getSession();

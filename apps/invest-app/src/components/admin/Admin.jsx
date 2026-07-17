@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Users, RefreshCw, Award, CreditCard, Settings, Search, Clock } from "lucide-react";
+import { Users, RefreshCw, Award, CreditCard, Settings, Search, Clock, Trash2 } from "lucide-react";
 import { T } from "../../lib/theme.js";
-import { fetchAdminOverview, adminEmail, definirTrial } from "../../lib/admin.js";
+import { fetchAdminOverview, adminEmail, definirTrial, removerCliente } from "../../lib/admin.js";
 import { carregarFundamentos, carregarMetodologia, salvarMetodologia } from "../../lib/fundamentos.js";
 import { billingEnabled, trialDias } from "../../lib/subscription.js";
 import { toast } from "../../lib/toast.js";
@@ -117,6 +117,19 @@ function Clientes({ data, onRecarregar }) {
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
+  const remover = async (u) => {
+    if (u.email === adminEmail) { toast.error("Não é possível remover a conta de admin."); return; }
+    if (!window.confirm(`Remover o cliente ${u.email}?\n\nA conta e TODOS os dados dele serão apagados. Esta ação não pode ser desfeita.`)) return;
+    setSalvando(u.id);
+    try {
+      await removerCliente(u.id);
+      toast.success(`Cliente ${u.email} removido.`);
+      onRecarregar?.();
+    } catch (e) {
+      toast.error(e.message || "Falha ao remover o cliente.");
+    } finally { setSalvando(null); }
+  };
+
   return (
     <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>
@@ -168,6 +181,12 @@ function Clientes({ data, onRecarregar }) {
                   </button>
                   <button onClick={() => convidar(u)} title="Convidar pelo WhatsApp"
                           style={{ ...btnIcon(), marginLeft: 6 }}>📲</button>
+                  {u.email !== adminEmail && (
+                    <button onClick={() => remover(u)} disabled={salvando === u.id} title="Remover cliente"
+                            style={{ ...btnIcon(), marginLeft: 6, color: T.red, borderColor: `${T.red}55` }}>
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </td>
               </tr>
             );
