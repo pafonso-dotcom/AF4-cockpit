@@ -80,7 +80,7 @@ export default function Paywall({ onAssinar, onSair, motivo, preco }) {
             </div>
           )}
           <div style={{ fontSize: 9, color: T.faint, textAlign: "center", marginTop: 6, opacity: .6, wordBreak: "break-all" }}>
-            build KIWI-0717e
+            build KIWI-0717f
           </div>
         </div>
 

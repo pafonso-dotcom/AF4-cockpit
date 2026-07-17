@@ -4,14 +4,19 @@
 import { getUser } from "./supabase.js";
 import { toast } from "./toast.js";
 
-// Link do produto/checkout na Kiwify (painel Kiwify → produto → link de checkout).
-// Aceita variações de nome da variável pra evitar erro de digitação no painel.
-export const KIWIFY_CHECKOUT_URL = (
+// Link de CHECKOUT (pagamento) da Kiwify — pay.kiwify.com.br/...
+// Fallback fixo pro link oficial; a env var só é usada se for um link de
+// checkout válido. Link curto kiwify.app/... é IGNORADO (aquele voltava pro
+// app, porque era a "página de vendas", não o pagamento).
+const CHECKOUT_PADRAO = "https://pay.kiwify.com.br/cUQdLRD";
+const _envUrl = (
   import.meta.env.VITE_KIWIFY_CHECKOUT_URL ||
   import.meta.env.VITE_KIWIFY_CHECKOUT ||
   import.meta.env.VITE_KIWIFY_URL ||
   ""
 ).trim();
+export const KIWIFY_CHECKOUT_URL =
+  (_envUrl && !/kiwify\.app\//i.test(_envUrl)) ? _envUrl : CHECKOUT_PADRAO;
 
 export async function iniciarAssinatura() {
   try {
