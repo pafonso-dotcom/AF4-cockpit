@@ -20,21 +20,24 @@ export async function iniciarAssinatura() {
       return;
     }
     let destino = KIWIFY_CHECKOUT_URL;
-    try {
-      // Busca o e-mail com timeout: se demorar, redireciona mesmo assim
-      // (o cliente digita o e-mail no checkout da Kiwify).
-      const user = await Promise.race([
-        getUser(),
-        new Promise((res) => setTimeout(() => res(null), 1200)),
-      ]);
-      if (user?.email) {
-        const u = new URL(KIWIFY_CHECKOUT_URL);
-        // Pré-preenche e-mail (e nome, se houver) no checkout da Kiwify.
-        u.searchParams.set("email", user.email);
-        if (user.user_metadata?.nome) u.searchParams.set("name", user.user_metadata.nome);
-        destino = u.toString();
-      }
-    } catch { /* segue sem pré-preencher */ }
+    // Links curtos da Kiwify (kiwify.app/xxx) podem abrir em branco com
+    // querystring extra — então esses vão PUROS. Só pré-preenchemos o e-mail
+    // em links completos de checkout (pay.kiwify.com.br/...).
+    const ehLinkCurto = /(^|\.)kiwify\.app\//i.test(KIWIFY_CHECKOUT_URL);
+    if (!ehLinkCurto) {
+      try {
+        const user = await Promise.race([
+          getUser(),
+          new Promise((res) => setTimeout(() => res(null), 1200)),
+        ]);
+        if (user?.email) {
+          const u = new URL(KIWIFY_CHECKOUT_URL);
+          u.searchParams.set("email", user.email);
+          if (user.user_metadata?.nome) u.searchParams.set("name", user.user_metadata.nome);
+          destino = u.toString();
+        }
+      } catch { /* segue sem pré-preencher */ }
+    }
     window.location.assign(destino);
   } catch (e) {
     toast.error(e.message || "Falha ao iniciar a assinatura.");
