@@ -186,6 +186,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       pm: parseFloat(form.pm),
       preco: parseFloat(form.preco) || parseFloat(form.pm),
       base: parseFloat(form.preco) || parseFloat(form.pm),
+      rendimentoMes: parseFloat(form.rendimentoMes) || 0,
     };
     if (form.id && ativos.find(a => a.id === form.id)) {
       setAtivos(ativos.map(a => a.id === form.id ? data : a));
@@ -475,6 +476,11 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                       {a.segmento}
                     </div>
                   )}
+                  {Number(a.rendimentoMes) > 0 && (
+                    <div style={{ color: T.green, fontSize: 11, marginTop: 6, fontWeight: 600 }} title="Rendimento mensal informado manualmente">
+                      rende {hidden ? "•••" : fmt(Number(a.rendimentoMes))}/mês
+                    </div>
+                  )}
                 </div>
                 <div className="text-right shrink-0 ml-2">
                   <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 14, fontWeight: 600 }}>
@@ -647,6 +653,11 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                         {a.segmento}
                       </div>
                     )}
+                    {Number(a.rendimentoMes) > 0 && (
+                      <div style={{ color: T.green, fontSize: 9.5, marginTop: 3, letterSpacing: ".03em", textTransform: "none", fontWeight: 600 }} title="Rendimento mensal informado manualmente">
+                        rende {hidden ? "•••" : fmt(Number(a.rendimentoMes))}/mês
+                      </div>
+                    )}
                   </td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.ink }}>{fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)}</td>
                   <td className="num" style={{ padding: "14px 16px", textAlign: "right", color: T.muted }}>{hidden ? "•••" : fmt(a.pm)}</td>
@@ -771,6 +782,14 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
               </div>
             );
           })()}
+          {(form.tipo === "rf" || form.tipo === "fundo") && (
+            <Field label="Rendimento no mês (R$) — opcional"
+                   hint="Quanto este ativo rende por mês, em reais. Aparece na carteira.">
+              <input type="number" step="0.01" value={form.rendimentoMes ?? ""}
+                     onChange={e => setForm({ ...form, rendimentoMes: e.target.value })}
+                     placeholder="Ex.: 85,00" />
+            </Field>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label="Quantidade">
               <input type="number" step="0.00000001" value={form.qtd} onChange={e => setForm({ ...form, qtd: e.target.value })} placeholder="8" />
