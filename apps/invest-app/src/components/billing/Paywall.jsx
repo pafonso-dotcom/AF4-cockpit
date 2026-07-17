@@ -50,7 +50,6 @@ export default function Paywall({ onAssinar, onSair, motivo, preco }) {
 
           {KIWIFY_CHECKOUT_URL ? (
             <a href={KIWIFY_CHECKOUT_URL} target="_blank" rel="noopener noreferrer"
-               onClick={() => { try { window.open(KIWIFY_CHECKOUT_URL, "_blank", "noopener"); } catch {} }}
                style={{
                  display: "block", textAlign: "center", textDecoration: "none",
                  width: "100%", padding: "12px 14px", borderRadius: 9, border: "none",
