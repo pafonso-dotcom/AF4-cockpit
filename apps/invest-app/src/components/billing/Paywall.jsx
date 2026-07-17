@@ -2,6 +2,7 @@ import React from "react";
 import { Check, LogOut } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import Logo from "../ui/Logo.jsx";
+import { KIWIFY_CHECKOUT_URL } from "../../lib/checkout.js";
 
 /**
  * Tela de planos / paywall (Fase 4 — estrutura).
@@ -47,18 +48,30 @@ export default function Paywall({ onAssinar, onSair, motivo, preco }) {
             ))}
           </div>
 
-          <button onClick={onAssinar}
-                  style={{
-                    width: "100%", padding: "12px 14px", borderRadius: 9, border: "none",
-                    background: T.gold, color: "#1a1407", fontWeight: 700, fontSize: 14, cursor: "pointer",
-                  }}>
-            Assinar
-          </button>
+          {KIWIFY_CHECKOUT_URL ? (
+            <a href={KIWIFY_CHECKOUT_URL} rel="noopener"
+               style={{
+                 display: "block", textAlign: "center", textDecoration: "none",
+                 width: "100%", padding: "12px 14px", borderRadius: 9, border: "none",
+                 background: T.gold, color: "#1a1407", fontWeight: 700, fontSize: 14, cursor: "pointer",
+                 boxSizing: "border-box",
+               }}>
+              Assinar
+            </a>
+          ) : (
+            <button onClick={onAssinar}
+                    style={{
+                      width: "100%", padding: "12px 14px", borderRadius: 9, border: "none",
+                      background: T.gold, color: "#1a1407", fontWeight: 700, fontSize: 14, cursor: "pointer",
+                    }}>
+              Assinar
+            </button>
+          )}
           <div style={{ fontSize: 10.5, color: T.faint, textAlign: "center", marginTop: 8 }}>
             Pagamento seguro via Kiwify · cancele quando quiser
           </div>
-          <div style={{ fontSize: 9, color: T.faint, textAlign: "center", marginTop: 6, opacity: .6 }}>
-            build KIWI-0717c
+          <div style={{ fontSize: 9, color: T.faint, textAlign: "center", marginTop: 6, opacity: .6, wordBreak: "break-all" }}>
+            build KIWI-0717d · link: {KIWIFY_CHECKOUT_URL || "(VAZIO)"}
           </div>
         </div>
 
