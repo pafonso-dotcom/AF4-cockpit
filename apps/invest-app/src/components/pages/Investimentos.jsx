@@ -53,6 +53,16 @@ const SEGMENTOS = {
     "Pós-fixado (CDI)", "Prefixado", "IPCA+",
     "Híbrido", "Liquidez diária",
   ],
+  fundo: [
+    "Multimercado", "Renda Fixa", "Ações", "Cambial",
+    "Previdência", "Crédito Privado", "Fundo de Fundos (FOF)",
+    "Long & Short", "Internacional",
+  ],
+  rf: [
+    "LCI", "LCA", "Debênture", "CRI", "CRA",
+    "Pós-fixado (CDI)", "Prefixado", "IPCA+", "Híbrido",
+    "Liquidez diária",
+  ],
 };
 
 export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, onRefresh, refreshing, onAnalisar, onProjetar, hidden }) {
@@ -96,10 +106,12 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
   }, [ativos, contas]);
 
   const tipos = [
-    { v: "acao", l: "Ações" }, { v: "fii", l: "FIIs" },
+    { v: "acao", l: "Ações" }, { v: "fii", l: "Fundos Imobiliários" },
+    { v: "fundo", l: "Fundos de Investimento" },
     { v: "stock", l: "Stocks (US)" }, { v: "reit", l: "REITs (US)" },
     { v: "etf", l: "ETFs" },
-    { v: "cripto", l: "Cripto" }, { v: "tesouro", l: "Tesouro" }, { v: "cdb", l: "CDB" },
+    { v: "cripto", l: "Cripto" },
+    { v: "rf", l: "Renda Fixa" }, { v: "tesouro", l: "Tesouro" }, { v: "cdb", l: "CDB" },
   ];
 
   const filtered = filter === "todos" ? ativos : ativos.filter(a => a.tipo === filter);
@@ -734,7 +746,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
             </Field>
           </div>
           <SegmentoField form={form} setForm={setForm} />
-          {(form.tipo === "cdb" || form.tipo === "tesouro") && (() => {
+          {(form.tipo === "cdb" || form.tipo === "tesouro" || form.tipo === "rf") && (() => {
             const opt = RF_INDEXADORES.find(o => o.v === form.rfIndexador);
             return (
               <div style={{ background: `${T.gold}0d`, border: `1px solid ${T.gold}33`, borderRadius: 12, padding: 12, marginBottom: 4 }}>
@@ -1080,7 +1092,7 @@ function SegmentoField({ form, setForm }) {
   return (
     <Field
       label={form.tipo === "cripto" ? "Categoria"
-            : (form.tipo === "tesouro" || form.tipo === "cdb") ? "Indexador / Tipo"
+            : (form.tipo === "tesouro" || form.tipo === "cdb" || form.tipo === "rf") ? "Indexador / Tipo"
             : "Segmento / Setor"}
       hint="Ajuda a classificar nas análises da carteira (diversificação por setor)."
     >
