@@ -21,7 +21,12 @@ export async function iniciarAssinatura() {
     }
     let destino = KIWIFY_CHECKOUT_URL;
     try {
-      const user = await getUser();
+      // Busca o e-mail com timeout: se demorar, redireciona mesmo assim
+      // (o cliente digita o e-mail no checkout da Kiwify).
+      const user = await Promise.race([
+        getUser(),
+        new Promise((res) => setTimeout(() => res(null), 1200)),
+      ]);
       if (user?.email) {
         const u = new URL(KIWIFY_CHECKOUT_URL);
         // Pré-preenche e-mail (e nome, se houver) no checkout da Kiwify.
@@ -30,7 +35,7 @@ export async function iniciarAssinatura() {
         destino = u.toString();
       }
     } catch { /* segue sem pré-preencher */ }
-    window.location.href = destino;
+    window.location.assign(destino);
   } catch (e) {
     toast.error(e.message || "Falha ao iniciar a assinatura.");
   }
