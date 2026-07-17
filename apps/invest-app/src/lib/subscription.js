@@ -16,6 +16,11 @@ export const billingEnabled = String(import.meta.env.VITE_BILLING_ENABLED || "")
 // Dias de teste grátis pra contas novas (0 = sem trial).
 export const trialDias = Math.max(0, Number(import.meta.env.VITE_TRIAL_DIAS) || 0);
 
+// "Grandfather" do beta: contas criadas ANTES desta data têm acesso liberado
+// pra sempre (os testers atuais não pagam). Só quem criar conta depois precisa
+// assinar. Configurável por VITE_BETA_CUTOFF (ISO). Default: virada da comercialização.
+export const betaCutoff = import.meta.env.VITE_BETA_CUTOFF || "2026-07-18T00:00:00Z";
+
 export async function getSubscription() {
   if (!supabaseConfigured) return { active: true, status: "local" };
   const user = await getUser();
@@ -28,6 +33,10 @@ export async function getSubscription() {
     trialRestante = Math.max(0, Math.ceil((fim - Date.now()) / 86400000));
   }
 
+  // Grandfather: conta criada antes da virada da comercialização → acesso livre.
+  const grandfathered = !!(betaCutoff && user.created_at
+    && new Date(user.created_at).getTime() < new Date(betaCutoff).getTime());
+
   try {
     const { data, error } = await supabase
       .from("subscriptions").select("*").eq("user_id", user.id).maybeSingle();
@@ -39,12 +48,12 @@ export async function getSubscription() {
     const emTrialBanco = data?.trial_ate ? new Date(data.trial_ate).getTime() > agora : false;
     const pago = !!(statusOk && (valido || emTrialBanco));
 
-    if (pago) return { ...data, active: true, trialRestante };
-    // Sem assinatura paga → vale o trial implícito (se ainda houver dias).
-    return { ...(data || {}), status: data?.status || "none", active: trialRestante > 0, emTrial: trialRestante > 0, trialRestante };
+    if (pago) return { ...data, active: true, grandfathered, trialRestante };
+    // Sem assinatura paga → vale grandfather do beta ou o trial implícito.
+    return { ...(data || {}), status: data?.status || "none", active: grandfathered || trialRestante > 0, grandfathered, emTrial: trialRestante > 0, trialRestante };
   } catch (e) {
     console.warn("[subscription] leitura falhou:", e.message);
-    return { active: trialRestante > 0, status: "error", emTrial: trialRestante > 0, trialRestante };
+    return { active: grandfathered || trialRestante > 0, status: "error", grandfathered, emTrial: trialRestante > 0, trialRestante };
   }
 }
 

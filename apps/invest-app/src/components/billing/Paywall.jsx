@@ -6,7 +6,7 @@ import Logo from "../ui/Logo.jsx";
 /**
  * Tela de planos / paywall (Fase 4 — estrutura).
  * Mostrada quando a cobrança está ligada e o cliente não tem assinatura ativa.
- * O botão "Assinar" liga ao checkout do Mercado Pago (a ser configurado).
+ * O botão "Assinar" leva ao checkout da Kiwify (VITE_KIWIFY_CHECKOUT_URL).
  */
 export default function Paywall({ onAssinar, onSair, motivo, preco }) {
   const precoFmt = preco != null
@@ -55,7 +55,7 @@ export default function Paywall({ onAssinar, onSair, motivo, preco }) {
             Assinar
           </button>
           <div style={{ fontSize: 10.5, color: T.faint, textAlign: "center", marginTop: 8 }}>
-            Pagamento via Mercado Pago · cancele quando quiser
+            Pagamento seguro via Kiwify · cancele quando quiser
           </div>
         </div>
 
