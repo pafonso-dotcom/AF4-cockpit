@@ -245,6 +245,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       pm: parseFloat(form.pm),
       preco: parseFloat(form.preco) || parseFloat(form.pm),
       base: parseFloat(form.preco) || parseFloat(form.pm),
+      rendimentoMes: parseFloat(form.rendimentoMes) || 0,
     };
     if (form.id && ativos.find(a => a.id === form.id)) {
       setAtivos(ativos.map(a => a.id === form.id ? data : a));
@@ -760,6 +761,11 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                             ) : null;
                           })()}
                         </div>
+                        {Number(a.rendimentoMes) > 0 && (
+                          <div style={{ color: T.green, fontSize: 10.5, marginTop: 2, fontWeight: 600 }} title="Rendimento mensal informado manualmente">
+                            rende {hidden ? "•••" : fmt(Number(a.rendimentoMes))}/mês
+                          </div>
+                        )}
                         {a.criadoEm && (
                           <div style={{ color: T.faint, fontSize: 10, marginTop: 2 }} title="Data de criação/compra do ativo">
                             desde {String(a.criadoEm).slice(0, 10).split("-").reverse().join("/")}
@@ -893,6 +899,14 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
               </div>
             );
           })()}
+          {(form.tipo === "rf" || form.tipo === "fundo") && (
+            <Field label="Rendimento no mês (R$) — opcional"
+                   hint="Quanto este ativo rende por mês, em reais. Aparece na carteira.">
+              <input type="number" step="0.01" value={form.rendimentoMes ?? ""}
+                     onChange={e => setForm({ ...form, rendimentoMes: e.target.value })}
+                     placeholder="Ex.: 85,00" />
+            </Field>
+          )}
           <Field label="Conta / Banco (de onde saiu o pagamento) — opcional">
             <select value={form.conta || ""} onChange={e => setForm({ ...form, conta: e.target.value })}>
               <option value="">— nenhuma —</option>
