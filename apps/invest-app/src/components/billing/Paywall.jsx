@@ -9,10 +9,15 @@ import { KIWIFY_CHECKOUT_URL } from "../../lib/checkout.js";
  * Mostrada quando a cobrança está ligada e o cliente não tem assinatura ativa.
  * O botão "Assinar" leva ao checkout da Kiwify (VITE_KIWIFY_CHECKOUT_URL).
  */
-export default function Paywall({ onAssinar, onSair, motivo, preco }) {
+export default function Paywall({ onAssinar, onSair, motivo, preco, email }) {
   const precoFmt = preco != null
     ? preco.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : "—";
+  // Link de checkout com o e-mail do cliente pré-preenchido (facilita e garante
+  // que o webhook case o pagamento com a conta certa).
+  const checkoutUrl = KIWIFY_CHECKOUT_URL
+    ? KIWIFY_CHECKOUT_URL + (email ? (KIWIFY_CHECKOUT_URL.includes("?") ? "&" : "?") + "email=" + encodeURIComponent(email) : "")
+    : "";
   const beneficios = [
     "Carteira na nuvem, acesse de qualquer lugar",
     "Cotações e análises sempre atualizadas",
@@ -48,39 +53,18 @@ export default function Paywall({ onAssinar, onSair, motivo, preco }) {
             ))}
           </div>
 
-          {KIWIFY_CHECKOUT_URL ? (
-            <a href={KIWIFY_CHECKOUT_URL} target="_blank" rel="noopener noreferrer"
-               style={{
-                 display: "block", textAlign: "center", textDecoration: "none",
-                 width: "100%", padding: "12px 14px", borderRadius: 9, border: "none",
-                 background: T.gold, color: "#1a1407", fontWeight: 700, fontSize: 14, cursor: "pointer",
-                 boxSizing: "border-box",
-               }}>
-              Assinar
-            </a>
-          ) : (
-            <button onClick={onAssinar}
-                    style={{
-                      width: "100%", padding: "12px 14px", borderRadius: 9, border: "none",
-                      background: T.gold, color: "#1a1407", fontWeight: 700, fontSize: 14, cursor: "pointer",
-                    }}>
-              Assinar
-            </button>
-          )}
+          <a href={checkoutUrl || undefined} target="_blank" rel="noopener noreferrer"
+             onClick={checkoutUrl ? undefined : onAssinar}
+             style={{
+               display: "block", textAlign: "center", textDecoration: "none",
+               width: "100%", padding: "12px 14px", borderRadius: 9, border: "none",
+               background: T.gold, color: "#1a1407", fontWeight: 700, fontSize: 14, cursor: "pointer",
+               boxSizing: "border-box",
+             }}>
+            Assinar
+          </a>
           <div style={{ fontSize: 10.5, color: T.faint, textAlign: "center", marginTop: 8 }}>
             Pagamento seguro via Kiwify · cancele quando quiser
-          </div>
-          {KIWIFY_CHECKOUT_URL && (
-            <div style={{ fontSize: 11.5, textAlign: "center", marginTop: 10 }}>
-              Não abriu?{" "}
-              <a href={KIWIFY_CHECKOUT_URL} target="_blank" rel="noopener noreferrer"
-                 style={{ color: T.gold, fontWeight: 600 }}>
-                Clique aqui para assinar
-              </a>
-            </div>
-          )}
-          <div style={{ fontSize: 9, color: T.faint, textAlign: "center", marginTop: 6, opacity: .6, wordBreak: "break-all" }}>
-            build KIWI-0717f
           </div>
         </div>
 

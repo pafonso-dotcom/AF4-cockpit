@@ -288,6 +288,7 @@ export default function App() {
       <Paywall
         motivo={sub && sub.status !== "none" ? "expirada" : ""}
         preco={PLANO_PRECO}
+        email={usuario?.email}
         onSair={() => signOut()}
         onAssinar={iniciarAssinatura}
       />
