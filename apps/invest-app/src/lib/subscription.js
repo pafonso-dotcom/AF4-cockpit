@@ -11,7 +11,8 @@
 import { supabase, supabaseConfigured, getUser } from "./supabase.js";
 
 // Interruptor geral da cobrança (variável de ambiente do build).
-export const billingEnabled = String(import.meta.env.VITE_BILLING_ENABLED || "") === "true";
+// Tolerante a "true"/"True"/"TRUE"/"1" (evita erro de digitação no painel).
+export const billingEnabled = /^(true|1|sim|on)$/i.test(String(import.meta.env.VITE_BILLING_ENABLED || "").trim());
 
 // Dias de teste grátis pra contas novas (0 = sem trial).
 export const trialDias = Math.max(0, Number(import.meta.env.VITE_TRIAL_DIAS) || 0);
