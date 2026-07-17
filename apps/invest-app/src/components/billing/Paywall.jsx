@@ -49,7 +49,8 @@ export default function Paywall({ onAssinar, onSair, motivo, preco }) {
           </div>
 
           {KIWIFY_CHECKOUT_URL ? (
-            <a href={KIWIFY_CHECKOUT_URL} rel="noopener"
+            <a href={KIWIFY_CHECKOUT_URL} target="_blank" rel="noopener noreferrer"
+               onClick={() => { try { window.open(KIWIFY_CHECKOUT_URL, "_blank", "noopener"); } catch {} }}
                style={{
                  display: "block", textAlign: "center", textDecoration: "none",
                  width: "100%", padding: "12px 14px", borderRadius: 9, border: "none",
@@ -70,8 +71,17 @@ export default function Paywall({ onAssinar, onSair, motivo, preco }) {
           <div style={{ fontSize: 10.5, color: T.faint, textAlign: "center", marginTop: 8 }}>
             Pagamento seguro via Kiwify · cancele quando quiser
           </div>
+          {KIWIFY_CHECKOUT_URL && (
+            <div style={{ fontSize: 11.5, textAlign: "center", marginTop: 10 }}>
+              Não abriu?{" "}
+              <a href={KIWIFY_CHECKOUT_URL} target="_blank" rel="noopener noreferrer"
+                 style={{ color: T.gold, fontWeight: 600 }}>
+                Clique aqui para assinar
+              </a>
+            </div>
+          )}
           <div style={{ fontSize: 9, color: T.faint, textAlign: "center", marginTop: 6, opacity: .6, wordBreak: "break-all" }}>
-            build KIWI-0717d · link: {KIWIFY_CHECKOUT_URL || "(VAZIO)"}
+            build KIWI-0717e
           </div>
         </div>
 
