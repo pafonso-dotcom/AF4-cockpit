@@ -57,6 +57,9 @@ export default function Paywall({ onAssinar, onSair, motivo, preco }) {
           <div style={{ fontSize: 10.5, color: T.faint, textAlign: "center", marginTop: 8 }}>
             Pagamento seguro via Kiwify · cancele quando quiser
           </div>
+          <div style={{ fontSize: 9, color: T.faint, textAlign: "center", marginTop: 6, opacity: .6 }}>
+            build KIWI-0717c
+          </div>
         </div>
 
         <button onClick={onSair}
