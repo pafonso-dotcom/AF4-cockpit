@@ -130,6 +130,15 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
     return { ...calc(filtered), br, usa, temUSA: filtered.some(ehUS) };
   }, [filtered]);
 
+  // Renda mensal informada à mão (Renda Fixa + Fundos): soma dos rendimentoMes.
+  // pct = rendimento total ÷ investido total desses ativos (rentabilidade % ao mês).
+  const rendaMes = useMemo(() => {
+    const arr = filtered.filter(a => Number(a.rendimentoMes) > 0);
+    const total = arr.reduce((s, a) => s + Number(a.rendimentoMes), 0);
+    const investido = arr.reduce((s, a) => s + Number(a.qtd || 0) * Number(a.pm || 0), 0);
+    return { total, qtd: arr.length, pct: investido > 0 ? (total / investido) * 100 : 0 };
+  }, [filtered]);
+
   // Agrupa ativos por CATEGORIA (tipo): Ações, FIIs, Stocks, etc. Assim, dentro
   // de cada grupo, o "% da categoria" de cada ativo fecha 100% à vista.
   const grupos = useMemo(() => {
@@ -485,6 +494,23 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   sub={`${filtered.filter(a => a.preco > a.pm).length} no lucro`} />
       </div>
 
+      {rendaMes.total > 0 && (
+        <div className="no-print" style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
+          marginBottom: 24, padding: "10px 14px", borderRadius: 12,
+          background: `${T.green}12`, border: `1px solid ${T.green}33`,
+        }}>
+          <span style={{ fontSize: 12, color: T.muted, display: "inline-flex", alignItems: "center", gap: 7 }}>
+            <TrendingUp size={14} style={{ color: T.green }} /> Renda do mês · Renda Fixa + Fundos
+          </span>
+          <span className="num" style={{ fontSize: 15, fontWeight: 700, color: T.green }}>
+            {hidden ? "•••••" : fmt(rendaMes.total)}
+            {rendaMes.pct > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: T.green }}> · {fmtP(rendaMes.pct)} a.m.</span>}
+            <span style={{ fontSize: 11, fontWeight: 500, color: T.muted }}> · {rendaMes.qtd} ativo{rendaMes.qtd === 1 ? "" : "s"}</span>
+          </span>
+        </div>
+      )}
+
       <CarteiraSaude ativos={ativos} hidden={hidden} />
 
       <div className="flex flex-wrap gap-2 mb-6 no-print">
@@ -762,8 +788,9 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                           })()}
                         </div>
                         {Number(a.rendimentoMes) > 0 && (
-                          <div style={{ color: T.green, fontSize: 10.5, marginTop: 2, fontWeight: 600 }} title="Rendimento mensal informado manualmente">
+                          <div style={{ color: T.green, fontSize: 10.5, marginTop: 2, fontWeight: 600 }} title="Rendimento mensal informado manualmente (e % ao mês sobre o investido)">
                             rende {hidden ? "•••" : fmt(Number(a.rendimentoMes))}/mês
+                            {investido > 0 && <> · {fmtP((Number(a.rendimentoMes) / investido) * 100)} a.m.</>}
                           </div>
                         )}
                         {a.criadoEm && (
