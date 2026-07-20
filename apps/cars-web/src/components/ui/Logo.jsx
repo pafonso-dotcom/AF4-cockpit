@@ -2,7 +2,8 @@ import React from "react";
 
 /**
  * Marca Afinanças — "A" (bordô) + "finanças" (dourado).
- * Símbolo: anel dourado (moeda/riqueza) com a inicial "A" no centro.
+ * Símbolo "Alta": o "A" bordô com uma linha de alta dourada cruzando por cima,
+ * terminando num ponto que brilha — patrimônio subindo.
  *
  *   <AF4Mark size={36} />     → símbolo sozinho (favicon / mobile)
  *   <Logo size={28} />        → símbolo + "Afinanças"
@@ -19,20 +20,24 @@ export function AF4Mark({ size = 36, bg = "#23272E", gid }) {
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" role="img" aria-label="Afinanças"
          xmlns="http://www.w3.org/2000/svg" style={{ display: "block", flexShrink: 0 }}>
       <defs>
-        <linearGradient id={id} x1="12" y1="10" x2="52" y2="54" gradientUnits="userSpaceOnUse">
-          <stop stopColor={GOLD_HI} />
+        {/* linha de alta: dourado escuro embaixo → claro em cima */}
+        <linearGradient id={id} x1="12" y1="46" x2="52" y2="16" gradientUnits="userSpaceOnUse">
+          <stop stopColor={GOLD_LO} />
           <stop offset="0.5" stopColor={GOLD_MD} />
-          <stop offset="1" stopColor={GOLD_LO} />
+          <stop offset="1" stopColor={GOLD_HI} />
         </linearGradient>
       </defs>
       {/* fundo arredondado grafite */}
       <rect width="64" height="64" rx="15" fill={bg} />
-      {/* anel (moeda / riqueza) */}
-      <circle cx="32" cy="32" r="23" fill="none" stroke={`url(#${id})`} strokeWidth="3.2" />
-      {/* "A" no centro — bordô, igual à marca */}
-      <text x="32" y="33" textAnchor="middle" dominantBaseline="central"
-            fontFamily="'Inter', 'Nunito', system-ui, sans-serif" fontWeight="800" fontSize="32"
+      {/* "A" bordô */}
+      <text x="30" y="47" textAnchor="middle"
+            fontFamily="'Inter', 'Nunito', system-ui, sans-serif" fontWeight="800" fontSize="40"
             fill={BORDO}>A</text>
+      {/* linha de alta cruzando por cima */}
+      <polyline points="13,45 23,39 31,42 41,27 49,19" fill="none"
+                stroke={`url(#${id})`} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
+      {/* ponto que brilha no fim da linha */}
+      <circle cx="49" cy="19" r="3.4" fill={GOLD_HI} />
     </svg>
   );
 }
