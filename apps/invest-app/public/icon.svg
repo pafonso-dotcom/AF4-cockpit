@@ -1,13 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Aureus">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 64 64" role="img" aria-label="Aureus.invest">
   <defs>
-    <linearGradient id="aurumGold" x1="0" y1="0" x2="0.7" y2="1">
-      <stop offset="0" stop-color="#F6E3A1"/>
-      <stop offset="0.5" stop-color="#E8C25A"/>
-      <stop offset="1" stop-color="#C9961F"/>
+    <linearGradient id="alta" x1="12" y1="46" x2="52" y2="16" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0F9D6B"/>
+      <stop offset="0.5" stop-color="#22C55E"/>
+      <stop offset="1" stop-color="#86EFAC"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="112" fill="#0f1d35"/>
-  <circle cx="256" cy="256" r="176" fill="none" stroke="url(#aurumGold)" stroke-width="20"/>
-  <circle cx="256" cy="256" r="138" fill="none" stroke="url(#aurumGold)" stroke-width="8" opacity="0.5"/>
-  <path d="M256 150 L334 360 L292 360 L273 304 L239 304 L220 360 L178 360 Z M256 220 L245 258 L267 258 Z" fill="#a01e2e" fill-rule="evenodd"/>
+  <rect width="64" height="64" rx="15" fill="#0f1d35"/>
+  <text x="30" y="47" text-anchor="middle" font-family="Inter, Nunito, system-ui, sans-serif" font-weight="800" font-size="40" fill="#a01e2e">A</text>
+  <polyline points="13,45 23,39 31,42 41,27 49,19" fill="none" stroke="url(#alta)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="49" cy="19" r="3.4" fill="#86EFAC"/>
 </svg>
