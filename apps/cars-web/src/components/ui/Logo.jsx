@@ -1,43 +1,60 @@
 import React from "react";
 
 /**
- * Marca Afinanças — "A" (bordô) + "finanças" (dourado).
- * Símbolo "Alta": o "A" bordô com uma linha de alta dourada cruzando por cima,
- * terminando num ponto que brilha — patrimônio subindo.
+ * Marca Afinanças — "A" + "finanças" nas cores "aurora" do card Patrimônio.
+ * Símbolo "Alta / mini-card": o tile reproduz o gradiente aurora (azul · teal ·
+ * sálvia · areia) e traz um "A" e uma linha de alta brancos, com o ponto areia
+ * no fim — patrimônio subindo.
  *
  *   <AF4Mark size={36} />     → símbolo sozinho (favicon / mobile)
  *   <Logo size={28} />        → símbolo + "Afinanças"
  */
 
-const GOLD_HI = "#F6BC8E";
-const GOLD_MD = "#ED9355";
-const GOLD_LO = "#CF7A3C";
-const BORDO   = "#9E2B3A"; // vermelho bordô do "A"
+// Cores do wordmark (paleta aurora): azul-ardósia + azul suave.
+const WORD_A = "#6f93a6";
+const WORD_F = "#7fa8c4";
+const DOT    = "#f0e6cf"; // ponto areia claro (glow do canto do card)
 
-export function AF4Mark({ size = 36, bg = "#23272E", gid }) {
+export function AF4Mark({ size = 36, gid }) {
   const id = gid || `af-${Math.random().toString(36).slice(2, 7)}`;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" role="img" aria-label="Afinanças"
          xmlns="http://www.w3.org/2000/svg" style={{ display: "block", flexShrink: 0 }}>
       <defs>
-        {/* linha de alta: dourado escuro embaixo → claro em cima */}
-        <linearGradient id={id} x1="12" y1="46" x2="52" y2="16" gradientUnits="userSpaceOnUse">
-          <stop stopColor={GOLD_LO} />
-          <stop offset="0.5" stopColor={GOLD_MD} />
-          <stop offset="1" stopColor={GOLD_HI} />
+        {/* base azul-ardósia → sálvia */}
+        <linearGradient id={`${id}-b`} x1="0" y1="0" x2="1" y2="1">
+          <stop stopColor="#6f93a6" /><stop offset="1" stopColor="#52756c" />
         </linearGradient>
+        {/* manchas radiais do aurora (mesma receita do AURORA_BG) */}
+        <radialGradient id={`${id}-1`} cx="0.15" cy="0.20" r="0.75">
+          <stop stopColor="#7fa8c4" /><stop offset="0.55" stopColor="#7fa8c4" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id={`${id}-2`} cx="0.85" cy="0.15" r="0.6">
+          <stop stopColor="#c9b48a" /><stop offset="0.5" stopColor="#c9b48a" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id={`${id}-3`} cx="0.70" cy="0.90" r="0.75">
+          <stop stopColor="#5b8a8f" /><stop offset="0.55" stopColor="#5b8a8f" stopOpacity="0" />
+        </radialGradient>
+        <clipPath id={`${id}-sq`}><rect width="64" height="64" rx="15" /></clipPath>
       </defs>
-      {/* fundo arredondado grafite */}
-      <rect width="64" height="64" rx="15" fill={bg} />
-      {/* "A" bordô */}
+      {/* tile aurora */}
+      <g clipPath={`url(#${id}-sq)`}>
+        <rect width="64" height="64" fill={`url(#${id}-b)`} />
+        <rect width="64" height="64" fill={`url(#${id}-1)`} />
+        <rect width="64" height="64" fill={`url(#${id}-2)`} />
+        <rect width="64" height="64" fill={`url(#${id}-3)`} />
+      </g>
+      {/* "A" branco */}
       <text x="30" y="47" textAnchor="middle"
             fontFamily="'Inter', 'Nunito', system-ui, sans-serif" fontWeight="800" fontSize="40"
-            fill={BORDO}>A</text>
-      {/* linha de alta cruzando por cima */}
+            fill="#ffffff">A</text>
+      {/* linha de alta branca (com leve sombra pra separar do "A") */}
       <polyline points="13,45 23,39 31,42 41,27 49,19" fill="none"
-                stroke={`url(#${id})`} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
+                stroke="rgba(18,28,32,0.22)" strokeWidth="5.2" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="13,45 23,39 31,42 41,27 49,19" fill="none"
+                stroke="#ffffff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
       {/* ponto que brilha no fim da linha */}
-      <circle cx="49" cy="19" r="3.4" fill={GOLD_HI} />
+      <circle cx="49" cy="19" r="3.6" fill={DOT} />
     </svg>
   );
 }
@@ -47,19 +64,18 @@ export const NumviMark = AF4Mark;
 
 export default function Logo({
   size = 30,
-  wordColor = GOLD_MD,
+  wordColor = WORD_F,
   sufixo = "",   // mantido por compat; o nome "Afinanças" já é uma palavra só
-  bg = "#23272E",
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: size * 0.4 }}>
-      <AF4Mark size={size * 1.3} bg={bg} />
+      <AF4Mark size={size * 1.3} />
       <span style={{
         fontFamily: "'Inter', 'Nunito', system-ui, -apple-system, sans-serif",
         fontWeight: 800, fontSize: size, letterSpacing: "-0.02em",
         lineHeight: 1, display: "inline-flex", alignItems: "baseline",
       }}>
-        <span style={{ color: BORDO }}>A</span>
+        <span style={{ color: WORD_A }}>A</span>
         <span style={{ color: wordColor }}>finanças</span>
       </span>
     </div>
