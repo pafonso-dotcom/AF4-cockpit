@@ -284,7 +284,7 @@ function HeaderHorizontal({
         <div style={{ display: "flex", alignItems: "center", marginRight: "auto", flexShrink: 0 }}>
           {/* Mobile: só o nome (sem símbolo). Desktop: lockup completo. */}
           <span className="hide-desktop" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em" }}>
-            <span style={{ color: "#9E2B3A" }}>A</span><span style={{ color: "#ed9355" }}>finanças</span>
+            <span style={{ color: "#6f93a6" }}>A</span><span style={{ color: "#7fa8c4" }}>finanças</span>
           </span>
           <span className="header-brand-text"><Logo size={24} sufixo="·finanças" /></span>
         </div>

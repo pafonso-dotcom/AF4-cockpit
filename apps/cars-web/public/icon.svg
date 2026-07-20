@@ -1,13 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Afinanças">
   <defs>
-    <linearGradient id="g" x1="12" y1="46" x2="52" y2="16" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#CF7A3C"/><stop offset="0.5" stop-color="#ED9355"/><stop offset="1" stop-color="#F6BC8E"/>
+    <linearGradient id="b" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#6f93a6"/><stop offset="1" stop-color="#52756c"/>
     </linearGradient>
+    <radialGradient id="r1" cx="0.15" cy="0.20" r="0.75">
+      <stop stop-color="#7fa8c4"/><stop offset="0.55" stop-color="#7fa8c4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="r2" cx="0.85" cy="0.15" r="0.6">
+      <stop stop-color="#c9b48a"/><stop offset="0.5" stop-color="#c9b48a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="r3" cx="0.70" cy="0.90" r="0.75">
+      <stop stop-color="#5b8a8f"/><stop offset="0.55" stop-color="#5b8a8f" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="sq"><rect width="64" height="64" rx="15"/></clipPath>
   </defs>
-  <rect width="64" height="64" rx="15" fill="#23272E"/>
-  <!-- "A" bordô (marca Afinanças) -->
-  <text x="30" y="47" text-anchor="middle" font-family="Inter, Nunito, system-ui, sans-serif" font-weight="800" font-size="40" fill="#9E2B3A">A</text>
-  <!-- linha de alta dourada cruzando por cima -->
-  <polyline points="13,45 23,39 31,42 41,27 49,19" fill="none" stroke="url(#g)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="49" cy="19" r="3.4" fill="#F6BC8E"/>
+  <g clip-path="url(#sq)">
+    <rect width="64" height="64" fill="url(#b)"/>
+    <rect width="64" height="64" fill="url(#r1)"/>
+    <rect width="64" height="64" fill="url(#r2)"/>
+    <rect width="64" height="64" fill="url(#r3)"/>
+  </g>
+  <text x="30" y="47" text-anchor="middle" font-family="Inter, Nunito, system-ui, sans-serif" font-weight="800" font-size="40" fill="#ffffff">A</text>
+  <polyline points="13,45 23,39 31,42 41,27 49,19" fill="none" stroke="rgba(18,28,32,0.22)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="13,45 23,39 31,42 41,27 49,19" fill="none" stroke="#ffffff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="49" cy="19" r="3.6" fill="#f0e6cf"/>
 </svg>
