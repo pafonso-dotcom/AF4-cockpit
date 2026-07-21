@@ -44,6 +44,11 @@ describe("relatorioMensal · cartões", () => {
     // O pagamento de fatura NÃO entra nas despesas (só a compra).
     expect(rel.financas.despesas).toBe(300);
     expect(rel.financas.totalPagamentosCartao).toBe(300);
+    // "Despesas por categoria · bancos" NÃO inclui a compra de cartão.
+    expect(rel.financas.despesasBancos).toBe(0);
+    expect(rel.financas.categorias.some(c => c.nome === "Mercado")).toBe(false);
+    // O resumo geral (bancos + cartões) inclui Mercado.
+    expect(rel.financas.categoriasGeral.some(c => c.nome === "Mercado")).toBe(true);
     // O cartão mostra a categoria Mercado separada e o pagamento.
     const cc = rel.cartoes.find(c => c.id === "cc1");
     expect(cc).toBeTruthy();
