@@ -9,12 +9,13 @@ import { getHistorico, getPerfilAtivo } from "../../../lib/brapi.js";
 import { detectarFonte } from "../../../lib/cotacoes.js";
 import { CARD_SHADOW, AURORA_BG } from "../../../lib/styles.js";
 import IndicesGlobais from "../IndicesGlobais.jsx";
+import EvolucaoPatrimonio from "./EvolucaoPatrimonio.jsx";
 
 export default function InvestPainel({
   ativos = [], transacoes = [], categorias = [],
   hidden, onTabChange, onAnalisar,
   onAbrirAnaliseIdv, apiKeys = {},
-  proventosRecebidos = {},
+  proventosRecebidos = {}, patrimonioHistorico = [],
 }) {
   const hoje = new Date();
 
@@ -87,12 +88,33 @@ export default function InvestPainel({
   // guarda { dataBaixa, valor }. Somamos os do mês corrente. Antes isso era
   // uma heurística por regex nas transações, que inflava o número (pegava
   // rendimento de poupança/CDB etc).
-  const proventosMes = useMemo(() => {
-    const mesISO = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}`;
-    return Object.values(proventosRecebidos || {})
-      .filter(r => (r?.dataBaixa || "").startsWith(mesISO))
+  // ===== Patrimônio total (valor de mercado em R$) e valor investido =====
+  // Converte o lado EUA (US$) pra R$ via dólar ao vivo quando disponível.
+  const patrimonio = useMemo(() => {
+    const usaBRL = usdRate ? t.valorUSA * usdRate : 0;
+    const investUSA = usdRate ? t.custoUSA * usdRate : 0;
+    const total = t.valorBR + usaBRL;
+    const investido = t.custoBR + investUSA;
+    const ganho = total - investido;
+    const pct = investido > 0 ? (ganho / investido) * 100 : 0;
+    return { total, investido, ganho, pct };
+  }, [t, usdRate]);
+
+  // ===== Dividendos/proventos recebidos: total acumulado e últimos 12 meses =====
+  // Fonte: aba Proventos (marcados como recebidos). Cada um guarda { dataBaixa, valor }.
+  const dividendos = useMemo(() => {
+    const vals = Object.values(proventosRecebidos || {});
+    const total = vals.reduce((s, r) => s + (Number(r?.valor) || 0), 0);
+    const corte = new Date(hoje.getFullYear(), hoje.getMonth() - 11, 1);
+    const corteISO = `${corte.getFullYear()}-${String(corte.getMonth() + 1).padStart(2, "0")}-01`;
+    const ult12 = vals
+      .filter(r => (r?.dataBaixa || "") >= corteISO)
       .reduce((s, r) => s + (Number(r?.valor) || 0), 0);
+    return { total, ult12 };
   }, [proventosRecebidos]);
+
+  // Lucro total = ganho de capital (mercado − investido) + dividendos recebidos.
+  const lucroTotal = patrimonio.ganho + dividendos.total;
 
   // Abre o fluxo de novo aporte: vai pra Carteira (onde o modal vive) e dispara
   // o evento que a tela escuta. Sem ativos, ela abre o "Novo Ativo".
@@ -123,14 +145,22 @@ export default function InvestPainel({
         <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
           <IndicesGlobais apiKeys={apiKeys} />
           <div className="ip-kpi4" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, flex: 1, alignItems: "stretch" }}>
-            <Kpi label="Custo Investido" value={t.custo} format={fmt} hidden={hidden} sub="Total aportado" icon={Wallet} cor={T.muted} />
-            <Kpi label="Resultado" value={t.resultado} format={fmt} hidden={hidden} variation={t.pct} cor={t.resultado >= 0 ? T.green : T.red}
-                 icon={t.resultado >= 0 ? TrendingUp : TrendingDown} />
-            <Kpi label="Proventos · mês" value={proventosMes} format={fmt} hidden={hidden} sub="Receita passiva" icon={DollarSign} cor={T.green} />
+            <Kpi label="Patrimônio total" value={patrimonio.total} format={fmt} hidden={hidden}
+                 variation={patrimonio.pct} sub={`Investido ${hidden ? "•••" : fmt(patrimonio.investido)}`}
+                 icon={Wallet} cor={T.gold} />
+            <Kpi label="Lucro total" value={lucroTotal} format={fmt} hidden={hidden}
+                 cor={lucroTotal >= 0 ? T.green : T.red} icon={Award}
+                 sub={`Ganho de capital ${hidden ? "•••" : fmt(patrimonio.ganho)}`}
+                 extra={{ label: "Dividendos recebidos", valor: hidden ? "•••" : fmt(dividendos.total) }} />
+            <Kpi label="Proventos · 12M" value={dividendos.ult12} format={fmt} hidden={hidden}
+                 sub={`Total ${hidden ? "•••" : fmt(dividendos.total)}`} icon={DollarSign} cor={T.green} />
             <Kpi label="Posições" value={posicoes.qtd} format={(n) => String(Math.round(n))} sub={`${posicoes.classes} classes`} icon={Briefcase} cor={T.gold} />
           </div>
         </div>
       </section>
+
+      {/* Evolução do patrimônio — faixa logo abaixo dos KPIs (snapshots diários) */}
+      <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} />
 
       {/* Linha 2 */}
       <section className="ip-mid-grid" style={{

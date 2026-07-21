@@ -6,6 +6,7 @@ import { fmt, fmtN } from "../../../lib/format.js";
 import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, PROVENTO_REGEX } from "../../../lib/invest-constants.js";
 import { calcAlocacaoPorClasse, calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
 import IndicesGlobais from "../IndicesGlobais.jsx";
+import EvolucaoPatrimonio from "./EvolucaoPatrimonio.jsx";
 
 const MESES_PT = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 
@@ -13,6 +14,7 @@ export default function InvestPainel({
   ativos = [], transacoes = [], categorias = [],
   hidden, onTabChange, onAnalisar,
   onAbrirAnaliseCarteira, onAbrirAnaliseIdv, apiKeys = {},
+  patrimonioHistorico = [],
 }) {
   const mask = (s) => hidden ? "•••••" : s;
   const hoje = new Date();
@@ -89,6 +91,14 @@ export default function InvestPainel({
     return arr;
   }, [transacoes]);
 
+  // Dividendos: total acumulado (todos os proventos) e soma dos últimos 12 meses.
+  const dividendosTotal = useMemo(() =>
+    transacoes.filter(ehProvento).reduce((s, tx) => s + Number(tx.valor || 0), 0),
+  [transacoes]);
+  const prov12mTotal = useMemo(() => proventos12m.reduce((s, m) => s + m.total, 0), [proventos12m]);
+  // Lucro total = ganho de capital (mercado − investido) + dividendos recebidos.
+  const lucroTotal = t.resultado + dividendosTotal;
+
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
       {/* Header */}
@@ -108,13 +118,18 @@ export default function InvestPainel({
       <section className="ip-kpi-grid" style={{
         display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 12, marginBottom: 16,
       }}>
-        <KpiHero label="Patrimônio Investido" valor={t.valor} pct={t.pct} hidden={hidden} />
+        <KpiHero label="Patrimônio total" valor={t.valor} pct={t.pct} hidden={hidden} />
+        <Kpi label="Lucro total" valor={mask(fmt(lucroTotal))}
+             sub={hidden ? "•••" : `Ganho ${fmt(t.resultado)} · Div ${fmt(dividendosTotal)}`}
+             cor={lucroTotal >= 0 ? T.green : T.red} icon={Award} />
+        <Kpi label="Proventos · 12M" valor={mask(fmt(prov12mTotal))}
+             sub={hidden ? "•••" : `Total ${fmt(dividendosTotal)}`} icon={DollarSign} cor={T.green} />
         <Kpi label="Custo Investido" valor={mask(fmt(t.custo))} sub="Total aportado" icon={Wallet} cor={T.muted} />
-        <Kpi label="Resultado" valor={mask(fmt(t.resultado))} variation={t.pct} cor={t.resultado >= 0 ? T.green : T.red}
-             icon={t.resultado >= 0 ? TrendingUp : TrendingDown} />
-        <Kpi label="Proventos · mês" valor={mask(fmt(proventosMes))} sub="Receita passiva" icon={DollarSign} cor={T.green} />
         <Kpi label="Posições" valor={String(posicoes.qtd)} sub={`${posicoes.classes} classes`} icon={Briefcase} cor={T.gold} />
       </section>
+
+      {/* Evolução do patrimônio — faixa logo abaixo dos KPIs (snapshots diários) */}
+      <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} />
 
       {/* Linha 2 */}
       <section className="ip-mid-grid" style={{
