@@ -27,7 +27,9 @@ const PERIODOS = [
 
 const CDI_KEY = "af4-cdi-anual";
 
-export default function EvolucaoPatrimonio({ historico = [], hidden }) {
+// campo: qual valor do snapshot plotar. "total" = patrimônio geral
+// (investimentos + contas); "totalAtivos" = só a carteira de investimentos.
+export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "total" }) {
   const [periodo, setPeriodo] = useState("90d");
   const [mostrarCDI, setMostrarCDI] = useState(true);
   const [cdiAnual, setCdiAnual] = useState(() => {
@@ -49,6 +51,9 @@ export default function EvolucaoPatrimonio({ historico = [], hidden }) {
       filtrado = filtrado.filter(p => p.data >= corteISO);
     }
     if (filtrado.length < 2) return { vazio: true, motivo: "periodo-curto" };
+
+    // Normaliza pro campo escolhido: o resto do componente lê `total`.
+    filtrado = filtrado.map(p => ({ ...p, total: Number(p[campo] ?? p.total) || 0 }));
 
     const primeiro = filtrado[0];
     const ultimo = filtrado[filtrado.length - 1];
@@ -78,7 +83,7 @@ export default function EvolucaoPatrimonio({ historico = [], hidden }) {
     const vsCDI = deltaPct - cdiPct;
 
     return { vazio: false, pontos, primeiro, ultimo, delta, deltaPct, temAportado, cdiPct, vsCDI };
-  }, [historico, periodo, cdiAnual]);
+  }, [historico, periodo, cdiAnual, campo]);
 
   return (
     <div className="no-print" style={{

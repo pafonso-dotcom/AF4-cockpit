@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtUSD, fmtN } from "../../../lib/format.js";
 import { BarChart, HorizontalBarList, ReportCard, ReportGrid } from "../../ui/Charts.jsx";
+import EvolucaoPatrimonio from "./EvolucaoPatrimonio.jsx";
 import { PROVENTO_REGEX, ehUS, fmtMoedaAtivo } from "../../../lib/invest-constants.js";
 import PdfCarteira from "./PdfCarteira.jsx";
 import { MESES_CURTO as MESES_PT, MESES_LONGO } from "../../../lib/meses.js";
@@ -52,7 +53,9 @@ export default function RelatoriosInvest({ ativos = [], transacoes = [], patrimo
     let ultimo = 0;
     return meses12.map(({ label, fimMes }) => {
       const ate = ordenado.filter(p => (p.data || "") <= fimMes);
-      if (ate.length) ultimo = Number(ate[ate.length - 1].total) || ultimo;
+      // Só a carteira de investimentos (totalAtivos) — não o patrimônio geral
+      // (que inclui as contas). Fallback pro total em snapshots antigos.
+      if (ate.length) { const s = ate[ate.length - 1]; ultimo = Number(s.totalAtivos ?? s.total) || ultimo; }
       return { label, value: ultimo };
     });
   }, [patrimonioHistorico, meses12]);
@@ -135,6 +138,9 @@ export default function RelatoriosInvest({ ativos = [], transacoes = [], patrimo
           📄 Exportar PDF da carteira
         </button>
       </div>
+
+      {/* Evolução diária da carteira (mesmo gráfico do Painel · só investimentos) */}
+      <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} campo="totalAtivos" />
 
       <ReportGrid>
         <ReportCard
