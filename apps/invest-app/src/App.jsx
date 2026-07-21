@@ -407,6 +407,7 @@ export default function App() {
         {tab === "investimentos" && (
           <InvestPainel ativos={ativos} transacoes={transacoes} categorias={categorias} hidden={hidden}
                         apiKeys={apiKeys}
+                        patrimonioHistorico={patrimonioHistorico}
                         onTabChange={(t) => setTab(t)}
                         onAbrirAnaliseCarteira={() => { setAnaliseViewInicial("carteira-analise"); setTab("analises"); }}
                         onAbrirAnaliseIdv={() => { setAnaliseViewInicial("idv"); setTab("analises"); }}
