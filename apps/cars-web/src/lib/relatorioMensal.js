@@ -15,7 +15,12 @@ import { movimentacoesInvestMes } from "./movimentacoesInvest.js";
 
 // Categorias que NÃO são gasto de consumo (movimentação de dinheiro): não
 // entram no ranking de categorias. Mesma regra do donut do Painel.
-const naoEhGasto = (nome) => /investim|transfer|dep[oó]sito|aporte|resgate/i.test(String(nome || ""));
+// "transf" (não "transfer") pega também "Transf entre bancos".
+const naoEhGasto = (nome) => /investim|transf|dep[oó]sito|aporte|resgate/i.test(String(nome || ""));
+
+// Transferência entre bancos (por qualquer nome: "Transf entre bancos",
+// "Transferência", …): mesmo dinheiro mudando de conta, fora do relatório.
+const ehCategoriaTransfer = (nome) => /transf/i.test(String(nome || ""));
 
 export function mesAnteriorISO(mesISO) {
   const [y, m] = String(mesISO).split("-").map(Number);
@@ -35,7 +40,10 @@ function financasDoMes(mesISO, state, escopo) {
   const transferIds = new Set(
     (state.transacoes || []).filter(t => t && t.transferenciaId).map(t => t.id)
   );
-  const real = (arr) => arr.filter(x => !transferIds.has(x.id));
+  // Fora se: é uma perna de transferência (transferenciaId) OU a categoria é
+  // de transferência ("Transf entre bancos", "Transferência", …).
+  const ehTransfer = (x) => transferIds.has(x.id) || ehCategoriaTransfer(x.categoria);
+  const real = (arr) => arr.filter(x => !ehTransfer(x));
   desp = real(desp);
   gan = real(gan);
 

@@ -78,4 +78,19 @@ describe("relatorioMensal · finanças (invariantes)", () => {
     // categoria da transferência não aparece no ranking de gastos
     expect(rel.financas.categorias.some(c => /transfer/i.test(c.nome))).toBe(false);
   });
+
+  it("ignora a categoria 'TRANSF ENTRE BANCOS' mesmo sem transferenciaId", () => {
+    const transacoes = [
+      { id: "r1", tipo: "receita", valor: 1000, data: "2026-07-03", conta: "Nu", categoria: "Salário", compensado: true },
+      { id: "d1", tipo: "despesa", valor: 200, data: "2026-07-04", conta: "Nu", categoria: "Mercado", compensado: true },
+      // lançados à mão como transferência (sem transferenciaId)
+      { id: "t2", tipo: "receita", valor: 700, data: "2026-07-06", conta: "Nu", categoria: "TRANSF ENTRE BANCOS", compensado: true },
+      { id: "t3", tipo: "despesa", valor: 700, data: "2026-07-06", conta: "XP", categoria: "TRANSF ENTRE BANCOS", compensado: true },
+    ];
+    const rel = relatorioMensal("2026-07", { ...baseState, transacoes }, "tudo", []);
+    expect(rel.financas.receitas).toBe(1000);
+    expect(rel.financas.despesas).toBe(200);
+    expect(rel.financas.receitasCategorias.some(c => /transf/i.test(c.nome))).toBe(false);
+    expect(rel.financas.categorias.some(c => /transf/i.test(c.nome))).toBe(false);
+  });
 });
