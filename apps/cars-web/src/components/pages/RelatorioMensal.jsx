@@ -76,7 +76,18 @@ export default function RelatorioMensal({
 
     const recTab = tabelaCat(f.receitasCategorias, f.receitas, "#3f6d6a", "Sem receitas no mês.");
     const despTab = tabelaCat(f.categorias, f.despesasBancos, "#a86b4b", "Sem gastos por banco.");
-    const geralTab = tabelaCat(f.categoriasGeral, f.despesas, "#8a6a2a", "Sem gastos no mês.");
+    // Resumo geral hierárquico: categoria pai (alfabético) + subcategorias filho.
+    const geralHtml = (f.categoriasGeral || []).length
+      ? `<table class="cat-t"><tbody>${(f.categoriasGeral || []).map((p) => {
+          const pai = `<tr class="pai"><td class="cat"><b>${esc(p.nome)}</b></td>
+            <td class="bar"><i style="width:${Math.max(3, Math.round(p.pct))}%;background:#8a6a2a"></i></td>
+            <td class="n">${esc(fmt(p.valor))}</td><td class="pc">${fmtN(p.pct, 0)}%</td></tr>`;
+          const filhos = (p.filhos || []).map((c) => `<tr class="filho"><td class="cat">— ${esc(c.nome)}</td><td></td><td class="n">${esc(fmt(c.valor))}</td><td class="pc"></td></tr>`).join("");
+          return pai + filhos;
+        }).join("")}
+        <tr class="tot"><td>Total</td><td></td><td class="n">${esc(fmt(f.despesasGeral))}</td><td class="pc">100%</td></tr>
+      </tbody></table>`
+      : `<div class="empty">Sem gastos no mês.</div>`;
 
     const provChips = (iv.proventosPorTipo || []).length
       ? (iv.proventosPorTipo || []).map((p) => `<span class="chip">${esc(p.tipo)} <b>${esc(fmt(p.valor))}</b></span>`).join("")
@@ -131,6 +142,9 @@ td.bar i { display:block; height:6px; border-radius:4px; min-width:3px; }
 td.n { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; font-weight:600; }
 td.pc { text-align:right; width:38px; padding-left:8px; color:#9aa0a6; font-variant-numeric:tabular-nums; }
 tr.tot td { border-bottom:none; border-top:1.5px solid #cfcabf; font-weight:800; padding-top:6px; }
+tr.pai td { border-bottom:none; padding-top:6px; }
+tr.filho td { border-bottom:1px solid #f4f1eb; font-size:10px; color:#7a7f86; padding:2px 0; }
+tr.filho td.cat { padding-left:10px; }
 .stats { margin-top:8px; }
 .row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #f0ede7; font-size:11px; }
 .row span { color:#5a5f66; }
@@ -180,19 +194,15 @@ ${investVazio ? `<div class="empty">Sem movimentações de investimento neste m�
   <div class="card"><div class="l">Vendas</div><div class="v">${esc(fmt(iv.totalVendido))}</div></div>
   <div class="card"><div class="l">Proventos</div><div class="v green">${esc(fmt(iv.totalProventos))}</div></div>
 </div>
-<div class="chips">${provChips}</div>
-<div class="stats">
-  <div class="row"><span>Resultado das vendas</span><b class="n ${iv.resultadoVendas >= 0 ? "pos" : "neg"}">${sinal(iv.resultadoVendas)}</b></div>
-  ${patrBloco}
-</div>`}
+<div class="chips">${provChips}</div>`}
 
 ${detCartoes.length ? `<h2>Cartões · detalhe</h2>
 <div class="note">Informativo — compras/parcelas lançadas em cada cartão. O pagamento da fatura não soma.</div>
 <div class="ccs">${cartoesHtml}</div>` : ""}
 
 <h2>Resumo geral · por categoria</h2>
-<div class="note">Bancos + cartões juntos — o gasto real do mês por categoria.</div>
-${geralTab}
+<div class="note">Bancos + cartões juntos — o gasto real do mês por categoria (pai) e subcategoria (filho).</div>
+${geralHtml}
 
 <div class="foot"><span>Afinanças · relatório mensal</span><span>${esc(rotuloMes(mesISO))}</span></div>
 </div></body></html>`);
@@ -275,22 +285,10 @@ ${geralTab}
         <div style={{ fontSize: 12, color: T.faint, fontStyle: "italic" }}>Sem movimentações de investimento neste mês.</div>
       ) : (
         <>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
             <Tile label="Aportes" valor={mask(iv.totalComprado)} cor={T.ink} icon={Briefcase} />
             <Tile label="Vendas" valor={mask(iv.totalVendido)} cor={T.ink} icon={ArrowUpRight} />
             <Tile label="Proventos" valor={mask(iv.totalProventos)} cor={T.green} icon={DollarSign} />
-          </div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12, color: T.muted, marginBottom: 4 }}>
-            <span>Resultado das vendas: <b className="num" style={{ color: iv.resultadoVendas >= 0 ? T.green : T.red }}>{iv.resultadoVendas >= 0 ? "+" : ""}{hidden ? "•••" : fmt(iv.resultadoVendas)}</b></span>
-            {iv.patrimonioFim != null && (
-              <span>Patrimônio (fim): <b className="num" style={{ color: T.ink }}>{hidden ? "•••" : fmt(iv.patrimonioFim)}</b>
-                {iv.variacao != null && (
-                  <span style={{ color: iv.variacao >= 0 ? T.green : T.red, marginLeft: 6 }}>
-                    {iv.variacao >= 0 ? "▲ +" : "▼ "}{hidden ? "•••" : fmt(Math.abs(iv.variacao))}{iv.variacaoPct != null ? ` (${fmtN(iv.variacaoPct, 1)}%)` : ""}
-                  </span>
-                )}
-              </span>
-            )}
           </div>
         </>
       )}
@@ -339,19 +337,31 @@ ${geralTab}
         <>
           <SecTitulo style={{ marginTop: 18 }}>Resumo geral · por categoria</SecTitulo>
           <div style={{ fontSize: 11, color: T.faint, fontStyle: "italic", marginBottom: 8 }}>
-            Bancos + cartões juntos — o gasto real do mês por categoria.
+            Bancos + cartões juntos, em ordem alfabética — categoria e subcategorias.
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {f.categoriasGeral.slice(0, 12).map((c) => (
-              <div key={c.nome} style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ width: 120, flexShrink: 0, fontSize: 11.5, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</span>
-                <div style={{ flex: 1, height: 8, borderRadius: 999, background: T.bgSoft, overflow: "hidden" }}>
-                  <div style={{ width: `${c.pct}%`, height: "100%", borderRadius: 999, background: T.gold }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {f.categoriasGeral.map((p) => (
+              <div key={p.nome}>
+                <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "4px 0" }}>
+                  <span style={{ width: 130, flexShrink: 0, fontSize: 12, fontWeight: 700, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.nome}</span>
+                  <div style={{ flex: 1, height: 7, borderRadius: 999, background: T.bgSoft, overflow: "hidden" }}>
+                    <div style={{ width: `${p.pct}%`, height: "100%", borderRadius: 999, background: T.gold }} />
+                  </div>
+                  <span className="num" style={{ width: 92, textAlign: "right", flexShrink: 0, fontSize: 12, fontWeight: 600, color: T.ink }}>{hidden ? "•••" : fmt(p.valor)}</span>
+                  <span className="num" style={{ width: 34, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.muted }}>{fmtN(p.pct, 0)}%</span>
                 </div>
-                <span className="num" style={{ width: 92, textAlign: "right", flexShrink: 0, fontSize: 11.5, color: T.ink }}>{hidden ? "•••" : fmt(c.valor)}</span>
-                <span className="num" style={{ width: 34, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.muted }}>{fmtN(c.pct, 0)}%</span>
+                {p.filhos.map((c) => (
+                  <div key={c.nome} style={{ display: "flex", alignItems: "baseline", gap: 9, padding: "1px 0 1px 12px" }}>
+                    <span style={{ flex: 1, fontSize: 10.5, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>— {c.nome}</span>
+                    <span className="num" style={{ fontSize: 10.5, color: T.muted }}>{hidden ? "•••" : fmt(c.valor)}</span>
+                  </div>
+                ))}
               </div>
             ))}
+            <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 0 0", marginTop: 3, borderTop: `1.5px solid ${T.border}` }}>
+              <span style={{ flex: 1, fontSize: 12, fontWeight: 800, color: T.ink }}>Total</span>
+              <span className="num" style={{ fontSize: 12.5, fontWeight: 800, color: T.ink }}>{hidden ? "•••••" : fmt(f.despesasGeral)}</span>
+            </div>
           </div>
         </>
       )}

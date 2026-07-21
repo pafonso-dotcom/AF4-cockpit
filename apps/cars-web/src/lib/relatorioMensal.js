@@ -82,16 +82,42 @@ function financasDoMes(mesISO, state, escopo) {
   const categorias = agruparCategoria(gastosBancos);
   const despesasBancos = gastosBancos.reduce((s, d) => s + (Number(d.valor) || 0), 0);
   const despesasCartoes = gastos.filter(ehDeCartao).reduce((s, d) => s + (Number(d.valor) || 0), 0);
-  // Resumo geral: bancos + cartões juntos por categoria (o gasto real do mês).
-  const categoriasGeral = agruparCategoria(gastos);
+  // Resumo geral: bancos + cartões juntos (o gasto real do mês), agrupado por
+  // categoria PAI (ordem alfabética) com as subcategorias (FILHO) embaixo.
+  const categoriasGeral = agruparHierarquia(gastos);
+  const despesasGeral = gastos.reduce((s, d) => s + (Number(d.valor) || 0), 0); // = soma das categorias
   // Receitas agrupadas por categoria (resumo, não item a item).
   const receitasCategorias = agruparCategoria(gan);
 
   return {
     receitas, despesas, sobra: receitas - despesas, pagas, aPagar,
-    categorias, categoriasGeral, receitasCategorias, despesasBancos, despesasCartoes,
-    pagamentosCartao, totalPagamentosCartao,
+    categorias, categoriasGeral, despesasGeral, receitasCategorias,
+    despesasBancos, despesasCartoes, pagamentosCartao, totalPagamentosCartao,
   };
+}
+
+// Agrupa por categoria PAI (com subcategorias FILHO), em ordem alfabética.
+// Cada pai: { nome, valor, pct (do total), filhos: [{ nome, valor, pct (do pai) }] }.
+function agruparHierarquia(itens) {
+  const pais = {};
+  itens.forEach(x => {
+    const p = String(x.categoria || "").trim() || "Outros";
+    if (!pais[p]) pais[p] = { nome: p, valor: 0, filhos: {} };
+    const v = Number(x.valor) || 0;
+    pais[p].valor += v;
+    const f = String(x.subcategoria || "").trim();
+    if (f) pais[p].filhos[f] = (pais[p].filhos[f] || 0) + v;
+  });
+  const tot = Object.values(pais).reduce((s, p) => s + p.valor, 0) || 1;
+  const colator = (a, b) => a.localeCompare(b, "pt", { sensitivity: "base" });
+  return Object.values(pais)
+    .sort((a, b) => colator(a.nome, b.nome))
+    .map(p => ({
+      nome: p.nome, valor: p.valor, pct: (p.valor / tot) * 100,
+      filhos: Object.entries(p.filhos)
+        .sort((a, b) => colator(a[0], b[0]))
+        .map(([nome, valor]) => ({ nome, valor, pct: p.valor > 0 ? (valor / p.valor) * 100 : 0 })),
+    }));
 }
 
 // Detalhamento por CARTÃO (informativo — as compras já estão no total geral):
