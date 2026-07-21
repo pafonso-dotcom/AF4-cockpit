@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Activity, Plus, Trash2, Edit3, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText, Mic, Sparkles } from "lucide-react";
+import { Activity, Plus, Trash2, Edit3, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText, Mic, Sparkles, EyeOff } from "lucide-react";
 import EmptyState from "../ui/EmptyState.jsx";
 import { StatTile } from "../ui/widget.jsx";
 import { T } from "../../lib/theme.js";
@@ -681,6 +681,12 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                         Pendente
                       </span>
                     )}
+                    {t.foraDoRelatorio && (
+                      <span title="Não entra no relatório mensal"
+                        style={{ background: `${T.muted}22`, color: T.muted, padding: "1px 6px", fontSize: 8.5, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 100, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                        <EyeOff size={8} /> Sem relatório
+                      </span>
+                    )}
                     {t.comprovante && (
                       <button onClick={() => setComprovanteVisualizar(t.comprovante)}
                               aria-label="Ver comprovante anexado"
@@ -931,6 +937,19 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
               </div>
             )}
           </div>
+          {/* Ocultar do relatório mensal — pro lançamento não entrar nas receitas/
+              despesas/categorias do relatório (continua normal no resto do app). */}
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer",
+            background: T.bgSoft, border: `1px solid ${form.foraDoRelatorio ? T.gold : T.border}`,
+            borderWidth: form.foraDoRelatorio ? 2 : 1, padding: 12, marginTop: 8, marginBottom: 8 }}>
+            <input type="checkbox" checked={!!form.foraDoRelatorio}
+              onChange={e => setForm({ ...form, foraDoRelatorio: e.target.checked })}
+              style={{ accentColor: T.gold, width: 18, height: 18, marginTop: 1, cursor: "pointer", flexShrink: 0 }} />
+            <div>
+              <div style={{ color: form.foraDoRelatorio ? T.gold : T.ink, fontWeight: 500, fontSize: 14 }}>Não incluir no relatório mensal</div>
+              <div style={{ color: T.muted, fontSize: 11 }}>Fica de fora das receitas, despesas e categorias do relatório. Continua normal em Transações e no saldo.</div>
+            </div>
+          </label>
           <div className="flex gap-3 mt-6">
             <button className="btn-gold" onClick={save}>Salvar</button>
             <button className="btn-ghost" onClick={() => setForm(null)}>Cancelar</button>

@@ -40,10 +40,14 @@ function financasDoMes(mesISO, state, escopo) {
   const transferIds = new Set(
     (state.transacoes || []).filter(t => t && t.transferenciaId).map(t => t.id)
   );
+  // Lançamentos marcados manualmente pra NÃO entrar no relatório (foraDoRelatorio).
+  const foraIds = new Set(
+    (state.transacoes || []).filter(t => t && t.foraDoRelatorio).map(t => t.id)
+  );
   // Fora se: é uma perna de transferência (transferenciaId) OU a categoria é
-  // de transferência ("Transf entre bancos", "Transferência", …).
+  // de transferência ("Transf entre bancos", …) OU o usuário marcou pra ocultar.
   const ehTransfer = (x) => transferIds.has(x.id) || ehCategoriaTransfer(x.categoria);
-  const real = (arr) => arr.filter(x => !ehTransfer(x));
+  const real = (arr) => arr.filter(x => !ehTransfer(x) && !foraIds.has(x.id));
   desp = real(desp);
   gan = real(gan);
 

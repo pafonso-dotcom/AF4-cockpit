@@ -79,6 +79,20 @@ describe("relatorioMensal · finanças (invariantes)", () => {
     expect(rel.financas.categorias.some(c => /transfer/i.test(c.nome))).toBe(false);
   });
 
+  it("ignora lançamentos marcados com foraDoRelatorio", () => {
+    const transacoes = [
+      { id: "r1", tipo: "receita", valor: 1000, data: "2026-07-03", conta: "Nu", categoria: "Salário", compensado: true },
+      { id: "d1", tipo: "despesa", valor: 200, data: "2026-07-04", conta: "Nu", categoria: "Mercado", compensado: true },
+      { id: "d2", tipo: "despesa", valor: 900, data: "2026-07-05", conta: "Nu", categoria: "Reembolso", compensado: true, foraDoRelatorio: true },
+      { id: "r2", tipo: "receita", valor: 300, data: "2026-07-06", conta: "Nu", categoria: "Extra", compensado: true, foraDoRelatorio: true },
+    ];
+    const rel = relatorioMensal("2026-07", { ...baseState, transacoes }, "tudo", []);
+    expect(rel.financas.receitas).toBe(1000); // r2 (300) fora
+    expect(rel.financas.despesas).toBe(200);  // d2 (900) fora
+    expect(rel.financas.categorias.some(c => c.nome === "Reembolso")).toBe(false);
+    expect(rel.financas.receitasCategorias.some(c => c.nome === "Extra")).toBe(false);
+  });
+
   it("ignora a categoria 'TRANSF ENTRE BANCOS' mesmo sem transferenciaId", () => {
     const transacoes = [
       { id: "r1", tipo: "receita", valor: 1000, data: "2026-07-03", conta: "Nu", categoria: "Salário", compensado: true },
