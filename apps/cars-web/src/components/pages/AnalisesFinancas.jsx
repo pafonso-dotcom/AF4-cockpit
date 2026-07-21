@@ -1,14 +1,15 @@
 import React, { useState } from "react";
-import { ChevronDown, BarChart3, Brain, History, Receipt } from "lucide-react";
+import { ChevronDown, BarChart3, Brain, History, Receipt, CalendarDays } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import PageHeader from "../ui/PageHeader.jsx";
+import RelatorioMensal from "./RelatorioMensal.jsx";
 import RelatorioGastos from "./RelatorioGastos.jsx";
 import RelatoriosFinancas from "./RelatoriosFinancas.jsx";
 import Inteligencia from "./Inteligencia.jsx";
 import AuditLog from "./AuditLog.jsx";
 
 const KEY = "af4:analises-hub:abertos:v1";
-const ler = () => { try { return new Set(JSON.parse(localStorage.getItem(KEY) || '["relatorios"]')); } catch { return new Set(["relatorios"]); } };
+const ler = () => { try { return new Set(JSON.parse(localStorage.getItem(KEY) || '["relatorio-mensal"]')); } catch { return new Set(["relatorio-mensal"]); } };
 
 /**
  * Hub "Análises & Relatórios" — junta Relatório de gastos, Relatórios,
@@ -63,6 +64,16 @@ export default function AnalisesFinancas(props) {
         sub="Relatório de gastos, relatórios do período, inteligência e histórico de alterações num lugar só. Abra as seções conforme precisar."
       />
       <div style={{ marginTop: 8 }}>
+        <Secao id="relatorio-mensal" icon={CalendarDays} titulo="Relatório mensal"
+               desc="Fechamento de um mês: receitas, despesas por categoria, sobra e pagas × a pagar + aportes, vendas, proventos e variação do patrimônio. Com botão Salvar PDF.">
+          <RelatorioMensal
+            transacoes={props.transacoes} contas={props.contas} categorias={props.categorias}
+            fixas={props.fixas} fixaOcorrencias={props.fixaOcorrencias}
+            parcelamentos={props.parcelamentos} dividas={props.dividas} devedores={props.devedores}
+            cheques={props.cheques} cartoes={props.cartoes}
+            patrimonioHistorico={props.patrimonioHistorico}
+            escopoAtivo={props.escopoAtivo} hidden={props.hidden} embed />
+        </Secao>
         <Secao id="relatorio-gastos" icon={Receipt} titulo="Relatório de gastos"
                desc="Diagnóstico profundo do mês: taxa de consumo, saúde, composição, concentração, recorrentes, projeção de fechamento e cortes (com IA).">
           <RelatorioGastos
