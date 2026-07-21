@@ -63,4 +63,19 @@ describe("relatorioMensal · finanças (invariantes)", () => {
     expect(rel.financas).toHaveProperty("deltaDespesas");
     expect(rel.financas).toHaveProperty("anterior");
   });
+
+  it("ignora transferência entre bancos nas receitas e nas despesas", () => {
+    const transacoes = [
+      { id: "r1", tipo: "receita", valor: 1000, data: "2026-07-03", conta: "Nu", categoria: "Salário", compensado: true },
+      { id: "d1", tipo: "despesa", valor: 200, data: "2026-07-04", conta: "Nu", categoria: "Mercado", compensado: true },
+      // transferência: Nu → XP (não conta como despesa nem receita)
+      { id: "tOut", tipo: "despesa", valor: 500, data: "2026-07-05", conta: "Nu", categoria: "", transferenciaId: "T1", compensado: true },
+      { id: "tIn", tipo: "receita", valor: 500, data: "2026-07-05", conta: "XP", categoria: "", transferenciaId: "T1", compensado: true },
+    ];
+    const rel = relatorioMensal("2026-07", { ...baseState, transacoes }, "tudo", []);
+    expect(rel.financas.receitas).toBe(1000); // sem os 500 da transferência
+    expect(rel.financas.despesas).toBe(200);  // sem os 500 da transferência
+    // categoria da transferência não aparece no ranking de gastos
+    expect(rel.financas.categorias.some(c => /transfer/i.test(c.nome))).toBe(false);
+  });
 });
