@@ -75,7 +75,8 @@ export default function RelatorioMensal({
     };
 
     const recTab = tabelaCat(f.receitasCategorias, f.receitas, "#3f6d6a", "Sem receitas no mês.");
-    const despTab = tabelaCat(f.categorias, f.despesas, "#a86b4b", "Sem gastos categorizados.");
+    const despTab = tabelaCat(f.categorias, f.despesasBancos, "#a86b4b", "Sem gastos por banco.");
+    const geralTab = tabelaCat(f.categoriasGeral, f.despesas, "#8a6a2a", "Sem gastos no mês.");
 
     const provChips = (iv.proventosPorTipo || []).length
       ? (iv.proventosPorTipo || []).map((p) => `<span class="chip">${esc(p.tipo)} <b>${esc(fmt(p.valor))}</b></span>`).join("")
@@ -169,7 +170,7 @@ tr.tot td { border-bottom:none; border-top:1.5px solid #cfcabf; font-weight:800;
 
 <div class="two">
   <div><div class="sub">Recebimentos por categoria</div>${recTab}</div>
-  <div><div class="sub">Despesas por categoria</div>${despTab}</div>
+  <div><div class="sub">Despesas por categoria · bancos</div>${despTab}</div>
 </div>
 
 <h2>Investimentos do mês</h2>
@@ -186,8 +187,12 @@ ${investVazio ? `<div class="empty">Sem movimentações de investimento neste m�
 </div>`}
 
 ${detCartoes.length ? `<h2>Cartões · detalhe</h2>
-<div class="note">Informativo — estas compras já estão somadas nas despesas acima; aqui só separadas por cartão. O pagamento da fatura não soma.</div>
+<div class="note">Informativo — compras/parcelas lançadas em cada cartão. O pagamento da fatura não soma.</div>
 <div class="ccs">${cartoesHtml}</div>` : ""}
+
+<h2>Resumo geral · por categoria</h2>
+<div class="note">Bancos + cartões juntos — o gasto real do mês por categoria.</div>
+${geralTab}
 
 <div class="foot"><span>Afinanças · relatório mensal</span><span>${esc(rotuloMes(mesISO))}</span></div>
 </div></body></html>`);
@@ -246,9 +251,9 @@ ${detCartoes.length ? `<h2>Cartões · detalhe</h2>
       </div>
 
       {/* Top categorias */}
-      <div style={{ fontSize: 11, color: T.faint, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>Gastos por categoria</div>
+      <div style={{ fontSize: 11, color: T.faint, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>Gastos por categoria · bancos</div>
       {f.categorias.length === 0 ? (
-        <div style={{ fontSize: 12, color: T.faint, fontStyle: "italic", marginBottom: 8 }}>Sem gastos categorizados neste mês.</div>
+        <div style={{ fontSize: 12, color: T.faint, fontStyle: "italic", marginBottom: 8 }}>Sem gastos por banco neste mês.</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 8 }}>
           {f.categorias.slice(0, 6).map((c) => (
@@ -323,6 +328,28 @@ ${detCartoes.length ? `<h2>Cartões · detalhe</h2>
                     ))}
                   </div>
                 )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ===== RESUMO GERAL · bancos + cartões por categoria ===== */}
+      {f.categoriasGeral.length > 0 && (
+        <>
+          <SecTitulo style={{ marginTop: 18 }}>Resumo geral · por categoria</SecTitulo>
+          <div style={{ fontSize: 11, color: T.faint, fontStyle: "italic", marginBottom: 8 }}>
+            Bancos + cartões juntos — o gasto real do mês por categoria.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {f.categoriasGeral.slice(0, 12).map((c) => (
+              <div key={c.nome} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <span style={{ width: 120, flexShrink: 0, fontSize: 11.5, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</span>
+                <div style={{ flex: 1, height: 8, borderRadius: 999, background: T.bgSoft, overflow: "hidden" }}>
+                  <div style={{ width: `${c.pct}%`, height: "100%", borderRadius: 999, background: T.gold }} />
+                </div>
+                <span className="num" style={{ width: 92, textAlign: "right", flexShrink: 0, fontSize: 11.5, color: T.ink }}>{hidden ? "•••" : fmt(c.valor)}</span>
+                <span className="num" style={{ width: 34, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.muted }}>{fmtN(c.pct, 0)}%</span>
               </div>
             ))}
           </div>

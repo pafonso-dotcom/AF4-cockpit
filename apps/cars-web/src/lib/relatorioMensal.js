@@ -73,13 +73,24 @@ function financasDoMes(mesISO, state, escopo) {
 
   // Ranking de categorias de gasto (consumo real).
   const gastos = desp.filter(d => !naoEhGasto(d.categoria) && !d.transferenciaId);
-  const categorias = agruparCategoria(gastos);
+  // "Despesas por categoria" = só o que foi pago pelos BANCOS (não-cartão). As
+  // compras/parcelas de cartão aparecem separadas no bloco "Cartões · detalhe",
+  // pra não contar duas vezes na mesma tela.
+  const cartaoTxIds = new Set((state.transacoes || []).filter(t => t && t.cartaoId).map(t => t.id));
+  const ehDeCartao = (d) => d.fonte === "parcela" || cartaoTxIds.has(d.id);
+  const gastosBancos = gastos.filter(d => !ehDeCartao(d));
+  const categorias = agruparCategoria(gastosBancos);
+  const despesasBancos = gastosBancos.reduce((s, d) => s + (Number(d.valor) || 0), 0);
+  const despesasCartoes = gastos.filter(ehDeCartao).reduce((s, d) => s + (Number(d.valor) || 0), 0);
+  // Resumo geral: bancos + cartões juntos por categoria (o gasto real do mês).
+  const categoriasGeral = agruparCategoria(gastos);
   // Receitas agrupadas por categoria (resumo, não item a item).
   const receitasCategorias = agruparCategoria(gan);
 
   return {
     receitas, despesas, sobra: receitas - despesas, pagas, aPagar,
-    categorias, receitasCategorias, pagamentosCartao, totalPagamentosCartao,
+    categorias, categoriasGeral, receitasCategorias, despesasBancos, despesasCartoes,
+    pagamentosCartao, totalPagamentosCartao,
   };
 }
 
