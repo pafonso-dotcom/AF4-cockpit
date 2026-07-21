@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { CreditCard, Calendar, TrendingUp, TrendingDown, Plus, Trash2, Edit3, Check, Repeat, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { CreditCard, Calendar, TrendingUp, TrendingDown, Plus, Trash2, Edit3, Check, Repeat, ChevronDown, ChevronUp, Sparkles, AlertCircle } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, uid, todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
@@ -157,6 +157,8 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
 
   const [formErrors, setFormErrors] = useState({});
   const [parcErrors, setParcErrors] = useState({});
+  // Modal "categorizar parcelamentos sem categoria" (mutirão): mapa id → categoria.
+  const [catBulk, setCatBulk] = useState(null);
 
   const saveCard = () => {
     const errs = {};
@@ -192,6 +194,9 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     const tp = parseInt(parcForm.totalParcelas);
     if (isNaN(tp) || tp < 1 || tp > 360) errs.totalParcelas = "Entre 1 e 360 parcelas";
     if (!parcForm.cartaoId) errs.cartaoId = "Escolha um cartão";
+    // Categoria é obrigatória pra a parcela cair na categoria certa dos
+    // relatórios (ex.: Mercado) em vez do balde genérico "Cartão · parcelamento".
+    if (!parcForm.categoria?.trim()) errs.categoria = "Escolha uma categoria";
 
     setParcErrors(errs);
     if (Object.keys(errs).length > 0) {
@@ -628,6 +633,30 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         <StatTile label="Comprometido (total)" valor={totalUsado} hidden={hidden} cor={T.red} icon={TrendingDown} sub="soma de todas as parcelas" spark={cartaoSeries.comprometido} />
         <StatTile label="Parcelamentos ativos" valor={String(parcelamentos.filter(p => (p.parcelasPagas?.length || 0) < p.totalParcelas).length)} cor={T.blue} icon={Repeat} sub="em aberto" />
       </div>
+
+      {/* Aviso: parcelamentos sem categoria (caem no balde "Cartão · parcelamento"
+          nos relatórios). Atalho pra categorizar todos de uma vez. */}
+      {(() => {
+        const semCat = parcelamentos.filter(p => !String(p.categoria || "").trim()
+          && (p.parcelasPagas?.length || 0) < (p.totalParcelas || 0));
+        if (semCat.length === 0) return null;
+        return (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+            background: `${T.gold}12`, border: `1px solid ${T.gold}44`, borderRadius: 12,
+            padding: "12px 14px", marginBottom: 24,
+          }}>
+            <AlertCircle size={18} style={{ color: T.gold, flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 160, fontSize: 12.5, color: T.ink }}>
+              <b>{semCat.length}</b> parcelamento{semCat.length === 1 ? "" : "s"} sem categoria — {semCat.length === 1 ? "ele cai" : "eles caem"} em “Cartão · parcelamento” nos relatórios em vez da categoria real (ex.: Mercado).
+            </div>
+            <button className="btn-gold" style={{ padding: "8px 14px", fontSize: 12.5, whiteSpace: "nowrap" }}
+              onClick={() => setCatBulk(Object.fromEntries(semCat.map(p => [p.id, ""])))}>
+              Categorizar {semCat.length === 1 ? "" : "todos"}
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Lista de cartões — recolhida por padrão */}
       <SecaoColapsavel idKey="cartoes-lista" titulo="Meus cartões" count={cartoes.length} defaultAberto={false}>
@@ -1109,9 +1138,9 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
               {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </Field>
-          <Field label="Categoria" hint="Como você quer ver essa parcela nos relatórios">
+          <Field label="Categoria" required error={parcErrors.categoria} hint="Como você quer ver essa parcela nos relatórios (ex.: Mercado)">
             <select value={parcForm.categoria || ""} onChange={e => setParcForm({ ...parcForm, categoria: e.target.value })}>
-              <option value="">Sem categoria</option>
+              <option value="">Selecione…</option>
               {ordenarPorNome((categorias || []).filter(c => c.tipo !== "receita")).map(c => (
                 <option key={c.id} value={c.nome}>{c.nome}</option>
               ))}
@@ -1148,6 +1177,57 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           </div>
         </Modal>
       )}
+
+      {/* Mutirão: categorizar parcelamentos sem categoria */}
+      {catBulk && (() => {
+        const alvos = parcelamentos.filter(p => catBulk[p.id] !== undefined);
+        const opcoes = ordenarPorNome((categorias || []).filter(c => c.tipo !== "receita"));
+        const preenchidos = Object.values(catBulk).filter(v => String(v || "").trim()).length;
+        const salvar = () => {
+          setParcelamentos(parcelamentos.map(p => {
+            const nova = catBulk[p.id];
+            return (nova !== undefined && String(nova).trim()) ? { ...p, categoria: nova } : p;
+          }));
+          toast.success(`${preenchidos} parcelamento(s) categorizado(s).`);
+          setCatBulk(null);
+        };
+        return (
+          <Modal title="Categorizar parcelamentos" onClose={() => setCatBulk(null)}>
+            <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 14 }}>
+              Escolha a categoria real de cada compra (ex.: Mercado). Assim ela some do balde
+              “Cartão · parcelamento” e passa a somar na categoria certa dos relatórios.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: "56vh", overflowY: "auto" }}>
+              {alvos.map(p => {
+                const cartao = cartoes.find(c => c.id === p.cartaoId);
+                return (
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                    border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 11px" }}>
+                    <div style={{ flex: 1, minWidth: 150 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.descricao || "Parcelamento"}</div>
+                      <div style={{ fontSize: 10.5, color: T.muted }}>
+                        {cartao?.nome || "—"} · {p.totalParcelas}× de {fmt(valorDaParcela(p))}
+                      </div>
+                    </div>
+                    <select value={catBulk[p.id] || ""} onChange={e => setCatBulk({ ...catBulk, [p.id]: e.target.value })}
+                      style={{ minWidth: 150, background: T.bgSoft, border: `1px solid ${catBulk[p.id] ? T.gold : T.border}`, borderRadius: 9, padding: "7px 10px", color: T.ink, fontSize: 12.5, fontFamily: "inherit" }}>
+                      <option value="">Selecione…</option>
+                      {opcoes.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button className="btn-gold" onClick={salvar} disabled={preenchidos === 0}
+                style={{ opacity: preenchidos === 0 ? 0.5 : 1 }}>
+                Salvar {preenchidos > 0 ? `(${preenchidos})` : ""}
+              </button>
+              <button className="btn-ghost" onClick={() => setCatBulk(null)}>Cancelar</button>
+            </div>
+          </Modal>
+        );
+      })()}
 
       {/* Pagamento de Fatura modal */}
       {pagFatura && (() => {
