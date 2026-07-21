@@ -47,14 +47,22 @@ function financasDoMes(mesISO, state, escopo) {
 
   // Ranking de categorias de gasto (consumo real).
   const gastos = desp.filter(d => !naoEhGasto(d.categoria) && !d.transferenciaId);
-  const m = {};
-  gastos.forEach(d => { const k = d.categoria || "Outros"; m[k] = (m[k] || 0) + (Number(d.valor) || 0); });
-  const totCat = Object.values(m).reduce((s, v) => s + v, 0) || 1;
-  const categorias = Object.entries(m)
-    .sort((a, b) => b[1] - a[1])
-    .map(([nome, valor]) => ({ nome, valor, pct: (valor / totCat) * 100 }));
+  const categorias = agruparCategoria(gastos);
+  // Receitas agrupadas por categoria (resumo, não item a item).
+  const receitasCategorias = agruparCategoria(gan);
 
-  return { receitas, despesas, sobra: receitas - despesas, pagas, aPagar, categorias };
+  return { receitas, despesas, sobra: receitas - despesas, pagas, aPagar, categorias, receitasCategorias };
+}
+
+// Agrupa itens {categoria, valor} por categoria, ordenado do maior pro menor,
+// com o % de cada uma sobre o total.
+function agruparCategoria(itens) {
+  const m = {};
+  itens.forEach(x => { const k = x.categoria || "Outros"; m[k] = (m[k] || 0) + (Number(x.valor) || 0); });
+  const tot = Object.values(m).reduce((s, v) => s + v, 0) || 1;
+  return Object.entries(m)
+    .sort((a, b) => b[1] - a[1])
+    .map(([nome, valor]) => ({ nome, valor, pct: (valor / tot) * 100 }));
 }
 
 // Variação do patrimônio no mês, a partir dos snapshots diários {data,total}.
@@ -100,7 +108,13 @@ export function relatorioMensal(mesISO, state = {}, escopo = "tudo", patrimonioH
 
   const mov = movimentacoesInvestMes(state.transacoes || [], mesISO);
   const patr = patrimonioNoMes(mesISO, patrimonioHistorico);
-  const invest = { ...mov, ...patr };
+  // Proventos agrupados por tipo (Dividendo/JCP/Rendimento) — resumo pro PDF.
+  const provMap = {};
+  (mov.proventos || []).forEach(p => { provMap[p.tipo || "Provento"] = (provMap[p.tipo || "Provento"] || 0) + (Number(p.valor) || 0); });
+  const proventosPorTipo = Object.entries(provMap)
+    .sort((a, b) => b[1] - a[1])
+    .map(([tipo, valor]) => ({ tipo, valor }));
+  const invest = { ...mov, ...patr, proventosPorTipo };
 
   return { mes: mesISO, financas, invest };
 }
