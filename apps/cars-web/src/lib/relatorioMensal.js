@@ -10,7 +10,7 @@
 // baterem com o Painel/Planejamento.
 // ============================================================
 
-import { getKPIsMes, getDespesasDoMes, getGanhosDoMes } from "./agregador.js";
+import { getDespesasDoMes, getGanhosDoMes } from "./agregador.js";
 import { movimentacoesInvestMes } from "./movimentacoesInvest.js";
 
 // Categorias que NÃO são gasto de consumo (movimentação de dinheiro): não
@@ -25,16 +25,25 @@ export function mesAnteriorISO(mesISO) {
 
 // Fechamento de finanças de um mês (competência).
 function financasDoMes(mesISO, state, escopo) {
-  let desp = [], gan = [], kpi = null;
+  let desp = [], gan = [];
   try { desp = getDespesasDoMes(mesISO, state, escopo) || []; } catch { desp = []; }
   try { gan = getGanhosDoMes(mesISO, state, escopo) || []; } catch { gan = []; }
-  try { kpi = getKPIsMes(mesISO, state, escopo); } catch { kpi = null; }
+
+  // Transferência entre bancos é o MESMO dinheiro mudando de conta — não é
+  // receita nem despesa real, então fica fora do relatório. As duas pernas
+  // carregam `transferenciaId`; o id do item do agregador é o id da transação.
+  const transferIds = new Set(
+    (state.transacoes || []).filter(t => t && t.transferenciaId).map(t => t.id)
+  );
+  const real = (arr) => arr.filter(x => !transferIds.has(x.id));
+  desp = real(desp);
+  gan = real(gan);
 
   const receitas = gan.reduce((s, g) => s + (Number(g.valor) || 0), 0);
-  const despesas = Number(kpi?.totalPrevisto || 0)
-    || desp.reduce((s, d) => s + (Number(d.valor) || 0), 0);
-  const pagas = Number(kpi?.totalPago || 0);
-  const aPagar = Number(kpi?.totalPendente || 0) + Number(kpi?.totalAtrasado || 0);
+  const despesas = desp.reduce((s, d) => s + (Number(d.valor) || 0), 0);
+  const pagas = desp.filter(d => d.status === "paga").reduce((s, d) => s + (Number(d.valor) || 0), 0);
+  const aPagar = desp.filter(d => d.status === "pendente" || d.status === "atrasada")
+    .reduce((s, d) => s + (Number(d.valor) || 0), 0);
 
   // Ranking de categorias de gasto (consumo real).
   const gastos = desp.filter(d => !naoEhGasto(d.categoria) && !d.transferenciaId);
