@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   ChevronLeft, ChevronRight, Printer, TrendingUp, TrendingDown,
-  ArrowDownRight, ArrowUpRight, DollarSign, Wallet, Briefcase,
+  ArrowDownRight, ArrowUpRight, DollarSign, Wallet, Briefcase, CreditCard,
 } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN } from "../../lib/format.js";
@@ -53,6 +53,7 @@ export default function RelatorioMensal({
 
   const mask = (v) => (hidden ? "•••••" : fmt(v));
   const { financas: f, invest: iv } = rel;
+  const detCartoes = rel.cartoes || [];
   const temInvest = iv.totalComprado > 0 || iv.totalVendido > 0 || iv.totalProventos > 0 || iv.patrimonioFim != null;
 
   const gerarPDF = () => {
@@ -87,6 +88,19 @@ export default function RelatorioMensal({
 
     const investVazio = !(iv.totalComprado > 0 || iv.totalVendido > 0 || iv.totalProventos > 0 || iv.patrimonioFim != null);
     const deltaDesp = f.deltaDespesas == null ? "—" : `${f.deltaDespesas >= 0 ? "▲ +" : "▼ "}${fmtN(Math.abs(f.deltaDespesas), 0)}%`;
+
+    // Detalhe por cartão (informativo) — categorias separadas + pagamento.
+    const cartoesHtml = detCartoes.map((cc) => {
+      const rows = cc.categorias.map((c) => `<tr>
+        <td class="cat">${esc(c.nome)}</td>
+        <td class="bar"><i style="width:${Math.max(3, Math.round(c.pct))}%;background:#8a6a2a"></i></td>
+        <td class="n">${esc(fmt(c.valor))}</td><td class="pc">${fmtN(c.pct, 0)}%</td>
+      </tr>`).join("") || `<tr><td colspan="4" class="muted">—</td></tr>`;
+      return `<div class="cc">
+        <div class="cc-h"><b>${esc(cc.nome)}</b><span>Gasto ${esc(fmt(cc.total))}${cc.pagamento > 0 ? ` · Pago ${esc(fmt(cc.pagamento))}` : ""}</span></div>
+        <table class="cat-t"><tbody>${rows}</tbody></table>
+      </div>`;
+    }).join("");
 
     printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Relatório · ${esc(rotuloMes(mesISO))}</title>
 <style>
@@ -123,6 +137,11 @@ tr.tot td { border-bottom:none; border-top:1.5px solid #cfcabf; font-weight:800;
 .chip { font-size:10.5px; padding:3px 10px; border:1px solid #e0dcd3; border-radius:999px; color:#3a3f45; }
 .chip b { font-variant-numeric:tabular-nums; }
 .empty, .muted { color:#a9adb3; font-style:italic; font-size:11px; }
+.note { font-size:9.5px; color:#9aa0a6; font-style:italic; margin:-2px 0 8px; }
+.ccs { display:flex; flex-direction:column; gap:10px; }
+.cc { border:1px solid #e7e3db; border-radius:10px; padding:9px 12px; break-inside:avoid; }
+.cc-h { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px; font-size:11.5px; }
+.cc-h b { color:#22262b; } .cc-h span { color:#8a8f96; font-size:10px; font-variant-numeric:tabular-nums; }
 .foot { margin-top:22px; padding-top:8px; border-top:1px solid #eee; font-size:8.5px; color:#b3b7bc; display:flex; justify-content:space-between; }
 .pos, .green { color:#1f7a44; } .neg, .red { color:#b3261e; }
 </style></head><body><div class="wrap">
@@ -165,6 +184,10 @@ ${investVazio ? `<div class="empty">Sem movimentações de investimento neste m�
   <div class="row"><span>Resultado das vendas</span><b class="n ${iv.resultadoVendas >= 0 ? "pos" : "neg"}">${sinal(iv.resultadoVendas)}</b></div>
   ${patrBloco}
 </div>`}
+
+${detCartoes.length ? `<h2>Cartões · detalhe</h2>
+<div class="note">Informativo — estas compras já estão somadas nas despesas acima; aqui só separadas por cartão. O pagamento da fatura não soma.</div>
+<div class="ccs">${cartoesHtml}</div>` : ""}
 
 <div class="foot"><span>Afinanças · relatório mensal</span><span>${esc(rotuloMes(mesISO))}</span></div>
 </div></body></html>`);
@@ -263,6 +286,45 @@ ${investVazio ? `<div class="empty">Sem movimentações de investimento neste m�
                 )}
               </span>
             )}
+          </div>
+        </>
+      )}
+
+      {/* ===== CARTÕES (informativo, separado por cartão) ===== */}
+      {detCartoes.length > 0 && (
+        <>
+          <SecTitulo style={{ marginTop: 18 }}>Cartões · detalhe</SecTitulo>
+          <div style={{ fontSize: 11, color: T.faint, fontStyle: "italic", marginBottom: 8 }}>
+            Informativo — estas compras já estão somadas nas despesas acima; aqui só separadas por cartão. O pagamento da fatura não soma.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {detCartoes.map((cc) => (
+              <div key={cc.id} style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: "11px 13px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: T.ink, display: "inline-flex", alignItems: "center", gap: 7 }}>
+                    <CreditCard size={14} style={{ color: T.gold }} /> {cc.nome}
+                  </div>
+                  <div style={{ fontSize: 11, color: T.muted }}>
+                    Gasto: <b className="num" style={{ color: T.ink }}>{hidden ? "•••" : fmt(cc.total)}</b>
+                    {cc.pagamento > 0 && <> · Pago: <b className="num" style={{ color: T.muted }}>{hidden ? "•••" : fmt(cc.pagamento)}</b></>}
+                  </div>
+                </div>
+                {cc.categorias.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                    {cc.categorias.map((c) => (
+                      <div key={c.nome} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                        <span style={{ width: 120, flexShrink: 0, fontSize: 11.5, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</span>
+                        <div style={{ flex: 1, height: 7, borderRadius: 999, background: T.bgSoft, overflow: "hidden" }}>
+                          <div style={{ width: `${c.pct}%`, height: "100%", borderRadius: 999, background: T.gold }} />
+                        </div>
+                        <span className="num" style={{ width: 92, textAlign: "right", flexShrink: 0, fontSize: 11.5, color: T.ink }}>{hidden ? "•••" : fmt(c.valor)}</span>
+                        <span className="num" style={{ width: 34, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.muted }}>{fmtN(c.pct, 0)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </>
       )}

@@ -32,6 +32,26 @@ describe("relatorioMensal · invest", () => {
   });
 });
 
+describe("relatorioMensal · cartões", () => {
+  it("pagamento de fatura não soma; cartão mostra categorias separadas", () => {
+    const cartoes = [{ id: "cc1", nome: "Nubank" }];
+    const transacoes = [
+      { id: "d1", tipo: "despesa", valor: 300, data: "2026-07-04", conta: "Nu", categoria: "Mercado", cartaoId: "cc1", compensado: false },
+      { id: "pg", tipo: "despesa", valor: 300, data: "2026-07-10", conta: "Nu", categoria: "Cartão", cartaoId: "cc1",
+        descricao: "Pagamento fatura Nubank · 2026-07", origem: "fatura-pagamento", compensado: true },
+    ];
+    const rel = relatorioMensal("2026-07", { ...baseState, cartoes, transacoes }, "tudo", []);
+    // O pagamento de fatura NÃO entra nas despesas (só a compra).
+    expect(rel.financas.despesas).toBe(300);
+    expect(rel.financas.totalPagamentosCartao).toBe(300);
+    // O cartão mostra a categoria Mercado separada e o pagamento.
+    const cc = rel.cartoes.find(c => c.id === "cc1");
+    expect(cc).toBeTruthy();
+    expect(cc.categorias.some(c => c.nome === "Mercado")).toBe(true);
+    expect(cc.pagamento).toBe(300);
+  });
+});
+
 describe("relatorioMensal · patrimônio", () => {
   it("usa o snapshot anterior ao mês como início e o último do mês como fim", () => {
     const historico = [

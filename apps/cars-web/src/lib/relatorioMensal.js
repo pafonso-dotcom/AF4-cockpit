@@ -22,6 +22,10 @@ const naoEhGasto = (nome) => /investim|transf|dep[oó]sito|aporte|resgate/i.test
 // "Transferência", …): mesmo dinheiro mudando de conta, fora do relatório.
 const ehCategoriaTransfer = (nome) => /transf/i.test(String(nome || ""));
 
+// Pagamento de fatura de cartão (a "baixa"): informativo, não soma (as compras
+// já entram individualmente). Marcado por origem "fatura-pagamento" ou descrição.
+const ehPagCartao = (t) => !!t && (t.origem === "fatura-pagamento" || /pagamento\s+(de\s+)?fatura/i.test(t.descricao || ""));
+
 export function mesAnteriorISO(mesISO) {
   const [y, m] = String(mesISO).split("-").map(Number);
   const d = new Date(y, m - 2, 1);
@@ -44,10 +48,20 @@ function financasDoMes(mesISO, state, escopo) {
   const foraIds = new Set(
     (state.transacoes || []).filter(t => t && t.foraDoRelatorio).map(t => t.id)
   );
-  // Fora se: é uma perna de transferência (transferenciaId) OU a categoria é
-  // de transferência ("Transf entre bancos", …) OU o usuário marcou pra ocultar.
+  // Pagamentos de fatura de cartão do mês — INFORMATIVO (não somam): as
+  // compras/parcelas já entram individualmente, então contar o pagamento
+  // dobraria. Identificados por origem "fatura-pagamento" ou pela descrição.
+  const pagamentosCartao = (state.transacoes || [])
+    .filter(t => ehPagCartao(t) && String(t.data || "").startsWith(mesISO))
+    .map(t => ({ id: t.id, data: t.data, descricao: t.descricao || "Pagamento de fatura", valor: Number(t.valor) || 0 }))
+    .sort((a, b) => (a.data || "").localeCompare(b.data || ""));
+  const totalPagamentosCartao = pagamentosCartao.reduce((s, p) => s + p.valor, 0);
+  const pagIds = new Set(pagamentosCartao.map(p => p.id));
+
+  // Fora se: é transferência (id/categoria), o usuário marcou pra ocultar, ou é
+  // um pagamento de fatura de cartão (só informativo).
   const ehTransfer = (x) => transferIds.has(x.id) || ehCategoriaTransfer(x.categoria);
-  const real = (arr) => arr.filter(x => !ehTransfer(x) && !foraIds.has(x.id));
+  const real = (arr) => arr.filter(x => !ehTransfer(x) && !foraIds.has(x.id) && !pagIds.has(x.id));
   desp = real(desp);
   gan = real(gan);
 
@@ -63,7 +77,54 @@ function financasDoMes(mesISO, state, escopo) {
   // Receitas agrupadas por categoria (resumo, não item a item).
   const receitasCategorias = agruparCategoria(gan);
 
-  return { receitas, despesas, sobra: receitas - despesas, pagas, aPagar, categorias, receitasCategorias };
+  return {
+    receitas, despesas, sobra: receitas - despesas, pagas, aPagar,
+    categorias, receitasCategorias, pagamentosCartao, totalPagamentosCartao,
+  };
+}
+
+// Detalhamento por CARTÃO (informativo — as compras já estão no total geral):
+// para cada cartão, as categorias do mês (compras lançadas no cartão + parcelas
+// que vencem no mês) separadas, o total e o pagamento de fatura do mês.
+function cartoesDoMes(mesISO, state) {
+  const cards = state.cartoes || [];
+  const trans = state.transacoes || [];
+  const parcels = state.parcelamentos || [];
+  const foraIds = new Set(trans.filter(t => t && t.foraDoRelatorio).map(t => t.id));
+
+  const out = cards.map(card => {
+    const m = {};
+    // 1) Compras lançadas neste cartão (transações despesa com cartaoId, do mês).
+    trans.forEach(t => {
+      if (t.tipo !== "despesa" || t.cartaoId !== card.id) return;
+      if (!String(t.data || "").startsWith(mesISO)) return;
+      if (foraIds.has(t.id) || ehPagCartao(t)) return;
+      const k = t.categoria || "Outros";
+      m[k] = (m[k] || 0) + (Number(t.valor) || 0);
+    });
+    // 2) Parcelas deste cartão que vencem no mês (categoria do parcelamento).
+    parcels.forEach(p => {
+      if (p.cartaoId !== card.id || !p.dataPrimeira || !p.totalParcelas) return;
+      const base = new Date(p.dataPrimeira);
+      const by = base.getFullYear(), bm = base.getMonth(), bd = base.getDate();
+      for (let i = 1; i <= p.totalParcelas; i++) {
+        const d = new Date(by, bm + (i - 1), 1);
+        d.setDate(Math.min(bd, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+        if (!d.toISOString().slice(0, 10).startsWith(mesISO)) continue;
+        const k = String(p.categoria || "").trim() || "Cartão · parcelamento";
+        m[k] = (m[k] || 0) + (Number(p.valorParcela) || (Number(p.valorTotal) / p.totalParcelas) || 0);
+      }
+    });
+    const categorias = agruparCategoria(Object.entries(m).map(([categoria, valor]) => ({ categoria, valor })));
+    const total = categorias.reduce((s, c) => s + c.valor, 0);
+    const pagamento = trans
+      .filter(t => ehPagCartao(t) && t.cartaoId === card.id && String(t.data || "").startsWith(mesISO))
+      .reduce((s, t) => s + (Number(t.valor) || 0), 0);
+    return { id: card.id, nome: card.nome || "Cartão", total, categorias, pagamento };
+  }).filter(c => c.total > 0 || c.pagamento > 0);
+
+  out.sort((a, b) => (b.total + b.pagamento) - (a.total + a.pagamento));
+  return out;
 }
 
 // Agrupa itens {categoria, valor} por categoria, ordenado do maior pro menor,
@@ -128,5 +189,8 @@ export function relatorioMensal(mesISO, state = {}, escopo = "tudo", patrimonioH
     .map(([tipo, valor]) => ({ tipo, valor }));
   const invest = { ...mov, ...patr, proventosPorTipo };
 
-  return { mes: mesISO, financas, invest };
+  // Detalhamento por cartão (informativo).
+  const cartoes = cartoesDoMes(mesISO, state);
+
+  return { mes: mesISO, financas, invest, cartoes };
 }
