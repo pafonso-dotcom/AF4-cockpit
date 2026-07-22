@@ -89,6 +89,7 @@ const AnalisesUnificada = lz(() => import("./components/pages/Invest/Analises.js
 const PlanejarCarteira = lz(() => import("./components/pages/Invest/PlanejarCarteira.jsx"));
 const Planejador = lz(() => import("./components/pages/Invest/Planejador.jsx"));
 const InvestPainel = lz(() => import("./components/pages/Invest/InvestPainel.jsx"));
+const Emprestimos = lz(() => import("./components/pages/Emprestimos.jsx"));
 const Proventos = lz(() => import("./components/pages/Invest/Proventos.jsx"));
 const MapaDividendos = lz(() => import("./components/pages/Invest/MapaDividendos.jsx"));
 const RendaDividendos = lz(() => import("./components/pages/Invest/RendaDividendos.jsx"));
@@ -894,6 +895,9 @@ export default function App() {
       {tab === "categorias" && (
         <Categorias categorias={categorias} setCategorias={setCategorias} transacoes={transacoes}
                     escopoAtivo={escopoAtivo} hidden={hidden} />
+      )}
+      {tab === "emprestimos" && (
+        <Emprestimos devedores={devedores} hidden={hidden} onTabChange={irParaTab} />
       )}
       {/* Relatórios, Inteligência, Revisor de ganhos e Histórico consolidados em Análises & Relatórios — ver bloco unificado acima */}
       {/* Rotas antigas (fixas, relatorios-anual, areceber) consolidadas em Planejamento — ver bloco unificado acima */}

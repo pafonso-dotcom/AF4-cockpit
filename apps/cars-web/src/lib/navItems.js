@@ -12,6 +12,7 @@ export const NAV_ITEMS = [
   { modulo: "financas", tab: "dashboard",    label: "Painel",             grupo: "Finanças" },
   { modulo: "financas", tab: "contas",       label: "Contas",             grupo: "Finanças" },
   { modulo: "financas", tab: "cartoes",      label: "Cartões",            grupo: "Finanças" },
+  { modulo: "financas", tab: "emprestimos",  label: "Empréstimos",        grupo: "Finanças" },
   { modulo: "financas", tab: "transacoes",   label: "Transações",         grupo: "Finanças" },
   { modulo: "financas", tab: "areceber",     label: "A Receber & Dívidas", grupo: "Finanças" },
   { modulo: "financas", tab: "planejamento", label: "Planejamento",       grupo: "Finanças" },
