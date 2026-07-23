@@ -1,5 +1,5 @@
-import React, { useMemo, useEffect, useState } from "react";
-import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, ArrowUpRight, ArrowDownLeft, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar, CreditCard, Receipt, Plus, Eye, EyeOff } from "lucide-react";
+import React, { useMemo, useEffect, useState, useRef } from "react";
+import { Wallet, Briefcase, TrendingUp, TrendingDown, Sparkles, ChevronRight, ArrowRight, ArrowUpRight, ArrowDownLeft, FileText, BarChart3, PieChart as PieIcon, HandCoins, AlertCircle, Clock, Calendar, CreditCard, Receipt, Plus, Eye, EyeOff, StickyNote } from "lucide-react";
 import { CARD_SHADOW, AURORA_BG } from "../../lib/styles.js";
 import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
@@ -491,11 +491,14 @@ export default function Dashboard({
         <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
       </section>
 
-      {/* Calendário do mês + A Receber */}
+      {/* Calendário do mês (+ notas rápidas embaixo) · A Receber */}
       <section className="dash-bot-grid" style={{
-        display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 12, marginBottom: 16, alignItems: "start",
       }}>
-        <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+          <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
+          <NotasRapidasCard />
+        </div>
         <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesProxMes={cartoesProxMes} sparks={sparks} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
@@ -543,6 +546,39 @@ export default function Dashboard({
 /* ============================================================
    Sub-componentes
    ============================================================ */
+
+// Bloco de notas rápidas do Painel — texto livre salvo automaticamente no
+// localStorage (debounce de 500ms). Serve pra lembretes/rascunhos à mão.
+const NOTAS_KEY = "af4:notas-rapidas:v1";
+function NotasRapidasCard() {
+  const [txt, setTxt] = useState(() => { try { return localStorage.getItem(NOTAS_KEY) || ""; } catch { return ""; } });
+  const [salvo, setSalvo] = useState(true);
+  const primeiro = useRef(true);
+  useEffect(() => {
+    if (primeiro.current) { primeiro.current = false; return; }
+    setSalvo(false);
+    const id = setTimeout(() => {
+      try { localStorage.setItem(NOTAS_KEY, txt); } catch {}
+      setSalvo(true);
+    }, 500);
+    return () => clearTimeout(id);
+  }, [txt]);
+  return (
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <StickyNote size={15} style={{ color: T.gold }} />
+          <div style={{ fontFamily: T.serif, fontSize: 15, fontWeight: 600 }}>Notas rápidas</div>
+        </div>
+        <span style={{ fontSize: 10, color: salvo ? T.faint : T.gold }}>{salvo ? "salvo" : "salvando…"}</span>
+      </div>
+      <textarea value={txt} onChange={(e) => setTxt(e.target.value)}
+        placeholder="Anote lembretes, ideias, números… fica salvo automaticamente."
+        rows={5}
+        style={{ width: "100%", boxSizing: "border-box", resize: "vertical", minHeight: 96, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 11px", color: T.ink, fontFamily: "inherit", fontSize: 14, lineHeight: 1.5, outline: "none" }} />
+    </div>
+  );
+}
 
 function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, metas = [], hidden, userName }) {
   const [aberto, setAberto] = useState(false);
