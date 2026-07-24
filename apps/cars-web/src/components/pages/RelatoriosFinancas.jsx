@@ -383,7 +383,14 @@ td.neg { color:#b3261e; }
             <div style={{ fontFamily: FONTE_ARRED, fontSize: 17, fontWeight: 700, color: T.ink }}>Por categoria · {periodoLabel}</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            {/* Avança/volta o início da projeção (tira/põe o mês corrente) */}
+            <select value={anoProj} onChange={e => { setAnoProj(parseInt(e.target.value)); setMesOffset(0); }}
+                    style={{ padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`,
+                             color: T.ink, fontSize: 12, borderRadius: 10, cursor: "pointer" }}>
+              {[anoAtualProj - 1, anoAtualProj, anoAtualProj + 1, anoAtualProj + 2].map(y =>
+                <option key={y} value={y}>{y}</option>
+              )}
+            </select>
+            {/* Avança/volta o início da projeção (tira/põe o mês corrente) — grudado no Imprimir */}
             <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 10, padding: 2 }}>
               <button onClick={() => setMesOffset(o => Math.max(0, o - 1))} disabled={mesOffset === 0}
                       title="Voltar um mês (incluir o mês atual)"
@@ -395,13 +402,6 @@ td.neg { color:#b3261e; }
                       title="Avançar um mês (tirar o mês atual)"
                       style={{ width: 28, height: 28, border: "none", background: "transparent", color: T.ink, borderRadius: 8, cursor: "pointer", fontSize: 15 }}>›</button>
             </div>
-            <select value={anoProj} onChange={e => { setAnoProj(parseInt(e.target.value)); setMesOffset(0); }}
-                    style={{ padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`,
-                             color: T.ink, fontSize: 12, borderRadius: 10, cursor: "pointer" }}>
-              {[anoAtualProj - 1, anoAtualProj, anoAtualProj + 1, anoAtualProj + 2].map(y =>
-                <option key={y} value={y}>{y}</option>
-              )}
-            </select>
             <button onClick={imprimirProjecao} className="btn-gold" style={{ padding: "8px 14px", fontSize: 12 }}>
               🖨️ Imprimir (A4 · 1 folha)
             </button>
