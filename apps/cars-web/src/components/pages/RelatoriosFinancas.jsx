@@ -395,8 +395,9 @@ td.neg { color:#b3261e; }
               <button onClick={() => setMesOffset(o => Math.max(0, o - 1))} disabled={mesOffset === 0}
                       title="Voltar um mês (incluir o mês atual)"
                       style={{ width: 28, height: 28, border: "none", background: "transparent", color: T.ink, borderRadius: 8, cursor: mesOffset === 0 ? "default" : "pointer", fontSize: 15, opacity: mesOffset === 0 ? 0.35 : 1 }}>‹</button>
-              <span style={{ fontSize: 10.5, color: T.muted, minWidth: 88, textAlign: "center", whiteSpace: "nowrap" }}>
-                {mesOffset === 0 ? "com mês atual" : `começa ${proximosMeses[0]?.label || ""}`}
+              <span title={mesOffset === 0 ? "Início: mês atual" : `Início: ${proximosMeses[0]?.label || ""}`}
+                    style={{ fontSize: 11, color: T.muted, minWidth: 32, textAlign: "center", whiteSpace: "nowrap" }}>
+                mês
               </span>
               <button onClick={() => setMesOffset(o => Math.min(23, o + 1))}
                       title="Avançar um mês (tirar o mês atual)"
