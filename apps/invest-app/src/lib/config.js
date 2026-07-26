@@ -2,9 +2,10 @@
    CONFIG · constantes centrais do produto AF.invest
    ============================================================ */
 
-// Endereço público oficial do app (domínio próprio).
-// O .pages.dev segue funcionando, mas a URL "de marca" é esta.
-export const APP_URL = "https://afinvest.inf.br";
+// Endereço público do app usado nos convites/links.
+// Usamos o .pages.dev (que está no ar) até o domínio de marca
+// afinvest.inf.br ser registrado e apontado — aí é só trocar aqui.
+export const APP_URL = "https://investimentos-app.pages.dev";
 
 // Nome do produto (para textos/convites).
 export const APP_NOME = "AF.invest";
