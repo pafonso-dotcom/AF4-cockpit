@@ -436,7 +436,16 @@ input:focus, select:focus, textarea:focus {
    ============================================================ */
 
 * { box-sizing: border-box; }
-html, body { overflow-x: hidden; max-width: 100vw; }
+/* Trava a posição horizontal: sem rolagem/arrasto lateral (evita "escorregão"
+   e swipe-back acidental no mobile). Rolagem interna de tabelas segue via
+   containers com overflow-x: auto. */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+  overscroll-behavior-x: none;
+}
+#root { overflow-x: hidden; max-width: 100vw; }
 
 /* Imagens e vídeos nunca estouram o viewport */
 img, svg, video, canvas { max-width: 100%; height: auto; }
@@ -566,7 +575,16 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
    ============================================================ */
 
 * { box-sizing: border-box; }
-html, body { overflow-x: hidden; max-width: 100vw; }
+/* Trava a posição horizontal: sem rolagem/arrasto lateral (evita "escorregão"
+   e swipe-back acidental no mobile). Rolagem interna de tabelas segue via
+   containers com overflow-x: auto. */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+  overscroll-behavior-x: none;
+}
+#root { overflow-x: hidden; max-width: 100vw; }
 
 /* Imagens e vídeos nunca estouram o viewport */
 img, svg, video, canvas { max-width: 100%; height: auto; }
