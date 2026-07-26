@@ -8,6 +8,7 @@ import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
 import { whatsapp } from "../../lib/whatsapp.js";
 import { getDespesasDoMes } from "../../lib/agregador.js";
+import { proximosMesesFixa } from "../../lib/adiantamentoFixa.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
@@ -477,6 +478,104 @@ export default function AReceberEDividas({
 
     const isReceber = baixaForm.tipoOriginal === "receber";
 
+    // ===== Conta fixa: pagamento parcial / adiantamento =====
+    const ehFixaPagar = !isReceber && baixaForm._origem === "fixa" && !!baixaForm._fixaOccId && !baixaForm._metaId;
+    const ehParcialFixa = ehFixaPagar && !!baixaForm.parcial;
+    const adiantN = ehFixaPagar && !baixaForm.parcial
+      ? Math.max(0, Math.min(60, parseInt(baixaForm.adiantarMeses, 10) || 0))
+      : 0;
+
+    // Pagamento PARCIAL de conta fixa: paga parte agora, o restante continua a
+    // pagar no mesmo mês. A parte paga vira uma despesa (conta na categoria da
+    // fixa) e a ocorrência guarda o valor original e passa a valer o restante.
+    if (ehParcialFixa) {
+      const restante = parseFloat(baixaForm.valor) || 0;
+      let vp = Number(baixaForm.valorParcial) || 0;
+      if (!(vp > 0)) { toast.error("Informe um valor parcial válido."); return; }
+      if (vp > restante + 0.005) { toast.error(`Valor maior que o que falta (${fmt(restante)}).`); return; }
+      vp = +vp.toFixed(2);
+      const quita = vp >= restante - 0.005;
+      const tx = {
+        id: uid(), tipo: "despesa", valor: vp,
+        descricao: `Pagamento parcial · ${baixaForm.nome}`,
+        categoria: baixaForm.categoria || "Despesas fixas",
+        conta: baixaForm.contaDestino, data: baixaForm.dataBaixa,
+        compensado: true, fixa: false,
+        obs: baixaForm.obs || `Parcial de fixa (${baixaForm._mes || ""})`,
+      };
+      setTransacoes([tx, ...transacoes]);
+      setContas(contas.map(c => c.id === conta.id ? { ...c, saldo: (parseFloat(c.saldo) || 0) - vp } : c));
+      setFixaOcorrencias?.((fixaOcorrencias || []).map(o => {
+        if (o.id !== baixaForm._fixaOccId) return o;
+        const cheio = Number(o.valorOriginal ?? o.valor) || 0;
+        const novoRestante = +(Math.max(0, (Number(o.valor) || 0) - vp)).toFixed(2);
+        if (quita || novoRestante <= 0.005) {
+          // Quitou via parcial: a ocorrência contribui 0 (as parcelas já foram
+          // contadas como despesa) e sai de "A pagar".
+          return { ...o, valorOriginal: cheio, valor: 0, status: "paga", dataPagamento: baixaForm.dataBaixa, valorPago: 0 };
+        }
+        return { ...o, valorOriginal: cheio, valor: novoRestante };
+      }));
+      toast.success(quita
+        ? `Fixa quitada com ${fmt(vp)}.`
+        : `Pago ${fmt(vp)} · falta ${fmt(+(restante - vp).toFixed(2))} de ${baixaForm.nome}.`);
+      setBaixaForm(null);
+      return;
+    }
+
+    // ADIANTAMENTO de conta fixa: paga o mês atual e os próximos N meses de uma
+    // vez. As ocorrências futuras são materializadas como pagas (saem do "A
+    // pagar" dos meses seguintes) e o saldo é debitado agora.
+    if (adiantN > 0) {
+      const fixaId = baixaForm._fixaId;
+      const cheio = Number(baixaForm._valorCheio) || (parseFloat(baixaForm.valor) || 0);
+      const restanteAtual = parseFloat(baixaForm.valor) || 0;
+      const futuros = proximosMesesFixa(baixaForm._mes, adiantN, baixaForm._diaVenc);
+      const novasTx = [];
+      let occ = [...(fixaOcorrencias || [])];
+      // mês atual (paga o restante desta ocorrência)
+      const txAtual = {
+        id: uid(), tipo: "despesa", valor: restanteAtual,
+        descricao: `Pagamento para ${baixaForm.nome}`,
+        categoria: baixaForm.categoria || "Outros",
+        conta: baixaForm.contaDestino, data: baixaForm.dataBaixa,
+        compensado: true, fixa: false, origemFixaOcorrenciaId: baixaForm._fixaOccId,
+        obs: baixaForm.obs || `Ref. ${baixaForm._mes || ""}`,
+      };
+      novasTx.push(txAtual);
+      occ = occ.map(o => o.id === baixaForm._fixaOccId
+        ? { ...o, status: "paga", dataPagamento: baixaForm.dataBaixa, valorPago: restanteAtual, transacaoId: txAtual.id }
+        : o);
+      // meses futuros
+      futuros.forEach(({ mes, dataVencimento }) => {
+        const existente = occ.find(o => o.fixaId === fixaId && o.mes === mes);
+        const occId = existente ? existente.id : uid();
+        const tx = {
+          id: uid(), tipo: "despesa", valor: cheio,
+          descricao: `Pagamento adiantado · ${baixaForm.nome} (${mes})`,
+          categoria: baixaForm.categoria || "Outros",
+          conta: baixaForm.contaDestino, data: baixaForm.dataBaixa,
+          compensado: true, fixa: false, origemFixaOcorrenciaId: occId,
+          obs: `Adiantamento ref. ${mes}`,
+        };
+        novasTx.push(tx);
+        if (existente) {
+          occ = occ.map(o => o.id === occId
+            ? { ...o, status: "paga", dataPagamento: baixaForm.dataBaixa, valorPago: Number(o.valorOriginal ?? o.valor) || cheio, transacaoId: tx.id }
+            : o);
+        } else {
+          occ = [...occ, { id: occId, fixaId, mes, dataVencimento, status: "paga", valor: cheio, valorPago: cheio, dataPagamento: baixaForm.dataBaixa, transacaoId: tx.id }];
+        }
+      });
+      const totalDebito = +(restanteAtual + cheio * futuros.length).toFixed(2);
+      setTransacoes([...novasTx, ...transacoes]);
+      setFixaOcorrencias?.(occ);
+      setContas(contas.map(c => c.id === conta.id ? { ...c, saldo: (parseFloat(c.saldo) || 0) - totalDebito } : c));
+      toast.success(`Pago ${baixaForm.nome} + adiantado ${futuros.length} ${futuros.length === 1 ? "mês" : "meses"} · ${fmt(totalDebito)} de ${baixaForm.contaDestino}.`);
+      setBaixaForm(null);
+      return;
+    }
+
     // ===== Recebimento parcial (só A Receber) =====
     // Saldo em aberto = total original − já recebido (backward-compat: undefined → 0)
     const saldoAberto = isReceber
@@ -766,10 +865,11 @@ export default function AReceberEDividas({
         // (transferência pro cofrinho da meta), não uma despesa.
         const metaId = fixa?.metaId || null;
         const meta = metaId ? (metas || []).find(m => m.id === metaId) : null;
+        const cheio = Number(o.valorOriginal ?? o.valor) || 0;
         return {
           id: `fixa:${o.id}`,
           nome: fixa ? fixa.descricao : "Despesa fixa",
-          valor: Number(o.valor || 0),
+          valor: Number(o.valor || 0), // restante (já abatido de pagamentos parciais)
           vencimento: o.dataVencimento,
           categoria: fixa?.categoria || "Despesas fixas",
           subcategoria: fixa?.subcategoria || "",
@@ -778,6 +878,11 @@ export default function AReceberEDividas({
           credor: fixa?.credor || "",
           _origem: "fixa",
           _fixaOccId: o.id,
+          _fixaId: o.fixaId,
+          _mes: o.mes,
+          _valorCheio: cheio,
+          _parcialJaPago: Math.max(0, +(cheio - Number(o.valor || 0)).toFixed(2)),
+          _diaVenc: fixa?.diaVencimento || null,
           // Sinaliza aporte de meta (só quando a meta ainda existe)
           _metaId: meta ? metaId : null,
           _metaNome: meta ? meta.nome : null,
@@ -1435,10 +1540,16 @@ export default function AReceberEDividas({
             categoria: item.categoria || "Outros", obs: item.obs || "",
             parcela: item.parcela || "",
             contaDestino: contas[0]?.nome || "", dataBaixa: hoje,
+            // Pagamento parcial / adiantamento (contas fixas)
+            parcial: false, valorParcial: item.valor, adiantarMeses: 0,
             // Refs do item virtual (fixa/parcela) — usadas em confirmarBaixa
             // pra atualizar a fonte original em vez de dividas[].
             _origem: item._origem || "divida",
             _fixaOccId: item._fixaOccId || null,
+            _fixaId: item._fixaId || null,
+            _mes: item._mes || null,
+            _valorCheio: item._valorCheio ?? item.valor,
+            _diaVenc: item._diaVenc || null,
             _parcelamentoId: item._parcelamentoId || null,
             _parcelaN: item._parcelaN || null,
             _transacaoId: item._transacaoId || null,
@@ -1735,12 +1846,20 @@ export default function AReceberEDividas({
       {baixaForm && (() => {
         const conta = contas.find(c => c.nome === baixaForm.contaDestino);
         const isReceber = baixaForm.tipoOriginal === "receber";
-        const saldoAberto = parseFloat(baixaForm.saldoAberto) || (parseFloat(baixaForm.valor) || 0);
+        // Conta fixa pode ser paga parcial / adiantada (não vale pra aporte de meta).
+        const ehFixaPagar = !isReceber && baixaForm._origem === "fixa" && !!baixaForm._fixaOccId && !baixaForm._metaId;
+        const saldoAberto = isReceber
+          ? (parseFloat(baixaForm.saldoAberto) || (parseFloat(baixaForm.valor) || 0))
+          : (parseFloat(baixaForm.valor) || 0); // fixa: restante desta ocorrência
         const jaRecebido = parseFloat(baixaForm.jaRecebido) || 0;
-        const ehParcial = isReceber && baixaForm.parcial;
+        const ehParcial = (isReceber || ehFixaPagar) && baixaForm.parcial;
         const valorParcialNum = Number(baixaForm.valorParcial) || 0;
+        const adiantN = ehFixaPagar && !baixaForm.parcial ? Math.max(0, Math.min(60, parseInt(baixaForm.adiantarMeses, 10) || 0)) : 0;
+        const cheioFixa = Number(baixaForm._valorCheio) || (parseFloat(baixaForm.valor) || 0);
         // Valor efetivo da baixa exibido no resumo
-        const valor = ehParcial ? valorParcialNum : (parseFloat(baixaForm.valor) || 0);
+        const valor = ehParcial
+          ? valorParcialNum
+          : (parseFloat(baixaForm.valor) || 0) + (adiantN > 0 ? adiantN * cheioFixa : 0);
         const parcialInvalido = ehParcial && (!(valorParcialNum > 0) || valorParcialNum > saldoAberto + 0.005);
         const faltaApos = +(saldoAberto - valorParcialNum).toFixed(2);
         const saldoAtual = parseFloat(conta?.saldo) || 0;
@@ -1840,6 +1959,66 @@ export default function AReceberEDividas({
                         <span className="num" style={{ fontWeight: 600, color: faltaApos <= 0.005 ? T.green : T.ink }}>
                           {faltaApos <= 0.005 ? "Quitado ✓" : `falta ${fmt(faltaApos)}`}
                         </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Conta fixa: pagamento parcial + adiantamento */}
+            {ehFixaPagar && (
+              <div style={{
+                background: T.bgSoft,
+                border: `1px solid ${(ehParcial || adiantN > 0) ? T.gold : T.border}`,
+                borderLeft: `3px solid ${(ehParcial || adiantN > 0) ? T.gold : T.border}`,
+                borderRadius: 14, padding: 12, marginBottom: 14,
+              }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}>
+                  <input type="checkbox" checked={!!baixaForm.parcial}
+                         onChange={e => setBaixaForm({ ...baixaForm, parcial: e.target.checked, adiantarMeses: 0, valorParcial: e.target.checked ? saldoAberto : baixaForm.valorParcial })}
+                         style={{ width: 18, height: 18, accentColor: T.gold, flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, lineHeight: 1.3 }}>Pagamento parcial</div>
+                    <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>Paga parte agora; o restante continua a pagar no mesmo mês.</div>
+                  </div>
+                </label>
+
+                {ehParcial && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px dashed ${T.border}` }}>
+                    <Field label="Valor a pagar agora (R$)" required hint={`Máx. ${fmt(saldoAberto)} (o que falta)`}>
+                      <MoneyInput value={baixaForm.valorParcial} onChange={v => setBaixaForm({ ...baixaForm, valorParcial: v })} />
+                    </Field>
+                    {parcialInvalido ? (
+                      <div style={{ fontSize: 11, color: T.red, marginTop: 4 }}>⚠ Informe um valor entre {fmt(0.01)} e {fmt(saldoAberto)}.</div>
+                    ) : (
+                      <div style={{ padding: 8, marginTop: 8, borderRadius: 11, fontSize: 11.5, background: `${T.gold}11`, border: `1px solid ${T.gold}33`, color: T.muted, display: "flex", justifyContent: "space-between" }}>
+                        <span>Após este pagamento:</span>
+                        <span className="num" style={{ fontWeight: 600, color: faltaApos <= 0.005 ? T.green : T.ink }}>
+                          {faltaApos <= 0.005 ? "Quitado ✓" : `falta ${fmt(faltaApos)}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!baixaForm.parcial && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px dashed ${T.border}`, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: 150 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>Adiantar próximos meses</div>
+                      <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>Paga também os próximos meses desta fixa (saem do "A pagar").</div>
+                    </div>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 2 }}>
+                      <button type="button" onClick={() => setBaixaForm({ ...baixaForm, adiantarMeses: Math.max(0, adiantN - 1) })} disabled={adiantN === 0}
+                              style={{ width: 28, height: 28, border: "none", background: "transparent", color: T.ink, borderRadius: 8, cursor: adiantN === 0 ? "default" : "pointer", fontSize: 16, opacity: adiantN === 0 ? 0.35 : 1 }}>−</button>
+                      <span className="num" style={{ minWidth: 44, textAlign: "center", fontSize: 13, fontWeight: 700, color: adiantN > 0 ? T.gold : T.muted }}>{adiantN} {adiantN === 1 ? "mês" : "meses"}</span>
+                      <button type="button" onClick={() => setBaixaForm({ ...baixaForm, adiantarMeses: Math.min(60, adiantN + 1) })}
+                              style={{ width: 28, height: 28, border: "none", background: "transparent", color: T.ink, borderRadius: 8, cursor: "pointer", fontSize: 16 }}>+</button>
+                    </div>
+                    {adiantN > 0 && (
+                      <div style={{ width: "100%", padding: 8, borderRadius: 11, fontSize: 11.5, background: `${T.gold}11`, border: `1px solid ${T.gold}33`, color: T.muted, display: "flex", justifyContent: "space-between" }}>
+                        <span>Total (este mês + {adiantN}):</span>
+                        <span className="num" style={{ fontWeight: 700, color: T.ink }}>{fmt(valor)}</span>
                       </div>
                     )}
                   </div>
