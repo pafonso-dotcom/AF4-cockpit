@@ -629,6 +629,7 @@ function HeaderVertical({
   contaAberta, setContaAberta,
   cartaoAberto, setCartaoAberto,
   alertData = {}, onNavegar,
+  sidebarColapsada = false, onToggleSidebar,
 }) {
   const perfilAtivo = getPerfilAtivo();
   const perms = perfilAtivo?.permissoes || { financas: true, invest: true, trade: true, config: true };
@@ -748,19 +749,63 @@ function HeaderVertical({
   return (
     <>
       <aside className="hdr-vertical-aside" style={{
-        position: "fixed", top: 10, left: 10, bottom: 10, width: 200,
+        position: "fixed", top: 10, left: 10, bottom: 10,
+        width: sidebarColapsada ? 60 : 200,
         background: NAV_BG, color: NAV_INK,
-        padding: "16px 12px",
-        overflowY: "auto", zIndex: 100,
-        display: "flex", flexDirection: "column", gap: 16,
+        padding: sidebarColapsada ? "14px 6px" : "16px 12px",
+        overflowY: "auto", overflowX: "hidden", zIndex: 100,
+        display: "flex", flexDirection: "column", gap: sidebarColapsada ? 8 : 16,
         border: `1px solid ${NAV_BORDER}`, borderRadius: 20,
         boxShadow: "0 10px 30px rgba(0,0,0,.28)",
-        backdropFilter: "blur(14px)",
+        backdropFilter: "blur(14px)", transition: "width .2s",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-          <Logo size={20} />
+        {/* Marca + botão de recolher/expandir */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6,
+                      flexDirection: sidebarColapsada ? "column" : "row",
+                      justifyContent: sidebarColapsada ? "center" : "space-between" }}>
+          {sidebarColapsada ? <NumviMark size={26} /> : <Logo size={20} />}
+          <button onClick={onToggleSidebar} title={sidebarColapsada ? "Expandir menu" : "Recolher menu"} aria-label={sidebarColapsada ? "Expandir menu" : "Recolher menu"}
+            style={{ width: 26, height: 26, borderRadius: 9, border: `1px solid ${NAV_BORDER}`, background: "rgba(255,255,255,.05)", color: NAV_MUTED, cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0, display: "grid", placeItems: "center" }}>
+            {sidebarColapsada ? "»" : "«"}
+          </button>
         </div>
 
+        {/* ===== NAV COMPACTA (só ícones) ===== */}
+        {sidebarColapsada && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
+            {MODULOS.map(m => {
+              const Icon = m.icon; const ativo = m.id === modulo;
+              const mSub = aplicarOrdem(SUBTABS[m.id] || [], tabOrders[`mod:${m.id}`]);
+              const pend = mSub.reduce((s, st) => s + (pendingCounts[st.id] || 0), 0);
+              return (
+                <button key={m.id} onClick={() => abrirModulo(m)} title={m.label} aria-label={m.label}
+                  style={{ position: "relative", width: 42, height: 42, borderRadius: 12, border: "none",
+                    background: ativo ? "rgba(255,255,255,0.16)" : "transparent", color: ativo ? "#fff" : NAV_INK,
+                    cursor: "pointer", display: "grid", placeItems: "center" }}>
+                  {Icon && <Icon size={18} />}
+                  {pend > 0 && <span style={{ position: "absolute", top: 6, right: 6, width: 7, height: 7, borderRadius: "50%", background: T.red }} />}
+                </button>
+              );
+            })}
+            <div aria-hidden style={{ height: 1, width: 26, background: NAV_BORDER, margin: "4px 0" }} />
+            {aplicarOrdem(SUBTABS[modulo] || [], tabOrders[`mod:${modulo}`]).map(s => {
+              const SIcon = s.icon;
+              const ativo = s.agenda ? AGENDA_TAB_IDS.has(tab) : s.id === tab;
+              const pend = pendingCounts[s.id] || 0;
+              return (
+                <button key={s.id} onClick={() => setTab(s.id)} title={s.label} aria-label={s.label}
+                  style={{ position: "relative", width: 42, height: 42, borderRadius: 12, border: "none",
+                    background: ativo ? "rgba(255,255,255,0.10)" : "transparent", color: ativo ? T.gold : NAV_MUTED,
+                    cursor: "pointer", display: "grid", placeItems: "center" }}>
+                  {SIcon && <SIcon size={17} />}
+                  {pend > 0 && <span style={{ position: "absolute", top: 6, right: 6, width: 7, height: 7, borderRadius: "50%", background: T.red }} />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {!sidebarColapsada && (
         <div>
           <div style={{ fontSize: 9, color: NAV_MUTED, letterSpacing: ".2em", marginBottom: 6, paddingLeft: 4 }}>MÓDULOS</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -914,11 +959,32 @@ function HeaderVertical({
             })}
           </div>
         </div>
+        )}
 
         <div style={{ flex: 1 }} />
 
+        {/* ===== Rodapé compacto (recolhido): atalho + configurações só ícones ===== */}
+        {sidebarColapsada && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
+            {modulo !== "config" && (
+              <button title="Novo lançamento" aria-label="Novo lançamento"
+                onClick={() => {
+                  if (modulo === "financas") onQuickAction?.("transacao");
+                  else if (modulo === "invest") onQuickAction?.("aporte");
+                  else if (modulo === "negocio") setTab("negocio-recebimentos");
+                }}
+                style={{ width: 42, height: 42, borderRadius: 12, background: T.gold, color: T.bg, border: "none", cursor: "pointer", display: "grid", placeItems: "center", fontSize: 22, fontWeight: 700, lineHeight: 1 }}>+</button>
+            )}
+            <button title="Configurações" aria-label="Configurações"
+              onClick={() => { setModulo("config"); setTab("cfg-aparencia"); }}
+              style={{ width: 42, height: 42, borderRadius: 12, background: modulo === "config" ? `${T.gold}22` : "rgba(255,255,255,0.05)", color: modulo === "config" ? T.gold : NAV_MUTED, border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>
+              <Settings size={18} />
+            </button>
+          </div>
+        )}
+
         {/* Card de atalho rápido — muda conforme a pasta ativa. */}
-        {modulo !== "config" && (
+        {!sidebarColapsada && modulo !== "config" && (
           <button
             onClick={() => {
               if (modulo === "financas") onQuickAction?.("transacao");
@@ -936,6 +1002,7 @@ function HeaderVertical({
           </button>
         )}
 
+        {!sidebarColapsada && (
         <button
           onClick={() => { setModulo("config"); setTab("cfg-aparencia"); }}
           style={{
@@ -947,10 +1014,11 @@ function HeaderVertical({
           }}>
           <Settings size={14} /> Configurações
         </button>
+        )}
 
         {/* Sub-abas de Configurações — antes só existiam no layout horizontal,
             deixando o vertical sem como chegar em APIs/Módulos/Backup. */}
-        {modulo === "config" && (
+        {!sidebarColapsada && modulo === "config" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 1, marginTop: -8, marginLeft: 14 }}>
             {(SUBTABS.config || []).map(s => {
               const SIcon = s.icon;
@@ -975,7 +1043,7 @@ function HeaderVertical({
       </aside>
 
       <header className="hdr-vertical-topbar" style={{
-        marginLeft: 220,
+        marginLeft: sidebarColapsada ? 78 : 220, transition: "margin-left .2s",
         background: NAV_BG, color: NAV_INK,
         padding: "10px 18px",
         display: "flex", alignItems: "center", justifyContent: "space-between",

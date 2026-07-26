@@ -152,6 +152,15 @@ export default function App() {
   const [atalhosVisivel, setAtalhosVisivel] = useState(false);
   const [paletaAberta, setPaletaAberta] = useState(false);
   const { isVertical } = useLayout();
+  // Sidebar vertical recolhível — mais espaço pro conteúdo (ex.: 2 telas no note).
+  const [sidebarColapsada, setSidebarColapsada] = useState(() => {
+    try { return localStorage.getItem("af4:sidebar-colapsada") === "1"; } catch { return false; }
+  });
+  const toggleSidebar = () => setSidebarColapsada(v => {
+    const n = !v;
+    try { localStorage.setItem("af4:sidebar-colapsada", n ? "1" : "0"); } catch {}
+    return n;
+  });
   const [hidden, setHidden] = useState(false);
   const [perfisOpen, setPerfisOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -1290,6 +1299,7 @@ export default function App() {
         pendingCounts={pendingCounts}
         alertData={{ dividas, devedores, fixas, fixaOcorrencias, parcelamentos, cartoes, categorias, transacoes }}
         onNavegar={(mod, t) => { setModulo(mod); irParaTab(t); }}
+        sidebarColapsada={sidebarColapsada} onToggleSidebar={toggleSidebar}
       />
 
       <KeyboardShortcuts
@@ -1322,7 +1332,7 @@ export default function App() {
 
       <main
         className={isVertical ? "pb-24" : ((tab === "planejamento" || tab === "areceber" || tab === "fixas" || tab === "relatorios-anual") ? "pb-24" : "max-w-7xl mx-auto pb-24")}
-        style={isVertical ? { marginLeft: 220, maxWidth: "none", transition: "margin-left .2s" } : undefined}
+        style={isVertical ? { marginLeft: sidebarColapsada ? 78 : 220, maxWidth: "none", transition: "margin-left .2s" } : undefined}
       >
         <ErrorBoundary key={modulo + ":" + tab}>
         <Suspense fallback={<PageFallback />}>
