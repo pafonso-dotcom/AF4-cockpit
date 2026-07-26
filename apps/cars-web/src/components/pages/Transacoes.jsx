@@ -337,9 +337,8 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
     if (form.valor == null || form.valor === "") errs.valor = "Informe um valor numérico (ex.: 1500 ou 1.500,00)";
     else if (v <= 0) errs.valor = "Valor deve ser positivo";
 
-    if (!form.categoria) errs.categoria = "Selecione uma categoria";
+    // Categoria e data são opcionais: se vazias, usamos padrões ("Outros" e hoje).
     if (!form.conta) errs.conta = "Selecione uma conta";
-    if (!form.data) errs.data = "Informe a data";
 
     if (form.fixa && form.vencimento) {
       const venc = parseInt(form.vencimento);
@@ -374,8 +373,8 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
       }
     }
 
-    // Persiste com valor já normalizado como número (não string com vírgula)
-    const formNorm = { ...form, valor: v };
+    // Persiste com valor já normalizado + padrões para categoria/data em branco.
+    const formNorm = { ...form, valor: v, categoria: form.categoria?.trim() || "Outros", data: form.data || todayISO() };
     if (form.id && transacoes.find(t => t.id === form.id)) {
       setTransacoes(transacoes.map(t => t.id === form.id ? formNorm : t));
       toast.success("Transação atualizada.");
@@ -774,15 +773,15 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
             <Field label="Valor (R$)" required error={formErrors.valor} hint="Só números · centavos automáticos">
               <MoneyInput value={form.valor} onChange={v => setForm({ ...form, valor: v })} />
             </Field>
-            <Field label="Data" required error={formErrors.data}>
+            <Field label="Data (opcional)" hint="Em branco = hoje.">
               <input type="date" value={form.data} onChange={e => setForm({ ...form, data: e.target.value })} />
             </Field>
           </div>
           {/* Categoria + Cartão lado a lado (Cartão é condicional → Categoria ocupa a linha toda quando não houver) */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
-            <Field label="Categoria" required error={formErrors.categoria}>
+            <Field label="Categoria (opcional)" hint="Em branco = Outros.">
               <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value, subcategoria: "" })}>
-                <option value="">Selecione…</option>
+                <option value="">Sem categoria (Outros)</option>
                 {ordenarPorNome(categorias.filter(c => c.tipo === form.tipo)).map(c => (
                   <option key={c.id} value={c.nome}>{c.nome}</option>
                 ))}
