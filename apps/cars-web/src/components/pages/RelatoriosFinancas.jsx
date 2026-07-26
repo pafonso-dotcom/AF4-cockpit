@@ -50,6 +50,9 @@ export default function RelatoriosFinancas({
   // Quantos meses adiantar o início da projeção (0 = inclui o mês corrente;
   // 1 = começa no próximo mês, sem o corrente; etc.).
   const [mesOffset, setMesOffset] = useState(0);
+  // Ocultar linhas com nada em aberto (já pagas/zeradas) — deixa a tabela enxuta.
+  const [ocultarPagos, setOcultarPagos] = useState(true);
+  const linhaEmAberto = (r) => Number(r.aberto ?? r.total) > 0.005;
   const mesAtualKey = new Date().toISOString().slice(0, 7);
   // ===== Receita vs Despesa últimos 6 meses =====
   const seisMeses = useMemo(() => {
@@ -318,7 +321,9 @@ export default function RelatoriosFinancas({
     };
     const ths = proximosMeses.map(m => `<th>${esc(m.label)}</th>`).join("");
     const corpo = projecao.grupos.map(g => {
-      const linhas = g.rows.map(r =>
+      const rows = ocultarPagos ? g.rows.filter(linhaEmAberto) : g.rows;
+      if (rows.length === 0) return "";
+      const linhas = rows.map(r =>
         `<tr><td class="cat">${esc(r.cat)}</td>${proximosMeses.map(m => `<td class="n">${celAberto(r, m.iso)}</td>`).join("")}<td class="n tot">${esc(fmt(r.aberto ?? r.total))}</td></tr>`
       ).join("");
       const sub = `<tr class="sub"><td>${esc(g.label)} · subtotal</td>${g.subPorMes.map(v => `<td class="n">${cel(v)}</td>`).join("")}<td class="n">${esc(fmt(g.subTotal))}</td></tr>`;
@@ -403,6 +408,12 @@ td.neg { color:#b3261e; }
                       title="Avançar um mês (tirar o mês atual)"
                       style={{ width: 28, height: 28, border: "none", background: "transparent", color: T.ink, borderRadius: 8, cursor: "pointer", fontSize: 15 }}>›</button>
             </div>
+            <button onClick={() => setOcultarPagos(v => !v)}
+                    title={ocultarPagos ? "Mostrando só o que está em aberto" : "Mostrando tudo (inclui pagos/zerados)"}
+                    style={{ padding: "8px 12px", background: ocultarPagos ? `${T.gold}1e` : T.bgSoft, border: `1px solid ${ocultarPagos ? T.gold : T.border}`,
+                             color: ocultarPagos ? T.gold : T.muted, fontSize: 12, borderRadius: 10, cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
+              {ocultarPagos ? "Só em aberto" : "Mostrar tudo"}
+            </button>
             <button onClick={imprimirProjecao} className="btn-gold" style={{ padding: "8px 14px", fontSize: 12 }}>
               🖨️ Imprimir (A4 · 1 folha)
             </button>
@@ -430,14 +441,19 @@ td.neg { color:#b3261e; }
                 </tr>
               </thead>
               <tbody>
-                {projecao.grupos.map(g => (
+                {projecao.grupos.map(g => {
+                  const rowsVis = ocultarPagos ? g.rows.filter(linhaEmAberto) : g.rows;
+                  if (rowsVis.length === 0) return null;
+                  const ocultas = g.rows.length - rowsVis.length;
+                  return (
                   <React.Fragment key={g.fonte}>
                     <tr>
                       <td colSpan={proximosMeses.length + 2} style={{ background: T.bgSoft, color: T.ink, fontWeight: 700, textTransform: "uppercase", fontSize: 10, letterSpacing: ".08em", padding: "6px 8px" }}>
                         {g.label}
+                        {ocultas > 0 && <span style={{ color: T.faint, fontWeight: 500, textTransform: "none", letterSpacing: 0 }}> · {ocultas} {ocultas === 1 ? "paga oculta" : "pagas ocultas"}</span>}
                       </td>
                     </tr>
-                    {g.rows.map((r, idx) => {
+                    {rowsVis.map((r, idx) => {
                       const totQuit = r.total > 0 && (r.pagoTotal || 0) >= r.total - 0.005;
                       return (
                       <tr key={r.cat}>
@@ -464,7 +480,8 @@ td.neg { color:#b3261e; }
                       <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : fmt(g.subTotal)}</td>
                     </tr>
                   </React.Fragment>
-                ))}
+                  );
+                })}
                 <tr style={{ borderTop: `2px solid ${T.border}` }}>
                   <td style={{ fontWeight: 700, color: T.ink, textTransform: "uppercase", fontSize: 10.5, letterSpacing: ".05em" }}>Total saídas</td>
                   {proximosMeses.map((m, i) => (
