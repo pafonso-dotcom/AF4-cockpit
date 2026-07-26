@@ -89,7 +89,8 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     const errs = {};
     if (!form.nome?.trim()) errs.nome = "Nome é obrigatório";
     else if (form.nome.length > 60) errs.nome = "Máximo 60 caracteres";
-    if (!form.instituicao?.trim()) errs.instituicao = "Instituição é obrigatória";
+    // Carteira (conta avulsa sem banco): instituição não é obrigatória.
+    if (!form.carteira && !form.instituicao?.trim()) errs.instituicao = "Instituição é obrigatória";
 
     // Parse robusto: aceita "1.500,00", "1500,00", "1500", "R$ 1.234,56", negativos
     const saldoParsed = parseValorBR(form.saldo);
@@ -116,7 +117,10 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     const saldoInicial = +(saldoAtual - somaTx).toFixed(2);
     // Cotação só pra conta do exterior (R$ por 1 unidade); aceita vírgula.
     const cotacaoNum = (form.moeda && form.moeda !== "BRL") ? (parseValorBR(form.cotacao) || 0) : null;
-    const formNormalizado = { ...form, saldoInicial, saldo: saldoAtual, cotacao: cotacaoNum };
+    const formNormalizado = {
+      ...form, saldoInicial, saldo: saldoAtual, cotacao: cotacaoNum,
+      instituicao: form.carteira ? (form.instituicao?.trim() || "Carteira") : form.instituicao,
+    };
 
     if (form.id && contas.find(c => c.id === form.id)) {
       setContas(contas.map(c => c.id === form.id ? formNormalizado : c));
@@ -255,6 +259,11 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           <button onClick={() => setImportExtratoOpen(true)} title="Importar extrato OFX/CSV do banco"
                   style={{ ...btnSec, color: T.green, borderColor: `${T.green}88` }}>
             <Upload size={12} /> Extrato banco
+          </button>
+          <button style={{ ...btnSec }}
+                  title="Conta avulsa, sem banco — pra registrar recebíveis / pagamentos futuros à mão"
+                  onClick={() => setForm({ id: null, carteira: true, nome: "", instituicao: "", tipo: "carteira", moeda: "BRL", cotacao: "", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.blue || "#60a5fa", appUrl: "", foraPatrimonio: true })}>
+            👛 Carteira
           </button>
           <button className="btn-gold" style={{ padding: "7px 12px", fontSize: 11 }}
                   onClick={() => setForm({ id: null, nome: "", instituicao: "", tipo: "corrente", moeda: "BRL", cotacao: "", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.gold, appUrl: "", foraPatrimonio: false })}>
@@ -488,12 +497,27 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
 
       {form && (
         <Modal title={form.id ? "Editar Conta" : "Abrir Nova Conta"} onClose={() => setForm(null)}>
+          {/* Carteira: conta avulsa sem banco (só controle/previsão) */}
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer",
+            background: T.bgSoft, border: `1px solid ${form.carteira ? T.blue : T.border}`, borderRadius: 12, padding: 12, marginBottom: 12 }}>
+            <input type="checkbox" checked={!!form.carteira}
+                   onChange={e => setForm({ ...form, carteira: e.target.checked, foraPatrimonio: e.target.checked ? true : form.foraPatrimonio })}
+                   style={{ width: 18, height: 18, marginTop: 1, accentColor: T.blue, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>👛 Carteira (sem banco)</div>
+              <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>Conta avulsa pra registrar recebíveis / pagamentos futuros à mão. Sem instituição, logo ou moeda estrangeira.</div>
+            </div>
+          </label>
+
           <Field label="Nome" required error={formErrors.nome}>
-            <input value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder="Ex.: Conta Principal" />
+            <input value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder={form.carteira ? "Ex.: Carteira, Dinheiro em casa, Previsão" : "Ex.: Conta Principal"} />
           </Field>
+          {!form.carteira && (
           <Field label="Instituição" required error={formErrors.instituicao}>
             <input value={form.instituicao} onChange={e => setForm({ ...form, instituicao: e.target.value })} placeholder="Ex.: Itaú, Nubank, XP…" />
           </Field>
+          )}
+          {!form.carteira && (<>
           <Field label="App / site do banco (link)" hint="Opcional — atalho pra abrir o banco numa nova aba. Ex.: https://app.nubank.com.br">
             <input value={form.appUrl || ""} onChange={e => setForm({ ...form, appUrl: e.target.value })} placeholder="https://…" />
           </Field>
@@ -544,6 +568,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               </div>
             </Field>
           )}
+          </>)}
           <Field label="Escopo" hint="Pessoal ou Negócio — separação financeira">
             <select value={form.escopo || "pessoal"} onChange={e => setForm({ ...form, escopo: e.target.value })}>
               <option value="pessoal">👤 Pessoal</option>

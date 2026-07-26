@@ -61,6 +61,14 @@ export default function BankIcon({ c, size = 40 }) {
            style={{ ...box, objectFit: "contain", background: "#fff", padding: pad }} />
     );
   }
+  // Conta de carteira (sem banco): ícone de bolsa, não tenta achar logo de banco.
+  if (c?.carteira) {
+    return (
+      <div aria-hidden="true" style={{ ...box, background: c?.cor || T.gold, display: "grid", placeItems: "center", fontSize: Math.round(size * 0.5) }}>
+        👛
+      </div>
+    );
+  }
   const dom = dominioBanco(c);
   if (dom && !erroFav) {
     return (
