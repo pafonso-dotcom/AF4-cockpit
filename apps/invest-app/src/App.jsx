@@ -452,8 +452,9 @@ export default function App() {
                   {/* Convidar por WhatsApp — aponta pro app atual (preview ou produção) */}
                   <MenuItem onClick={() => {
                     setConfigAberto(false);
-                    const url = typeof window !== "undefined" ? window.location.origin : "";
-                    const msg = `Olá! 👋 Te convido pra testar a ${APP_NOME} — plataforma de investimentos.\n\nÉ grátis nesta fase de testes: crie sua conta e organize sua carteira com clareza (cotações, carteira, proventos, análises e mais). 🪙\n\nAcesse: ${url}\n\nDepois me conta o que achou! 🙏`;
+                    const base = typeof window !== "undefined" ? window.location.origin : "";
+                    const url = `${base}/?cadastro=1`;
+                    const msg = `Olá! 👋 Te convido pra testar a ${APP_NOME} — plataforma de investimentos.\n\nCrie sua conta e organize sua carteira com clareza (cotações, carteira, proventos, análises e mais). 🪙\n\nAcesse: ${url}\n\nDepois me conta o que achou! 🙏`;
                     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
                   }}>
                     <MessageCircle size={15} /> Convidar por WhatsApp

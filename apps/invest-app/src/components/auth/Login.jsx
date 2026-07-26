@@ -8,7 +8,14 @@ import Logo from "../ui/Logo.jsx";
  * Self-service — o próprio cliente cria a conta.
  */
 export default function Login() {
-  const [modo, setModo] = useState("login"); // login | signup | reset
+  // login | signup | reset — abre em "signup" quando vem de um convite (?cadastro=1)
+  const [modo, setModo] = useState(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get("cadastro") === "1" || p.has("convite")) return "signup";
+    } catch { /* ignore */ }
+    return "login";
+  });
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [busy, setBusy] = useState(false);

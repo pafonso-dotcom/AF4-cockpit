@@ -112,15 +112,18 @@ function Clientes({ data, onRecarregar }) {
     } finally { setSalvando(null); }
   };
 
+  // Link do convite → abre direto na tela de "Criar conta" (?cadastro=1).
+  const linkCadastro = `${APP_URL}/?cadastro=1`;
+
   const convidar = (u) => {
-    const msg = `Olá! 👋 Te convido a conhecer a ${APP_NOME} — plataforma única de investimentos.\n\nAcesse: ${APP_URL}\n\nCrie sua conta e organize sua carteira com clareza. 🪙`;
+    const msg = `Olá! 👋 Te convido a conhecer a ${APP_NOME} — plataforma única de investimentos.\n\nCrie sua conta em: ${linkCadastro}\n\nOrganize sua carteira com clareza. 🪙`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
   // Convite de TESTE grátis: a pessoa cria a conta e você libera os dias no
   // botão "Teste" da lista. A cobrança segue ligada pros demais.
   const convidarTeste = (u) => {
-    const msg = `Olá! 👋 Vou te liberar um TESTE GRÁTIS do ${APP_NOME} — plataforma de investimentos (carteira, proventos, análises e mais). 🎁\n\n1) Crie sua conta em: ${APP_URL}\n2) Me responde aqui o e-mail que você usou, que eu ativo seus dias de teste na hora.\n\nBons investimentos! 🪙`;
+    const msg = `Olá! 👋 Vou te liberar um TESTE GRÁTIS do ${APP_NOME} — plataforma de investimentos (carteira, proventos, análises e mais). 🎁\n\n1) Crie sua conta em: ${linkCadastro}\n2) Me responde aqui o e-mail que você usou, que eu ativo seus dias de teste na hora.\n\nBons investimentos! 🪙`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
