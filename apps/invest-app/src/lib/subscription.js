@@ -12,7 +12,13 @@ import { supabase, supabaseConfigured, getUser } from "./supabase.js";
 
 // Interruptor geral da cobrança (variável de ambiente do build).
 // Tolerante a "true"/"True"/"TRUE"/"1" (evita erro de digitação no painel).
-export const billingEnabled = /^(true|1|sim|on)$/i.test(String(import.meta.env.VITE_BILLING_ENABLED || "").trim());
+//
+// INTERRUPTOR MESTRE: enquanto estamos testando, o paywall fica DESLIGADO
+// (todo mundo acessa de graça). Quando for pro mercado, mude
+// BILLING_FORCE_OFF para false — aí volta a valer a VITE_BILLING_ENABLED.
+const BILLING_FORCE_OFF = true;
+export const billingEnabled = !BILLING_FORCE_OFF
+  && /^(true|1|sim|on)$/i.test(String(import.meta.env.VITE_BILLING_ENABLED || "").trim());
 
 // Dias de teste grátis pra contas novas (0 = sem trial).
 export const trialDias = Math.max(0, Number(import.meta.env.VITE_TRIAL_DIAS) || 0);
