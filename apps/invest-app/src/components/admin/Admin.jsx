@@ -117,6 +117,13 @@ function Clientes({ data, onRecarregar }) {
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
+  // Convite de TESTE grátis: a pessoa cria a conta e você libera os dias no
+  // botão "Teste" da lista. A cobrança segue ligada pros demais.
+  const convidarTeste = (u) => {
+    const msg = `Olá! 👋 Vou te liberar um TESTE GRÁTIS do ${APP_NOME} — plataforma de investimentos (carteira, proventos, análises e mais). 🎁\n\n1) Crie sua conta em: ${APP_URL}\n2) Me responde aqui o e-mail que você usou, que eu ativo seus dias de teste na hora.\n\nBons investimentos! 🪙`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
   const remover = async (u) => {
     if (u.email === adminEmail) { toast.error("Não é possível remover a conta de admin."); return; }
     if (!window.confirm(`Remover o cliente ${u.email}?\n\nA conta e TODOS os dados dele serão apagados. Esta ação não pode ser desfeita.`)) return;
@@ -145,6 +152,9 @@ function Clientes({ data, onRecarregar }) {
         </div>
         <button onClick={() => convidar({})} style={btnWhats()}>
           📲 Convidar pelo WhatsApp
+        </button>
+        <button onClick={() => convidarTeste({})} style={btnWhats("teste")}>
+          🎁 Convite de teste
         </button>
       </div>
       <Tabela>
@@ -410,4 +420,6 @@ function fmtData(iso) {
 const th = (a) => ({ padding: "9px 11px", textAlign: a, fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 600 });
 const td = () => ({ padding: "9px 11px", verticalAlign: "middle" });
 const btnIcon = () => ({ display: "inline-flex", alignItems: "center", gap: 4, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, padding: "5px 9px", borderRadius: 7, fontSize: 11.5, cursor: "pointer" });
-const btnWhats = () => ({ display: "inline-flex", alignItems: "center", gap: 6, background: "#25D36622", border: "1px solid #25D366", color: "#1c9e4d", padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer" });
+const btnWhats = (variante) => variante === "teste"
+  ? ({ display: "inline-flex", alignItems: "center", gap: 6, background: `${T.gold}22`, border: `1px solid ${T.gold}`, color: T.gold, padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer" })
+  : ({ display: "inline-flex", alignItems: "center", gap: 6, background: "#25D36622", border: "1px solid #25D366", color: "#1c9e4d", padding: "8px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer" });
