@@ -334,11 +334,14 @@ export default function RelatoriosFinancas({
     let receberHtml = "";
     if (projecao.receber) {
       const r = projecao.receber;
-      const linhas = r.rows.map(x =>
-        `<tr><td class="cat">${esc(x.cat)}</td>${proximosMeses.map(m => `<td class="n">${celAberto(x, m.iso)}</td>`).join("")}<td class="n tot">${esc(fmt(x.aberto ?? x.total))}</td></tr>`
-      ).join("");
-      const sub = `<tr class="sub"><td>A receber · subtotal</td>${r.subPorMes.map(v => `<td class="n">${cel(v)}</td>`).join("")}<td class="n">${esc(fmt(r.subTotal))}</td></tr>`;
-      receberHtml = `<tr class="grp grp-rec"><td colspan="${proximosMeses.length + 3}">A receber (entradas previstas)</td></tr>${linhas}${sub}`;
+      const recRows = ocultarPagos ? r.rows.filter(linhaEmAberto) : r.rows;
+      if (recRows.length > 0) {
+        const linhas = recRows.map(x =>
+          `<tr><td class="cat">${esc(x.cat)}</td>${proximosMeses.map(m => `<td class="n">${celAberto(x, m.iso)}</td>`).join("")}<td class="n tot">${esc(fmt(x.aberto ?? x.total))}</td></tr>`
+        ).join("");
+        const sub = `<tr class="sub"><td>A receber · subtotal</td>${r.subPorMes.map(v => `<td class="n">${cel(v)}</td>`).join("")}<td class="n">${esc(fmt(r.subTotal))}</td></tr>`;
+        receberHtml = `<tr class="grp grp-rec"><td colspan="${proximosMeses.length + 3}">A receber (entradas previstas)</td></tr>${linhas}${sub}`;
+      }
     }
     const linhaSaldo = (label, cen) => `<tr class="saldo"><td>${esc(label)} · início ${esc(fmt(cen.saldoInicial))}</td>${cen.porMes.map(v => `<td class="n ${v < 0 ? "neg" : "pos"}">${esc(fmt(v))}</td>`).join("")}<td class="n ${cen.saldoFinal < 0 ? "neg" : "pos"}">${esc(fmt(cen.saldoFinal))}</td></tr>`;
     const saldo = linhaSaldo("SALDO PREVISTO · PESSOAL", cenarios.pessoal)
@@ -490,14 +493,19 @@ td.neg { color:#b3261e; }
                   <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.gold }}>{hidden ? "•••" : fmt(projecao.totalGeral)}</td>
                 </tr>
 
-                {projecao.receber && (
+                {projecao.receber && (() => {
+                  const recVis = ocultarPagos ? projecao.receber.rows.filter(linhaEmAberto) : projecao.receber.rows;
+                  if (recVis.length === 0) return null;
+                  const recOcultas = projecao.receber.rows.length - recVis.length;
+                  return (
                   <>
                     <tr>
                       <td colSpan={proximosMeses.length + 2} style={{ background: "rgba(31,122,68,.08)", color: T.ink, fontWeight: 700, textTransform: "uppercase", fontSize: 10, letterSpacing: ".08em", padding: "6px 8px" }}>
                         A receber (entradas previstas)
+                        {recOcultas > 0 && <span style={{ color: T.faint, fontWeight: 500, textTransform: "none", letterSpacing: 0 }}> · {recOcultas} {recOcultas === 1 ? "recebida oculta" : "recebidas ocultas"}</span>}
                       </td>
                     </tr>
-                    {projecao.receber.rows.map((r, idx) => {
+                    {recVis.map((r, idx) => {
                       const totQuit = r.total > 0 && (r.pagoTotal || 0) >= r.total - 0.005;
                       return (
                       <tr key={r.cat}>
@@ -524,7 +532,8 @@ td.neg { color:#b3261e; }
                       <td className="num" style={{ textAlign: "right", fontWeight: 700, color: T.ink, borderTop: `1px solid ${T.border}` }}>{hidden ? "•••" : fmt(projecao.receber.subTotal)}</td>
                     </tr>
                   </>
-                )}
+                  );
+                })()}
 
                 {/* Saldo previsto · 2 cenários — parte do saldo atual das contas e acumula (receber − saídas). */}
                 {[
