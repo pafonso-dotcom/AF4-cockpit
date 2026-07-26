@@ -12,6 +12,7 @@ import Field from "../ui/Field.jsx";
 import BankIcon from "../ui/BankIcon.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
 import Modal from "../ui/Modal.jsx";
+import NotasRapidasCard from "../ui/NotasRapidasCard.jsx";
 import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
 import { useLayout } from "../../lib/useLayout.js";
 import TransferenciaModal from "../modals/TransferenciaModal.jsx";
@@ -479,6 +480,11 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
         return <div>{grupos.map(renderGrupo)}</div>;
       })()}
       </SecaoColapsavel>
+
+      {/* Notas rápidas — anotações à mão, salvas automaticamente */}
+      <div style={{ marginTop: 20 }}>
+        <NotasRapidasCard />
+      </div>
 
       {form && (
         <Modal title={form.id ? "Editar Conta" : "Abrir Nova Conta"} onClose={() => setForm(null)}>
