@@ -3,7 +3,7 @@ import {
   RefreshCw, Eye, EyeOff, LogOut, LayoutGrid, Settings2, Check,
   LayoutDashboard, Briefcase, TrendingUp, Target, Copy, PieChart,
   Calculator, LineChart, Award, Coins, FileText, Plus, Settings, ChevronDown, Shield,
-  Search, CalendarClock, Boxes, MessageCircle,
+  Search, CalendarClock, Boxes, MessageCircle, Menu, X,
 } from "lucide-react";
 
 import { T, applyTheme, THEMES } from "./lib/theme.js";
@@ -82,6 +82,7 @@ export default function App() {
   // Paleta de cores escolhida (preferência do dispositivo).
   const [themeId, setThemeId] = useState(() => { try { return localStorage.getItem("invest:theme") || "linho"; } catch { return "linho"; } });
   const [configAberto, setConfigAberto] = useState(false); // menu compacto de ferramentas/config
+  const [menuAberto, setMenuAberto] = useState(false); // drawer da barra lateral no mobile
   const trocarTema = (id) => { setThemeId(id); try { localStorage.setItem("invest:theme", id); } catch {} };
   // Orientação do menu: horizontal (padrão) ou vertical (opcional).
   const [navVertical, setNavVertical] = useState(() => { try { return localStorage.getItem("invest:nav") === "vertical"; } catch { return false; } });
@@ -271,7 +272,7 @@ export default function App() {
     return () => { if (timer) clearTimeout(timer); window.removeEventListener("af4:polling-changed", onChange); };
   }, [loading]);
 
-  const irParaTab = useCallback((t) => { setTab(t); }, []);
+  const irParaTab = useCallback((t) => { setTab(t); setMenuAberto(false); }, []);
 
   if (loading || (billingEnabled && subLoading)) {
     return (
@@ -298,17 +299,42 @@ export default function App() {
   return (
     <div style={{ minHeight: "100vh", background: T.bg, color: T.ink, display: "flex", alignItems: "stretch" }}>
       <GlobalStyles />
-      <style>{`.invest-nav::-webkit-scrollbar{display:none}.invest-nav{scrollbar-width:none}`}</style>
+      <style>{`
+        .invest-nav::-webkit-scrollbar{display:none}.invest-nav{scrollbar-width:none}
+        .invest-hamburger { display: none; }
+        .invest-backdrop { display: none; }
+        /* Mobile/tablet: barra lateral vira gaveta (drawer) recolhível */
+        @media (max-width: 860px) {
+          .invest-sidebar {
+            position: fixed !important; left: 0; top: 0; bottom: 0; height: 100% !important;
+            z-index: 60; transform: translateX(-100%); transition: transform .25s ease;
+            box-shadow: 0 0 50px rgba(0,0,0,.55);
+          }
+          .invest-sidebar.aberto { transform: translateX(0); }
+          .invest-backdrop.aberto { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 55; }
+          .invest-hamburger { display: inline-flex !important; }
+        }
+      `}</style>
+
+      {/* Backdrop do drawer (mobile) */}
+      <div className={`invest-backdrop${menuAberto ? " aberto" : ""}`} onClick={() => setMenuAberto(false)} />
 
       {/* Barra lateral — marca + navegação (estilo AF.finanças) */}
-      <aside style={{
+      <aside className={`invest-sidebar${menuAberto ? " aberto" : ""}`} style={{
         width: 224, flexShrink: 0, background: "#23272E",
         borderRight: "1px solid rgba(255,255,255,.08)",
         display: "flex", flexDirection: "column",
         position: "sticky", top: 0, height: "100vh",
       }}>
-        <div style={{ padding: "16px 16px 14px" }}>
+        <div style={{ padding: "16px 16px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Logo size={26} />
+          <button className="invest-hamburger" onClick={() => setMenuAberto(false)} title="Fechar"
+                  style={{
+                    background: "transparent", border: "none", color: "rgba(240,235,225,.6)",
+                    cursor: "pointer", alignItems: "center", justifyContent: "center", padding: 4,
+                  }}>
+            <X size={20} />
+          </button>
         </div>
 
         <div style={{ padding: "0 18px 6px", fontSize: 10, letterSpacing: ".16em", textTransform: "uppercase", color: "rgba(240,235,225,.34)", fontWeight: 700 }}>
@@ -381,6 +407,14 @@ export default function App() {
         display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
         padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,.08)", background: "#23272E",
       }}>
+        <button className="invest-hamburger" onClick={() => setMenuAberto(true)} title="Menu"
+                style={{
+                  background: "transparent", border: "1px solid rgba(255,255,255,.15)", borderRadius: 8,
+                  width: 40, height: 36, alignItems: "center", justifyContent: "center",
+                  color: "#e8e0cd", cursor: "pointer",
+                }}>
+          <Menu size={18} />
+        </button>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
           {billingEnabled && sub?.emTrial && sub.trialRestante > 0 && (
             <span title="Período de teste" style={{
