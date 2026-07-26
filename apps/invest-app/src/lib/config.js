@@ -3,9 +3,9 @@
    ============================================================ */
 
 // Endereço público do app usado nos convites/links.
-// Usamos o .pages.dev (que está no ar) até o domínio de marca
-// afinvest.inf.br ser registrado e apontado — aí é só trocar aqui.
-export const APP_URL = "https://investimentos-app.pages.dev";
+// Usamos o domínio antigo aureus.inf.br (já ativo na Cloudflare) até o
+// domínio de marca afinvest.inf.br ser registrado — aí é só trocar aqui.
+export const APP_URL = "https://aureus.inf.br";
 
 // Nome do produto (para textos/convites).
 export const APP_NOME = "AF.invest";
