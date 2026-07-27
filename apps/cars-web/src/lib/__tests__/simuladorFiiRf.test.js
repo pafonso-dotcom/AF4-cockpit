@@ -42,6 +42,19 @@ describe("simularFiiRf", () => {
     expect(r.serie).toHaveLength(0);
   });
 
+  it("cada marco traz a renda mensal (dividendo FII / rendimento RF) daquele patrimônio", () => {
+    const r = simularFiiRf({ aporteMensal: 1000, prazoMeses: 120, rentFiiAA: 9, rentRfAA: 12, pontos: 6 });
+    for (const p of r.serie) {
+      expect(p.rendaFii).toBeCloseTo(p.fii * 0.09 / 12, 2);
+      expect(p.rendaRf).toBeCloseTo(p.rf * 0.12 / 12, 2);
+    }
+    // A renda mensal cresce junto com o patrimônio ao longo do tempo.
+    const ult = r.serie[r.serie.length - 1];
+    expect(ult.rendaFii).toBeGreaterThan(r.serie[0].rendaFii);
+    // No último marco (fim do prazo) bate com a renda final consolidada.
+    expect(ult.rendaFii).toBeCloseTo(r.fii.rendaMensal, 2);
+  });
+
   it("a série termina exatamente no prazo informado", () => {
     const r = simularFiiRf({ aporteMensal: 1000, prazoMeses: 240, rentFiiAA: 10, rentRfAA: 13, pontos: 6 });
     expect(r.serie[r.serie.length - 1].mes).toBe(240);

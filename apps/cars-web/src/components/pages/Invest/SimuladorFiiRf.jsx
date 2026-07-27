@@ -122,8 +122,10 @@ export default function SimuladorFiiRf({ embed = false } = {}) {
             </div>
           </div>
           <div style={{ display: "flex", gap: 14, fontSize: 10.5, color: T.muted, flexWrap: "wrap" }}>
-            <LegendDot cor={CORES.fii} label="FIIs" />
-            <LegendDot cor={CORES.rf} label="Renda Fixa" />
+            <LegendDot cor={CORES.fii} label="Patrimônio FIIs" />
+            <LegendDot cor={CORES.rf} label="Patrimônio RF" />
+            <LegendDot cor={CORES.fii} label="Dividendo FII/mês" tracejado />
+            <LegendDot cor={CORES.rf} label="Renda RF/mês" tracejado />
           </div>
         </div>
         <div style={{ width: "100%", height: 220 }}>
@@ -134,20 +136,36 @@ export default function SimuladorFiiRf({ embed = false } = {}) {
                      tick={{ fill: T.muted, fontSize: 10 }}
                      stroke={T.border}
                      tickFormatter={(v) => `${Math.round(v / 12)}a`} />
-              <YAxis tick={{ fill: T.muted, fontSize: 10 }}
+              <YAxis yAxisId="pat"
+                     tick={{ fill: T.muted, fontSize: 10 }}
                      stroke={T.border}
                      tickFormatter={(v) => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : `${Math.round(v / 1000)}k`} />
+              <YAxis yAxisId="renda" orientation="right"
+                     tick={{ fill: T.muted, fontSize: 10 }}
+                     stroke={T.border}
+                     tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`} />
               <Tooltip
                 contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11, color: T.ink }}
                 labelStyle={{ color: T.muted, marginBottom: 4 }}
                 labelFormatter={(v) => `Mês ${v} · ${(v / 12).toFixed(1)} anos`}
-                formatter={(v, k) => [fmtBRL.format(v), k === "fii" ? "FIIs" : "Renda Fixa"]}
+                formatter={(v, k) => {
+                  const labels = {
+                    fii: "Patrimônio FIIs", rf: "Patrimônio RF",
+                    rendaFii: "Dividendo FII/mês", rendaRf: "Renda RF/mês",
+                  };
+                  return [fmtBRL.format(v), labels[k] || k];
+                }}
               />
               <Legend content={() => null} />
-              <Line type="monotone" dataKey="fii" stroke={CORES.fii} strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="rf"  stroke={CORES.rf}  strokeWidth={2} dot={false} />
+              <Line yAxisId="pat"   type="monotone" dataKey="fii" stroke={CORES.fii} strokeWidth={2} dot={false} />
+              <Line yAxisId="pat"   type="monotone" dataKey="rf"  stroke={CORES.rf}  strokeWidth={2} dot={false} />
+              <Line yAxisId="renda" type="monotone" dataKey="rendaFii" stroke={CORES.fii} strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
+              <Line yAxisId="renda" type="monotone" dataKey="rendaRf"  stroke={CORES.rf}  strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
             </LineChart>
           </ResponsiveContainer>
+        </div>
+        <div style={{ fontSize: 11, color: T.muted, marginTop: 6, fontStyle: "italic", textAlign: "center" }}>
+          Linhas cheias = patrimônio (esq.) · linhas tracejadas = renda mensal que ele já geraria (dir.)
         </div>
 
         {/* Veredito */}
@@ -316,10 +334,14 @@ function RowSmall({ label, value, cor }) {
   );
 }
 
-function LegendDot({ cor, label }) {
+function LegendDot({ cor, label, tracejado }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-      <span style={{ width: 8, height: 8, borderRadius: 2, background: cor, display: "inline-block" }} />
+      {tracejado ? (
+        <span style={{ width: 12, height: 0, borderTop: `2px dashed ${cor}`, display: "inline-block" }} />
+      ) : (
+        <span style={{ width: 8, height: 8, borderRadius: 2, background: cor, display: "inline-block" }} />
+      )}
       {label}
     </span>
   );
