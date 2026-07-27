@@ -28,13 +28,22 @@ export function simularFiiRf({ aporteMensal = 0, prazoMeses = 0, rentFiiAA = 0, 
   const rmFii = taxaMensal(rentFiiAA);
   const rmRf = taxaMensal(rentRfAA);
 
-  // Série de patrimônio acumulado em marcos ao longo do prazo.
+  // Renda mensal gerada por um patrimônio, à taxa simples da classe (a.a./12).
+  // Nos FIIs é o dividendo mensal; na renda fixa, o rendimento equivalente.
+  const rendaFii = (pat) => +(pat * ((Number(rentFiiAA) || 0) / 100 / 12)).toFixed(2);
+  const rendaRf = (pat) => +(pat * ((Number(rentRfAA) || 0) / 100 / 12)).toFixed(2);
+
+  // Série ao longo do prazo: patrimônio acumulado em cada marco e a renda
+  // mensal (dividendos/rendimento) que esse patrimônio já geraria naquele mês.
   const serie = [];
+  const push = (m) => {
+    const fii = fvAportes(aporteMensal, rmFii, m);
+    const rf = fvAportes(aporteMensal, rmRf, m);
+    serie.push({ mes: m, fii, rf, rendaFii: rendaFii(fii), rendaRf: rendaRf(rf) });
+  };
   const step = Math.max(1, Math.round(N / Math.max(1, pontos)));
-  for (let m = step; m < N; m += step) {
-    serie.push({ mes: m, fii: fvAportes(aporteMensal, rmFii, m), rf: fvAportes(aporteMensal, rmRf, m) });
-  }
-  if (N > 0) serie.push({ mes: N, fii: fvAportes(aporteMensal, rmFii, N), rf: fvAportes(aporteMensal, rmRf, N) });
+  for (let m = step; m < N; m += step) push(m);
+  if (N > 0) push(N);
 
   const patFii = fvAportes(aporteMensal, rmFii, N);
   const patRf = fvAportes(aporteMensal, rmRf, N);
