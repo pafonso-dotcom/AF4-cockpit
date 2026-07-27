@@ -84,7 +84,7 @@ const Planejamento = lz(() => import("./components/pages/Planejamento/index.jsx"
 const AnaliseFatura = lz(() => import("./components/pages/AnaliseFatura.jsx"));
 const Investimentos = lz(() => import("./components/pages/Investimentos.jsx"));
 const Screener = lz(() => import("./components/pages/Invest/Screener.jsx"));
-const Simulador = lz(() => import("./components/pages/Simulador.jsx"));
+const Simuladores = lz(() => import("./components/pages/Invest/Simuladores.jsx"));
 const AnalisesUnificada = lz(() => import("./components/pages/Invest/Analises.jsx"));
 const PlanejarCarteira = lz(() => import("./components/pages/Invest/PlanejarCarteira.jsx"));
 const Planejador = lz(() => import("./components/pages/Invest/Planejador.jsx"));
@@ -1183,7 +1183,7 @@ export default function App() {
           transacoes={transacoes} setTransacoes={setTransacoes}
         />
       )}
-      {(tab === "mapa-dividendos" || tab === "calc-renda" || tab === "projecao") && (
+      {(tab === "mapa-dividendos" || tab === "projecao") && (
         <div className="px-6 md:px-10">
           <RendaDividendos ativos={ativos} proventosManuais={proventosManuais} hidden={hidden}
             apiKeys={apiKeys} alvoInicial={projetarAlvo} onConsumirAlvo={() => setProjetarAlvo(null)} />
@@ -1205,12 +1205,12 @@ export default function App() {
           onIrMonteCarteira={() => { setModulo("invest"); irParaTab("monte-carteira"); }}
         />
       )}
-      {tab === "simulador" && (
+      {(tab === "simulador" || tab === "calc-renda") && (
         <div className="px-6 md:px-10">
-          <Simulador />
+          <Simuladores />
         </div>
       )}
-      {/* calc-renda foi fundida no hub "Renda & Dividendos" (render acima, junto de mapa-dividendos) */}
+      {/* calc-renda agora abre o hub "Simuladores" (FIIs × Renda Fixa + Calculadora de Renda) */}
       {tab === "planejador" && (
         <div className="px-6 md:px-10">
           <Planejador transacoes={transacoes} hidden={hidden} />
