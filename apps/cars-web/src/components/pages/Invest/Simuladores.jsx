@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from "react";
-import { ChevronDown, CalendarDays, LineChart } from "lucide-react";
+import React, { useState } from "react";
+import { ChevronDown, TrendingUp, Calculator } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import PageHeader from "../../ui/PageHeader.jsx";
-import MapaDividendos from "./MapaDividendos.jsx";
-import Projecao from "./Projecao.jsx";
+import SimuladorFiiRf from "./SimuladorFiiRf.jsx";
+import CalculadoraRenda from "./CalculadoraRenda.jsx";
 
-const KEY = "af4:renda-hub:abertos:v1";
-const ler = () => { try { return new Set(JSON.parse(localStorage.getItem(KEY) || '["mapa"]')); } catch { return new Set(["mapa"]); } };
+const KEY = "af4:simuladores:abertos:v1";
+const ler = () => { try { return new Set(JSON.parse(localStorage.getItem(KEY) || '["fii-rf"]')); } catch { return new Set(["fii-rf"]); } };
 
 /**
- * Hub "Renda & Dividendos" — junta o Mapa de Dividendos, a Calculadora de Renda
- * e a Projeção num módulo só, em seções recolhíveis (acordeão), pra a tela não
- * ficar gigante. Cada seção abre/fecha independente; o estado fica salvo.
+ * Hub "Simuladores" — junta os dois simuladores "e se eu investir?" num módulo
+ * só, em seções recolhíveis (acordeão):
+ *   • FIIs × Renda Fixa (fase de ACUMULAR — aporte mensal → patrimônio)
+ *   • Calculadora de Renda (fase de VIVER da renda — capital pronto → renda/mês)
+ * São complementares: um forma o patrimônio, o outro mostra quanto ele rende.
  */
-export default function RendaDividendos({ ativos = [], proventosManuais = [], hidden = false, apiKeys = {}, alvoInicial, onConsumirAlvo }) {
+export default function Simuladores() {
   const [abertos, setAbertos] = useState(ler);
-  // Veio um "projetar alvo" de outra tela → abre a seção Projeção.
-  useEffect(() => { if (alvoInicial) setAbertos((prev) => new Set(prev).add("projecao")); }, [alvoInicial]);
 
   const toggle = (id) => setAbertos((prev) => {
     const n = new Set(prev);
@@ -50,17 +50,17 @@ export default function RendaDividendos({ ativos = [], proventosManuais = [], hi
     <div className="fade-up py-6 px-6">
       <PageHeader
         eyebrow="Investimentos"
-        title={<>Renda &amp; <em>Dividendos.</em></>}
-        sub="Meta de renda, mapa de proventos e projeção num lugar só. Abra as seções conforme precisar."
+        title={<>Simuladores.</>}
+        sub="Duas contas de investimento num lugar só: quanto você forma aportando todo mês (FIIs × Renda Fixa) e quanto um capital pronto rende por mês. Abra a seção que precisar."
       />
       <div style={{ marginTop: 8 }}>
-        <Secao id="mapa" icon={CalendarDays} titulo="Mapa de Dividendos"
-               desc="Meta de renda, o que cada ativo paga, comparativo dividendos × renda fixa e projeção de patrimônio.">
-          <MapaDividendos ativos={ativos} proventosManuais={proventosManuais} hidden={hidden} embed />
+        <Secao id="fii-rf" icon={TrendingUp} titulo="FIIs × Renda Fixa · aporte mensal"
+               desc="Você aporta todo mês por N anos. Compara o patrimônio formado em FIIs vs Renda Fixa, a renda mensal no fim e o efeito da inflação.">
+          <SimuladorFiiRf embed />
         </Secao>
-        <Secao id="projecao" icon={LineChart} titulo="Projeção"
-               desc="Simule a evolução de um ativo (da carteira ou personalizado) com aporte regular.">
-          <Projecao ativos={ativos} hidden={hidden} apiKeys={apiKeys} alvoInicial={alvoInicial} onConsumirAlvo={onConsumirAlvo} embed />
+        <Secao id="calc" icon={Calculator} titulo="Calculadora de Renda · capital pronto"
+               desc="Parte de um capital já formado e mostra quanto rende por mês — bruto, líquido e preservando o patrimônio contra a inflação.">
+          <CalculadoraRenda embed />
         </Secao>
       </div>
     </div>
