@@ -22,6 +22,9 @@ export const NAV_ITEMS = [
   { modulo: "financas", tab: "relatorios-f", label: "Relatórios",         grupo: "Finanças" },
   { modulo: "financas", tab: "audit",        label: "Histórico",          grupo: "Finanças" },
 
+  // Investimentos
+  { modulo: "invest", tab: "simulador", label: "Simulador FIIs × RF", grupo: "Investimentos" },
+
   // Agenda — incorporada ao módulo Finanças.
   { modulo: "financas", tab: "calendario", label: "Calendário",   grupo: "Agenda" },
   { modulo: "financas", tab: "notas",      label: "Compromissos", grupo: "Agenda" },
