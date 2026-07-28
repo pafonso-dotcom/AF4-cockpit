@@ -76,40 +76,39 @@ body { color: var(--text-color, inherit); }
 [data-c="ice"]     { --ac: #e5e7eb; --ac2: #f3f4f6; }
 
 /* ===== LIGHT THEMES ===== */
+/* Todos os temas claros: fundo bege quente + cards sem borda visível
+   (borda ~= card). Espelha LIGHT_BASE em lib/theme.js — andam juntos. */
 [data-c="nevoa"] {
-  /* "Suave & moderno" — espelha lib/theme.js (nevoa); os dois andam juntos. */
-  --bg: #f6f7f8; --be: #eef0f2; --bc: #ffffff; --bc2: #f4f6f8;
-  --bd: #e6e9ec; --bd2: #cdd3d9;
+  --bg: #f0e9db; --be: #e8dfcd; --bc: #fbf8f2; --bc2: #f5efe4;
+  --bd: #e9e0cf; --bd2: #d8ccb6;
   --tx: #1f2429; --tm: #5c6570; --td: #949ba4;
   --ac: #5b9279; --ac2: #74a992;
   --sc: #4f9d76; --dn: #cf7d6a; --wn: #c1954b; --info: #6d8fb3;
 }
 [data-c="papel"] {
-  --bg: #ffffff; --be: #f7f5f0; --bc: #ffffff; --bc2: #f7f5f0;
-  --bd: #d9c9a3; --bd2: #bfae87;
+  --bg: #f0e9db; --be: #e8dfcd; --bc: #fbf8f2; --bc2: #f5efe4;
+  --bd: #e9e0cf; --bd2: #d8ccb6;
   --tx: #2a2218; --tm: #5e503c; --td: #8a7b62;
   --ac: #8a5a28; --ac2: #a87440;
   --sc: #56784f; --dn: #9a4032; --wn: #b8862a; --info: #3f6a8c;
 }
 [data-c="linho"] {
-  /* Fundo branco a pedido do usuário (antes creme #f3efe7) — acento oliva mantido.
-     Espelha lib/theme.js; os dois precisam andar juntos. */
-  --bg: #ffffff; --be: #f5f3ee; --bc: #ffffff; --bc2: #f7f5f0;
-  --bd: #ddd6c8; --bd2: #a89d83;
+  --bg: #f0e9db; --be: #e8dfcd; --bc: #fbf8f2; --bc2: #f5efe4;
+  --bd: #e9e0cf; --bd2: #d8ccb6;
   --tx: #222018; --tm: #5a5346; --td: #857d6c;
   --ac: #5d7548; --ac2: #7a9460;
   --sc: #56784f; --dn: #a14a3a; --wn: #a87a2a; --info: #3f6a8c;
 }
 [data-c="perola"] {
-  --bg: #f5f5f7; --be: #eaeaef; --bc: #ffffff; --bc2: #f5f5f7;
-  --bd: #d8d8de; --bd2: #a8a8b0;
+  --bg: #f0e9db; --be: #e8dfcd; --bc: #fbf8f2; --bc2: #f5efe4;
+  --bd: #e9e0cf; --bd2: #d8ccb6;
   --tx: #1a1a1f; --tm: #5a5a64; --td: #8888a0;
   --ac: #4a5a8a; --ac2: #6a7aaa;
   --sc: #3c8c5a; --dn: #c14a4a; --wn: #b88c2a; --info: #3f6a8c;
 }
 [data-c="moderno"] {
-  --bg: #f4f5f7; --be: #eceef2; --bc: #ffffff; --bc2: #f8f9fb;
-  --bd: #e4e6ec; --bd2: #cfd3dc;
+  --bg: #f0e9db; --be: #e8dfcd; --bc: #fbf8f2; --bc2: #f5efe4;
+  --bd: #e9e0cf; --bd2: #d8ccb6;
   --tx: #14151a; --tm: #5b6172; --td: #9aa0b0;
   --ac: #4f46e5; --ac2: #6366f1;
   --sc: #15a06b; --dn: #e0566a; --wn: #d99a2b; --info: #3b82f6;

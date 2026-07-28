@@ -20,6 +20,17 @@ const DARK_BASE = {
   green: "#4ade80", red: "#f87171", blue: "#60a5fa", yellow: "#fbbf24",
 };
 
+// Base CLARA — fundo bege quente + cards sem borda visível (inspirado no
+// editorial "menos caixa, mais respiro": a separação vem do tom e do espaço,
+// não de linha). Card levemente mais claro que o fundo pra "levantar" sozinho;
+// a borda é quase invisível. As variantes claras mudam só acento e texto.
+// Espelha os blocos [data-c] claros no index.css — os dois andam juntos.
+const LIGHT_BASE = {
+  dark: false,
+  bg: "#f0e9db", bgSoft: "#e8dfcd", card: "#fbf8f2", cardHi: "#f5efe4",
+  border: "#e9e0cf", borderHi: "#d8ccb6",
+};
+
 const THEMES = {
   // ----- DARK -----
   gold:    { ...DARK_BASE, id: "gold",    nome: "Editorial Gold", subtitulo: "Preto e dourado · padrão", gold: "#c9a961", goldHi: "#d4b87a" },
@@ -30,35 +41,27 @@ const THEMES = {
   amber:   { ...DARK_BASE, id: "amber",   nome: "Âmbar",          subtitulo: "Dourado vivo",              gold: "#f59e0b", goldHi: "#fbbf24" },
   ice:     { ...DARK_BASE, id: "ice",     nome: "Gelo",           subtitulo: "Mono · clean",              gold: "#e5e7eb", goldHi: "#f3f4f6" },
 
-  // ----- LIGHT -----
+  // ----- LIGHT (fundo bege · cards sem borda) -----
   papel: {
-    dark: false, id: "papel", nome: "Papel", subtitulo: "Sépia · papel antigo",
-    bg: "#f4ecd8", bgSoft: "#ede3ca", card: "#fbf6e8", cardHi: "#f4ecd8",
-    border: "#d9c9a3", borderHi: "#bfae87",
+    ...LIGHT_BASE, id: "papel", nome: "Papel", subtitulo: "Sépia · fundo bege",
     ink: "#2a2218", muted: "#4f432f", faint: "#796a52",
     gold: "#8a5a28", goldHi: "#a87440",
     green: "#56784f", red: "#9a4032", blue: "#3f6a8c", yellow: "#b8862a",
   },
   linho: {
-    dark: false, id: "linho", nome: "Linho", subtitulo: "Verde oliva sobre linho",
-    bg: "#f3efe7", bgSoft: "#ebe5d8", card: "#fbf9f3", cardHi: "#f3efe7",
-    border: "#d0c8b6", borderHi: "#a89d83",
+    ...LIGHT_BASE, id: "linho", nome: "Linho", subtitulo: "Verde oliva · fundo bege",
     ink: "#222018", muted: "#4b463a", faint: "#766e5d",
     gold: "#5d7548", goldHi: "#7a9460",
     green: "#56784f", red: "#a14a3a", blue: "#3f6a8c", yellow: "#a87a2a",
   },
   perola: {
-    dark: false, id: "perola", nome: "Pérola", subtitulo: "Branco perolado · azul",
-    bg: "#f5f5f7", bgSoft: "#eaeaef", card: "#ffffff", cardHi: "#f5f5f7",
-    border: "#d8d8de", borderHi: "#a8a8b0",
+    ...LIGHT_BASE, id: "perola", nome: "Pérola", subtitulo: "Azul suave · fundo bege",
     ink: "#1a1a1f", muted: "#4c4c57", faint: "#76768c",
     gold: "#4a5a8a", goldHi: "#6a7aaa",
     green: "#3c8c5a", red: "#c14a4a", blue: "#3f6a8c", yellow: "#b88c2a",
   },
   moderno: {
-    dark: false, id: "moderno", nome: "Moderno", subtitulo: "Cinza minimalista · índigo (SaaS)",
-    bg: "#f4f5f7", bgSoft: "#eceef2", card: "#ffffff", cardHi: "#f8f9fb",
-    border: "#e4e6ec", borderHi: "#cfd3dc",
+    ...LIGHT_BASE, id: "moderno", nome: "Moderno", subtitulo: "Índigo · fundo bege",
     ink: "#14151a", muted: "#5b6172", faint: "#9aa0b0",
     gold: "#4f46e5", goldHi: "#6366f1",
     green: "#15a06b", red: "#e0566a", blue: "#3b82f6", yellow: "#d99a2b",
