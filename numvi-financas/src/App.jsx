@@ -63,6 +63,7 @@ import ContaExtrato from "./components/pages/ContaExtrato.jsx";
 import AReceberEDividas from "./components/pages/AReceberEDividas.jsx";
 import AuditLog from "./components/pages/AuditLog.jsx";
 import PergunteAoClaude from "./components/pages/PergunteAoClaude.jsx";
+import SimuladorFiiRf from "./components/pages/Invest/SimuladorFiiRf.jsx";
 import Configuracoes from "./components/pages/Configuracoes.jsx";
 import Gerencial from "./components/pages/Gerencial.jsx";
 import { isGestor } from "./lib/gestor.js";
@@ -922,6 +923,13 @@ export default function App() {
             {tab === "diario" && (
               <Diario diario={diario} setDiario={setDiario} />
             )}
+          </div>
+        )}
+
+        {/* MÓDULO: INVESTIMENTOS */}
+        {modulo === "invest" && (
+          <div className="px-6 md:px-10">
+            {tab === "simulador" && <SimuladorFiiRf />}
           </div>
         )}
 
