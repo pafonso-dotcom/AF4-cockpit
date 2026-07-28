@@ -11,6 +11,11 @@ export const CARD_SHADOW =
 export const CARD_SHADOW_ELEVATED =
   "0 10px 28px rgba(16,24,40,.10), 0 2px 6px rgba(16,24,40,.06)";
 
+// Sombra "suave" (tom quente) — para cards SEM borda que se separam do fundo
+// só pela sombra. Usada na caixa suave do Painel.
+export const CARD_SHADOW_SOFT =
+  "0 3px 12px rgba(80,60,35,.07), 0 1px 3px rgba(80,60,35,.05)";
+
 // Superfície "aurora" do card de Patrimônio Total — reaproveitada em outros
 // cards (Centro de Controle, Alocação por Moeda) pra manter a mesma cara.
 // Texto/ícones devem ser brancos por cima dela.
