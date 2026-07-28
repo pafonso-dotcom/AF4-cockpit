@@ -84,6 +84,6 @@ export default function BottomTabBar({ modulo, setModulo, setTab, tab, ehGestor 
 // Primeira aba ao trocar de módulo (espelha o que o Header faz)
 const FIRST_TAB_OF = {
   financas: "dashboard",
-  invest:   "investimentos",
+  invest:   "simulador",
   agenda:   "inicio",
 };
