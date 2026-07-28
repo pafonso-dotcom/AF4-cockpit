@@ -14,7 +14,7 @@ import { getKPIsMes, getDespesasDoMes, getGanhosDoMes, getAnualPorMes } from "..
 import { calcOrcamentoCategorias } from "../../lib/orcamentos.js";
 import { useLayout } from "../../lib/useLayout.js";
 import { supabase } from "../../lib/supabase.js";
-import Card from "../ui/Card.jsx";
+import Card, { FlatCardContext } from "../ui/Card.jsx";
 import { Sparkline, RingIcon } from "../ui/widget.jsx";
 
 // Paleta moderna e harmônica (tons mais suaves, sem primários puros gritando).
@@ -466,6 +466,7 @@ export default function Dashboard({
   const principalInsight = insights[0];
 
   return (
+    <FlatCardContext.Provider value={true}>
     <div className="fade-up" style={{ paddingTop: 12 }}>
 
       {/* Top 3 do dia */}
@@ -537,6 +538,7 @@ export default function Dashboard({
                 despesas={despesasResumo.total} aPagar={despesasResumo.aPagar}
                 metas={metas || []} hidden={hidden} userName={userName} />
     </div>
+    </FlatCardContext.Provider>
   );
 }
 
@@ -825,7 +827,7 @@ function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {contas.slice(0, 4).map(c => (
           <button key={c.id} onClick={() => onContaClick?.(c)}
-            style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "11px 12px", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 9, minHeight: 84 }}>
+            style={{ background: "transparent", border: "none", borderRadius: 16, padding: "6px 4px", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 9, minHeight: 84 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
               <BankIcon c={c} size={30} />
               <div style={{ fontSize: 11.5, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
