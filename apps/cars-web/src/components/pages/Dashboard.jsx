@@ -479,7 +479,7 @@ export default function Dashboard({
         <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
                  breakdown={{ contas: totalContas, aReceber: aReceber, cheques: chequesAReceber, invest: totalInvest, aPagar: aPagarAno }} />
         <span className="dash-prox">
-          <ProximoCompromissoCard item={proximoCompromisso} total={aPagarMes} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
+          <ProximosVencimentosCard devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} />
         </span>
         <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
       </section>
@@ -735,6 +735,50 @@ function ProximoCompromissoCard({ item, total, hidden, onVer }) {
         </>
       ) : (
         <div style={{ fontSize: 12, color: T.faint, fontStyle: "italic", marginTop: 8 }}>Nenhum compromisso próximo.</div>
+      )}
+    </Card>
+  );
+}
+
+// Próximos vencimentos (recebíveis) — antes ficava dentro do Centro de Controle;
+// agora ocupa o slot do topo (no lugar do "Próximo compromisso").
+function ProximosVencimentosCard({ devedores = [], hidden, onVer }) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const restanteDe = (d) => Math.max(0, (Number(d.valor) || 0) - (Number(d.valorRecebido) || 0));
+  const formatarVenc = (iso) => {
+    if (!iso) return "—";
+    try { return new Date(iso + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
+    catch { return iso; }
+  };
+  const proximos = (devedores || [])
+    .filter(d => !d.recebido && d.vencimento)
+    .sort((a, b) => (a.vencimento || "").localeCompare(b.vencimento || ""))
+    .slice(0, 3);
+  return (
+    <Card style={{ minHeight: 110 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: T.muted, display: "flex", alignItems: "center", gap: 6 }}>
+          <Calendar size={13} style={{ color: T.gold }} /> Próximos vencimentos
+        </div>
+        {onVer && <button onClick={onVer} style={{ background: "transparent", border: "none", color: T.gold, fontSize: 11, cursor: "pointer" }}>Ver</button>}
+      </div>
+      {proximos.length === 0 ? (
+        <div style={{ fontSize: 12, color: T.faint, fontStyle: "italic", marginTop: 4 }}>Nenhum recebível com vencimento.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {proximos.map(d => {
+            const atrasado = d.vencimento < hoje;
+            return (
+              <div key={d.id} onClick={onVer} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", fontSize: 11.5, cursor: onVer ? "pointer" : "default" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0, flex: 1 }}>
+                  <div style={{ color: T.ink, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.nome}</div>
+                  <div style={{ fontSize: 9.5, color: atrasado ? T.red : T.muted }}>{atrasado ? "atrasado · " : ""}{formatarVenc(d.vencimento)}</div>
+                </div>
+                <div className="num" style={{ color: T.ink, fontWeight: 600, marginLeft: 8, flexShrink: 0 }}>{hidden ? "•••" : fmt(restanteDe(d))}</div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </Card>
   );
@@ -1085,19 +1129,6 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
     { id: "cheques",     label: "Cheques",            valor: chequesTotal, cor: chequesTotal > 0 ? (T.blue || "#60a5fa") : T.muted, icon: Receipt, spark: sparks?.cheques },
   ];
 
-  const proximos = abertos
-    .filter(d => d.vencimento)
-    .sort((a, b) => (a.vencimento || "").localeCompare(b.vencimento || ""))
-    .slice(0, 3);
-
-  const formatarVenc = (iso) => {
-    if (!iso) return "—";
-    try {
-      const d = new Date(iso + "T00:00:00");
-      return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
-    } catch { return iso; }
-  };
-
   return (
     <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -1149,41 +1180,6 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
           </div>
         ))}
       </div>
-
-      {abertos.length === 0 ? (
-        <div style={{ padding: "16px 0 2px", textAlign: "center", fontSize: 12, color: T.faint, fontStyle: "italic" }}>
-          Nenhum recebível pendente.
-        </div>
-      ) : (
-        <>
-
-          {proximos.length > 0 && (
-            <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
-              <div style={{ fontSize: 9.5, color: T.faint, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 6 }}>
-                Próximos vencimentos
-              </div>
-              {proximos.map(d => {
-                const atrasado = d.vencimento < hoje;
-                return (
-                  <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", fontSize: 11.5 }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0, flex: 1 }}>
-                      <div style={{ color: T.ink, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {d.nome}
-                      </div>
-                      <div style={{ fontSize: 9.5, color: atrasado ? T.red : T.muted }}>
-                        {atrasado ? "atrasado · " : ""}{formatarVenc(d.vencimento)}
-                      </div>
-                    </div>
-                    <div className="num" style={{ color: T.ink, fontWeight: 600, marginLeft: 8, flexShrink: 0 }}>
-                      {oculto ? "•••" : fmt(restanteDe(d))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
 
       {/* A PAGAR vencendo HOJE — contas (fixas/parcelas/dívidas) que vencem hoje */}
       {aPagarHoje.length > 0 && (
