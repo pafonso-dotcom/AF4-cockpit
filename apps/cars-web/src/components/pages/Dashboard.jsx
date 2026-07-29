@@ -467,7 +467,7 @@ export default function Dashboard({
 
   return (
     <SoftCardContext.Provider value={true}>
-    <div className="fade-up" style={{ paddingTop: 12 }}>
+    <div className="fade-up dash-nums" style={{ paddingTop: 12 }}>
 
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
@@ -520,6 +520,11 @@ export default function Dashboard({
           no mobile ele é escondido junto com os atalhos, liberando a largura toda. */}
       <style>{`
         .dash-prox { display: contents; }
+        /* Números ~20% maiores no desktop; no mobile (≤768px) ficam como estão.
+           zoom preserva a proporção entre os tamanhos (cada .num escala igual). */
+        @media (min-width: 769px) {
+          .dash-nums .num { zoom: 1.2; }
+        }
         @media (max-width: 1024px) {
           .dash-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .dash-mid-grid, .dash-bot-grid, .dash-metas-grid { grid-template-columns: 1fr !important; }
