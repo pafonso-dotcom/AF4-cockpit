@@ -494,12 +494,17 @@ export default function Dashboard({
           onVerPagar={() => onTabChange?.("areceber")} />
       </section>
 
-      {/* Alocação Atual · Gastos por Categoria — abaixo do calendário/centro de controle */}
+      {/* Alocação Atual · Gastos por Categoria — abaixo do calendário/centro de
+          controle. Quando empilha (mobile), Gastos sobe pra cima da Alocação. */}
       <section className="dash-mid-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
-        <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
+        <div className="dash-aloc" style={{ minWidth: 0 }}>
+          <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
+        </div>
+        <div className="dash-gastos" style={{ minWidth: 0 }}>
+          <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
+        </div>
       </section>
 
       {/* Projeção · 6 meses — embaixo do "A receber" */}
@@ -530,6 +535,8 @@ export default function Dashboard({
           .dash-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .dash-mid-grid, .dash-bot-grid, .dash-metas-grid { grid-template-columns: 1fr !important; }
           .dash-proj-grid { grid-template-columns: repeat(3, 1fr) !important; }
+          /* Empilhado: Gastos por Categoria acima da Alocação. */
+          .dash-gastos { order: -1; }
         }
         @media (max-width: 768px) {
           /* Mobile: fora o "próximo compromisso"; patrimônio e Contas na
