@@ -105,8 +105,12 @@ export default function DespesasFixas({
       toast.success(`Fixa "${fixaSalva.descricao}" criada · ${ocorrenciasNovas?.length || 0} ocorrências geradas.`);
       setMesAtivo(fixaSalva.inicioEm || mesAtualISO);
     } else {
-      // Edição: atualiza a fixa + propaga pra ocorrências (futuras ou todas pendentes)
-      setFixas(fixas.map(f => f.id === fixaSalva.id ? fixaSalva : f));
+      // Edição: atualiza a fixa + propaga pra ocorrências (futuras ou todas pendentes).
+      // Empréstimo bancário: a grade do modal manda um mapa mês → valor
+      // (_valoresParcelas); cada parcela pendente recebe o SEU valor — não o
+      // valor padrão achatado — independente do escopo escolhido.
+      const { _valoresParcelas, ...fixaLimpa } = fixaSalva;
+      setFixas(fixas.map(f => f.id === fixaLimpa.id ? fixaLimpa : f));
       const limite = modo === "todas" ? mesAtualISO : (() => {
         // Próximo mês
         const d = new Date(anoAtual, mesAtualIdx + 1, 1);
@@ -114,14 +118,17 @@ export default function DespesasFixas({
       })();
 
       const novasOcc = fixaOcorrencias.map(o => {
-        if (o.fixaId !== fixaSalva.id) return o;
+        if (o.fixaId !== fixaLimpa.id) return o;
         if (o.status === "paga") return o; // nunca toca em pagas
+        if (fixaLimpa.emprestimo && _valoresParcelas) {
+          return { ...o, valor: Number(_valoresParcelas[o.mes] ?? o.valor) || 0, dataVencimento: dataVencimentoNoMes(o.mes, fixaLimpa.diaVencimento) };
+        }
         if (modo === "futuras" && o.mes < limite) return o;
         // Atualiza valor padrão e a data de vencimento (dia do mês pode ter mudado)
-        return { ...o, valor: fixaSalva.valor, dataVencimento: dataVencimentoNoMes(o.mes, fixaSalva.diaVencimento) };
+        return { ...o, valor: fixaLimpa.valor, dataVencimento: dataVencimentoNoMes(o.mes, fixaLimpa.diaVencimento) };
       });
       setFixaOcorrencias(novasOcc);
-      toast.success(`"${fixaSalva.descricao}" atualizada (${modo === "futuras" ? "futuras" : "todas pendentes"}).`);
+      toast.success(`"${fixaLimpa.descricao}" atualizada${fixaLimpa.emprestimo ? " (parcelas da grade aplicadas)" : ` (${modo === "futuras" ? "futuras" : "todas pendentes"})`}.`);
       setEditingFixa(null);
     }
   };
@@ -383,7 +390,19 @@ export default function DespesasFixas({
                       color: cat ? cat.cor : T.muted, borderRadius: 4,
                       fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", fontSize: 9.5,
                     }}>{fixa.categoria || "—"}</span>
-                    <span>Recorrente · todo dia {fixa.diaVencimento}</span>
+                    {fixa.emprestimo ? (
+                      <span>
+                        🏦 Empréstimo · parcela{" "}
+                        {(() => {
+                          const doEmp = fixaOcorrencias.filter(o => o.fixaId === fixa.id).map(o => o.mes).sort();
+                          const idx = doEmp.indexOf(occ.mes);
+                          return `${idx >= 0 ? idx + 1 : "?"}/${fixa.parcelas || doEmp.length}`;
+                        })()}
+                        {" "}· dia {fixa.diaVencimento}
+                      </span>
+                    ) : (
+                      <span>Recorrente · todo dia {fixa.diaVencimento}</span>
+                    )}
                     {fixa.obs && <span style={{ fontStyle: "italic" }}>· {fixa.obs}</span>}
                   </div>
                 </div>
@@ -455,6 +474,7 @@ export default function DespesasFixas({
       {modalNovaFixaOpen && (
         <NovaFixaModal
           editing={editingFixa}
+          ocorrencias={editingFixa ? fixaOcorrencias.filter(o => o.fixaId === editingFixa.id) : []}
           categorias={categorias}
           contas={contas}
           onSave={handleSalvarFixa}
