@@ -16,7 +16,7 @@ import { ordenarPorNome } from "../../lib/categoriaSort.js";
  * Coluna Data é clicável e alterna entre desc (mais novo primeiro) e asc.
  */
 export default function ContaExtrato({ conta, contas = [], setContas, transacoes = [], setTransacoes, categorias = [], hidden, onVoltar, onTransferir, embutido = false }) {
-  const [periodo, setPeriodo] = useState("mes"); // mes | 3meses | tudo
+  const [periodo, setPeriodo] = useState("tudo"); // mes | 3meses | tudo — abre em "tudo" (pedido do usuário)
   const [tipo, setTipo] = useState("todos"); // todos | receita | despesa
   const [busca, setBusca] = useState("");
   const [sortDir, setSortDir] = useState("desc"); // desc = mais novo primeiro (default)
