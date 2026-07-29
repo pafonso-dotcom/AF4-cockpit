@@ -299,6 +299,8 @@ function HeaderHorizontal({
         {/* UTILITY · sino + menu "⋯". Escondem só em RETRATO no celular; em
             paisagem (e desktop) aparecem normalmente. */}
         <div className="util-cluster" style={{ display: "inline-flex", gap: 8, alignItems: "center", position: "relative" }}>
+          {/* Sino de alertas em primeiro */}
+          <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={utilBtn} iconSize={18} />
           {/* Busca rápida (Command Palette) — atalho ⌘K/Ctrl+K visível */}
           <button onClick={() => onOpenPalette?.()}
                   title="Busca rápida (⌘K / Ctrl+K)" aria-label="Busca rápida"
@@ -312,7 +314,6 @@ function HeaderHorizontal({
                   className="hdr-util" style={{ ...utilBtn, background: NAV_SOFT, color: NAV_MUTED }}>
             <Calendar size={16} />
           </button>
-          <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={utilBtn} iconSize={18} />
           <button onClick={() => setMenuUtilAberto(v => !v)}
                   title="Mais ações" aria-label="Mais ações"
                   className="hdr-util" style={{ ...utilBtn, background: menuUtilAberto ? `${T.gold}22` : NAV_SOFT, color: menuUtilAberto ? T.gold : NAV_MUTED }}>
@@ -1060,6 +1061,7 @@ function HeaderVertical({
           )}
         </div>
         <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+          <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={vertUtilBtn} iconSize={16} />
           <button onClick={() => onOpenPalette?.()}
             title="Busca rápida de abas (Ctrl/Cmd+K)"
             style={vertUtilBtn}>
@@ -1070,7 +1072,6 @@ function HeaderVertical({
             style={vertUtilBtn}>
             <Calendar size={16} />
           </button>
-          <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={vertUtilBtn} iconSize={16} />
           <button onClick={() => setHidden(!hidden)}
             title={hidden ? "Mostrar valores" : "Ocultar valores"}
             style={vertUtilBtn}>
