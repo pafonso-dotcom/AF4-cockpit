@@ -484,15 +484,7 @@ export default function Dashboard({
         <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
       </section>
 
-      {/* Alocação Atual · Gastos por Categoria */}
-      <section className="dash-mid-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
-      }}>
-        <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
-        <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
-      </section>
-
-      {/* Calendário do mês · A Receber */}
+      {/* Calendário do mês · Centro de Controle */}
       <section className="dash-bot-grid" style={{
         display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 12, marginBottom: 16,
       }}>
@@ -500,6 +492,14 @@ export default function Dashboard({
         <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesProxMes={cartoesProxMes} sparks={sparks} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
+      </section>
+
+      {/* Alocação Atual · Gastos por Categoria — abaixo do calendário/centro de controle */}
+      <section className="dash-mid-grid" style={{
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
+      }}>
+        <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
+        <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
       </section>
 
       {/* Projeção · 6 meses — embaixo do "A receber" */}
