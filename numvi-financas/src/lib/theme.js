@@ -27,8 +27,8 @@ const DARK_BASE = {
 // Espelha os blocos [data-c] claros no index.css — os dois andam juntos.
 const LIGHT_BASE = {
   dark: false,
-  bg: "#f0e9db", bgSoft: "#e8dfcd", card: "#fbf8f2", cardHi: "#f5efe4",
-  border: "#e9e0cf", borderHi: "#d8ccb6",
+  bg: "#f3ede2", bgSoft: "#ede5d7", card: "#fcf9f5", cardHi: "#f7f2e9",
+  border: "#ede6d9", borderHi: "#e0d6c5",
 };
 
 const THEMES = {
