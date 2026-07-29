@@ -467,7 +467,7 @@ export default function Dashboard({
 
   return (
     <SoftCardContext.Provider value={true}>
-    <div className="fade-up dash-nums" style={{ paddingTop: 12 }}>
+    <div className="fade-up" style={{ paddingTop: 12 }}>
 
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
@@ -520,10 +520,11 @@ export default function Dashboard({
           no mobile ele é escondido junto com os atalhos, liberando a largura toda. */}
       <style>{`
         .dash-prox { display: contents; }
-        /* Números ~20% maiores no desktop; no mobile (≤768px) ficam como estão.
-           zoom preserva a proporção entre os tamanhos (cada .num escala igual). */
+        /* Só os números do detalhamento do card de Patrimônio (embaixo) e dos
+           tiles do Centro de Controle ~20% maiores no desktop; o valor grande e
+           o resto do Painel ficam iguais. No mobile (≤768px) nada muda. */
         @media (min-width: 769px) {
-          .dash-nums .num { zoom: 1.2; }
+          .kpi-breakdown .num, .cc-nums .num { zoom: 1.2; }
         }
         @media (max-width: 1024px) {
           .dash-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
@@ -685,7 +686,7 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
         )}
       </div>
       {visivel && breakdown && (
-        <div style={{ position: "relative", zIndex: 1, marginTop: 10, paddingTop: 9, borderTop: "1px solid rgba(255,255,255,0.22)", display: "flex", flexDirection: "column", gap: 3 }}>
+        <div className="kpi-breakdown" style={{ position: "relative", zIndex: 1, marginTop: 10, paddingTop: 9, borderTop: "1px solid rgba(255,255,255,0.22)", display: "flex", flexDirection: "column", gap: 3 }}>
           <Linha rotulo="Contas" v={breakdown.contas} sinal="+" />
           <Linha rotulo="A receber" v={breakdown.aReceber} sinal="+" />
           {breakdown.cheques > 0 && <Linha rotulo="Cheques a receber" v={breakdown.cheques} sinal="+" />}
@@ -1121,7 +1122,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
 
       {/* 6 totais do Centro de Controle — 2 colunas (lado a lado). Todos usam a
           MESMA superfície "aurora" do card de Patrimônio Total, texto branco. */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+      <div className="cc-nums" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
         {resumo.map(b => (
           <div key={b.id} style={{
             background: AURORA_BG,
@@ -1248,7 +1249,7 @@ function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }
   const ehHoje = (d) => d === hoje.getDate() && ref.m === hoje.getMonth() && ref.y === hoje.getFullYear();
   const passo = (delta) => setRef(r => { const nd = new Date(r.y, r.m + delta, 1); return { y: nd.getFullYear(), m: nd.getMonth() }; });
   const navBtn = { width: 22, height: 22, border: `1px solid ${T.border}`, borderRadius: 7, display: "grid", placeItems: "center", color: T.muted, background: T.bgSoft, cursor: "pointer", fontWeight: 600, lineHeight: 0 };
-  const Dot = ({ c }) => <span style={{ width: 5, height: 5, borderRadius: "50%", background: c }} />;
+  const Dot = ({ c }) => <span style={{ width: 4, height: 4, borderRadius: "50%", background: c }} />;
 
   return (
     <Card>
@@ -1262,11 +1263,11 @@ function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }
           <button onClick={() => passo(1)} aria-label="Próximo mês" style={navBtn}>›</button>
         </div>
       </div>
-      <div style={{ fontFamily: T.serif, fontSize: 15, fontWeight: 600, marginBottom: 8, textTransform: "capitalize" }}>{CAL_MESES[ref.m]} {ref.y}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, marginBottom: 4 }}>
-        {["D","S","T","Q","Q","S","S"].map((d, i) => <span key={i} style={{ fontSize: 9.5, textAlign: "center", color: T.faint, fontWeight: 700 }}>{d}</span>)}
+      <div style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 600, marginBottom: 6, textTransform: "capitalize" }}>{CAL_MESES[ref.m]} {ref.y}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 3 }}>
+        {["D","S","T","Q","Q","S","S"].map((d, i) => <span key={i} style={{ fontSize: 9, textAlign: "center", color: T.faint, fontWeight: 700 }}>{d}</span>)}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
         {cells.map((d, i) => {
           if (d == null) return <div key={i} />;
           const mk = marks[d] || {};
@@ -1277,8 +1278,8 @@ function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }
           const titulo = hasMov ? [mk.pagar && "a pagar", mk.receber && "a receber / cheque", mk.agenda && "agenda"].filter(Boolean).join(" · ") : undefined;
           return (
             <div key={i} onClick={onVer} title={titulo} style={{
-              aspectRatio: "1", borderRadius: 9, position: "relative",
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12,
+              aspectRatio: "1.55", borderRadius: 8, position: "relative",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5,
               color: hasMov ? corDom : T.ink, cursor: onVer ? "pointer" : "default",
               background: hasMov ? `${corDom}1e` : T.bgSoft,
               border: hoje ? `2px solid ${T.green}` : hasMov ? `1px solid ${corDom}66` : "1px solid transparent",
@@ -1286,7 +1287,7 @@ function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }
             }}>
               {d}
               {hasMov && (
-                <div style={{ display: "flex", gap: 3, position: "absolute", bottom: 4 }}>
+                <div style={{ display: "flex", gap: 3, position: "absolute", bottom: 2 }}>
                   {mk.pagar && <Dot c={T.red} />}
                   {mk.receber && <Dot c={T.green} />}
                   {mk.agenda && <Dot c={T.blue || "#5b86c4"} />}
