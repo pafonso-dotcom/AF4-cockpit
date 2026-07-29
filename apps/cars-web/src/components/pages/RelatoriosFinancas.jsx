@@ -357,7 +357,8 @@ table { width:100%; border-collapse:collapse; font-size:10.5px; }
 th,td { padding:3px 6px; border-bottom:1px solid #e5e5e5; }
 th { text-transform:uppercase; font-size:8.5px; letter-spacing:.04em; color:#666; text-align:right; }
 th:first-child, td.cat { text-align:left; }
-td.cat { padding-left:14px; }
+/* Nome da categoria sempre numa linha só (não quebrar). */
+td.cat { padding-left:10px; white-space:nowrap; }
 td.n { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
 td.tot { font-weight:700; }
 tr.grp td { background:#f1ede6; font-weight:700; text-transform:uppercase; font-size:9px; letter-spacing:.05em; border-bottom:1px solid #d8cfbf; }
