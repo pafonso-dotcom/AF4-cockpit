@@ -2336,17 +2336,24 @@ function CompromissoTabela({
   // Agrupar pelo nome — junta as ocorrências do mesmo compromisso (ex.: a fixa
   // "Condomínio" de todos os meses) num grupo recolhível: mais fácil de achar
   // e alterar. Persistido; nomes iguais a menos de caixa/espaços contam juntos.
+  // Os grupos ABERTOS também são persistidos: alterar/pagar um item re-renderiza
+  // (ou remonta) a tela, e sem isso ela "voltava" com tudo fechado.
+  const KEY_ABERTOS = `af4:controle:agrupar-abertos:${tipo}:v1`;
   const [agrupar, setAgrupar] = useState(() => {
     try { return localStorage.getItem("af4:controle:agrupar-nome:v1") === "1"; } catch { return false; }
   });
-  const toggleAgrupar = () => setAgrupar(v => {
-    try { localStorage.setItem("af4:controle:agrupar-nome:v1", v ? "0" : "1"); } catch {}
-    return !v;
+  const toggleAgrupar = () => {
+    const nv = !agrupar;
+    try { localStorage.setItem("af4:controle:agrupar-nome:v1", nv ? "1" : "0"); } catch {}
+    setAgrupar(nv);
+  };
+  const [abertos, setAbertos] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(KEY_ABERTOS) || "[]")); } catch { return new Set(); }
   });
-  const [abertos, setAbertos] = useState(() => new Set());
   const toggleGrupo = (k) => setAbertos(prev => {
     const n = new Set(prev);
     n.has(k) ? n.delete(k) : n.add(k);
+    try { localStorage.setItem(KEY_ABERTOS, JSON.stringify([...n])); } catch {}
     return n;
   });
   // Grupos na ordem do primeiro item (a lista já vem ordenada por vencimento).
