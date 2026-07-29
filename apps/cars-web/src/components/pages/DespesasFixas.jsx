@@ -154,8 +154,20 @@ export default function DespesasFixas({
         // Atualiza valor padrão e a data de vencimento (dia do mês pode ter mudado)
         return { ...o, valor: fixaLimpa.valor, dataVencimento: dataVencimentoNoMes(o.mes, fixaLimpa.diaVencimento) };
       });
-      setFixaOcorrencias(novasOcc);
-      toast.success(`"${fixaLimpa.descricao}" atualizada (${modo === "futuras" ? "futuras" : "todas pendentes"}).`);
+      // "Terminar em"/"Começar em" valem de verdade: apara ocorrências PENDENTES
+      // fora do novo prazo (pagas ficam sempre — histórico). Sem isso, meses já
+      // gerados além do término continuavam aparecendo e sendo cobrados.
+      const iniLim = fixaLimpa.inicioEm ? String(fixaLimpa.inicioEm).slice(0, 7) : null;
+      const fimLim = fixaLimpa.terminoEm ? String(fixaLimpa.terminoEm).slice(0, 7) : null;
+      const aparadas = novasOcc.filter(o => {
+        if (o.fixaId !== fixaLimpa.id || o.status === "paga") return true;
+        if (fimLim && o.mes > fimLim) return false;
+        if (iniLim && o.mes < iniLim) return false;
+        return true;
+      });
+      const nAparadas = novasOcc.length - aparadas.length;
+      setFixaOcorrencias(aparadas);
+      toast.success(`"${fixaLimpa.descricao}" atualizada (${modo === "futuras" ? "futuras" : "todas pendentes"}${nAparadas ? ` · ${nAparadas} fora do prazo removida${nAparadas === 1 ? "" : "s"}` : ""}).`);
       setEditingFixa(null);
     }
   };
