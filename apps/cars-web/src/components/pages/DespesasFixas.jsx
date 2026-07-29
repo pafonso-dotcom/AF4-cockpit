@@ -106,11 +106,41 @@ export default function DespesasFixas({
       setMesAtivo(fixaSalva.inicioEm || mesAtualISO);
     } else {
       // Edição: atualiza a fixa + propaga pra ocorrências (futuras ou todas pendentes).
-      // Empréstimo bancário: a grade do modal manda um mapa mês → valor
-      // (_valoresParcelas); cada parcela pendente recebe o SEU valor — não o
-      // valor padrão achatado — independente do escopo escolhido.
-      const { _valoresParcelas, ...fixaLimpa } = fixaSalva;
+      // Empréstimo bancário (incluindo conversão de fixa normal → empréstimo):
+      // a grade do modal manda mês → valor (_valoresParcelas) e a lista de meses
+      // do prazo (_mesesParcelas). Cada parcela pendente recebe o SEU valor,
+      // meses do prazo que não existem são criados, e pendentes fora do prazo
+      // são aparadas. Pagas nunca são tocadas.
+      const { _valoresParcelas, _mesesParcelas, ...fixaLimpa } = fixaSalva;
       setFixas(fixas.map(f => f.id === fixaLimpa.id ? fixaLimpa : f));
+
+      if (fixaLimpa.emprestimo && _valoresParcelas) {
+        const grade = _mesesParcelas || [];
+        const setGrade = new Set(grade);
+        const existentes = new Set(fixaOcorrencias.filter(o => o.fixaId === fixaLimpa.id).map(o => o.mes));
+        const atualizadas = fixaOcorrencias
+          .filter(o => o.fixaId !== fixaLimpa.id || o.status === "paga" || setGrade.has(o.mes))
+          .map(o => {
+            if (o.fixaId !== fixaLimpa.id || o.status === "paga") return o;
+            return { ...o, valor: Number(_valoresParcelas[o.mes] ?? o.valor) || 0, dataVencimento: dataVencimentoNoMes(o.mes, fixaLimpa.diaVencimento) };
+          });
+        const criadas = grade.filter(m => !existentes.has(m)).map(mes => ({
+          id: `occ-${fixaLimpa.id}-${mes}`,
+          fixaId: fixaLimpa.id,
+          mes,
+          dataVencimento: dataVencimentoNoMes(mes, fixaLimpa.diaVencimento),
+          valor: Number(_valoresParcelas[mes] ?? fixaLimpa.valor) || 0,
+          status: "pendente",
+          dataPagamento: null,
+          transacaoId: null,
+          valorPago: null,
+        }));
+        setFixaOcorrencias([...atualizadas, ...criadas]);
+        toast.success(`"${fixaLimpa.descricao}" atualizada (${grade.length} parcelas da grade${criadas.length ? `, ${criadas.length} criadas` : ""}).`);
+        setEditingFixa(null);
+        return;
+      }
+
       const limite = modo === "todas" ? mesAtualISO : (() => {
         // Próximo mês
         const d = new Date(anoAtual, mesAtualIdx + 1, 1);
@@ -120,15 +150,12 @@ export default function DespesasFixas({
       const novasOcc = fixaOcorrencias.map(o => {
         if (o.fixaId !== fixaLimpa.id) return o;
         if (o.status === "paga") return o; // nunca toca em pagas
-        if (fixaLimpa.emprestimo && _valoresParcelas) {
-          return { ...o, valor: Number(_valoresParcelas[o.mes] ?? o.valor) || 0, dataVencimento: dataVencimentoNoMes(o.mes, fixaLimpa.diaVencimento) };
-        }
         if (modo === "futuras" && o.mes < limite) return o;
         // Atualiza valor padrão e a data de vencimento (dia do mês pode ter mudado)
         return { ...o, valor: fixaLimpa.valor, dataVencimento: dataVencimentoNoMes(o.mes, fixaLimpa.diaVencimento) };
       });
       setFixaOcorrencias(novasOcc);
-      toast.success(`"${fixaLimpa.descricao}" atualizada${fixaLimpa.emprestimo ? " (parcelas da grade aplicadas)" : ` (${modo === "futuras" ? "futuras" : "todas pendentes"})`}.`);
+      toast.success(`"${fixaLimpa.descricao}" atualizada (${modo === "futuras" ? "futuras" : "todas pendentes"}).`);
       setEditingFixa(null);
     }
   };
