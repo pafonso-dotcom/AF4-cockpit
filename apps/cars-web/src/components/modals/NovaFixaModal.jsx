@@ -46,29 +46,37 @@ export default function NovaFixaModal({ editing, ocorrencias = [], categorias = 
   const [escopoEdicao, setEscopoEdicao] = useState("futuras");
 
   // ===== Empréstimo bancário — parcelas com valor variável mês a mês =====
+  // Vale na criação E na edição: uma fixa normal existente pode ser convertida
+  // em empréstimo (a grade carrega as ocorrências que já existem).
   const [emprestimo, setEmprestimo] = useState(!!editing?.emprestimo);
-  const [parcelas, setParcelas] = useState(editing?.parcelas || 12);
+  const [parcelas, setParcelas] = useState(
+    editing ? (editing.parcelas || ocorrencias.length || 12) : 12
+  );
   // Overrides por mês (mesISO → valor). Sem override, vale o valor padrão.
   const [valoresParcelas, setValoresParcelas] = useState(() => {
-    if (!editing?.emprestimo) return {};
+    if (!editing) return {};
     const m = {};
     ocorrencias.forEach(o => { m[o.mes] = o.valor; });
     return m;
   });
 
-  // Meses do empréstimo: na criação, N meses a partir do início; na edição,
-  // os meses das ocorrências existentes (a grade edita o que já existe).
+  // Meses do empréstimo: N meses a partir do início. Na edição, o início é a
+  // primeira ocorrência existente (o prazo pode crescer/encolher via N; meses
+  // já pagos ficam travados).
+  const occPorMes = {};
+  ocorrencias.forEach(o => { occPorMes[o.mes] = o; });
   const mesesEmprestimo = (() => {
-    if (editing?.emprestimo) {
-      return [...ocorrencias].sort((a, b) => a.mes.localeCompare(b.mes))
-        .map(o => ({ mes: o.mes, paga: o.status === "paga" }));
-    }
     const n = Math.min(Math.max(parseInt(parcelas, 10) || 1, 1), 120);
-    const [y0, m0] = (form.inicioEm || mesAtualISO).split("-").map(Number);
+    let start = form.inicioEm || mesAtualISO;
+    if (editing && ocorrencias.length) {
+      start = [...ocorrencias].map(o => o.mes).sort()[0];
+    }
+    const [y0, m0] = start.split("-").map(Number);
     const out = [];
     for (let i = 0; i < n; i++) {
       const d = new Date(y0, m0 - 1 + i, 1);
-      out.push({ mes: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, paga: false });
+      const mes = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      out.push({ mes, paga: occPorMes[mes]?.status === "paga" });
     }
     return out;
   })();
@@ -114,9 +122,19 @@ export default function NovaFixaModal({ editing, ocorrencias = [], categorias = 
     };
 
     if (editing) {
-      // Edição: passa o form + o escopo. No empréstimo, vai junto o mapa de
-      // valores por mês (a grade), aplicado ocorrência a ocorrência.
-      const extra = emprestimo ? { emprestimo: true, parcelas: mesesEmprestimo.length, _valoresParcelas: valoresParcelas } : { emprestimo: false };
+      // Edição: passa o form + o escopo. No empréstimo (incluindo a conversão
+      // de fixa normal → empréstimo), vai junto a grade completa: valores por
+      // mês + a lista de meses do prazo (pra criar os que faltam e aparar os
+      // pendentes fora dele).
+      const extra = emprestimo
+        ? {
+            emprestimo: true,
+            parcelas: mesesEmprestimo.length,
+            terminoEm: mesesEmprestimo[mesesEmprestimo.length - 1]?.mes || null,
+            _valoresParcelas: valoresParcelas,
+            _mesesParcelas: mesesEmprestimo.map(x => x.mes),
+          }
+        : { emprestimo: false };
       onSave?.({ ...editing, ...fixaData, ...extra }, null, escopoEdicao);
       onClose?.();
       return;
@@ -233,8 +251,8 @@ export default function NovaFixaModal({ editing, ocorrencias = [], categorias = 
             </select>
           </Field>
         )}
-        {emprestimo && !editing && (
-          <Field label="Número de parcelas" hint="1 a 120 · término automático">
+        {emprestimo && (
+          <Field label="Número de parcelas" hint={editing ? "muda o prazo · pagas preservadas" : "1 a 120 · término automático"}>
             <input type="number" min="1" max="120" value={parcelas}
                    onChange={e => setParcelas(e.target.value)} />
           </Field>
@@ -244,13 +262,11 @@ export default function NovaFixaModal({ editing, ocorrencias = [], categorias = 
       {/* ===== Empréstimo bancário · parcelas variáveis ===== */}
       <label style={{
         display: "flex", alignItems: "center", gap: 8, marginTop: 12,
-        padding: "9px 12px", borderRadius: 12, cursor: editing && !editing.emprestimo ? "default" : "pointer",
+        padding: "9px 12px", borderRadius: 12, cursor: "pointer",
         background: emprestimo ? `${T.gold}15` : T.bgSoft,
         border: `1px solid ${emprestimo ? T.gold : T.border}`,
-        opacity: editing && !editing.emprestimo ? 0.55 : 1,
       }}>
         <input type="checkbox" checked={emprestimo}
-               disabled={!!editing && !editing.emprestimo}
                onChange={e => setEmprestimo(e.target.checked)}
                style={{ accentColor: T.gold }} />
         <span style={{ fontSize: 12.5, color: T.ink }}>
@@ -265,7 +281,7 @@ export default function NovaFixaModal({ editing, ocorrencias = [], categorias = 
         }}>
           <div style={{ fontSize: 10.5, color: T.muted, marginBottom: 8 }}>
             O <strong>Valor</strong> acima é a parcela padrão — ajuste abaixo só os meses que diferem.
-            {editing?.emprestimo && " Parcelas pagas ficam travadas (histórico)."}
+            {editing && " Parcelas pagas ficam travadas (histórico)."}
           </div>
           <div style={{
             display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6,
