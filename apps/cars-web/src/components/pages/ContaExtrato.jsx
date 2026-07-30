@@ -440,14 +440,16 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             const grupos = agruparPorDia(filtradas);
             // Dia mais recente de movimento (independe da ordenação) → aberto por padrão.
             const ultimoDia = grupos.reduce((max, g) => (g.dia > max ? g.dia : max), grupos[0]?.dia || "");
-            return grupos.map(grupo => {
+            return grupos.map((grupo, gi) => {
             const net = grupo.itens.reduce((s, t) => s + (t.tipo === "receita" ? 1 : -1) * (parseFloat(t.valor) || 0), 0);
             const dl = fmtDataLonga(grupo.dia);
             const abertoPadrao = grupo.dia === ultimoDia; // só o último dia abre por padrão
             const aberto = grupo.dia in diasOverride ? diasOverride[grupo.dia] : abertoPadrao;
             const recolhido = !aberto;
             return (
-              <div key={grupo.dia}>
+              // Divisor sutil entre os dias (tom do texto a ~6% — visível mesmo
+              // nos temas claros, onde a borda padrão é invisível de propósito).
+              <div key={grupo.dia} style={{ borderTop: gi === 0 ? "none" : `1px solid ${T.ink}0f` }}>
                 {/* Cabeçalho do dia (clicável: recolhe/expande os lançamentos) */}
                 <div onClick={() => toggleDia(grupo.dia, abertoPadrao)} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
