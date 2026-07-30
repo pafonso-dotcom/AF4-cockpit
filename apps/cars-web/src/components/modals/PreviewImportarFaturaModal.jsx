@@ -3,6 +3,7 @@ import { Check, Repeat, Smartphone, ShoppingBag, Link2, AlertCircle } from "luci
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
+import { confirm as confirmarLib } from "../../lib/confirm.js";
 import {
   matchParcelamento,
   matchFixaExistente,
@@ -142,7 +143,7 @@ export default function PreviewImportarFaturaModal({
     setItens(prev => prev.map(it => it._idx === idx ? { ...it, tipo: novoTipo } : it));
   };
 
-  const confirmar = () => {
+  const confirmar = async () => {
     if (cartoes.length > 0 && !cartaoSelecionado) {
       toast.error("Selecione o cartão da fatura antes de importar.");
       return;
@@ -151,6 +152,25 @@ export default function PreviewImportarFaturaModal({
     if (incluidos.length === 0) {
       toast.error("Nenhum item selecionado.");
       return;
+    }
+
+    // TRAVA anti-duplicação entre CARTÕES: se já existem lançamentos com a
+    // origem desta mesma fatura (mesmo banco), provavelmente ela já foi
+    // importada antes — inclusive num cartão errado (o default antigo caía no
+    // primeiro da lista). Reimportar duplicaria tudo. Avisa e pede confirmação.
+    const tagExistente = `fatura-${analise.banco || "Fatura"}`;
+    const jaImportados = (transacoes || []).filter(t => t.origem === tagExistente);
+    if (jaImportados.length > 0) {
+      const cartoesUsados = [...new Set(jaImportados.map(t => t.cartaoId).filter(Boolean))]
+        .map(id => cartoes.find(c => c.id === id)?.nome || "cartão removido");
+      const okDup = await confirmarLib({
+        title: "Esta fatura parece já ter sido importada",
+        body: `Já existem ${jaImportados.length} lançamentos com origem "${analise.banco}"${cartoesUsados.length ? ` no(s) cartão(ões): ${cartoesUsados.join(", ")}` : ""}. ` +
+          "Se for a MESMA fatura, importar de novo vai DUPLICAR tudo — cancele e use 'Excluir lançamentos da fatura' no cartão errado primeiro. " +
+          "Continue apenas se for uma fatura de outro mês.",
+        danger: true, confirmLabel: "Importar mesmo assim", cancelLabel: "Cancelar",
+      });
+      if (!okDup) return;
     }
     // Conta de débito é OPCIONAL — pode ficar vazia e ser definida no pagamento da fatura.
     const conta = contaSelecionada ? contas.find(c => c.nome === contaSelecionada) : null;
