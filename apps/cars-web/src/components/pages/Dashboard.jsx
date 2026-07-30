@@ -494,8 +494,13 @@ export default function Dashboard({
           onVerPagar={() => onTabChange?.("areceber")} />
       </section>
 
-      {/* Alocação Atual · Gastos por Categoria — abaixo do calendário/centro de
-          controle. Quando empilha (mobile), Gastos sobe pra cima da Alocação. */}
+      {/* Projeção · 6 meses — acima de Alocação/Gastos (pedido do usuário) */}
+      <section style={{ marginBottom: 16 }}>
+        <ProjecaoMesesCard projecao={projecao} hidden={hidden} />
+      </section>
+
+      {/* Alocação Atual · Gastos por Categoria — abaixo da projeção.
+          Quando empilha (mobile), Gastos sobe pra cima da Alocação. */}
       <section className="dash-mid-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
@@ -505,11 +510,6 @@ export default function Dashboard({
         <div className="dash-gastos" style={{ minWidth: 0 }}>
           <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
         </div>
-      </section>
-
-      {/* Projeção · 6 meses — embaixo do "A receber" */}
-      <section style={{ marginBottom: 16 }}>
-        <ProjecaoMesesCard projecao={projecao} hidden={hidden} />
       </section>
 
       {/* Metas + Pergunte IA */}
