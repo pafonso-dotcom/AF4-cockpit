@@ -151,8 +151,11 @@ Retorne EXATAMENTE este JSON (sem markdown, sem texto extra, sem comentários):
   "cartao_final": "####",
   "fechamento": "DD/MM/YYYY",
   "vencimento": "DD/MM/YYYY",
-  "total": número,
+  "total": número (o TOTAL A PAGAR final da fatura — o valor cobrado, após créditos/saldo anterior),
   "minimo": número,
+  "total_consumos": número (a linha "Consumos do período" do resumo da fatura, se existir; senão 0),
+  "pagamentos_creditos": número (a linha "Pagamentos e créditos"/estornos do resumo, como número POSITIVO; 0 se não houver),
+  "saldo_anterior": número (saldo da fatura anterior que rolou pra esta, ex.: "Total da fatura de junho"; 0 se não houver),
   "itens": [
     {
       "descricao": "string limpa (sem códigos do banco)",
@@ -171,7 +174,8 @@ Regras IMPORTANTES:
 1. Se aparecer "X/N", "X DE N", "PARC X/N" na descrição → tipo: "parcela" (parcela_atual=X, parcela_total=N)
 2. Limpe o nome: "PARC 5/12 IPHONE 16 APPLE" → descricao: "iPhone 16 Apple", parcela_atual: 5, parcela_total: 12
 3. Tudo que NÃO tiver indicação de parcelamento → tipo: "vista" (incluindo Netflix, Apple, internet, mensalidades — NÃO marque como fixa/recorrente).
-4. NÃO inclua: "pagamento recebido", "saldo anterior", "juros", "estorno", "crédito", "tarifa de anuidade total" (mas inclua AS PARCELAS dela como tipo "parcela").
+4. NÃO inclua como ITEM: "pagamento recebido", "saldo anterior", "juros", "estorno", "crédito", "tarifa de anuidade total" (mas inclua AS PARCELAS dela como tipo "parcela"). Esses valores entram SÓ nos campos do resumo (pagamentos_creditos / saldo_anterior).
+5. No campo "total" use o TOTAL A PAGAR da fatura (o valor final cobrado no boleto), NÃO a soma dos consumos.
 6. Se a categoria certa não está na lista, use "Outros".
 7. Retorne APENAS o JSON, NADA mais.`;
 
