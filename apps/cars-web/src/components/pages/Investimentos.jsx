@@ -602,30 +602,30 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                 </div>
               </div>
 
-              {/* Linha 2: PM · Preço · Valor lado a lado (grade forçada) */}
+              {/* Linha 2: PM · Preço · Valor — TUDO numa linha corrida (rótulo e
+                  número juntos), separados por espaço. Uma linha só de verdade. */}
               <div style={{
-                display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8,
+                display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10,
                 marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.border}`,
+                whiteSpace: "nowrap", overflowX: "auto",
               }}>
-                <div>
-                  <div style={{ color: T.faint, fontSize: 8.5, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700 }}>PM</div>
-                  <div className="num" style={{ color: T.muted, fontSize: 12.5, marginTop: 1, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.pm)}</div>
-                </div>
-                <div>
-                  <div style={{ color: T.faint, fontSize: 8.5, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700 }}>Preço</div>
-                  <div className="num" style={{ color: T.gold, fontSize: 12.5, marginTop: 1, whiteSpace: "nowrap" }}>
-                    {hidden ? "•••" : fmtMoedaAtivo(a, a.preco)}
-                    {Number.isFinite(Number(a.variacao24h)) && (
-                      <span className="num" style={{ fontSize: 9.5, marginLeft: 4, color: Number(a.variacao24h) >= 0 ? T.green : T.red }}>
-                        {Number(a.variacao24h) >= 0 ? "+" : ""}{Number(a.variacao24h).toFixed(1)}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ color: T.faint, fontSize: 8.5, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700 }}>Valor</div>
-                  <div className="num" style={{ color: T.ink, fontSize: 12.5, fontWeight: 600, marginTop: 1, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</div>
-                </div>
+                <span style={{ fontSize: 12 }}>
+                  <span style={{ color: T.faint, fontSize: 9, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>PM</span>
+                  <span className="num" style={{ color: T.muted }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.pm)}</span>
+                </span>
+                <span style={{ fontSize: 12 }}>
+                  <span style={{ color: T.faint, fontSize: 9, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Preço</span>
+                  <span className="num" style={{ color: T.gold }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.preco)}</span>
+                  {Number.isFinite(Number(a.variacao24h)) && (
+                    <span className="num" style={{ fontSize: 9.5, marginLeft: 3, color: Number(a.variacao24h) >= 0 ? T.green : T.red }}>
+                      {Number(a.variacao24h) >= 0 ? "+" : ""}{Number(a.variacao24h).toFixed(1)}%
+                    </span>
+                  )}
+                </span>
+                <span style={{ fontSize: 12 }}>
+                  <span style={{ color: T.faint, fontSize: 9, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Valor</span>
+                  <span className="num" style={{ color: T.ink, fontWeight: 700 }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</span>
+                </span>
               </div>
 
               {/* Linha 3: ações numa linha só */}
