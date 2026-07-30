@@ -73,10 +73,31 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
     }
   };
 
+  // TRAVA DE SEGURANÇA: o que já foi conciliado não sai por aqui —
+  // transação compensada no banco, ou parcelamento com parcela já paga.
+  const parcProtegida = (parcId) => {
+    const p = (parcelamentos || []).find(x => x.id === parcId);
+    if (!p) return false;
+    const total = Number(p.totalParcelas || p.parcelas || 0);
+    const pagas = p.parcelasRestantes != null
+      ? total - Number(p.parcelasRestantes)
+      : (p.parcelasPagas || []).length;
+    return pagas > 0;
+  };
+  const itemProtegido = (t) => t._origem === "transacao" ? !!t.compensado : parcProtegida(t.parcId);
+
   // Excluir itens da fatura (1 ou vários). Transação → remove a transação;
   // parcela → remove o PARCELAMENTO inteiro (não existe "meia parcela").
   // Com confirmação e Desfazer no toast.
-  const excluirItens = async (itens) => {
+  const excluirItens = async (itensPedidos) => {
+    const protegidos = itensPedidos.filter(itemProtegido);
+    const itens = itensPedidos.filter(t => !itemProtegido(t));
+    if (itens.length === 0) {
+      toast.info(protegidos.length
+        ? `Nada excluído: ${protegidos.length === 1 ? "este item já foi compensado/pago e está protegido" : `os ${protegidos.length} itens já foram compensados/pagos e estão protegidos`}.`
+        : "Nada selecionado.");
+      return;
+    }
     const txIds = itens.filter(x => x._origem === "transacao").map(x => x.id);
     const parcIds = [...new Set(itens.filter(x => x._origem === "parcelamento").map(x => x.parcId))];
     if (!txIds.length && !parcIds.length) return;
@@ -85,9 +106,11 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
     if (parcIds.length) partes.push(`${parcIds.length} parcelamento${parcIds.length === 1 ? "" : "s"}`);
     const ok = await confirm({
       title: `Excluir ${partes.join(" + ")} deste cartão?`,
-      body: parcIds.length
-        ? "Atenção: excluir uma PARCELA remove o parcelamento inteiro (todas as parcelas dele). Dá pra desfazer logo em seguida pelo aviso."
-        : "Os lançamentos saem da fatura. Dá pra desfazer logo em seguida pelo aviso.",
+      body: (parcIds.length
+        ? "Atenção: excluir uma PARCELA remove o parcelamento inteiro (todas as parcelas dele). "
+        : "Os lançamentos saem da fatura. ")
+        + (protegidos.length ? `🔒 ${protegidos.length} item(ns) já compensado(s)/pago(s) estão protegidos e ficam de fora. ` : "")
+        + "Dá pra desfazer logo em seguida pelo aviso.",
       danger: true, confirmLabel: "Excluir",
     });
     if (!ok) return;
@@ -153,6 +176,7 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
       categoria: t.categoria || "Sem categoria",
       valor: Number(t.valor || 0),
       fixa: !!t.fixa,
+      compensado: !!t.compensado,
       _origem: "transacao",
     }));
 
@@ -333,9 +357,9 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
                 <tr>
                   <th style={{ width: 28 }}>
                     <input type="checkbox"
-                      title="Marcar/desmarcar todos"
-                      checked={sel.size > 0 && sel.size === itensFatura.length}
-                      onChange={e => setSel(e.target.checked ? new Set(itensFatura.map(t => t.id)) : new Set())}
+                      title="Marcar/desmarcar todos (itens protegidos ficam de fora)"
+                      checked={sel.size > 0 && sel.size === itensFatura.filter(t => !itemProtegido(t)).length}
+                      onChange={e => setSel(e.target.checked ? new Set(itensFatura.filter(t => !itemProtegido(t)).map(t => t.id)) : new Set())}
                       style={{ accentColor: T.red, cursor: "pointer" }} />
                   </th>
                   <th>Data</th>
@@ -349,8 +373,12 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
                 {itensFatura.map((t, i) => (
                   <tr key={t.id || i} style={{ background: sel.has(t.id) ? `${T.red}0d` : t.parcela ? `${T.gold}08` : "transparent" }}>
                     <td>
-                      <input type="checkbox" checked={sel.has(t.id)} onChange={() => toggleSel(t.id)}
-                             style={{ accentColor: T.red, cursor: "pointer" }} />
+                      {itemProtegido(t) ? (
+                        <span title="Protegido: já compensado/pago — não pode ser excluído" style={{ fontSize: 11, cursor: "help" }}>🔒</span>
+                      ) : (
+                        <input type="checkbox" checked={sel.has(t.id)} onChange={() => toggleSel(t.id)}
+                               style={{ accentColor: T.red, cursor: "pointer" }} />
+                      )}
                     </td>
                     <td>{(t.data || "").slice(8, 10)}/{(t.data || "").slice(5, 7)}</td>
                     <td>
@@ -387,10 +415,12 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
                       {hidden ? "•••" : `− ${fmt(Math.abs(Number(t.valor || 0)))}`}
                     </td>
                     <td>
-                      <button onClick={() => excluirItens([t])} title="Excluir este lançamento"
-                        style={{ background: "transparent", border: `1px solid ${T.red}44`, color: T.red, borderRadius: 8, padding: "3px 6px", cursor: "pointer", lineHeight: 0 }}>
-                        <Trash2 size={12} />
-                      </button>
+                      {!itemProtegido(t) && (
+                        <button onClick={() => excluirItens([t])} title="Excluir este lançamento"
+                          style={{ background: "transparent", border: `1px solid ${T.red}44`, color: T.red, borderRadius: 8, padding: "3px 6px", cursor: "pointer", lineHeight: 0 }}>
+                          <Trash2 size={12} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -87,7 +87,7 @@ function parcelasEmAbertoNoMes(cartao, parcelamentos = [], monthKey) {
   return { valor, count };
 }
 
-export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, fixas = [], setFixas, fixaOcorrencias = [], setFixaOcorrencias, categorias, setCategorias, apiKeys = {}, hidden, onCartaoClick, cartaoAtivo }) {
+export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, fixas = [], setFixas, fixaOcorrencias = [], setFixaOcorrencias, categorias, setCategorias, apiKeys = {}, hidden, onCartaoClick, cartaoAtivo, onPontoRestauracao }) {
   const [analiseAberta, setAnaliseAberta] = useState(false);
   const [form, setForm] = useState(null);
   const [parcForm, setParcForm] = useState(null);
@@ -340,27 +340,54 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
       return bancosNorm.some(x => x && o.includes(x));
     };
 
-    const txAlvo = (transacoes || []).filter(t =>
+    const candTx = (transacoes || []).filter(t =>
       (t.cartaoId === cartao.id && typeof t.origem === "string" && t.origem.startsWith("fatura-"))
       || origemCasaFatura(t.origem)
       || obsCasaFatura(t.obs));
-    const parcAlvo = (parcelamentos || []).filter(p =>
+    const candParc = (parcelamentos || []).filter(p =>
       p.cartaoId === cartao.id && typeof p.origem === "string" && p.origem.startsWith("fatura-"));
-    const fixaAlvo = (fixas || []).filter(f =>
+    const candFixa = (fixas || []).filter(f =>
       origemCasaFatura(f.origem) || obsCasaFatura(f.obs));
+
+    // ===== TRAVA DE SEGURANÇA (pedido do usuário após perda de dados) =====
+    // O que já foi CONCILIADO com o banco não pode sair por aqui:
+    //   · transações compensadas (inclui o pagamento da fatura, que também tem
+    //     origem "fatura-*" e estava sendo apagado junto — bagunçava saldos);
+    //   · parcelamentos com alguma parcela já paga;
+    //   · fixas com alguma ocorrência já paga.
+    const temParcelaPaga = (p) => {
+      const total = Number(p.totalParcelas || p.parcelas || 0);
+      const pagas = p.parcelasRestantes != null
+        ? total - Number(p.parcelasRestantes)
+        : (p.parcelasPagas || []).length;
+      return pagas > 0;
+    };
+    const temOccPaga = (f) => (fixaOcorrencias || []).some(o => o.fixaId === f.id && o.status === "paga");
+
+    const txAlvo = candTx.filter(t => !t.compensado);
+    const parcAlvo = candParc.filter(p => !temParcelaPaga(p));
+    const fixaAlvo = candFixa.filter(f => !temOccPaga(f));
+    const protegidos = (candTx.length - txAlvo.length) + (candParc.length - parcAlvo.length) + (candFixa.length - fixaAlvo.length);
 
     const total = txAlvo.length + parcAlvo.length + fixaAlvo.length;
     if (total === 0 && !cartao.faturaImportada) {
-      toast.info("Nenhum lançamento de fatura encontrado para este cartão.");
+      toast.info(protegidos > 0
+        ? `Nada excluído: os ${protegidos} lançamentos encontrados já foram compensados/pagos e estão protegidos.`
+        : "Nenhum lançamento de fatura encontrado para este cartão.");
       return;
     }
 
     const ok = await confirm({
       title: `Excluir lançamentos da fatura de "${cartao.nome}"?`,
-      body: `Remove ${txAlvo.length} transação(ões), ${parcAlvo.length} parcelamento(s) e ${fixaAlvo.length} fixa(s) que vieram da importação da fatura${cartao.faturaImportada ? ", e zera a fatura importada" : ""}. Ocorrências de fixa já pagas e lançamentos criados à mão são preservados. Saldos das contas são devolvidos.`,
-      danger: true, confirmLabel: "Excluir tudo",
+      body: `Remove ${txAlvo.length} transação(ões), ${parcAlvo.length} parcelamento(s) e ${fixaAlvo.length} fixa(s) que vieram da importação da fatura${cartao.faturaImportada ? ", e zera a fatura importada" : ""}.`
+        + (protegidos > 0 ? ` 🔒 ${protegidos} lançamento(s) já compensado(s)/pago(s) estão PROTEGIDOS e não serão tocados.` : "")
+        + " Lançamentos criados à mão são preservados. Saldos das contas são devolvidos. Um ponto de restauração é criado antes.",
+      danger: true, confirmLabel: "Excluir",
     });
     if (!ok) return;
+
+    // Ponto de restauração ANTES da ação destrutiva (Configurações → Backups).
+    try { await onPontoRestauracao?.(`antes de excluir fatura de ${cartao.nome}`); } catch {}
 
     // Backups para Desfazer
     const backupTx = transacoes, backupParc = parcelamentos, backupFixas = fixas,

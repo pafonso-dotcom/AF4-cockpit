@@ -862,6 +862,7 @@ export default function App() {
                    apiKeys={apiKeys}
                    hidden={hidden}
                    cartaoAtivo={cartaoAberto}
+                   onPontoRestauracao={(motivo) => criarBackup(montarDados(), motivo)}
                    onCartaoClick={setCartaoAberto} />
         </div>
       )}
