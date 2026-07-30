@@ -1132,7 +1132,9 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
     { id: "arecebermes", label: "A receber (mês)",     valor: receberMes,   cor: T.gold,  icon: Calendar,     spark: sparks?.receber },
     { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted, icon: ArrowUpRight, spark: sparks?.pagar },
     { id: "apagarmes",   label: "A pagar (mês)",       valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted, icon: Calendar, spark: sparks?.pagar },
-    { id: "cartoes",     label: "Cartões (parcelas)", valor: cartoesTotal, cor: cartoesTotal > 0 ? T.yellow : T.muted, icon: CreditCard, spark: sparks?.cartoes, proxMes: cartoesProxMes },
+    // Cartões: destaque no que vence no MÊS SEGUINTE; o total em aberto vai
+    // pra linha de baixo (pedido do usuário).
+    { id: "cartoes",     label: "Cartões (mês seguinte)", valor: cartoesProxMes, cor: cartoesTotal > 0 ? T.yellow : T.muted, icon: CreditCard, spark: sparks?.cartoes, subRotulo: "total em aberto", subValor: cartoesTotal },
     { id: "cheques",     label: "Cheques",            valor: chequesTotal, cor: chequesTotal > 0 ? (T.blue || "#60a5fa") : T.muted, icon: Receipt, spark: sparks?.cheques },
   ];
 
@@ -1179,9 +1181,9 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
               </div>
               {!oculto && <Sparkline points={b.spark} cor="rgba(255,255,255,0.92)" w={44} h={20} />}
             </div>
-            {b.proxMes > 0 && (
+            {b.subValor > 0 && (
               <div className="num" style={{ fontSize: 9.5, color: "rgba(255,255,255,0.78)", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                mês seguinte: {oculto ? "•••" : fmt(b.proxMes)}
+                {b.subRotulo}: {oculto ? "•••" : fmt(b.subValor)}
               </div>
             )}
           </div>
