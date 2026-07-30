@@ -561,109 +561,105 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
           const ganho = valor - investido;
           const pct = investido > 0 ? (ganho / investido) * 100 : 0;
           return (
+            // Card mobile COMPACTO: identificação numa linha, meta em linha única
+            // truncada, PM/Preço/Valor lado a lado (grade inline — não depende de
+            // classes) e todas as ações numa linha só.
             <div key={a.id} onClick={() => setSelected(a)}
-                 style={{ background: T.card, border: `1px solid ${T.border}`, padding: 14, cursor: "pointer" }}>
-              <div className="flex justify-between items-start mb-3">
-                <div className="min-w-0">
-                  <div style={{ fontFamily: T.serif, fontSize: 19, color: T.ink, display: "flex", alignItems: "center", gap: 8 }}>
-                    {a.ticker}
+                 style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 12px", cursor: "pointer" }}>
+              {/* Linha 1: ticker + chip | resultado */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <span style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.ink }}>{a.ticker}</span>
                     {isLive(a) && <span className="af4-live-dot" title="Cotação ao vivo (atualizada nos últimos 60s)" />}
+                    {a.segmento && (
+                      <span style={{
+                        padding: "1px 7px", borderRadius: 4, background: `${T.gold}15`, color: T.gold,
+                        fontSize: 9, fontWeight: 600, letterSpacing: ".03em", whiteSpace: "nowrap",
+                        maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis",
+                      }}>{a.segmento}</span>
+                    )}
                   </div>
-                  <div style={{ color: T.muted, fontSize: 12, marginTop: 2 }} className="italic truncate">{a.nome}</div>
-                  <div style={{ color: T.faint, fontSize: 10, marginTop: 4, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: T.sans }}>
-                    {a.tipo} · {fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)} un.
+                  <div style={{ color: T.muted, fontSize: 10.5, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {a.nome} · {String(a.tipo).toUpperCase()} · {fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)} un.
+                    {a.tipo !== "capitalSocial" && valorPorTipo[a.tipo] > 0 && ` · ${pesoNaCategoria(a).toFixed(0)}% da categoria`}
+                    {a.criadoEm && (() => { const t = tempoDeCarteira(a.criadoEm); return t ? ` · ${t}` : ""; })()}
                   </div>
-                  {a.criadoEm && (
-                    <div style={{ color: T.faint, fontSize: 9.5, marginTop: 2 }} title="Data de criação/compra do ativo">
-                      desde {String(a.criadoEm).slice(0, 10).split("-").reverse().join("/")}
-                      {(() => { const t = tempoDeCarteira(a.criadoEm); return t ? ` · ${t}` : ""; })()}
-                    </div>
-                  )}
-                  {a.tipo !== "capitalSocial" && valorPorTipo[a.tipo] > 0 && (
-                    <div style={{ color: T.muted, fontSize: 9.5, marginTop: 2 }}>
-                      {pesoNaCategoria(a).toFixed(0)}% da categoria
-                    </div>
-                  )}
-                  {a.segmento && (
-                    <div style={{
-                      display: "inline-block", marginTop: 6,
-                      padding: "2px 8px", borderRadius: 4,
-                      background: `${T.gold}15`, color: T.gold,
-                      fontSize: 10, fontWeight: 600, letterSpacing: ".03em",
-                    }}>
-                      {a.segmento}
-                    </div>
-                  )}
                 </div>
-                <div className="text-right shrink-0 ml-2">
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
                   {a.tipo === "capitalSocial" ? (
                     <div className="num" style={{ color: T.muted, fontSize: 12, fontStyle: "italic" }}>manual</div>
                   ) : (
                     <>
-                      <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 14, fontWeight: 600 }}>
+                      <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap" }}>
                         {hidden ? "•••" : fmtMoedaAtivo(a, ganho)}
                       </div>
-                      <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 11 }}>
+                      <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 10.5 }}>
                         {fmtP(pct)}
                       </div>
                     </>
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-xs mb-3" style={{ paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
+
+              {/* Linha 2: PM · Preço · Valor lado a lado (grade forçada) */}
+              <div style={{
+                display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8,
+                marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.border}`,
+              }}>
                 <div>
-                  <div style={{ color: T.muted, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>PM</div>
-                  <div className="num" style={{ color: T.muted, marginTop: 2 }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.pm)}</div>
+                  <div style={{ color: T.faint, fontSize: 8.5, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700 }}>PM</div>
+                  <div className="num" style={{ color: T.muted, fontSize: 12.5, marginTop: 1, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.pm)}</div>
                 </div>
                 <div>
-                  <div style={{ color: T.muted, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Preço</div>
-                  <div className="num" style={{ color: T.gold, marginTop: 2 }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.preco)}</div>
-                  {Number.isFinite(Number(a.variacao24h)) && (
-                    <div className="num" style={{
-                      fontSize: 10, marginTop: 2,
-                      color: Number(a.variacao24h) >= 0 ? T.green : T.red,
-                    }}>
-                      {Number(a.variacao24h) >= 0 ? "+" : ""}{Number(a.variacao24h).toFixed(2)}% 24h
-                    </div>
-                  )}
+                  <div style={{ color: T.faint, fontSize: 8.5, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700 }}>Preço</div>
+                  <div className="num" style={{ color: T.gold, fontSize: 12.5, marginTop: 1, whiteSpace: "nowrap" }}>
+                    {hidden ? "•••" : fmtMoedaAtivo(a, a.preco)}
+                    {Number.isFinite(Number(a.variacao24h)) && (
+                      <span className="num" style={{ fontSize: 9.5, marginLeft: 4, color: Number(a.variacao24h) >= 0 ? T.green : T.red }}>
+                        {Number(a.variacao24h) >= 0 ? "+" : ""}{Number(a.variacao24h).toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div>
-                  <div style={{ color: T.muted, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Valor</div>
-                  <div className="num" style={{ color: T.ink, marginTop: 2 }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</div>
+                  <div style={{ color: T.faint, fontSize: 8.5, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700 }}>Valor</div>
+                  <div className="num" style={{ color: T.ink, fontSize: 12.5, fontWeight: 600, marginTop: 1, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</div>
                 </div>
               </div>
-              <div className="no-print" onClick={e => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ display: "flex", gap: 8 }}>
+
+              {/* Linha 3: ações numa linha só */}
+              <div className="no-print" onClick={e => e.stopPropagation()}
+                   style={{ display: "flex", gap: 6, marginTop: 9, alignItems: "stretch", flexWrap: "wrap" }}>
                 <button onClick={() => setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" })}
                         aria-label={`Aportar em ${a.ticker}`}
-                        style={{ flex: 1, background: "transparent", color: T.ink, padding: "6px 8px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
+                        style={{ flex: "1 1 70px", background: "transparent", color: T.ink, padding: "5px 6px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, borderRadius: 8, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
                   Aporte
                 </button>
                 <button onClick={() => setVendaForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" })}
                         aria-label={`Vender ${a.ticker}`}
-                        style={{ flex: 1, background: "transparent", color: T.ink, padding: "6px 8px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
+                        style={{ flex: "1 1 70px", background: "transparent", color: T.ink, padding: "5px 6px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, borderRadius: 8, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
                   Venda
                 </button>
-                </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {onAnalisar && TIPOS_ANALISAVEIS.includes(a.tipo) && (
                   <button onClick={() => onAnalisar(a)} aria-label={`Analisar ${a.ticker}`} title="Análise técnica"
-                          style={{ color: T.gold, padding: 6, background: "transparent", border: `1px solid ${T.gold}`, cursor: "pointer" }}>
-                    <LineChart size={14} />
+                          style={{ color: T.gold, padding: "5px 8px", background: "transparent", border: `1px solid ${T.gold}55`, borderRadius: 8, cursor: "pointer" }}>
+                    <LineChart size={13} />
                   </button>
                 )}
                 {onProjetar && (
                   <button onClick={() => onProjetar(a)} aria-label={`Projetar ${a.ticker}`} title="Projetar evolução deste ativo"
-                          style={{ color: T.gold, padding: 6, background: "transparent", border: `1px solid ${T.gold}`, cursor: "pointer" }}>
-                    <Calculator size={14} />
+                          style={{ color: T.gold, padding: "5px 8px", background: "transparent", border: `1px solid ${T.gold}55`, borderRadius: 8, cursor: "pointer" }}>
+                    <Calculator size={13} />
                   </button>
                 )}
                 <button onClick={() => setPdfAtivoId(a.id)} aria-label={`Imprimir PDF de ${a.ticker}`} title="Imprimir PDF deste ativo"
-                        style={{ color: T.gold, padding: 6, background: "transparent", border: `1px solid ${T.gold}`, cursor: "pointer" }}>
-                  <Printer size={14} />
+                        style={{ color: T.gold, padding: "5px 8px", background: "transparent", border: `1px solid ${T.gold}55`, borderRadius: 8, cursor: "pointer" }}>
+                  <Printer size={13} />
                 </button>
-                <button onClick={() => setForm(a)} aria-label={`Editar ${a.ticker}`} style={{ color: T.muted, padding: 6, background: "transparent", border: `1px solid ${T.border}`, cursor: "pointer" }}>
-                  <Edit3 size={14} />
+                <button onClick={() => setForm(a)} aria-label={`Editar ${a.ticker}`}
+                        style={{ color: T.muted, padding: "5px 8px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 8, cursor: "pointer" }}>
+                  <Edit3 size={13} />
                 </button>
                 <button onClick={async () => {
                           const ok = await confirm({
@@ -679,10 +675,9 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                           });
                         }}
                         aria-label={`Excluir ${a.ticker}`}
-                        style={{ color: T.red, padding: 6, background: "transparent", border: `1px solid ${T.red}`, cursor: "pointer" }}>
-                  <Trash2 size={14} />
+                        style={{ color: T.red, padding: "5px 8px", background: "transparent", border: `1px solid ${T.red}55`, borderRadius: 8, cursor: "pointer" }}>
+                  <Trash2 size={13} />
                 </button>
-                </div>
               </div>
             </div>
           );
