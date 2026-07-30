@@ -9,7 +9,7 @@ import {
   Activity, Wallet, CreditCard, Receipt, Calendar, Tag, Sparkles, PiggyBank,
   Briefcase, TrendingUp, LineChart as LineIcon, Calculator, BarChart3,
   Package, Target, Users, AlertCircle, History, MessageCircle,
-  Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon,
+  Settings, Eye, EyeOff, RefreshCw, DollarSign, Sun, Moon, User,
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
   BookOpen, Repeat, MoreHorizontal, RotateCw, LogOut,
@@ -333,6 +333,8 @@ function HeaderHorizontal({
                   { lbl: hidden ? "Mostrar valores" : "Ocultar valores", icon: hidden ? EyeOff : Eye, on: () => { setHidden(!hidden); setMenuUtilAberto(false); } },
                   { lbl: T.dark ? "Tema claro" : "Tema escuro", icon: T.dark ? Sun : Moon, on: () => { onOpenSettings?.("toggle-tema"); setMenuUtilAberto(false); } },
                   { lbl: refreshing ? "Atualizando…" : "Atualizar cotações", icon: RefreshCw, on: () => { onRefresh?.(); setMenuUtilAberto(false); } },
+                  { lbl: "Configurações", icon: Settings, on: () => { setMenuUtilAberto(false); setModulo("config"); setTab("cfg-aparencia"); } },
+                  { lbl: `Perfil: ${perfilAtivo?.nome || "—"}`, icon: User, on: () => { setMenuUtilAberto(false); onOpenSettings?.("perfis"); } },
                   { lbl: "Atualizar app (nova versão)", icon: RotateCw, on: () => { setMenuUtilAberto(false); forcarAtualizacaoApp(); } },
                   { lbl: "Sair do app", icon: LogOut, danger: true, on: () => { setMenuUtilAberto(false); window.__af4Logout?.(); } },
                 ].map(it => {
@@ -362,8 +364,9 @@ function HeaderHorizontal({
           )}
         </div>
 
-        {/* SETTINGS · sempre na extremidade direita, com margin-left extra */}
-        <div style={{ display: "inline-flex", gap: 10, alignItems: "center", marginLeft: 12 }}>
+        {/* SETTINGS · extremidade direita. No mobile some (vai pro menu "⋯")
+            pra barra do topo ficar mais baixa. */}
+        <div className="hide-mobile" style={{ display: "inline-flex", gap: 10, alignItems: "center", marginLeft: 12 }}>
           <button onClick={() => { setModulo("config"); setTab("cfg-aparencia"); }}
                   title="Configurações"
                   className="hdr-util"
