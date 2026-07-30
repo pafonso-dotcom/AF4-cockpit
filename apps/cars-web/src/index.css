@@ -415,7 +415,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .tbl .neg { color: var(--dn); }
 
 /* ===== ANIMATIONS ===== */
-.fade-up { animation: rs .35s ease both; }
+/* fill "backwards" (não "both"): após a animação o transform SAI do elemento.
+   Com "both" o translateY(0) ficava aplicado pra sempre e virava containing
+   block de position:fixed — modais sem portal ficavam presos/tortos na tela. */
+.fade-up { animation: rs .35s ease backwards; }
 @keyframes rs { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ===== CARDS (veículos / contas / cartões) ===== */

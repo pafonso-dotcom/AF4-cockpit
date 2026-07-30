@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Check } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { todayISO, uid } from "../../lib/format.js";
@@ -85,7 +86,10 @@ export default function NovaTransacaoModal({
   const lbl = { fontSize: 10, color: T.muted, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", marginBottom: 4 };
   const inp = { width: "100%", padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 };
 
-  return (
+  // Portal no <body>: garante overlay na tela TODA e modal centralizado,
+  // mesmo se algum ancestral tiver transform (ex.: .fade-up), que quebraria
+  // o position:fixed renderizado inline.
+  return createPortal(
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,.5)",
       display: "grid", placeItems: "center", zIndex: 1000, padding: 16,
@@ -210,6 +214,7 @@ export default function NovaTransacaoModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
