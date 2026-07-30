@@ -147,6 +147,28 @@ export function getDespesasDoMes(mesISO, state = {}, escopo) {
     });
   });
 
+  // 3a. Cartões com fatura IMPORTADA em aberto cuja competência é este mês:
+  //     a fatura entra como UM compromisso no dia do vencimento (valor real,
+  //     à vista + parcelas do mês). As parcelas pendentes desses cartões saem
+  //     do mês (item 3) — já estão dentro da fatura; contar as duas dobraria.
+  const cartoesComFaturaAberta = new Set();
+  (state.cartoes || []).forEach(c => {
+    const fi = c.faturaImportada;
+    if (!fi || fi.paga || fi.competencia !== mesISO) return;
+    cartoesComFaturaAberta.add(c.id);
+    const venc = (fi.vencimento || "").startsWith(mesISO) ? fi.vencimento : `${mesISO}-10`;
+    out.push({
+      id: `fatura-imp-${c.id}-${mesISO}`,
+      fonte: "parcela",
+      tipo: "parcela",
+      descricao: `Fatura ${c.nome} (importada)`,
+      data: venc,
+      valor: Number(fi.valorTotal) || 0,
+      status: venc < hoje ? "atrasada" : "pendente",
+      categoria: "Cartão · fatura",
+    });
+  });
+
   // 3. Parcelas de cartão com vencimento no mês
   (state.parcelamentos || []).forEach(p => {
     if (!p.dataPrimeira || !p.totalParcelas) return;
@@ -158,6 +180,9 @@ export function getDespesasDoMes(mesISO, state = {}, escopo) {
       const iso = d.toISOString().slice(0, 10);
       if (!iso.startsWith(mesISO)) continue;
       const paga = (p.parcelasPagas || []).includes(i);
+      // Parcela pendente de cartão com fatura importada em aberto neste mês:
+      // já está representada dentro da fatura (item 3a) — não conta de novo.
+      if (!paga && cartoesComFaturaAberta.has(p.cartaoId)) continue;
       const status = paga ? "paga" : (iso < hoje ? "atrasada" : "pendente");
       out.push({
         id: `${p.id}::${i}`,
@@ -183,6 +208,11 @@ export function getDespesasDoMes(mesISO, state = {}, escopo) {
     // A baixa do pagamento de fatura importada é só transferência (a despesa
     // são os itens importados) — não conta como despesa.
     if (t.origem === "fatura-pagamento") return;
+    // Item À VISTA de fatura importada ainda NÃO paga: quem conta é a fatura
+    // no vencimento (item 3a) — o item individual entraria na data da COMPRA
+    // (mês anterior) e dobraria. Depois de pago (compensado), volta a contar
+    // como despesa normal na data dele.
+    if (t.cartaoId && typeof t.origem === "string" && t.origem.startsWith("fatura-") && !t.compensado) return;
     // Empréstimo a terceiro: emprestar (saída) e a devolução do principal são
     // movimento de capital — NÃO contam como gasto (o dinheiro virou "a receber").
     if (t.emprestimoSaida || t.emprestimoRetorno) return;
