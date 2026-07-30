@@ -454,8 +454,58 @@ export default function PreviewImportarFaturaModal({
           marginTop: 8, color: T.ink, fontFamily: T.serif,
           fontSize: 18, fontWeight: 600,
         }}>
-          Total da fatura: {fmt(stats.valorTotal)}
+          Total dos consumos (itens marcados): {fmt(stats.valorTotal)}
         </div>
+
+        {/* Conciliação com o resumo da fatura: consumos − pagamentos/créditos
+            + saldo anterior = total a pagar. Só aparece quando a IA leu o
+            resumo (total a pagar ou alguma das linhas). */}
+        {(() => {
+          const consumosPdf = Number(analise.total_consumos) || 0;
+          const creditos = Number(analise.pagamentos_creditos) || 0;
+          const saldoAnt = Number(analise.saldo_anterior) || 0;
+          const totalPagar = Number(analise.total) || 0;
+          if (!totalPagar && !creditos && !saldoAnt) return null;
+          const baseConsumos = consumosPdf || stats.valorTotal;
+          const esperado = baseConsumos - creditos + saldoAnt;
+          const bate = totalPagar > 0 ? Math.abs(esperado - totalPagar) < 0.05 : true;
+          const difItens = consumosPdf > 0 ? stats.valorTotal - consumosPdf : 0;
+          const Linha = ({ rotulo, v, sinal, forte, cor }) => (
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: forte ? 12.5 : 11.5, fontWeight: forte ? 700 : 400, color: cor || (forte ? T.ink : T.muted) }}>
+              <span>{rotulo}</span>
+              <span className="num" style={{ whiteSpace: "nowrap" }}>{sinal}{fmt(v)}</span>
+            </div>
+          );
+          return (
+            <div style={{
+              marginTop: 8, padding: "9px 11px", borderRadius: 11,
+              background: T.bgSoft, border: `1px solid ${T.border}`,
+              display: "flex", flexDirection: "column", gap: 3,
+            }}>
+              <div style={{ fontSize: 9, letterSpacing: ".12em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 2 }}>
+                Conciliação com o resumo da fatura
+              </div>
+              <Linha rotulo="Consumos do período" v={baseConsumos} sinal="" />
+              {creditos > 0 && <Linha rotulo="Pagamentos e créditos" v={creditos} sinal="− " cor={T.green} />}
+              {saldoAnt !== 0 && <Linha rotulo="Saldo da fatura anterior" v={saldoAnt} sinal="+ " />}
+              {totalPagar > 0 && <Linha rotulo="Total a pagar da fatura" v={totalPagar} sinal="= " forte />}
+              {!bate && (
+                <div style={{ fontSize: 10.5, color: T.red, marginTop: 3 }}>
+                  ⚠ A conta não fecha: consumos − créditos + saldo anterior = {fmt(esperado)}, mas a fatura cobra {fmt(totalPagar)}. Confere o PDF (juros/tarifas fora do resumo?).
+                </div>
+              )}
+              {Math.abs(difItens) > 0.05 && (
+                <div style={{ fontSize: 10.5, color: T.gold, marginTop: 3 }}>
+                  ⚠ Os itens marcados somam {fmt(stats.valorTotal)} — {difItens > 0 ? "acima" : "abaixo"} dos consumos do PDF em {fmt(Math.abs(difItens))} (item desmarcado, duplicado ou não lido pela IA).
+                </div>
+              )}
+              <div style={{ fontSize: 10, color: T.faint, marginTop: 3, fontStyle: "italic" }}>
+                A importação lança só os consumos — pagamentos, créditos e saldo anterior são movimentos da fatura, não compras.
+              </div>
+            </div>
+          );
+        })()}
+
         <div style={{ marginTop: 4, fontSize: 11, color: T.muted }}>
           Os itens entram <strong style={{ color: T.gold }}>pendentes</strong> (no cartão) — o banco só é debitado quando pagares a fatura.
         </div>
