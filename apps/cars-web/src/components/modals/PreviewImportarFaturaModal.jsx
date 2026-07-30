@@ -41,16 +41,20 @@ export default function PreviewImportarFaturaModal({
   // Conta de débito é OPCIONAL — default vazio ("Definir depois, no pagamento").
   const contaInicial = "";
 
-  // Cartão sugerido pelo banco da análise (já existe lógica em normalize() no fim do arquivo)
+  // Cartão sugerido pelo banco da análise (lógica em normalize() no fim do
+  // arquivo). SÓ pré-seleciona quando o banco da fatura CASA com um cartão —
+  // sem match confiável, o campo fica vazio e o usuário informa qual é o
+  // cartão na confirmação (antes caía no PRIMEIRO cartão da lista, e uma
+  // fatura Mercado Pago aparecia como "ITAU").
   const cartaoInicial = (() => {
     if (!cartoes || cartoes.length === 0) return "";
     const banco = normalize(analise.banco || "");
-    if (!banco) return cartoes[0]?.id || "";
+    if (!banco) return "";
     const match = cartoes.find(c =>
       normalize(c.nome).includes(banco) || banco.includes(normalize(c.nome)) ||
       normalize(c.banco || "") === banco
     );
-    return match?.id || cartoes[0]?.id || "";
+    return match?.id || "";
   })();
 
   const [contaSelecionada, setContaSelecionada] = useState(contaInicial);
