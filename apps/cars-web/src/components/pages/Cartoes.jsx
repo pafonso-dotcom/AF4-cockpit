@@ -797,7 +797,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                     hidden={hidden}
                   />
                   <div style={{ display: "flex", gap: 6 }}>
-                    {aPagar > 0 ? (
+                    {/* Pagar também quando a fatura importada é de competência
+                        futura (importada adiantada) — o pagamento já abre na
+                        competência dela (openPagamento). */}
+                    {(aPagar > 0 || (c.faturaImportada && !c.faturaImportada.paga)) ? (
                       <button onClick={(e) => { e.stopPropagation(); openPagamento(c); }}
                               style={{
                                 flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
@@ -805,7 +808,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                                 borderRadius: 4, background: T.gold,
                                 border: "none", color: T.bg, cursor: "pointer",
                               }}>
-                        Pagar fatura
+                        Pagar fatura{aPagar <= 0 && c.faturaImportada?.competencia ? ` · ${nomeMesCurto(c.faturaImportada.competencia)}` : ""}
                       </button>
                     ) : fiPaga ? (
                       <button onClick={(e) => { e.stopPropagation(); estornarFatura(c); }}
