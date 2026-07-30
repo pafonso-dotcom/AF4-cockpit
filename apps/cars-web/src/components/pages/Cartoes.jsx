@@ -756,26 +756,44 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                 </div>
                 <div style={{ flex: 1, minHeight: 10 }} />
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
-                <div className="num" style={{ fontVariantNumeric: "tabular-nums", fontSize: 18, fontWeight: 400, letterSpacing: "-.01em", marginTop: 2, color: T.ink, whiteSpace: "nowrap" }}
-                     title="Restante a pagar (todas as parcelas em aberto)">
-                  {hidden ? "•••" : fmt(usado || aPagar || 0)}
-                </div>
-                <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                  {fiPaga
-                    ? <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.green}18`, color: T.green, whiteSpace: "nowrap" }}>Fatura paga</span>
-                    : aPagar > 0
-                      ? <span className="num" style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.gold}18`, color: T.gold, whiteSpace: "nowrap" }}>A pagar {hidden ? "•••" : fmt(aPagar)}</span>
-                      : <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>Sem fatura</span>}
-                </div>
-                {fiProx > 0 ? (
-                  <div style={{ marginTop: 6, fontSize: 10.5, color: T.muted }} title={`Fatura importada com competência ${nomeMesCurto(proxKey)}`}>
-                    Mês seguinte (<span style={{ textTransform: "capitalize" }}>{nomeMesCurto(proxKey)}</span>): <span className="num" style={{ color: T.gold, fontWeight: 700 }}>{hidden ? "•••" : fmt(fiProx)}</span> <span style={{ color: T.faint }}>· fatura importada</span>
-                  </div>
-                ) : proxMes.valor > 0 && (
-                  <div style={{ marginTop: 6, fontSize: 10.5, color: T.muted }} title={`Parcelas já comprometidas que vencem em ${nomeMesCurto(proxKey)}`}>
-                    Mês seguinte (<span style={{ textTransform: "capitalize" }}>{nomeMesCurto(proxKey)}</span>): <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(proxMes.valor)}</span> <span style={{ color: T.faint }}>· {proxMes.count} parcela{proxMes.count === 1 ? "" : "s"}</span>
-                  </div>
-                )}
+                {/* DESTAQUE = fatura em aberto (do mês, ou a importada de
+                    competência futura). Total das parcelas vai pra linha
+                    discreta embaixo (pedido do usuário). */}
+                {(() => {
+                  const faturaAberta = aPagar > 0 ? aPagar : fiProx;
+                  const mesFat = aPagar > 0 ? mesAtualKey() : (c.faturaImportada?.competencia || proxKey);
+                  return (
+                    <>
+                      <div className="num" style={{ fontVariantNumeric: "tabular-nums", fontSize: 18, fontWeight: 400, letterSpacing: "-.01em", marginTop: 2, color: T.ink, whiteSpace: "nowrap" }}
+                           title="Fatura em aberto (valor a pagar)">
+                        {hidden ? "•••" : fmt(faturaAberta || 0)}
+                      </div>
+                      <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                        {fiPaga
+                          ? <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.green}18`, color: T.green, whiteSpace: "nowrap" }}>Fatura paga</span>
+                          : faturaAberta > 0
+                            ? <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.gold}18`, color: T.gold, whiteSpace: "nowrap" }}>A pagar · {nomeMesCurto(mesFat)}</span>
+                            : <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>Sem fatura</span>}
+                      </div>
+                      {usado > 0 && (
+                        <div className="num" style={{ marginTop: 6, fontSize: 10.5, color: T.muted, whiteSpace: "nowrap" }}
+                             title="Todas as parcelas em aberto deste cartão (todos os meses)">
+                          Parcelas em aberto: <span style={{ fontWeight: 600, color: T.ink }}>{hidden ? "•••" : fmt(usado)}</span>
+                        </div>
+                      )}
+                      {/* Mês seguinte: só quando acrescenta informação ao destaque. */}
+                      {aPagar > 0 && fiProx > 0 ? (
+                        <div style={{ marginTop: 4, fontSize: 10.5, color: T.muted }} title={`Fatura importada com competência ${nomeMesCurto(proxKey)}`}>
+                          Mês seguinte (<span style={{ textTransform: "capitalize" }}>{nomeMesCurto(proxKey)}</span>): <span className="num" style={{ color: T.gold, fontWeight: 700 }}>{hidden ? "•••" : fmt(fiProx)}</span> <span style={{ color: T.faint }}>· fatura importada</span>
+                        </div>
+                      ) : fiProx > 0 ? null : proxMes.valor > 0 && (
+                        <div style={{ marginTop: 4, fontSize: 10.5, color: T.muted }} title={`Parcelas já comprometidas que vencem em ${nomeMesCurto(proxKey)}`}>
+                          Mês seguinte (<span style={{ textTransform: "capitalize" }}>{nomeMesCurto(proxKey)}</span>): <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(proxMes.valor)}</span> <span style={{ color: T.faint }}>· {proxMes.count} parcela{proxMes.count === 1 ? "" : "s"}</span>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               {/* Filhos — expandido */}
               {exp && (
