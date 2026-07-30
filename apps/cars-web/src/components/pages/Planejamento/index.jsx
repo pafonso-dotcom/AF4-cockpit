@@ -116,84 +116,6 @@ export default function Planejamento(props) {
     return { pago, pendente, atrasado, total: pago + pendente + atrasado };
   }, [fixas, fixaOcorrencias]);
 
-  // Mini visão geral (4 números) — sempre visível, acima do detalhe da seção.
-  const VisaoGeral = ({ legenda, itens }) => (
-    <div style={{ borderTop: `1px solid ${T.border}`, padding: "10px 16px 12px" }}>
-      <div style={{ fontSize: 8.5, letterSpacing: ".14em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 8 }}>{legenda}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))", gap: 8 }}>
-        {itens.map(it => (
-          <div key={it.lbl} style={{ background: T.bgSoft, borderRadius: 12, padding: "10px 11px", borderLeft: `3px solid ${it.cor}` }}>
-            <div style={{ fontSize: 8.5, letterSpacing: ".05em", textTransform: "uppercase", color: T.faint, fontWeight: 700 }}>{it.lbl}</div>
-            <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 14, fontWeight: 700, color: it.cor, marginTop: 4, whiteSpace: "nowrap" }}>
-              {hidden ? "•••" : fmt(it.v)}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  // Visão geral em DOIS grupos (o que entra × o que sai) — usada na seção
-  // "A Receber & Dívidas". Cada grupo tem seus próprios cards.
-  const Card = ({ lbl, v, cor, hint }) => (
-    <div style={{ background: T.bgSoft, borderRadius: 12, padding: "10px 11px", borderLeft: `3px solid ${cor}`, minWidth: 0 }}>
-      <div style={{ fontSize: 8.5, letterSpacing: ".05em", textTransform: "uppercase", color: T.faint, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lbl}</div>
-      <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 14, fontWeight: 700, color: cor, marginTop: 4, whiteSpace: "nowrap" }}>
-        {hidden ? "•••" : fmt(v)}
-      </div>
-      {hint && <div style={{ fontSize: 9, color: T.faint, marginTop: 2 }}>{hint}</div>}
-    </div>
-  );
-  const VisaoGeralGrupos = ({ legenda, entra, sai }) => (
-    <div style={{ borderTop: `1px solid ${T.border}`, padding: "10px 16px 12px" }}>
-      <div style={{ fontSize: 8.5, letterSpacing: ".14em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 8 }}>{legenda}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(0,3fr)", gap: 14, alignItems: "stretch" }} className="vg-grupos">
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 8.5, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700, color: T.green }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green }} /> A Receber
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 8 }}>
-            {entra.map(it => <Card key={it.lbl} {...it} />)}
-          </div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 8.5, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700, color: T.red }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.red }} /> A Pagar
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
-            {sai.map(it => <Card key={it.lbl} {...it} />)}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const Secao = ({ id, titulo, overview, children }) => {
-    const on = aberto === id;
-    return (
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
-        <button
-          onClick={() => toggle(id)}
-          style={{
-            width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "14px 16px", background: on ? T.bgSoft : "transparent",
-            border: "none", cursor: "pointer", color: T.ink, textAlign: "left",
-          }}>
-          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: on ? T.gold : T.ink }}>
-            {titulo}
-          </span>
-          <ChevronDown size={18} style={{ color: on ? T.gold : T.muted, transform: on ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
-        </button>
-        {overview}
-        {on && (
-          <div style={{ padding: "0 16px 16px", overflowX: "auto" }}>
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className="fade-up py-6 px-3 sm:px-6">
       <div style={{ marginBottom: 16 }}>
@@ -211,10 +133,11 @@ export default function Planejamento(props) {
       {/* Módulos — visão geral sempre visível; detalhe abre ao clicar */}
       <div style={{ marginTop: 4 }}>
         <Secao
-          id="areceber"
+          on={aberto === "areceber"} onToggle={() => toggle("areceber")}
           titulo="A Receber & Dívidas"
           overview={
             <VisaoGeralGrupos
+              hidden={hidden}
               legenda="Visão geral · todos os meses"
               entra={[
                 { lbl: "Total a receber", v: resumoReceber.aReceber, cor: T.green, hint: "tudo em aberto" },
@@ -232,10 +155,11 @@ export default function Planejamento(props) {
         </Secao>
 
         <Secao
-          id="fixas"
+          on={aberto === "fixas"} onToggle={() => toggle("fixas")}
           titulo="Despesas Fixas"
           overview={
             <VisaoGeral
+              hidden={hidden}
               legenda="Visão geral · mês"
               itens={[
                 { lbl: "Já pago", v: resumoFixas.pago, cor: T.green },
@@ -249,14 +173,14 @@ export default function Planejamento(props) {
           <DespesasFixas {...props} embed />
         </Secao>
 
-        <Secao id="cheques" titulo="Cheques">
+        <Secao on={aberto === "cheques"} onToggle={() => toggle("cheques")} titulo="Cheques">
           <Cheques cheques={props.cheques} setCheques={props.setCheques}
                    contas={props.contas} setContas={props.setContas}
                    transacoes={props.transacoes} setTransacoes={props.setTransacoes}
                    escopoAtivo={props.escopoAtivo} hidden={props.hidden} embed />
         </Secao>
 
-        <Secao id="analise-gastos" titulo="Análise de gastos">
+        <Secao on={aberto === "analise-gastos"} onToggle={() => toggle("analise-gastos")} titulo="Análise de gastos">
           <AnaliseGastos transacoes={props.transacoes} contas={props.contas}
                          categorias={props.categorias} setCategorias={props.setCategorias} fixas={props.fixas}
                          fixaOcorrencias={props.fixaOcorrencias} dividas={props.dividas}
@@ -266,6 +190,98 @@ export default function Planejamento(props) {
                          escopoAtivo={props.escopoAtivo} hidden={props.hidden} />
         </Secao>
       </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Sub-componentes ESTÁVEIS (escopo do módulo).
+   IMPORTANTE: antes eram definidos dentro do render — a cada mudança de estado
+   o React via um "componente novo" e REMONTAVA a seção inteira (a tela voltava
+   pro topo e estados internos zeravam ao salvar uma edição). Aqui fora a
+   identidade é estável e a tela permanece exatamente onde estava.
+   ============================================================ */
+
+// Mini visão geral (4 números) — sempre visível, acima do detalhe da seção.
+function VisaoGeral({ legenda, itens, hidden }) {
+  return (
+    <div style={{ borderTop: `1px solid ${T.border}`, padding: "10px 16px 12px" }}>
+      <div style={{ fontSize: 8.5, letterSpacing: ".14em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 8 }}>{legenda}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))", gap: 8 }}>
+        {itens.map(it => (
+          <div key={it.lbl} style={{ background: T.bgSoft, borderRadius: 12, padding: "10px 11px", borderLeft: `3px solid ${it.cor}` }}>
+            <div style={{ fontSize: 8.5, letterSpacing: ".05em", textTransform: "uppercase", color: T.faint, fontWeight: 700 }}>{it.lbl}</div>
+            <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 14, fontWeight: 700, color: it.cor, marginTop: 4, whiteSpace: "nowrap" }}>
+              {hidden ? "•••" : fmt(it.v)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Card da visão geral em grupos (o que entra × o que sai).
+function CardVG({ lbl, v, cor, hint, hidden }) {
+  return (
+    <div style={{ background: T.bgSoft, borderRadius: 12, padding: "10px 11px", borderLeft: `3px solid ${cor}`, minWidth: 0 }}>
+      <div style={{ fontSize: 8.5, letterSpacing: ".05em", textTransform: "uppercase", color: T.faint, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lbl}</div>
+      <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 14, fontWeight: 700, color: cor, marginTop: 4, whiteSpace: "nowrap" }}>
+        {hidden ? "•••" : fmt(v)}
+      </div>
+      {hint && <div style={{ fontSize: 9, color: T.faint, marginTop: 2 }}>{hint}</div>}
+    </div>
+  );
+}
+
+// Visão geral em DOIS grupos — usada na seção "A Receber & Dívidas".
+function VisaoGeralGrupos({ legenda, entra, sai, hidden }) {
+  return (
+    <div style={{ borderTop: `1px solid ${T.border}`, padding: "10px 16px 12px" }}>
+      <div style={{ fontSize: 8.5, letterSpacing: ".14em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 8 }}>{legenda}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(0,3fr)", gap: 14, alignItems: "stretch" }} className="vg-grupos">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 8.5, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700, color: T.green }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green }} /> A Receber
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 8 }}>
+            {entra.map(it => <CardVG key={it.lbl} {...it} hidden={hidden} />)}
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 8.5, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700, color: T.red }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.red }} /> A Pagar
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
+            {sai.map(it => <CardVG key={it.lbl} {...it} hidden={hidden} />)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Secao({ on, onToggle, titulo, overview, children }) {
+  return (
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
+      <button
+        onClick={onToggle}
+        style={{
+          width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "14px 16px", background: on ? T.bgSoft : "transparent",
+          border: "none", cursor: "pointer", color: T.ink, textAlign: "left",
+        }}>
+        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: on ? T.gold : T.ink }}>
+          {titulo}
+        </span>
+        <ChevronDown size={18} style={{ color: on ? T.gold : T.muted, transform: on ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+      </button>
+      {overview}
+      {on && (
+        <div style={{ padding: "0 16px 16px", overflowX: "auto" }}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }
