@@ -435,6 +435,9 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             /* No celular o saldo por linha some (é redundante com "Saldo do dia")
                e libera espaço pra descrição não quebrar em várias linhas. */
             @media (max-width: 560px) { .extrato-saldo-linha { display: none !important; } }
+            /* Números do extrato ~30% maiores no desktop; no mobile ficam como
+               estão (a linha é apertada). zoom preserva as proporções. */
+            @media (min-width: 769px) { .extrato-lista .num { zoom: 1.3; } }
           `}</style>
           {(() => {
             const grupos = agruparPorDia(filtradas);

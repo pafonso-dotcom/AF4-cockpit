@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { T } from "../../lib/theme.js";
 import { fmt } from "../../lib/format.js";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
+import { confirm } from "../../lib/confirm.js";
+import { toast } from "../../lib/toast.js";
 
 // Calcula qual parcela de um parcelamento cai em um mês específico (mesISO = "2026-05")
 function parcelaNoMes(parc, mesISO) {
@@ -43,6 +45,13 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
 
   const mesAtual = new Date().toISOString().slice(0, 7);
   const [verTodasParcelas, setVerTodasParcelas] = useState(false);
+  // Seleção múltipla dos itens da fatura (pra excluir vários de uma vez).
+  const [sel, setSel] = useState(() => new Set());
+  const toggleSel = (id) => setSel(prev => {
+    const n = new Set(prev);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
 
   // Categorias de despesa disponíveis para o seletor inline da fatura.
   const categoriasDespesa = useMemo(
@@ -62,6 +71,46 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
       setParcelamentos((parcelamentos || []).map(p =>
         p.id === item.parcId ? { ...p, categoria: novaCategoria } : p));
     }
+  };
+
+  // Excluir itens da fatura (1 ou vários). Transação → remove a transação;
+  // parcela → remove o PARCELAMENTO inteiro (não existe "meia parcela").
+  // Com confirmação e Desfazer no toast.
+  const excluirItens = async (itens) => {
+    const txIds = itens.filter(x => x._origem === "transacao").map(x => x.id);
+    const parcIds = [...new Set(itens.filter(x => x._origem === "parcelamento").map(x => x.parcId))];
+    if (!txIds.length && !parcIds.length) return;
+    const partes = [];
+    if (txIds.length) partes.push(`${txIds.length} lançamento${txIds.length === 1 ? "" : "s"}`);
+    if (parcIds.length) partes.push(`${parcIds.length} parcelamento${parcIds.length === 1 ? "" : "s"}`);
+    const ok = await confirm({
+      title: `Excluir ${partes.join(" + ")} deste cartão?`,
+      body: parcIds.length
+        ? "Atenção: excluir uma PARCELA remove o parcelamento inteiro (todas as parcelas dele). Dá pra desfazer logo em seguida pelo aviso."
+        : "Os lançamentos saem da fatura. Dá pra desfazer logo em seguida pelo aviso.",
+      danger: true, confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+    const backupTx = transacoes;
+    const backupParc = parcelamentos;
+    if (txIds.length && typeof setTransacoes === "function") {
+      const ids = new Set(txIds);
+      setTransacoes((transacoes || []).filter(t => !ids.has(t.id)));
+    }
+    if (parcIds.length && typeof setParcelamentos === "function") {
+      const ids = new Set(parcIds);
+      setParcelamentos((parcelamentos || []).filter(p => !ids.has(p.id)));
+    }
+    setSel(new Set());
+    toast.success(`${itens.length} ${itens.length === 1 ? "item excluído" : "itens excluídos"} da fatura.`, {
+      action: {
+        label: "Desfazer",
+        onClick: () => {
+          if (typeof setTransacoes === "function") setTransacoes(backupTx);
+          if (typeof setParcelamentos === "function") setParcelamentos(backupParc);
+        },
+      },
+    });
   };
 
   // Transações do cartão no mês atual
@@ -257,18 +306,52 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
           </div>
         ) : (
           <>
+            {/* Barra de exclusão em lote — aparece quando há itens marcados */}
+            {sel.size > 0 && (
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+                padding: "8px 12px", marginBottom: 8, borderRadius: 12, flexWrap: "wrap",
+                background: `${T.red}11`, border: `1px solid ${T.red}44`,
+              }}>
+                <span style={{ fontSize: 12, color: T.ink }}>
+                  <strong>{sel.size}</strong> {sel.size === 1 ? "item marcado" : "itens marcados"}
+                </span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => setSel(new Set())}
+                    style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 10, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>
+                    Limpar
+                  </button>
+                  <button onClick={() => excluirItens(itensFatura.filter(t => sel.has(t.id)))}
+                    style={{ background: T.red, border: "none", color: "#fff", borderRadius: 10, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                    <Trash2 size={12} /> Excluir marcados
+                  </button>
+                </div>
+              </div>
+            )}
             <table className="tbl">
               <thead>
                 <tr>
+                  <th style={{ width: 28 }}>
+                    <input type="checkbox"
+                      title="Marcar/desmarcar todos"
+                      checked={sel.size > 0 && sel.size === itensFatura.length}
+                      onChange={e => setSel(e.target.checked ? new Set(itensFatura.map(t => t.id)) : new Set())}
+                      style={{ accentColor: T.red, cursor: "pointer" }} />
+                  </th>
                   <th>Data</th>
                   <th>Descrição</th>
                   <th>Categoria</th>
                   <th style={{ textAlign: "right" }}>Valor</th>
+                  <th style={{ width: 34 }} />
                 </tr>
               </thead>
               <tbody>
                 {itensFatura.map((t, i) => (
-                  <tr key={t.id || i} style={{ background: t.parcela ? `${T.gold}08` : "transparent" }}>
+                  <tr key={t.id || i} style={{ background: sel.has(t.id) ? `${T.red}0d` : t.parcela ? `${T.gold}08` : "transparent" }}>
+                    <td>
+                      <input type="checkbox" checked={sel.has(t.id)} onChange={() => toggleSel(t.id)}
+                             style={{ accentColor: T.red, cursor: "pointer" }} />
+                    </td>
                     <td>{(t.data || "").slice(8, 10)}/{(t.data || "").slice(5, 7)}</td>
                     <td>
                       {t.parcela && (
@@ -302,6 +385,12 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
                     </td>
                     <td style={{ textAlign: "right" }} className="num neg">
                       {hidden ? "•••" : `− ${fmt(Math.abs(Number(t.valor || 0)))}`}
+                    </td>
+                    <td>
+                      <button onClick={() => excluirItens([t])} title="Excluir este lançamento"
+                        style={{ background: "transparent", border: `1px solid ${T.red}44`, color: T.red, borderRadius: 8, padding: "3px 6px", cursor: "pointer", lineHeight: 0 }}>
+                        <Trash2 size={12} />
+                      </button>
                     </td>
                   </tr>
                 ))}
