@@ -160,23 +160,36 @@ export default function Dashboard({
       return s + valorPorParcela * Math.max(0, total - pagas);
     }, 0);
   }, [parcelamentos]);
-  // Só as parcelas de cartão que vencem no MÊS SEGUINTE (não pagas) — pra
-  // mostrar no tile "Cartões (parcelas)" um recorte do que compromete o
-  // próximo mês. Mesma lógica de datas dos sparklines (dataPrimeira/dataCompra).
+  // "Cartões (mês seguinte)": o que cada cartão vai cobrar no próximo mês —
+  // MESMA regra dos cards da tela Cartões: fatura IMPORTADA em aberto com
+  // competência do mês seguinte (valor real, à vista + parcelas) quando
+  // existir; senão, as parcelas pendentes que vencem no mês seguinte.
   const cartoesProxMes = useMemo(() => {
     const [y, m] = mesISO.split("-").map(Number);
     const nd = new Date(y, m, 1); // mês seguinte (m é 1-based do mês atual)
     const proxKey = `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, "0")}`;
-    return (parcelamentos || []).reduce((s, p) => {
-      const total = p.totalParcelas || 0;
-      if (total <= 0) return s;
-      const vpp = (p.valorTotal || 0) / total;
+    let total = 0;
+    // Cartões com fatura importada do mês seguinte: entra o valor da fatura e
+    // as parcelas desses cartões saem (já estão dentro dela).
+    const comFatura = new Set();
+    (cartoes || []).forEach(c => {
+      const fi = c.faturaImportada;
+      if (fi && !fi.paga && fi.competencia === proxKey) {
+        comFatura.add(c.id);
+        total += Number(fi.valorTotal) || 0;
+      }
+    });
+    total += (parcelamentos || []).reduce((s, p) => {
+      if (comFatura.has(p.cartaoId)) return s;
+      const totalParc = p.totalParcelas || 0;
+      if (totalParc <= 0) return s;
+      const vpp = (p.valorTotal || 0) / totalParc;
       const pagas = new Set(p.parcelasPagas || []);
       const base = p.dataPrimeira || p.dataCompra;
       if (!base) return s;
       const [bY, bM] = base.split("-").map(Number);
       const start = p.dataPrimeira ? bM : bM + 1;
-      for (let n = 1; n <= total; n++) {
+      for (let n = 1; n <= totalParc; n++) {
         if (pagas.has(n)) continue;
         const dt = new Date(bY, start - 1 + (n - 1), 1);
         const mm = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
@@ -184,7 +197,8 @@ export default function Dashboard({
       }
       return s;
     }, 0);
-  }, [mesISO, parcelamentos]);
+    return total;
+  }, [mesISO, parcelamentos, cartoes]);
   // Total a pagar (tudo em aberto, todos os meses) — mesma base do "A Receber &
   // Dívidas": dívidas + fixas pendentes + parcelas de cartão + avulsas.
   const aPagarTotal = useMemo(() => {
