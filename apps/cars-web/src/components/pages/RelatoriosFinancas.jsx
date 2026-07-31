@@ -280,7 +280,7 @@ export default function RelatoriosFinancas({
   // (flag do usuário em Contas, não um chute por nome) e converte contas em
   // moeda estrangeira pra BRL pela cotação.
   const cenarios = useMemo(() => {
-    const stateRaw = { transacoes: transacoesRaw, contas: contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques };
+    const stateRaw = { transacoes: transacoesRaw, contas: contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, cartoes };
     const cenario = (escopo) => {
       const contasEsc = filtrarPorEscopo(contasRaw || [], escopo);
       const saldoInicial = somaContasBRL(contasEsc);
@@ -305,7 +305,7 @@ export default function RelatoriosFinancas({
       bensTotal: foraPatrimonio.reduce((s, c) => s + saldoContaBRL(c), 0),
       bensNomes: foraPatrimonio.map(c => c.nome).join(", "),
     };
-  }, [transacoesRaw, contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, proximosMeses, anoProj]);
+  }, [transacoesRaw, contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, cartoes, proximosMeses, anoProj]);
 
   const periodoLabel = proximosMeses.length
     ? `${proximosMeses[0].label} a ${proximosMeses[proximosMeses.length - 1].label}` : "";
