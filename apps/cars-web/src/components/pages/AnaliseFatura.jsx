@@ -177,7 +177,9 @@ Regras IMPORTANTES:
 4. NÃO inclua como ITEM: "pagamento recebido", "saldo anterior", "juros", "estorno", "crédito", "tarifa de anuidade total" (mas inclua AS PARCELAS dela como tipo "parcela"). Esses valores entram SÓ nos campos do resumo (pagamentos_creditos / saldo_anterior).
 5. No campo "total" use o TOTAL A PAGAR da fatura (o valor final cobrado no boleto), NÃO a soma dos consumos.
 6. Se a categoria certa não está na lista, use "Outros".
-7. Retorne APENAS o JSON, NADA mais.`;
+7. VALORES: transcreva EXATAMENTE como impresso, dígito a dígito, com os centavos (ex.: 471,44 NUNCA vira 171,44; 519,80 NUNCA vira 599,00). NÃO arredonde, NÃO estime, NÃO troque dígitos parecidos (1↔4, 7↔1, 5↔9). O mesmo vale pra descrição: copie o nome como está na fatura.
+8. CONFIRA no final: a soma dos valores dos itens deve bater com o total de consumos do resumo da fatura. Se não bater, RELEIA os itens e corrija os valores antes de responder.
+9. Retorne APENAS o JSON, NADA mais.`;
 
       setProgress("Conversando com Gemini 2.5 Flash…");
 
