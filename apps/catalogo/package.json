@@ -1,0 +1,25 @@
+{
+  "name": "@repo/catalogo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Catálogo de carros usados · apresentação que vende — página pública pra WhatsApp/Instagram.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "bash -c 'vite preview --host 0.0.0.0 --port ${PORT:-3005} --strictPort'",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lucide-react": "^0.383.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.4",
+    "vite": "^5.3.1"
+  }
+}
