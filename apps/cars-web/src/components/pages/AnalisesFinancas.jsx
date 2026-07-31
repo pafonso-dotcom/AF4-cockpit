@@ -80,7 +80,7 @@ export default function AnalisesFinancas(props) {
             categorias={props.categorias}
             fixas={props.fixas} fixaOcorrencias={props.fixaOcorrencias}
             parcelamentos={props.parcelamentos} dividas={props.dividas} devedores={props.devedores}
-            cheques={props.cheques}
+            cheques={props.cheques} cartoes={props.cartoes}
             patrimonioHistorico={props.patrimonioHistorico}
             escopoAtivo={props.escopoAtivo}
             hidden={props.hidden} embed />
