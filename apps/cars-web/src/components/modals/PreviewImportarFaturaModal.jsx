@@ -15,6 +15,7 @@ import {
 } from "../../lib/importarFatura.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
+import MoneyInput from "../ui/MoneyInput.jsx";
 
 /**
  * Modal de preview após análise IA da fatura.
@@ -141,6 +142,11 @@ export default function PreviewImportarFaturaModal({
 
   const mudarTipo = (idx, novoTipo) => {
     setItens(prev => prev.map(it => it._idx === idx ? { ...it, tipo: novoTipo } : it));
+  };
+
+  // Corrigir o VALOR de um item — a IA às vezes lê errado (ex.: 471,44 → 171,44).
+  const mudarValor = (idx, novoValor) => {
+    setItens(prev => prev.map(it => it._idx === idx ? { ...it, valor: Number(novoValor) || 0 } : it));
   };
 
   const confirmar = async () => {
@@ -625,11 +631,10 @@ export default function PreviewImportarFaturaModal({
                 <option value="parcela">Parcela</option>
               </select>
 
-              <div className="num" style={{
-                color: T.red, fontFamily: T.serif, fontSize: 14, fontWeight: 600,
-                minWidth: 90, textAlign: "right", flexShrink: 0,
-              }}>
-                {fmt(item.valor)}
+              {/* Valor EDITÁVEL — corrige na hora o que a IA leu errado. */}
+              <div style={{ width: 96, flexShrink: 0 }} title="Valor do item — clique pra corrigir (a IA pode ler errado)">
+                <MoneyInput value={item.valor} prefix="" onChange={v => mudarValor(item._idx, v)}
+                  style={{ padding: "5px 8px", fontSize: 12.5, textAlign: "right", color: T.red, fontWeight: 600 }} />
               </div>
             </div>
           );
