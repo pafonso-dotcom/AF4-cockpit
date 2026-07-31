@@ -63,3 +63,4 @@ não há bloco `tab === "investimentos"`, `"calc-renda"`, etc. A pasta
 
 > Regra do repo: apps independentes; este porte só acontece por pedido
 > explícito. Esta nota é o registro pra retomar sem re-investigar.
+
