@@ -28,7 +28,7 @@ import EvolucaoPatrimonio from "./Invest/EvolucaoPatrimonio.jsx";
  */
 export default function RelatoriosFinancas({
   transacoes: transacoesRaw = [], contas: contasRaw = [], categorias = [],
-  fixas = [], fixaOcorrencias = [], parcelamentos = [], dividas = [], devedores = [], cheques = [],
+  fixas = [], fixaOcorrencias = [], parcelamentos = [], dividas = [], devedores = [], cheques = [], cartoes = [],
   patrimonioHistorico = [],
   escopoAtivo = "tudo",
   hidden,
@@ -75,7 +75,7 @@ export default function RelatoriosFinancas({
   // expandida + fixas/parcelas/dívidas), pra os números baterem entre as telas.
   const topCategorias = useMemo(() => {
     const mes = new Date().toISOString().slice(0, 7);
-    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques };
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, cartoes };
     let desp = [];
     try { desp = getDespesasDoMes(mes, state, escopoAtivo); } catch {}
     const mapa = {};
@@ -87,7 +87,7 @@ export default function RelatoriosFinancas({
       .map(([label, value]) => ({ label, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 7);
-  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, escopoAtivo]);
+  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, escopoAtivo]);
 
   // ===== Tendência por categoria (6 meses) =====
   // Pra cada categoria de despesa: total por mês + variação do mês atual vs média
@@ -168,7 +168,7 @@ export default function RelatoriosFinancas({
   // ===== Projeção REAL · meses a vencer (compromissos já agendados) =====
   const projecaoReal = useMemo(() => {
     const hoje = new Date();
-    const state = { transacoes, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques };
+    const state = { transacoes, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, cartoes };
     const meses = [];
     for (let i = 1; i <= 6; i++) {
       const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
@@ -183,7 +183,7 @@ export default function RelatoriosFinancas({
       });
     }
     return meses;
-  }, [transacoes, fixas, fixaOcorrencias, parcelamentos, dividas, devedores]);
+  }, [transacoes, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes]);
 
   // ===== Projeção · Meses a vencer — por categoria (matriz categoria × mês) =====
   const proximosMeses = useMemo(() => {
@@ -200,7 +200,7 @@ export default function RelatoriosFinancas({
   }, [anoProj, mesOffset]);
 
   const projecao = useMemo(() => {
-    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques };
+    const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, cartoes };
     const map = {}; // chave: `${fonte}||${categoria}`
     proximosMeses.forEach(m => {
       let desp = [];
@@ -271,7 +271,7 @@ export default function RelatoriosFinancas({
     const saldoTotal = (receber ? receber.subTotal : 0) - totalGeral;
 
     return { grupos, totaisMes, totalGeral, media: totalGeral / n, receber, saldoMes, saldoTotal, saldoMedia: saldoTotal / n, vazio: todas.length === 0 && !receber };
-  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, escopoAtivo, proximosMeses, anoProj]);
+  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, cartoes, escopoAtivo, proximosMeses, anoProj]);
 
   // ===== Cenários de Saldo previsto =====
   // Parte do SALDO ATUAL das contas e acumula (A receber − Saídas) mês a mês.
