@@ -162,44 +162,49 @@ export default function Dashboard({
       return s + valorPorParcela * Math.max(0, total - pagas);
     }, 0);
   }, [parcelamentos]);
-  // "Cartões (mês seguinte)": o que cada cartão vai cobrar no próximo mês —
-  // MESMA regra dos cards da tela Cartões: fatura IMPORTADA em aberto com
-  // competência do mês seguinte (valor real, à vista + parcelas) quando
-  // existir; senão, as parcelas pendentes que vencem no mês seguinte.
-  const cartoesProxMes = useMemo(() => {
+  // Tile "Cartões": só o que está EM ABERTO. Prioriza o MÊS CORRENTE — fatura
+  // importada paga = cartão quitado no mês (não conta); fatura em aberto entra
+  // pelo valor real; sem fatura, contam as parcelas pendentes do mês. Se o mês
+  // corrente estiver zerado (tudo pago), mostra o mês seguinte.
+  const cartoesTile = useMemo(() => {
     const [y, m] = mesISO.split("-").map(Number);
     const nd = new Date(y, m, 1); // mês seguinte (m é 1-based do mês atual)
     const proxKey = `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, "0")}`;
-    let total = 0;
-    // Cartões com fatura importada do mês seguinte: entra o valor da fatura e
-    // as parcelas desses cartões saem (já estão dentro dela).
-    const comFatura = new Set();
-    (cartoes || []).forEach(c => {
-      const fi = c.faturaImportada;
-      if (fi && !fi.paga && fi.competencia === proxKey) {
-        comFatura.add(c.id);
-        total += Number(fi.valorTotal) || 0;
-      }
-    });
-    total += (parcelamentos || []).reduce((s, p) => {
-      if (comFatura.has(p.cartaoId)) return s;
-      const totalParc = p.totalParcelas || 0;
-      if (totalParc <= 0) return s;
-      const vpp = Number(p.valorParcela) || (p.valorTotal || 0) / totalParc;
-      const pagas = new Set(p.parcelasPagas || []);
-      const base = p.dataPrimeira || p.dataCompra;
-      if (!base) return s;
-      const [bY, bM] = base.split("-").map(Number);
-      const start = p.dataPrimeira ? bM : bM + 1;
-      for (let n = 1; n <= totalParc; n++) {
-        if (pagas.has(n)) continue;
-        const dt = new Date(bY, start - 1 + (n - 1), 1);
-        const mm = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
-        if (mm === proxKey) s += vpp;
-      }
-      return s;
-    }, 0);
-    return total;
+    const soma = (key) => {
+      let total = 0;
+      // Cartões com fatura importada da competência: cobrem o mês (paga → 0;
+      // aberta → valor real). As parcelas desses cartões saem da conta.
+      const cobertos = new Set();
+      (cartoes || []).forEach(c => {
+        const fi = c.faturaImportada;
+        if (!fi || (fi.competencia && fi.competencia !== key)) return;
+        cobertos.add(c.id);
+        if (!fi.paga) total += Number(fi.valorTotal) || 0;
+      });
+      total += (parcelamentos || []).reduce((s, p) => {
+        if (cobertos.has(p.cartaoId)) return s;
+        const totalParc = p.totalParcelas || 0;
+        if (totalParc <= 0) return s;
+        const vpp = Number(p.valorParcela) || (p.valorTotal || 0) / totalParc;
+        const pagas = new Set(p.parcelasPagas || []);
+        const base = p.dataPrimeira || p.dataCompra;
+        if (!base) return s;
+        const [bY, bM] = base.split("-").map(Number);
+        const start = p.dataPrimeira ? bM : bM + 1;
+        for (let n = 1; n <= totalParc; n++) {
+          if (pagas.has(n)) continue;
+          const dt = new Date(bY, start - 1 + (n - 1), 1);
+          const mm = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+          if (mm === key) s += vpp;
+        }
+        return s;
+      }, 0);
+      return total;
+    };
+    const nomeMes = (key) => (MESES_PT[parseInt(key.slice(5, 7), 10) - 1] || "").toLowerCase();
+    const mesAtual = soma(mesISO);
+    if (mesAtual > 0.005) return { valor: mesAtual, label: `Cartões · a pagar (${nomeMes(mesISO)})` };
+    return { valor: soma(proxKey), label: `Cartões · mês seguinte (${nomeMes(proxKey)})` };
   }, [mesISO, parcelamentos, cartoes]);
   // Total a pagar (tudo em aberto, todos os meses) — mesma base do "A Receber &
   // Dívidas": dívidas + fixas pendentes + parcelas de cartão + avulsas.
@@ -505,7 +510,7 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
-        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesProxMes={cartoesProxMes} sparks={sparks} hidden={hidden}
+        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesTile={cartoesTile} sparks={sparks} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
       </section>
@@ -1113,7 +1118,7 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, cartoesProxMes = 0, sparks = null, hidden, onSeeAll, onVerPagar }) {
+function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, cartoesTile = null, sparks = null, hidden, onSeeAll, onVerPagar }) {
   // Valores começam ocultos (•••); botão do olho revela — igual ao Patrimônio.
   const [revelar, setRevelar] = useState(false);
   const oculto = hidden || !revelar;
@@ -1150,7 +1155,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
     { id: "apagarmes",   label: "A pagar (mês)",       valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted, icon: Calendar, spark: sparks?.pagar },
     // Cartões: destaque no que vence no MÊS SEGUINTE; o total em aberto vai
     // pra linha de baixo (pedido do usuário).
-    { id: "cartoes",     label: "Cartões (mês seguinte)", valor: cartoesProxMes, cor: cartoesTotal > 0 ? T.yellow : T.muted, icon: CreditCard, spark: sparks?.cartoes, subRotulo: "total em aberto", subValor: cartoesTotal },
+    { id: "cartoes",     label: cartoesTile?.label || "Cartões", valor: cartoesTile?.valor || 0, cor: cartoesTotal > 0 ? T.yellow : T.muted, icon: CreditCard, spark: sparks?.cartoes, subRotulo: "total em aberto", subValor: cartoesTotal },
     { id: "cheques",     label: "Cheques",            valor: chequesTotal, cor: chequesTotal > 0 ? (T.blue || "#60a5fa") : T.muted, icon: Receipt, spark: sparks?.cheques },
   ];
 
