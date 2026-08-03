@@ -510,7 +510,7 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
-        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesTile={cartoesTile} sparks={sparks} hidden={hidden}
+        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesTile={cartoesTile} totalBancos={totalContas} sparks={sparks} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
       </section>
@@ -1118,7 +1118,7 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, cartoesTile = null, sparks = null, hidden, onSeeAll, onVerPagar }) {
+function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, cartoesTile = null, totalBancos = 0, sparks = null, hidden, onSeeAll, onVerPagar }) {
   // Valores começam ocultos (•••); botão do olho revela — igual ao Patrimônio.
   const [revelar, setRevelar] = useState(false);
   const oculto = hidden || !revelar;
@@ -1149,7 +1149,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
   // Os 6 totais do "Centro de Controle" — estilo widget: ícone em anel, número
   // fino e mini-sparkline (traço ilustrativo de tendência; série real depois).
   const resumo = [
-    { id: "areceber",    label: "Total a receber",    valor: totalReceber, cor: T.green, icon: ArrowDownLeft, spark: sparks?.receber },
+    { id: "bancos",      label: "Total nos bancos",   valor: totalBancos,  cor: T.green, icon: Wallet },
     { id: "arecebermes", label: "A receber (mês)",     valor: receberMes,   cor: T.gold,  icon: Calendar,     spark: sparks?.receber },
     { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted, icon: ArrowUpRight, spark: sparks?.pagar },
     { id: "apagarmes",   label: "A pagar (mês)",       valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted, icon: Calendar, spark: sparks?.pagar },
