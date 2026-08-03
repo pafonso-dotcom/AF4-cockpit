@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { ChevronDown, BarChart3, Brain, History, CalendarDays } from "lucide-react";
+import { ChevronDown, BarChart3, Brain, History, CalendarDays, Search } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import RelatorioMensal from "./RelatorioMensal.jsx";
 import RelatoriosFinancas from "./RelatoriosFinancas.jsx";
+import PesquisasFinancas from "./PesquisasFinancas.jsx";
 import Inteligencia from "./Inteligencia.jsx";
 import AuditLog from "./AuditLog.jsx";
 
@@ -72,6 +73,13 @@ export default function AnalisesFinancas(props) {
             cheques={props.cheques} cartoes={props.cartoes}
             patrimonioHistorico={props.patrimonioHistorico}
             escopoAtivo={props.escopoAtivo} hidden={props.hidden} embed />
+        </Secao>
+        <Secao id="pesquisas" icon={Search} titulo="Pesquisas · relatórios diversos"
+               desc="Consultas livres: quanto recebeu de dividendos num período, gastos específicos por texto/categoria/conta, receitas — com total, média mensal e exportação CSV.">
+          <PesquisasFinancas
+            transacoes={props.transacoes} categorias={props.categorias} contas={props.contas}
+            proventosManuais={props.proventosManuais}
+            hidden={props.hidden} embed />
         </Secao>
         <Secao id="relatorios" icon={BarChart3} titulo="Relatórios"
                desc="Receita × despesa, projeção do ano, evolução de patrimônio e exportação (PDF/CSV/PNG).">
