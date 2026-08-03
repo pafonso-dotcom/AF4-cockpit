@@ -20,6 +20,7 @@ export const NAV_ITEMS = [
   { modulo: "financas", tab: "perguntar",    label: "Pergunte ao Claude", grupo: "Finanças" },
   { modulo: "financas", tab: "revisor-ganhos",      label: "Revisor de ganhos",     grupo: "Finanças" },
   { modulo: "financas", tab: "relatorios-f", label: "Relatórios",         grupo: "Finanças" },
+  { modulo: "financas", tab: "relatorios-f", label: "Pesquisas (relatórios diversos)", grupo: "Finanças" },
   { modulo: "financas", tab: "audit",        label: "Histórico",          grupo: "Finanças" },
 
   // Investimentos

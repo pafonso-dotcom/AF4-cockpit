@@ -885,6 +885,7 @@ export default function App() {
           fixas={fixas} fixaOcorrencias={fixaOcorrencias}
           parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
           cheques={cheques} cartoes={cartoes} metas={metas}
+          proventosManuais={proventosManuais}
           patrimonioHistorico={patrimonioHistorico}
           apiKey={apiKeys.anthropic}
           escopoAtivo={escopoAtivo}
