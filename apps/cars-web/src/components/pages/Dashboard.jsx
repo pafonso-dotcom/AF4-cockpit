@@ -155,7 +155,9 @@ export default function Dashboard({
     return (parcelamentos || []).reduce((s, p) => {
       const total = p.totalParcelas || 0;
       if (total <= 0) return s;
-      const valorPorParcela = (p.valorTotal || 0) / total;
+      // Mesma fórmula dos cards de Cartões: valorParcela explícito quando
+      // existe (senão valorTotal/total) — evita divergência por arredondamento.
+      const valorPorParcela = Number(p.valorParcela) || (p.valorTotal || 0) / total;
       const pagas = (p.parcelasPagas || []).length;
       return s + valorPorParcela * Math.max(0, total - pagas);
     }, 0);
@@ -183,7 +185,7 @@ export default function Dashboard({
       if (comFatura.has(p.cartaoId)) return s;
       const totalParc = p.totalParcelas || 0;
       if (totalParc <= 0) return s;
-      const vpp = (p.valorTotal || 0) / totalParc;
+      const vpp = Number(p.valorParcela) || (p.valorTotal || 0) / totalParc;
       const pagas = new Set(p.parcelasPagas || []);
       const base = p.dataPrimeira || p.dataCompra;
       if (!base) return s;
@@ -242,7 +244,7 @@ export default function Dashboard({
       const cart = (parcelamentos || []).reduce((s, p) => {
         const total = p.totalParcelas || 0;
         if (total <= 0) return s;
-        const vpp = (p.valorTotal || 0) / total;
+        const vpp = Number(p.valorParcela) || (p.valorTotal || 0) / total;
         const pagas = new Set(p.parcelasPagas || []);
         const base = p.dataPrimeira || p.dataCompra;
         if (!base) return s;
