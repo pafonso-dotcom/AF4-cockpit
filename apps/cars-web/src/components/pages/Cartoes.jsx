@@ -119,7 +119,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     parcelamentos.forEach(p => {
       const pagas = p.parcelasPagas?.length || 0;
       const restantes = (p.totalParcelas || 0) - pagas;
-      const valorParcela = (p.valorTotal || 0) / (p.totalParcelas || 1);
+      const valorParcela = valorDaParcela(p);
       const aberto = valorParcela * restantes;
       map[p.cartaoId] = (map[p.cartaoId] || 0) + aberto;
     });
