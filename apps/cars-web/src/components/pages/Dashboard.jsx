@@ -510,7 +510,7 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
-        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesTile={cartoesTile} totalBancos={totalContas} sparks={sparks} hidden={hidden}
+        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesTile={cartoesTile} sparks={sparks} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
       </section>
@@ -895,11 +895,20 @@ function bancoBadge(c) {
 }
 
 function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
+  // Total dos bancos = soma dos saldos das contas listadas (converte moeda).
+  const totalBancos = somaContasBRL(contas || []);
   return (
     <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Contas</div>
-        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver todas</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
+          <span style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Contas</span>
+          {/* Total dos bancos — bem sutil, colado ao título. */}
+          <span className="num" title="Total dos bancos (soma dos saldos)"
+                style={{ fontSize: 11.5, color: T.muted, whiteSpace: "nowrap" }}>
+            {hidden ? "•••" : fmt(totalBancos)}
+          </span>
+        </div>
+        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer", flexShrink: 0 }}>Ver todas</button>
       </div>
       {/* Cards de conta — mesmo estilo widget do Centro de Controle */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -1118,7 +1127,7 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, cartoesTile = null, totalBancos = 0, sparks = null, hidden, onSeeAll, onVerPagar }) {
+function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, cartoesTile = null, sparks = null, hidden, onSeeAll, onVerPagar }) {
   // Valores começam ocultos (•••); botão do olho revela — igual ao Patrimônio.
   const [revelar, setRevelar] = useState(false);
   const oculto = hidden || !revelar;
@@ -1149,7 +1158,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
   // Os 6 totais do "Centro de Controle" — estilo widget: ícone em anel, número
   // fino e mini-sparkline (traço ilustrativo de tendência; série real depois).
   const resumo = [
-    { id: "bancos",      label: "Total nos bancos",   valor: totalBancos,  cor: T.green, icon: Wallet },
+    { id: "areceber",    label: "Total a receber",    valor: totalReceber, cor: T.green, icon: ArrowDownLeft, spark: sparks?.receber },
     { id: "arecebermes", label: "A receber (mês)",     valor: receberMes,   cor: T.gold,  icon: Calendar,     spark: sparks?.receber },
     { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted, icon: ArrowUpRight, spark: sparks?.pagar },
     { id: "apagarmes",   label: "A pagar (mês)",       valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted, icon: Calendar, spark: sparks?.pagar },
