@@ -70,7 +70,10 @@ export default function ImportarExtrato({
 }) {
   const [step, setStep] = useState("upload"); // upload | preview
   const [parsed, setParsed] = useState(null); // { transacoes, banco }
-  const [contaDestino, setContaDestino] = useState(contas?.[0]?.nome || "");
+  // SEM chute de conta: começa vazio e só pré-seleciona quando o banco
+  // detectado no extrato CASA com uma conta (ver handleFile). Antes caía na
+  // primeira da lista (ex.: extrato Santander entrando na ITAU) e dava limpeza.
+  const [contaDestino, setContaDestino] = useState("");
   const [selecionadas, setSelecionadas] = useState(new Set());
   const [edicoes, setEdicoes] = useState({}); // { _id: { categoria, ... } }
   const [erro, setErro] = useState("");
@@ -95,6 +98,15 @@ export default function ImportarExtrato({
       // ou repetidos dentro do próprio arquivo, para não duplicar.
       const transMarcadas = marcarDuplicadas(result.transacoes, transacoes);
       setParsed({ ...result, transacoes: transMarcadas });
+      // Pré-seleciona a conta SÓ quando o banco detectado casa com uma conta
+      // (nome/instituição/banco). Sem match, fica "— Escolher conta —" e o
+      // confirmar exige a escolha.
+      const normB = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      const b = normB(result.banco);
+      const contaMatch = b ? (contas || []).find(c =>
+        [c.nome, c.instituicao, c.banco].map(normB).some(a => a && (a.includes(b) || b.includes(a)))
+      ) : null;
+      setContaDestino(contaMatch?.nome || "");
       // Por padrão, marca só as que NÃO são duplicadas.
       setSelecionadas(new Set(transMarcadas.filter(t => !t._duplicada).map(t => t._id)));
       setStep("preview");
