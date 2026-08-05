@@ -551,6 +551,9 @@ export default function Dashboard({
            o resto do Painel ficam iguais. No mobile (≤768px) nada muda. */
         @media (min-width: 769px) {
           .kpi-breakdown .num, .cc-nums .num { zoom: 1.2; }
+          /* Valor do Patrimônio Total maior em tablet/desktop (iPad ficava
+             pequeno pro tamanho da tela); mobile (≤768px) segue em 32px. */
+          .kpi-hero-valor { font-size: 42px !important; }
         }
         @media (max-width: 1024px) {
           .dash-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
@@ -693,7 +696,7 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
       </div>
       <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.92)", fontWeight: 500, marginTop: 18, letterSpacing: ".01em" }}>Patrimônio Total</div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 6 }}>
-        <div className="num" style={{ fontSize: 32, fontWeight: 300, letterSpacing: "-.02em", lineHeight: 1 }}>
+        <div className="num kpi-hero-valor" style={{ fontSize: 32, fontWeight: 300, letterSpacing: "-.02em", lineHeight: 1 }}>
           {visivel ? fmt(animado) : "••••••"}
         </div>
         {/* stepper decorativo (estilo widget) */}
