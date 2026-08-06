@@ -141,6 +141,19 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
 
   // Agrupa ativos por CATEGORIA (tipo): Ações, FIIs, Stocks, etc. Assim, dentro
   // de cada grupo, o "% da categoria" de cada ativo fecha 100% à vista.
+  // Variação do DIA do grupo em R$: soma de (valor × v/(100+v)) dos ativos que
+  // têm cotação 24h. Devolve null quando nenhum tem (aí não mostra nada).
+  const variacaoDiaGrupo = (ativosDoGrupo = []) => {
+    let soma = 0, tem = false;
+    ativosDoGrupo.forEach(a => {
+      const v = Number(a.variacao24h);
+      if (!Number.isFinite(v)) return;
+      tem = true;
+      soma += (Number(a.qtd) || 0) * (Number(a.preco) || 0) * (v / (100 + v));
+    });
+    return tem ? soma : null;
+  };
+
   const grupos = useMemo(() => {
     const labelDe = (t) => (tipos.find(x => x.v === t)?.l) || t || "Outros";
     const ordem = tipos.map(t => t.v);
@@ -551,6 +564,16 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                 <span style={{ color: T.muted, fontSize: 11 }}>
                   {grupo.count} {grupo.count === 1 ? "ativo" : "ativos"}
                 </span>
+                {(() => {
+                  const dia = variacaoDiaGrupo(grupo.ativos);
+                  if (dia == null || hidden) return null;
+                  return (
+                    <span className="num" title="Variação de hoje (cotações 24h)"
+                          style={{ fontSize: 10.5, fontWeight: 700, color: dia >= 0 ? T.green : T.red, whiteSpace: "nowrap" }}>
+                      {dia >= 0 ? "▲ +" : "▼ −"}{grupo.moedaUS ? fmtUSD(Math.abs(dia)) : fmt(Math.abs(dia))} hoje
+                    </span>
+                  );
+                })()}
                 <span style={{ color: T.gold, fontSize: 12, fontWeight: 600 }}>
                   {hidden ? "•••" : (grupo.moedaUS ? fmtUSD(grupo.valor) : fmt(grupo.valor))}
                 </span>
@@ -725,6 +748,16 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   <span style={{ color: T.muted, fontSize: 11 }}>
                     {grupo.count} {grupo.count === 1 ? "ativo" : "ativos"}
                   </span>
+                  {(() => {
+                    const dia = variacaoDiaGrupo(grupo.ativos);
+                    if (dia == null || hidden) return null;
+                    return (
+                      <span className="num" title="Variação de hoje (cotações 24h)"
+                            style={{ fontSize: 11, fontWeight: 700, color: dia >= 0 ? T.green : T.red, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                        {dia >= 0 ? "▲ +" : "▼ −"}{grupo.moedaUS ? fmtUSD(Math.abs(dia)) : fmt(Math.abs(dia))} hoje
+                      </span>
+                    );
+                  })()}
                   <span style={{ color: T.gold, fontSize: 12, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                     {hidden ? "•••" : (grupo.moedaUS ? fmtUSD(grupo.valor) : fmt(grupo.valor))}
                   </span>
