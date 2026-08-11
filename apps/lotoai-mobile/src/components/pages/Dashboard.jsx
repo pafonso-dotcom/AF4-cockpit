@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from "react";
-import { Flame, Snowflake, Hash, TrendingUp, Calculator, Info } from "lucide-react";
+import { Flame, Snowflake, Hash, TrendingUp, Calculator, Info, Sparkles, RefreshCw, Save } from "lucide-react";
 import Ball from "../ui/Ball.jsx";
 import { frequencias, atrasos, quentes, frias } from "../../lib/stats.js";
 import { analisarJogo } from "../../lib/lotofacil.js";
 import { JOGOS } from "../../lib/jogos.js";
 import { relatorioMatematico, pFechamentoCompletoPeloMenos, pPeloMenosUmPremio, pAcertosPeloMenos } from "../../lib/probabilidade.js";
+import { gerarJogos } from "../../lib/generator.js";
+import { salvarJogos } from "../../lib/supabase.js";
 
 export default function Dashboard({ historico }) {
   const ultimo = historico[historico.length - 1];
@@ -24,6 +26,8 @@ export default function Dashboard({ historico }) {
 
   return (
     <div className="px-4 pt-4 pb-28 space-y-4">
+      <JogoDoDia historico={historico} />
+
       {ultimo && (
         <section className="card">
           <div className="flex items-center justify-between mb-3">
@@ -213,6 +217,115 @@ function PainelProbabilidade() {
         </div>
       </div>
     </section>
+  );
+}
+
+/* ============================================================
+   JOGO DO DIA · gerador em 1 clique
+   Usa Combo IA (mix de estratégias) por padrão. 1 tap = 1 jogo
+   com análise instantânea (primos, pares, soma, faixa).
+   ============================================================ */
+function JogoDoDia({ historico }) {
+  const [jogo, setJogo] = useState(() => gerar(historico));
+  const [savedMsg, setSavedMsg] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  function gerarNovo() {
+    setJogo(gerar(historico));
+    setSavedMsg("");
+  }
+
+  async function salvar() {
+    if (!jogo) return;
+    setSalvando(true);
+    const r = await salvarJogos([jogo], { estrategia: "jogo-do-dia-combo" });
+    setSalvando(false);
+    setSavedMsg(r.remote ? "Salvo no Supabase" : "Salvo localmente");
+    setTimeout(() => setSavedMsg(""), 2500);
+  }
+
+  if (!jogo) return null;
+  const analise = analisarJogo(jogo);
+  const primos = jogo.filter(n => [2,3,5,7,11,13,17,19,23].includes(n));
+  const faixaTipica = analise.pares >= 6 && analise.pares <= 9 &&
+                      analise.soma >= 170 && analise.soma <= 220 &&
+                      analise.primos >= 4 && analise.primos <= 7;
+
+  return (
+    <section className="card bg-gradient-to-br from-panel to-panel/50 border-gold/30">
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-gold font-bold">
+            <Sparkles size={13} /> Jogo do dia · IA
+          </div>
+          <div className="text-[11px] text-white/50 mt-0.5">
+            Combo de 5 estratégias · 1 tap
+          </div>
+        </div>
+        {faixaTipica && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            ✓ FAIXA TÍPICA
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {jogo.map(n => <Ball key={n} n={n} highlight markPrime />)}
+      </div>
+
+      <div className="grid grid-cols-4 gap-1.5 mb-3">
+        <MiniStat label="Primos" value={`${primos.length}/9`} tone="emerald" />
+        <MiniStat label="Pares" value={analise.pares} />
+        <MiniStat label="Soma" value={analise.soma} />
+        <MiniStat label="Moldura" value={`${analise.moldura}/16`} />
+      </div>
+
+      {savedMsg && <div className="text-xs text-green-400 mb-2">{savedMsg}</div>}
+
+      <div className="flex gap-2">
+        <button
+          onClick={gerarNovo}
+          className="btn-primary flex-1 flex items-center justify-center gap-1.5 text-sm"
+        >
+          <RefreshCw size={14} /> Gerar outro
+        </button>
+        <button
+          onClick={salvar}
+          disabled={salvando}
+          className="btn-gold flex-1 flex items-center justify-center gap-1.5 text-sm"
+        >
+          <Save size={14} /> {salvando ? "..." : "Salvar"}
+        </button>
+      </div>
+
+      <div className="text-[10px] text-white/40 mt-2 text-center">
+        Primos: <span className="text-emerald-300">{primos.map(n => String(n).padStart(2,"0")).join(", ") || "—"}</span>
+      </div>
+    </section>
+  );
+}
+
+function gerar(historico) {
+  try {
+    const [j] = gerarJogos({
+      quantidade: 1,
+      estrategia: "combo",
+      historico: historico.map(c => c.dezenas),
+    });
+    return j;
+  } catch { return null; }
+}
+
+function MiniStat({ label, value, tone = "gold" }) {
+  const color =
+    tone === "emerald" ? "text-emerald-300"
+    : tone === "gold" ? "text-gold"
+    : "text-white";
+  return (
+    <div className="bg-ink/60 border border-line rounded-lg py-1.5 text-center">
+      <div className="text-[9px] uppercase tracking-wider text-white/40">{label}</div>
+      <div className={`text-xs font-bold ${color}`}>{value}</div>
+    </div>
   );
 }
 

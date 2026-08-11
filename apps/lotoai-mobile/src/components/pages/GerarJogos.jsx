@@ -6,8 +6,9 @@ import { analisarJogo, NUMEROS, custoAposta } from "../../lib/lotofacil.js";
 import { salvarJogos } from "../../lib/supabase.js";
 
 const ESTRATEGIAS = [
-  { id: "zonas",         nome: "Zonas + Primos", hint: "8 de 1–15 + 7 de 16–25 · primos primeiro" },
-  { id: "estratificado", nome: "Estratificada",  hint: "Cobre estratos do espaço (max P(prêmio))" },
+  { id: "combo",         nome: "Combo IA",       hint: "Mix de 5 estratégias · MAX COBERTURA", badge: "IA RECOMENDA" },
+  { id: "zonas",         nome: "Zonas + Primos", hint: "8 de 1–15 + 7 de 16–25 · primos primeiro", badge: "PRIMOS" },
+  { id: "estratificado", nome: "Estratificada",  hint: "Cobre estratos do espaço" },
   { id: "bayesiano",     nome: "Bayesiana",      hint: "Posterior Beta · prior Beta(15,10)" },
   { id: "ponderado",     nome: "IA Ponderada",   hint: "Frequência + atraso" },
   { id: "balanceado",    nome: "Balanceada",     hint: "Pares 7–8 alvo" },
@@ -16,7 +17,7 @@ const ESTRATEGIAS = [
 
 export default function GerarJogos({ historico }) {
   const [quantidade, setQuantidade] = useState(5);
-  const [estrategia, setEstrategia] = useState("ponderado");
+  const [estrategia, setEstrategia] = useState("combo");
   const [fixos, setFixos] = useState([]);
   const [excluir, setExcluir] = useState([]);
   const [jogos, setJogos] = useState([]);
@@ -61,14 +62,23 @@ export default function GerarJogos({ historico }) {
               <button
                 key={e.id}
                 onClick={() => setEstrategia(e.id)}
-                className={`rounded-xl px-2 py-3 text-left border transition ${
+                className={`rounded-xl px-2 py-3 text-left border transition relative ${
                   estrategia === e.id
                     ? "border-gold bg-gold/10"
                     : "border-line bg-ink/40"
                 }`}
               >
+                {e.badge && (
+                  <span className={`absolute -top-1.5 -right-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full border ${
+                    e.badge === "IA RECOMENDA"
+                      ? "bg-gold text-ink border-gold"
+                      : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                  }`}>
+                    {e.badge}
+                  </span>
+                )}
                 <div className="text-sm font-semibold">{e.nome}</div>
-                <div className="text-[10px] text-white/50">{e.hint}</div>
+                <div className="text-[10px] text-white/50 leading-tight mt-0.5">{e.hint}</div>
               </button>
             ))}
           </div>
@@ -140,7 +150,7 @@ export default function GerarJogos({ historico }) {
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {jogo.map(n => <Ball key={n} n={n} size="sm" highlight={fixos.includes(n)} />)}
+                    {jogo.map(n => <Ball key={n} n={n} size="sm" highlight={fixos.includes(n)} markPrime />)}
                   </div>
                 </div>
               );

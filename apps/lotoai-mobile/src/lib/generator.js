@@ -138,15 +138,53 @@ function gerarConjuntoEstratificado(quantidade, historico, opts = {}) {
 }
 
 /**
+ * Combo IA: gera N jogos combinando várias estratégias para máxima
+ * cobertura. Distribui a quantidade entre:
+ *   - Zonas + Primos (a "recomendada")   → ~40%
+ *   - Estratificada (espalha faixas)     → ~20%
+ *   - Bayesiana (posterior Beta)         → ~15%
+ *   - Balanceada (pares 7-8 alvo)        → ~15%
+ *   - IA Ponderada (freq + atraso)       → ~10%
+ * Não aumenta P(acerto) por jogo — aumenta P(≥1 prêmio no conjunto)
+ * ao diversificar heurísticas.
+ */
+function gerarCombo(quantidade, historico) {
+  const usaHist = historico.length > 0;
+  const pesos = [
+    { fn: () => gerarPorZonas(historico), peso: 0.40 },
+    { fn: () => usaHist ? gerarPorZonas(historico) : gerarAleatorio(), peso: 0.10 },
+    { fn: () => usaHist ? gerarBalanceado(historico) : gerarAleatorio(), peso: 0.15 },
+    { fn: () => usaHist ? gerarBayesiano(historico) : gerarAleatorio(), peso: 0.15 },
+    { fn: () => usaHist ? gerarPonderado(historico) : gerarAleatorio(), peso: 0.20 },
+  ];
+  // determinístico por índice — mesma ordem sempre
+  const jogos = [];
+  let acc = 0;
+  const alvos = pesos.map(p => (acc += p.peso, acc));
+  for (let i = 0; i < quantidade; i++) {
+    const q = ((i + 0.5) / quantidade);
+    const idx = alvos.findIndex(a => q <= a);
+    jogos.push(pesos[idx >= 0 ? idx : pesos.length - 1].fn());
+  }
+  return jogos;
+}
+
+/**
  * Gera N jogos segundo a estratégia escolhida.
  * @param {object} opts
  * @param {number} opts.quantidade
- * @param {"aleatorio"|"ponderado"|"balanceado"|"bayesiano"|"estratificado"} opts.estrategia
+ * @param {"aleatorio"|"ponderado"|"balanceado"|"bayesiano"|"estratificado"|"zonas"|"combo"} opts.estrategia
  * @param {number[][]} opts.historico
  * @param {number[]} [opts.fixos]    dezenas que devem aparecer em todos os jogos
  * @param {number[]} [opts.excluir]  dezenas que nunca devem aparecer
  */
-export function gerarJogos({ quantidade = 1, estrategia = "ponderado", historico = [], fixos = [], excluir = [] } = {}) {
+export function gerarJogos({ quantidade = 1, estrategia = "combo", historico = [], fixos = [], excluir = [] } = {}) {
+  // Combo: coordena estratégias diferentes por índice
+  if (estrategia === "combo") {
+    const conjunto = gerarCombo(quantidade, historico);
+    return conjunto.map(j => aplicarFixosExcluir(j, fixos, excluir, historico, estrategia))
+                   .filter(validarJogo);
+  }
   // Estratificado precisa gerar o conjunto inteiro de uma vez (coordena estratos)
   if (estrategia === "estratificado" && historico.length) {
     const conjunto = gerarConjuntoEstratificado(quantidade, historico);
