@@ -7,6 +7,7 @@ import { JOGOS } from "../../lib/jogos.js";
 import { relatorioMatematico, pFechamentoCompletoPeloMenos, pPeloMenosUmPremio, pAcertosPeloMenos } from "../../lib/probabilidade.js";
 import { gerarJogos } from "../../lib/generator.js";
 import { salvarJogos } from "../../lib/supabase.js";
+import { analisarCiclos, distPorLinha, distPorColuna, LINHAS, COLUNAS } from "../../lib/analiseAvancada.js";
 
 export default function Dashboard({ historico }) {
   const ultimo = historico[historico.length - 1];
@@ -73,6 +74,8 @@ export default function Dashboard({ historico }) {
             <Header icon={<TrendingUp size={16} className="text-gold" />} title="Mapa de frequência" hint={`${historico.length} concursos`} />
             <FrequencyGrid freq={stats.freq} atr={stats.atr} />
           </section>
+
+          <PainelCiclos historico={historico} ultimo={ultimo} />
 
           <PainelProbabilidade />
         </>
@@ -217,6 +220,113 @@ function PainelProbabilidade() {
         </div>
       </div>
     </section>
+  );
+}
+
+/* ============================================================
+   PAINEL CICLOS & GRUPOS · análise avançada do volante
+   Mostra:
+   - Ciclo atual (dezenas faltando pra fechar o ciclo)
+   - Distribuição do último sorteio por linha e coluna
+   ============================================================ */
+function PainelCiclos({ historico, ultimo }) {
+  const ciclos = useMemo(() => {
+    if (!historico?.length) return null;
+    return analisarCiclos(historico.map(c => c.dezenas));
+  }, [historico]);
+
+  const linhaDist = useMemo(() => ultimo ? distPorLinha(ultimo.dezenas) : null, [ultimo]);
+  const colDist = useMemo(() => ultimo ? distPorColuna(ultimo.dezenas) : null, [ultimo]);
+
+  if (!ciclos) return null;
+  const pct = ciclos.tamanhoMedio
+    ? Math.min(100, (ciclos.concursosNoCiclo / ciclos.tamanhoMedio) * 100)
+    : 0;
+
+  return (
+    <section className="card">
+      <div className="flex items-center gap-2 mb-3">
+        <RefreshCw size={16} className="text-emerald-400" />
+        <h3 className="font-semibold">Ciclos & Grupos</h3>
+        <span className="text-[10px] text-white/40 ml-auto">análise avançada</span>
+      </div>
+
+      {/* Ciclo atual */}
+      <div className="bg-ink/40 border border-line rounded-lg p-3 mb-3">
+        <div className="flex items-center justify-between text-xs mb-2">
+          <span className="text-white/60">
+            Ciclo atual: <b className="text-white">#{ciclos.cicloAtual}</b> · {ciclos.concursosNoCiclo} concurso{ciclos.concursosNoCiclo === 1 ? "" : "s"}
+          </span>
+          {ciclos.tamanhoMedio && (
+            <span className="text-white/40">média: {ciclos.tamanhoMedio.toFixed(1)}</span>
+          )}
+        </div>
+        {ciclos.tamanhoMedio && (
+          <div className="h-1.5 bg-ink/60 rounded-full overflow-hidden mb-2">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-gold"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        )}
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-2xl font-bold text-gold">{ciclos.dezenasFaltando.length}</span>
+          <span className="text-[11px] text-white/50">dezena{ciclos.dezenasFaltando.length === 1 ? "" : "s"} faltando</span>
+        </div>
+        {ciclos.dezenasFaltando.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {ciclos.dezenasFaltando.map(n => (
+              <span key={n} className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                {String(n).padStart(2, "0")}
+              </span>
+            ))}
+          </div>
+        )}
+        {ciclos.dezenasFaltando.length === 0 && (
+          <div className="text-[11px] text-emerald-300 mt-1">
+            ✓ Ciclo fechou no último concurso · novo ciclo começa agora
+          </div>
+        )}
+      </div>
+
+      {/* Distribuição do último por linhas */}
+      {linhaDist && (
+        <div className="mb-3">
+          <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5">
+            Último sorteio · por linha (3 é o esperado)
+          </div>
+          <div className="grid grid-cols-5 gap-1">
+            {linhaDist.map((n, i) => (
+              <MiniBar key={i} label={`L${i+1}`} value={n} max={5} alvo={3} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Distribuição do último por colunas */}
+      {colDist && (
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5">
+            Último sorteio · por coluna
+          </div>
+          <div className="grid grid-cols-5 gap-1">
+            {colDist.map((n, i) => (
+              <MiniBar key={i} label={`C${i+1}`} value={n} max={5} alvo={3} />
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MiniBar({ label, value, max, alvo }) {
+  const isAlvo = value === alvo;
+  return (
+    <div className="bg-ink/60 border border-line rounded-lg p-1.5 text-center">
+      <div className="text-[9px] text-white/40">{label}</div>
+      <div className={`text-sm font-bold ${isAlvo ? "text-emerald-300" : "text-white"}`}>{value}</div>
+    </div>
   );
 }
 

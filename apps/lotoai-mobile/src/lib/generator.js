@@ -12,6 +12,10 @@
 
 import { NUMEROS, LOTOFACIL, validarJogo, analisarJogo } from "./lotofacil.js";
 import { scores as calcScores } from "./stats.js";
+import {
+  LINHAS, analisarCiclos, rankingMovelDuplo,
+  passaFiltroCombinado, passaFiltroSequencia,
+} from "./analiseAvancada.js";
 
 function sampleSemReposicao(weights, k) {
   const pool = Object.entries(weights).map(([n, w]) => ({ n: +n, w }));
@@ -138,6 +142,51 @@ function gerarConjuntoEstratificado(quantidade, historico, opts = {}) {
 }
 
 /**
+ * Estratégia "5x5 Balanceada": garante 3 dezenas em cada linha do volante
+ * (linhas 1-5, 6-10, 11-15, 16-20, 21-25). Uma estratégia bastante popular
+ * entre apostadores. Escolha ponderada pelo score dentro de cada linha.
+ */
+function gerar5x5(historico) {
+  const s = historico.length ? calcScores(historico) : Object.fromEntries(NUMEROS.map(n => [n, 1]));
+  const jogo = [];
+  for (const linha of LINHAS) {
+    // pesos da linha
+    const pesos = Object.fromEntries(linha.map(n => [n, Math.max(s[n] || 0, 0.01)]));
+    // 3 dezenas por linha
+    jogo.push(...sampleSemReposicao(pesos, 3));
+  }
+  return jogo.sort((a, b) => a - b);
+}
+
+/**
+ * Estratégia "Ciclo Atrasado": prioriza dezenas que ainda não saíram no
+ * ciclo atual (desde a última vez que todas as 25 apareceram).
+ * Cai pra Ponderada se não há ciclo pendente.
+ */
+function gerarCicloAtrasado(historico) {
+  const { dezenasFaltando } = analisarCiclos(historico);
+  if (dezenasFaltando.length === 0) {
+    // ciclo acabou de fechar — usa ranking móvel duplo
+    const s = rankingMovelDuplo(historico);
+    return sampleSemReposicao(s, LOTOFACIL.numerosPorJogo);
+  }
+  // Preferência forte pelas dezenas faltando; se faltam mais de 15,
+  // pega por score entre elas; se faltam menos, completa com ponderada
+  const s = historico.length ? calcScores(historico) : Object.fromEntries(NUMEROS.map(n => [n, 1]));
+  if (dezenasFaltando.length >= LOTOFACIL.numerosPorJogo) {
+    // sorteia 15 das dezenas faltando, ponderadas
+    const pesos = Object.fromEntries(dezenasFaltando.map(n => [n, s[n] || 0.01]));
+    return sampleSemReposicao(pesos, LOTOFACIL.numerosPorJogo);
+  }
+  // pega todas as faltando + completa com as melhores restantes
+  const jogo = [...dezenasFaltando];
+  const restantes = NUMEROS.filter(n => !dezenasFaltando.includes(n));
+  const pesosRest = Object.fromEntries(restantes.map(n => [n, s[n] || 0.01]));
+  jogo.push(...sampleSemReposicao(pesosRest, LOTOFACIL.numerosPorJogo - jogo.length));
+  return jogo.sort((a, b) => a - b);
+}
+
+/**
  * Combo IA: gera N jogos combinando várias estratégias para máxima
  * cobertura. Distribui a quantidade entre:
  *   - Zonas + Primos (a "recomendada")   → ~40%
@@ -150,21 +199,35 @@ function gerarConjuntoEstratificado(quantidade, historico, opts = {}) {
  */
 function gerarCombo(quantidade, historico) {
   const usaHist = historico.length > 0;
+  const ultimoSorteio = usaHist ? historico[historico.length - 1] : null;
+
+  // Mix atualizado com as novas estratégias baseadas em padrões de jogadores
   const pesos = [
-    { fn: () => gerarPorZonas(historico), peso: 0.40 },
-    { fn: () => usaHist ? gerarPorZonas(historico) : gerarAleatorio(), peso: 0.10 },
-    { fn: () => usaHist ? gerarBalanceado(historico) : gerarAleatorio(), peso: 0.15 },
-    { fn: () => usaHist ? gerarBayesiano(historico) : gerarAleatorio(), peso: 0.15 },
-    { fn: () => usaHist ? gerarPonderado(historico) : gerarAleatorio(), peso: 0.20 },
+    { fn: () => gerarPorZonas(historico),                                      peso: 0.30 },
+    { fn: () => usaHist ? gerar5x5(historico)          : gerarAleatorio(),     peso: 0.20 },
+    { fn: () => usaHist ? gerarCicloAtrasado(historico): gerarAleatorio(),     peso: 0.15 },
+    { fn: () => usaHist ? gerarBalanceado(historico)   : gerarAleatorio(),     peso: 0.15 },
+    { fn: () => usaHist ? gerarBayesiano(historico)    : gerarAleatorio(),     peso: 0.10 },
+    { fn: () => usaHist ? gerarPonderado(historico)    : gerarAleatorio(),     peso: 0.10 },
   ];
-  // determinístico por índice — mesma ordem sempre
-  const jogos = [];
+  const alvos = [];
   let acc = 0;
-  const alvos = pesos.map(p => (acc += p.peso, acc));
+  for (const p of pesos) { acc += p.peso; alvos.push(acc); }
+
+  const jogos = [];
   for (let i = 0; i < quantidade; i++) {
     const q = ((i + 0.5) / quantidade);
     const idx = alvos.findIndex(a => q <= a);
-    jogos.push(pesos[idx >= 0 ? idx : pesos.length - 1].fn());
+    const gerador = pesos[idx >= 0 ? idx : pesos.length - 1].fn;
+
+    // Aplica filtro combinado — tenta até 20x até passar
+    let escolhido = null;
+    for (let t = 0; t < 20; t++) {
+      const cand = gerador();
+      if (passaFiltroCombinado(cand, { ultimoSorteio })) { escolhido = cand; break; }
+      if (!escolhido) escolhido = cand;
+    }
+    jogos.push(escolhido);
   }
   return jogos;
 }
@@ -211,6 +274,8 @@ function pickStrategy(estrategia, historico) {
   if (estrategia === "balanceado") return gerarBalanceado(historico);
   if (estrategia === "bayesiano") return historico.length ? gerarBayesiano(historico) : gerarAleatorio();
   if (estrategia === "zonas") return gerarPorZonas(historico);
+  if (estrategia === "cinco5") return historico.length ? gerar5x5(historico) : gerarAleatorio();
+  if (estrategia === "ciclo") return historico.length ? gerarCicloAtrasado(historico) : gerarAleatorio();
   return historico.length ? gerarPonderado(historico) : gerarAleatorio();
 }
 
