@@ -26,16 +26,19 @@ concurrency:
 jobs:
   import:
     runs-on: ubuntu-latest
+    # Trava a branch onde o LOTOAI vive (pode ser main OU dev)
+    # Se rodar por schedule/dispatch, usa a branch onde o workflow está
+    env:
+      TARGET_BRANCH: ${{ github.ref_name }}
     steps:
-      - name: Checkout (main)
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Precisamos de write, e commit vai pra main
-          ref: main
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        # versão vem do "packageManager" do package.json
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -60,7 +63,6 @@ jobs:
             echo "Nenhum concurso novo — nada a commitar"
           else
             echo "changed=true" >> $GITHUB_OUTPUT
-            # Extrai último concurso do JSON pra usar na msg
             LAST=$(node -e "const a=require('./apps/lotoai-mobile/data/concursos.json');console.log(a[a.length-1].numero)")
             COUNT=$(node -e "const a=require('./apps/lotoai-mobile/data/concursos.json');console.log(a.length)")
             echo "last=$LAST" >> $GITHUB_OUTPUT
@@ -76,17 +78,5 @@ jobs:
           git commit -m "data(lotoai): import automático até #${{ steps.diff.outputs.last }}
 
           Total: ${{ steps.diff.outputs.count }} concursos.
-          Auto-triggered pelo cron diário."
-          git push origin main
-
-      - name: Sincronizar com branch de dev
-        if: steps.diff.outputs.changed == 'true'
-        run: |
-          git fetch origin claude/lotoai-app-pro-mobile-8AiS8
-          git checkout claude/lotoai-app-pro-mobile-8AiS8
-          git checkout main -- apps/lotoai-mobile/data/concursos.json apps/lotoai-mobile/public/concursos.json
-          if ! git diff --quiet; then
-            git add apps/lotoai-mobile/data/concursos.json apps/lotoai-mobile/public/concursos.json
-            git commit -m "data(lotoai): sync concursos até #${{ steps.diff.outputs.last }} de main"
-            git push origin claude/lotoai-app-pro-mobile-8AiS8
-          fi
+          Auto-triggered pelo import-lotofacil workflow."
+          git push origin HEAD:${{ env.TARGET_BRANCH }}
