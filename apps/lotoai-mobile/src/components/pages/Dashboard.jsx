@@ -56,28 +56,57 @@ export default function Dashboard({ historico }) {
 
       {stats && (
         <>
-          <section className="card">
-            <Header icon={<Flame size={16} className="text-orange-400" />} title="Dezenas quentes" hint="Mais sorteadas" />
-            <div className="flex flex-wrap gap-2">
-              {stats.quentes.map(n => <Ball key={n} n={n} />)}
-            </div>
-          </section>
-
-          <section className="card">
-            <Header icon={<Snowflake size={16} className="text-sky-300" />} title="Dezenas frias" hint="Menos sorteadas" />
-            <div className="flex flex-wrap gap-2">
-              {stats.frias.map(n => <Ball key={n} n={n} />)}
-            </div>
-          </section>
-
-          <section className="card">
-            <Header icon={<TrendingUp size={16} className="text-gold" />} title="Mapa de frequência" hint={`${historico.length} concursos`} />
-            <FrequencyGrid freq={stats.freq} atr={stats.atr} />
-          </section>
-
           <PainelCiclos historico={historico} ultimo={ultimo} />
 
-          <PainelProbabilidade />
+          {/* Quentes + Frias consolidados em UM card, lado a lado */}
+          <section className="card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Flame size={14} className="text-orange-400" />
+                <Snowflake size={14} className="text-sky-300" />
+                Quentes & Frias
+              </h3>
+              <span className="chip">{historico.length}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-orange-300/70 mb-1.5">
+                  Mais sorteadas
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {stats.quentes.map(n => <Ball key={n} n={n} size="sm" />)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-sky-300/70 mb-1.5">
+                  Menos sorteadas
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {stats.frias.map(n => <Ball key={n} n={n} size="sm" />)}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Mais análise: colapsado por padrão */}
+          <details className="card">
+            <summary className="cursor-pointer flex items-center justify-between list-none">
+              <div className="flex items-center gap-2">
+                <TrendingUp size={16} className="text-gold" />
+                <span className="font-semibold">Mais análise</span>
+              </div>
+              <span className="text-[10px] text-white/40">toque para abrir</span>
+            </summary>
+            <div className="mt-3 space-y-4">
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5">
+                  Mapa de frequência
+                </div>
+                <FrequencyGrid freq={stats.freq} atr={stats.atr} />
+              </div>
+              <PainelProbabilidade />
+            </div>
+          </details>
         </>
       )}
 
@@ -137,12 +166,12 @@ function PainelProbabilidade() {
   }, []);
 
   return (
-    <section className="card">
-      <Header
-        icon={<Calculator size={16} className="text-emerald-400" />}
-        title="Probabilidade & estratégia"
-        hint="matemática exata"
-      />
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <Calculator size={16} className="text-emerald-400" />
+        <h3 className="font-semibold">Probabilidade & estratégia</h3>
+        <span className="chip ml-auto">matemática exata</span>
+      </div>
       <div className="space-y-3">
         <div className="bg-amber-900/20 border border-amber-700/40 rounded-lg p-2 flex gap-2 items-start text-[11px]">
           <Info size={12} className="text-amber-300 flex-none mt-0.5" />
@@ -219,7 +248,7 @@ function PainelProbabilidade() {
           Modelo hipergeométrico C({JOGOS.lotofacil.totalNumeros},{JOGOS.lotofacil.numerosPorJogo}) = {(3268760).toLocaleString("pt-BR")} sorteios possíveis.
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
