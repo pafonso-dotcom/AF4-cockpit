@@ -11,6 +11,7 @@ import { analisarCiclos, distPorLinha, distPorColuna, LINHAS, COLUNAS, topTrinca
 import { loadTuning, recomputarTuningLocal, invalidarCacheTuning } from "../../lib/tuning.js";
 import { calcularPlacar } from "../../lib/placar.js";
 import { importarNovos } from "../../lib/import.js";
+import { temVersaoNova, forcarAtualizacao } from "../../lib/versionCheck.js";
 
 export default function Dashboard({ historico, onHistoricoUpdate }) {
   const ultimo = historico[historico.length - 1];
@@ -275,11 +276,26 @@ function PainelPlacar({ historico, onHistoricoUpdate }) {
   const [estado, setEstado] = useState("idle"); // idle | loading | done | erro
   const [info, setInfo] = useState(null);
   const [progresso, setProgresso] = useState(null);
+  const [versaoNovaDisponivel, setVersaoNovaDisponivel] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     calcularPlacar(historico).then(p => { setPlacar(p); setLoading(false); });
   }, [historico]);
+
+  // Checa versão nova ao carregar + a cada 5min
+  useEffect(() => {
+    let mounted = true;
+    const check = async () => {
+      try {
+        const nova = await temVersaoNova();
+        if (mounted) setVersaoNovaDisponivel(nova);
+      } catch {}
+    };
+    check();
+    const iv = setInterval(check, 5 * 60 * 1000);
+    return () => { mounted = false; clearInterval(iv); };
+  }, []);
 
   async function atualizarTudo() {
     setEstado("loading");
@@ -352,27 +368,33 @@ function PainelPlacar({ historico, onHistoricoUpdate }) {
     setTimeout(() => { setEstado("idle"); setInfo(null); setProgresso(null); }, 6000);
   }
 
-  function recarregarApp() {
-    // Força reload sem cache pra pegar auto-deploy novo
-    try {
-      if ("caches" in window) {
-        caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
-      }
-    } catch {}
-    location.reload();
-  }
-
   return (
     <section className="card">
+      {/* Banner de versão nova */}
+      {versaoNovaDisponivel && (
+        <div className="bg-gold/15 border border-gold/50 rounded-lg p-2 mb-3 flex items-center gap-2">
+          <Sparkles size={14} className="text-gold flex-none" />
+          <div className="text-[11px] text-white/90 flex-1">
+            <b className="text-gold">Nova versão disponível!</b> Toque pra atualizar.
+          </div>
+          <button
+            onClick={forcarAtualizacao}
+            className="text-[11px] font-bold px-3 py-1 rounded-lg bg-gold text-ink"
+          >
+            Atualizar
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Trophy size={16} className="text-gold" />
           <h3 className="font-semibold">Meu placar</h3>
         </div>
         <button
-          onClick={recarregarApp}
-          title="Verificar nova versão do app"
-          aria-label="Recarregar app"
+          onClick={forcarAtualizacao}
+          title="Forçar recarregar app (limpa cache)"
+          aria-label="Forçar recarregar app"
           className="text-white/40 active:text-white p-1 rounded"
         >
           <RefreshCw size={12} />

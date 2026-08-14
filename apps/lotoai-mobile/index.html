@@ -6,6 +6,13 @@
     <meta name="theme-color" content="#070b14" />
     <meta name="description" content="LOTOAI APP PRO — Lotofácil com IA, fechamentos inteligentes, simulações e geração automática de jogos." />
 
+    <!-- Cache invalidation: força browser a checar HTML novo a cada visita.
+         Bundle JS/CSS têm hash no nome (index-XXX.js), então cache deles é ok.
+         Só o HTML precisa ser sempre fresco pra apontar pro bundle mais novo. -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/icon.svg" />
