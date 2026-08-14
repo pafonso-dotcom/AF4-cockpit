@@ -34,7 +34,7 @@ export default function Dashboard({ historico, onHistoricoUpdate }) {
 
       <PainelPlacar historico={historico} onHistoricoUpdate={onHistoricoUpdate} />
 
-      <PainelGuru />
+      <PainelGuru historico={historico} />
 
       {ultimo && (
         <section className="card">
@@ -460,15 +460,41 @@ function PainelPlacar({ historico, onHistoricoUpdate }) {
    PAINEL GURU IA · insight ajustado automaticamente
    Lê public/tuning.json (regenerado após cada import de concursos)
    ============================================================ */
-function PainelGuru() {
+function PainelGuru({ historico }) {
   const [tuning, setTuning] = useState(null);
   const [open, setOpen] = useState(false);
+  const [retreinando, setRetreinando] = useState(false);
+  const [retreinoInfo, setRetreinoInfo] = useState(null);
 
   useEffect(() => { loadTuning().then(setTuning); }, []);
 
+  async function retreinar() {
+    if (!historico?.length) return;
+    setRetreinando(true);
+    setRetreinoInfo("Preparando…");
+    try {
+      invalidarCacheTuning();
+      const novo = await recomputarTuningLocal(historico, {
+        onProgresso: (p) => setRetreinoInfo(`Avaliando ${p.nome} (${p.i + 1}/${p.total})…`),
+      });
+      if (novo) {
+        setTuning(novo);
+        setRetreinoInfo(`✓ Guru retreinado com ${historico.length} concursos`);
+      } else {
+        setRetreinoInfo("Histórico curto demais pra treinar");
+      }
+    } catch (e) {
+      setRetreinoInfo("Falhou: " + (e.message || "erro"));
+    }
+    setRetreinando(false);
+    setTimeout(() => setRetreinoInfo(null), 4000);
+  }
+
   if (!tuning) return null;
-  const { insight, ranking, atualizadoEm, ultimoConcurso, janelaBacktest, contexto } = tuning;
+  const { insight, ranking, atualizadoEm, ultimoConcurso, janelaBacktest, contexto, origem } = tuning;
   const data = new Date(atualizadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  const ultimoLocal = historico?.[historico.length - 1]?.numero || 0;
+  const defasado = ultimoLocal > ultimoConcurso;
 
   return (
     <section className="card bg-gradient-to-br from-emerald-900/20 to-panel border-emerald-500/30">
@@ -485,12 +511,45 @@ function PainelGuru() {
         {insight.paragrafos[0].replace(/\*\*/g, "")}
       </div>
 
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="text-[11px] text-emerald-300/70 mt-2 hover:text-emerald-300"
-      >
-        {open ? "▲ menos" : "▼ ver ranking + dezenas"}
-      </button>
+      {defasado && (
+        <div className="mt-2 bg-amber-900/20 border border-amber-700/40 rounded-lg p-2 flex items-start gap-2 text-[11px] text-amber-200">
+          <Info size={12} className="flex-none mt-0.5" />
+          <div className="flex-1">
+            Guru está treinado até #{ultimoConcurso}, mas você tem até #{ultimoLocal}.
+            Toque em "Retreinar" pra o Guru aprender com os concursos novos.
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 mt-2">
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="text-[11px] text-emerald-300/70 hover:text-emerald-300"
+        >
+          {open ? "▲ menos" : "▼ ver ranking + dezenas"}
+        </button>
+        <button
+          onClick={retreinar}
+          disabled={retreinando || !historico?.length}
+          className={`ml-auto text-[11px] px-2 py-1 rounded-lg border flex items-center gap-1 disabled:opacity-50 ${
+            defasado
+              ? "border-amber-500/60 bg-amber-500/10 text-amber-200"
+              : "border-emerald-500/40 text-emerald-300/70 hover:bg-emerald-500/10"
+          }`}
+        >
+          {retreinando
+            ? <><RefreshCw size={10} className="animate-spin" /> Retreinando…</>
+            : <><Sparkles size={10} /> Retreinar</>}
+        </button>
+      </div>
+      {retreinoInfo && (
+        <div className="text-[10px] text-white/60 mt-1.5">{retreinoInfo}</div>
+      )}
+      {origem === "client-local" && !defasado && (
+        <div className="text-[10px] text-emerald-300/60 mt-1.5">
+          ✓ Treinado localmente com seus dados
+        </div>
+      )}
 
       {open && (
         <div className="mt-3 space-y-3 pt-3 border-t border-emerald-500/20">
