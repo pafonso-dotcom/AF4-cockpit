@@ -1,0 +1,13 @@
+{
+  "name": "LOTOAI APP PRO",
+  "short_name": "LOTOAI",
+  "description": "Lotofácil com IA, fechamentos inteligentes, simulações e geração automática de jogos.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#070b14",
+  "theme_color": "#070b14",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
