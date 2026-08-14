@@ -284,23 +284,51 @@ function PainelPlacar({ historico, onHistoricoUpdate }) {
     setInfo(null);
     setProgresso(null);
     try {
-      // 1. Buscar concursos novos
-      const { novos, ultimoRemoto, ultimoLocal } = await importarNovos(historico, {
-        max: 30,
-        onProgresso: setProgresso,
-      });
+      // Loop até fechar o gap. Cada rodada baixa até 100 concursos.
+      // Total limitado a 2000 concursos (aprox 15 anos de Lotofácil) por segurança.
+      const MAX_POR_RODADA = 100;
+      const MAX_TOTAL = 2000;
       let historicoFinal = historico;
-      if (novos.length) {
-        historicoFinal = await mergeConcursos(historico, novos);
+      let totalBaixados = 0;
+      let ultimoRemotoNum = 0;
+      let ultimoLocalInicial = historico.length ? historico[historico.length - 1].numero : 0;
+
+      for (let rodada = 0; rodada < 20; rodada++) {
+        const gap = ultimoRemotoNum
+          ? (ultimoRemotoNum - historicoFinal[historicoFinal.length - 1]?.numero)
+          : null;
+        setProgresso({
+          atual: totalBaixados,
+          total: gap != null ? totalBaixados + gap : totalBaixados + 1,
+          novos: totalBaixados,
+        });
+
+        const { novos, ultimoRemoto } = await importarNovos(historicoFinal, {
+          max: MAX_POR_RODADA,
+          onProgresso: (p) => {
+            setProgresso({
+              atual: totalBaixados + p.atual,
+              total: totalBaixados + p.total,
+              novos: totalBaixados + p.novos,
+            });
+          },
+        });
+        ultimoRemotoNum = ultimoRemoto.numero;
+        if (!novos.length) break;
+        historicoFinal = await mergeConcursos(historicoFinal, novos);
         onHistoricoUpdate?.(historicoFinal);
+        totalBaixados += novos.length;
+        const ultimoLocalAgora = historicoFinal[historicoFinal.length - 1].numero;
+        if (ultimoLocalAgora >= ultimoRemotoNum) break;
+        if (totalBaixados >= MAX_TOTAL) break;
       }
-      // 2. Recalcular placar
+
       const novoPlacar = await calcularPlacar(historicoFinal);
       setPlacar(novoPlacar);
-      // 3. Feedback
-      const msg = novos.length
-        ? `+${novos.length} concurso${novos.length > 1 ? "s" : ""} · agora #${ultimoRemoto.numero}`
-        : `Tudo em dia · último #${ultimoLocal}`;
+
+      const msg = totalBaixados
+        ? `+${totalBaixados} concurso${totalBaixados > 1 ? "s" : ""} · agora #${ultimoRemotoNum}`
+        : `Tudo em dia · último #${ultimoLocalInicial}`;
       setInfo(msg);
       setEstado("done");
     } catch (e) {
@@ -308,7 +336,7 @@ function PainelPlacar({ historico, onHistoricoUpdate }) {
       setInfo(e.message || "Falha na atualização");
       setEstado("erro");
     }
-    setTimeout(() => { setEstado("idle"); setInfo(null); setProgresso(null); }, 4500);
+    setTimeout(() => { setEstado("idle"); setInfo(null); setProgresso(null); }, 6000);
   }
 
   function recarregarApp() {
