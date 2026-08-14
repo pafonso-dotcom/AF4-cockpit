@@ -57,7 +57,7 @@ export default function App() {
     <div className="min-h-screen bg-ink text-white">
       <Header ultimoConcurso={ultimo} historico={historico} onHistoricoUpdate={setHistorico} />
       <main>
-        {tab === "dashboard" && <Dashboard historico={historico} />}
+        {tab === "dashboard" && <Dashboard historico={historico} onHistoricoUpdate={setHistorico} />}
         {tab === "gerar"     && <GerarJogos historico={historico} />}
         {tab === "fechar"    && <Fechamentos historico={historico} />}
         {tab === "bolao"     && (

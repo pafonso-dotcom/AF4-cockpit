@@ -1,16 +1,18 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Flame, Snowflake, Hash, TrendingUp, Calculator, Info, Sparkles, RefreshCw, Save } from "lucide-react";
+import { Flame, Snowflake, Hash, TrendingUp, Calculator, Info, Sparkles, RefreshCw, Save, Trophy, Zap, Check } from "lucide-react";
 import Ball from "../ui/Ball.jsx";
 import { frequencias, atrasos, quentes, frias } from "../../lib/stats.js";
 import { analisarJogo } from "../../lib/lotofacil.js";
 import { JOGOS } from "../../lib/jogos.js";
 import { relatorioMatematico, pFechamentoCompletoPeloMenos, pPeloMenosUmPremio, pAcertosPeloMenos } from "../../lib/probabilidade.js";
 import { gerarJogos } from "../../lib/generator.js";
-import { salvarJogos } from "../../lib/supabase.js";
+import { salvarJogos, mergeConcursos } from "../../lib/supabase.js";
 import { analisarCiclos, distPorLinha, distPorColuna, LINHAS, COLUNAS } from "../../lib/analiseAvancada.js";
 import { loadTuning } from "../../lib/tuning.js";
+import { calcularPlacar } from "../../lib/placar.js";
+import { importarNovos } from "../../lib/import.js";
 
-export default function Dashboard({ historico }) {
+export default function Dashboard({ historico, onHistoricoUpdate }) {
   const ultimo = historico[historico.length - 1];
 
   const stats = useMemo(() => {
@@ -29,6 +31,8 @@ export default function Dashboard({ historico }) {
   return (
     <div className="px-4 pt-4 pb-28 space-y-4">
       <JogoDoDia historico={historico} />
+
+      <PainelPlacar historico={historico} onHistoricoUpdate={onHistoricoUpdate} />
 
       <PainelGuru />
 
@@ -252,6 +256,164 @@ function PainelProbabilidade() {
         </div>
       </div>
     </div>
+  );
+}
+
+/* ============================================================
+   PAINEL PLACAR + ATUALIZAR SISTEMA
+   Mostra resumo dos bilhetes salvos (auto-conferidos contra o
+   histórico) + botão "Atualizar tudo" que:
+     1. Busca concursos novos via worker/api/lotofacil/latest
+     2. Recalcula o placar automaticamente
+     3. Força reload do bundle (pega auto-deploy novo)
+   ============================================================ */
+function PainelPlacar({ historico, onHistoricoUpdate }) {
+  const [placar, setPlacar] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [estado, setEstado] = useState("idle"); // idle | loading | done | erro
+  const [info, setInfo] = useState(null);
+  const [progresso, setProgresso] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    calcularPlacar(historico).then(p => { setPlacar(p); setLoading(false); });
+  }, [historico]);
+
+  async function atualizarTudo() {
+    setEstado("loading");
+    setInfo(null);
+    setProgresso(null);
+    try {
+      // 1. Buscar concursos novos
+      const { novos, ultimoRemoto, ultimoLocal } = await importarNovos(historico, {
+        max: 30,
+        onProgresso: setProgresso,
+      });
+      let historicoFinal = historico;
+      if (novos.length) {
+        historicoFinal = await mergeConcursos(historico, novos);
+        onHistoricoUpdate?.(historicoFinal);
+      }
+      // 2. Recalcular placar
+      const novoPlacar = await calcularPlacar(historicoFinal);
+      setPlacar(novoPlacar);
+      // 3. Feedback
+      const msg = novos.length
+        ? `+${novos.length} concurso${novos.length > 1 ? "s" : ""} · agora #${ultimoRemoto.numero}`
+        : `Tudo em dia · último #${ultimoLocal}`;
+      setInfo(msg);
+      setEstado("done");
+    } catch (e) {
+      console.warn("[Placar] atualizar falhou:", e);
+      setInfo(e.message || "Falha na atualização");
+      setEstado("erro");
+    }
+    setTimeout(() => { setEstado("idle"); setInfo(null); setProgresso(null); }, 4500);
+  }
+
+  function recarregarApp() {
+    // Força reload sem cache pra pegar auto-deploy novo
+    try {
+      if ("caches" in window) {
+        caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
+      }
+    } catch {}
+    location.reload();
+  }
+
+  return (
+    <section className="card">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Trophy size={16} className="text-gold" />
+          <h3 className="font-semibold">Meu placar</h3>
+        </div>
+        <button
+          onClick={recarregarApp}
+          title="Verificar nova versão do app"
+          aria-label="Recarregar app"
+          className="text-white/40 active:text-white p-1 rounded"
+        >
+          <RefreshCw size={12} />
+        </button>
+      </div>
+
+      {loading && <div className="text-xs text-white/50 text-center py-3">Carregando…</div>}
+
+      {placar && !loading && placar.totalApostas === 0 && (
+        <div className="text-center py-3">
+          <p className="text-xs text-white/50">Nenhum bilhete salvo ainda.</p>
+          <p className="text-[10px] text-white/40 mt-1">
+            Salve jogos em Gerar / Fechar / Bolão pra ver seu placar aqui.
+          </p>
+        </div>
+      )}
+
+      {placar && !loading && placar.totalApostas > 0 && (
+        <>
+          <div className="grid grid-cols-4 gap-1.5 mb-3">
+            <MiniStat label="Bilhetes" value={placar.totalApostas} />
+            <MiniStat
+              label="Premiadas"
+              value={`${placar.premiadas}/${placar.conferidas}`}
+              tone={placar.premiadas > 0 ? "gold" : "gray"}
+            />
+            <MiniStat
+              label="Prêmio est."
+              value={`R$ ${placar.premioTotal.toLocaleString("pt-BR")}`}
+              tone={placar.premioTotal > 0 ? "gold" : "gray"}
+            />
+            <MiniStat
+              label="Melhor"
+              value={placar.melhor > 0 ? `${placar.melhor} pts` : "—"}
+              tone={placar.melhor >= 11 ? "gold" : "gray"}
+            />
+          </div>
+
+          {placar.premiadas > 0 && (
+            <div className="bg-gold/10 border border-gold/30 rounded-lg p-2 mb-3 flex items-center gap-2">
+              <Trophy size={14} className="text-gold flex-none" />
+              <div className="text-[11px] text-white/80">
+                <b className="text-gold">{placar.premiadas}</b>{" "}
+                {placar.premiadas > 1 ? "apostas premiadas" : "aposta premiada"}
+                {" · "}total <b className="text-gold">R$ {placar.premioTotal.toLocaleString("pt-BR")}</b>
+                {" · "}ROI <b className={placar.roi > 0 ? "text-green-400" : "text-red-400"}>{placar.roi > 0 ? "+" : ""}{placar.roi}%</b>
+              </div>
+            </div>
+          )}
+
+          {placar.pendentes > 0 && (
+            <div className="text-[10px] text-white/50 mb-3">
+              {placar.pendentes} bilhete{placar.pendentes > 1 ? "s aguardando" : " aguardando"} sorteio
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Botão de atualização de sistema */}
+      <button
+        onClick={atualizarTudo}
+        disabled={estado === "loading"}
+        className="btn-primary w-full flex items-center justify-center gap-2 text-sm disabled:opacity-60"
+      >
+        {estado === "loading" ? (
+          <><RefreshCw size={14} className="animate-spin" /> Atualizando…</>
+        ) : estado === "done" ? (
+          <><Check size={14} /> Atualizado</>
+        ) : estado === "erro" ? (
+          <><Info size={14} /> Erro</>
+        ) : (
+          <><Zap size={14} /> Atualizar sistema</>
+        )}
+      </button>
+      {(progresso || info) && (
+        <div className="text-[11px] text-white/60 text-center mt-2">
+          {estado === "loading" && progresso
+            ? `Baixando ${progresso.atual}/${progresso.total}…`
+            : info}
+        </div>
+      )}
+    </section>
   );
 }
 
