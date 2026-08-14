@@ -8,6 +8,15 @@
   "orientation": "portrait",
   "background_color": "#23272E",
   "theme_color": "#23272E",
+  "shortcuts": [
+    {
+      "name": "Compra no cartão",
+      "short_name": "Compra",
+      "description": "Lançar uma compra no cartão (à vista ou parcelada)",
+      "url": "./?acao=compra-cartao",
+      "icons": [{ "src": "./apple-touch-icon.png", "sizes": "512x512" }]
+    }
+  ],
   "icons": [
     {
       "src": "./apple-touch-icon.png",
