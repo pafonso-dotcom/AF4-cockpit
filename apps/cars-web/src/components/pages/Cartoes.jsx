@@ -645,6 +645,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         sub="Limites, fechamentos e parcelamentos sob controle."
         action={
           <div className="flex gap-2 flex-wrap">
+            <button className="btn-ghost" onClick={() => window.dispatchEvent(new CustomEvent("af4:compra-cartao"))}
+                    title="Lançamento rápido de compra no cartão (à vista ou parcelada)">
+              <Plus size={12} className="inline mr-2" />Compra
+            </button>
             <button className="btn-ghost" onClick={() => setParcForm({ id: null, descricao: "", dataCompra: todayISO(), dataPrimeira: todayISO(), cartaoId: cartoes[0]?.id || "", valorTotal: "", totalParcelas: "", categoria: "", escopo: "pessoal", parcelasPagas: [] })}>
               <Plus size={12} className="inline mr-2" />Parcelamento
             </button>

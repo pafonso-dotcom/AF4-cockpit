@@ -11,6 +11,7 @@ import { lerEscopo, salvarEscopo } from "./lib/escopo.js";
 import { aplicarDadosCarregados, aplicarSeeds } from "./lib/appPersistencia.js";
 import { backupDiario, criarBackup, obterBackup } from "./lib/autobackup.js";
 import BackupsModal from "./components/modals/BackupsModal.jsx";
+import CompraCartaoModal from "./components/modals/CompraCartaoModal.jsx";
 import { toast } from "./lib/toast.js";
 import { createBackup, shouldAutoBackup } from "./lib/autoBackup.js";
 import { audit } from "./lib/auditLog.js";
@@ -168,6 +169,21 @@ export default function App() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [varreduraOpen, setVarreduraOpen] = useState(false);
   const [backupsOpen, setBackupsOpen] = useState(false);
+  // Compra no cartão — lançamento rápido. Abre por evento global (botões em
+  // Cartões / menu ⋯) ou pela URL ?acao=compra-cartao (atalho do ícone PWA).
+  const [compraCartaoOpen, setCompraCartaoOpen] = useState(false);
+  useEffect(() => {
+    const abrir = () => setCompraCartaoOpen(true);
+    window.addEventListener("af4:compra-cartao", abrir);
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("acao") === "compra-cartao") {
+        setCompraCartaoOpen(true);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    } catch {}
+    return () => window.removeEventListener("af4:compra-cartao", abrir);
+  }, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modulesEnabled, setModulesEnabled] = useState({ financas: true, invest: true });
   const [apiKeys, setApiKeys] = useState({ brapi: "", alphavantage: "", anthropic: "", useRealMarket: true });
@@ -1319,6 +1335,13 @@ export default function App() {
       )}
       {backupsOpen && (
         <BackupsModal onRestaurar={restaurarBackup} onClose={() => setBackupsOpen(false)} />
+      )}
+      {compraCartaoOpen && (
+        <CompraCartaoModal
+          cartoes={cartoes} categorias={categorias}
+          transacoes={transacoes} setTransacoes={setTransacoes}
+          parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
+          onClose={() => setCompraCartaoOpen(false)} />
       )}
       {pickerOpen && (
         <ThemePicker themeId={themeId} setThemeId={setThemeId} onClose={() => setPickerOpen(false)} />

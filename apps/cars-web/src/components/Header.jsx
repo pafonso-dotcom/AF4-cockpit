@@ -330,6 +330,7 @@ function HeaderHorizontal({
               }}>
                 {[
                   { lbl: "Busca rápida", icon: Search, on: () => { onOpenPalette?.(); setMenuUtilAberto(false); } },
+                  { lbl: "Compra no cartão", icon: CreditCard, on: () => { setMenuUtilAberto(false); window.dispatchEvent(new CustomEvent("af4:compra-cartao")); } },
                   { lbl: hidden ? "Mostrar valores" : "Ocultar valores", icon: hidden ? EyeOff : Eye, on: () => { setHidden(!hidden); setMenuUtilAberto(false); } },
                   { lbl: T.dark ? "Tema claro" : "Tema escuro", icon: T.dark ? Sun : Moon, on: () => { onOpenSettings?.("toggle-tema"); setMenuUtilAberto(false); } },
                   { lbl: refreshing ? "Atualizando…" : "Atualizar cotações", icon: RefreshCw, on: () => { onRefresh?.(); setMenuUtilAberto(false); } },
