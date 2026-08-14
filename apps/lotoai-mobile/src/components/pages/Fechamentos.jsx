@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Layers, Sparkles, Eye, AlertTriangle, Save, Shrink, Expand } from "lucide-react";
+import { Layers, Sparkles, Eye, AlertTriangle, Save, Shrink, Expand, Lock } from "lucide-react";
 import Ball from "../ui/Ball.jsx";
 import { NUMEROS } from "../../lib/lotofacil.js";
 import { scores as calcScores } from "../../lib/stats.js";
@@ -11,6 +11,8 @@ import {
   loadCoverings,
   matrizesPara,
   aplicarMatriz,
+  gerarFixasRotativas,
+  resumoFixasRotativas,
 } from "../../lib/fechamentos.js";
 import { salvarJogos } from "../../lib/supabase.js";
 
@@ -18,7 +20,8 @@ const CUSTO_MAX_RECOMENDADO = 500;
 
 export default function Fechamentos({ historico }) {
   const [base, setBase] = useState(() => Array.from({ length: 16 }, (_, i) => i + 1));
-  const [modo, setModo] = useState("matriz"); // "matriz" | "completo"
+  const [modo, setModo] = useState("matriz"); // "matriz" | "completo" | "fixas"
+  const [fixasSet, setFixasSet] = useState(new Set()); // subset da base
   const [coverings, setCoverings] = useState(null);
   const [matrizSel, setMatrizSel] = useState(null);
   const [jogos, setJogos] = useState([]);
@@ -41,11 +44,35 @@ export default function Fechamentos({ historico }) {
   }, [matrizesDisponiveis]);
 
   function toggle(n) {
-    setBase(prev => {
-      const next = prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n];
-      if (next.length > 20) return prev;
-      return next.sort((a, b) => a - b);
-    });
+    if (modo === "fixas") {
+      // No modo fixas: ciclo off → rotativa (na base) → fixa (subset) → off
+      setBase(prev => {
+        const onBase = prev.includes(n);
+        const onFixa = fixasSet.has(n);
+        if (!onBase) {
+          // adiciona como rotativa
+          const next = [...prev, n].sort((a, b) => a - b);
+          if (next.length > 20) return prev;
+          return next;
+        }
+        if (!onFixa) {
+          // promove a fixa
+          setFixasSet(s => { const nx = new Set(s); nx.add(n); return nx; });
+          return prev;
+        }
+        // remove tudo
+        setFixasSet(s => { const nx = new Set(s); nx.delete(n); return nx; });
+        return prev.filter(x => x !== n);
+      });
+    } else {
+      setBase(prev => {
+        const next = prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n];
+        if (next.length > 20) return prev;
+        return next.sort((a, b) => a - b);
+      });
+      // remove das fixas se sair da base
+      setFixasSet(s => { const nx = new Set(s); nx.delete(n); return nx; });
+    }
   }
 
   function sugerir() {
@@ -55,11 +82,19 @@ export default function Fechamentos({ historico }) {
   }
 
   function gerar() {
-    if (base.length < 15 || base.length > 20) return;
-    if (modo === "completo") {
-      setJogos(gerarFechamentoCompleto(base));
-    } else if (matrizSel) {
-      setJogos(aplicarMatriz(matrizSel.matriz, base));
+    if (modo === "fixas") {
+      const fixas = base.filter(n => fixasSet.has(n));
+      const rotativas = base.filter(n => !fixasSet.has(n));
+      const restam = 15 - fixas.length;
+      if (restam < 0 || restam > rotativas.length) return;
+      setJogos(gerarFixasRotativas(fixas, rotativas));
+    } else {
+      if (base.length < 15 || base.length > 20) return;
+      if (modo === "completo") {
+        setJogos(gerarFechamentoCompleto(base));
+      } else if (matrizSel) {
+        setJogos(aplicarMatriz(matrizSel.matriz, base));
+      }
     }
     setAnalise(null);
   }
@@ -72,16 +107,34 @@ export default function Fechamentos({ historico }) {
   async function salvar() {
     if (!jogos.length) return;
     setSalvando(true);
-    const tag = modo === "completo" ? `fech-completo-${base.length}` : `fech-matriz-${matrizSel.K}-${matrizSel.g}`;
+    const tag =
+      modo === "completo" ? `fech-completo-${base.length}`
+      : modo === "fixas" ? `fech-fixas-${nFixas}-rot-${nRotativas}`
+      : `fech-matriz-${matrizSel.K}-${matrizSel.g}`;
     const res = await salvarJogos(jogos, { estrategia: tag });
     setSalvando(false);
     setSavedMsg(res.remote ? "Salvo no Supabase" : "Salvo localmente");
     setTimeout(() => setSavedMsg(""), 2500);
   }
 
-  const valido = base.length >= 15 && base.length <= 20;
-  const apostas = modo === "completo" ? resumoCompleto.apostas : (matrizSel?.apostas || 0);
-  const custo = modo === "completo" ? resumoCompleto.custo : (matrizSel?.custo || 0);
+  const nFixas = base.filter(n => fixasSet.has(n)).length;
+  const nRotativas = base.filter(n => !fixasSet.has(n)).length;
+  const resumoFR = useMemo(
+    () => resumoFixasRotativas(nFixas, nRotativas),
+    [nFixas, nRotativas]
+  );
+  const valido =
+    modo === "fixas"
+      ? resumoFR.valido && nFixas <= 14
+      : base.length >= 15 && base.length <= 20;
+  const apostas =
+    modo === "completo" ? resumoCompleto.apostas
+    : modo === "fixas" ? resumoFR.apostas
+    : (matrizSel?.apostas || 0);
+  const custo =
+    modo === "completo" ? resumoCompleto.custo
+    : modo === "fixas" ? resumoFR.custo
+    : (matrizSel?.custo || 0);
   const muitoCaro = custo > CUSTO_MAX_RECOMENDADO;
 
   return (
@@ -102,24 +155,43 @@ export default function Fechamentos({ historico }) {
             <Sparkles size={12} /> Sugerir top-{base.length || 18}
           </button>
         </div>
+        {modo === "fixas" && (
+          <div className="text-[11px] text-white/60 bg-ink/40 rounded-lg p-2 mb-2">
+            💡 <b>Toque:</b> off → rotativa (roxa) → fixa (dourada) → off
+          </div>
+        )}
         <div className="grid grid-cols-5 gap-2">
           {NUMEROS.map(n => {
             const on = base.includes(n);
             const cheio = base.length >= 20 && !on;
+            const fixa = fixasSet.has(n);
+            let cls;
+            if (modo === "fixas") {
+              cls = fixa
+                ? "bg-gradient-to-br from-gold to-amber-500 text-ink ring-2 ring-gold/60"
+                : on
+                ? "bg-gradient-to-br from-accent/80 to-indigo-700 text-white"
+                : cheio
+                ? "bg-ink/40 border border-line text-white/20"
+                : "bg-ink/60 border border-line text-white/70 active:scale-95";
+            } else {
+              cls = on
+                ? "bg-gradient-to-br from-gold to-amber-500 text-ink"
+                : cheio
+                ? "bg-ink/40 border border-line text-white/20"
+                : "bg-ink/60 border border-line text-white/70 active:scale-95";
+            }
             return (
               <button
                 key={n}
                 disabled={cheio}
                 onClick={() => toggle(n)}
-                className={`aspect-square rounded-lg text-sm font-bold transition ${
-                  on
-                    ? "bg-gradient-to-br from-gold to-amber-500 text-ink"
-                    : cheio
-                    ? "bg-ink/40 border border-line text-white/20"
-                    : "bg-ink/60 border border-line text-white/70 active:scale-95"
-                }`}
+                className={`relative aspect-square rounded-lg text-sm font-bold transition ${cls}`}
               >
                 {String(n).padStart(2, "0")}
+                {modo === "fixas" && fixa && (
+                  <Lock size={9} className="absolute top-0.5 right-0.5" />
+                )}
               </button>
             );
           })}
@@ -127,30 +199,44 @@ export default function Fechamentos({ historico }) {
       </section>
 
       <section className="card space-y-3">
-        {/* Toggle modo */}
-        <div className="grid grid-cols-2 gap-2">
+        {/* Toggle modo · 3 opções */}
+        <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => setModo("matriz")}
             disabled={!matrizesDisponiveis.length}
-            className={`rounded-xl px-3 py-3 border text-left transition ${
+            className={`rounded-xl px-2 py-3 border text-left transition ${
               modo === "matriz" ? "border-gold bg-gold/10" : "border-line bg-ink/40"
             } disabled:opacity-40`}
           >
-            <div className="flex items-center gap-1.5 text-sm font-semibold">
-              <Shrink size={14} className="text-gold" /> Matriz reduzida
+            <div className="flex items-center gap-1 text-xs font-semibold">
+              <Shrink size={12} className="text-gold" /> Matriz
             </div>
-            <div className="text-[10px] text-white/50">Mínimo de apostas com garantia</div>
+            <div className="text-[9px] text-white/50">Mín. apostas c/ garantia</div>
           </button>
           <button
             onClick={() => setModo("completo")}
-            className={`rounded-xl px-3 py-3 border text-left transition ${
+            className={`rounded-xl px-2 py-3 border text-left transition ${
               modo === "completo" ? "border-gold bg-gold/10" : "border-line bg-ink/40"
             }`}
           >
-            <div className="flex items-center gap-1.5 text-sm font-semibold">
-              <Expand size={14} className="text-gold" /> Fechamento completo
+            <div className="flex items-center gap-1 text-xs font-semibold">
+              <Expand size={12} className="text-gold" /> Completo
             </div>
-            <div className="text-[10px] text-white/50">Todas as C(K,15) combinações</div>
+            <div className="text-[9px] text-white/50">Todas as C(K,15)</div>
+          </button>
+          <button
+            onClick={() => setModo("fixas")}
+            className={`rounded-xl px-2 py-3 border text-left transition relative ${
+              modo === "fixas" ? "border-gold bg-gold/10" : "border-line bg-ink/40"
+            }`}
+          >
+            <span className="absolute -top-1.5 -right-1 text-[7px] font-bold px-1 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              NOVO
+            </span>
+            <div className="flex items-center gap-1 text-xs font-semibold">
+              <Lock size={12} className="text-gold" /> Fixas & Rotat.
+            </div>
+            <div className="text-[9px] text-white/50">N fixas + pool rotação</div>
           </button>
         </div>
 
@@ -182,8 +268,36 @@ export default function Fechamentos({ historico }) {
           </div>
         )}
 
+        {modo === "fixas" && (
+          <div className="bg-ink/40 border border-line rounded-lg p-3 space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-white/60 flex items-center gap-1">
+                <Lock size={11} className="text-gold" /> Fixas (em TODOS os jogos)
+              </span>
+              <span className="text-gold font-bold">{nFixas}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-white/60">Pool de rotação</span>
+              <span className="text-accent font-bold">{nRotativas}</span>
+            </div>
+            <div className="flex justify-between border-t border-line pt-1 text-[11px]">
+              <span className="text-white/50">Preciso de {15 - nFixas} dezena{15 - nFixas === 1 ? "" : "s"} do pool por jogo</span>
+              <span className="text-white/70">C({nRotativas}, {15 - nFixas}) = {apostas}</span>
+            </div>
+            {!resumoFR.valido && (
+              <div className="text-xs text-amber-300 mt-1">
+                {nFixas > 14 && "Máximo 14 fixas (precisa ≥1 rotativa)."}
+                {nFixas + nRotativas < 15 && "Base incompleta: fixas + rotativas ≥ 15."}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-2 text-center">
-          <Stat label="Dezenas" value={base.length} />
+          <Stat
+            label={modo === "fixas" ? "Base" : "Dezenas"}
+            value={modo === "fixas" ? `${nFixas}+${nRotativas}` : base.length}
+          />
           <Stat label="Apostas" value={apostas.toLocaleString("pt-BR")} />
           <Stat
             label="Custo"

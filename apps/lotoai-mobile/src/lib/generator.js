@@ -13,7 +13,7 @@
 import { NUMEROS, LOTOFACIL, validarJogo, analisarJogo } from "./lotofacil.js";
 import { scores as calcScores } from "./stats.js";
 import {
-  LINHAS, analisarCiclos, rankingMovelDuplo,
+  LINHAS, COLUNAS, analisarCiclos, rankingMovelDuplo,
   passaFiltroCombinado, passaFiltroSequencia,
 } from "./analiseAvancada.js";
 
@@ -159,6 +159,54 @@ function gerar5x5(historico) {
 }
 
 /**
+ * Estratégia "5x5 Colunas": garante 3 dezenas em cada coluna do volante
+ * ({1,6,11,16,21}, {2,7,12,17,22}, {3,8,13,18,23}, {4,9,14,19,24}, {5,10,15,20,25}).
+ * Complementa 5x5 Balanceada (que é por linha). Alguns apostadores misturam.
+ */
+function gerar5x5Colunas(historico) {
+  const s = historico.length ? calcScores(historico) : Object.fromEntries(NUMEROS.map(n => [n, 1]));
+  const jogo = [];
+  for (const col of COLUNAS) {
+    const pesos = Object.fromEntries(col.map(n => [n, Math.max(s[n] || 0, 0.01)]));
+    jogo.push(...sampleSemReposicao(pesos, 3));
+  }
+  return jogo.sort((a, b) => a - b);
+}
+
+/**
+ * Cadeia de Markov de 1ª ordem: P(dezena X sair | Y saiu no concurso anterior).
+ * Constrói matriz 25x25 e usa o último concurso pra scorear cada dezena
+ * como média das probabilidades condicionais.
+ *
+ * HONESTIDADE MATEMÁTICA: a Lotofácil é aleatória, então Markov apenas
+ * captura ruído. Mas é uma abordagem legítima que muitos estudam.
+ */
+function gerarMarkov(historico) {
+  if (historico.length < 30) return gerarAleatorio();
+  // matriz de contagens
+  const cnt = Array.from({ length: 26 }, () => Array(26).fill(0));
+  const total = Array(26).fill(0);
+  for (let i = 1; i < historico.length; i++) {
+    const prev = historico[i - 1];
+    const cur = new Set(historico[i]);
+    for (const a of prev) {
+      total[a]++;
+      for (const b of cur) cnt[a][b]++;
+    }
+  }
+  const ultimo = historico[historico.length - 1];
+  const scores = {};
+  for (const n of NUMEROS) {
+    let sum = 0;
+    for (const a of ultimo) {
+      sum += total[a] > 0 ? cnt[a][n] / total[a] : 0;
+    }
+    scores[n] = Math.max(sum / ultimo.length, 0.01);
+  }
+  return sampleSemReposicao(scores, LOTOFACIL.numerosPorJogo);
+}
+
+/**
  * Estratégia "Ciclo Atrasado": prioriza dezenas que ainda não saíram no
  * ciclo atual (desde a última vez que todas as 25 apareceram).
  * Cai pra Ponderada se não há ciclo pendente.
@@ -208,16 +256,18 @@ function gerarCombo(quantidade, historico, pesosAjustados = null) {
   const ultimoSorteio = usaHist ? historico[historico.length - 1] : null;
 
   const w = pesosAjustados || {
-    zonas: 0.30, cinco5: 0.20, ciclo: 0.15,
-    balanceado: 0.15, bayesiano: 0.10, ponderado: 0.10,
+    zonas: 0.22, cinco5: 0.14, colunas: 0.14, ciclo: 0.14,
+    balanceado: 0.12, bayesiano: 0.10, markov: 0.07, ponderado: 0.07,
   };
 
   const pesos = [
     { fn: () => gerarPorZonas(historico),                                      peso: w.zonas      || 0 },
     { fn: () => usaHist ? gerar5x5(historico)          : gerarAleatorio(),     peso: w.cinco5     || 0 },
+    { fn: () => usaHist ? gerar5x5Colunas(historico)   : gerarAleatorio(),     peso: w.colunas    || 0 },
     { fn: () => usaHist ? gerarCicloAtrasado(historico): gerarAleatorio(),     peso: w.ciclo      || 0 },
     { fn: () => usaHist ? gerarBalanceado(historico)   : gerarAleatorio(),     peso: w.balanceado || 0 },
     { fn: () => usaHist ? gerarBayesiano(historico)    : gerarAleatorio(),     peso: w.bayesiano  || 0 },
+    { fn: () => usaHist ? gerarMarkov(historico)       : gerarAleatorio(),     peso: w.markov     || 0 },
     { fn: () => usaHist ? gerarPonderado(historico)    : gerarAleatorio(),     peso: w.ponderado  || 0 },
   ];
   // normaliza pra somar 1
@@ -288,7 +338,9 @@ function pickStrategy(estrategia, historico) {
   if (estrategia === "bayesiano") return historico.length ? gerarBayesiano(historico) : gerarAleatorio();
   if (estrategia === "zonas") return gerarPorZonas(historico);
   if (estrategia === "cinco5") return historico.length ? gerar5x5(historico) : gerarAleatorio();
+  if (estrategia === "colunas") return historico.length ? gerar5x5Colunas(historico) : gerarAleatorio();
   if (estrategia === "ciclo") return historico.length ? gerarCicloAtrasado(historico) : gerarAleatorio();
+  if (estrategia === "markov") return historico.length ? gerarMarkov(historico) : gerarAleatorio();
   return historico.length ? gerarPonderado(historico) : gerarAleatorio();
 }
 

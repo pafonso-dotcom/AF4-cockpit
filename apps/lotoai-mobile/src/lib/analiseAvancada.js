@@ -149,6 +149,48 @@ export function dezenasRepetidas(jogo, ultimoSorteio) {
   return jogo.filter(n => set.has(n)).length;
 }
 
+/* ---------- TRINCAS DOURADAS (3-tuplas com maior lift) ---------- */
+
+/**
+ * Retorna as top N trincas de dezenas que aparecem juntas mais do que
+ * seria estatisticamente esperado. Métrica: lift = P(A∩B∩C) / (P(A)·P(B)·P(C)).
+ * lift > 1 → mais frequente que aleatório (associação positiva).
+ *
+ * Custo: O(N × 25³) ≈ ~40k operações · roda em <100ms
+ */
+export function topTrincas(sorteios, n = 10, { minCount = 30 } = {}) {
+  const N = sorteios.length;
+  if (!N) return [];
+
+  const freq = Object.fromEntries(NUMEROS.map(x => [x, 0]));
+  for (const s of sorteios) for (const x of s) freq[x]++;
+
+  const contagem = new Map();
+  for (const s of sorteios) {
+    const ord = [...s].sort((a, b) => a - b);
+    for (let i = 0; i < ord.length; i++) {
+      for (let j = i + 1; j < ord.length; j++) {
+        for (let k = j + 1; k < ord.length; k++) {
+          const key = `${ord[i]}-${ord[j]}-${ord[k]}`;
+          contagem.set(key, (contagem.get(key) || 0) + 1);
+        }
+      }
+    }
+  }
+
+  const trincas = [];
+  for (const [key, count] of contagem) {
+    if (count < minCount) continue;
+    const [a, b, c] = key.split("-").map(Number);
+    const pEsperada = (freq[a] / N) * (freq[b] / N) * (freq[c] / N);
+    const pReal = count / N;
+    const lift = pEsperada ? pReal / pEsperada : 0;
+    trincas.push({ dezenas: [a, b, c], count, pct: count / N, lift });
+  }
+  trincas.sort((x, y) => y.lift - x.lift);
+  return trincas.slice(0, n);
+}
+
 /** Filtro: mantém jogos com N repetições do último sorteio na faixa típica */
 export function passaFiltroRepeticao(jogo, ultimoSorteio, { min = 7, max = 11 } = {}) {
   if (!ultimoSorteio) return true;

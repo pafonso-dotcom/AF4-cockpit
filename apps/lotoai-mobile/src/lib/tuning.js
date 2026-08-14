@@ -12,11 +12,13 @@ import { gerarJogos } from "./generator.js";
 import { contarAcertos } from "./lotofacil.js";
 
 const KEY_LOCAL = "lotoai:tuning-local";
-const ESTRATEGIAS = ["zonas", "cinco5", "ciclo", "balanceado", "bayesiano", "ponderado"];
+const ESTRATEGIAS = ["zonas", "cinco5", "colunas", "ciclo", "markov", "balanceado", "bayesiano", "ponderado"];
 const NOME = {
   zonas: "Zonas + Primos",
   cinco5: "5×5 Balanceada",
+  colunas: "5×5 Colunas",
   ciclo: "Ciclo Atrasado",
+  markov: "Markov",
   balanceado: "Balanceada",
   bayesiano: "Bayesiana",
   ponderado: "IA Ponderada",

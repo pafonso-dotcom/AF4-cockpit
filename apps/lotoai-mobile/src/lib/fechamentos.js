@@ -139,3 +139,49 @@ export function matrizesPara(coverings, K) {
     .filter(m => m.K === K)
     .sort((a, b) => b.g - a.g); // garantia maior primeiro
 }
+
+/* ============================================================
+   FIXAS & ROTATIVAS
+   Estratégia popular: usuário fixa N dezenas que "acredita" que
+   vão sair (aparecem em TODOS os jogos), e escolhe um pool de M
+   rotativas. Gera todas as C(M, 15-N) combinações.
+   Ex: 12 fixas + 6 rotativas → C(6, 3) = 20 jogos, R$ 70.
+   ============================================================ */
+
+/** Gera todos os jogos possíveis com N fixas + rotação pelo resto */
+export function gerarFixasRotativas(fixas, rotativas) {
+  const nFixas = fixas.length;
+  const restam = LOTOFACIL.numerosPorJogo - nFixas;
+  if (restam < 0) throw new Error(`fixas > ${LOTOFACIL.numerosPorJogo}`);
+  if (restam > rotativas.length) throw new Error(`rotativas insuficientes (${rotativas.length}, precisa ${restam})`);
+  if (restam === 0) return [[...fixas].sort((a, b) => a - b)];
+
+  // Enumera todas as C(rotativas, restam) combinações
+  const jogos = [];
+  const idx = Array.from({ length: restam }, (_, i) => i);
+  while (true) {
+    const escolhidas = idx.map(i => rotativas[i]);
+    jogos.push([...fixas, ...escolhidas].sort((a, b) => a - b));
+    let i = restam - 1;
+    while (i >= 0 && idx[i] === rotativas.length - restam + i) i--;
+    if (i < 0) break;
+    idx[i]++;
+    for (let j = i + 1; j < restam; j++) idx[j] = idx[j - 1] + 1;
+  }
+  return jogos;
+}
+
+/** Resumo custo/jogos pra Fixas & Rotativas */
+export function resumoFixasRotativas(nFixas, nRotativas) {
+  const restam = LOTOFACIL.numerosPorJogo - nFixas;
+  const apostas = restam >= 0 && restam <= nRotativas
+    ? combinacoes(nRotativas, restam)
+    : 0;
+  return {
+    fixas: nFixas,
+    rotativas: nRotativas,
+    apostas,
+    custo: +(apostas * LOTOFACIL.precoAposta).toFixed(2),
+    valido: nFixas + nRotativas >= LOTOFACIL.numerosPorJogo && nFixas <= LOTOFACIL.numerosPorJogo,
+  };
+}

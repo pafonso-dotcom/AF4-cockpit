@@ -7,7 +7,7 @@ import { JOGOS } from "../../lib/jogos.js";
 import { relatorioMatematico, pFechamentoCompletoPeloMenos, pPeloMenosUmPremio, pAcertosPeloMenos } from "../../lib/probabilidade.js";
 import { gerarJogos } from "../../lib/generator.js";
 import { salvarJogos, mergeConcursos } from "../../lib/supabase.js";
-import { analisarCiclos, distPorLinha, distPorColuna, LINHAS, COLUNAS } from "../../lib/analiseAvancada.js";
+import { analisarCiclos, distPorLinha, distPorColuna, LINHAS, COLUNAS, topTrincas } from "../../lib/analiseAvancada.js";
 import { loadTuning, recomputarTuningLocal, invalidarCacheTuning } from "../../lib/tuning.js";
 import { calcularPlacar } from "../../lib/placar.js";
 import { importarNovos } from "../../lib/import.js";
@@ -64,6 +64,8 @@ export default function Dashboard({ historico, onHistoricoUpdate }) {
       {stats && (
         <>
           <PainelCiclos historico={historico} ultimo={ultimo} />
+
+          <PainelTrincas historico={historico} />
 
           {/* Quentes + Frias consolidados em UM card, lado a lado */}
           <section className="card">
@@ -729,6 +731,81 @@ function MiniBar({ label, value, max, alvo }) {
       <div className="text-[9px] text-white/40">{label}</div>
       <div className={`text-sm font-bold ${isAlvo ? "text-emerald-300" : "text-white"}`}>{value}</div>
     </div>
+  );
+}
+
+/* ============================================================
+   PAINEL TRINCAS DOURADAS
+   Top N combinações de 3 dezenas que saem juntas MAIS do que
+   o aleatório esperaria (lift > 1). Usadas como "âncora" por
+   apostadores experientes.
+   ============================================================ */
+function PainelTrincas({ historico }) {
+  const [open, setOpen] = useState(false);
+  const trincas = useMemo(() => {
+    if (!historico?.length) return [];
+    return topTrincas(historico.map(c => c.dezenas), 8, { minCount: 40 });
+  }, [historico]);
+
+  if (!trincas.length) return null;
+  const top = trincas[0];
+
+  return (
+    <section className="card">
+      <div className="flex items-center gap-2 mb-2">
+        <TrendingUp size={14} className="text-gold" />
+        <h3 className="font-semibold">Trincas douradas</h3>
+        <span className="chip ml-auto">top 8 · lift &gt; 1</span>
+      </div>
+      <div className="text-xs text-white/60 mb-2">
+        3 dezenas que saem juntas MAIS do que o aleatório esperaria.
+        Muitos apostadores usam como âncora do jogo.
+      </div>
+
+      {/* Top-1 destacado */}
+      <div className="bg-ink/40 border border-gold/30 rounded-lg p-2 flex items-center gap-2 mb-2">
+        <div className="flex gap-1">
+          {top.dezenas.map(n => (
+            <span key={n} className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold bg-gradient-to-br from-gold to-amber-500 text-ink">
+              {String(n).padStart(2, "0")}
+            </span>
+          ))}
+        </div>
+        <div className="text-[11px] text-white/70 flex-1">
+          <span className="text-gold font-bold">#1</span> · lift {top.lift.toFixed(3)} · saiu {top.count}× no histórico
+        </div>
+      </div>
+
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="text-[11px] text-white/60 hover:text-white"
+      >
+        {open ? "▲ menos" : "▼ ver top 8"}
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-1">
+          {trincas.map((t, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs">
+              <span className="w-4 text-white/40 tabular-nums">#{i + 1}</span>
+              <div className="flex gap-0.5">
+                {t.dezenas.map(n => (
+                  <span key={n} className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold ${
+                    i === 0
+                      ? "bg-gradient-to-br from-gold to-amber-500 text-ink"
+                      : "bg-ink/60 border border-line text-white/80"
+                  }`}>
+                    {String(n).padStart(2, "0")}
+                  </span>
+                ))}
+              </div>
+              <span className="ml-auto text-white/50 tabular-nums">{t.lift.toFixed(3)}</span>
+              <span className="text-white/40 tabular-nums">{t.count}×</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

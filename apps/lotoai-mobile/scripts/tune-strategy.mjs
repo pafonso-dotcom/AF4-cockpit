@@ -25,7 +25,7 @@ const OUT_JSON = path.join(ROOT, "public", "tuning.json");
 const OUT_DATA = path.join(ROOT, "data", "tuning.json");
 
 const ESTRATEGIAS = [
-  "zonas", "cinco5", "ciclo", "balanceado", "bayesiano", "ponderado",
+  "zonas", "cinco5", "colunas", "ciclo", "markov", "balanceado", "bayesiano", "ponderado",
 ];
 
 const JANELA_BACKTEST = 100; // últimos N concursos
@@ -208,7 +208,9 @@ function nomeAmigavel(id) {
   return {
     zonas: "Zonas + Primos",
     cinco5: "5×5 Balanceada",
+    colunas: "5×5 Colunas",
     ciclo: "Ciclo Atrasado",
+    markov: "Markov",
     balanceado: "Balanceada",
     bayesiano: "Bayesiana",
     ponderado: "IA Ponderada",

@@ -6,10 +6,12 @@ import { analisarJogo, NUMEROS, custoAposta } from "../../lib/lotofacil.js";
 import { salvarJogos } from "../../lib/supabase.js";
 
 const ESTRATEGIAS = [
-  { id: "combo",         nome: "Combo IA",       hint: "6 estratégias + filtro combinado · MAX", badge: "IA RECOMENDA" },
+  { id: "combo",         nome: "Combo IA",       hint: "8 estratégias + filtro combinado · MAX", badge: "IA RECOMENDA" },
   { id: "zonas",         nome: "Zonas + Primos", hint: "8 de 1–15 + 7 de 16–25 · primos primeiro", badge: "PRIMOS" },
-  { id: "cinco5",        nome: "5×5 Balanceada", hint: "3 dezenas em cada linha do volante", badge: "NOVO" },
-  { id: "ciclo",         nome: "Ciclo Atrasado", hint: "Prioriza dezenas ainda não sorteadas no ciclo", badge: "NOVO" },
+  { id: "cinco5",        nome: "5×5 Balanceada", hint: "3 dezenas em cada LINHA do volante" },
+  { id: "colunas",       nome: "5×5 Colunas",    hint: "3 dezenas em cada COLUNA do volante", badge: "NOVO" },
+  { id: "markov",        nome: "Markov",         hint: "P(dezena | último concurso)", badge: "NOVO" },
+  { id: "ciclo",         nome: "Ciclo Atrasado", hint: "Prioriza dezenas não sorteadas no ciclo" },
   { id: "estratificado", nome: "Estratificada",  hint: "Cobre estratos do espaço" },
   { id: "bayesiano",     nome: "Bayesiana",      hint: "Posterior Beta · prior Beta(15,10)" },
   { id: "ponderado",     nome: "IA Ponderada",   hint: "Frequência + atraso" },
