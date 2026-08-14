@@ -1,10 +1,18 @@
 /* ============================================================
    Importa concursos novos da Caixa via worker proxy
-   - Tenta o worker (mesma origem, com CORS já configurado)
-   - Em dev/local, aceita VITE_LOTOFACIL_API como URL alternativa
+   - Default: worker af4cockpit no Cloudflare (CORS habilitado)
+   - Override via VITE_LOTOFACIL_API (ex: pra apontar pra outra origem)
+   - Fallback: /api/lotofacil (same-origin, caso o app + worker estejam
+     servidos pelo mesmo domínio via Custom Domain)
    ============================================================ */
 
-const API_BASE = import.meta.env.VITE_LOTOFACIL_API || "/api/lotofacil";
+// Se o app tá em github.io, o /api/lotofacil não existe lá — precisamos
+// bater diretamente no worker via cross-origin (CORS já habilitado).
+const WORKER_URL = "https://af4cockpit.p-afonso.workers.dev/api/lotofacil";
+const SAME_ORIGIN = "/api/lotofacil";
+
+const API_BASE = import.meta.env.VITE_LOTOFACIL_API
+  || (typeof location !== "undefined" && location.hostname.endsWith("github.io") ? WORKER_URL : SAME_ORIGIN);
 
 export async function buscarUltimoConcurso() {
   const res = await fetch(`${API_BASE}/latest`);
