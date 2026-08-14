@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Flame, Snowflake, Hash, TrendingUp, Calculator, Info, Sparkles, RefreshCw, Save } from "lucide-react";
 import Ball from "../ui/Ball.jsx";
 import { frequencias, atrasos, quentes, frias } from "../../lib/stats.js";
@@ -8,6 +8,7 @@ import { relatorioMatematico, pFechamentoCompletoPeloMenos, pPeloMenosUmPremio, 
 import { gerarJogos } from "../../lib/generator.js";
 import { salvarJogos } from "../../lib/supabase.js";
 import { analisarCiclos, distPorLinha, distPorColuna, LINHAS, COLUNAS } from "../../lib/analiseAvancada.js";
+import { loadTuning } from "../../lib/tuning.js";
 
 export default function Dashboard({ historico }) {
   const ultimo = historico[historico.length - 1];
@@ -28,6 +29,8 @@ export default function Dashboard({ historico }) {
   return (
     <div className="px-4 pt-4 pb-28 space-y-4">
       <JogoDoDia historico={historico} />
+
+      <PainelGuru />
 
       {ultimo && (
         <section className="card">
@@ -253,6 +256,116 @@ function PainelProbabilidade() {
 }
 
 /* ============================================================
+   PAINEL GURU IA · insight ajustado automaticamente
+   Lê public/tuning.json (regenerado após cada import de concursos)
+   ============================================================ */
+function PainelGuru() {
+  const [tuning, setTuning] = useState(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => { loadTuning().then(setTuning); }, []);
+
+  if (!tuning) return null;
+  const { insight, ranking, atualizadoEm, ultimoConcurso, janelaBacktest, contexto } = tuning;
+  const data = new Date(atualizadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+
+  return (
+    <section className="card bg-gradient-to-br from-emerald-900/20 to-panel border-emerald-500/30">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <Sparkles size={14} className="text-emerald-300" />
+          <div className="text-[11px] uppercase tracking-wider text-emerald-300 font-bold">
+            Guru IA · análise
+          </div>
+        </div>
+        <span className="text-[10px] text-white/40">{data} · #{ultimoConcurso}</span>
+      </div>
+      <div className="text-sm text-white/90 leading-snug">
+        {insight.paragrafos[0].replace(/\*\*/g, "")}
+      </div>
+
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="text-[11px] text-emerald-300/70 mt-2 hover:text-emerald-300"
+      >
+        {open ? "▲ menos" : "▼ ver ranking + dezenas"}
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-3 pt-3 border-t border-emerald-500/20">
+          {/* Ranking */}
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5">
+              Ranking · {janelaBacktest} concursos
+            </div>
+            <div className="space-y-1">
+              {ranking.map(r => (
+                <div key={r.estrategia} className="flex items-center gap-2 text-xs">
+                  <span className="flex-1 text-white/80">{r.nome}</span>
+                  <span className="text-white/50 tabular-nums">{r.pctPremio}%</span>
+                  <div className="w-16 h-1.5 bg-ink/60 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-gold"
+                      style={{ width: `${r.peso * 100 * 4}%` }}
+                    />
+                  </div>
+                  <span className="text-gold font-bold tabular-nums w-8 text-right">{Math.round(r.peso * 100)}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Contexto */}
+          {contexto && (
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-orange-300/70 mb-1">
+                  Quentes 30
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {contexto.quentes30.map(n => (
+                    <span key={n} className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/40">
+                      {String(n).padStart(2, "0")}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-sky-300/70 mb-1">
+                  Frias 30
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {contexto.frias30.map(n => (
+                    <span key={n} className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                      {String(n).padStart(2, "0")}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          {contexto?.maisAtrasadas?.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">
+                Mais atrasadas
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {contexto.maisAtrasadas.map(({ dezena, atraso }) => (
+                  <span key={dezena} className="inline-flex items-center gap-1 px-1.5 h-6 rounded-full text-[10px] font-bold bg-gold/10 text-gold border border-gold/40">
+                    {String(dezena).padStart(2, "0")}
+                    <span className="text-[9px] font-normal text-white/50">·{atraso}c</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ============================================================
    PAINEL CICLOS & GRUPOS · análise avançada do volante
    Mostra:
    - Ciclo atual (dezenas faltando pra fechar o ciclo)
@@ -365,12 +478,21 @@ function MiniBar({ label, value, max, alvo }) {
    com análise instantânea (primos, pares, soma, faixa).
    ============================================================ */
 function JogoDoDia({ historico }) {
-  const [jogo, setJogo] = useState(() => gerar(historico));
+  const [tuning, setTuning] = useState(null);
+  const [jogo, setJogo] = useState(() => gerar(historico, null));
   const [savedMsg, setSavedMsg] = useState("");
   const [salvando, setSalvando] = useState(false);
 
+  useEffect(() => {
+    loadTuning().then(t => {
+      setTuning(t);
+      // Após carregar tuning, regenera o jogo com pesos ajustados
+      if (t?.pesos) setJogo(gerar(historico, t.pesos));
+    });
+  }, [historico]);
+
   function gerarNovo() {
-    setJogo(gerar(historico));
+    setJogo(gerar(historico, tuning?.pesos));
     setSavedMsg("");
   }
 
@@ -444,12 +566,13 @@ function JogoDoDia({ historico }) {
   );
 }
 
-function gerar(historico) {
+function gerar(historico, pesosAjustados = null) {
   try {
     const [j] = gerarJogos({
       quantidade: 1,
       estrategia: "combo",
       historico: historico.map(c => c.dezenas),
+      pesosAjustados,
     });
     return j;
   } catch { return null; }

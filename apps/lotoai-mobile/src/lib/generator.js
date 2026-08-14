@@ -197,19 +197,32 @@ function gerarCicloAtrasado(historico) {
  * Não aumenta P(acerto) por jogo — aumenta P(≥1 prêmio no conjunto)
  * ao diversificar heurísticas.
  */
-function gerarCombo(quantidade, historico) {
+/**
+ * Combo IA: aceita pesos externos (do Guru IA / tuning.json) via 3º arg.
+ * Formato: { zonas: 0.20, cinco5: 0.15, ciclo: 0.30, balanceado: 0.15,
+ *            bayesiano: 0.10, ponderado: 0.10 }
+ * Sem pesos externos → usa defaults hardcoded.
+ */
+function gerarCombo(quantidade, historico, pesosAjustados = null) {
   const usaHist = historico.length > 0;
   const ultimoSorteio = usaHist ? historico[historico.length - 1] : null;
 
-  // Mix atualizado com as novas estratégias baseadas em padrões de jogadores
+  const w = pesosAjustados || {
+    zonas: 0.30, cinco5: 0.20, ciclo: 0.15,
+    balanceado: 0.15, bayesiano: 0.10, ponderado: 0.10,
+  };
+
   const pesos = [
-    { fn: () => gerarPorZonas(historico),                                      peso: 0.30 },
-    { fn: () => usaHist ? gerar5x5(historico)          : gerarAleatorio(),     peso: 0.20 },
-    { fn: () => usaHist ? gerarCicloAtrasado(historico): gerarAleatorio(),     peso: 0.15 },
-    { fn: () => usaHist ? gerarBalanceado(historico)   : gerarAleatorio(),     peso: 0.15 },
-    { fn: () => usaHist ? gerarBayesiano(historico)    : gerarAleatorio(),     peso: 0.10 },
-    { fn: () => usaHist ? gerarPonderado(historico)    : gerarAleatorio(),     peso: 0.10 },
+    { fn: () => gerarPorZonas(historico),                                      peso: w.zonas      || 0 },
+    { fn: () => usaHist ? gerar5x5(historico)          : gerarAleatorio(),     peso: w.cinco5     || 0 },
+    { fn: () => usaHist ? gerarCicloAtrasado(historico): gerarAleatorio(),     peso: w.ciclo      || 0 },
+    { fn: () => usaHist ? gerarBalanceado(historico)   : gerarAleatorio(),     peso: w.balanceado || 0 },
+    { fn: () => usaHist ? gerarBayesiano(historico)    : gerarAleatorio(),     peso: w.bayesiano  || 0 },
+    { fn: () => usaHist ? gerarPonderado(historico)    : gerarAleatorio(),     peso: w.ponderado  || 0 },
   ];
+  // normaliza pra somar 1
+  const somaW = pesos.reduce((a, p) => a + p.peso, 0) || 1;
+  pesos.forEach(p => { p.peso = p.peso / somaW; });
   const alvos = [];
   let acc = 0;
   for (const p of pesos) { acc += p.peso; alvos.push(acc); }
@@ -241,10 +254,10 @@ function gerarCombo(quantidade, historico) {
  * @param {number[]} [opts.fixos]    dezenas que devem aparecer em todos os jogos
  * @param {number[]} [opts.excluir]  dezenas que nunca devem aparecer
  */
-export function gerarJogos({ quantidade = 1, estrategia = "combo", historico = [], fixos = [], excluir = [] } = {}) {
-  // Combo: coordena estratégias diferentes por índice
+export function gerarJogos({ quantidade = 1, estrategia = "combo", historico = [], fixos = [], excluir = [], pesosAjustados = null } = {}) {
+  // Combo: coordena estratégias diferentes por índice (com pesos opcionais do Guru IA)
   if (estrategia === "combo") {
-    const conjunto = gerarCombo(quantidade, historico);
+    const conjunto = gerarCombo(quantidade, historico, pesosAjustados);
     return conjunto.map(j => aplicarFixosExcluir(j, fixos, excluir, historico, estrategia))
                    .filter(validarJogo);
   }

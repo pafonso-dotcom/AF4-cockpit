@@ -55,7 +55,7 @@ jobs:
           MAX: ${{ inputs.max || '30' }}
         run: node scripts/import-from-caixa.mjs --max=$MAX
 
-      - name: Detect changes
+      - name: Detect changes (concursos)
         id: diff
         run: |
           if git diff --quiet apps/lotoai-mobile/data/concursos.json apps/lotoai-mobile/public/concursos.json; then
@@ -69,14 +69,24 @@ jobs:
             echo "count=$COUNT" >> $GITHUB_OUTPUT
           fi
 
+      # Guru IA: re-tuna o Combo após import (sempre roda, pra manter
+      # o insight fresco mesmo se não teve import novo)
+      - name: Tune strategy (Guru IA)
+        working-directory: apps/lotoai-mobile
+        run: node scripts/tune-strategy.mjs
+
       - name: Commit + push
-        if: steps.diff.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add apps/lotoai-mobile/data/concursos.json apps/lotoai-mobile/public/concursos.json
-          git commit -m "data(lotoai): import automático até #${{ steps.diff.outputs.last }}
-
-          Total: ${{ steps.diff.outputs.count }} concursos.
-          Auto-triggered pelo import-lotofacil workflow."
+          git add apps/lotoai-mobile/data/concursos.json apps/lotoai-mobile/public/concursos.json apps/lotoai-mobile/data/tuning.json apps/lotoai-mobile/public/tuning.json
+          if git diff --cached --quiet; then
+            echo "Nada a commitar"
+            exit 0
+          fi
+          MSG="data(lotoai): guru re-tunou "
+          if [ "${{ steps.diff.outputs.changed }}" = "true" ]; then
+            MSG="data(lotoai): import #${{ steps.diff.outputs.last }} + guru re-tunou"
+          fi
+          git commit -m "$MSG · auto-triggered pelo import-lotofacil"
           git push origin HEAD:${{ env.TARGET_BRANCH }}

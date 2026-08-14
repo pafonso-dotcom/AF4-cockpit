@@ -1,0 +1,198 @@
+{
+  "atualizadoEm": "2026-08-14T10:22:45.323Z",
+  "ultimoConcurso": 3197,
+  "totalConcursos": 3197,
+  "janelaBacktest": 100,
+  "jogosPorConcurso": 5,
+  "pesos": {
+    "zonas": 0.1283,
+    "cinco5": 0.1631,
+    "ciclo": 0.2158,
+    "balanceado": 0.1567,
+    "bayesiano": 0.1447,
+    "ponderado": 0.1914
+  },
+  "estatisticas": {
+    "zonas": {
+      "totalApostas": 500,
+      "acertos11plus": 45,
+      "pctPremio": 0.09,
+      "acertosMedio": 8.9,
+      "dist": {
+        "11": 37,
+        "12": 8,
+        "13": 0,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 318,
+      "dt": "0.1"
+    },
+    "cinco5": {
+      "totalApostas": 500,
+      "acertos11plus": 51,
+      "pctPremio": 0.102,
+      "acertosMedio": 8.938,
+      "dist": {
+        "11": 45,
+        "12": 6,
+        "13": 0,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 342,
+      "dt": "0.1"
+    },
+    "ciclo": {
+      "totalApostas": 500,
+      "acertos11plus": 58,
+      "pctPremio": 0.116,
+      "acertosMedio": 9.066,
+      "dist": {
+        "11": 47,
+        "12": 10,
+        "13": 1,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 432,
+      "dt": "0.9"
+    },
+    "balanceado": {
+      "totalApostas": 500,
+      "acertos11plus": 50,
+      "pctPremio": 0.1,
+      "acertosMedio": 8.954,
+      "dist": {
+        "11": 45,
+        "12": 5,
+        "13": 0,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 330,
+      "dt": "0.2"
+    },
+    "bayesiano": {
+      "totalApostas": 500,
+      "acertos11plus": 48,
+      "pctPremio": 0.096,
+      "acertosMedio": 9.006,
+      "dist": {
+        "11": 38,
+        "12": 10,
+        "13": 0,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 348,
+      "dt": "0.3"
+    },
+    "ponderado": {
+      "totalApostas": 500,
+      "acertos11plus": 55,
+      "pctPremio": 0.11,
+      "acertosMedio": 9.034,
+      "dist": {
+        "11": 47,
+        "12": 7,
+        "13": 1,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 396,
+      "dt": "0.1"
+    }
+  },
+  "ranking": [
+    {
+      "estrategia": "ciclo",
+      "nome": "Ciclo Atrasado",
+      "pctPremio": 11.6,
+      "acertosMedio": 9.066,
+      "peso": 0.2158
+    },
+    {
+      "estrategia": "ponderado",
+      "nome": "IA Ponderada",
+      "pctPremio": 11,
+      "acertosMedio": 9.034,
+      "peso": 0.1914
+    },
+    {
+      "estrategia": "cinco5",
+      "nome": "5×5 Balanceada",
+      "pctPremio": 10.2,
+      "acertosMedio": 8.938,
+      "peso": 0.1631
+    },
+    {
+      "estrategia": "balanceado",
+      "nome": "Balanceada",
+      "pctPremio": 10,
+      "acertosMedio": 8.954,
+      "peso": 0.1567
+    },
+    {
+      "estrategia": "bayesiano",
+      "nome": "Bayesiana",
+      "pctPremio": 9.6,
+      "acertosMedio": 9.006,
+      "peso": 0.1447
+    },
+    {
+      "estrategia": "zonas",
+      "nome": "Zonas + Primos",
+      "pctPremio": 9,
+      "acertosMedio": 8.9,
+      "peso": 0.1283
+    }
+  ],
+  "insight": {
+    "cabecalho": "Análise sobre 100 concursos (até #3197)",
+    "paragrafos": [
+      "Nos últimos 100 concursos, a estratégia **Ciclo Atrasado** teve o melhor desempenho: 11.60% das apostas premiadas (≥11 pts), média de 9.07 acertos por jogo. Recebeu peso 22% no Combo IA.",
+      "A menos performática foi **Zonas + Primos** (9.00%), mas mantida com peso mínimo 5% pra diversificação.",
+      "Dezenas quentes nos últimos 30: 12, 24, 25, 01, 06. Frias: 14, 16, 09, 11, 08.",
+      "Dezenas mais atrasadas: 14(6c), 10(4c), 08(3c), 23(2c), 01(1c)."
+    ]
+  },
+  "contexto": {
+    "quentes30": [
+      12,
+      24,
+      25,
+      1,
+      6
+    ],
+    "frias30": [
+      14,
+      16,
+      9,
+      11,
+      8
+    ],
+    "maisAtrasadas": [
+      {
+        "dezena": 14,
+        "atraso": 6
+      },
+      {
+        "dezena": 10,
+        "atraso": 4
+      },
+      {
+        "dezena": 8,
+        "atraso": 3
+      },
+      {
+        "dezena": 23,
+        "atraso": 2
+      },
+      {
+        "dezena": 1,
+        "atraso": 1
+      }
+    ]
+  }
+}
