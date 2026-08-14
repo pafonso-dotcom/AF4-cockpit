@@ -6,7 +6,6 @@ import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import { BANK_BRANDS } from "../../data/banks.js";
 import PageHeader from "../ui/PageHeader.jsx";
-import ActionMenu from "../ui/ActionMenu.jsx";
 import Field from "../ui/Field.jsx";
 import { StatTile } from "../ui/widget.jsx";
 import Modal from "../ui/Modal.jsx";
@@ -644,7 +643,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         title="Cartões"
         sub="Limites, fechamentos e parcelamentos sob controle."
         action={
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap cartoes-acoes" style={{ alignItems: "center" }}>
             <button className="btn-ghost" onClick={() => window.dispatchEvent(new CustomEvent("af4:compra-cartao"))}
                     title="Lançamento rápido de compra no cartão (à vista ou parcelada)">
               <Plus size={12} className="inline mr-2" />Compra
@@ -655,13 +654,31 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
             <button className="btn-gold" onClick={() => setForm({ id: null, nome: "", banco: "outro", limite: "", vencimento: 5, fechamento: 28, tipo: "principal", tags: [], ativo: true })}>
               <Plus size={14} className="inline mr-2" />Novo Cartão
             </button>
-            <ActionMenu itens={[
-              { label: "Análise de fatura com IA", icon: Sparkles, onClick: () => setAnaliseAberta(true) },
-              { label: "Limpar duplicados da fatura", icon: Trash2, danger: true, onClick: limparDuplicadosFatura },
-            ]} />
+            {/* Ex-menu "AÇÕES" (estourava no celular): viraram ícones compactos. */}
+            <button onClick={() => setAnaliseAberta(true)} title="Análise de fatura com IA (importar fatura)"
+                    aria-label="Análise de fatura com IA"
+                    style={{ width: 32, height: 32, borderRadius: 10, background: "transparent", border: `1px solid ${T.border}`, color: T.gold, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <Sparkles size={14} />
+            </button>
+            <button onClick={limparDuplicadosFatura} title="Limpar duplicados da fatura"
+                    aria-label="Limpar duplicados da fatura"
+                    style={{ width: 32, height: 32, borderRadius: 10, background: "transparent", border: `1px solid ${T.red}44`, color: T.red, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <Trash2 size={14} />
+            </button>
           </div>
         }
       />
+
+      {/* Botões do topo compactos no celular (senão estouram a largura). */}
+      <style>{`
+        @media (max-width: 768px) {
+          .cartoes-acoes .btn-ghost, .cartoes-acoes .btn-gold {
+            padding: 6px 10px !important;
+            font-size: 10px !important;
+            letter-spacing: .04em !important;
+          }
+        }
+      `}</style>
 
       {/* Stats — estilo widget (ícone em anel + número fino + sparkline) */}
       <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: 8, marginBottom: 32 }}>
