@@ -1,41 +1,80 @@
 /* ============================================================
-   Importa concursos novos da Caixa via worker proxy
-   - Default: worker af4cockpit no Cloudflare (CORS habilitado)
-   - Override via VITE_LOTOFACIL_API (ex: pra apontar pra outra origem)
-   - Fallback: /api/lotofacil (same-origin, caso o app + worker estejam
-     servidos pelo mesmo domínio via Custom Domain)
+   Importa concursos novos da Lotofácil
+   ─────────────────────────────────────────────────────────────
+   Tenta múltiplos endpoints em ordem até um responder:
+     1. VITE_LOTOFACIL_API se definida (override do dev)
+     2. Worker Cloudflare (af4cockpit) — nosso proxy oficial
+     3. api.guidi.dev.br/loteria — mirror comunitário conhecido, CORS ok
+     4. loteriascaixa-api.herokuapp.com — outro mirror, CORS ok
+     5. /api/lotofacil (same-origin, se app + worker no mesmo domínio)
+   Se todos falharem, propaga o erro do último tentado.
    ============================================================ */
 
-// Se o app tá em github.io, o /api/lotofacil não existe lá — precisamos
-// bater diretamente no worker via cross-origin (CORS já habilitado).
-const WORKER_URL = "https://af4cockpit.p-afonso.workers.dev/api/lotofacil";
-const SAME_ORIGIN = "/api/lotofacil";
+const OVERRIDE = import.meta.env.VITE_LOTOFACIL_API;
 
-const API_BASE = import.meta.env.VITE_LOTOFACIL_API
-  || (typeof location !== "undefined" && location.hostname.endsWith("github.io") ? WORKER_URL : SAME_ORIGIN);
+const ENDPOINTS = [
+  ...(OVERRIDE ? [{ nome: "override", latest: `${OVERRIDE}/latest`, byId: (n) => `${OVERRIDE}/${n}`, parse: parseNosso }] : []),
+  {
+    nome: "worker af4cockpit",
+    latest: "https://af4cockpit.p-afonso.workers.dev/api/lotofacil/latest",
+    byId:  (n) => `https://af4cockpit.p-afonso.workers.dev/api/lotofacil/${n}`,
+    parse: parseNosso,
+  },
+  {
+    nome: "guidi mirror",
+    latest: "https://api.guidi.dev.br/loteria/lotofacil/ultimo",
+    byId:  (n) => `https://api.guidi.dev.br/loteria/lotofacil/${n}`,
+    parse: parseGuidi,
+  },
+  {
+    nome: "heroku mirror",
+    latest: "https://loteriascaixa-api.herokuapp.com/api/lotofacil/latest",
+    byId:  (n) => `https://loteriascaixa-api.herokuapp.com/api/lotofacil/${n}`,
+    parse: parseHeroku,
+  },
+  {
+    nome: "same-origin",
+    latest: "/api/lotofacil/latest",
+    byId:  (n) => `/api/lotofacil/${n}`,
+    parse: parseNosso,
+  },
+];
 
-export async function buscarUltimoConcurso() {
-  const res = await fetch(`${API_BASE}/latest`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return normaliza(await res.json());
-}
-
-export async function buscarConcurso(numero) {
-  const res = await fetch(`${API_BASE}/${numero}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status} para concurso #${numero}`);
-  return normaliza(await res.json());
-}
-
-function normaliza(j) {
+/** Nosso worker devolve { numero, data, dezenas, ... } */
+function parseNosso(j) {
+  if (!j || j.numero == null) return null;
   return {
     numero: Number(j.numero),
-    data: parseDataBR(j.data),
-    dezenas: (j.dezenas || []).map(Number).sort((a, b) => a - b),
+    data: parseDataBR(j.data || j.dataApuracao),
+    dezenas: normalizaDezenas(j.dezenas || j.listaDezenas),
   };
 }
-
+/** guidi.dev.br devolve { concurso: { numero, data, dezenas } } ou plano */
+function parseGuidi(j) {
+  const c = j?.concurso || j;
+  if (!c || (c.numero == null && c.concurso == null)) return null;
+  return {
+    numero: Number(c.numero ?? c.concurso),
+    data: parseDataBR(c.data || c.dataApuracao),
+    dezenas: normalizaDezenas(c.dezenas),
+  };
+}
+/** heroku mirror devolve { concurso, data, dezenas } */
+function parseHeroku(j) {
+  if (!j || j.concurso == null) return null;
+  return {
+    numero: Number(j.concurso),
+    data: parseDataBR(j.data),
+    dezenas: normalizaDezenas(j.dezenas),
+  };
+}
+function normalizaDezenas(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map(Number).filter(n => n >= 1 && n <= 25).sort((a, b) => a - b);
+}
 function parseDataBR(d) {
   if (!d) return null;
+  if (d instanceof Date) return d.toISOString().slice(0, 10);
   const m = String(d).match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
   if (m) {
     const [, dd, mm, yy] = m;
@@ -46,13 +85,37 @@ function parseDataBR(d) {
   return iso ? iso[0] : null;
 }
 
+/** Tenta cada endpoint em ordem até um responder com dados válidos */
+async function tentarEndpoints(getUrl) {
+  const erros = [];
+  for (const ep of ENDPOINTS) {
+    try {
+      const res = await fetch(getUrl(ep), { headers: { Accept: "application/json" } });
+      if (!res.ok) { erros.push(`${ep.nome}: HTTP ${res.status}`); continue; }
+      const j = await res.json();
+      const parsed = ep.parse(j);
+      if (parsed && parsed.dezenas.length === 15) {
+        console.log(`[import] ✓ via ${ep.nome} → #${parsed.numero}`);
+        return parsed;
+      }
+      erros.push(`${ep.nome}: resposta malformada`);
+    } catch (e) {
+      erros.push(`${ep.nome}: ${e.message}`);
+    }
+  }
+  throw new Error("Nenhum endpoint respondeu · " + erros.join(" · "));
+}
+
+export async function buscarUltimoConcurso() {
+  return tentarEndpoints(ep => ep.latest);
+}
+
+export async function buscarConcurso(numero) {
+  return tentarEndpoints(ep => ep.byId(numero));
+}
+
 /**
  * Importa todos os concursos do (ultimoLocal+1) até o mais recente.
- * @param {object[]} historicoAtual  lista já carregada (precisa do último numero)
- * @param {object} opts
- * @param {number} opts.max          limite duro (default 30 — não trava UI)
- * @param {(progresso: { atual, total, novos }) => void} opts.onProgresso
- * @returns {Promise<{ novos, ultimoRemoto, ultimoLocal }>}
  */
 export async function importarNovos(historicoAtual, { max = 30, onProgresso } = {}) {
   const ultimoLocal = historicoAtual.length
@@ -70,7 +133,6 @@ export async function importarNovos(historicoAtual, { max = 30, onProgresso } = 
   const novos = [];
   const total = fim - inicio + 1;
 
-  // o último já veio na primeira chamada
   if (ultimoRemoto.numero >= inicio && ultimoRemoto.numero <= fim) {
     novos.push(ultimoRemoto);
     onProgresso?.({ atual: 1, total, novos: novos.length });
