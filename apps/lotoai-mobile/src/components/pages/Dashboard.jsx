@@ -8,7 +8,7 @@ import { relatorioMatematico, pFechamentoCompletoPeloMenos, pPeloMenosUmPremio, 
 import { gerarJogos } from "../../lib/generator.js";
 import { salvarJogos, mergeConcursos } from "../../lib/supabase.js";
 import { analisarCiclos, distPorLinha, distPorColuna, LINHAS, COLUNAS } from "../../lib/analiseAvancada.js";
-import { loadTuning } from "../../lib/tuning.js";
+import { loadTuning, recomputarTuningLocal, invalidarCacheTuning } from "../../lib/tuning.js";
 import { calcularPlacar } from "../../lib/placar.js";
 import { importarNovos } from "../../lib/import.js";
 
@@ -326,8 +326,19 @@ function PainelPlacar({ historico, onHistoricoUpdate }) {
       const novoPlacar = await calcularPlacar(historicoFinal);
       setPlacar(novoPlacar);
 
+      // Re-tuna o Guru local se importou concursos novos (aprende com os dados novos)
+      if (totalBaixados > 0) {
+        setInfo(`+${totalBaixados} concurso${totalBaixados > 1 ? "s" : ""} · Guru re-aprendendo…`);
+        try {
+          invalidarCacheTuning();
+          await recomputarTuningLocal(historicoFinal, {
+            onProgresso: (p) => setInfo(`Guru avaliando ${p.nome} (${p.i + 1}/${p.total})…`),
+          });
+        } catch (e) { console.warn("[Guru] re-tune falhou:", e); }
+      }
+
       const msg = totalBaixados
-        ? `+${totalBaixados} concurso${totalBaixados > 1 ? "s" : ""} · agora #${ultimoRemotoNum}`
+        ? `✓ +${totalBaixados} concurso${totalBaixados > 1 ? "s" : ""} · agora #${ultimoRemotoNum} · Guru atualizado`
         : `Tudo em dia · último #${ultimoLocalInicial}`;
       setInfo(msg);
       setEstado("done");
