@@ -140,6 +140,9 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
   const txCartao = useMemo(() => {
     return transacoes
       .filter(t => t.cartaoId === cartao.id || t.cartaoNome === cartao.nome)
+      // O PAGAMENTO da fatura não é compra — é a baixa dela (transferência
+      // banco → cartão). Fora da lista de transações da fatura.
+      .filter(t => t.origem !== "fatura-pagamento")
       .filter(t => (t.data || "").startsWith(mesAtual))
       .sort((a, b) => (b.data || "").localeCompare(a.data || ""));
   }, [transacoes, cartao]);
