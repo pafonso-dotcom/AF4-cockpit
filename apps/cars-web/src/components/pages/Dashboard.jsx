@@ -1160,14 +1160,16 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
   const apagarMesVal = aPagarMes?.total || 0;
   // Os 6 totais do "Centro de Controle" — estilo widget: ícone em anel, número
   // fino e mini-sparkline (traço ilustrativo de tendência; série real depois).
+  // Ordem pedida pelo usuário: primeiro o MÊS (a receber, a pagar, cartões),
+  // depois os TOTAIS (a receber, a pagar) e os cheques.
   const resumo = [
-    { id: "areceber",    label: "Total a receber",    valor: totalReceber, cor: T.green, icon: ArrowDownLeft, spark: sparks?.receber },
     { id: "arecebermes", label: "A receber (mês)",     valor: receberMes,   cor: T.gold,  icon: Calendar,     spark: sparks?.receber },
-    { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted, icon: ArrowUpRight, spark: sparks?.pagar },
     { id: "apagarmes",   label: "A pagar (mês)",       valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted, icon: Calendar, spark: sparks?.pagar },
-    // Cartões: destaque no que vence no MÊS SEGUINTE; o total em aberto vai
-    // pra linha de baixo (pedido do usuário).
+    // Cartões: destaque no que está em aberto (mês corrente; senão o seguinte);
+    // o total em aberto vai pra linha de baixo.
     { id: "cartoes",     label: cartoesTile?.label || "Cartões", valor: cartoesTile?.valor || 0, cor: cartoesTotal > 0 ? T.yellow : T.muted, icon: CreditCard, spark: sparks?.cartoes, subRotulo: "total em aberto", subValor: cartoesTotal },
+    { id: "areceber",    label: "Total a receber",    valor: totalReceber, cor: T.green, icon: ArrowDownLeft, spark: sparks?.receber },
+    { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted, icon: ArrowUpRight, spark: sparks?.pagar },
     { id: "cheques",     label: "Cheques",            valor: chequesTotal, cor: chequesTotal > 0 ? (T.blue || "#60a5fa") : T.muted, icon: Receipt, spark: sparks?.cheques },
   ];
 
