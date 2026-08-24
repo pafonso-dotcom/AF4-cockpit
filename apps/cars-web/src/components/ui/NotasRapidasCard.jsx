@@ -4,23 +4,24 @@ import { T } from "../../lib/theme.js";
 import { CARD_SHADOW } from "../../lib/styles.js";
 
 // Bloco de notas rápidas — texto livre salvo automaticamente no localStorage
-// (debounce de 500ms). Serve pra lembretes/rascunhos à mão. A mesma nota
-// aparece onde quer que o card seja usado (chave única).
+// (debounce de 500ms). Serve pra lembretes/rascunhos à mão. Por padrão usa a
+// chave única (mesma nota em todo lugar); passe `storageKey` pra ter uma nota
+// própria do módulo (ex.: Cartões).
 const NOTAS_KEY = "af4:notas-rapidas:v1";
 
-export default function NotasRapidasCard({ style }) {
-  const [txt, setTxt] = useState(() => { try { return localStorage.getItem(NOTAS_KEY) || ""; } catch { return ""; } });
+export default function NotasRapidasCard({ style, storageKey = NOTAS_KEY }) {
+  const [txt, setTxt] = useState(() => { try { return localStorage.getItem(storageKey) || ""; } catch { return ""; } });
   const [salvo, setSalvo] = useState(true);
   const primeiro = useRef(true);
   useEffect(() => {
     if (primeiro.current) { primeiro.current = false; return; }
     setSalvo(false);
     const id = setTimeout(() => {
-      try { localStorage.setItem(NOTAS_KEY, txt); } catch {}
+      try { localStorage.setItem(storageKey, txt); } catch {}
       setSalvo(true);
     }, 500);
     return () => clearTimeout(id);
-  }, [txt]);
+  }, [txt, storageKey]);
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, boxShadow: CARD_SHADOW, ...style }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>

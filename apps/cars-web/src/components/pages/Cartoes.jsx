@@ -11,6 +11,7 @@ import { StatTile } from "../ui/widget.jsx";
 import Modal from "../ui/Modal.jsx";
 import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
 import BankIcon from "../ui/BankIcon.jsx";
+import NotasRapidasCard from "../ui/NotasRapidasCard.jsx";
 import AnaliseFatura from "./AnaliseFatura.jsx";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
 
@@ -1086,6 +1087,12 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           </div>
         )}
       </section>
+
+      {/* Notas rápidas dos cartões — anotações à mão, salvas automaticamente
+          (nota própria deste módulo, separada da nota de Contas). */}
+      <div style={{ marginTop: 20 }}>
+        <NotasRapidasCard storageKey="af4:notas-rapidas:cartoes:v1" />
+      </div>
 
       {/* Card form modal */}
       {form && (
