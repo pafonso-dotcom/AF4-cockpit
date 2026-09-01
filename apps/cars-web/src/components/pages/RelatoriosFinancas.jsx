@@ -289,6 +289,7 @@ export default function RelatoriosFinancas({
       const contasEsc = filtrarPorEscopo(contasRaw || [], escopo);
       const saldoInicial = somaContasBRL(contasEsc);
       let acc = saldoInicial;
+      const deltas = []; // receber − saídas de CADA mês (sem acumular)
       const porMes = meses.map((m, idx) => {
         // Só o que ainda está EM ABERTO (não pago/recebido) — o que já foi
         // pago/recebido já está refletido no saldo das contas (saldoInicial),
@@ -297,10 +298,11 @@ export default function RelatoriosFinancas({
         let saidas = 0, receber = 0;
         try { saidas = getDespesasDoMes(m.iso, stateRaw, escopo).filter(d => d.status !== "paga").reduce((s, d) => s + (Number(d.valor) || 0), 0); } catch {}
         try { receber = getGanhosDoMes(m.iso, stateRaw, escopo, { incluirAtrasados: idx === 0, atrasadosDesde: `${anoProj}-01` }).filter(g => g.status !== "paga").reduce((s, g) => s + (Number(g.valor) || 0), 0); } catch {}
+        deltas.push(receber - saidas);
         acc += receber - saidas;
         return acc;
       });
-      return { saldoInicial, porMes, saldoFinal: porMes[porMes.length - 1] ?? saldoInicial };
+      return { saldoInicial, porMes, deltas, saldoFinal: porMes[porMes.length - 1] ?? saldoInicial };
     };
     const foraPatrimonio = (contasRaw || []).filter(c => c?.foraPatrimonio);
     return {
@@ -369,10 +371,18 @@ export default function RelatoriosFinancas({
       }
     }
     const linhaSaldo = (label, cen) => `<tr class="saldo"><td>${esc(label)} · início ${esc(fmt(cen.saldoInicial))}</td>${cen.porMes.map(v => `<td class="n ${v < 0 ? "neg" : "pos"}">${esc(fmt(v))}</td>`).join("")}<td class="n ${cen.saldoFinal < 0 ? "neg" : "pos"}">${esc(fmt(cen.saldoFinal))}</td></tr>`;
-    // No relatório ANUAL sai só o saldo Pessoal (pedido do usuário); a
-    // impressão de 6 meses mantém também o Pessoal + Negócio.
-    const saldo = linhaSaldo("SALDO PREVISTO · PESSOAL", cens.pessoal)
-      + (anual ? "" : linhaSaldo("SALDO PREVISTO · PESSOAL + NEGÓCIO", cens.tudo))
+    // Saldo do MÊS (não acumulado): o que sobra em cada mês (receber − saídas),
+    // sem puxar o saldo do mês anterior nem o saldo inicial das contas.
+    const linhaSaldoMes = (label, cen) => {
+      const total = (cen.deltas || []).reduce((s, v) => s + v, 0);
+      return `<tr class="saldo"><td>${esc(label)}</td>${(cen.deltas || []).map(v => `<td class="n ${v < 0 ? "neg" : "pos"}">${esc(fmt(v))}</td>`).join("")}<td class="n ${total < 0 ? "neg" : "pos"}">${esc(fmt(total))}</td></tr>`;
+    };
+    // Relatório ANUAL (pedido do usuário): só o saldo Pessoal, mês a mês SEM
+    // acumular. A impressão de 6 meses mantém as duas linhas acumuladas.
+    const saldo = (anual
+        ? linhaSaldoMes("SALDO DO MÊS · PESSOAL (receber − saídas)", cens.pessoal)
+        : linhaSaldo("SALDO PREVISTO · PESSOAL", cens.pessoal)
+          + linhaSaldo("SALDO PREVISTO · PESSOAL + NEGÓCIO", cens.tudo))
       + (cens.bensTotal > 0 ? `<tr><td>BENS (à parte)</td>${meses.map(() => '<td class="n">—</td>').join("")}<td class="n">${esc(fmt(cens.bensTotal))}</td></tr>` : "");
     printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Projeção · Meses a Vencer</title>
 <style>
