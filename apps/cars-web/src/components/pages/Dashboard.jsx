@@ -217,6 +217,41 @@ export default function Dashboard({
       .forEach(t => { s += Number(t.valor) || 0; });
     return s;
   }, [dividas, fixaOcorrencias, fixas, cartoesTotal, transacoes]);
+  // Total a pagar quebrado POR ANO (2026, 2027, …) — mesmos itens do
+  // aPagarTotal, bucketados pelo vencimento/competência de cada um. Item sem
+  // data cai em "sem data" (aparece por último).
+  const aPagarPorAno = useMemo(() => {
+    const anos = {};
+    const add = (iso, v) => {
+      const ano = String(iso || "").slice(0, 4);
+      const key = /^\d{4}$/.test(ano) ? ano : "sem data";
+      anos[key] = (anos[key] || 0) + v;
+    };
+    (dividas || []).filter(d => !d.pago).forEach(d => add(d.vencimento, Number(d.valor) || 0));
+    (fixaOcorrencias || []).filter(o => o.status === "pendente" && (fixas || []).some(f => f.id === o.fixaId))
+      .forEach(o => add(o.mes, Number(o.valor) || 0));
+    (parcelamentos || []).forEach(p => {
+      const total = p.totalParcelas || 0;
+      if (total <= 0) return;
+      const vpp = Number(p.valorParcela) || (p.valorTotal || 0) / total;
+      const pagas = new Set(p.parcelasPagas || []);
+      const base = p.dataPrimeira || p.dataCompra;
+      if (!base) { add("", vpp * Math.max(0, total - pagas.size)); return; }
+      const [bY, bM] = base.split("-").map(Number);
+      const start = p.dataPrimeira ? bM : bM + 1; // sem dataPrimeira, 1ª parcela cai no mês seguinte à compra
+      for (let n = 1; n <= total; n++) {
+        if (pagas.has(n)) continue;
+        const dt = new Date(bY, start - 1 + (n - 1), 1);
+        add(String(dt.getFullYear()), vpp);
+      }
+    });
+    (transacoes || []).filter(t => t.tipo === "despesa" && !t.compensado
+      && !t.origemFixaOcorrenciaId && !t.origemParcelamentoId)
+      .forEach(t => add(t.data, Number(t.valor) || 0));
+    return Object.entries(anos)
+      .sort(([a], [b]) => a.localeCompare(b)) // anos crescentes; "sem data" por último
+      .map(([ano, valor]) => ({ ano, valor }));
+  }, [dividas, fixaOcorrencias, fixas, parcelamentos, transacoes]);
   // patrimonioTotal é calculado mais abaixo, após `stateAgg`.
   const receitasMes = useMemo(() => transacoes.filter(t => t.tipo === "receita" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
   const despesasMes = useMemo(() => transacoes.filter(t => t.tipo === "despesa" && t.origem !== "fatura-pagamento" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
@@ -498,7 +533,7 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
-        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesTile={cartoesTile} sparks={sparks} hidden={hidden}
+        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} aPagarPorAno={aPagarPorAno} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesTile={cartoesTile} sparks={sparks} hidden={hidden}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
       </section>
@@ -1118,7 +1153,7 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, cartoesTile = null, sparks = null, hidden, onSeeAll, onVerPagar }) {
+function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, aPagarPorAno = [], chequesTotal = 0, cartoesTotal = 0, cartoesTile = null, sparks = null, hidden, onSeeAll, onVerPagar }) {
   // Valores começam VISÍVEIS ao abrir a tela (pedido do usuário); o botão do
   // olho continua lá pra esconder. O modo privado global (hidden) segue
   // mandando por cima de tudo.
@@ -1159,7 +1194,9 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
     // o total em aberto vai pra linha de baixo.
     { id: "cartoes",     label: cartoesTile?.label || "Cartões", valor: cartoesTile?.valor || 0, cor: cartoesTotal > 0 ? T.yellow : T.muted, icon: CreditCard, spark: sparks?.cartoes, subRotulo: "total em aberto", subValor: cartoesTotal },
     { id: "areceber",    label: "Total a receber",    valor: totalReceber, cor: T.green, icon: ArrowDownLeft, spark: sparks?.receber },
-    { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted, icon: ArrowUpRight, spark: sparks?.pagar },
+    // Sub-linhas por ano (2026, 2027, …) — só quando há mais de um ano.
+    { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted, icon: ArrowUpRight, spark: sparks?.pagar,
+      subLinhas: (aPagarPorAno || []).length > 1 ? aPagarPorAno.map(x => ({ rotulo: x.ano, valor: x.valor })) : null },
     { id: "cheques",     label: "Cheques",            valor: chequesTotal, cor: chequesTotal > 0 ? (T.blue || "#60a5fa") : T.muted, icon: Receipt, spark: sparks?.cheques },
   ];
 
@@ -1209,6 +1246,16 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
             {b.subValor > 0 && (
               <div className="num" style={{ fontSize: 9.5, color: "rgba(255,255,255,0.78)", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {b.subRotulo}: {oculto ? "•••" : fmt(b.subValor)}
+              </div>
+            )}
+            {b.subLinhas?.length > 0 && (
+              <div style={{ marginTop: 4, paddingTop: 4, borderTop: "1px solid rgba(255,255,255,0.16)", display: "flex", flexDirection: "column", gap: 1.5 }}>
+                {b.subLinhas.map(l => (
+                  <div key={l.rotulo} className="num" style={{ fontSize: 9.5, color: "rgba(255,255,255,0.78)", display: "flex", justifyContent: "space-between", gap: 6, whiteSpace: "nowrap" }}>
+                    <span>{l.rotulo}</span>
+                    <span>{oculto ? "•••" : fmt(l.valor)}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
