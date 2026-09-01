@@ -316,11 +316,16 @@ export default function RelatoriosFinancas({
   const periodoLabel = proximosMeses.length
     ? `${proximosMeses[0].label} a ${proximosMeses[proximosMeses.length - 1].label}` : "";
 
-  // Meses de janeiro a dezembro de um ano — pro "Imprimir ano".
-  const mesesDoAno = (ano) => Array.from({ length: 12 }, (_, i) => ({
-    iso: `${ano}-${String(i + 1).padStart(2, "0")}`,
-    label: `${MESES_PROJ[i]}/${String(ano).slice(2)}`,
-  }));
+  // Meses VIGENTES do ano — pro "Imprimir ano": no ano corrente começa no mês
+  // atual (meses já passados ficam de fora); em ano futuro vai de jan a dez.
+  const mesesDoAno = (ano) => {
+    const now = new Date();
+    const inicio = ano === now.getFullYear() ? now.getMonth() : 0;
+    return Array.from({ length: 12 - inicio }, (_, i) => ({
+      iso: `${ano}-${String(inicio + i + 1).padStart(2, "0")}`,
+      label: `${MESES_PROJ[inicio + i]}/${String(ano).slice(2)}`,
+    }));
+  };
 
   // Imprime a projeção (agrupada) numa única folha A4 (paisagem). Sem
   // argumento usa a janela da tela (6 meses); com `mesesCustom` (ex.: o ano
@@ -330,7 +335,8 @@ export default function RelatoriosFinancas({
     const proj = mesesCustom ? calcProjecao(meses) : projecao;
     const cens = mesesCustom ? calcCenarios(meses) : cenarios;
     const labelPeriodo = meses.length ? `${meses[0].label} a ${meses[meses.length - 1].label}` : "";
-    const compacto = meses.length > 8; // 12 colunas de mês: fonte/padding menores
+    const anual = !!mesesCustom; // impressão do ano (meses vigentes)
+    const compacto = meses.length > 8; // muitas colunas de mês: fonte/padding menores
     const esc = (s) => String(s ?? "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
     const cel = (v) => v ? esc(fmt(v)) : "—";
     // célula abatendo o já pago/recebido no mês — pago vira "—", igual ao app
@@ -363,8 +369,10 @@ export default function RelatoriosFinancas({
       }
     }
     const linhaSaldo = (label, cen) => `<tr class="saldo"><td>${esc(label)} · início ${esc(fmt(cen.saldoInicial))}</td>${cen.porMes.map(v => `<td class="n ${v < 0 ? "neg" : "pos"}">${esc(fmt(v))}</td>`).join("")}<td class="n ${cen.saldoFinal < 0 ? "neg" : "pos"}">${esc(fmt(cen.saldoFinal))}</td></tr>`;
+    // No relatório ANUAL sai só o saldo Pessoal (pedido do usuário); a
+    // impressão de 6 meses mantém também o Pessoal + Negócio.
     const saldo = linhaSaldo("SALDO PREVISTO · PESSOAL", cens.pessoal)
-      + linhaSaldo("SALDO PREVISTO · PESSOAL + NEGÓCIO", cens.tudo)
+      + (anual ? "" : linhaSaldo("SALDO PREVISTO · PESSOAL + NEGÓCIO", cens.tudo))
       + (cens.bensTotal > 0 ? `<tr><td>BENS (à parte)</td>${meses.map(() => '<td class="n">—</td>').join("")}<td class="n">${esc(fmt(cens.bensTotal))}</td></tr>` : "");
     printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Projeção · Meses a Vencer</title>
 <style>
