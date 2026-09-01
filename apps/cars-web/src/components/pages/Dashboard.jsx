@@ -1131,8 +1131,10 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
 }
 
 function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, chequesTotal = 0, cartoesTotal = 0, cartoesTile = null, sparks = null, hidden, onSeeAll, onVerPagar }) {
-  // Valores começam ocultos (•••); botão do olho revela — igual ao Patrimônio.
-  const [revelar, setRevelar] = useState(false);
+  // Valores começam VISÍVEIS ao abrir a tela (pedido do usuário); o botão do
+  // olho continua lá pra esconder. O modo privado global (hidden) segue
+  // mandando por cima de tudo.
+  const [revelar, setRevelar] = useState(true);
   const oculto = hidden || !revelar;
   const hoje = new Date().toISOString().slice(0, 10);
 
