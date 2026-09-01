@@ -199,10 +199,12 @@ export default function RelatoriosFinancas({
     return out;
   }, [anoProj, mesOffset]);
 
-  const projecao = useMemo(() => {
+  // Cálculo parametrizado pela lista de meses — a tela usa a janela de 6
+  // meses (proximosMeses); o "Imprimir ano" recalcula com jan–dez.
+  const calcProjecao = (meses) => {
     const state = { transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, cartoes };
     const map = {}; // chave: `${fonte}||${categoria}`
-    proximosMeses.forEach(m => {
+    meses.forEach(m => {
       let desp = [];
       try { desp = getDespesasDoMes(m.iso, state, escopoAtivo); } catch {}
       desp.forEach(d => {
@@ -219,7 +221,7 @@ export default function RelatoriosFinancas({
         if (d.status === "paga") { r.pagoPorMes[m.iso] = (r.pagoPorMes[m.iso] || 0) + v; r.pagoTotal += v; }
       });
     });
-    const n = proximosMeses.length || 1;
+    const n = meses.length || 1;
     // `aberto` = só o que ainda NÃO foi pago. Tanto os totais quanto as células
     // mostram o aberto: o que já foi pago/recebido no mês vira "—" (não risca).
     const abertoMes = (r, iso) => (r.porMes[iso] || 0) - (r.pagoPorMes[iso] || 0);
@@ -230,15 +232,15 @@ export default function RelatoriosFinancas({
       const rows = todas.filter(r => r.fonte === fonte).sort((a, b) => b.total - a.total);
       if (!rows.length) return null;
       const subTotal = rows.reduce((s, r) => s + r.aberto, 0);
-      const subPorMes = proximosMeses.map(m => rows.reduce((s, r) => s + abertoMes(r, m.iso), 0));
+      const subPorMes = meses.map(m => rows.reduce((s, r) => s + abertoMes(r, m.iso), 0));
       return { fonte, label: FONTE_LABEL[fonte], rows, subTotal, subMedia: subTotal / n, subPorMes };
     }).filter(Boolean);
-    const totaisMes = proximosMeses.map(m => todas.reduce((s, r) => s + abertoMes(r, m.iso), 0));
+    const totaisMes = meses.map(m => todas.reduce((s, r) => s + abertoMes(r, m.iso), 0));
     const totalGeral = todas.reduce((s, r) => s + r.aberto, 0);
 
     // ===== A receber (entradas previstas) — por categoria =====
     const recMap = {};
-    proximosMeses.forEach((m, idx) => {
+    meses.forEach((m, idx) => {
       let gan = [];
       // 1º mês da janela puxa também os ATRASADOS (a-receber vencidos em meses
       // anteriores — inclusive parciais), mas SÓ dentro do ano da projeção
@@ -261,17 +263,19 @@ export default function RelatoriosFinancas({
     const recSubTotal = recRows.reduce((s, r) => s + r.aberto, 0);
     const receber = recRows.length ? {
       rows: recRows,
-      subPorMes: proximosMeses.map(m => recRows.reduce((s, r) => s + recAbertoMes(r, m.iso), 0)),
+      subPorMes: meses.map(m => recRows.reduce((s, r) => s + recAbertoMes(r, m.iso), 0)),
       subTotal: recSubTotal,
       subMedia: recSubTotal / n,
     } : null;
 
     // ===== Saldo previsto (entradas − saídas) =====
-    const saldoMes = proximosMeses.map((m, i) => (receber ? receber.subPorMes[i] : 0) - totaisMes[i]);
+    const saldoMes = meses.map((m, i) => (receber ? receber.subPorMes[i] : 0) - totaisMes[i]);
     const saldoTotal = (receber ? receber.subTotal : 0) - totalGeral;
 
     return { grupos, totaisMes, totalGeral, media: totalGeral / n, receber, saldoMes, saldoTotal, saldoMedia: saldoTotal / n, vazio: todas.length === 0 && !receber };
-  }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, cartoes, escopoAtivo, proximosMeses, anoProj]);
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const projecao = useMemo(() => calcProjecao(proximosMeses), [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, cartoes, escopoAtivo, proximosMeses, anoProj]);
 
   // ===== Cenários de Saldo previsto =====
   // Parte do SALDO ATUAL das contas e acumula (A receber − Saídas) mês a mês.
@@ -279,13 +283,13 @@ export default function RelatoriosFinancas({
   // Usa a MESMA base do Painel (somaContasBRL): respeita "fora do patrimônio"
   // (flag do usuário em Contas, não um chute por nome) e converte contas em
   // moeda estrangeira pra BRL pela cotação.
-  const cenarios = useMemo(() => {
+  const calcCenarios = (meses) => {
     const stateRaw = { transacoes: transacoesRaw, contas: contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, cartoes };
     const cenario = (escopo) => {
       const contasEsc = filtrarPorEscopo(contasRaw || [], escopo);
       const saldoInicial = somaContasBRL(contasEsc);
       let acc = saldoInicial;
-      const porMes = proximosMeses.map((m, idx) => {
+      const porMes = meses.map((m, idx) => {
         // Só o que ainda está EM ABERTO (não pago/recebido) — o que já foi
         // pago/recebido já está refletido no saldo das contas (saldoInicial),
         // contá-lo de novo aqui somaria/descontaria em dobro.
@@ -305,13 +309,28 @@ export default function RelatoriosFinancas({
       bensTotal: foraPatrimonio.reduce((s, c) => s + saldoContaBRL(c), 0),
       bensNomes: foraPatrimonio.map(c => c.nome).join(", "),
     };
-  }, [transacoesRaw, contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, cartoes, proximosMeses, anoProj]);
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const cenarios = useMemo(() => calcCenarios(proximosMeses), [transacoesRaw, contasRaw, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cheques, cartoes, proximosMeses, anoProj]);
 
   const periodoLabel = proximosMeses.length
     ? `${proximosMeses[0].label} a ${proximosMeses[proximosMeses.length - 1].label}` : "";
 
-  // Imprime a projeção (agrupada) numa única folha A4 (paisagem).
-  const imprimirProjecao = () => {
+  // Meses de janeiro a dezembro de um ano — pro "Imprimir ano".
+  const mesesDoAno = (ano) => Array.from({ length: 12 }, (_, i) => ({
+    iso: `${ano}-${String(i + 1).padStart(2, "0")}`,
+    label: `${MESES_PROJ[i]}/${String(ano).slice(2)}`,
+  }));
+
+  // Imprime a projeção (agrupada) numa única folha A4 (paisagem). Sem
+  // argumento usa a janela da tela (6 meses); com `mesesCustom` (ex.: o ano
+  // inteiro) recalcula tudo pra esses meses e aperta a fonte pra caber.
+  const imprimirProjecao = (mesesCustom = null) => {
+    const meses = mesesCustom || proximosMeses;
+    const proj = mesesCustom ? calcProjecao(meses) : projecao;
+    const cens = mesesCustom ? calcCenarios(meses) : cenarios;
+    const labelPeriodo = meses.length ? `${meses[0].label} a ${meses[meses.length - 1].label}` : "";
+    const compacto = meses.length > 8; // 12 colunas de mês: fonte/padding menores
     const esc = (s) => String(s ?? "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
     const cel = (v) => v ? esc(fmt(v)) : "—";
     // célula abatendo o já pago/recebido no mês — pago vira "—", igual ao app
@@ -319,43 +338,43 @@ export default function RelatoriosFinancas({
       const aberto = (r.porMes[iso] || 0) - (r.pagoPorMes?.[iso] || 0);
       return aberto > 0.005 ? esc(fmt(aberto)) : "—";
     };
-    const ths = proximosMeses.map(m => `<th>${esc(m.label)}</th>`).join("");
-    const corpo = projecao.grupos.map(g => {
+    const ths = meses.map(m => `<th>${esc(m.label)}</th>`).join("");
+    const corpo = proj.grupos.map(g => {
       const rows = ocultarPagos ? g.rows.filter(linhaEmAberto) : g.rows;
       if (rows.length === 0) return "";
       const linhas = rows.map(r =>
-        `<tr><td class="cat">${esc(r.cat)}</td>${proximosMeses.map(m => `<td class="n">${celAberto(r, m.iso)}</td>`).join("")}<td class="n tot">${esc(fmt(r.aberto ?? r.total))}</td></tr>`
+        `<tr><td class="cat">${esc(r.cat)}</td>${meses.map(m => `<td class="n">${celAberto(r, m.iso)}</td>`).join("")}<td class="n tot">${esc(fmt(r.aberto ?? r.total))}</td></tr>`
       ).join("");
       const sub = `<tr class="sub"><td>${esc(g.label)} · subtotal</td>${g.subPorMes.map(v => `<td class="n">${cel(v)}</td>`).join("")}<td class="n">${esc(fmt(g.subTotal))}</td></tr>`;
-      const head = `<tr class="grp"><td colspan="${proximosMeses.length + 3}">${esc(g.label)}</td></tr>`;
+      const head = `<tr class="grp"><td colspan="${meses.length + 3}">${esc(g.label)}</td></tr>`;
       return head + linhas + sub;
     }).join("");
-    const rodape = `<tr class="tfoot"><td>TOTAL SAÍDAS</td>${proximosMeses.map((m, i) => `<td class="n">${cel(projecao.totaisMes[i])}</td>`).join("")}<td class="n">${esc(fmt(projecao.totalGeral))}</td></tr>`;
+    const rodape = `<tr class="tfoot"><td>TOTAL SAÍDAS</td>${meses.map((m, i) => `<td class="n">${cel(proj.totaisMes[i])}</td>`).join("")}<td class="n">${esc(fmt(proj.totalGeral))}</td></tr>`;
     let receberHtml = "";
-    if (projecao.receber) {
-      const r = projecao.receber;
+    if (proj.receber) {
+      const r = proj.receber;
       const recRows = ocultarPagos ? r.rows.filter(linhaEmAberto) : r.rows;
       if (recRows.length > 0) {
         const linhas = recRows.map(x =>
-          `<tr><td class="cat">${esc(x.cat)}</td>${proximosMeses.map(m => `<td class="n">${celAberto(x, m.iso)}</td>`).join("")}<td class="n tot">${esc(fmt(x.aberto ?? x.total))}</td></tr>`
+          `<tr><td class="cat">${esc(x.cat)}</td>${meses.map(m => `<td class="n">${celAberto(x, m.iso)}</td>`).join("")}<td class="n tot">${esc(fmt(x.aberto ?? x.total))}</td></tr>`
         ).join("");
         const sub = `<tr class="sub"><td>A receber · subtotal</td>${r.subPorMes.map(v => `<td class="n">${cel(v)}</td>`).join("")}<td class="n">${esc(fmt(r.subTotal))}</td></tr>`;
-        receberHtml = `<tr class="grp grp-rec"><td colspan="${proximosMeses.length + 3}">A receber (entradas previstas)</td></tr>${linhas}${sub}`;
+        receberHtml = `<tr class="grp grp-rec"><td colspan="${meses.length + 3}">A receber (entradas previstas)</td></tr>${linhas}${sub}`;
       }
     }
     const linhaSaldo = (label, cen) => `<tr class="saldo"><td>${esc(label)} · início ${esc(fmt(cen.saldoInicial))}</td>${cen.porMes.map(v => `<td class="n ${v < 0 ? "neg" : "pos"}">${esc(fmt(v))}</td>`).join("")}<td class="n ${cen.saldoFinal < 0 ? "neg" : "pos"}">${esc(fmt(cen.saldoFinal))}</td></tr>`;
-    const saldo = linhaSaldo("SALDO PREVISTO · PESSOAL", cenarios.pessoal)
-      + linhaSaldo("SALDO PREVISTO · PESSOAL + NEGÓCIO", cenarios.tudo)
-      + (cenarios.bensTotal > 0 ? `<tr><td>BENS (à parte)</td>${proximosMeses.map(() => '<td class="n">—</td>').join("")}<td class="n">${esc(fmt(cenarios.bensTotal))}</td></tr>` : "");
+    const saldo = linhaSaldo("SALDO PREVISTO · PESSOAL", cens.pessoal)
+      + linhaSaldo("SALDO PREVISTO · PESSOAL + NEGÓCIO", cens.tudo)
+      + (cens.bensTotal > 0 ? `<tr><td>BENS (à parte)</td>${meses.map(() => '<td class="n">—</td>').join("")}<td class="n">${esc(fmt(cens.bensTotal))}</td></tr>` : "");
     printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Projeção · Meses a Vencer</title>
 <style>
 @page { size: A4 landscape; margin: 9mm; }
 body { font-family:${FONTE_ARRED_PRINT}; color:#111; margin:0; }
 h1 { font-size:15px; margin:0 0 2px; }
 .sub-head { color:#666; font-size:10.5px; margin:0 0 8px; }
-table { width:100%; border-collapse:collapse; font-size:10.5px; }
-th,td { padding:3px 6px; border-bottom:1px solid #e5e5e5; }
-th { text-transform:uppercase; font-size:8.5px; letter-spacing:.04em; color:#666; text-align:right; }
+table { width:100%; border-collapse:collapse; font-size:${compacto ? "8.5px" : "10.5px"}; }
+th,td { padding:${compacto ? "2px 3px" : "3px 6px"}; border-bottom:1px solid #e5e5e5; }
+th { text-transform:uppercase; font-size:${compacto ? "7.5px" : "8.5px"}; letter-spacing:.04em; color:#666; text-align:right; }
 th:first-child, td.cat { text-align:left; }
 /* Nome da categoria sempre numa linha só (não quebrar). */
 td.cat { padding-left:10px; white-space:nowrap; }
@@ -364,13 +383,13 @@ td.tot { font-weight:700; }
 tr.grp td { background:#f1ede6; font-weight:700; text-transform:uppercase; font-size:9px; letter-spacing:.05em; border-bottom:1px solid #d8cfbf; }
 tr.grp-rec td { background:#e9f0ea; border-bottom:1px solid #cfe0d2; }
 tr.sub td { font-weight:600; border-top:1px solid #ccc; background:#faf8f4; }
-.tfoot td { font-weight:700; border-top:2px solid #111; border-bottom:none; font-size:11px; }
-tr.saldo td { font-weight:700; border-top:1px solid #111; border-bottom:none; font-size:11px; background:#fbfaf7; }
+.tfoot td { font-weight:700; border-top:2px solid #111; border-bottom:none; font-size:${compacto ? "9px" : "11px"}; }
+tr.saldo td { font-weight:700; border-top:1px solid #111; border-bottom:none; font-size:${compacto ? "9px" : "11px"}; background:#fbfaf7; }
 td.pos { color:#1f7a44; }
 td.neg { color:#b3261e; }
 </style></head><body>
 <h1>Projeção · Meses a Vencer — por categoria</h1>
-<div class="sub-head">Saídas previstas (fixas, parcelas, dívidas, avulsas) e entradas a receber · ${esc(periodoLabel)} · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</div>
+<div class="sub-head">Saídas previstas (fixas, parcelas, dívidas, avulsas) e entradas a receber · ${esc(labelPeriodo)} · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</div>
 <table><thead><tr><th>Categoria</th>${ths}<th>Total</th></tr></thead>
 <tbody>${corpo}${rodape}${receberHtml}${saldo}</tbody></table>
 </body></html>`);
@@ -418,8 +437,13 @@ td.neg { color:#b3261e; }
                              color: ocultarPagos ? T.gold : T.muted, fontSize: 12, borderRadius: 10, cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
               {ocultarPagos ? "Só em aberto" : "Mostrar tudo"}
             </button>
-            <button onClick={imprimirProjecao} className="btn-gold" style={{ padding: "8px 14px", fontSize: 12 }}>
+            <button onClick={() => imprimirProjecao()} className="btn-gold" style={{ padding: "8px 14px", fontSize: 12 }}>
               🖨️ Imprimir (A4 · 1 folha)
+            </button>
+            <button onClick={() => imprimirProjecao(mesesDoAno(anoProj))} className="btn-ghost"
+                    title={`Imprime janeiro a dezembro de ${anoProj} numa folha A4 (paisagem, fonte compacta)`}
+                    style={{ padding: "8px 14px", fontSize: 12, whiteSpace: "nowrap" }}>
+              🖨️ Imprimir ano ({anoProj})
             </button>
           </div>
         </div>
