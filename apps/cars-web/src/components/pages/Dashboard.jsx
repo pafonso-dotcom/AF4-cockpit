@@ -10,7 +10,7 @@ import { somaContasBRL } from "../../lib/cambio.js";
 import { gerarInsights } from "../../lib/intelligence.js";
 import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
-import { getKPIsMes, getDespesasDoMes, getGanhosDoMes, getAnualPorMes } from "../../lib/agregador.js";
+import { getKPIsMes, getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
 import { calcOrcamentoCategorias } from "../../lib/orcamentos.js";
 import { useLayout } from "../../lib/useLayout.js";
 import { supabase } from "../../lib/supabase.js";
@@ -129,10 +129,8 @@ export default function Dashboard({
   const patrimonio = totalContas + totalInvest;
 
   // ===== Patrimônio Total (card do painel) =====
-  // Soma pedida: contas + a receber + investimento − a pagar, com A receber e
-  // A pagar recortados pelo ANO CORRENTE (por vencimento). Contas e
-  // investimentos entram pelo valor cheio atual (invest já convertido em R$).
-  const anoAtual = hoje.getFullYear();
+  // Soma: contas + a receber + cheques + investimento (Brasil, em R$) − TUDO
+  // a pagar em aberto no sistema (todos os anos).
   // A receber: TODOS os recebíveis em aberto (independente do ano) — o que já
   // foi recebido (parcial ou total) não soma.
   const aReceber = useMemo(() => {
@@ -219,7 +217,7 @@ export default function Dashboard({
       .forEach(t => { s += Number(t.valor) || 0; });
     return s;
   }, [dividas, fixaOcorrencias, fixas, cartoesTotal, transacoes]);
-  // aPagarAno e patrimonioTotal são calculados mais abaixo, após `stateAgg`.
+  // patrimonioTotal é calculado mais abaixo, após `stateAgg`.
   const receitasMes = useMemo(() => transacoes.filter(t => t.tipo === "receita" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
   const despesasMes = useMemo(() => transacoes.filter(t => t.tipo === "despesa" && t.origem !== "fatura-pagamento" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
 
@@ -268,21 +266,11 @@ export default function Dashboard({
     });
     return { receber, pagar, cartoes: cartoesS, cheques: chequesS };
   }, [mesISO, stateAgg, escopoAtivo, parcelamentos, cheques]);
-  // A pagar do ano: compromissos pendentes/atrasados (fixas, variáveis, parcelas
-  // e dívidas) do MÊS CORRENTE em diante. Meses já fechados (passados) não somam
-  // — o que já passou/pagou já está refletido no saldo. Mesma regra do "riscado
-  // não soma" do Relatório.
-  const aPagarAno = useMemo(() => {
-    try {
-      const anual = getAnualPorMes(anoAtual, stateAgg, escopoAtivo);
-      return anual
-        .filter(mo => mo.status !== "fechado")
-        .reduce((s, mo) => s + mo.despesas
-          .filter(d => d.status === "pendente" || d.status === "atrasada")
-          .reduce((ss, d) => ss + (Number(d.valor) || 0), 0), 0);
-    } catch { return 0; }
-  }, [anoAtual, stateAgg, escopoAtivo]);
-  const patrimonioTotal = totalContas + totalInvest + aReceber + chequesAReceber - aPagarAno;
+  // Patrimônio REAL (pedido do usuário · 2026-09-01): desconta TUDO a pagar
+  // lançado no sistema (todos os anos — mesma base do "Total a pagar" do
+  // Centro de Controle), não só o ano corrente. A receber/cheques já entram
+  // completos.
+  const patrimonioTotal = totalContas + totalInvest + aReceber + chequesAReceber - aPagarTotal;
   const mesAnteriorISO = useMemo(() => {
     const [y, m] = mesISO.split("-").map(Number);
     const d = new Date(y, m - 2, 1);
@@ -498,7 +486,7 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
-                 breakdown={{ contas: totalContas, aReceber: aReceber, cheques: chequesAReceber, invest: totalInvest, aPagar: aPagarAno }} />
+                 breakdown={{ contas: totalContas, aReceber: aReceber, cheques: chequesAReceber, invest: totalInvest, aPagar: aPagarTotal }} />
         <span className="dash-prox">
           <ProximosVencimentosCard devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} />
         </span>
@@ -722,7 +710,7 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
           <Linha rotulo="A receber" v={breakdown.aReceber} sinal="+" />
           {breakdown.cheques > 0 && <Linha rotulo="Cheques a receber" v={breakdown.cheques} sinal="+" />}
           <Linha rotulo="Investimentos (Brasil)" v={breakdown.invest} sinal="+" />
-          <Linha rotulo="A pagar (ano)" v={breakdown.aPagar} sinal="-" />
+          <Linha rotulo="A pagar (total)" v={breakdown.aPagar} sinal="-" />
         </div>
       )}
     </div>
