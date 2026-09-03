@@ -377,12 +377,11 @@ export default function RelatoriosFinancas({
       const total = (cen.deltas || []).reduce((s, v) => s + v, 0);
       return `<tr class="saldo"><td>${esc(label)}</td>${(cen.deltas || []).map(v => `<td class="n ${v < 0 ? "neg" : "pos"}">${esc(fmt(v))}</td>`).join("")}<td class="n ${total < 0 ? "neg" : "pos"}">${esc(fmt(total))}</td></tr>`;
     };
-    // Relatório ANUAL (pedido do usuário): só o saldo Pessoal, mês a mês SEM
-    // acumular. A impressão de 6 meses mantém as duas linhas acumuladas.
+    // Saldo em escopo pessoal, sem a linha "Pessoal + Negócio" (pedido do
+    // usuário): anual = mês a mês sem acumular; 6 meses = acumulado.
     const saldo = (anual
-        ? linhaSaldoMes("SALDO DO MÊS · PESSOAL (receber − saídas)", cens.pessoal)
-        : linhaSaldo("SALDO PREVISTO · PESSOAL", cens.pessoal)
-          + linhaSaldo("SALDO PREVISTO · PESSOAL + NEGÓCIO", cens.tudo))
+        ? linhaSaldoMes("SALDO DO MÊS (receber − saídas)", cens.pessoal)
+        : linhaSaldo("SALDO PREVISTO", cens.pessoal))
       + (cens.bensTotal > 0 ? `<tr><td>BENS (à parte)</td>${meses.map(() => '<td class="n">—</td>').join("")}<td class="n">${esc(fmt(cens.bensTotal))}</td></tr>` : "");
     printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Projeção · Meses a Vencer</title>
 <style>
@@ -578,10 +577,11 @@ td.neg { color:#b3261e; }
                   );
                 })()}
 
-                {/* Saldo previsto · 2 cenários — parte do saldo atual das contas e acumula (receber − saídas). */}
+                {/* Saldo previsto — uma linha só (escopo pessoal): parte do saldo
+                    atual das contas e acumula (receber − saídas). A linha
+                    "Pessoal + Negócio" saiu a pedido do usuário (2026-09-03). */}
                 {[
-                  { label: "Saldo previsto · Pessoal", cen: cenarios.pessoal },
-                  { label: "Saldo previsto · Pessoal + Negócio", cen: cenarios.tudo },
+                  { label: "Saldo previsto", cen: cenarios.pessoal },
                 ].map((sc, idx) => (
                   <tr key={sc.label} style={{ borderTop: idx === 0 ? `2px solid ${T.ink}` : "none" }}>
                     <td style={{ fontWeight: 700, color: T.ink, fontSize: 10.5, letterSpacing: ".03em" }}>
