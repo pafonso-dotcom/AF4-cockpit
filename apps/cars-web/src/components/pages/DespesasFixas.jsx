@@ -230,7 +230,7 @@ export default function DespesasFixas({
     });
   };
 
-  const handleConfirmarPagamento = ({ dataPagto, valorPago, lancarNoBanco, conta }) => {
+  const handleConfirmarPagamento = ({ dataPagto, valorPago, lancarNoBanco, conta, parcial }) => {
     const occ = fixaOcorrencias.find(o => o.id === pagandoOccId);
     if (!occ) return;
     const fixa = fixasPorId[occ.fixaId];
@@ -244,14 +244,14 @@ export default function DespesasFixas({
       novaTx = {
         id: `tx-${Date.now()}`,
         tipo: "despesa",
-        descricao: fixa.descricao,
+        descricao: parcial ? `${fixa.descricao} (parcial)` : fixa.descricao,
         valor: valorPago,
         data: dataPagto,
         categoria: fixa.categoria,
         conta,
         compensado: true,
         fixa: false,
-        obs: `Pagamento de fixa: ${fixa.descricao} · ${occ.mes}`,
+        obs: `${parcial ? "Baixa parcial" : "Pagamento"} de fixa: ${fixa.descricao} · ${occ.mes}`,
         origemFixaOcorrenciaId: occ.id,
       };
       setTransacoes([...(transacoes || []), novaTx]);
@@ -259,11 +259,21 @@ export default function DespesasFixas({
     }
 
     // 2. Atualiza a ocorrência
-    const novasOcc = fixaOcorrencias.map(o =>
-      o.id === occ.id
-        ? { ...o, status: "paga", dataPagamento: dataPagto, valorPago, transacaoId }
-        : o
-    );
+    //    Baixa PARCIAL: continua pendente com o restante; o já pago acumula em
+    //    valorPagoParcial (histórico). Quitação: marca paga como sempre.
+    const restante = +(Math.max(0, (Number(occ.valor) || 0) - valorPago)).toFixed(2);
+    const novasOcc = fixaOcorrencias.map(o => {
+      if (o.id !== occ.id) return o;
+      if (parcial) {
+        return {
+          ...o,
+          valor: restante,
+          valorPagoParcial: +(((Number(o.valorPagoParcial) || 0) + valorPago).toFixed(2)),
+          ultimaBaixaParcial: dataPagto,
+        };
+      }
+      return { ...o, status: "paga", dataPagamento: dataPagto, valorPago, transacaoId };
+    });
     setFixaOcorrencias(novasOcc);
 
     setPagandoOccId(null);
@@ -272,7 +282,9 @@ export default function DespesasFixas({
     const backupOcc = fixaOcorrencias;
     const backupTx = transacoes;
     toast.success(
-      `${fixa.descricao} marcada como paga${lancarNoBanco ? ` · ${fmt(valorPago)} debitado de ${conta}` : " (sem lançar no banco)"}.`,
+      parcial
+        ? `Baixa parcial de ${fmt(valorPago)} em ${fixa.descricao} · resta ${fmt(restante)}${lancarNoBanco ? ` · debitado de ${conta}` : ""}.`
+        : `${fixa.descricao} marcada como paga${lancarNoBanco ? ` · ${fmt(valorPago)} debitado de ${conta}` : " (sem lançar no banco)"}.`,
       {
         action: {
           label: "Desfazer",
@@ -455,6 +467,11 @@ export default function DespesasFixas({
                       ? `Pago ${(occ.dataPagamento || "").slice(8,10)}/${(occ.dataPagamento || "").slice(5,7)}`
                       : `Vence ${occ.dataVencimento.slice(8,10)}/${occ.dataVencimento.slice(5,7)}`}
                   </div>
+                  {!isPaga && Number(occ.valorPagoParcial) > 0 && (
+                    <div className="num" style={{ fontSize: 9.5, color: T.gold, marginTop: 1 }}>
+                      já abatido {hidden ? "•••" : fmt(occ.valorPagoParcial)}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: "inline-flex", gap: 5, flexShrink: 0 }}>

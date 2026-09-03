@@ -34,10 +34,13 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
   const [dataPagto, setDataPagto] = useState(hojeISO);
   const [valorPagoForm, setValorPagoForm] = useState(ocorrencia.valor ?? "");
   const [lancarNoBanco, setLancarNoBanco] = useState(lancarDefault);
+  const [parcial, setParcial] = useState(false);
   const contaInicial = fixa?.contaPadrao || (contas && contas[0]?.nome) || "";
   const [conta, setConta] = useState(contaInicial);
 
   const valorPago = Number(valorPagoForm) || 0;
+  const valorPrevisto = Number(ocorrencia.valor) || 0;
+  const restante = +(valorPrevisto - valorPago).toFixed(2);
 
   const [m, a] = (() => {
     const [an, mn] = (ocorrencia.mes || "").split("-");
@@ -53,6 +56,10 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
       toast.error("Selecione uma conta para lançar no banco.");
       return;
     }
+    if (parcial && valorPago >= valorPrevisto) {
+      toast.error("Na baixa parcial o valor pago deve ser MENOR que o previsto — pra quitar, desmarque a baixa parcial.");
+      return;
+    }
     // Persiste preferência
     try { localStorage.setItem(LS_LANCAR_KEY, JSON.stringify(lancarNoBanco)); } catch {}
 
@@ -61,6 +68,7 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
       valorPago,
       lancarNoBanco,
       conta: lancarNoBanco ? conta : null,
+      parcial,
     });
     onClose?.();
   };
@@ -92,6 +100,30 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
         <input value={fixa.categoria || "—"} readOnly
                style={{ opacity: 0.7, cursor: "not-allowed" }} />
       </Field>
+
+      {/* Baixa parcial: paga uma parte e o restante continua pendente. */}
+      <div style={{
+        marginTop: 12, padding: "10px 14px",
+        background: T.bgSoft, border: `1px solid ${parcial ? T.gold : T.border}`, borderRadius: 14,
+      }}>
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+          <input type="checkbox" checked={parcial}
+                 onChange={e => setParcial(e.target.checked)}
+                 style={{ accentColor: T.gold, marginTop: 3 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: T.ink, fontSize: 13, fontWeight: 600 }}>
+              Baixa parcial — pagar só uma parte agora
+            </div>
+            <div style={{ fontSize: 11.5, color: T.muted, marginTop: 4, lineHeight: 1.5 }}>
+              {parcial
+                ? (restante > 0
+                    ? <>→ Abate <strong>{fmt(valorPago)}</strong> e a conta continua <strong style={{ color: T.gold }}>pendente</strong> com <strong>{fmt(restante)}</strong>.</>
+                    : <>Informe um valor MENOR que o previsto ({fmt(valorPrevisto)}).</>)
+                : <>Desmarcado, o pagamento quita a conta do mês.</>}
+            </div>
+          </div>
+        </label>
+      </div>
 
       {/* Bloco dourado: lançar no banco? */}
       <div style={{
@@ -125,7 +157,7 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
             <div style={{ fontSize: 11.5, color: T.muted, marginTop: 8, lineHeight: 1.5, overflowWrap: "break-word" }}>
               {lancarNoBanco
                 ? <>→ Será criada uma transação de <strong>despesa {fmt(valorPago || 0)}</strong> em <strong>{conta || "(conta)"}</strong> no dia {dataPagto}, debitando o saldo.</>
-                : <>→ A fixa só será marcada como paga aqui, sem afetar o extrato bancário.</>}
+                : <>→ A fixa só será {parcial ? "abatida" : "marcada como paga"} aqui, sem afetar o extrato bancário.</>}
             </div>
           </div>
         </label>
@@ -140,7 +172,7 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
             letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 600,
             cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
           }}>
-          <Check size={14} /> Confirmar pagamento
+          <Check size={14} /> {parcial ? "Confirmar baixa parcial" : "Confirmar pagamento"}
         </button>
       </div>
     </Modal>
