@@ -378,10 +378,10 @@ export default function RelatoriosFinancas({
       return `<tr class="saldo"><td>${esc(label)}</td>${(cen.deltas || []).map(v => `<td class="n ${v < 0 ? "neg" : "pos"}">${esc(fmt(v))}</td>`).join("")}<td class="n ${total < 0 ? "neg" : "pos"}">${esc(fmt(total))}</td></tr>`;
     };
     // Saldo em escopo pessoal, sem a linha "Pessoal + Negócio" (pedido do
-    // usuário): sempre a linha do mês (sem acumular); a de 6 meses ganha
-    // também o acumulado.
+    // usuário): os DOIS saldos em toda impressão — o do mês (sem acumular,
+    // sem saldo das contas) e o previsto (acumulado a partir das contas).
     const saldo = linhaSaldoMes("SALDO DO MÊS (receber − saídas)", cens.pessoal)
-      + (anual ? "" : linhaSaldo("SALDO PREVISTO", cens.pessoal))
+      + linhaSaldo("SALDO PREVISTO", cens.pessoal)
       + (cens.bensTotal > 0 ? `<tr><td>BENS (à parte)</td>${meses.map(() => '<td class="n">—</td>').join("")}<td class="n">${esc(fmt(cens.bensTotal))}</td></tr>` : "");
     printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Projeção · Meses a Vencer</title>
 <style>
