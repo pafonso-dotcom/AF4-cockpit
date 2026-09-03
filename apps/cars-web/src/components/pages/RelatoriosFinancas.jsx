@@ -378,10 +378,10 @@ export default function RelatoriosFinancas({
       return `<tr class="saldo"><td>${esc(label)}</td>${(cen.deltas || []).map(v => `<td class="n ${v < 0 ? "neg" : "pos"}">${esc(fmt(v))}</td>`).join("")}<td class="n ${total < 0 ? "neg" : "pos"}">${esc(fmt(total))}</td></tr>`;
     };
     // Saldo em escopo pessoal, sem a linha "Pessoal + Negócio" (pedido do
-    // usuário): anual = mês a mês sem acumular; 6 meses = acumulado.
-    const saldo = (anual
-        ? linhaSaldoMes("SALDO DO MÊS (receber − saídas)", cens.pessoal)
-        : linhaSaldo("SALDO PREVISTO", cens.pessoal))
+    // usuário): sempre a linha do mês (sem acumular); a de 6 meses ganha
+    // também o acumulado.
+    const saldo = linhaSaldoMes("SALDO DO MÊS (receber − saídas)", cens.pessoal)
+      + (anual ? "" : linhaSaldo("SALDO PREVISTO", cens.pessoal))
       + (cens.bensTotal > 0 ? `<tr><td>BENS (à parte)</td>${meses.map(() => '<td class="n">—</td>').join("")}<td class="n">${esc(fmt(cens.bensTotal))}</td></tr>` : "");
     printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Projeção · Meses a Vencer</title>
 <style>
@@ -577,13 +577,34 @@ td.neg { color:#b3261e; }
                   );
                 })()}
 
+                {/* Saldo do MÊS — o que sobra/falta em CADA mês (receber − saídas),
+                    sem acumular nem saldo inicial. */}
+                {(() => {
+                  const deltas = cenarios.pessoal.deltas || [];
+                  const totalDeltas = deltas.reduce((s, v) => s + v, 0);
+                  return (
+                    <tr style={{ borderTop: `2px solid ${T.ink}` }}>
+                      <td style={{ fontWeight: 700, color: T.ink, fontSize: 10.5, letterSpacing: ".03em" }}>
+                        Saldo do mês
+                        <span style={{ display: "block", fontSize: 9, color: T.muted, fontWeight: 400 }}>
+                          receber − saídas
+                        </span>
+                      </td>
+                      {deltas.map((v, i) => (
+                        <td key={i} className="num" style={{ textAlign: "right", fontWeight: 700, color: v < 0 ? "#b3261e" : "#1f7a44" }}>{hidden ? "•••" : fmt(v)}</td>
+                      ))}
+                      <td className="num" style={{ textAlign: "right", fontWeight: 700, color: totalDeltas < 0 ? "#b3261e" : "#1f7a44" }}>{hidden ? "•••" : fmt(totalDeltas)}</td>
+                    </tr>
+                  );
+                })()}
+
                 {/* Saldo previsto — uma linha só (escopo pessoal): parte do saldo
                     atual das contas e acumula (receber − saídas). A linha
                     "Pessoal + Negócio" saiu a pedido do usuário (2026-09-03). */}
                 {[
                   { label: "Saldo previsto", cen: cenarios.pessoal },
-                ].map((sc, idx) => (
-                  <tr key={sc.label} style={{ borderTop: idx === 0 ? `2px solid ${T.ink}` : "none" }}>
+                ].map((sc) => (
+                  <tr key={sc.label}>
                     <td style={{ fontWeight: 700, color: T.ink, fontSize: 10.5, letterSpacing: ".03em" }}>
                       {sc.label}
                       <span style={{ display: "block", fontSize: 9, color: T.muted, fontWeight: 400 }}>
