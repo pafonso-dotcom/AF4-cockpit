@@ -2,7 +2,16 @@
 // Docs: https://ai.google.dev/api/rest
 
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
-const MODEL = "gemini-2.5-flash";
+// Modelos em ordem de preferência. Se o primeiro estiver fora do ar/saturado
+// (503/500) ou tiver sido aposentado (404), cai automaticamente pro próximo —
+// o 503 persistente de setembro/2026 no gemini-2.5-flash travava a importação
+// de extrato/fatura por dias.
+const MODELS = [
+  "gemini-2.5-flash",
+  "gemini-flash-latest",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
+];
 
 const KEY_LS = "af4:gemini-key";
 
@@ -14,17 +23,22 @@ function getKey(opts = {}) {
  * Traduz status HTTP do Gemini em mensagem útil pro usuário final.
  */
 function erroAmigavel(status, body = "") {
-  if (status === 503) return new Error("IA temporariamente sobrecarregada. Aguarde 2-3 minutos e tente novamente.");
-  if (status === 429) return new Error("Limite de uso do Gemini atingido (1.500/dia grátis). Aguarde alguns minutos.");
-  if (status === 401 || status === 403) return new Error("Chave do Gemini inválida. Verifique em ⚙ Configurações → Inteligência Artificial.");
+  const criar = (msg) => {
+    const err = new Error(msg);
+    err.status = status; // usado pelo fallback de modelos
+    return err;
+  };
+  if (status === 503) return criar("IA temporariamente sobrecarregada. Aguarde 2-3 minutos e tente novamente.");
+  if (status === 429) return criar("Limite de uso do Gemini atingido (1.500/dia grátis). Aguarde alguns minutos.");
+  if (status === 401 || status === 403) return criar("Chave do Gemini inválida. Verifique em ⚙ Configurações → Inteligência Artificial.");
   if (status === 400 && /has no pages|no pages/i.test(body)) {
-    return new Error("O Gemini não conseguiu ler esse PDF (provavelmente protegido, escaneado sem OCR, ou corrompido). Tente: (1) abrir o PDF e re-salvar, (2) mandar print/imagem JPG/PNG, ou (3) colar o texto da fatura.");
+    return criar("O Gemini não conseguiu ler esse PDF (provavelmente protegido, escaneado sem OCR, ou corrompido). Tente: (1) abrir o PDF e re-salvar, (2) mandar print/imagem JPG/PNG, ou (3) colar o texto da fatura.");
   }
   if (status === 400 && /invalid.*image|unsupported|image format/i.test(body)) {
-    return new Error("Formato de imagem não suportado pelo Gemini. Use JPG ou PNG.");
+    return criar("Formato de imagem não suportado pelo Gemini. Use JPG ou PNG.");
   }
   // Default
-  return new Error(`Erro Gemini ${status}: tente novamente (${(body || "").slice(0, 120)})`);
+  return criar(`Erro Gemini ${status}: tente novamente (${(body || "").slice(0, 120)})`);
 }
 
 /**
@@ -127,6 +141,40 @@ export async function fetchComRetry(url, opts, maxTentativas = 3) {
   throw ultimoErro || new Error("Falha em todas as tentativas");
 }
 
+/**
+ * POST no Gemini com FALLBACK de modelo: tenta cada modelo da lista (com o
+ * retry transitório do fetchComRetry); se o modelo falhar com erro que sugere
+ * indisponibilidade DELE (503/500/404/429), passa pro próximo. Erros
+ * permanentes (chave inválida, PDF ilegível…) interrompem na hora.
+ */
+async function postGemini(key, body) {
+  let ultimoErro = null;
+  for (let i = 0; i < MODELS.length; i++) {
+    const model = MODELS[i];
+    try {
+      return await fetchComRetry(
+        `${ENDPOINT}/${model}:generateContent?key=${encodeURIComponent(key)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+        // 1º modelo ganha os retries normais; alternativas só 1 tentativa
+        // (se também estiverem fora, melhor falhar rápido e avisar).
+        i === 0 ? 3 : 1
+      );
+    } catch (e) {
+      ultimoErro = e;
+      if ([503, 500, 404, 429].includes(e.status) && i < MODELS.length - 1) {
+        console.warn(`[gemini] ${model} indisponível (${e.status}) · tentando ${MODELS[i + 1]}`);
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw ultimoErro;
+}
+
 export async function gerarTextoGemini(prompt, opts = {}) {
   const key = getKey(opts);
   if (!key) throw new Error("Chave do Gemini não configurada");
@@ -140,14 +188,7 @@ export async function gerarTextoGemini(prompt, opts = {}) {
     },
   };
 
-  const res = await fetchComRetry(
-    `${ENDPOINT}/${MODEL}:generateContent?key=${encodeURIComponent(key)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }
-  );
+  const res = await postGemini(key, body);
 
   const data = await res.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -202,14 +243,7 @@ async function _gerarJSONGeminiComArquivo(prompt, base64, mimeType, opts = {}) {
     },
   };
 
-  const res = await fetchComRetry(
-    `${ENDPOINT}/${MODEL}:generateContent?key=${encodeURIComponent(key)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }
-  );
+  const res = await postGemini(key, body);
 
   const data = await res.json();
   const texto = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
