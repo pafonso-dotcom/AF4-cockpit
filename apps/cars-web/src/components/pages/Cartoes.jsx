@@ -112,6 +112,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
   const [parcGrupoOverride, setParcGrupoOverride] = useState({});
   const toggleParcGrupo = (key, abertoPadrao) =>
     setParcGrupoOverride(prev => ({ ...prev, [key]: !(key in prev ? prev[key] : abertoPadrao) }));
+  // Compras já quitadas ficam agrupadas no fim de cada cartão, recolhidas.
+  const [quitadasAbertas, setQuitadasAbertas] = useState({});
+  const toggleQuitadas = (key) =>
+    setQuitadasAbertas(prev => ({ ...prev, [key]: !prev[key] }));
 
   // Used limit per card from active installments
   const usedByCard = useMemo(() => {
@@ -977,10 +981,18 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         {hidden ? "•••" : fmt(totalGrupo)} <span style={{ fontSize: 9.5, color: T.faint, fontWeight: 500 }}>a pagar</span>
                       </span>
                     </div>
-                    {/* Compras do cartão (escondidas quando recolhido) */}
-                    {aberto && (
-                    <div className="space-y-2" style={{ marginTop: 6 }}>
-                    {grupo.itens.map(p => {
+                    {/* Compras do cartão (escondidas quando recolhido). Quitadas
+                        vão agrupadas pro FIM, recolhidas — não enchem a tela. */}
+                    {aberto && (() => {
+                      const ehQuitada = (p) => {
+                        const pagas = (p.parcelasPagas || []).length;
+                        return (p.totalParcelas || 0) > 0 && pagas >= p.totalParcelas;
+                      };
+                      const emCurso = grupo.itens.filter(p => !ehQuitada(p));
+                      const quitadas = grupo.itens.filter(ehQuitada);
+                      const quitadasTotal = quitadas.reduce((s, p) => s + (Number(p.valorTotal) || 0), 0);
+                      const qAberto = !!quitadasAbertas[grupo.chave];
+                      const renderCompra = (p) => {
               const valorParcela = p.valorTotal / p.totalParcelas;
               const pagas = p.parcelasPagas?.length || 0;
               const pctPago = (pagas / p.totalParcelas) * 100;
@@ -1077,9 +1089,43 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   </div>
                 </div>
               );
-            })}
-                    </div>
-                    )}
+                      };
+                      return (
+                        <div className="space-y-2" style={{ marginTop: 6 }}>
+                          {emCurso.map(renderCompra)}
+                          {emCurso.length === 0 && (
+                            <div style={{ fontSize: 11.5, color: T.muted, fontStyle: "italic", padding: "6px 2px" }}>
+                              Nenhuma compra em aberto neste cartão.
+                            </div>
+                          )}
+                          {quitadas.length > 0 && (
+                            <div>
+                              <div onClick={() => toggleQuitadas(grupo.chave)}
+                                   style={{
+                                     display: "flex", justifyContent: "space-between", alignItems: "center",
+                                     padding: "8px 12px", background: T.bgSoft, border: `1px dashed ${T.border}`,
+                                     cursor: "pointer", gap: 8, opacity: 0.85,
+                                   }}>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                                  <ChevronDown size={13} style={{ color: T.muted, transform: qAberto ? "none" : "rotate(-90deg)", transition: "transform .15s" }} />
+                                  <span style={{ fontSize: 11.5, fontWeight: 600, color: T.green }}>
+                                    ✅ {quitadas.length} {quitadas.length === 1 ? "compra quitada" : "compras quitadas"}
+                                  </span>
+                                </span>
+                                <span className="num" style={{ fontSize: 11.5, color: T.muted }}>
+                                  {hidden ? "•••" : fmt(quitadasTotal)}
+                                </span>
+                              </div>
+                              {qAberto && (
+                                <div className="space-y-2" style={{ marginTop: 6, opacity: 0.8 }}>
+                                  {quitadas.map(renderCompra)}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               });
