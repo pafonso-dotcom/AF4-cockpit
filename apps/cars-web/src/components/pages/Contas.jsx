@@ -419,10 +419,18 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               {!ehBRL(c) && <span style={{ fontSize: 12, marginRight: 3 }} aria-hidden="true">{bandeira(c.moeda)}</span>}
               {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
             </div>
-            {(selo || !ehBRL(c) || c.instituicao) && (
+            {/* Conta em moeda estrangeira: conversão em R$ LOGO ABAIXO do saldo
+                (linha própria, legível — pedido do usuário 2026-09-08). */}
+            {!ehBRL(c) && (
+              <div className="num" style={{ fontSize: 11.5, marginTop: 1, color: Number(c.cotacao) > 0 ? T.muted : T.gold, whiteSpace: "nowrap" }}>
+                {Number(c.cotacao) > 0
+                  ? <>≈ {hidden ? "•••" : fmt(saldoContaBRL(c))} <span style={{ fontSize: 9, color: T.faint }}>({c.moeda} {fmt(c.cotacao)})</span></>
+                  : "sem cotação — edite a conta"}
+              </div>
+            )}
+            {(selo || c.instituicao) && (
               <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                 {selo && <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>{selo}</span>}
-                {!ehBRL(c) && <span style={{ fontSize: 9, color: Number(c.cotacao) > 0 ? T.muted : T.gold }}>{Number(c.cotacao) > 0 ? `≈ ${hidden ? "•••" : fmt(saldoContaBRL(c))}` : "sem cotação"}</span>}
                 {c.instituicao && !selo && <span style={{ fontSize: 9, color: T.faint, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.instituicao}</span>}
               </div>
             )}
@@ -591,6 +599,18 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               placeholder="Ex.: 1.500,00 ou 1500"
             />
           </Field>
+          {/* Preview da conversão pra R$ (conta em moeda estrangeira) */}
+          {form.moeda && form.moeda !== "BRL" && (() => {
+            const saldoNum = parseValorBR(form.saldo) || 0;
+            const cotNum = parseValorBR(form.cotacao) || 0;
+            return (
+              <div className="num" style={{ marginTop: -6, marginBottom: 10, fontSize: 12, color: cotNum > 0 ? T.muted : T.gold }}>
+                {cotNum > 0
+                  ? <>≈ <strong style={{ color: T.ink }}>{fmt(saldoNum * cotNum)}</strong> em reais (cotação {fmt(cotNum)})</>
+                  : "Informe a cotação acima pra ver a conversão em reais."}
+              </div>
+            );
+          })()}
           <Field label="Cor">
             <ColorPicker value={form.cor} onChange={cor => setForm({ ...form, cor })} />
           </Field>
