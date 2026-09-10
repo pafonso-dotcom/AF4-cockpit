@@ -46,15 +46,22 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
 
   // Agrupa por mês de vencimento (lista já vem ordenada, então as chaves saem
   // em ordem cronológica). Cada mês vira um card com cabeçalho e subtotal.
+  // Cheques JÁ COMPENSADOS vão pro FIM da listagem (seção própria), pra não
+  // se misturarem com os que ainda vão entrar (pedido do usuário 2026-09-10).
   const porMes = useMemo(() => {
-    const map = new Map();
-    lista.forEach(c => {
-      const k = (c.vencimento || "").slice(0, 7) || "sem-data";
-      if (!map.has(k)) map.set(k, []);
-      map.get(k).push(c);
-    });
-    return Array.from(map.entries());
+    const grupos = [];
+    const idx = new Map();
+    const add = (sec, c) => {
+      const mesK = (c.vencimento || "").slice(0, 7) || "sem-data";
+      const k = `${sec}|${mesK}`;
+      if (!idx.has(k)) { idx.set(k, grupos.length); grupos.push({ k, sec, mesK, chs: [] }); }
+      grupos[idx.get(k)].chs.push(c);
+    };
+    lista.filter(c => c.status !== "compensado").forEach(c => add("abertos", c));
+    lista.filter(c => c.status === "compensado").forEach(c => add("compensados", c));
+    return grupos;
   }, [lista]);
+  const primeiroComp = useMemo(() => porMes.findIndex(g => g.sec === "compensados"), [porMes]);
 
   const totalAguardando = doEscopo.filter(c => c.status === "aguardando").reduce((s, c) => s + (Number(c.valor) || 0), 0);
   const vencidos = doEscopo.filter(c => c.status === "aguardando" && (c.vencimento || "") < hoje);
@@ -257,17 +264,25 @@ tr.comp td.situ { text-decoration:none; color:#1f7a44; }
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {porMes.map(([mesK, chs]) => {
+          {porMes.map(({ k, sec, mesK, chs }, gi) => {
             const subtotal = chs.reduce((s, c) => s + (Number(c.valor) || 0), 0);
+            const ehComp = sec === "compensados";
             return (
-              <div key={mesK} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+              <React.Fragment key={k}>
+              {gi === primeiroComp && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: T.green, whiteSpace: "nowrap" }}>✅ Já compensados</span>
+                  <span style={{ flex: 1, borderTop: `1px dashed ${T.border}` }} />
+                </div>
+              )}
+              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden", opacity: ehComp ? 0.8 : 1 }}>
                 {/* Cabeçalho do mês + subtotal */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "8px 12px", background: T.bgSoft, borderBottom: `1px solid ${T.border}` }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: T.ink, textTransform: "capitalize" }}>
                     {nomeMesAno(mesK)}
-                    <span style={{ color: T.faint, fontWeight: 500, textTransform: "none" }}> · {chs.length} {chs.length === 1 ? "cheque" : "cheques"}</span>
+                    <span style={{ color: T.faint, fontWeight: 500, textTransform: "none" }}> · {chs.length} {chs.length === 1 ? "cheque" : "cheques"}{ehComp ? " compensados" : ""}</span>
                   </span>
-                  <span className="num" style={{ fontSize: 12.5, fontWeight: 700, color: T.gold }}>{hidden ? "•••" : fmt(subtotal)}</span>
+                  <span className="num" style={{ fontSize: 12.5, fontWeight: 700, color: ehComp ? T.green : T.gold }}>{hidden ? "•••" : fmt(subtotal)}</span>
                 </div>
                 {/* Cheques do mês */}
                 <div style={{ display: "flex", flexDirection: "column" }}>
@@ -324,6 +339,7 @@ tr.comp td.situ { text-decoration:none; color:#1f7a44; }
           })}
                 </div>
               </div>
+              </React.Fragment>
             );
           })}
         </div>
