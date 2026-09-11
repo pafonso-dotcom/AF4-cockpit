@@ -3,7 +3,7 @@ import { Search, Star, TrendingUp, TrendingDown, Loader2, ArrowUpRight } from "l
 import { T } from "../../lib/theme.js";
 import { fmt, fmtP } from "../../lib/format.js";
 import PageHeader from "../ui/PageHeader.jsx";
-import { getQuotes, getHistorico } from "../../lib/brapi.js";
+import { getQuotes, getHistorico, buscarSimbolos } from "../../lib/brapi.js";
 import { carregarWatchlist, salvarWatchlist, adicionarPapel } from "../../lib/mercadoWatchlist.js";
 
 const CARD = { background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16 };
@@ -58,6 +58,7 @@ export default function PesquisadorMercado({ onIrConstrutor, embutido = false, w
   const [ticker, setTicker] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
+  const [sugestoes, setSugestoes] = useState([]);
   const [quote, setQuote] = useState(null);
   const [hist, setHist] = useState([]);
   const [watch, setWatch] = useState(() => carregarWatchlist());
@@ -69,11 +70,21 @@ export default function PesquisadorMercado({ onIrConstrutor, embutido = false, w
   const watchAtual = watchExterna ?? watch;
   const naWatchlist = quote && watchAtual.some((x) => x.symbol === quote.symbol);
 
-  async function pesquisar(e) {
+  // Ticker inexistente na brapi (ex.: recibo de subscrição HGRE12): busca
+  // símbolos parecidos pelo radical e mostra como chips clicáveis.
+  async function sugerirParecidos(tk) {
+    try {
+      const radical = tk.replace(/\d+[A-Z]?$/, "") || tk.slice(0, 4);
+      const encontrados = await buscarSimbolos(radical);
+      setSugestoes((encontrados || []).filter(s => s !== tk).slice(0, 6));
+    } catch { /* sugestão é bônus — falhou, segue só com o erro */ }
+  }
+
+  async function pesquisar(e, tkForcado) {
     e?.preventDefault();
-    const tk = ticker.trim().toUpperCase();
+    const tk = (tkForcado || ticker).trim().toUpperCase();
     if (!tk) return;
-    setLoading(true); setErro(null); setQuote(null); setHist([]);
+    setLoading(true); setErro(null); setQuote(null); setHist([]); setSugestoes([]);
     try {
       const [qs, h] = await Promise.all([
         getQuotes([tk]),
@@ -81,12 +92,14 @@ export default function PesquisadorMercado({ onIrConstrutor, embutido = false, w
       ]);
       if (!qs || qs.length === 0) {
         setErro(`Nada encontrado para "${tk}". Confira o ticker (ex.: PETR4, ITUB4, HGLG11).`);
+        await sugerirParecidos(tk);
       } else {
         setQuote(qs[0]);
         setHist(h);
       }
     } catch (err) {
       setErro(err?.message || "Falha ao consultar a BRAPI.");
+      if (err?.status === 404) await sugerirParecidos(tk);
     } finally {
       setLoading(false);
     }
@@ -134,6 +147,18 @@ export default function PesquisadorMercado({ onIrConstrutor, embutido = false, w
       {erro && (
         <div style={{ ...CARD, marginTop: 12, background: `${T.red}12`, border: `1px solid ${T.red}40`, color: T.ink, fontSize: 13 }}>
           {erro}
+          {sugestoes.length > 0 && (
+            <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              <span style={{ fontSize: 12, color: T.muted }}>Você quis dizer:</span>
+              {sugestoes.map(s => (
+                <button key={s} type="button" onClick={() => { setTicker(s); pesquisar(null, s); }}
+                        style={{ background: `${T.gold}18`, color: T.gold, border: `1px solid ${T.gold}66`,
+                                 borderRadius: 999, padding: "4px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

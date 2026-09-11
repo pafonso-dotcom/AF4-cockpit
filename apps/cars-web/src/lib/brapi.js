@@ -39,9 +39,22 @@ async function brapiFetch(path) {
       throw new Error(`BRAPI recusou o acesso (${r.status})${msg ? `: ${msg}` : ""}. Confira o token em ⚙ Configurações → APIs.`);
     }
     if (r.status === 429) throw new Error("Limite de requisições da BRAPI atingido. Aguarde ou confira sua cota em brapi.dev.");
-    throw new Error(`BRAPI ${r.status}: ${msg || err.slice(0, 150)}`);
+    const e2 = new Error(`BRAPI ${r.status}: ${msg || err.slice(0, 150)}`);
+    e2.status = r.status; // deixa o chamador tratar 404 (ticker inexistente) com sugestão
+    throw e2;
   }
   return r.json();
+}
+
+/**
+ * Busca símbolos parecidos com o termo (ex.: "HGRE" → ["HGRE11", …]).
+ * Usa o /available da brapi — serve pra sugerir o ticker certo quando a
+ * pesquisa dá 404 (ex.: recibo de subscrição XXXX12, que a brapi não indexa).
+ */
+export async function buscarSimbolos(termo) {
+  if (!termo) return [];
+  const data = await brapiFetch(`/available?search=${encodeURIComponent(termo)}`);
+  return data?.stocks || [];
 }
 
 export async function getQuotes(tickers) {
