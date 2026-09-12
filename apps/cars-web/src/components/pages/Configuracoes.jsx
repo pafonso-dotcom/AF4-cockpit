@@ -10,6 +10,7 @@ import {
 } from "../../lib/gistSync.js";
 import { migrarTudo } from "../../lib/db/migrate.js";
 import { tabelasNovasExistem, snapshotContagens } from "../../lib/db/client.js";
+import { lembretesAtivos, setLembretesAtivos, pedirPermissao, suportaNotificacao } from "../../lib/lembretes.js";
 
 /**
  * Configurações centralizadas (estilo demo v3).
@@ -37,8 +38,11 @@ export default function Configuracoes({
         <APIs apiKeys={apiKeys} setApiKeys={setApiKeys} />
       )}
       {subtab === "cfg-modulos" && (
-        <Modulos modulesEnabled={modulesEnabled} setModulesEnabled={setModulesEnabled}
-                 onClearModule={onClearModule} />
+        <>
+          <Modulos modulesEnabled={modulesEnabled} setModulesEnabled={setModulesEnabled}
+                   onClearModule={onClearModule} />
+          <LembretesCfg />
+        </>
       )}
       {subtab === "cfg-backup" && (
         <>
@@ -426,6 +430,52 @@ function APIs({ apiKeys, setApiKeys }) {
 }
 
 /* ============ MÓDULOS ============ */
+/* ============ Lembretes de vencimento ============ */
+function LembretesCfg() {
+  const [ativo, setAtivo] = useState(lembretesAtivos());
+  const [perm, setPerm] = useState(() => (suportaNotificacao() ? Notification.permission : "unsupported"));
+
+  const alternar = async () => {
+    if (!ativo) {
+      const p = await pedirPermissao();
+      setPerm(p);
+      if (p !== "granted") {
+        toast.error(p === "unsupported"
+          ? "Este navegador não suporta notificação local (no iPhone, use o sino de alertas do app)."
+          : "Permissão de notificação negada no navegador — libere nas configurações do site.");
+        return;
+      }
+    }
+    const novo = !ativo;
+    setLembretesAtivos(novo);
+    setAtivo(novo);
+    if (novo) toast.success("Lembretes ligados: aviso de fixas, faturas, cheques e dívidas até 2 dias antes do vencimento.");
+    else toast.success("Lembretes desligados.");
+  };
+
+  return (
+    <>
+      <div className="st"><h2>Lembretes de vencimento</h2><div className="mt">Notificação do sistema</div></div>
+      <div className="fb">
+        <h4>🔔 Avisos de vencimento</h4>
+        <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 12, lineHeight: 1.6 }}>
+          Com o app aberto, avisa por notificação do sistema as <strong>fixas pendentes</strong>, <strong>faturas de cartão</strong>, <strong>cheques aguardando</strong> e <strong>dívidas</strong> que vencem de hoje até 2 dias (1 aviso por item por dia).
+          Funciona em computador e Android; o Safari do iPhone não suporta — lá o sino 🔔 do topo continua sendo o aviso.
+        </p>
+        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13.5, color: T.ink, fontWeight: 600 }}>
+          <input type="checkbox" checked={ativo} onChange={alternar} style={{ width: 18, height: 18, accentColor: T.gold }} />
+          Ligar lembretes de vencimento
+        </label>
+        {ativo && perm !== "granted" && suportaNotificacao() && (
+          <div style={{ marginTop: 8, fontSize: 11.5, color: T.yellow || "#f59e0b" }}>
+            ⚠ Permissão do navegador: {perm === "denied" ? "negada — libere nas configurações do site" : "pendente"}.
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 function Modulos({ modulesEnabled, setModulesEnabled, onClearModule }) {
   const modulos = [
     { id: "financas", label: "Finanças", desc: "Contas, cartões, transações, categorias, calendário, despesas, análise IA" },
