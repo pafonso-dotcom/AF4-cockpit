@@ -153,14 +153,11 @@ function HeaderHorizontal({
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
       { id: "carteira",       label: "Carteira",            icon: Briefcase },
-      { id: "monte-carteira", label: "Monte sua Carteira",  icon: Package },
-      { id: "planejador",     label: "Planejador",          icon: Target },
+      { id: "monte-carteira", label: "Planejar",            icon: Package },
       { id: "analises",       label: "Análises",            icon: Radar },
-      { id: "proventos",      label: "Proventos",           icon: DollarSign },
-      { id: "mapa-dividendos", label: "Renda & Dividendos", icon: Calendar },
+      { id: "proventos",      label: "Proventos & Renda",  icon: DollarSign },
       { id: "simulador",      label: "Simuladores",         icon: Calculator },
-      { id: "screener",       label: "Screener",            icon: Radar },
-      { id: "construtor-mercado",  label: "Construtor de mercado",  icon: HandCoins },
+      { id: "construtor-mercado",  label: "Mercado",           icon: HandCoins },
       { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
     ],
     negocio: [
@@ -668,14 +665,11 @@ function HeaderVertical({
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
       { id: "carteira",       label: "Carteira",            icon: Briefcase },
-      { id: "monte-carteira", label: "Monte sua Carteira",  icon: Package },
-      { id: "planejador",     label: "Planejador",          icon: Target },
+      { id: "monte-carteira", label: "Planejar",            icon: Package },
       { id: "analises",       label: "Análises",            icon: Radar },
-      { id: "proventos",      label: "Proventos",           icon: DollarSign },
-      { id: "mapa-dividendos", label: "Renda & Dividendos", icon: Calendar },
+      { id: "proventos",      label: "Proventos & Renda",  icon: DollarSign },
       { id: "simulador",      label: "Simuladores",         icon: Calculator },
-      { id: "screener",       label: "Screener",            icon: Radar },
-      { id: "construtor-mercado",  label: "Construtor de mercado",  icon: HandCoins },
+      { id: "construtor-mercado",  label: "Mercado",           icon: HandCoins },
       { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
     ],
     negocio: [
@@ -856,8 +850,10 @@ function HeaderVertical({
                       {mSubtabs.map((s, si) => {
                         const SIcon = s.icon;
                         const sAtivo = s.agenda ? AGENDA_TAB_IDS.has(tab)
-                          // "objetivos"/"modelo" são atalhos pro hub Monte sua Carteira
-                          : s.id === "monte-carteira" ? ["monte-carteira", "objetivos", "modelo"].includes(tab)
+                          // Abas antigas viram atalhos pros hubs fundidos (auditoria 2026-09).
+                          : s.id === "monte-carteira" ? ["monte-carteira", "objetivos", "modelo", "planejador"].includes(tab)
+                          : s.id === "proventos" ? ["proventos", "mapa-dividendos", "projecao"].includes(tab)
+                          : s.id === "construtor-mercado" ? ["construtor-mercado", "pesquisador-mercado", "mercado", "screener"].includes(tab)
                           : s.id === tab;
                         const pending = pendingCounts[s.id] || 0;
                         const sUlt = si === mSubtabs.length - 1;
