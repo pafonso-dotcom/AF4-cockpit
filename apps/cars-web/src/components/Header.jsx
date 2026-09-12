@@ -134,13 +134,13 @@ function HeaderHorizontal({
 
   const SUBTABS = {
     financas: [
-      // Ordem fixada pelo usuário: Painel, Contas, Cartões, Centro de controle,
+      // Ordem fixada pelo usuário: Painel, Contas, Cartões, Planejamento,
       // Cheques, Relatórios, Agenda — e depois o resto.
       { id: "dashboard",    label: "Painel",       icon: Activity },
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "emprestimos",  label: "Empréstimos",  icon: HandCoins },
-      { id: "planejamento", label: "Centro de controle", icon: Target },
+      { id: "planejamento", label: "Planejamento", icon: Target },
       { id: "relatorios-f", label: "Análises & Relatórios", icon: BarChart3 },
       // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
       // que ficam escondidas até clicar aqui.
@@ -649,13 +649,13 @@ function HeaderVertical({
 
   const SUBTABS = {
     financas: [
-      // Ordem fixada pelo usuário: Painel, Contas, Cartões, Centro de controle,
+      // Ordem fixada pelo usuário: Painel, Contas, Cartões, Planejamento,
       // Cheques, Relatórios, Agenda — e depois o resto.
       { id: "dashboard",    label: "Painel",       icon: Activity },
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
       { id: "emprestimos",  label: "Empréstimos",  icon: HandCoins },
-      { id: "planejamento", label: "Centro de controle", icon: Target },
+      { id: "planejamento", label: "Planejamento", icon: Target },
       { id: "relatorios-f", label: "Análises & Relatórios", icon: BarChart3 },
       // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
       // que ficam escondidas até clicar aqui.

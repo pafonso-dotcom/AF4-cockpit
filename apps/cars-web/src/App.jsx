@@ -117,6 +117,7 @@ import { EXERCICIOS_BASE } from "./lib/exerciciosBase.js";
 import LojaSelector from "./components/pages/Negocio/LojaSelector.jsx";
 import GerenciarLojasModal from "./components/pages/Negocio/GerenciarLojasModal.jsx";
 import { filtrarPorLoja } from "./lib/negocioLojas.js";
+import { dispararLembretes } from "./lib/lembretes.js";
 
 // Fallback enquanto o chunk de uma aba (lazy) é baixado.
 function PageFallback() {
@@ -184,6 +185,19 @@ export default function App() {
     } catch {}
     return () => window.removeEventListener("af4:compra-cartao", abrir);
   }, []);
+
+  // Lembretes de vencimento (notificação do sistema): checa na abertura
+  // (com folga pros dados carregarem) e a cada 6h com o app aberto.
+  // A opção liga/desliga fica em Configurações; sem permissão, é no-op.
+  useEffect(() => {
+    const checar = () => {
+      try { dispararLembretes({ fixas, fixaOcorrencias, cartoes, cheques, dividas }); } catch {}
+    };
+    const t = setTimeout(checar, 8000);
+    const int = setInterval(checar, 6 * 60 * 60 * 1000);
+    return () => { clearTimeout(t); clearInterval(int); };
+  }, [fixas, fixaOcorrencias, cartoes, cheques, dividas]);
+
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modulesEnabled, setModulesEnabled] = useState({ financas: true, invest: true });
   const [apiKeys, setApiKeys] = useState({ brapi: "", alphavantage: "", anthropic: "", useRealMarket: true });
