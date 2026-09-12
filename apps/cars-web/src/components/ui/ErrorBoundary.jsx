@@ -15,6 +15,33 @@ export default class ErrorBoundary extends React.Component {
   componentDidCatch(error, info) {
     // Em produção, você poderia mandar para Sentry/LogRocket aqui.
     console.error("Afinanças crashed:", error, info);
+    // AUTO-CURA de versão misturada: quando o service worker antigo serve
+    // metade do app velho e metade novo (típico logo após um deploy), o
+    // sintoma é erro de inicialização/chunk ("Cannot access 'X' before
+    // initialization", "Failed to fetch dynamically imported module"…).
+    // Nesses casos limpa SW + caches e recarrega UMA vez (trava por sessão
+    // pra não entrar em loop se o erro for outro).
+    const msg = String(error?.message || "");
+    const pareceVersaoMisturada =
+      /before initialization|dynamically imported module|importing a module script failed|chunk|Unexpected token '<'/i.test(msg);
+    if (!pareceVersaoMisturada) return;
+    let jaTentou = false;
+    try { jaTentou = sessionStorage.getItem("af4:autocura:v1") === "1"; } catch {}
+    if (jaTentou) return;
+    try { sessionStorage.setItem("af4:autocura:v1", "1"); } catch {}
+    (async () => {
+      try {
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+        if (typeof caches !== "undefined") {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch {}
+      window.location.reload();
+    })();
   }
 
   reset = () => this.setState({ hasError: false, error: null });
