@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Package, Target, ClipboardList } from "lucide-react";
+import { Package, Target, ClipboardList, Calculator } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import PageHeader from "../../ui/PageHeader.jsx";
 
 import MonteSuaCarteira from "./MonteSuaCarteira.jsx";
 import ObjetivosCarteira from "./ObjetivosCarteira.jsx";
 import CarteiraModelo from "./CarteiraModelo.jsx";
+import Planejador from "./Planejador.jsx";
 
 const VIEWS = [
-  { id: "monte",     label: "Monte (mix)",        icon: Package },
-  { id: "objetivos", label: "Objetivos (árvore)", icon: Target },
-  { id: "modelo",    label: "Carteira Modelo",    icon: ClipboardList },
+  { id: "monte",      label: "Monte (mix)",         icon: Package },
+  { id: "objetivos",  label: "Objetivos (árvore)",  icon: Target },
+  { id: "modelo",     label: "Carteira Modelo",     icon: ClipboardList },
+  { id: "planejador", label: "Planejador (aportes)", icon: Calculator },
 ];
 
 /**
@@ -25,6 +27,7 @@ export default function PlanejarCarteira({
   objetivosCarteira, setObjetivosCarteira,
   carteirasModeloCustom, setCarteirasModeloCustom,
   modeloAtivoId, setModeloAtivoId,
+  transacoes = [],
   viewInicial,
 }) {
   const [view, setView] = useState(viewInicial || "monte");
@@ -39,8 +42,8 @@ export default function PlanejarCarteira({
     <div className="fade-up py-8">
       <PageHeader
         eyebrow="Investimentos"
-        title="Monte sua Carteira"
-        sub="Três jeitos de planejar a mesma alocação — mix por perfil, árvore de objetivos ou carteira-modelo com tickers."
+        title="Planejar"
+        sub="Quatro jeitos de planejar — mix por perfil, árvore de objetivos, carteira-modelo com tickers e o planejador de aportes."
       />
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 22 }}>
@@ -88,6 +91,7 @@ export default function PlanejarCarteira({
             apiKeys={apiKeys}
           />
         )}
+        {view === "planejador" && <Planejador transacoes={transacoes} hidden={hidden} />}
       </div>
     </div>
   );

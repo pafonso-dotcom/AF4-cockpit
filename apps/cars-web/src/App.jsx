@@ -84,19 +84,19 @@ const Despesas = lz(() => import("./components/pages/Despesas.jsx"));
 const Planejamento = lz(() => import("./components/pages/Planejamento/index.jsx"));
 const AnaliseFatura = lz(() => import("./components/pages/AnaliseFatura.jsx"));
 const Investimentos = lz(() => import("./components/pages/Investimentos.jsx"));
-const Screener = lz(() => import("./components/pages/Invest/Screener.jsx"));
+const MercadoHub = lz(() => import("./components/pages/Invest/MercadoHub.jsx"));
 const Simuladores = lz(() => import("./components/pages/Invest/Simuladores.jsx"));
 const AnalisesUnificada = lz(() => import("./components/pages/Invest/Analises.jsx"));
 const PlanejarCarteira = lz(() => import("./components/pages/Invest/PlanejarCarteira.jsx"));
-const Planejador = lz(() => import("./components/pages/Invest/Planejador.jsx"));
+
 const InvestPainel = lz(() => import("./components/pages/Invest/InvestPainel.jsx"));
 const Emprestimos = lz(() => import("./components/pages/Emprestimos.jsx"));
-const Proventos = lz(() => import("./components/pages/Invest/Proventos.jsx"));
+const ProventosHub = lz(() => import("./components/pages/Invest/ProventosHub.jsx"));
 const MapaDividendos = lz(() => import("./components/pages/Invest/MapaDividendos.jsx"));
-const RendaDividendos = lz(() => import("./components/pages/Invest/RendaDividendos.jsx"));
+
 const RelatoriosInvest = lz(() => import("./components/pages/Invest/RelatoriosInvest.jsx"));
 const AnalisesFinancas = lz(() => import("./components/pages/AnalisesFinancas.jsx"));
-const ConstrutorMercado = lz(() => import("./components/pages/ConstrutorMercado.jsx"));
+
 const CartaoExtrato = lz(() => import("./components/pages/CartaoExtrato.jsx"));
 const ContaExtrato = lz(() => import("./components/pages/ContaExtrato.jsx"));
 const PergunteAoClaude = lz(() => import("./components/pages/PergunteAoClaude.jsx"));
@@ -1180,9 +1180,9 @@ export default function App() {
                          hidden={hidden} />
         </div>
       )}
-      {/* Hub único de planejamento de alocação — as abas antigas "objetivos"
-          e "modelo" continuam válidas como atalhos pra view interna certa. */}
-      {(tab === "monte-carteira" || tab === "objetivos" || tab === "modelo") && (
+      {/* Hub único de planejamento — abas antigas "objetivos", "modelo" e
+          "planejador" continuam válidas como atalhos pra view interna certa. */}
+      {(tab === "monte-carteira" || tab === "objetivos" || tab === "modelo" || tab === "planejador") && (
         <div className="px-6 md:px-10">
           <PlanejarCarteira
             ativos={ativos}
@@ -1194,46 +1194,38 @@ export default function App() {
             setCarteirasModeloCustom={setCarteirasModeloCustom}
             modeloAtivoId={modeloAtivoId}
             setModeloAtivoId={setModeloAtivoId}
-            viewInicial={tab === "objetivos" ? "objetivos" : tab === "modelo" ? "modelo" : "monte"}
+            transacoes={transacoes}
+            viewInicial={tab === "objetivos" ? "objetivos" : tab === "modelo" ? "modelo" : tab === "planejador" ? "planejador" : "monte"}
           />
         </div>
       )}
-      {tab === "proventos" && (
-        <Proventos
-          ativos={ativos} setAtivos={setAtivos}
-          hidden={hidden}
-          carteiraProventos={carteiraProventos}
-          setCarteiraProventos={setCarteiraProventos}
-          proventosRecebidos={proventosRecebidos}
-          setProventosRecebidos={setProventosRecebidos}
-          proventosIgnorados={proventosIgnorados}
-          setProventosIgnorados={setProventosIgnorados}
-          proventosManuais={proventosManuais}
-          setProventosManuais={setProventosManuais}
-          contas={contas} setContas={setContas}
-          categorias={categorias}
-          transacoes={transacoes} setTransacoes={setTransacoes}
+      {/* Hub Proventos & Renda — "mapa-dividendos"/"projecao" viram atalhos
+          pra view "renda" (o botão Projetar da Carteira continua funcionando). */}
+      {(tab === "proventos" || tab === "mapa-dividendos" || tab === "projecao") && (
+        <ProventosHub
+          viewInicial={tab === "proventos" ? "recebidos" : "renda"}
+          proventosProps={{
+            ativos, setAtivos, hidden,
+            carteiraProventos, setCarteiraProventos,
+            proventosRecebidos, setProventosRecebidos,
+            proventosIgnorados, setProventosIgnorados,
+            proventosManuais, setProventosManuais,
+            contas, setContas, categorias,
+            transacoes, setTransacoes,
+          }}
+          rendaProps={{
+            ativos, proventosManuais, hidden, apiKeys,
+            alvoInicial: projetarAlvo, onConsumirAlvo: () => setProjetarAlvo(null),
+          }}
         />
       )}
-      {(tab === "mapa-dividendos" || tab === "projecao") && (
-        <div className="px-6 md:px-10">
-          <RendaDividendos ativos={ativos} proventosManuais={proventosManuais} hidden={hidden}
-            apiKeys={apiKeys} alvoInicial={projetarAlvo} onConsumirAlvo={() => setProjetarAlvo(null)} />
-        </div>
-      )}
       {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} transacoes={transacoes} patrimonioHistorico={patrimonioHistorico} proventos={[]} operacoes={[]} hidden={hidden} />}
-      {tab === "screener" && (
-        <div className="px-6 md:px-10">
-          <Screener hidden={hidden} />
-        </div>
-      )}
-      {/* Movidos de renderFinancas: as abas estão no módulo Investimentos
-          desde o PR #439, mas os blocos de render tinham ficado pra trás —
-          clicar nelas dava tela em branco. */}
-      {/* Pesquisador foi embutido no Construtor; "pesquisador-mercado" e a
-          antiga "mercado" (apagada) viram alias — link antigo não fica em branco. */}
-      {(tab === "construtor-mercado" || tab === "pesquisador-mercado" || tab === "mercado") && (
-        <ConstrutorMercado
+      {/* Hub Mercado — funde Construtor de mercado + Screener; "screener",
+          "pesquisador-mercado" e a antiga "mercado" viram atalhos. */}
+      {(tab === "construtor-mercado" || tab === "pesquisador-mercado" || tab === "mercado" || tab === "screener") && (
+        <MercadoHub
+          viewInicial={tab === "screener" ? "screener" : "construtor"}
+          hidden={hidden}
           onIrMonteCarteira={() => { setModulo("invest"); irParaTab("monte-carteira"); }}
         />
       )}
@@ -1243,12 +1235,8 @@ export default function App() {
         </div>
       )}
       {/* calc-renda agora abre o hub "Simuladores" (FIIs × Renda Fixa + Calculadora de Renda) */}
-      {tab === "planejador" && (
-        <div className="px-6 md:px-10">
-          <Planejador transacoes={transacoes} hidden={hidden} />
-        </div>
-      )}
-      {/* projecao foi fundida no hub "Renda & Dividendos" (render acima) */}
+      {/* "planejador" virou view do hub Planejar; "projecao"/"mapa-dividendos"
+          viraram views do hub Proventos & Renda (renders acima) */}
     </>
   );
 
