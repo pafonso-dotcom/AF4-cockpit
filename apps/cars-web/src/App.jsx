@@ -185,19 +185,6 @@ export default function App() {
     } catch {}
     return () => window.removeEventListener("af4:compra-cartao", abrir);
   }, []);
-
-  // Lembretes de vencimento (notificação do sistema): checa na abertura
-  // (com folga pros dados carregarem) e a cada 6h com o app aberto.
-  // A opção liga/desliga fica em Configurações; sem permissão, é no-op.
-  useEffect(() => {
-    const checar = () => {
-      try { dispararLembretes({ fixas, fixaOcorrencias, cartoes, cheques, dividas }); } catch {}
-    };
-    const t = setTimeout(checar, 8000);
-    const int = setInterval(checar, 6 * 60 * 60 * 1000);
-    return () => { clearTimeout(t); clearInterval(int); };
-  }, [fixas, fixaOcorrencias, cartoes, cheques, dividas]);
-
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modulesEnabled, setModulesEnabled] = useState({ financas: true, invest: true });
   const [apiKeys, setApiKeys] = useState({ brapi: "", alphavantage: "", anthropic: "", useRealMarket: true });
@@ -226,6 +213,21 @@ export default function App() {
   // Despesas Fixas (módulo independente)
   const [fixas, setFixas] = useState([]);
   const [fixaOcorrencias, setFixaOcorrencias] = useState([]);
+
+  // Lembretes de vencimento (notificação do sistema): checa na abertura
+  // (com folga pros dados carregarem) e a cada 6h com o app aberto.
+  // A opção liga/desliga fica em Configurações; sem permissão, é no-op.
+  // ATENÇÃO: este efeito precisa ficar DEPOIS dos useState acima — as deps
+  // são avaliadas no render e antes disso dá TDZ ("Cannot access 'fixas'
+  // before initialization", crash de 2026-09-12).
+  useEffect(() => {
+    const checar = () => {
+      try { dispararLembretes({ fixas, fixaOcorrencias, cartoes, cheques, dividas }); } catch {}
+    };
+    const t = setTimeout(checar, 8000);
+    const int = setInterval(checar, 6 * 60 * 60 * 1000);
+    return () => { clearTimeout(t); clearInterval(int); };
+  }, [fixas, fixaOcorrencias, cartoes, cheques, dividas]);
 
   // Agenda pessoal (compromissos, viagens, lembretes, eventos)
   const [agenda, setAgenda] = useState([]);
