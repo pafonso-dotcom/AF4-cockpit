@@ -553,7 +553,7 @@ function ClassesExpansiveisCard({ ativos = [], hidden, onAnalisar, fmtUSD }) {
       const tipo = a?.tipo || "outro";
       if (!m.has(tipo)) m.set(tipo, []);
       const r = calcRentabilidadeAtivo(a);
-      m.get(tipo).push({ ativo: a, valor: r.valor, rentab: r.pctGanho });
+      m.get(tipo).push({ ativo: a, valor: r.valor, rentab: r.pctGanho, ganho: r.ganho });
     });
     return [...m.entries()]
       .map(([tipo, items]) => ({
@@ -563,6 +563,7 @@ function ClassesExpansiveisCard({ ativos = [], hidden, onAnalisar, fmtUSD }) {
         moedaUS: US.has(tipo),
         items: items.sort((a, b) => b.valor - a.valor),
         total: items.reduce((s, x) => s + (Number(x.valor) || 0), 0),
+        ganho: items.reduce((s, x) => s + (Number(x.ganho) || 0), 0),
       }))
       .sort((a, b) => b.total - a.total);
   }, [ativos]);
@@ -593,7 +594,12 @@ function ClassesExpansiveisCard({ ativos = [], hidden, onAnalisar, fmtUSD }) {
                   <span style={{ width: 9, height: 9, borderRadius: 3, background: g.cor, flexShrink: 0 }} />
                   <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.label}</span>
                   <span style={{ fontSize: 10.5, color: T.muted, flexShrink: 0 }}>{g.items.length} {g.items.length === 1 ? "ativo" : "ativos"}</span>
-                  <span className="num" style={{ fontSize: 12.5, fontWeight: 700, color: T.gold, flexShrink: 0, minWidth: 64, textAlign: "right" }}>{hidden ? "•••" : moeda(g.moedaUS, g.total)}</span>
+                  {/* Total da classe pintado pelo RESULTADO do conjunto:
+                      verde = ganhando, vermelho = perdendo (pedido 2026-09-14). */}
+                  <span className="num" title={hidden ? undefined : `Resultado da classe: ${g.ganho >= 0 ? "+" : "−"}${moeda(g.moedaUS, Math.abs(g.ganho))}`}
+                        style={{ fontSize: 12.5, fontWeight: 700, color: g.ganho >= 0 ? T.green : T.red, flexShrink: 0, minWidth: 64, textAlign: "right" }}>
+                    {hidden ? "•••" : `${g.ganho >= 0 ? "▲ " : "▼ "}${moeda(g.moedaUS, g.total)}`}
+                  </span>
                 </button>
                 {aberta && (
                   <div style={{ padding: "2px 11px 8px", borderTop: `1px dashed ${T.border}` }}>
