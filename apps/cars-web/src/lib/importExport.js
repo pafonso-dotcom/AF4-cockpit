@@ -142,6 +142,8 @@ const printHTML = (html) => {
       + '<div class="af4-rep-body" style="padding:16px">' + inner + '</div>'
       + '<style>' + css
       + '@media print{ body > *:not(#af4-report-overlay){ display:none !important; } #af4-report-overlay{ position:static !important; overflow:visible !important; } .af4-rep-bar{ display:none !important; } }'
+      /* Cores exatas da tela no PDF (fundos de cabeçalho, zebrado, saldos) */
+      + '#af4-report-overlay, #af4-report-overlay *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }'
       + '</style>';
     const bodyOverflow = document.body.style.overflow;
     const fechar = () => { try { document.body.removeChild(host); document.body.style.overflow = bodyOverflow; window.removeEventListener("keydown", onKey); } catch {} };
