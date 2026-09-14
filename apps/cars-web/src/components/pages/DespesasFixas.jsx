@@ -4,7 +4,7 @@ import { T } from "../../lib/theme.js";
 import { fmt, todayISO, uid } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
-import { gerarOcorrencias, statusReal, resumoMes, dataVencimentoNoMes } from "../../lib/fixas.js";
+import { gerarOcorrencias, statusReal, resumoMes, dataVencimentoNoMes, garantirOcorrenciasDoAno } from "../../lib/fixas.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import NovaFixaModal from "../modals/NovaFixaModal.jsx";
 import ConfirmarPagamentoFixaModal from "../modals/ConfirmarPagamentoFixaModal.jsx";
@@ -57,6 +57,20 @@ export default function DespesasFixas({
 
   // Resumo do mês
   const resumo = useMemo(() => resumoMes(fixaOcorrencias, mesAtivo), [fixaOcorrencias, mesAtivo]);
+
+  // Navegou pra um ano FUTURO: materializa as ocorrências daquele ano na
+  // hora (o App só garante o ano corrente — sem isso as fixas "sumiam" em
+  // jan/2027+, só o empréstimo aparecia porque cria as parcelas de uma vez).
+  // Respeita inicioEm/terminoEm de cada fixa; idempotente (se o ano já tem
+  // ocorrências da fixa, não duplica). Ano passado fica de fora de propósito
+  // — não faz sentido criar pendência retroativa.
+  useEffect(() => {
+    if (!fixas.length || !setFixaOcorrencias) return;
+    const ano = parseInt(mesAtivo.slice(0, 4), 10);
+    if (!(ano > new Date().getFullYear())) return;
+    const expandido = garantirOcorrenciasDoAno(fixas, fixaOcorrencias, ano);
+    if (expandido !== fixaOcorrencias) setFixaOcorrencias(expandido);
+  }, [mesAtivo, fixas, fixaOcorrencias, setFixaOcorrencias]);
 
   // Auto-cura: uma fixa com ocorrências geradas pro ano mas com um mês
   // "furado" (ex.: apagado por engano, ou um gap de geração antiga) fica
