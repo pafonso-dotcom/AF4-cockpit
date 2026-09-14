@@ -386,6 +386,9 @@ export default function RelatoriosFinancas({
     const htmlRel = `<!doctype html><html><head><meta charset="utf-8"><title>Projeção · Meses a Vencer</title>
 <style>
 @page { size: A4 landscape; margin: 9mm; }
+/* Mantém as cores EXATAS da tela ao imprimir/salvar PDF — sem isso o
+   navegador descarta fundos (cabeçalhos bege/verde, zebrado, saldos). */
+* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 body { font-family:${FONTE_ARRED_PRINT}; color:#111; margin:0; }
 h1 { font-size:15px; margin:0 0 2px; }
 .sub-head { color:#666; font-size:10.5px; margin:0 0 8px; }
