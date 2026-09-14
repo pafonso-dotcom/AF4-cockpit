@@ -85,6 +85,34 @@ const downloadFile = (content, filename, mime = "text/plain;charset=utf-8") => {
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 };
+// Converte a(s) tabela(s) de um HTML de relatório em CSV pro Excel
+// (";" como separador — padrão pt-BR; o BOM vem do downloadFile).
+// Valores monetários "R$ 1.234,56" viram números "1234,56" (Excel pt-BR
+// reconhece); traço "—" vira célula vazia.
+const tabelasHTMLParaCSV = (html) => {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const linhas = [];
+  doc.querySelectorAll("table").forEach((tab, i) => {
+    if (i > 0) linhas.push("");
+    tab.querySelectorAll("tr").forEach(tr => {
+      const cels = Array.from(tr.querySelectorAll("th,td")).map(c => {
+        let v = (c.textContent || "").replace(/\s+/g, " ").trim();
+        if (v === "—" || v === "–" || v === "-") v = "";
+        const m = v.match(/^([+−-])?\s*R\$\s*([\d.]*\d,\d{2})$/);
+        if (m) v = (m[1] === "−" || m[1] === "-" ? "-" : "") + m[2].replace(/\./g, "");
+        if (/[";\n]/.test(v)) v = '"' + v.replace(/"/g, '""') + '"';
+        return v;
+      });
+      linhas.push(cels.join(";"));
+    });
+  });
+  return linhas.join("\r\n");
+};
+// Baixa as tabelas de um HTML de relatório como .csv (abre direto no Excel).
+const salvarExcelDoHTML = (html, nomeBase = "relatorio") => {
+  const csv = tabelasHTMLParaCSV(html);
+  downloadFile(csv, `${nomeBase}.csv`, "text/csv;charset=utf-8");
+};
 const printHTML = (html) => {
   // Safari — inclusive o app instalado (PWA) no Mac/iPad — ignora
   // silenciosamente o print() de iframe oculto. Pra ele, abrimos uma janela
@@ -108,6 +136,7 @@ const printHTML = (html) => {
       '<div class="af4-rep-bar" style="position:sticky;top:0;display:flex;gap:10px;align-items:center;padding:10px 14px;background:#20302a;color:#fff;font-family:system-ui,-apple-system,sans-serif">'
       + '<button id="af4-rep-voltar" style="background:#fff;color:#20302a;border:none;border-radius:8px;padding:7px 14px;font-weight:700;font-size:14px;cursor:pointer">‹ Voltar</button>'
       + '<button id="af4-rep-print" style="background:transparent;color:#fff;border:1px solid #ffffff66;border-radius:8px;padding:7px 14px;font-size:14px;cursor:pointer">🖨 Salvar PDF</button>'
+      + '<button id="af4-rep-excel" style="background:transparent;color:#fff;border:1px solid #ffffff66;border-radius:8px;padding:7px 14px;font-size:14px;cursor:pointer">📊 Salvar Excel</button>'
       + '<span style="opacity:.8;font-size:12px;margin-left:auto">Salvar PDF → escolha "Salvar em PDF"</span>'
       + '</div>'
       + '<div class="af4-rep-body" style="padding:16px">' + inner + '</div>'
@@ -121,6 +150,11 @@ const printHTML = (html) => {
     document.body.style.overflow = "hidden";
     host.querySelector("#af4-rep-voltar").addEventListener("click", fechar);
     host.querySelector("#af4-rep-print").addEventListener("click", () => window.print());
+    host.querySelector("#af4-rep-excel").addEventListener("click", () => {
+      const nome = (html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] || "relatorio")
+        .replace(/[^\p{L}\p{N} ·_-]/gu, "").trim().replace(/[\s·]+/g, "-").toLowerCase() || "relatorio";
+      salvarExcelDoHTML(html, nome);
+    });
     window.addEventListener("keydown", onKey);
     return;
   }
@@ -376,4 +410,4 @@ const buildPDFReport = ({ transacoes, contas, ativos, totais, escopo }) => {
 </body></html>`;
 };
 
-export { parseOFX, parseDataBR, parseValorBR, autoMapCSV, norm, printHTML, exportCSV, exportXLSX, buildPDFReport };
+export { parseOFX, parseDataBR, parseValorBR, autoMapCSV, norm, printHTML, exportCSV, exportXLSX, buildPDFReport, tabelasHTMLParaCSV, salvarExcelDoHTML };

@@ -9,7 +9,7 @@ import { toast } from "../../lib/toast.js";
 import { getKPIsMes, getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { somaContasBRL, saldoContaBRL } from "../../lib/cambio.js";
-import { printHTML } from "../../lib/importExport.js";
+import { printHTML, salvarExcelDoHTML } from "../../lib/importExport.js";
 import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
 import { StatTile } from "../ui/widget.jsx";
 
@@ -332,7 +332,7 @@ export default function RelatoriosFinancas({
   // Imprime a projeção (agrupada) numa única folha A4 (paisagem). Sem
   // argumento usa a janela da tela (6 meses); com `mesesCustom` (ex.: o ano
   // inteiro) recalcula tudo pra esses meses e aperta a fonte pra caber.
-  const imprimirProjecao = (mesesCustom = null) => {
+  const imprimirProjecao = (mesesCustom = null, formato = "pdf") => {
     const meses = mesesCustom || proximosMeses;
     const proj = mesesCustom ? calcProjecao(meses) : projecao;
     const cens = mesesCustom ? calcCenarios(meses) : cenarios;
@@ -383,7 +383,7 @@ export default function RelatoriosFinancas({
     const saldo = linhaSaldoMes("SALDO DO MÊS (receber − saídas)", cens.pessoal)
       + linhaSaldo("SALDO PREVISTO", cens.pessoal)
       + (cens.bensTotal > 0 ? `<tr><td>BENS (à parte)</td>${meses.map(() => '<td class="n">—</td>').join("")}<td class="n">${esc(fmt(cens.bensTotal))}</td></tr>` : "");
-    printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Projeção · Meses a Vencer</title>
+    const htmlRel = `<!doctype html><html><head><meta charset="utf-8"><title>Projeção · Meses a Vencer</title>
 <style>
 @page { size: A4 landscape; margin: 9mm; }
 body { font-family:${FONTE_ARRED_PRINT}; color:#111; margin:0; }
@@ -409,7 +409,12 @@ td.neg { color:#b3261e; }
 <div class="sub-head">Saídas previstas (fixas, parcelas, dívidas, avulsas) e entradas a receber · ${esc(labelPeriodo)} · gerado em ${esc(new Date().toLocaleString("pt-BR"))}</div>
 <table><thead><tr><th>Categoria</th>${ths}<th>Total</th></tr></thead>
 <tbody>${corpo}${rodape}${receberHtml}${saldo}</tbody></table>
-</body></html>`);
+</body></html>`;
+    if (formato === "excel") {
+      salvarExcelDoHTML(htmlRel, `projecao-${anual ? "ano" : "6meses"}-${labelPeriodo.replace(/[^\w-]+/g, "-")}`);
+      return;
+    }
+    printHTML(htmlRel);
   };
 
   return (
@@ -461,6 +466,11 @@ td.neg { color:#b3261e; }
                     title={`Imprime janeiro a dezembro de ${anoProj} numa folha A4 (paisagem, fonte compacta)`}
                     style={{ padding: "8px 14px", fontSize: 12, whiteSpace: "nowrap" }}>
               🖨️ Imprimir ano ({anoProj})
+            </button>
+            <button onClick={() => imprimirProjecao(mesesDoAno(anoProj), "excel")} className="btn-ghost"
+                    title={`Baixa a projeção do ano ${anoProj} em CSV — abre direto no Excel/Numbers`}
+                    style={{ padding: "8px 14px", fontSize: 12, whiteSpace: "nowrap" }}>
+              📊 Excel (ano)
             </button>
           </div>
         </div>
