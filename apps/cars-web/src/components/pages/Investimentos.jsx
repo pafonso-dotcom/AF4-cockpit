@@ -154,6 +154,15 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
     return tem ? soma : null;
   };
 
+  // Resultado TOTAL do grupo (mercado − investido): pinta o total da classe
+  // de verde/vermelho pra mostrar de cara se o conjunto está ganhando ou
+  // perdendo (pedido do usuário 2026-09-14).
+  const resultadoGrupo = (ativosDoGrupo = []) =>
+    ativosDoGrupo.reduce((s, a) => {
+      const pm = Number(a?.pm ?? a?.precoMedio) || 0;
+      return s + (Number(a?.qtd) || 0) * ((Number(a?.preco) || 0) - pm);
+    }, 0);
+
   const grupos = useMemo(() => {
     const labelDe = (t) => (tipos.find(x => x.v === t)?.l) || t || "Outros";
     const ordem = tipos.map(t => t.v);
@@ -574,9 +583,15 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     </span>
                   );
                 })()}
-                <span style={{ color: T.gold, fontSize: 12, fontWeight: 600 }}>
-                  {hidden ? "•••" : (grupo.moedaUS ? fmtUSD(grupo.valor) : fmt(grupo.valor))}
-                </span>
+                {(() => {
+                  const res = resultadoGrupo(grupo.ativos);
+                  return (
+                    <span className="num" title={hidden ? undefined : `Resultado do grupo: ${res >= 0 ? "+" : "−"}${grupo.moedaUS ? fmtUSD(Math.abs(res)) : fmt(Math.abs(res))}`}
+                          style={{ color: res >= 0 ? T.green : T.red, fontSize: 12, fontWeight: 700 }}>
+                      {hidden ? "•••" : `${res >= 0 ? "▲ " : "▼ "}${grupo.moedaUS ? fmtUSD(grupo.valor) : fmt(grupo.valor)}`}
+                    </span>
+                  );
+                })()}
               </button>
               {!fechado && grupo.ativos.map(a => {
           const investido = a.qtd * a.pm;
@@ -758,9 +773,15 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                       </span>
                     );
                   })()}
-                  <span style={{ color: T.gold, fontSize: 12, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                    {hidden ? "•••" : (grupo.moedaUS ? fmtUSD(grupo.valor) : fmt(grupo.valor))}
-                  </span>
+                  {(() => {
+                    const res = resultadoGrupo(grupo.ativos);
+                    return (
+                      <span className="num" title={hidden ? undefined : `Resultado do grupo: ${res >= 0 ? "+" : "−"}${grupo.moedaUS ? fmtUSD(Math.abs(res)) : fmt(Math.abs(res))}`}
+                            style={{ color: res >= 0 ? T.green : T.red, fontSize: 12, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                        {hidden ? "•••" : `${res >= 0 ? "▲ " : "▼ "}${grupo.moedaUS ? fmtUSD(grupo.valor) : fmt(grupo.valor)}`}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
               {!fechado && grupo.ativos.map(a => {
