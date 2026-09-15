@@ -10,6 +10,7 @@ import { generateRecurringForCurrentMonth } from "./lib/recorrencia.js";
 import { lerEscopo, salvarEscopo } from "./lib/escopo.js";
 import { aplicarDadosCarregados, aplicarSeeds } from "./lib/appPersistencia.js";
 import { backupDiario, criarBackup, obterBackup } from "./lib/autobackup.js";
+import { gistBackupAutomatico } from "./lib/gistSync.js";
 import BackupsModal from "./components/modals/BackupsModal.jsx";
 import CompraCartaoModal from "./components/modals/CompraCartaoModal.jsx";
 import { toast } from "./lib/toast.js";
@@ -346,6 +347,23 @@ export default function App() {
     lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
     themeId,
   });
+
+  // Backup automático diário na nuvem (GitHub Gist): 1x por dia, na abertura,
+  // se houver token configurado e o interruptor ligado. Roda uns segundos
+  // depois do boot pra não competir com o carregamento; falha em silêncio.
+  // (Efeito fica DEPOIS de todos os useState que montarDados usa — deps de
+  // effect são avaliadas no render e referenciar state ainda não declarado
+  // dá TDZ crash em produção.)
+  const montarDadosRef = useRef(null);
+  montarDadosRef.current = montarDados; // sempre a versão do render atual
+  useEffect(() => {
+    if (loading) return;
+    const timer = setTimeout(async () => {
+      const r = await gistBackupAutomatico(montarDadosRef.current());
+      if (r.feito) toast.success("☁️ Backup automático enviado pro GitHub.");
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   // Restaura um ponto de restauração (aplica o blob + salva + backup de segurança).
   const restaurarBackup = async (id) => {

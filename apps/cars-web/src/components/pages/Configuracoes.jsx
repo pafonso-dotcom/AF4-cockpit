@@ -7,6 +7,7 @@ import { CARDS_DISPONIVEIS, lerCardsConfig, salvarCardsConfig } from "../../lib/
 import {
   getGistToken, setGistToken, testGistToken,
   gistFetchState, gistSaveState,
+  gistAutoAtivo, setGistAutoAtivo, gistAutoUltimo,
 } from "../../lib/gistSync.js";
 import { migrarTudo } from "../../lib/db/migrate.js";
 import { tabelasNovasExistem, snapshotContagens } from "../../lib/db/client.js";
@@ -669,6 +670,8 @@ function SyncGist() {
   const [user, setUser] = useState(null);   // { login, name } se conectado
   const [busy, setBusy] = useState(null);    // null | "test" | "upload" | "download"
   const [msg, setMsg] = useState(null);      // { ok, texto }
+  const [autoOn, setAutoOn] = useState(() => gistAutoAtivo());
+  const autoUltimo = gistAutoUltimo();
 
   // Valida o token salvo no boot pra mostrar quem está conectado
   useEffect(() => {
@@ -849,6 +852,42 @@ function SyncGist() {
             {busy === "download" ? "Baixando..." : "☁️ ↓ Baixar da nuvem"}
           </button>
         </div>
+      </div>
+
+      <div className="fb">
+        <h4>3. Backup automático diário</h4>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 12.5, color: T.muted, margin: 0 }}>
+              Com o token conectado, o app envia seus dados pra nuvem <strong>sozinho,
+              uma vez por dia</strong>, na primeira abertura do dia. Sem precisar lembrar de nada.
+              {autoUltimo && (
+                <><br /><span style={{ color: T.green }}>
+                  Último envio automático: {new Date(autoUltimo).toLocaleString("pt-BR")}
+                </span></>
+              )}
+            </p>
+          </div>
+          <button onClick={() => { setGistAutoAtivo(!autoOn); setAutoOn(!autoOn); }}
+                  title={autoOn ? "Desligar backup automático" : "Ligar backup automático"}
+                  style={{
+                    width: 44, height: 24, borderRadius: 100, flexShrink: 0,
+                    background: autoOn ? T.gold : T.border,
+                    border: "none", position: "relative", cursor: "pointer",
+                    transition: "all .2s",
+                  }}>
+            <div style={{
+              position: "absolute", top: 2, left: autoOn ? 22 : 2,
+              width: 20, height: 20, borderRadius: "50%",
+              background: "#fff", transition: "all .2s",
+            }} />
+          </button>
+        </div>
+        {!conectado && (
+          <p style={{ fontSize: 11.5, color: T.faint, marginTop: 8, marginBottom: 0 }}>
+            Conecte o token no passo 1 pra ativar.
+          </p>
+        )}
       </div>
 
       <div className="fb" style={{ borderColor: T.gold }}>
