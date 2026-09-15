@@ -183,6 +183,51 @@ export async function gistSaveState(state) {
   return { ok: true, bytes: content.length };
 }
 
+/* ============================================================
+   BACKUP AUTOMÁTICO DIÁRIO
+   Com token configurado, o App envia o estado pro Gist sozinho
+   uma vez por dia, na abertura. Ligado por padrão; o interruptor
+   em Configurações → Sincronização grava "0" pra desligar.
+   ============================================================ */
+
+const AUTO_KEY        = "af4:gist-auto";        // "0" = desligado (padrão ligado)
+const AUTO_ULTIMO_KEY = "af4:gist-auto-ultimo"; // ISO do último envio automático
+
+export function gistAutoAtivo() {
+  try { return localStorage.getItem(AUTO_KEY) !== "0"; }
+  catch { return true; }
+}
+
+export function setGistAutoAtivo(v) {
+  try {
+    if (v) localStorage.removeItem(AUTO_KEY);
+    else localStorage.setItem(AUTO_KEY, "0");
+  } catch {}
+}
+
+export function gistAutoUltimo() {
+  try { return localStorage.getItem(AUTO_ULTIMO_KEY) || null; }
+  catch { return null; }
+}
+
+// Envia o estado pro Gist se: token configurado + auto ligado + ainda não
+// enviou hoje. Retorna { feito, motivo? }. Erros NÃO estouram — backup
+// automático nunca pode quebrar o boot do app.
+export async function gistBackupAutomatico(state) {
+  if (!gistEnabled()) return { feito: false, motivo: "sem-token" };
+  if (!gistAutoAtivo()) return { feito: false, motivo: "desligado" };
+  const hoje = new Date().toISOString().slice(0, 10);
+  if ((gistAutoUltimo() || "").slice(0, 10) === hoje) return { feito: false, motivo: "ja-enviado-hoje" };
+  try {
+    const r = await gistSaveState(state);
+    try { localStorage.setItem(AUTO_ULTIMO_KEY, new Date().toISOString()); } catch {}
+    return { feito: true, bytes: r?.bytes };
+  } catch (e) {
+    console.warn("[gist] backup automático falhou:", e?.message || e);
+    return { feito: false, motivo: "erro", erro: e?.message };
+  }
+}
+
 export async function gistFetchKeys() {
   const token = getGistToken();
   if (!token) throw new Error("Token GitHub não configurado.");
