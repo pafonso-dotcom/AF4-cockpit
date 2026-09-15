@@ -12,6 +12,7 @@ import { migrarTudo } from "../../lib/db/migrate.js";
 import { tabelasNovasExistem, snapshotContagens } from "../../lib/db/client.js";
 import { lembretesAtivos, setLembretesAtivos, pedirPermissao, suportaNotificacao } from "../../lib/lembretes.js";
 import { exportarBackupCSV } from "../../lib/exportCSV.js";
+import { baixarCopiaDoApp } from "../../lib/exportApp.js";
 
 /**
  * Configurações centralizadas (estilo demo v3).
@@ -576,6 +577,20 @@ function Backup() {
     }
   };
 
+  const [baixandoApp, setBaixandoApp] = useState(false);
+  const baixarApp = async () => {
+    if (baixandoApp) return;
+    setBaixandoApp(true);
+    try {
+      const qtd = await baixarCopiaDoApp();
+      toast.success(`Cópia do aplicativo baixada (${qtd} arquivos).`);
+    } catch (e) {
+      toast.error(e?.message || "Falha ao baixar a cópia do aplicativo.");
+    } finally {
+      setBaixandoApp(false);
+    }
+  };
+
   const importar = () => {
     const input = document.createElement("input");
     input.type = "file";
@@ -615,6 +630,20 @@ function Backup() {
           Pra restaurar no app, use o backup JSON acima.
         </p>
         <button className="btn" onClick={exportarCSV}>📊 Baixar tudo em CSV</button>
+      </div>
+
+      <div className="fb">
+        <h4>Cópia do aplicativo (sistema, sem dados)</h4>
+        <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 14 }}>
+          Baixa um ZIP com uma pasta contendo o <strong>programa inteiro</strong> instalado
+          (HTML, JS, CSS, ícones) — sem os seus dados. É o seu cofre contra perda total:
+          se o site sair do ar, é só clicar em <strong>iniciar-windows.bat</strong> (Windows)
+          ou <strong>Iniciar-Mac.command</strong> (Mac) dentro da pasta que o app abre no
+          navegador — aí restaura os dados pelo backup JSON. Tem um leia-me explicando tudo.
+        </p>
+        <button className="btn" onClick={baixarApp} disabled={baixandoApp}>
+          {baixandoApp ? "⏳ Baixando arquivos…" : "💾 Baixar cópia do aplicativo"}
+        </button>
       </div>
 
       <div className="fb">

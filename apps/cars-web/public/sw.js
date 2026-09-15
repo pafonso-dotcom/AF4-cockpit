@@ -4,7 +4,7 @@
 // - /api/* e APIs externas → bypass total (sem cache, sem intercept)
 // Sempre que mudar a UI, bump a versão CACHE pra invalidar tudo do cliente.
 
-const CACHE = "numvi-icone-v1788950000";
+const CACHE = "numvi-icone-v1789507517";
 const PRECACHE = ["./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
@@ -25,6 +25,10 @@ self.addEventListener("fetch", (e) => {
 
   // External APIs — pass-through, sem cache
   if (url.origin !== location.origin) return;
+
+  // Lista de arquivos do app (botão "Baixar cópia do aplicativo") precisa
+  // ser sempre a da versão publicada — nunca servir do cache.
+  if (url.pathname === "/app-arquivos.json") return;
 
   // /api/* sempre direto na rede (evita cache de respostas dinâmicas + bug
   // de "string did not match expected pattern" do WebKit quando o SW

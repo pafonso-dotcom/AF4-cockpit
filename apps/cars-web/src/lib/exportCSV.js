@@ -63,7 +63,9 @@ function crc32(bytes) {
   return (c ^ 0xffffffff) >>> 0;
 }
 
-// [{ nome: "pasta/arquivo.csv", conteudo: string }] → bytes de um .zip
+// [{ nome: "pasta/arquivo.csv", conteudo: string|Uint8Array, executavel?: bool }]
+// → bytes de um .zip. `executavel` marca permissão 755 (Unix) no arquivo,
+// pra scripts .command/.sh saírem rodáveis após extrair no Mac/Linux.
 export function criarZip(arquivos) {
   const enc = new TextEncoder();
   const agora = new Date();
@@ -95,7 +97,7 @@ export function criarZip(arquivos) {
 
     const central = new DataView(new ArrayBuffer(46));
     central.setUint32(0, 0x02014b50, true); // assinatura central directory
-    central.setUint16(4, 20, true);
+    central.setUint16(4, 0x031e, true);     // version made by: Unix (pra permissões)
     central.setUint16(6, 20, true);
     central.setUint16(8, 0x0800, true);
     central.setUint16(10, 0, true);
@@ -105,6 +107,8 @@ export function criarZip(arquivos) {
     central.setUint32(20, dados.length, true);
     central.setUint32(24, dados.length, true);
     central.setUint16(28, nome.length, true);
+    // permissões Unix nos 16 bits altos: 100755 (executável) ou 100644
+    central.setUint32(38, (arq.executavel ? 0o100755 : 0o100644) << 16, true);
     central.setUint32(42, offset, true); // offset do local header
 
     locais.push(new Uint8Array(local.buffer), nome, dados);

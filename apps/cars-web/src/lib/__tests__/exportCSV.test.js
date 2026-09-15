@@ -60,6 +60,15 @@ describe("criarZip", () => {
       bytes[i] === 0x50 && bytes[i + 1] === 0x4b && bytes[i + 2] === 0x01 && bytes[i + 3] === 0x02);
     expect(temCentral).toBe(true);
   });
+
+  it("marca permissão 755 nos arquivos com executavel: true", () => {
+    const zip = criarZip([{ nome: "iniciar.command", conteudo: "#!/bin/bash\n", executavel: true }]);
+    // acha a entrada do diretório central e lê os external attrs (offset 38)
+    let i = 0;
+    while (!(zip[i] === 0x50 && zip[i + 1] === 0x4b && zip[i + 2] === 0x01 && zip[i + 3] === 0x02)) i++;
+    const attrs = (zip[i + 38] | (zip[i + 39] << 8) | (zip[i + 40] << 16) | (zip[i + 41] << 24)) >>> 0;
+    expect((attrs >>> 16) & 0o777).toBe(0o755);
+  });
 });
 
 describe("montarArquivosCSV", () => {
