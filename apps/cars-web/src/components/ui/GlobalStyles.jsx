@@ -82,7 +82,9 @@ export default function GlobalStyles() {
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
-        body * {
+        /* Normalização P&B do print — EXCETO o overlay de relatório
+           (#af4-report-overlay), que imprime com as cores da tela. */
+        body *:not(#af4-report-overlay):not(#af4-report-overlay *) {
           color: #000 !important;
           background: transparent !important;
           border-color: #999 !important;
@@ -103,21 +105,22 @@ export default function GlobalStyles() {
           background: #fff !important;
         }
         /* Tabelas com bordas limpas */
-        table {
+        table:not(#af4-report-overlay *) {
           width: 100% !important;
           border-collapse: collapse !important;
         }
-        table th, table td {
+        table th:not(#af4-report-overlay *), table td:not(#af4-report-overlay *) {
           border: 1px solid #999 !important;
           padding: 6px 8px !important;
           font-size: 10pt !important;
         }
         /* Tipografia print */
-        h1, h2, h3, h4 {
+        h1:not(#af4-report-overlay *), h2:not(#af4-report-overlay *),
+        h3:not(#af4-report-overlay *), h4:not(#af4-report-overlay *) {
           color: #000 !important;
           page-break-after: avoid;
         }
-        a { color: #000 !important; text-decoration: none !important; }
+        a:not(#af4-report-overlay *) { color: #000 !important; text-decoration: none !important; }
         /* Quebras de página inteligentes */
         .page-break { page-break-after: always; }
         .no-page-break { page-break-inside: avoid; }
