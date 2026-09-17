@@ -17,6 +17,7 @@ import PdfCarteira from "./Invest/PdfCarteira.jsx";
 import CarteiraSaude from "./Invest/CarteiraSaude.jsx";
 import { proventosPorCota12m } from "../../lib/mapaDividendos.js";
 import { proventosRecebidosPorTicker } from "../../lib/invest-utils.js";
+import StatusCotacoes from "../ui/StatusCotacoes.jsx";
 
 // Segmentos/setores sugeridos por tipo de ativo (B3 + padrões de mercado).
 // "Outros" libera input livre de texto.
@@ -67,7 +68,7 @@ const SEGMENTOS = {
   ],
 };
 
-export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, carteiraProventos, onRefresh, refreshing, onAnalisar, onProjetar, hidden }) {
+export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, carteiraProventos, marketStatus, onRefresh, refreshing, onAnalisar, onProjetar, hidden }) {
   const [form, setForm] = useState(null);
   const [aporteForm, setAporteForm] = useState(null);
   const [vendaForm, setVendaForm] = useState(null);
@@ -502,6 +503,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
           </div>
         }
       />
+
+      <StatusCotacoes status={marketStatus} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6 no-print" style={{ background: T.border }}>
         <StatCard compact label="Valor Investido" value={hidden ? "•••••" : fmt(totais.br.custo)} accent={T.muted} icon={DollarSign}

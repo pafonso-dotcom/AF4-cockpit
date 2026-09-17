@@ -14,6 +14,7 @@ import BankIcon from "../ui/BankIcon.jsx";
 import NotasRapidasCard from "../ui/NotasRapidasCard.jsx";
 import AnaliseFatura from "./AnaliseFatura.jsx";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
+import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
 
 // ===== Helpers compartilhados de parcelas =====
 // Mantidos no nível do módulo pra que o cálculo do "valor a pagar" do cartão
@@ -62,17 +63,20 @@ function faturaMensalDoCartao(cartao, parcelamentos = [], monthKey = mesAtualKey
   }, 0);
 }
 // Valor a pagar do mês COMPLETO: se há fatura importada (que já soma à vista +
-// fixas + parcelas) e não está paga, usa o valor dela; senão, só as parcelas
-// do mês que ainda não foram pagas.
+// fixas + parcelas) e não está paga, usa o valor dela; senão, parcelas do mês
+// ainda não pagas + compras avulsas pendentes lançadas no app (manual/foto) —
+// sem isso, a compra lançada na hora não aparecia no "a pagar" do cartão.
 // A fatura importada só conta no MÊS DA COMPETÊNCIA dela: importar a fatura de
 // agosto ainda em julho NÃO vira "a pagar" de julho — ela aparece no mês
 // seguinte. (Sem competência gravada — legado — mantém o comportamento antigo.)
-function valorAPagarMes(cartao, parcelamentos = [], monthKey = mesAtualKey()) {
+function valorAPagarMes(cartao, parcelamentos = [], transacoes = [], monthKey = mesAtualKey()) {
   const fi = cartao.faturaImportada;
   const fiDesteMes = fi && (!fi.competencia || fi.competencia === monthKey);
   if (fiDesteMes && fi.paga) return 0;
   const fiTotal = fiDesteMes ? Number(fi.valorTotal) || 0 : 0;
-  return fiTotal > 0 ? fiTotal : faturaMensalDoCartao(cartao, parcelamentos, monthKey);
+  if (fiTotal > 0) return fiTotal; // fatura importada já soma tudo do mês
+  return faturaMensalDoCartao(cartao, parcelamentos, monthKey)
+       + avulsasPendentesNoMes(cartao, transacoes, monthKey);
 }
 // Próximo mês no formato YYYY-MM.
 const proximoMesKey = () => { const [y, m] = mesAtualKey().split("-").map(Number); const d = new Date(y, m, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
@@ -687,7 +691,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
 
       {/* Stats — estilo widget (ícone em anel + número fino + sparkline) */}
       <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: 8, marginBottom: 32 }}>
-        <StatTile label="A pagar no mês" valor={cartoes.reduce((s, c) => s + valorAPagarMes(c, parcelamentos), 0)} hidden={hidden} cor={T.gold} icon={CreditCard} sub={`${cartoes.length} ${cartoes.length === 1 ? "cartão" : "cartões"}`} spark={cartaoSeries.mes} />
+        <StatTile label="A pagar no mês" valor={cartoes.reduce((s, c) => s + valorAPagarMes(c, parcelamentos, transacoes), 0)} hidden={hidden} cor={T.gold} icon={CreditCard} sub={`${cartoes.length} ${cartoes.length === 1 ? "cartão" : "cartões"}`} spark={cartaoSeries.mes} />
         <StatTile label="Comprometido (total)" valor={totalUsado} hidden={hidden} cor={T.red} icon={TrendingDown} sub="soma de todas as parcelas" spark={cartaoSeries.comprometido} />
         <StatTile label="Parcelamentos ativos" valor={String(parcelamentos.filter(p => (p.parcelasPagas?.length || 0) < p.totalParcelas).length)} cor={T.blue} icon={Repeat} sub="em aberto" />
       </div>
@@ -744,7 +748,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           const fiPaga = !!(c.faturaImportada && c.faturaImportada.paga
             && (!c.faturaImportada.competencia || c.faturaImportada.competencia === mesAtualKey()));
           const parcelasMes = faturaMensalDoCartao(c, parcelamentos);
-          const aPagar = valorAPagarMes(c, parcelamentos);
+          const aPagar = valorAPagarMes(c, parcelamentos, transacoes);
           // Parcelas já comprometidas que vencem no MÊS SEGUINTE (só parcelas em aberto).
           const proxKey = proximoMesKey();
           const proxMes = parcelasEmAbertoNoMes(c, parcelamentos, proxKey);

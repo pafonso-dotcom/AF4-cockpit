@@ -14,6 +14,7 @@ import { getKPIsMes, getDespesasDoMes, getGanhosDoMes } from "../../lib/agregado
 import { calcOrcamentoCategorias } from "../../lib/orcamentos.js";
 import { useLayout } from "../../lib/useLayout.js";
 import { supabase } from "../../lib/supabase.js";
+import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
 import Card, { SoftCardContext } from "../ui/Card.jsx";
 import { Sparkline, RingIcon } from "../ui/widget.jsx";
 
@@ -197,13 +198,20 @@ export default function Dashboard({
         }
         return s;
       }, 0);
+      // Compras avulsas pendentes lançadas no app (manual/foto) — cartões sem
+      // fatura importada da competência; sem isso a compra recém-lançada não
+      // aparecia no tile.
+      (cartoes || []).forEach(c => {
+        if (cobertos.has(c.id)) return;
+        total += avulsasPendentesNoMes(c, transacoes, key);
+      });
       return total;
     };
     const nomeMes = (key) => (MESES_PT[parseInt(key.slice(5, 7), 10) - 1] || "").toLowerCase();
     const mesAtual = soma(mesISO);
     if (mesAtual > 0.005) return { valor: mesAtual, label: `Cartões · a pagar (${nomeMes(mesISO)})` };
     return { valor: soma(proxKey), label: `Cartões · mês seguinte (${nomeMes(proxKey)})` };
-  }, [mesISO, parcelamentos, cartoes]);
+  }, [mesISO, parcelamentos, cartoes, transacoes]);
   // Total a pagar (tudo em aberto, todos os meses) — mesma base do "A Receber &
   // Dívidas": dívidas + fixas pendentes + parcelas de cartão + avulsas.
   const aPagarTotal = useMemo(() => {

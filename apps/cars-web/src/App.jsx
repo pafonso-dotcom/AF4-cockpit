@@ -707,7 +707,8 @@ export default function App() {
     try {
       // Para Binance, traduz ticker BR de cripto (BTC, ETH) pra pair USDT.
       // CDBs de meta rendem a CDI sozinhos — fora da cotação de mercado.
-      const ativosComSymbol = ativos.filter(a => !rendaFixaFixa(a)).map(a => {
+      // Capital Social é manual — também não busca cotação (nem conta no status).
+      const ativosComSymbol = ativos.filter(a => !rendaFixaFixa(a) && a.tipo !== "capitalSocial").map(a => {
         if (a.tipo === "cripto" && !/USDT$/i.test(a.ticker)) {
           return { ...a, _symbolCotacao: `${a.ticker.toUpperCase()}USDT` };
         }
@@ -746,7 +747,7 @@ export default function App() {
         at: new Date(),
         mode: okCount > 0 ? "real" : "sim",
         okCount,
-        total: ativos.length,
+        total: ativosComSymbol.length,
         erros,
       });
     } catch (e) {
@@ -1163,6 +1164,7 @@ export default function App() {
         <InvestPainel ativos={ativos} transacoes={transacoes} categorias={categorias} hidden={hidden}
                       apiKeys={apiKeys}
                       proventosRecebidos={proventosRecebidos}
+                      marketStatus={marketStatus}
                       onRefresh={refreshMarket} refreshing={refreshing}
                       patrimonioHistorico={patrimonioHistorico}
                       onTabChange={irParaTab}
@@ -1189,6 +1191,7 @@ export default function App() {
                          categorias={categorias}
                          transacoes={transacoes} setTransacoes={setTransacoes}
                          carteiraProventos={carteiraProventos}
+                         marketStatus={marketStatus}
                          onRefresh={refreshMarket} refreshing={refreshing}
                          onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
                          onProjetar={(ativo) => { setProjetarAlvo(ativo); setTab("projecao"); }}
