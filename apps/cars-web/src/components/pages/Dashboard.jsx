@@ -169,7 +169,7 @@ export default function Dashboard({
     const [y, m] = mesISO.split("-").map(Number);
     const nd = new Date(y, m, 1); // mês seguinte (m é 1-based do mês atual)
     const proxKey = `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, "0")}`;
-    const soma = (key) => {
+    const soma = (key, rolagem = false) => {
       let total = 0;
       // Cartões com fatura importada da competência: cobrem o mês (paga → 0;
       // aberta → valor real). As parcelas desses cartões saem da conta.
@@ -200,17 +200,18 @@ export default function Dashboard({
       }, 0);
       // Compras avulsas pendentes lançadas no app (manual/foto) — cartões sem
       // fatura importada da competência; sem isso a compra recém-lançada não
-      // aparecia no tile.
+      // aparecia no tile. Com `rolagem` (mês seguinte), compras de competências
+      // já fechadas/pagas rolam pra cá — como na próxima fatura do banco.
       (cartoes || []).forEach(c => {
         if (cobertos.has(c.id)) return;
-        total += avulsasPendentesNoMes(c, transacoes, key);
+        total += avulsasPendentesNoMes(c, transacoes, key, { incluirAnteriores: rolagem });
       });
       return total;
     };
     const nomeMes = (key) => (MESES_PT[parseInt(key.slice(5, 7), 10) - 1] || "").toLowerCase();
     const mesAtual = soma(mesISO);
     if (mesAtual > 0.005) return { valor: mesAtual, label: `Cartões · a pagar (${nomeMes(mesISO)})` };
-    return { valor: soma(proxKey), label: `Cartões · mês seguinte (${nomeMes(proxKey)})` };
+    return { valor: soma(proxKey, true), label: `Cartões · mês seguinte (${nomeMes(proxKey)})` };
   }, [mesISO, parcelamentos, cartoes, transacoes]);
   // Total a pagar (tudo em aberto, todos os meses) — mesma base do "A Receber &
   // Dívidas": dívidas + fixas pendentes + parcelas de cartão + avulsas.
