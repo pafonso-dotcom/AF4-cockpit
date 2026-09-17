@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from "react";
 
 import { T, applyTheme, THEMES } from "./lib/theme.js";
-import { simulateTick, uid } from "./lib/format.js";
+import { uid } from "./lib/format.js";
 import { somaContasBRL } from "./lib/cambio.js";
 import { MESES_LONGO } from "./lib/meses.js";
 import { loadAll, saveAll, loadKeys, saveKeys, flushSave } from "./lib/storage.js";
@@ -706,17 +706,12 @@ export default function App() {
     const rendaFixaFixa = (a) =>
       a._cdbMeta || ["cdb", "tesouro", "rf"].includes(String(a.tipo || "").toLowerCase());
 
-    // Modo simulado: tick aleatório (sem chave necessária)
+    // Mercado real desligado: NÃO inventa variação — os preços ficam
+    // exatamente como estão. (Antes aplicava um tick aleatório que fazia os
+    // valores derivarem do mercado de verdade e não baterem com a corretora.)
     if (!apiKeys.useRealMarket) {
-      setTimeout(() => {
-        setAtivos(prev => prev.map(a => {
-          if (rendaFixaFixa(a)) return a;
-          const vol = a.tipo === "cripto" ? 0.04 : a.tipo === "fii" ? 0.012 : 0.025;
-          return { ...a, preco: +simulateTick(a.preco, vol).toFixed(2), ultimaAtt: new Date().toISOString(), realtime: false };
-        }));
-        setMarketStatus({ at: new Date(), mode: "sim", okCount: 0, total: ativos.length });
-        setRefreshing(false);
-      }, 600);
+      setMarketStatus({ at: new Date(), mode: "off", okCount: 0, total: ativos.length });
+      setRefreshing(false);
       return;
     }
 
@@ -753,9 +748,10 @@ export default function App() {
             fonteCotacao: cot.fonte,
           };
         }
-        // Fallback: tick simulado pra ativos sem cotação real
-        const vol = 0.012;
-        return { ...a, preco: +simulateTick(a.preco, vol).toFixed(2), ultimaAtt: new Date().toISOString(), realtime: false };
+        // Sem cotação real pra este ticker: MANTÉM o último preço conhecido.
+        // Nunca aplica tick simulado — preço inventado não bate com a
+        // corretora e vai derivando a cada atualização.
+        return { ...a, realtime: false };
       }));
 
       setMarketStatus({
@@ -779,6 +775,17 @@ export default function App() {
   // reagendar sem reload. Polling pausa quando a aba não está visível.
   const refreshRef = useRef(refreshMarket);
   refreshRef.current = refreshMarket;
+
+  // Cotações reais logo na abertura: garante que os preços sigam o mercado
+  // (como na corretora) sem depender do botão de atualizar. Se o mercado real
+  // estiver desligado ou a busca falhar, os preços simplesmente ficam como
+  // estão — nunca são inventados.
+  useEffect(() => {
+    if (loading) return;
+    const t = setTimeout(() => { try { refreshRef.current(); } catch {} }, 2500);
+    return () => clearTimeout(t);
+  }, [loading]);
+
   useEffect(() => {
     if (loading) return;
     let timer;
