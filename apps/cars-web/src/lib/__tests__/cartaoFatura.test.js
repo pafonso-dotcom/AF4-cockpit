@@ -51,4 +51,12 @@ describe("avulsasPendentesNoMes", () => {
     const t = [tx({ origem: "compra-manual" }), tx({ origem: "compra-foto", valor: 200 })];
     expect(avulsasPendentesNoMes(cartao, t, "2026-09")).toBe(300);
   });
+
+  it("incluirAnteriores rola compras de competências passadas pra fatura seguinte", () => {
+    const t = [tx({ data: "2026-09-10" }), tx({ data: "2026-10-05", valor: 40 })];
+    // Sem rolagem: outubro só vê a compra de outubro.
+    expect(avulsasPendentesNoMes(cartao, t, "2026-10")).toBe(40);
+    // Com rolagem (fatura de setembro fechada/paga): setembro rola pra outubro.
+    expect(avulsasPendentesNoMes(cartao, t, "2026-10", { incluirAnteriores: true })).toBe(140);
+  });
 });

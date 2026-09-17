@@ -24,14 +24,19 @@ export function competenciaDaCompra(dataISO, fechamento) {
  * sem vir de fatura importada) cuja competência é monthKey. É o que faz a
  * compra lançada na hora aparecer no "a pagar" do cartão sem esperar a
  * fatura fechar.
+ *
+ * `incluirAnteriores`: também soma competências ANTERIORES a monthKey —
+ * rolagem pra quando a fatura do mês já está fechada/paga (como no banco,
+ * a compra pendente cai na próxima fatura aberta).
  */
-export function avulsasPendentesNoMes(cartao, transacoes = [], monthKey) {
+export function avulsasPendentesNoMes(cartao, transacoes = [], monthKey, { incluirAnteriores = false } = {}) {
   if (!cartao || !monthKey) return 0;
   return (transacoes || []).reduce((s, t) => {
     if (!t || t.cartaoId !== cartao.id || t.tipo !== "despesa" || t.compensado) return s;
     if (String(t.origem || "").startsWith("fatura-")) return s;
-    return competenciaDaCompra(t.data, cartao.fechamento) === monthKey
-      ? s + (Number(t.valor) || 0)
-      : s;
+    const comp = competenciaDaCompra(t.data, cartao.fechamento);
+    if (!comp) return s;
+    const entra = incluirAnteriores ? comp <= monthKey : comp === monthKey;
+    return entra ? s + (Number(t.valor) || 0) : s;
   }, 0);
 }

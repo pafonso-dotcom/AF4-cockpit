@@ -752,6 +752,14 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           // Parcelas já comprometidas que vencem no MÊS SEGUINTE (só parcelas em aberto).
           const proxKey = proximoMesKey();
           const proxMes = parcelasEmAbertoNoMes(c, parcelamentos, proxKey);
+          // Compras avulsas pendentes que caem na PRÓXIMA fatura. Quando o mês
+          // corrente já está coberto por fatura importada (paga ou aberta), as
+          // avulsas do mês rolam pra cá — como no banco: compra pendente cai
+          // na próxima fatura aberta (pedido do usuário: a compra lançada por
+          // foto "sumia" quando a fatura do mês estava paga).
+          const fiCobreMes = !!(c.faturaImportada
+            && (!c.faturaImportada.competencia || c.faturaImportada.competencia === mesAtualKey()));
+          const avProx = avulsasPendentesNoMes(c, transacoes, proxKey, { incluirAnteriores: fiCobreMes });
           // Fatura importada cuja competência é o mês seguinte (importada
           // adiantada): mostra ELA na linha do mês seguinte, não só as parcelas.
           const fiProx = c.faturaImportada && !c.faturaImportada.paga && c.faturaImportada.competencia === proxKey
@@ -816,9 +824,13 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         <div style={{ marginTop: 4, fontSize: 10.5, color: T.muted }} title={`Fatura importada com competência ${nomeMesCurto(proxKey)}`}>
                           Mês seguinte (<span style={{ textTransform: "capitalize" }}>{nomeMesCurto(proxKey)}</span>): <span className="num" style={{ color: T.gold, fontWeight: 700 }}>{hidden ? "•••" : fmt(fiProx)}</span> <span style={{ color: T.faint }}>· fatura importada</span>
                         </div>
-                      ) : fiProx > 0 ? null : proxMes.valor > 0 && (
-                        <div style={{ marginTop: 4, fontSize: 10.5, color: T.muted }} title={`Parcelas já comprometidas que vencem em ${nomeMesCurto(proxKey)}`}>
-                          Mês seguinte (<span style={{ textTransform: "capitalize" }}>{nomeMesCurto(proxKey)}</span>): <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(proxMes.valor)}</span> <span style={{ color: T.faint }}>· {proxMes.count} parcela{proxMes.count === 1 ? "" : "s"}</span>
+                      ) : fiProx > 0 ? null : (proxMes.valor + avProx) > 0 && (
+                        <div style={{ marginTop: 4, fontSize: 10.5, color: T.muted }} title={`Já comprometido pra fatura de ${nomeMesCurto(proxKey)}: parcelas + compras lançadas (manual/foto) ainda não cobradas`}>
+                          Mês seguinte (<span style={{ textTransform: "capitalize" }}>{nomeMesCurto(proxKey)}</span>): <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(proxMes.valor + avProx)}</span>{" "}
+                          <span style={{ color: T.faint }}>
+                            · {proxMes.count} parcela{proxMes.count === 1 ? "" : "s"}
+                            {avProx > 0 && <> + <span style={{ color: T.gold }}>{hidden ? "•••" : fmt(avProx)} em compras</span></>}
+                          </span>
                         </div>
                       )}
                     </>
