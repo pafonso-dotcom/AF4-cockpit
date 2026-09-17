@@ -13,6 +13,7 @@ import { backupDiario, criarBackup, obterBackup } from "./lib/autobackup.js";
 import { gistBackupAutomatico } from "./lib/gistSync.js";
 import BackupsModal from "./components/modals/BackupsModal.jsx";
 import CompraCartaoModal from "./components/modals/CompraCartaoModal.jsx";
+import ComprasFotoModal from "./components/modals/ComprasFotoModal.jsx";
 import { toast } from "./lib/toast.js";
 import { createBackup, shouldAutoBackup } from "./lib/autoBackup.js";
 import { audit } from "./lib/auditLog.js";
@@ -129,19 +130,6 @@ function PageFallback() {
   );
 }
 
-function ConversaFABInput({ onAbrirCompleto }) {
-  return (
-    <div>
-      <p style={{ fontSize: 11, color: T.muted, margin: "0 0 8px" }}>
-        Clique para abrir a conversa completa.
-      </p>
-      <button className="btn-gold" style={{ width: "100%" }} onClick={onAbrirCompleto}>
-        Abrir Conversa
-      </button>
-    </div>
-  );
-}
-
 export default function App() {
   const [modulo, setModulo] = useState(() => {
     // Inicia no primeiro módulo permitido ao perfil ativo
@@ -192,7 +180,7 @@ export default function App() {
   const [marketStatus, setMarketStatus] = useState({ at: null, mode: "sim", okCount: 0, total: 0 });
   const [cartaoAberto, setCartaoAberto] = useState(null);
   const [contaAberta, setContaAberta] = useState(null);
-  const [conversaFABOpen, setConversaFABOpen] = useState(false);
+  const [comprasFotoOpen, setComprasFotoOpen] = useState(false);
 
   applyTheme(themeId);
 
@@ -1372,6 +1360,13 @@ export default function App() {
           parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
           onClose={() => setCompraCartaoOpen(false)} />
       )}
+      {comprasFotoOpen && (
+        <ComprasFotoModal
+          cartoes={cartoes}
+          transacoes={transacoes} setTransacoes={setTransacoes}
+          onClose={() => setComprasFotoOpen(false)}
+          onManual={() => setCompraCartaoOpen(true)} />
+      )}
       {pickerOpen && (
         <ThemePicker themeId={themeId} setThemeId={setThemeId} onClose={() => setPickerOpen(false)} />
       )}
@@ -1432,40 +1427,25 @@ export default function App() {
       {["analise-carteira", "trade-ativo"].includes(tab) && !tradeOnboardingVisto && (
         <OnboardingTradeModal onClose={() => setTradeOnboardingVisto(true)} />
       )}
-      {modulo === "financas" && tab !== "conversa" && (
-        <>
-          <button
-            onClick={() => setConversaFABOpen(o => !o)}
-            style={{
-              position: "fixed", bottom: 80, right: 20, zIndex: 200,
-              width: 50, height: 50, borderRadius: "50%",
-              background: T.gold, color: T.bg, border: "none",
-              boxShadow: "0 4px 16px rgba(0,0,0,.35)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", fontSize: 22,
-            }}
-            title="Conversa rápida"
-          >
-            💬
-          </button>
-          {conversaFABOpen && (
-            <div style={{
-              position: "fixed", bottom: 140, right: 20, zIndex: 200,
-              width: 320, background: T.card,
-              border: `1px solid ${T.border}`, borderRadius: 12,
-              padding: 14, boxShadow: "0 8px 32px rgba(0,0,0,.4)",
-            }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: T.gold, marginBottom: 8 }}>Conversa rápida</div>
-              <ConversaFABInput
-                onEnviar={(texto) => {
-                  setConversaFABOpen(false);
-                  setTab("conversa");
-                }}
-                onAbrirCompleto={() => { setConversaFABOpen(false); setTab("conversa"); }}
-              />
-            </div>
-          )}
-        </>
+      {/* FAB destacado: registrar compras do cartão POR FOTO (print do
+          banco/Wallet ou cupom) — mantém as contas em dia sem esperar a
+          fatura fechar. Substituiu o antigo botão de "Conversa rápida". */}
+      {modulo === "financas" && (
+        <button
+          onClick={() => setComprasFotoOpen(true)}
+          style={{
+            position: "fixed", bottom: 80, right: 20, zIndex: 200,
+            width: 54, height: 54, borderRadius: "50%",
+            background: T.gold, color: T.bg, border: "none",
+            boxShadow: "0 4px 16px rgba(0,0,0,.35)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", fontSize: 24,
+          }}
+          title="Compra no cartão por foto"
+          aria-label="Registrar compra no cartão por foto"
+        >
+          📷
+        </button>
       )}
     </div>
   );
