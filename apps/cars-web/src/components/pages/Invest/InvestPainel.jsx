@@ -10,12 +10,14 @@ import { detectarFonte } from "../../../lib/cotacoes.js";
 import { CARD_SHADOW, AURORA_BG } from "../../../lib/styles.js";
 import IndicesGlobais from "../IndicesGlobais.jsx";
 import EvolucaoPatrimonio from "./EvolucaoPatrimonio.jsx";
+import StatusCotacoes from "../../ui/StatusCotacoes.jsx";
 
 export default function InvestPainel({
   ativos = [], transacoes = [], categorias = [],
   hidden, onTabChange, onAnalisar,
   onAbrirAnaliseIdv, apiKeys = {},
   proventosRecebidos = {}, patrimonioHistorico = [],
+  marketStatus = null,
 }) {
   const hoje = new Date();
 
@@ -129,6 +131,8 @@ export default function InvestPainel({
           Sua carteira, <em style={{ color: T.gold }}>com clareza.</em>
         </h1>
       </div>
+
+      <StatusCotacoes status={marketStatus} />
 
       {/* Topo · 2 colunas: esquerda = Alocação por Moeda + ações; direita =
           índices de mercado + KPIs. Alturas igualadas (alignItems stretch). */}

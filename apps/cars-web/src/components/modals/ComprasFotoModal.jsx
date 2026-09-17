@@ -9,6 +9,26 @@ import { montarPromptComprasFoto, normalizarCompraFoto, marcarJaLancadas } from 
 
 const KEY_ULTIMO_CARTAO = "af4:compra-cartao:ultimo"; // mesmo do CompraCartaoModal
 
+// Reduz a foto antes de enviar: foto de celular tem 3-12 MB e era isso que
+// deixava a leitura lenta. Reamostra pra no máx. 1600px (JPEG 82%) — mais que
+// suficiente pra IA ler os textos — cortando o upload em ~10-20×.
+async function comprimirImagem(file, maxLado = 1600) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const escala = Math.min(1, maxLado / Math.max(bmp.width, bmp.height));
+    if (escala >= 1 && file.size < 900_000) return file; // já é pequena
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bmp.width * escala));
+    canvas.height = Math.max(1, Math.round(bmp.height * escala));
+    canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.82));
+    if (blob && blob.size < file.size) return new File([blob], "foto.jpg", { type: "image/jpeg" });
+    return file;
+  } catch {
+    return file; // navegador sem suporte: manda original
+  }
+}
+
 /**
  * Compras do cartão POR FOTO: tira foto (ou print) da tela de transações
  * recentes do app do banco/Wallet — ou de um cupom — e a IA extrai as
@@ -38,11 +58,13 @@ export default function ComprasFotoModal({
     if (!file) return;
     setLendo(true);
     try {
-      const base64 = await fileToBase64(file);
+      const comprimida = await comprimirImagem(file);
+      const base64 = await fileToBase64(comprimida);
       const res = await gerarJSONGeminiComImagem(
         montarPromptComprasFoto(new Date()),
         base64,
-        file.type || "image/jpeg"
+        comprimida.type || "image/jpeg",
+        { maxOutputTokens: 2048 } // lista de compras é curta — resposta mais rápida
       );
       const hoje = todayISO();
       const compras = (res?.compras || [])
