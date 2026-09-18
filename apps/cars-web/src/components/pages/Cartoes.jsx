@@ -768,10 +768,12 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
 
       {/* Lista de cartões — recolhida por padrão */}
       <SecaoColapsavel idKey="cartoes-lista" titulo="Meus cartões" count={cartoes.length} defaultAberto={true}>
-      {/* Visual cards · grid lado a lado (mesmo padrão das Contas) */}
+      {/* Visual cards · grid lado a lado (mesmo padrão das Contas).
+          260px de mínimo: com a linha do tempo/melhor dia/limite os cards
+          de 180px ficavam estreitos demais (pedido do usuário). */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+        gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
         gap: 12,
         marginBottom: 30,
       }}>
@@ -909,8 +911,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                           </div>
                         );
                       })()}
-                      {/* Limite usado (parcelas restantes + compras pendentes) */}
-                      {Number(c.limite) > 0 && (() => {
+                      {/* Limite usado (parcelas restantes + compras pendentes).
+                          Limite < R$ 100 é tratado como simbólico/placeholder
+                          (ex.: R$ 1,00) — sem barra, que sairia sempre 100%. */}
+                      {Number(c.limite) >= 100 && (() => {
                         const usadoLimite = usado + avulsasPendentesNoMes(c, transacoes, "9999-12", { incluirAnteriores: true });
                         const pct = Math.min(100, (usadoLimite / Number(c.limite)) * 100);
                         const corBarra = pct >= 85 ? T.red : pct >= 60 ? T.gold : T.green;
