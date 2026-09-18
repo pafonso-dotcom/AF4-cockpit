@@ -20,6 +20,33 @@ export function competenciaDaCompra(dataISO, fechamento) {
 }
 
 /**
+ * Soma das PARCELAS em aberto de um cartão que vencem em monthKey.
+ * Mesma regra da tela Cartões: parcela N cai em dataPrimeira + (N-1) meses
+ * (ou dataCompra + N meses, sem dataPrimeira).
+ */
+export function parcelasPendentesNoMes(cartao, parcelamentos = [], monthKey) {
+  if (!cartao || !monthKey) return 0;
+  return (parcelamentos || []).reduce((s, p) => {
+    if (!p || p.cartaoId !== cartao.id) return s;
+    const total = p.totalParcelas || 0;
+    if (total <= 0) return s;
+    const base = p.dataPrimeira || p.dataCompra;
+    if (!base) return s;
+    const [y, m, d] = base.split("-").map(Number);
+    const start = p.dataPrimeira ? m : m + 1;
+    const vpp = Number(p.valorParcela) || (Number(p.valorTotal) || 0) / total;
+    const pagas = new Set(p.parcelasPagas || []);
+    let devido = 0;
+    for (let n = 1; n <= total; n++) {
+      if (pagas.has(n)) continue;
+      const dt = new Date(y, start - 1 + (n - 1), d || 1);
+      if (`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}` === monthKey) devido += vpp;
+    }
+    return s + devido;
+  }, 0);
+}
+
+/**
  * Soma das compras AVULSAS pendentes do cartão (lançadas à mão ou por foto,
  * sem vir de fatura importada) cuja competência é monthKey. É o que faz a
  * compra lançada na hora aparecer no "a pagar" do cartão sem esperar a
