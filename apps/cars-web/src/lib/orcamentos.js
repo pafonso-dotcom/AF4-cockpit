@@ -29,3 +29,28 @@ export function calcOrcamentoCategorias(categorias = [], transacoes = [], mesISO
     })
     .sort((a, b) => b.pct - a.pct);
 }
+
+/**
+ * Mesmo cálculo, mas a partir de GASTOS JÁ AGREGADOS por categoria
+ * (ex.: a lista do Dashboard vinda de getDespesasDoMes, que inclui fixas,
+ * parcelas e avulsas — não só transações).
+ * @param {Array} categorias  categorias ({ nome, tipo, limite, cor })
+ * @param {Array<{nome, valor}>} gastos  gasto do mês por categoria
+ */
+export function calcOrcamentoComGastos(categorias = [], gastos = []) {
+  const gastoPorCat = {};
+  for (const g of gastos || []) {
+    if (!g || !g.nome) continue;
+    gastoPorCat[g.nome] = (gastoPorCat[g.nome] || 0) + (Number(g.valor) || 0);
+  }
+  return (categorias || [])
+    .filter((c) => c && c.tipo === "despesa" && Number(c.limite) > 0)
+    .map((c) => {
+      const limite = Number(c.limite) || 0;
+      const gasto = gastoPorCat[c.nome] || 0;
+      const pct = limite > 0 ? (gasto / limite) * 100 : 0;
+      const estado = pct >= 100 ? "estourado" : pct >= 80 ? "alerta" : "ok";
+      return { id: c.id, nome: c.nome, cor: c.cor, limite, gasto, pct, estado };
+    })
+    .sort((a, b) => b.pct - a.pct);
+}

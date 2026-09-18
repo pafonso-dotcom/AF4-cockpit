@@ -43,3 +43,34 @@ describe("calcOrcamentoCategorias", () => {
     expect(r.map((x) => x.nome)).toEqual(["B", "A"]);
   });
 });
+
+describe("calcOrcamentoComGastos (gastos agregados: fixas + parcelas + avulsas)", async () => {
+  const { calcOrcamentoComGastos } = await import("../orcamentos.js");
+  const cats = [
+    { id: "1", nome: "Mercado", tipo: "despesa", limite: 1000, cor: "#f00" },
+    { id: "2", nome: "Lazer", tipo: "despesa", limite: 200 },
+    { id: "3", nome: "Sem limite", tipo: "despesa" },
+    { id: "4", nome: "Salário", tipo: "receita", limite: 999 },
+  ];
+
+  it("calcula pct/estado a partir da lista {nome, valor}", () => {
+    const gastos = [
+      { nome: "Mercado", valor: 500 },
+      { nome: "Mercado", valor: 350 },
+      { nome: "Lazer", valor: 250 },
+      { nome: "Sem limite", valor: 50 },
+    ];
+    const r = calcOrcamentoComGastos(cats, gastos);
+    expect(r.map(x => x.nome)).toEqual(["Lazer", "Mercado"]); // ordenado por % desc
+    const lazer = r[0], mercado = r[1];
+    expect(lazer.estado).toBe("estourado");
+    expect(mercado.gasto).toBe(850);
+    expect(mercado.estado).toBe("alerta"); // 85%
+  });
+
+  it("ignora receitas e categorias sem limite; sem gasto = 0% ok", () => {
+    const r = calcOrcamentoComGastos(cats, []);
+    expect(r.length).toBe(2);
+    expect(r.every(x => x.estado === "ok" && x.gasto === 0)).toBe(true);
+  });
+});
