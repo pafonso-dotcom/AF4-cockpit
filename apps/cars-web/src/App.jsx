@@ -103,22 +103,13 @@ const CartaoExtrato = lz(() => import("./components/pages/CartaoExtrato.jsx"));
 const ContaExtrato = lz(() => import("./components/pages/ContaExtrato.jsx"));
 const PergunteAoClaude = lz(() => import("./components/pages/PergunteAoClaude.jsx"));
 const Configuracoes = lz(() => import("./components/pages/Configuracoes.jsx"));
-const NegocioPainel = lz(() => import("./components/pages/Negocio/NegocioPainel.jsx"));
-const NegocioVeiculos = lz(() => import("./components/pages/Negocio/Veiculos.jsx"));
-const NegocioServicos = lz(() => import("./components/pages/Negocio/Servicos.jsx"));
-const NegocioClientes = lz(() => import("./components/pages/Negocio/Clientes.jsx"));
-const NegocioBanco = lz(() => import("./components/pages/Negocio/NegocioBanco.jsx"));
-const NegocioCategorias = lz(() => import("./components/pages/Negocio/NegocioCategorias.jsx"));
-const NegocioDespesasFixas = lz(() => import("./components/pages/Negocio/NegocioDespesasFixas.jsx"));
-const NegocioDespesasVar = lz(() => import("./components/pages/Negocio/NegocioDespesasVar.jsx"));
-const NegocioRecebimentos = lz(() => import("./components/pages/Negocio/NegocioRecebimentos.jsx"));
+// Módulo Negócio REMOVIDO da interface (pedido 2026-09-18: "não uso mais").
+// Os DADOS negocio* continuam no estado e nos backups — nada é apagado; se um
+// dia voltar, é só restaurar as páginas (histórico do git) e religar aqui.
 const Lembretes = lz(() => import("./components/pages/Lembretes.jsx"));
 const Conversa = lz(() => import("./components/pages/Conversa.jsx"));
 const Treino = lz(() => import("./components/pages/Treino.jsx"));
 import { EXERCICIOS_BASE } from "./lib/exerciciosBase.js";
-import LojaSelector from "./components/pages/Negocio/LojaSelector.jsx";
-import GerenciarLojasModal from "./components/pages/Negocio/GerenciarLojasModal.jsx";
-import { filtrarPorLoja } from "./lib/negocioLojas.js";
 import { dispararLembretes } from "./lib/lembretes.js";
 
 // Fallback enquanto o chunk de uma aba (lazy) é baixado.
@@ -279,7 +270,6 @@ export default function App() {
   const [negocioLojas, setNegocioLojas] = useState([]);
   const [negocioLojaAtiva, setNegocioLojaAtiva] = useState("");
   const [negocioRecebimentos, setNegocioRecebimentos] = useState([]);
-  const [gerenciarLojasOpen, setGerenciarLojasOpen] = useState(false);
   // Proventos marcados como recebidos: { [proventoKey]: { dataBaixa, destino, valor } }
   const [proventosRecebidos, setProventosRecebidos] = useState({});
   // Proventos que o user marcou como "Ignorados" (não interessam, foram
@@ -1054,111 +1044,6 @@ export default function App() {
     </div>
   );
 
-  const renderNegocio = () => {
-    const lojaTemItens = (lojaId) =>
-      [negocioFinContas, negocioFinDespesasFixas, negocioFinDespesasVar, negocioRecebimentos]
-        .some(arr => (arr || []).some(i => i.lojaId === lojaId));
-    const mostraSelector = ["negocio-painel", "negocio-banco", "negocio-despesas-fixas", "negocio-despesas-var", "negocio-recebimentos"].includes(tab) || !tab.startsWith("negocio-");
-    return (
-    <div className="px-6 md:px-10">
-      {mostraSelector && (
-        <LojaSelector lojas={negocioLojas} lojaAtiva={negocioLojaAtiva} setLojaAtiva={setNegocioLojaAtiva}
-          onGerenciar={() => setGerenciarLojasOpen(true)} />
-      )}
-      {(tab === "negocio-painel" || !tab.startsWith("negocio-")) && (
-        <NegocioPainel
-          negocioVeiculos={negocioVeiculos}
-          negocioVendasVeiculos={negocioVendasVeiculos}
-          negocioServicos={negocioServicos}
-          negocioVendasServicos={negocioVendasServicos}
-          negocioClientes={negocioClientes}
-          caixaNegocio={caixaNegocio}
-          negocioFinContas={negocioFinContas}
-          negocioFinDespesasFixas={negocioFinDespesasFixas}
-          negocioFinDespesasVar={negocioFinDespesasVar}
-          negocioRecebimentos={negocioRecebimentos}
-          lojaAtiva={negocioLojaAtiva} lojas={negocioLojas}
-          hidden={hidden}
-          onTabChange={(t) => setTab(t)}
-        />
-      )}
-      {tab === "negocio-veiculos" && (
-        <NegocioVeiculos
-          veiculos={negocioVeiculos} setVeiculos={setNegocioVeiculos}
-          vendas={negocioVendasVeiculos} setVendas={setNegocioVendasVeiculos}
-          clientes={negocioClientes}
-          contas={contas} setContas={setContas}
-          transacoes={transacoes} setTransacoes={setTransacoes}
-          categorias={categorias}
-          caixaNegocio={caixaNegocio} setCaixaNegocio={setCaixaNegocio}
-          hidden={hidden}
-        />
-      )}
-      {tab === "negocio-servicos" && (
-        <NegocioServicos
-          servicos={negocioServicos} setServicos={setNegocioServicos}
-          vendas={negocioVendasServicos} setVendas={setNegocioVendasServicos}
-          contratos={negocioContratos} setContratos={setNegocioContratos}
-          clientes={negocioClientes}
-          veiculos={negocioVeiculos}
-          instaladores={negocioInstaladores} setInstaladores={setNegocioInstaladores}
-          bancos={negocioBancos} setBancos={setNegocioBancos}
-          caixaNegocio={caixaNegocio} setCaixaNegocio={setCaixaNegocio}
-          hidden={hidden}
-        />
-      )}
-      {tab === "negocio-clientes" && (
-        <NegocioClientes
-          clientes={negocioClientes} setClientes={setNegocioClientes}
-          vendasVeiculos={negocioVendasVeiculos}
-          vendasServicos={negocioVendasServicos}
-          hidden={hidden}
-        />
-      )}
-      {tab === "negocio-banco" && (
-        <NegocioBanco
-          contas={negocioFinContas} setContas={setNegocioFinContas}
-          lojaAtiva={negocioLojaAtiva} lojas={negocioLojas}
-          hidden={hidden}
-        />
-      )}
-      {tab === "negocio-categorias" && (
-        <NegocioCategorias
-          categorias={negocioFinCategorias} setCategorias={setNegocioFinCategorias}
-        />
-      )}
-      {tab === "negocio-despesas-fixas" && (
-        <NegocioDespesasFixas
-          despesas={negocioFinDespesasFixas} setDespesas={setNegocioFinDespesasFixas}
-          categorias={negocioFinCategorias}
-          lojaAtiva={negocioLojaAtiva} lojas={negocioLojas}
-          hidden={hidden}
-        />
-      )}
-      {tab === "negocio-despesas-var" && (
-        <NegocioDespesasVar
-          despesas={negocioFinDespesasVar} setDespesas={setNegocioFinDespesasVar}
-          categorias={negocioFinCategorias} contas={filtrarPorLoja(negocioFinContas, negocioLojaAtiva)}
-          lojaAtiva={negocioLojaAtiva} lojas={negocioLojas}
-          hidden={hidden}
-        />
-      )}
-      {tab === "negocio-recebimentos" && (
-        <NegocioRecebimentos
-          recebimentos={negocioRecebimentos} setRecebimentos={setNegocioRecebimentos}
-          categorias={negocioFinCategorias} contas={filtrarPorLoja(negocioFinContas, negocioLojaAtiva)}
-          lojaAtiva={negocioLojaAtiva} lojas={negocioLojas}
-          hidden={hidden}
-        />
-      )}
-      {gerenciarLojasOpen && (
-        <GerenciarLojasModal lojas={negocioLojas} setLojas={setNegocioLojas}
-          lojaAtiva={negocioLojaAtiva} setLojaAtiva={setNegocioLojaAtiva}
-          temItens={lojaTemItens} onClose={() => setGerenciarLojasOpen(false)} />
-      )}
-    </div>
-    );
-  };
 
   const renderInvest = () => (
     <>
@@ -1397,7 +1282,6 @@ export default function App() {
         {modulo === "financas" && renderAgenda()}
 
         {/* MÓDULO: NEGÓCIO (revenda + serviços) */}
-        {modulo === "negocio" && renderNegocio()}
 
         {/* MÓDULO: INVESTIMENTOS */}
         {modulo === "invest" && renderInvest()}
