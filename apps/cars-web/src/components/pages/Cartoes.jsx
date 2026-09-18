@@ -861,12 +861,6 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                             ? <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.gold}18`, color: T.gold, whiteSpace: "nowrap" }}>A pagar · {nomeMesCurto(mesFat)}</span>
                             : <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>Sem fatura</span>}
                       </div>
-                      {usado > 0 && (
-                        <div className="num" style={{ marginTop: 6, fontSize: 10.5, color: T.muted, whiteSpace: "nowrap" }}
-                             title="Todas as parcelas em aberto deste cartão (todos os meses)">
-                          Parcelas em aberto: <span style={{ fontWeight: 600, color: T.ink }}>{hidden ? "•••" : fmt(usado)}</span>
-                        </div>
-                      )}
                       {/* Mês seguinte: só quando acrescenta informação ao destaque. */}
                       {aPagar > 0 && fiProx > 0 ? (
                         <div style={{ marginTop: 4, fontSize: 10.5, color: T.muted }} title={`Fatura importada com competência ${nomeMesCurto(proxKey)}`}>
@@ -879,6 +873,12 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                             · {proxMes.count} parcela{proxMes.count === 1 ? "" : "s"}
                             {avProx > 0 && <> + <span style={{ color: T.gold }}>{hidden ? "•••" : fmt(avProx)} em compras</span></>}
                           </span>
+                        </div>
+                      )}
+                      {usado > 0 && (
+                        <div className="num" style={{ marginTop: 6, fontSize: 10.5, color: T.muted, whiteSpace: "nowrap" }}
+                             title="Todas as parcelas em aberto deste cartão (todos os meses)">
+                          Parcelas em aberto: <span style={{ fontWeight: 600, color: T.ink }}>{hidden ? "•••" : fmt(usado)}</span>
                         </div>
                       )}
                       {/* Linha do tempo da fatura + melhor dia de compra */}
