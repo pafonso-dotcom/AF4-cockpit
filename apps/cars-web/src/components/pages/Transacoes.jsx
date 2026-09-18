@@ -300,6 +300,35 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
     });
   };
 
+  // Compensar/despensar EM LOTE — mesma regra do toggle individual
+  // (compensar soma na conta; despensar devolve), agregada por conta e
+  // com Desfazer que restaura transações E saldos.
+  const bulkCompensar = (novoEstado) => {
+    const alvos = transacoes.filter(t => selectedIds.has(t.id) && !!t.compensado !== novoEstado);
+    if (alvos.length === 0) {
+      toast.info(novoEstado ? "Todas as selecionadas já estão compensadas." : "Todas as selecionadas já estão pendentes.");
+      return;
+    }
+    const backupTx = transacoes.map(t => ({ ...t }));
+    const backupContas = (contas || []).map(c => ({ ...c }));
+    const deltaPorConta = {};
+    alvos.forEach(t => {
+      const v = Number(t.valor || 0);
+      const signed = t.tipo === "receita" ? v : -v;
+      deltaPorConta[t.conta] = (deltaPorConta[t.conta] || 0) + (novoEstado ? signed : -signed);
+    });
+    if (typeof setContas === "function") {
+      setContas((contas || []).map(c => deltaPorConta[c.nome]
+        ? { ...c, saldo: (Number(c.saldo) || 0) + deltaPorConta[c.nome] } : c));
+    }
+    const ids = new Set(alvos.map(t => t.id));
+    setTransacoes(transacoes.map(t => ids.has(t.id) ? { ...t, compensado: novoEstado } : t));
+    setSelectedIds(new Set());
+    toast.success(`${alvos.length} transação${alvos.length !== 1 ? "ões" : ""} marcada${alvos.length !== 1 ? "s" : ""} como ${novoEstado ? "compensada" : "pendente"}${alvos.length !== 1 ? "s" : ""} · saldos ajustados.`, {
+      action: { label: "Desfazer", onClick: () => { setTransacoes(backupTx); setContas(backupContas); } },
+    });
+  };
+
   const bulkAlterarBanco = (novaConta) => {
     if (!novaConta) return;
     const count = selectedIds.size;
@@ -582,6 +611,26 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
             <option value="">Mover para conta…</option>
             {contas.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
           </select>
+          <button onClick={() => bulkCompensar(true)}
+                  title="Marcar as selecionadas como compensadas (soma nos saldos das contas)"
+                  style={{
+                    background: "transparent", color: T.green, border: `1px solid ${T.green}`,
+                    padding: "4px 12px", fontSize: 11, letterSpacing: "0.1em",
+                    textTransform: "uppercase", fontWeight: 500, cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 4,
+                  }}>
+            <CheckCircle2 size={11} /> Compensar
+          </button>
+          <button onClick={() => bulkCompensar(false)}
+                  title="Voltar as selecionadas a pendentes (devolve dos saldos das contas)"
+                  style={{
+                    background: "transparent", color: T.gold, border: `1px solid ${T.gold}`,
+                    padding: "4px 12px", fontSize: 11, letterSpacing: "0.1em",
+                    textTransform: "uppercase", fontWeight: 500, cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 4,
+                  }}>
+            <AlertCircle size={11} /> Pendente
+          </button>
           <button onClick={bulkDelete}
                   style={{
                     background: "transparent", color: T.red, border: `1px solid ${T.red}`,
