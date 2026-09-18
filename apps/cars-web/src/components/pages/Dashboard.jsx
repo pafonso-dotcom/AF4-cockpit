@@ -11,7 +11,7 @@ import { gerarInsights } from "../../lib/intelligence.js";
 import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { getKPIsMes, getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
-import { calcOrcamentoCategorias } from "../../lib/orcamentos.js";
+import { calcOrcamentoComGastos } from "../../lib/orcamentos.js";
 import { useLayout } from "../../lib/useLayout.js";
 import { supabase } from "../../lib/supabase.js";
 import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
@@ -565,6 +565,14 @@ export default function Dashboard({
         </div>
       </section>
 
+      {/* Orçamento por categoria — gasto do mês vs limite definido em
+          Categorias. Só aparece quando há pelo menos um limite. */}
+      {calcOrcamentoComGastos(categorias, gastosCat).length > 0 && (
+        <section style={{ marginBottom: 16 }}>
+          <OrcamentoCard categorias={categorias} gastos={gastosCat} hidden={hidden} onTabChange={onTabChange} />
+        </section>
+      )}
+
       {/* Metas + Pergunte IA */}
       <section className="dash-metas-grid" style={{
         display: "grid", gridTemplateColumns: "2.5fr 1fr", gap: 12, marginBottom: 24,
@@ -998,8 +1006,10 @@ function ResumoMesCard({ mesNome, receitas, despesas, gastosCat, hidden }) {
   );
 }
 
-function OrcamentoCard({ categorias, transacoes, mesISO, hidden, onTabChange }) {
-  const itens = useMemo(() => calcOrcamentoCategorias(categorias, transacoes, mesISO), [categorias, transacoes, mesISO]);
+function OrcamentoCard({ categorias, gastos, hidden, onTabChange }) {
+  // gastos = lista {nome, valor} vinda de getDespesasDoMes (fixas + parcelas +
+  // avulsas), a mesma do card "Gastos por Categoria" — números sempre batem.
+  const itens = useMemo(() => calcOrcamentoComGastos(categorias, gastos), [categorias, gastos]);
   return (
     <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>

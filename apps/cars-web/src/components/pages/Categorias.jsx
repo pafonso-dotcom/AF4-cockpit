@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Plus, Trash2, Edit3, PieChart, Package, Check } from "lucide-react";
+import { Plus, Trash2, Edit3, Package, Check } from "lucide-react";
 import { T } from "../../lib/theme.js";
-import { uid } from "../../lib/format.js";
+import { uid, fmt } from "../../lib/format.js";
+import { getDespesasDoMes } from "../../lib/agregador.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import { PACOTES } from "../../lib/categoriasPacotes.js";
@@ -12,7 +13,10 @@ import Field from "../ui/Field.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
 import Modal from "../ui/Modal.jsx";
 
-export default function Categorias({ categorias, setCategorias, transacoes, hidden, escopoAtivo = "tudo" }) {
+export default function Categorias({
+  categorias, setCategorias, transacoes, hidden, escopoAtivo = "tudo",
+  fixas = [], fixaOcorrencias = [], parcelamentos = [], cartoes = [],
+}) {
   const [form, setForm] = useState(null);
   const [pacoteAberto, setPacoteAberto] = useState(null); // null | "list" | pacoteId
   const [selecionadas, setSelecionadas] = useState({});   // { "<pacoteId>:<nome>": true }
@@ -52,12 +56,37 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
   const receitas = categoriasNoEscopo.filter(c => c.tipo === "receita");
   const despesas = categoriasNoEscopo.filter(c => c.tipo === "despesa");
 
+  // Gasto do mês por categoria — MESMA base do Dashboard (getDespesasDoMes:
+  // fixas + parcelas + avulsas de cartão + transações), pra os números baterem.
+  const mesISO = new Date().toISOString().slice(0, 7);
+  const gastoPorCat = useMemo(() => {
+    let itens = [];
+    try {
+      itens = getDespesasDoMes(mesISO, { transacoes, fixas, fixaOcorrencias, parcelamentos, cartoes, categorias }, escopoAtivo);
+    } catch { itens = []; }
+    const m = {};
+    itens.forEach(d => { const k = d.categoria || "Outros"; m[k] = (m[k] || 0) + (Number(d.valor) || 0); });
+    return m;
+  }, [mesISO, transacoes, fixas, fixaOcorrencias, parcelamentos, cartoes, categorias, escopoAtivo]);
+  // Gasto de uma categoria-raiz = dela + das filhas (parentId).
+  const gastoDe = (cat) => {
+    let g = gastoPorCat[cat.nome] || 0;
+    (categorias || []).forEach(f => { if (f.parentId === cat.id) g += gastoPorCat[f.nome] || 0; });
+    return g;
+  };
+
+  // Resumo do orçamento (só despesas com limite definido)
+  const orcadas = despesas.filter(c => Number(c.limite) > 0);
+  const totalOrcado = orcadas.reduce((s, c) => s + Number(c.limite), 0);
+  const totalGastoOrcadas = orcadas.reduce((s, c) => s + gastoDe(c), 0);
+  const pctOrcamento = totalOrcado > 0 ? (totalGastoOrcadas / totalOrcado) * 100 : 0;
+
   return (
     <div className="fade-up py-8">
       <PageHeader
         eyebrow="Capítulo VI"
         title="Categorias"
-        sub="A taxonomia do dinheiro. Cadastro de categorias, pais e subcategorias."
+        sub="A taxonomia do dinheiro. Categorias, subcategorias e orçamento mensal de cada uma."
         action={
           <div className="flex items-center gap-2 flex-wrap">
             <button className="btn-ghost" onClick={() => { setSelecionadas({}); setPacoteAberto("list"); }}>
@@ -70,15 +99,37 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
         }
       />
 
-      {/* Aviso: valores e orçamento agora vivem na Análise de gastos */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
-        padding: "8px 12px", background: T.bgSoft, border: `1px solid ${T.border}`,
-        borderRadius: 10, color: T.muted, fontSize: 11.5,
-      }}>
-        <PieChart size={13} style={{ color: T.gold, flexShrink: 0 }} />
-        <span>Esta tela é só para <b style={{ color: T.ink }}>cadastro</b> das categorias. Valores gastos e orçamento (limites) ficam no <b style={{ color: T.ink }}>Centro de controle → Análise de gastos</b>.</span>
-      </div>
+      {/* Resumo do orçamento do mês (despesas com limite definido) */}
+      {vista === "despesa" && (
+        <div style={{
+          background: T.card, border: `1px solid ${T.border}`, borderRadius: 13,
+          padding: "12px 14px", marginBottom: 12,
+        }}>
+          {totalOrcado > 0 ? (() => {
+            const cor = pctOrcamento >= 100 ? T.red : pctOrcamento >= 80 ? T.gold : T.green;
+            return (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
+                  <span className="label-eyebrow">Orçamento do mês</span>
+                  <span className="num" style={{ fontSize: 13, fontWeight: 700, color: cor }}>
+                    {hidden ? "•••" : `${fmt(totalGastoOrcadas)} de ${fmt(totalOrcado)}`} · {Math.round(pctOrcamento)}%
+                  </span>
+                </div>
+                <div style={{ height: 8, borderRadius: 6, background: T.bgSoft, overflow: "hidden" }}>
+                  <div style={{ width: `${Math.min(100, pctOrcamento)}%`, height: "100%", background: cor, borderRadius: 6, transition: "width .4s ease" }} />
+                </div>
+                <div style={{ fontSize: 10.5, color: T.faint, marginTop: 5 }}>
+                  {orcadas.length} categoria{orcadas.length === 1 ? "" : "s"} com orçamento · sobra {hidden ? "•••" : fmt(Math.max(0, totalOrcado - totalGastoOrcadas))} no mês
+                </div>
+              </>
+            );
+          })() : (
+            <div style={{ fontSize: 12, color: T.muted }}>
+              💡 Defina um <b style={{ color: T.ink }}>orçamento mensal</b> nas categorias (lápis ✎) e acompanhe aqui o gasto vs limite — as barras aparecem em cada categoria e no Dashboard.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Toggle Receitas | Despesas + Expandir/Recolher tudo */}
       <div className="flex items-center justify-between flex-wrap gap-2" style={{ marginBottom: 12 }}>
@@ -120,7 +171,7 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
       {vista === "receita" ? (
         <CategoriaCol titulo="Receitas" cats={receitas} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.green} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} />
       ) : (
-        <CategoriaCol titulo="Despesas" cats={despesas} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.red} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} />
+        <CategoriaCol titulo="Despesas" cats={despesas} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.red} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} gastoDe={gastoDe} />
       )}
 
       {form && (
@@ -160,9 +211,11 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
             <ColorPicker value={form.cor} onChange={cor => setForm({ ...form, cor })} />
           </Field>
           {form.tipo === "despesa" && (
-            <div style={{ fontSize: 11, color: T.faint, marginTop: -2, marginBottom: 4 }}>
-              O limite mensal de gastos agora é definido na <b>Análise de gastos</b> (Centro de controle).
-            </div>
+            <Field label="Orçamento mensal (R$)" hint="Limite de gasto no mês — a barra fica verde/dourada/vermelha conforme o consumo. Vazio = sem orçamento.">
+              <input type="number" step="0.01" min="0" placeholder="sem orçamento"
+                     value={form.limite ?? ""}
+                     onChange={e => setForm({ ...form, limite: e.target.value === "" ? null : Number(e.target.value) })} />
+            </Field>
           )}
           <div className="flex gap-3 mt-6">
             <button className="btn-gold" onClick={save}>Salvar</button>
@@ -317,7 +370,7 @@ export default function Categorias({ categorias, setCategorias, transacoes, hidd
   );
 }
 
-function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias, accent, hidden, transacoes, expandSig, expandTo }) {
+function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias, accent, hidden, transacoes, expandSig, expandTo, gastoDe }) {
   // Apenas categorias-raiz neste nível; filhas aparecem indentadas via CategoriaItem
   // (ambas em ordem alfabética)
   const raizes = ordenarPorNome(cats.filter(c => !c.parentId));
@@ -351,6 +404,8 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
             transacoes={transacoes}
             expandSig={expandSig}
             expandTo={expandTo}
+            gastoDe={gastoDe}
+            hidden={hidden}
           />
         ))}
       </div>
@@ -358,7 +413,7 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
   );
 }
 
-function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, transacoes, expandSig = 0, expandTo = false }) {
+function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, transacoes, expandSig = 0, expandTo = false, gastoDe, hidden }) {
   const [open, setOpen] = useState(false);
   const [openFilhas, setOpenFilhas] = useState(false); // filhas colapsadas por default
   const [novaSub, setNovaSub] = useState("");
@@ -443,6 +498,33 @@ function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, tra
               </span>
             )}
           </div>
+          {/* Orçamento da categoria (só despesas): gasto do mês vs limite. */}
+          {c.tipo === "despesa" && gastoDe && (() => {
+            const gasto = gastoDe(c);
+            const limite = Number(c.limite) || 0;
+            if (limite > 0) {
+              const pct = (gasto / limite) * 100;
+              const cor = pct >= 100 ? T.red : pct >= 80 ? T.gold : T.green;
+              return (
+                <div style={{ marginTop: 3 }} title={`Gasto do mês (com fixas e parcelas) vs orçamento — ${Math.round(pct)}%`}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, marginBottom: 2 }}>
+                    <span className="num" style={{ color: cor, fontWeight: 700 }}>
+                      {hidden ? "•••" : `${fmt(gasto)} / ${fmt(limite)}`}
+                    </span>
+                    <span className="num" style={{ color: cor, fontWeight: 700 }}>{Math.round(pct)}%{pct >= 100 ? " · estourou" : ""}</span>
+                  </div>
+                  <div style={{ height: 4, borderRadius: 100, background: T.bgSoft, overflow: "hidden", maxWidth: 340 }}>
+                    <div style={{ width: `${Math.min(100, pct)}%`, height: "100%", background: cor, borderRadius: 100 }} />
+                  </div>
+                </div>
+              );
+            }
+            return gasto > 0 ? (
+              <div className="num" style={{ marginTop: 2, fontSize: 9.5, color: T.faint }}>
+                {hidden ? "•••" : fmt(gasto)} no mês · <span onClick={e => { e.stopPropagation(); setForm(c); }} style={{ color: T.gold, cursor: "pointer" }}>definir orçamento</span>
+              </div>
+            ) : null;
+          })()}
         </div>
         <button onClick={e => { e.stopPropagation(); setOpen(!open); }}
                 aria-label="Expandir subcategorias"
