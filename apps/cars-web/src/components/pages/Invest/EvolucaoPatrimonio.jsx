@@ -92,12 +92,12 @@ export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "to
       background: T.card, border: `1px solid ${T.border}`, borderRadius: compacto ? 13 : 14,
       padding: compacto ? 10 : 14, marginBottom: compacto ? 10 : 18,
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap", marginBottom: compacto ? 4 : 10 }}>
-        <div>
-          <div className="label-eyebrow" style={{ marginBottom: compacto ? 2 : 4 }}>Evolução do patrimônio</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: compacto ? "center" : "flex-start", gap: 10, flexWrap: "wrap", marginBottom: compacto ? 2 : 10 }}>
+        <div style={compacto ? { display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", minWidth: 0 } : undefined}>
+          <div className="label-eyebrow" style={{ marginBottom: compacto ? 0 : 4 }}>Evolução do patrimônio</div>
           {!dados.vazio && (
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-              <div style={{ fontFamily: T.serif, fontSize: compacto ? 16 : 22, fontWeight: 600, color: T.ink, fontVariantNumeric: "tabular-nums" }}>
+              <div style={{ fontFamily: T.serif, fontSize: compacto ? 15 : 22, fontWeight: 600, color: T.ink, fontVariantNumeric: "tabular-nums" }}>
                 {hidden ? "•••••" : fmt(dados.ultimo.total)}
               </div>
               <div style={{
@@ -152,22 +152,25 @@ export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "to
         </div>
       ) : (
         <>
-          <div style={{ width: "100%", height: compacto ? 108 : 200 }}>
+          <div style={{ width: "100%", height: compacto ? 64 : 200 }}>
             <ResponsiveContainer>
-              <AreaChart data={dados.pontos} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
+              <AreaChart data={dados.pontos} margin={compacto ? { top: 2, right: 0, left: 0, bottom: 0 } : { top: 5, right: 5, left: 5, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gradPatr" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%"  stopColor={T.gold} stopOpacity={0.4} />
                     <stop offset="100%" stopColor={T.gold} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke={T.border} strokeDasharray="2 4" vertical={false} />
+                {!compacto && <CartesianGrid stroke={T.border} strokeDasharray="2 4" vertical={false} />}
                 <XAxis dataKey="label"
+                       hide={compacto}
                        tick={{ fill: T.muted, fontSize: 10 }}
                        stroke={T.border}
                        interval="preserveStartEnd"
                        minTickGap={30} />
-                <YAxis tick={{ fill: T.muted, fontSize: 10 }}
+                <YAxis hide={compacto}
+                       domain={compacto ? ["auto", "auto"] : undefined}
+                       tick={{ fill: T.muted, fontSize: 10 }}
                        stroke={T.border}
                        tickFormatter={v => hidden ? "•••" : `${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
@@ -192,8 +195,10 @@ export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "to
             </ResponsiveContainer>
           </div>
 
-          {/* Legenda + controle do CDI */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: compacto ? 5 : 8, fontSize: 10.5, color: T.muted }}>
+          {/* Legenda + controle do CDI — no compacto sai (o selo "vs CDI" já
+              está no cabeçalho; a taxa se ajusta na versão cheia/Relatórios). */}
+          {!compacto && (
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 8, fontSize: 10.5, color: T.muted }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 14, height: 2.5, background: T.gold, borderRadius: 2 }} /> Patrimônio
             </span>
@@ -221,6 +226,7 @@ export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "to
               </span>
             )}
           </div>
+          )}
         </>
       )}
     </div>

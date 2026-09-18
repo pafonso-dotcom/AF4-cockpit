@@ -57,11 +57,29 @@ export async function buscarSimbolos(termo) {
   return data?.stocks || [];
 }
 
+// A BRAPI limita quantos tickers vão numa requisição (plano grátis: 10;
+// Pro: 20). Mandar acima do limite dá 400 e NENHUMA cotação volta — por
+// isso buscamos em LOTES de 10 e juntamos os resultados. Um lote que
+// falhar não derruba os outros (só o último erro é relançado se nada veio).
+const LOTE_BRAPI = 10;
+
 export async function getQuotes(tickers) {
   if (!tickers?.length) return [];
-  const list = tickers.join(",");
-  const data = await brapiFetch(`/quote/${list}`);
-  return (data.results || []).map(r => ({
+  const lotes = [];
+  for (let i = 0; i < tickers.length; i += LOTE_BRAPI) {
+    lotes.push(tickers.slice(i, i + LOTE_BRAPI));
+  }
+  const respostas = await Promise.all(
+    lotes.map(l => brapiFetch(`/quote/${l.join(",")}`).catch(e => ({ _erro: e })))
+  );
+  const resultados = [];
+  let ultimoErro = null;
+  for (const r of respostas) {
+    if (r && r._erro) { ultimoErro = r._erro; continue; }
+    resultados.push(...(r?.results || []));
+  }
+  if (!resultados.length && ultimoErro) throw ultimoErro;
+  return resultados.map(r => ({
     symbol: r.symbol,
     name: r.longName || r.shortName,
     price: r.regularMarketPrice,
