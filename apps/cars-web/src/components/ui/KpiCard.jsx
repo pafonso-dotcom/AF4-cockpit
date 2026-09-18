@@ -87,7 +87,7 @@ export default function KpiCard({
 /**
  * KpiInline — KPI compacto, sem borda/sombra, ícone pequeno no canto.
  * Era reimplementado idêntico em Negocio/Servicos, Negocio/Veiculos e
- * Planejamento/PrevisaoView; centralizado aqui (mesmo visual).
+ * telas de KPI do app; centralizado aqui (mesmo visual).
  * Props: { label, valor, sub, cor, icon }.
  */
 export function KpiInline({ label, valor, sub, cor, icon: Icon }) {

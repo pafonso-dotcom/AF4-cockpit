@@ -215,6 +215,12 @@ export default function AnaliseGastos(props) {
               <Target size={12} /> {orcarModo ? "Concluir" : "Orçamento"}
             </button>
           )}
+          {typeof onTabChange === "function" && (
+            <button onClick={() => onTabChange("categorias")} style={chipBtn()}
+                    title="Os limites daqui são os MESMOS da tela Categorias — edite onde preferir.">
+              🏷 Categorias
+            </button>
+          )}
           <button onClick={() => { setEditar((v) => !v); setOrcarModo(false); }} style={chipBtn(editar ? { background: `${T.gold}22`, color: T.gold, borderColor: `${T.gold}55` } : {})}>
             <SlidersHorizontal size={12} /> {editar ? "Concluir" : "Ajustar"}
           </button>
