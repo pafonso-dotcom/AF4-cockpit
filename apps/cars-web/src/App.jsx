@@ -11,6 +11,7 @@ import { lerEscopo, salvarEscopo } from "./lib/escopo.js";
 import { aplicarDadosCarregados, aplicarSeeds } from "./lib/appPersistencia.js";
 import { backupDiario, criarBackup, obterBackup } from "./lib/autobackup.js";
 import { gistBackupAutomatico } from "./lib/gistSync.js";
+import { alertasDisparados, filtrarNovos, marcarNotificados } from "./lib/alertasPreco.js";
 import BackupsModal from "./components/modals/BackupsModal.jsx";
 import CompraCartaoModal from "./components/modals/CompraCartaoModal.jsx";
 import ComprasFotoModal from "./components/modals/ComprasFotoModal.jsx";
@@ -709,7 +710,7 @@ export default function App() {
       const { cotacoes, erros } = await atualizarCarteira(lista);
 
       let okCount = 0;
-      setAtivos(prev => prev.map(a => {
+      const aplicarCotacoes = (lista) => lista.map(a => {
         // Renda fixa fica fixa no valor informado — sem cotação nem tick.
         if (rendaFixaFixa(a)) return a;
         const sym = a.tipo === "cripto" && !/USDT$/i.test(a.ticker)
@@ -731,7 +732,9 @@ export default function App() {
         // Nunca aplica tick simulado — preço inventado não bate com a
         // corretora e vai derivando a cada atualização.
         return { ...a, realtime: false };
-      }));
+      });
+      const novosAtivos = aplicarCotacoes(ativos);
+      setAtivos(novosAtivos);
 
       setMarketStatus({
         at: new Date(),
@@ -740,6 +743,27 @@ export default function App() {
         total: ativosComSymbol.length,
         erros,
       });
+
+      // Alertas de preço-alvo: avisa quando a cotação real cruza o alvo
+      // definido no ativo (alertaAcima/alertaAbaixo) — 1 aviso por
+      // ativo/direção/dia (dedupe em localStorage).
+      try {
+        const hojeISO = new Date().toISOString().slice(0, 10);
+        let notif = {};
+        try { notif = JSON.parse(localStorage.getItem("af4:alertas-preco:v1") || "{}"); } catch {}
+        const novos = filtrarNovos(alertasDisparados(novosAtivos), notif, hojeISO);
+        if (novos.length) {
+          novos.slice(0, 4).forEach(al => {
+            toast.success(
+              al.dir === "acima"
+                ? `🔔 ${al.ticker} atingiu o alvo: R$ ${al.preco.toFixed(2)} (≥ R$ ${al.alvo.toFixed(2)})`
+                : `🔔 ${al.ticker} caiu ao alvo: R$ ${al.preco.toFixed(2)} (≤ R$ ${al.alvo.toFixed(2)})`,
+              { duration: 10000 }
+            );
+          });
+          try { localStorage.setItem("af4:alertas-preco:v1", JSON.stringify(marcarNotificados(novos, notif, hojeISO))); } catch {}
+        }
+      } catch (e) { console.warn("[alertas-preco]", e); }
     } catch (e) {
       console.error("[refreshMarket]", e);
       setMarketStatus({ at: new Date(), mode: "sim", okCount: 0, total: ativos.length, erros: [e.message] });

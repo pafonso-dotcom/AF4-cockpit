@@ -278,6 +278,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       preco: parseFloat(form.preco) || parseFloat(form.pm),
       base: parseFloat(form.preco) || parseFloat(form.pm),
       rendimentoMes: parseFloat(form.rendimentoMes) || 0,
+      alertaAcima: parseFloat(form.alertaAcima) > 0 ? parseFloat(form.alertaAcima) : null,
+      alertaAbaixo: parseFloat(form.alertaAbaixo) > 0 ? parseFloat(form.alertaAbaixo) : null,
     };
     if (form.id && ativos.find(a => a.id === form.id)) {
       setAtivos(ativos.map(a => a.id === form.id ? data : a));
@@ -613,6 +615,9 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.ink }}>{a.ticker}</span>
                     {isLive(a) && <span className="af4-live-dot" title="Cotação ao vivo (atualizada nos últimos 60s)" />}
+                    {(Number(a.alertaAcima) > 0 || Number(a.alertaAbaixo) > 0) && (
+                      <span title={`Alerta de preço: ${Number(a.alertaAcima) > 0 ? `≥ R$ ${Number(a.alertaAcima).toFixed(2)}` : ""}${Number(a.alertaAcima) > 0 && Number(a.alertaAbaixo) > 0 ? " · " : ""}${Number(a.alertaAbaixo) > 0 ? `≤ R$ ${Number(a.alertaAbaixo).toFixed(2)}` : ""}`} style={{ fontSize: 10, opacity: .8 }}>🔔</span>
+                    )}
                     {a.segmento && (
                       <span style={{
                         padding: "1px 7px", borderRadius: 4, background: `${T.gold}15`, color: T.gold,
@@ -813,6 +818,9 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                         <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
                           <span style={{ fontFamily: T.serif, fontSize: 15, color: T.ink, fontWeight: 600 }}>{a.ticker}</span>
                           {isLive(a) && <span className="af4-live-dot" title="Cotação ao vivo (atualizada nos últimos 60s)" />}
+                    {(Number(a.alertaAcima) > 0 || Number(a.alertaAbaixo) > 0) && (
+                      <span title={`Alerta de preço: ${Number(a.alertaAcima) > 0 ? `≥ R$ ${Number(a.alertaAcima).toFixed(2)}` : ""}${Number(a.alertaAcima) > 0 && Number(a.alertaAbaixo) > 0 ? " · " : ""}${Number(a.alertaAbaixo) > 0 ? `≤ R$ ${Number(a.alertaAbaixo).toFixed(2)}` : ""}`} style={{ fontSize: 10, opacity: .8 }}>🔔</span>
+                    )}
                           <span style={{ color: T.muted, fontSize: 11 }}>
                             {a.nome && <span className="italic">{a.nome} · </span>}
                             <span style={{ fontFamily: T.sans, letterSpacing: "0.03em", textTransform: "uppercase", fontSize: 9.5 }}>{a.tipo}</span>
@@ -1008,6 +1016,21 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   <RefreshCw size={12} className={fetchingPrice ? "spin" : ""} />
                 </button>
               </div>
+            </Field>
+          </div>
+
+          {/* Alertas de preço-alvo: o app avisa na atualização de cotações
+              quando o preço real cruzar o alvo (1 aviso por dia). */}
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={`🔔 Avisar se SUBIR a (${moedaForm}) — opcional`}>
+              <input type="number" step="0.01" min="0" value={form.alertaAcima ?? ""}
+                     onChange={e => setForm({ ...form, alertaAcima: e.target.value })}
+                     placeholder="ex: 120,00" />
+            </Field>
+            <Field label={`🔔 Avisar se CAIR a (${moedaForm}) — opcional`}>
+              <input type="number" step="0.01" min="0" value={form.alertaAbaixo ?? ""}
+                     onChange={e => setForm({ ...form, alertaAbaixo: e.target.value })}
+                     placeholder="ex: 95,00" />
             </Field>
           </div>
 
