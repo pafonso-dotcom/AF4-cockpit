@@ -14,7 +14,7 @@ import BankIcon from "../ui/BankIcon.jsx";
 import NotasRapidasCard from "../ui/NotasRapidasCard.jsx";
 import AnaliseFatura from "./AnaliseFatura.jsx";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
-import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
+import { avulsasPendentesNoMes, competenciaDaCompra } from "../../lib/cartaoFatura.js";
 
 // ===== Helpers compartilhados de parcelas =====
 // Mantidos no nível do módulo pra que o cálculo do "valor a pagar" do cartão
@@ -262,16 +262,51 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     return { valorSugerido, parcelasDoMes };
   };
 
+  // Compras AVULSAS pendentes (manual/foto) que entram na fatura de monthKey.
+  // Competências anteriores rolam junto (pendente sempre cai na próxima
+  // fatura aberta, como no banco) — é o que faz a compra lançada por foto
+  // aparecer PARA PAGAMENTO, não só na linha informativa.
+  const avulsasDaCompetencia = (cartaoId, monthKey) => {
+    const cartao = cartoes.find(c => c.id === cartaoId);
+    if (!cartao) return { valorAvulsas: 0, avulsasDoMes: [] };
+    const avulsasDoMes = (transacoes || []).filter(t =>
+      t && t.cartaoId === cartaoId && t.tipo === "despesa" && !t.compensado &&
+      !String(t.origem || "").startsWith("fatura-") &&
+      (competenciaDaCompra(t.data, cartao.fechamento) || "9999-99") <= monthKey);
+    return {
+      valorAvulsas: avulsasDoMes.reduce((s, t) => s + (Number(t.valor) || 0), 0),
+      avulsasDoMes: avulsasDoMes.map(t => ({ id: t.id, descricao: t.descricao || "Compra", data: t.data, valor: Number(t.valor) || 0 })),
+    };
+  };
+
   const openPagamento = (cartao) => {
     const now = new Date();
     // Se há fatura importada em aberto, paga por ELA (valor real da fatura) e
-    // na competência dela; senão, cai no modelo de parcelas do mês corrente.
+    // na competência dela; senão, parcelas + compras avulsas da competência.
     const fi = cartao.faturaImportada && !cartao.faturaImportada.paga ? cartao.faturaImportada : null;
-    const monthKey = fi?.competencia
+    let monthKey = fi?.competencia
       || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const { valorSugerido, parcelasDoMes } = parcelasDaCompetencia(cartao.id, monthKey);
+    let { valorSugerido, parcelasDoMes } = parcelasDaCompetencia(cartao.id, monthKey);
+    let { valorAvulsas, avulsasDoMes } = avulsasDaCompetencia(cartao.id, monthKey);
+    // Fatura do mês corrente já paga e sem importada em aberto → abre direto
+    // na PRÓXIMA competência (onde estão as compras novas), em vez de num mês
+    // já quitado com valor zero.
+    if (!fi && valorSugerido + valorAvulsas <= 0) {
+      const fiPagaDoMes = cartao.faturaImportada?.paga
+        && (!cartao.faturaImportada.competencia || cartao.faturaImportada.competencia === monthKey);
+      if (fiPagaDoMes) {
+        const prox = proximoMesKey();
+        const p2 = parcelasDaCompetencia(cartao.id, prox);
+        const a2 = avulsasDaCompetencia(cartao.id, prox);
+        if (p2.valorSugerido + a2.valorAvulsas > 0) {
+          monthKey = prox;
+          ({ valorSugerido, parcelasDoMes } = p2);
+          ({ valorAvulsas, avulsasDoMes } = a2);
+        }
+      }
+    }
     const valor = fi ? Number(fi.valorTotal).toFixed(2)
-      : (valorSugerido > 0 ? valorSugerido.toFixed(2) : "");
+      : (valorSugerido + valorAvulsas > 0 ? (valorSugerido + valorAvulsas).toFixed(2) : "");
     setPagFatura({
       cartaoId: cartao.id,
       cartaoNome: cartao.nome,
@@ -280,17 +315,20 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
       data: todayISO(),
       monthKey,
       parcelasDoMes,
+      avulsasDoMes,
       faturaImportada: !!fi,
     });
     setPagErrors({});
   };
 
-  // Troca a competência (mês) da fatura e recalcula valor + parcelas cobertas.
+  // Troca a competência (mês) da fatura e recalcula valor + parcelas/compras cobertas.
   const mudarCompetenciaPagamento = (monthKey) => {
     setPagFatura(prev => {
       if (!prev) return prev;
       const { valorSugerido, parcelasDoMes } = parcelasDaCompetencia(prev.cartaoId, monthKey);
-      return { ...prev, monthKey, parcelasDoMes, valor: valorSugerido > 0 ? valorSugerido.toFixed(2) : prev.valor };
+      const { valorAvulsas, avulsasDoMes } = avulsasDaCompetencia(prev.cartaoId, monthKey);
+      const total = valorSugerido + valorAvulsas;
+      return { ...prev, monthKey, parcelasDoMes, avulsasDoMes, valor: total > 0 ? total.toFixed(2) : prev.valor };
     });
   };
 
@@ -484,6 +522,12 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           String(t.data || "").slice(0, 7) === pagFatura.monthKey
         ).map(t => t.id))
       : new Set();
+    // Compras avulsas (manual/foto) cobertas por este pagamento: viram pagas
+    // (compensado) junto. Elas já são as despesas reais nos relatórios, então
+    // quando existem o pagamento vira transferência (origem fatura-pagamento)
+    // pra não contar duas vezes.
+    const avulsasCobertas = (pagFatura.avulsasDoMes || []).map(a => a.id);
+    const idsAvulsas = new Set(avulsasCobertas);
 
     // 1. Cria a transação do PAGAMENTO da fatura (a "baixa" visível na conta).
     //    Para fatura importada ela é uma transferência (origem "fatura-pagamento")
@@ -498,10 +542,14 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
       data: pagFatura.data,
       compensado: true,
       cartaoId: pagFatura.cartaoId,
-      ...(ehImportada ? { origem: "fatura-pagamento", faturaCompetencia: pagFatura.monthKey } : {}),
+      ...((ehImportada || idsAvulsas.size > 0)
+        ? { origem: "fatura-pagamento", faturaCompetencia: pagFatura.monthKey } : {}),
+      ...(idsAvulsas.size > 0 ? { avulsasCobertas } : {}),
       obs: ehImportada
         ? "Pagamento da fatura (baixa) — os itens importados é que contam como despesa"
-        : `Pagamento de fatura — ${pagFatura.parcelasDoMes.length} parcela(s) cobertas`,
+        : idsAvulsas.size > 0
+          ? `Pagamento de fatura — ${pagFatura.parcelasDoMes.length} parcela(s) + ${idsAvulsas.size} compra(s) cobertas (as compras é que contam como despesa)`
+          : `Pagamento de fatura — ${pagFatura.parcelasDoMes.length} parcela(s) cobertas`,
     };
 
     // 2. Debita conta
@@ -525,17 +573,14 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         : c));
     }
 
-    // 4. Aplica nas transações: adiciona a baixa (pagamento) e, na importada,
-    //    marca também os itens da fatura como pagos.
-    if (ehImportada) {
-      setTransacoes([
-        novaTransacao,
-        ...(transacoes || []).map(t =>
-          idsPagar.has(t.id) ? { ...t, compensado: true } : t),
-      ]);
-    } else {
-      setTransacoes([novaTransacao, ...transacoes]);
-    }
+    // 4. Aplica nas transações: adiciona a baixa (pagamento) e marca como pagos
+    //    os itens cobertos — importados (fatura-*) e/ou compras avulsas.
+    setTransacoes([
+      novaTransacao,
+      ...(transacoes || []).map(t =>
+        (ehImportada && idsPagar.has(t.id)) || idsAvulsas.has(t.id)
+          ? { ...t, compensado: true } : t),
+    ]);
 
     setPagFatura(null);
     setPagErrors({});
@@ -583,12 +628,16 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     }
     const pagIds = new Set(pagamentos.map(t => t.id));
 
-    // 2. Volta os itens importados deste cartão/competência a PENDENTES e remove a baixa.
+    // 2. Volta os itens importados deste cartão/competência a PENDENTES e remove
+    //    a baixa. Compras avulsas cobertas pelo pagamento (avulsasCobertas)
+    //    também voltam a pendentes.
+    const avulsasEstornar = new Set(pagamentos.flatMap(t => t.avulsasCobertas || []));
     setTransacoes((transacoes || [])
       .filter(t => !pagIds.has(t.id))
       .map(t => (
-        String(t.origem || "").startsWith("fatura-") && t.origem !== "fatura-pagamento" &&
-        t.cartaoId === cartao.id && String(t.data || "").slice(0, 7) === comp
+        (String(t.origem || "").startsWith("fatura-") && t.origem !== "fatura-pagamento" &&
+         t.cartaoId === cartao.id && String(t.data || "").slice(0, 7) === comp)
+        || avulsasEstornar.has(t.id)
       ) ? { ...t, compensado: false } : t));
 
     // 3. Desmarca as parcelas do mês que tinham sido pagas pela fatura.
@@ -663,16 +712,13 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
             <button className="btn-gold" onClick={() => setForm({ id: null, nome: "", banco: "outro", limite: "", vencimento: 5, fechamento: 28, tipo: "principal", tags: [], ativo: true })}>
               <Plus size={14} className="inline mr-2" />Novo Cartão
             </button>
-            {/* Ex-menu "AÇÕES" (estourava no celular): viraram ícones compactos. */}
+            {/* Ex-menu "AÇÕES" (estourava no celular): viraram ícones compactos.
+                "Limpar duplicados" saiu do topo (manutenção rara) — vive no
+                expandir de cada cartão. */}
             <button onClick={() => setAnaliseAberta(true)} title="Análise de fatura com IA (importar fatura)"
                     aria-label="Análise de fatura com IA"
                     style={{ width: 32, height: 32, borderRadius: 10, background: "transparent", border: `1px solid ${T.border}`, color: T.gold, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Sparkles size={14} />
-            </button>
-            <button onClick={limparDuplicadosFatura} title="Limpar duplicados da fatura"
-                    aria-label="Limpar duplicados da fatura"
-                    style={{ width: 32, height: 32, borderRadius: 10, background: "transparent", border: `1px solid ${T.red}44`, color: T.red, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
-              <Trash2 size={14} />
             </button>
           </div>
         }
@@ -721,7 +767,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
       })()}
 
       {/* Lista de cartões — recolhida por padrão */}
-      <SecaoColapsavel idKey="cartoes-lista" titulo="Meus cartões" count={cartoes.length} defaultAberto={false}>
+      <SecaoColapsavel idKey="cartoes-lista" titulo="Meus cartões" count={cartoes.length} defaultAberto={true}>
       {/* Visual cards · grid lado a lado (mesmo padrão das Contas) */}
       <div style={{
         display: "grid",
@@ -833,6 +879,53 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                           </span>
                         </div>
                       )}
+                      {/* Linha do tempo da fatura + melhor dia de compra */}
+                      {(() => {
+                        const fech = Number(c.fechamento) || null;
+                        const venc = Number(c.vencimento) || null;
+                        if (!fech && !venc) return null;
+                        const hj = new Date();
+                        let diasVenc = null;
+                        if (venc) {
+                          const alvo = new Date(hj.getFullYear(), hj.getMonth() + (hj.getDate() > venc ? 1 : 0), venc);
+                          diasVenc = Math.round((alvo - new Date(hj.getFullYear(), hj.getMonth(), hj.getDate())) / 86400000);
+                        }
+                        const urgente = aPagar > 0 && diasVenc != null && diasVenc <= 3;
+                        const compHoje = fech ? competenciaDaCompra(todayISO(), fech) : null;
+                        const melhorDia = fech ? (fech >= 31 ? 1 : fech + 1) : null;
+                        return (
+                          <div style={{ marginTop: 6, fontSize: 10, color: T.faint, lineHeight: 1.55 }}>
+                            <div>
+                              {fech ? `Fecha dia ${fech}` : ""}{fech && venc ? " · " : ""}{venc ? `vence dia ${venc}` : ""}
+                              {diasVenc != null && aPagar > 0 && (
+                                <b style={{ color: urgente ? T.red : T.gold }}> · {diasVenc === 0 ? "vence HOJE" : `em ${diasVenc}d`}</b>
+                              )}
+                            </div>
+                            {compHoje && (
+                              <div title="Depois do fechamento a compra só entra na fatura seguinte — o melhor dia de compra é logo após o fechamento (mais prazo pra pagar).">
+                                🛍 Compra hoje → fatura de <b style={{ textTransform: "capitalize" }}>{nomeMesCurto(compHoje)}</b> · melhor dia: {melhorDia}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      {/* Limite usado (parcelas restantes + compras pendentes) */}
+                      {Number(c.limite) > 0 && (() => {
+                        const usadoLimite = usado + avulsasPendentesNoMes(c, transacoes, "9999-12", { incluirAnteriores: true });
+                        const pct = Math.min(100, (usadoLimite / Number(c.limite)) * 100);
+                        const corBarra = pct >= 85 ? T.red : pct >= 60 ? T.gold : T.green;
+                        return (
+                          <div style={{ marginTop: 6 }} title="Parcelas restantes + compras pendentes sobre o limite do cartão">
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: T.faint, marginBottom: 2 }}>
+                              <span>Limite usado {pct.toFixed(0)}%</span>
+                              <span className="num">{hidden ? "•••" : `${fmt(usadoLimite)} / ${fmt(Number(c.limite))}`}</span>
+                            </div>
+                            <div style={{ height: 4, borderRadius: 100, background: T.bgSoft, overflow: "hidden" }}>
+                              <div style={{ width: `${pct}%`, height: "100%", background: corBarra, borderRadius: 100 }} />
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </>
                   );
                 })()}
@@ -923,6 +1016,17 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                             display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
                           }}>
                     <Trash2 size={11} /> Excluir lançamentos da fatura
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); limparDuplicadosFatura(); }}
+                          title="Manutenção: remove cópias de parcela de importações antigas e pagamentos que cobriram 0 parcelas (vale pra todos os cartões)"
+                          style={{
+                            width: "100%", marginTop: 6, padding: "5px 8px", fontSize: 9.5, fontWeight: 600,
+                            letterSpacing: ".05em", textTransform: "uppercase",
+                            borderRadius: 4, background: "transparent",
+                            border: `1px dashed ${T.border}`, color: T.muted, cursor: "pointer",
+                            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+                          }}>
+                    <Trash2 size={11} /> Limpar duplicados de fatura
                   </button>
                 </div>
               )}
@@ -1402,23 +1506,30 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                        onChange={e => mudarCompetenciaPagamento(e.target.value)}
                        style={{ background: T.bg, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 5, padding: "3px 8px", fontSize: 12 }} />
               </div>
-              {pagFatura.parcelasDoMes.length === 0 ? (
+              {pagFatura.parcelasDoMes.length === 0 && (pagFatura.avulsasDoMes || []).length === 0 ? (
                 <div style={{ color: T.muted, fontSize: 13, fontStyle: "italic" }}>
-                  Nenhuma parcela em aberto neste mês — você pode pagar um valor livre.
+                  Nenhuma parcela ou compra em aberto neste mês — você pode pagar um valor livre.
                 </div>
               ) : (
-                <div style={{ fontSize: 12, color: T.muted, maxHeight: 140, overflowY: "auto" }}>
+                <div style={{ fontSize: 12, color: T.muted, maxHeight: 170, overflowY: "auto" }}>
                   {pagFatura.parcelasDoMes.map((pp, i) => (
-                    <div key={i} className="flex justify-between" style={{ padding: "3px 0", borderBottom: i < pagFatura.parcelasDoMes.length - 1 ? `1px dashed ${T.border}` : "none" }}>
+                    <div key={`p${i}`} className="flex justify-between" style={{ padding: "3px 0", borderBottom: `1px dashed ${T.border}` }}>
                       <span>{pp.parcDescricao} · {pp.parcN}ª</span>
                       <span className="num">{fmt(pp.valor)}</span>
+                    </div>
+                  ))}
+                  {(pagFatura.avulsasDoMes || []).map((a, i) => (
+                    <div key={`a${i}`} className="flex justify-between" style={{ padding: "3px 0", borderBottom: i < pagFatura.avulsasDoMes.length - 1 ? `1px dashed ${T.border}` : "none" }}>
+                      <span style={{ color: T.gold }}>🛒 {a.descricao} · {a.data?.slice(8, 10)}/{a.data?.slice(5, 7)}</span>
+                      <span className="num" style={{ color: T.gold }}>{fmt(a.valor)}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
             <Field label="Valor a pagar (R$)" required error={pagErrors.valor}
-                   hint={pagFatura.parcelasDoMes.length > 0 ? "Sugerido: soma das parcelas em aberto deste mês" : "Pagamento livre"}>
+                   hint={pagFatura.parcelasDoMes.length > 0 || (pagFatura.avulsasDoMes || []).length > 0
+                     ? "Sugerido: parcelas + compras em aberto desta fatura" : "Pagamento livre"}>
               <input type="number" step="0.01"
                      value={pagFatura.valor}
                      onChange={e => setPagFatura({ ...pagFatura, valor: e.target.value })} />
@@ -1444,7 +1555,8 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
               </div>
             )}
             <div style={{ background: `${T.gold}11`, border: `1px solid ${T.gold}`, padding: 10, marginTop: 8, fontSize: 11, color: T.muted, fontStyle: "italic" }}>
-              ✓ Ao confirmar: cria uma despesa em Transações, debita {pagFatura.contaNome || "a conta"} e marca as parcelas listadas como pagas.
+              ✓ Ao confirmar: debita {pagFatura.contaNome || "a conta"}, marca as parcelas listadas como pagas
+              {(pagFatura.avulsasDoMes || []).length > 0 && " e dá baixa nas compras lançadas (manual/foto)"}.
             </div>
             <div className="flex gap-3 mt-6">
               <button className="btn-gold" onClick={executarPagamento}>Confirmar Pagamento</button>

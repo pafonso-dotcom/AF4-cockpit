@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { competenciaDaCompra, avulsasPendentesNoMes } from "../cartaoFatura.js";
+import { competenciaDaCompra, avulsasPendentesNoMes, parcelasPendentesNoMes } from "../cartaoFatura.js";
 
 describe("competenciaDaCompra", () => {
   it("compra até o dia do fechamento cai no mês da própria data", () => {
@@ -50,6 +50,18 @@ describe("avulsasPendentesNoMes", () => {
   it("compra-manual e compra-foto contam normalmente", () => {
     const t = [tx({ origem: "compra-manual" }), tx({ origem: "compra-foto", valor: 200 })];
     expect(avulsasPendentesNoMes(cartao, t, "2026-09")).toBe(300);
+  });
+
+  it("parcelasPendentesNoMes soma só as parcelas não pagas que vencem no mês", () => {
+    const parc = {
+      cartaoId: "xp", totalParcelas: 4, valorTotal: 400,
+      dataPrimeira: "2026-08-10", parcelasPagas: [1],
+    };
+    // Parcelas: 1=ago (paga), 2=set, 3=out, 4=nov
+    expect(parcelasPendentesNoMes(cartao, [parc], "2026-08")).toBe(0);
+    expect(parcelasPendentesNoMes(cartao, [parc], "2026-09")).toBe(100);
+    expect(parcelasPendentesNoMes(cartao, [parc], "2026-10")).toBe(100);
+    expect(parcelasPendentesNoMes({ id: "outro" }, [parc], "2026-09")).toBe(0);
   });
 
   it("incluirAnteriores rola compras de competências passadas pra fatura seguinte", () => {

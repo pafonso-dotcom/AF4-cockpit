@@ -5,6 +5,7 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
+import { parcelasPendentesNoMes, avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
 
 // Calcula qual parcela de um parcelamento cai em um mês específico (mesISO = "2026-05")
 function parcelaNoMes(parc, mesISO) {
@@ -204,6 +205,20 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
   const fatura = Number(cartao.faturaAtual ?? cartao.usado ?? 0);
   const totalParcMes = parcCartao.reduce((s, p) => s + Number(p.valorParcela || p.valor || 0), 0);
 
+  // Próxima fatura em formação: parcelas do mês seguinte + compras avulsas
+  // pendentes (com rolagem das competências já fechadas). Mostrada quando a
+  // fatura do mês está zerada/paga — é onde estão as compras recém-lançadas.
+  const proxKey = (() => {
+    const d = new Date();
+    const n = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
+  })();
+  const proximaFatura = useMemo(() =>
+    parcelasPendentesNoMes(cartao, parcelamentos, proxKey)
+    + avulsasPendentesNoMes(cartao, transacoes, proxKey, { incluirAnteriores: true }),
+    [cartao, parcelamentos, transacoes, proxKey]);
+  const nomeMesProx = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][parseInt(proxKey.slice(5, 7), 10) - 1];
+
   // Gradiente baseado no nome do cartão
   const gradByName = (nome) => {
     const n = (nome || "").toLowerCase();
@@ -264,7 +279,14 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
         <div className="k">
           <div className="kh"><div className="kl">A pagar (mês)</div></div>
           <div className="kv">{hidden ? "•••" : fmt(fatura)}</div>
-          <div className="ku" style={{ color: T.faint }}>fatura do mês</div>
+          {fatura <= 0 && proximaFatura > 0 ? (
+            <div className="ku num" style={{ color: T.gold, fontWeight: 600 }}
+                 title="Parcelas + compras lançadas que caem na próxima fatura">
+              próxima ({nomeMesProx}): {hidden ? "•••" : fmt(proximaFatura)}
+            </div>
+          ) : (
+            <div className="ku" style={{ color: T.faint }}>fatura do mês</div>
+          )}
         </div>
         <div className="k">
           <div className="kh"><div className="kl">Restante (total)</div></div>
