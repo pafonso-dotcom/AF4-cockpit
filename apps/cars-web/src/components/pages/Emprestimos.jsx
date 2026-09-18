@@ -41,6 +41,21 @@ export default function Emprestimos({ devedores = [], hidden, onTabChange }) {
           sub="a devolver" />
       </div>
 
+      {/* Alerta de parcelas de juros em atraso */}
+      {r.parcelasAtrasadas > 0 && (
+        <div style={{
+          background: `${T.red}11`, border: `1px solid ${T.red}55`, borderLeft: `4px solid ${T.red}`,
+          borderRadius: 14, padding: "12px 16px", marginBottom: 16,
+          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+        }}>
+          <Clock size={17} style={{ color: T.red, flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 200, fontSize: 12.5, color: T.ink }}>
+            <b style={{ color: T.red }}>{r.parcelasAtrasadas} parcela{r.parcelasAtrasadas === 1 ? "" : "s"} de juros em atraso</b>
+            {" "}— {hidden ? "•••" : fmt(r.totalJurosAtrasado)} vencidos e não recebidos. Cobre e registre o recebimento em A Receber &amp; Dívidas.
+          </div>
+        </div>
+      )}
+
       {r.emprestimos.length === 0 ? (
         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 32, textAlign: "center" }}>
           <HandCoins size={26} style={{ color: T.muted, marginBottom: 8 }} />
@@ -87,8 +102,21 @@ export default function Emprestimos({ devedores = [], hidden, onTabChange }) {
                 </div>
               </div>
 
+              {/* Barra do quanto do total (principal + juros previstos) já voltou */}
+              {(e.principal + e.jurosPrevisto) > 0 && (
+                <div style={{ marginBottom: 12 }} title="Quanto do total (principal + juros previstos) já voltou pro seu bolso">
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: T.faint, marginBottom: 3 }}>
+                    <span>Retornado {e.retornadoPct.toFixed(0)}%</span>
+                    <span className="num">{hidden ? "•••" : `${fmt(e.jurosRecebido + e.principalRecebido)} de ${fmt(e.principal + e.jurosPrevisto)}`}</span>
+                  </div>
+                  <div style={{ height: 5, borderRadius: 100, background: T.bgSoft, overflow: "hidden" }}>
+                    <div style={{ width: `${e.retornadoPct}%`, height: "100%", borderRadius: 100, background: e.retornadoPct >= 100 ? T.green : T.gold, transition: "width .4s ease" }} />
+                  </div>
+                </div>
+              )}
+
               {/* Números de juros */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: e.jurosLancamentos.length ? 12 : 0 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: e.jurosLancamentos.length || e.cronograma.length ? 12 : 0 }}>
                 <Mini label="Juros recebidos" valor={e.jurosRecebido} cor={T.green} hidden={hidden}
                   sub={e.principal > 0 ? `${fmtN(e.rendimentoPct, 1)}% do principal` : null} />
                 <Mini label="Juros a receber" valor={e.jurosAReceber} cor={T.blue || "#60a5fa"} hidden={hidden}
@@ -97,8 +125,34 @@ export default function Emprestimos({ devedores = [], hidden, onTabChange }) {
                   sub={e.quitado ? "devolvido" : "a devolver"} />
               </div>
 
-              {/* Linha do tempo dos juros recebidos */}
-              {e.jurosLancamentos.length > 0 && (
+              {/* Cronograma das parcelas de juros: recebida ✓ · atrasada ⚠ · prevista */}
+              {e.cronograma.length > 0 ? (
+                <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
+                  <div style={{ fontSize: 9.5, color: T.faint, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 6 }}>
+                    Cronograma dos juros ({e.cronograma.filter(p => p.status === "recebida").length} de {e.cronograma.length} recebidas
+                    {e.atrasadas > 0 && <b style={{ color: T.red }}> · {e.atrasadas} em atraso</b>})
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {e.cronograma.map((p) => {
+                      const cor = p.status === "recebida" ? T.green : p.status === "atrasada" ? T.red : T.muted;
+                      return (
+                        <div key={p.n} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 12 }}>
+                          <span style={{ color: T.muted, minWidth: 0 }}>
+                            {p.n}ª · venc. {fmtData(p.venc)}
+                            {p.status === "recebida" && p.dataRecebida && <span style={{ color: T.faint }}> · pago {fmtData(p.dataRecebida)}</span>}
+                          </span>
+                          <span className="num" style={{ color: cor, fontWeight: 600, whiteSpace: "nowrap" }}>
+                            {p.status === "recebida" ? "✓ " : p.status === "atrasada" ? "⚠ " : ""}
+                            {hidden ? "•••" : fmt(p.valor)}
+                            {p.status === "atrasada" && <span style={{ fontSize: 9.5 }}> atrasada</span>}
+                            {p.status === "prevista" && <span style={{ fontSize: 9.5, color: T.faint }}> prevista</span>}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : e.jurosLancamentos.length > 0 && (
                 <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
                   <div style={{ fontSize: 9.5, color: T.faint, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 6 }}>
                     Juros recebidos ({e.jurosLancamentos.length})
