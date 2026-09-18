@@ -18,17 +18,30 @@ const KEYWORDS_ASSINATURA = [
   "tinder", "deezer", "audible",
 ];
 
+// Normalização "fuzzy" pra agrupar a MESMA assinatura que vem com códigos
+// variáveis na fatura: "NETFLIX.COM *8471" ≈ "Netflix.com" ≈ "NETFLIX COM".
+// Remove acentos, dígitos, pontuação e prefixos técnicos de adquirente.
+export const chaveAssinatura = (descricao) =>
+  String(descricao || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/^(ifd|dl|pag|mp|ebn|pay|pg)\s*\*\s*/i, "")
+    .replace(/[\d*#.,/_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 40);
+
 /**
- * Detecta assinaturas analisando transações recorrentes (mesma descrição, valor próximo,
- * com periodicidade ~30 dias).
+ * Detecta assinaturas analisando transações recorrentes (mesma descrição
+ * normalizada, valor próximo, meses diferentes).
  *
- * Estratégia:
- * 1. Agrupa por descrição normalizada.
- * 2. Para cada grupo com 2+ ocorrências, verifica se aparecem em meses diferentes.
- * 3. Estima valor médio + frequência (mensal/anual).
- * 4. Boost de confiança se a descrição bate com lista de serviços conhecidos.
+ * Além do básico, marca:
+ *  - `aumento`  { de, para, pct }: última cobrança acima da média das
+ *    anteriores (>5% e >= R$ 1) — o aviso de "subiu o preço".
+ *  - `parada`   true quando não cobra há mais de ~1,6× o intervalo esperado
+ *    (possível cancelada — ou cobrança que ainda vai cair).
  */
-export const detectarAssinaturas = (transacoes) => {
+export const detectarAssinaturas = (transacoes, hoje = new Date()) => {
   if (!Array.isArray(transacoes) || transacoes.length === 0) return [];
 
   // Só despesas
@@ -36,7 +49,8 @@ export const detectarAssinaturas = (transacoes) => {
 
   const grupos = {};
   despesas.forEach(t => {
-    const key = t.descricao.trim().toLowerCase().replace(/\s+/g, " ").slice(0, 50);
+    const key = chaveAssinatura(t.descricao);
+    if (!key) return;
     (grupos[key] = grupos[key] || []).push(t);
   });
 
@@ -48,42 +62,62 @@ export const detectarAssinaturas = (transacoes) => {
     const meses = new Set(items.map(t => (t.data || "").slice(0, 7)).filter(Boolean));
     if (meses.size < 2) return;
 
-    // Valores próximos (variação < 30%)
-    const valores = items.map(t => Number(t.valor));
-    const avg = valores.reduce((s, v) => s + v, 0) / valores.length;
-    const variacao = (Math.max(...valores) - Math.min(...valores)) / avg;
-    if (variacao > 0.3) return; // valores muito diferentes — provavelmente não é assinatura
-
     // Detecta se bate com serviço conhecido (boost de confiança)
     const knownMatch = KEYWORDS_ASSINATURA.find(kw => key.includes(kw));
 
-    // Última ocorrência
-    const ultima = items.reduce((latest, t) => t.data > latest.data ? t : latest, items[0]);
+    // Valores próximos. Serviço conhecido tolera variação maior (0.6) pra não
+    // perder justamente a assinatura que SUBIU de preço.
+    const valores = items.map(t => Number(t.valor));
+    const avg = valores.reduce((s, v) => s + v, 0) / valores.length;
+    const variacao = (Math.max(...valores) - Math.min(...valores)) / avg;
+    if (variacao > (knownMatch ? 0.6 : 0.3)) return;
+
+    // Ordena por data pra medir intervalo, última cobrança e aumento.
+    const ordenados = [...items].sort((a, b) => String(a.data).localeCompare(String(b.data)));
+    const ultima = ordenados[ordenados.length - 1];
 
     // Estima frequência (mensal vs outra)
-    const datas = items.map(t => new Date(t.data)).filter(d => !isNaN(d)).sort((a, b) => a - b);
+    const datas = ordenados.map(t => new Date(t.data)).filter(d => !isNaN(d));
     let frequencia = "mensal";
+    let intMedio = 30;
     if (datas.length >= 2) {
       const intervalos = [];
       for (let i = 1; i < datas.length; i++) {
         intervalos.push((datas[i] - datas[i - 1]) / (1000 * 60 * 60 * 24));
       }
-      const intMedio = intervalos.reduce((s, v) => s + v, 0) / intervalos.length;
+      intMedio = intervalos.reduce((s, v) => s + v, 0) / intervalos.length;
       if (intMedio > 300) frequencia = "anual";
       else if (intMedio > 75) frequencia = "trimestral";
       else if (intMedio > 45) frequencia = "bimestral";
     }
 
+    // AUMENTO DE PREÇO: última cobrança vs média das anteriores.
+    const anteriores = ordenados.slice(0, -1).map(t => Number(t.valor));
+    const mediaAnt = anteriores.reduce((s, v) => s + v, 0) / anteriores.length;
+    const vUlt = Number(ultima.valor);
+    const aumento = vUlt > mediaAnt * 1.05 && vUlt - mediaAnt >= 1
+      ? { de: mediaAnt, para: vUlt, pct: ((vUlt - mediaAnt) / mediaAnt) * 100 }
+      : null;
+
+    // PARADA: sem cobrança há mais de ~1,6× o intervalo esperado.
+    const esperado = frequencia === "anual" ? 365 : frequencia === "trimestral" ? 91 : frequencia === "bimestral" ? 61 : Math.max(28, intMedio);
+    const diasSemCobrar = Math.floor((hoje - new Date(ultima.data)) / 86400000);
+    const parada = Number.isFinite(diasSemCobrar) && diasSemCobrar > esperado * 1.6;
+
     assinaturas.push({
       descricao: items[0].descricao, // versão original
       valorMedio: avg,
+      valorUltimo: vUlt,
       ocorrencias: items.length,
       meses: meses.size,
       ultimaData: ultima.data,
-      categoria: items[items.length - 1].categoria,
-      conta: items[items.length - 1].conta,
+      diasSemCobrar,
+      categoria: ultima.categoria,
+      conta: ultima.conta,
       frequencia,
       conhecida: !!knownMatch,
+      aumento,
+      parada,
       valorAnualizado: frequencia === "anual" ? avg
         : frequencia === "mensal" ? avg * 12
         : frequencia === "bimestral" ? avg * 6
@@ -91,8 +125,11 @@ export const detectarAssinaturas = (transacoes) => {
     });
   });
 
-  // Ordena: conhecidas primeiro, depois maior valor anualizado
+  // Ordena: aumentos primeiro (é o que precisa de ação), depois conhecidas,
+  // depois maior valor anualizado. Paradas vão pro fim.
   return assinaturas.sort((a, b) => {
+    if (!!a.parada !== !!b.parada) return a.parada ? 1 : -1;
+    if (!!a.aumento !== !!b.aumento) return a.aumento ? -1 : 1;
     if (a.conhecida !== b.conhecida) return b.conhecida - a.conhecida;
     return b.valorAnualizado - a.valorAnualizado;
   });
