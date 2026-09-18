@@ -45,14 +45,6 @@ export const NAV_ITEMS = [
   { modulo: "invest", tab: "relatorios-i",   label: "Relatórios",          grupo: "Investimentos" },
 
   // Negócio
-  { modulo: "negocio", tab: "negocio-painel",   label: "Painel",   grupo: "Negócio" },
-  { modulo: "negocio", tab: "negocio-veiculos", label: "Veículos", grupo: "Negócio" },
-  { modulo: "negocio", tab: "negocio-servicos", label: "Serviços", grupo: "Negócio" },
-  { modulo: "negocio", tab: "negocio-clientes", label: "Clientes", grupo: "Negócio" },
-  { modulo: "negocio", tab: "negocio-banco", label: "Banco", grupo: "Negócio" },
-  { modulo: "negocio", tab: "negocio-categorias", label: "Categorias", grupo: "Negócio" },
-  { modulo: "negocio", tab: "negocio-despesas-fixas", label: "Despesas fixas", grupo: "Negócio" },
-  { modulo: "negocio", tab: "negocio-despesas-var", label: "Despesas variáveis", grupo: "Negócio" },
 
   // Agenda — agora incorporada ao módulo Finanças.
   { modulo: "financas", tab: "calendario", label: "Calendário",   grupo: "Agenda" },

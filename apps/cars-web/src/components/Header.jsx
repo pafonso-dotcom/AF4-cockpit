@@ -128,7 +128,6 @@ function HeaderHorizontal({
   const TODOS_MODULOS = [
     { id: "financas", label: "Finanças",      icon: Wallet,    desc: "Pessoal" },
     { id: "invest",   label: "Investimentos", icon: Briefcase, desc: "Carteira" },
-    { id: "negocio",  label: "Negócio",       icon: Store,     desc: "Operação" },
   ];
   const MODULOS = TODOS_MODULOS.filter(m => perms[m.id] !== false);
 
@@ -159,17 +158,6 @@ function HeaderHorizontal({
       { id: "simulador",      label: "Simuladores",         icon: Calculator },
       { id: "construtor-mercado",  label: "Mercado",           icon: HandCoins },
       { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
-    ],
-    negocio: [
-      { id: "negocio-painel",   label: "Painel",   icon: Store },
-      { id: "negocio-veiculos", label: "Veículos", icon: Car },
-      { id: "negocio-servicos", label: "Serviços", icon: Wrench },
-      { id: "negocio-clientes", label: "Clientes", icon: Users },
-      { id: "negocio-banco",          label: "Banco",              icon: PiggyBank },
-      { id: "negocio-categorias",     label: "Categorias",         icon: Tag },
-      { id: "negocio-despesas-fixas", label: "Despesas fixas",     icon: Repeat },
-      { id: "negocio-despesas-var",   label: "Despesas variáveis", icon: Receipt },
-      { id: "negocio-recebimentos",   label: "Recebimentos",       icon: HandCoins },
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência",    icon: Sparkles },
@@ -640,7 +628,6 @@ function HeaderVertical({
   const TODOS_MODULOS = [
     { id: "financas", label: "Finanças",      icon: Wallet },
     { id: "invest",   label: "Investimentos", icon: Briefcase },
-    { id: "negocio",  label: "Negócio",       icon: Store },
   ];
   const MODULOS = TODOS_MODULOS.filter(m => perms[m.id] !== false);
 
@@ -671,17 +658,6 @@ function HeaderVertical({
       { id: "simulador",      label: "Simuladores",         icon: Calculator },
       { id: "construtor-mercado",  label: "Mercado",           icon: HandCoins },
       { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
-    ],
-    negocio: [
-      { id: "negocio-painel",   label: "Painel",   icon: Store },
-      { id: "negocio-veiculos", label: "Veículos", icon: Car },
-      { id: "negocio-servicos", label: "Serviços", icon: Wrench },
-      { id: "negocio-clientes", label: "Clientes", icon: Users },
-      { id: "negocio-banco",          label: "Banco",              icon: PiggyBank },
-      { id: "negocio-categorias",     label: "Categorias",         icon: Tag },
-      { id: "negocio-despesas-fixas", label: "Despesas fixas",     icon: Repeat },
-      { id: "negocio-despesas-var",   label: "Despesas variáveis", icon: Receipt },
-      { id: "negocio-recebimentos",   label: "Recebimentos",       icon: HandCoins },
     ],
     config: [
       { id: "cfg-aparencia", label: "Aparência", icon: Sparkles },
@@ -974,7 +950,6 @@ function HeaderVertical({
                 onClick={() => {
                   if (modulo === "financas") onQuickAction?.("transacao");
                   else if (modulo === "invest") onQuickAction?.("aporte");
-                  else if (modulo === "negocio") setTab("negocio-recebimentos");
                 }}
                 style={{ width: 42, height: 42, borderRadius: 12, background: T.gold, color: T.bg, border: "none", cursor: "pointer", display: "grid", placeItems: "center", fontSize: 22, fontWeight: 700, lineHeight: 1 }}>+</button>
             )}
@@ -992,7 +967,6 @@ function HeaderVertical({
             onClick={() => {
               if (modulo === "financas") onQuickAction?.("transacao");
               else if (modulo === "invest") onQuickAction?.("aporte");
-              else if (modulo === "negocio") setTab("negocio-recebimentos");
             }}
             style={{
               background: `linear-gradient(135deg, ${T.gold}26, ${T.gold}10)`,
