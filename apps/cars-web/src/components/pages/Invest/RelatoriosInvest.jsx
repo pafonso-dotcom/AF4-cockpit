@@ -7,6 +7,7 @@ import { PROVENTO_REGEX, ehUS, fmtMoedaAtivo } from "../../../lib/invest-constan
 import PdfCarteira from "./PdfCarteira.jsx";
 import { MESES_CURTO as MESES_PT, MESES_LONGO } from "../../../lib/meses.js";
 import { movimentacoesInvestMes } from "../../../lib/movimentacoesInvest.js";
+import { montarRelatorioIR, anosDisponiveisIR } from "../../../lib/relatorioIR.js";
 import { printHTML } from "../../../lib/importExport.js";
 import SecaoColapsavel from "../../ui/SecaoColapsavel.jsx";
 
@@ -118,6 +119,8 @@ export default function RelatoriosInvest({ ativos = [], transacoes = [], patrimo
 
       <MovInvestMes transacoes={transacoes} hidden={hidden} />
 
+      <RelatorioIRSecao ativos={ativos} transacoes={transacoes} hidden={hidden} />
+
       <div style={{
         display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap",
         padding: 14, marginTop: 12, marginBottom: 6,
@@ -220,6 +223,82 @@ export default function RelatoriosInvest({ ativos = [], transacoes = [], patrimo
 
 // ===== Movimentações do mês (compras, vendas, proventos) =====
 const nomeMesLongo = (iso) => { const [a, m] = (iso || "").split("-").map(Number); return `${MESES_LONGO[(m || 1) - 1]} ${a || ""}`; };
+
+/* ============================================================
+   Relatório IR — dados do ano prontos pra declaração: bens e
+   direitos (custo), proventos (isentos × JCP) e vendas por mês
+   (isenção de R$ 20 mil visível). Gera PDF/Excel via printHTML.
+   ============================================================ */
+function RelatorioIRSecao({ ativos = [], transacoes = [], hidden = false }) {
+  const anos = useMemo(() => anosDisponiveisIR(transacoes), [transacoes]);
+  const [ano, setAno] = useState(() => String(new Date().getFullYear() - (new Date().getMonth() < 3 ? 1 : 0)));
+  const rel = useMemo(() => montarRelatorioIR({ ativos, transacoes, ano }), [ativos, transacoes, ano]);
+  const oculto = (v) => (hidden ? "•••" : fmt(v));
+
+  const exportar = () => {
+    const brl = (v) => `R$ ${(Number(v) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const mesNome = (m) => `${MESES_PT[parseInt(String(m).slice(5, 7), 10) - 1] || ""}/${String(m).slice(2, 4)}`;
+    printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Relatório IR ${rel.ano}</title>
+<style>body{font-family:system-ui,sans-serif;color:#222;padding:24px}h1{font-size:20px;margin:0 0 4px}h2{font-size:13px;margin:18px 0 6px;color:#555;text-transform:uppercase;letter-spacing:.05em}table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;font-size:10px;color:#777;text-transform:uppercase;padding:4px 6px;border-bottom:1px solid #ccc}td{padding:4px 6px;border-bottom:1px solid #eee}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}.tot td{font-weight:700;border-top:2px solid #ccc}.aviso{margin-top:16px;color:#888;font-size:10.5px;line-height:1.5}</style></head><body>
+<h1>Relatório para o Imposto de Renda · ano-base ${rel.ano}</h1>
+<h2>1 · Bens e direitos (posição pelo custo de aquisição)</h2>
+<table><tr><th>Ativo</th><th>Classe</th><th class="n">Qtd</th><th class="n">Preço médio</th><th class="n">Custo total</th></tr>
+${rel.bens.map(b => `<tr><td><b>${b.ticker}</b>${b.nome ? ` · ${b.nome}` : ""}</td><td>${b.tipo}</td><td class="n">${b.qtd.toLocaleString("pt-BR")}</td><td class="n">${brl(b.pm)}</td><td class="n">${brl(b.custo)}</td></tr>`).join("")}
+<tr class="tot"><td colspan="4">Total</td><td class="n">${brl(rel.totalBens)}</td></tr></table>
+<h2>2 · Rendimentos recebidos em ${rel.ano}</h2>
+${rel.proventos.length === 0 ? "<p style='font-size:12px;color:#888'>Nenhum provento registrado no ano.</p>" : `<table><tr><th>Ativo</th><th>Tipo</th><th class="n">Recebimentos</th><th class="n">Total</th></tr>
+${rel.proventos.map(p => `<tr><td><b>${p.ticker}</b></td><td>${p.tipo}</td><td class="n">${p.qtd}</td><td class="n">${brl(p.total)}</td></tr>`).join("")}
+<tr class="tot"><td colspan="3">Isentos (rendimentos/dividendos)</td><td class="n">${brl(rel.provIsentos)}</td></tr>
+${rel.provJCP > 0 ? `<tr class="tot"><td colspan="3">JCP (tributável)</td><td class="n">${brl(rel.provJCP)}</td></tr>` : ""}
+<tr class="tot"><td colspan="3">Total de proventos</td><td class="n">${brl(rel.totalProventos)}</td></tr></table>`}
+<h2>3 · Vendas de ${rel.ano} (por mês)</h2>
+${rel.vendasMeses.length === 0 ? "<p style='font-size:12px;color:#888'>Nenhuma venda registrada no ano.</p>" : `<table><tr><th>Mês</th><th class="n">Operações</th><th class="n">Total vendido</th><th class="n">Resultado</th><th>Isenção ações (≤ R$ 20 mil/mês)</th></tr>
+${rel.vendasMeses.map(v => `<tr><td>${mesNome(v.mes)}</td><td class="n">${v.ops}</td><td class="n">${brl(v.total)}</td><td class="n">${brl(v.resultado)}</td><td>${v.isento20k ? "dentro do limite" : "ACIMA de R$ 20 mil"}</td></tr>`).join("")}
+<tr class="tot"><td>Total</td><td class="n">${rel.vendas.length}</td><td class="n">${brl(rel.totalVendido)}</td><td class="n">${brl(rel.resultadoVendas)}</td><td></td></tr></table>`}
+<div class="aviso">⚠ Documento de APOIO, não substitui os informes de rendimentos das corretoras. A posição de "Bens e direitos" reflete a carteira ATUAL do app (qtd × preço médio), não necessariamente a de 31/12/${rel.ano}. A isenção de R$ 20 mil/mês vale só pra AÇÕES à vista (FIIs não têm isenção). Confira tudo com seu contador. Gerado em ${new Date().toLocaleString("pt-BR")}.</div>
+</body></html>`);
+  };
+
+  return (
+    <div style={{ marginTop: 14 }}>
+      <SecaoColapsavel idKey="relatorio-ir" titulo="🧾 Relatório pro Imposto de Renda" count={null} defaultAberto={false}>
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+            <span style={{ fontSize: 12.5, color: T.muted }}>Ano-base</span>
+            <select value={ano} onChange={e => setAno(e.target.value)} style={{ width: "auto", padding: "6px 10px", fontSize: 13 }}>
+              {anos.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+            <button className="btn-gold" style={{ marginLeft: "auto" }} onClick={exportar}>
+              🧾 Gerar relatório (PDF / Excel)
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2" style={{ marginBottom: 10 }}>
+            {[
+              { l: "Bens e direitos (custo)", v: rel.totalBens, sub: `${rel.bens.length} ativos` },
+              { l: "Proventos isentos", v: rel.provIsentos, sub: "rendimentos + dividendos", cor: T.green },
+              { l: "JCP (tributável)", v: rel.provJCP, sub: rel.provJCP > 0 ? "declarar" : "nenhum", cor: T.gold },
+              { l: "Vendas no ano", v: rel.totalVendido, sub: `resultado ${hidden ? "•••" : fmt(rel.resultadoVendas)}`, cor: rel.resultadoVendas >= 0 ? T.green : T.red },
+            ].map((k, i) => (
+              <div key={i} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 11, padding: "9px 11px" }}>
+                <div style={{ fontSize: 9.5, color: T.muted, letterSpacing: ".05em", textTransform: "uppercase" }}>{k.l}</div>
+                <div className="num" style={{ fontSize: 15, fontWeight: 700, color: k.cor || T.ink, marginTop: 2 }}>{oculto(k.v)}</div>
+                <div style={{ fontSize: 9.5, color: T.faint, marginTop: 1 }}>{k.sub}</div>
+              </div>
+            ))}
+          </div>
+          {rel.vendasMeses.some(v => !v.isento20k) && (
+            <div style={{ fontSize: 11.5, color: T.gold, marginBottom: 8 }}>
+              ⚠ Em {rel.vendasMeses.filter(v => !v.isento20k).length} mês(es) as vendas passaram de R$ 20 mil — pode haver imposto a apurar (ações) e FIIs nunca têm isenção.
+            </div>
+          )}
+          <div style={{ fontSize: 10.5, color: T.faint, lineHeight: 1.5 }}>
+            Documento de apoio — a posição usa a carteira atual (custo de aquisição), não a de 31/12. Confira com os informes das corretoras e seu contador. O relatório completo (tabelas por ativo, tipo e mês) sai no botão acima, com opção de PDF e Excel.
+          </div>
+        </div>
+      </SecaoColapsavel>
+    </div>
+  );
+}
 
 function MovInvestMes({ transacoes = [], hidden = false }) {
   const hoje = new Date();
