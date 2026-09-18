@@ -5,7 +5,7 @@ import { fmt, uid } from "../../lib/format.js";
 import { parseValorBR } from "../../lib/importExport.js";
 import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
-import { calcSaldoConta, reconciliarContas } from "../../lib/saldoConta.js";
+import { calcSaldoConta, reconciliarContas, serieSaldoConta, pendentesDaConta, ultimaMovimentacao } from "../../lib/saldoConta.js";
 import { filtrarPorEscopo, detectarEscopoConta } from "../../lib/escopo.js";
 import { somaContasBRL, semCotacao, buscarCotacao, saldoContaBRL } from "../../lib/cambio.js";
 import Field from "../ui/Field.jsx";
@@ -214,6 +214,36 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     });
   };
 
+  // Cotação AUTOMÁTICA das contas do exterior (USD/EUR…): busca a taxa do dia
+  // uma vez ao abrir a tela e atualiza as contas cuja cotação mudou (>0,1%).
+  // Continua editável à mão; se a busca falhar, fica o valor que estava.
+  useEffect(() => {
+    const moedas = [...new Set((contas || []).filter(c => c.moeda && c.moeda !== "BRL").map(c => c.moeda))];
+    if (!moedas.length) return;
+    let vivo = true;
+    (async () => {
+      const novas = {};
+      for (const m of moedas) {
+        const v = await buscarCotacao(m);
+        if (v > 0) novas[m] = v;
+      }
+      if (!vivo || !Object.keys(novas).length) return;
+      setContas(prev => {
+        let mudou = false;
+        const out = (prev || []).map(c => {
+          const v = novas[c.moeda];
+          if (!v) return c;
+          const atual = Number(c.cotacao) || 0;
+          if (atual > 0 && Math.abs(v - atual) / v < 0.001) return c;
+          mudou = true;
+          return { ...c, cotacao: +v.toFixed(4), cotacaoAtualizadaEm: new Date().toISOString() };
+        });
+        return mudou ? out : prev;
+      });
+    })();
+    return () => { vivo = false; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const btnSec = {
     background: "transparent", border: `1px solid ${T.border}`,
     padding: "7px 12px", fontFamily: T.sans, fontSize: 11,
@@ -236,10 +266,9 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             Cada conta é uma página do seu balanço.
           </div>
         </div>
-        {/* No mobile a tela de Contas fica só informativa (menos manuseio):
-            esconde a barra de ações. Gerenciar contas continua no desktop. */}
-        {!isMobile && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end" }}>
+        {/* Ações disponíveis também no MOBILE (pedido 2026-09-18): transferir
+            e lançar direto do celular. Botões ficam compactos via CSS abaixo. */}
+        <div className="contas-acoes" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end" }}>
           {contas.length >= 2 && (
             <button onClick={() => setTransferOpen(true)}
                     style={{ ...btnSec, color: T.gold, borderColor: T.gold }}>
@@ -270,8 +299,18 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             <Plus size={13} className="inline mr-1.5" />Nova Conta
           </button>
         </div>
-        )}
       </div>
+
+      {/* Botões compactos no celular (senão estouram a largura) */}
+      <style>{`
+        @media (max-width: 768px) {
+          .contas-acoes button {
+            padding: 6px 9px !important;
+            font-size: 9.5px !important;
+            min-height: 34px !important;
+          }
+        }
+      `}</style>
 
       {/* Aviso de contas dessincronizadas */}
       {dessincronizadas.length > 0 && (
@@ -404,14 +443,13 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
               <BankIcon c={c} />
-              {/* No mobile a tela fica só informativa: esconde o ⋯ (Mais ações). */}
-              {!isMobile && (
-                <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
-                        aria-label={exp ? "Recolher" : "Mais ações"}
-                        style={{ background: T.bgSoft, border: `1px solid ${T.border}`, color: T.muted, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                  <MoreHorizontal size={15} />
-                </button>
-              )}
+              {/* ⋯ (Mais ações) disponível também no mobile — dá pra lançar
+                  transação e editar a conta pelo celular. */}
+              <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
+                      aria-label={exp ? "Recolher" : "Mais ações"}
+                      style={{ background: T.bgSoft, border: `1px solid ${T.border}`, color: T.muted, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                <MoreHorizontal size={15} />
+              </button>
             </div>
             <div style={{ flex: 1, minHeight: 10 }} />
             <div style={{ fontSize: 12.5, fontWeight: 600, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
@@ -420,14 +458,61 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
             </div>
             {/* Conta em moeda estrangeira: conversão em R$ LOGO ABAIXO do saldo
-                (linha própria, legível — pedido do usuário 2026-09-08). */}
+                (linha própria, legível — pedido do usuário 2026-09-08).
+                "· hoje" quando a cotação foi atualizada automaticamente hoje. */}
             {!ehBRL(c) && (
               <div className="num" style={{ fontSize: 11.5, marginTop: 1, color: Number(c.cotacao) > 0 ? T.muted : T.gold, whiteSpace: "nowrap" }}>
                 {Number(c.cotacao) > 0
-                  ? <>≈ {hidden ? "•••" : fmt(saldoContaBRL(c))} <span style={{ fontSize: 9, color: T.faint }}>({c.moeda} {fmt(c.cotacao)})</span></>
-                  : "sem cotação — edite a conta"}
+                  ? <>≈ {hidden ? "•••" : fmt(saldoContaBRL(c))} <span style={{ fontSize: 9, color: T.faint }}>({c.moeda} {fmt(c.cotacao)}{String(c.cotacaoAtualizadaEm || "").slice(0, 10) === new Date().toISOString().slice(0, 10) ? " · hoje" : ""})</span></>
+                  : "sem cotação — buscando…"}
               </div>
             )}
+            {/* Mini-gráfico do saldo (30 dias, transações compensadas) */}
+            {(() => {
+              if (hidden) return null;
+              const serie = serieSaldoConta(c, transacoes, 30);
+              const min = Math.min(...serie), max = Math.max(...serie);
+              if (!(max - min > 0.005)) return null; // saldo parado: sem gráfico
+              const W = 120, H = 20;
+              const pts = serie.map((v, i) =>
+                `${((i / (serie.length - 1)) * W).toFixed(1)},${(H - 1 - ((v - min) / (max - min)) * (H - 2)).toFixed(1)}`).join(" ");
+              const cor = serie[serie.length - 1] >= serie[0] ? T.green : T.red;
+              return (
+                <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+                     style={{ display: "block", marginTop: 5, opacity: 0.75 }} aria-hidden="true">
+                  <title>Saldo nos últimos 30 dias</title>
+                  <polyline points={pts} fill="none" stroke={cor} strokeWidth="1.5" />
+                </svg>
+              );
+            })()}
+            {/* Saldo após os lançamentos pendentes compensarem */}
+            {(() => {
+              const p = pendentesDaConta(c, transacoes);
+              if (p.qtd === 0 || Math.abs(p.delta) < 0.005) return null;
+              return (
+                <div className="num" style={{ fontSize: 10, marginTop: 4, color: p.saldoApos < 0 ? T.red : T.muted, whiteSpace: "nowrap" }}
+                     title={`${p.qtd} lançamento(s) pendente(s) nesta conta (${p.delta >= 0 ? "+" : "−"}${fmt(Math.abs(p.delta), c.moeda || "BRL")})`}>
+                  após pendentes: <b style={{ color: p.saldoApos < 0 ? T.red : T.ink }}>{hidden ? "•••" : fmt(p.saldoApos, c.moeda || "BRL")}</b>
+                  <span style={{ color: T.faint }}> · {p.qtd} pend.</span>
+                </div>
+              );
+            })()}
+            {/* Última movimentação */}
+            {(() => {
+              const u = ultimaMovimentacao(c, transacoes);
+              if (!u) return null;
+              const hojeISO = new Date().toISOString().slice(0, 10);
+              const ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
+              const ontemISO = ontem.toISOString().slice(0, 10);
+              const d = String(u.data).slice(0, 10);
+              const quando = d === hojeISO ? "hoje" : d === ontemISO ? "ontem" : `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+              return (
+                <div className="num" style={{ fontSize: 9.5, marginTop: 2, color: T.faint, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                     title={u.descricao}>
+                  última: <span style={{ color: u.tipo === "receita" ? T.green : T.red }}>{u.tipo === "receita" ? "+" : "−"}{hidden ? "•••" : fmt(u.valor, c.moeda || "BRL")}</span> · {quando}
+                </div>
+              );
+            })()}
             {(selo || c.instituicao) && (
               <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                 {selo && <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>{selo}</span>}
