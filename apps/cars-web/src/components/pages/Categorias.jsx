@@ -120,6 +120,7 @@ export default function Categorias({
                 </div>
                 <div style={{ fontSize: 10.5, color: T.faint, marginTop: 5 }}>
                   {orcadas.length} categoria{orcadas.length === 1 ? "" : "s"} com orçamento · sobra {hidden ? "•••" : fmt(Math.max(0, totalOrcado - totalGastoOrcadas))} no mês
+                  {" "}· os mesmos limites aparecem na Análise de gastos (Centro de controle)
                 </div>
               </>
             );

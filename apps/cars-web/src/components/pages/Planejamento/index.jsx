@@ -6,6 +6,8 @@ import AReceberEDividas from "../AReceberEDividas.jsx";
 import DespesasFixas from "../DespesasFixas.jsx";
 import Cheques from "../Cheques.jsx";
 import AnaliseGastos from "./AnaliseGastos.jsx";
+import ReservaEmergenciaView from "./ReservaEmergenciaView.jsx";
+import { somaContasBRL } from "../../../lib/cambio.js";
 
 /**
  * Centro de Controle — cada seção mostra uma VISÃO GERAL simples sempre visível
@@ -59,13 +61,13 @@ export default function Planejamento(props) {
       if (typeof v === "string") return v.slice(0, 7);
       try { return new Date(v).toISOString().slice(0, 7); } catch { return ""; }
     };
-    // Cada item vira { valor, venc, cartao }
+    // Cada item vira { valor, venc, cartao, desc }
     const itens = [];
     // 1) Dívidas tradicionais em aberto
-    dividas.filter(d => !d.pago).forEach(d => itens.push({ valor: Number(d.valor) || 0, venc: d.vencimento, cartao: false }));
+    dividas.filter(d => !d.pago).forEach(d => itens.push({ valor: Number(d.valor) || 0, venc: d.vencimento, cartao: false, desc: d.descricao || d.nome || "Dívida" }));
     // 2) Ocorrências de despesas fixas pendentes (com fixa existente)
     (fixaOcorrencias || []).filter(o => o.status === "pendente" && fixas.some(f => f.id === o.fixaId))
-      .forEach(o => itens.push({ valor: Number(o.valor) || 0, venc: o.dataVencimento, cartao: false }));
+      .forEach(o => itens.push({ valor: Number(o.valor) || 0, venc: o.dataVencimento, cartao: false, desc: fixas.find(f => f.id === o.fixaId)?.nome || "Fixa" }));
     // 3) Parcelas de cartão ainda não pagas
     (parcelamentos || []).forEach(p => {
       const total = p.totalParcelas || 0;
@@ -83,13 +85,13 @@ export default function Planejamento(props) {
         const ultDia = new Date(bY, startMonth + offset, 0).getDate();
         dt.setDate(Math.min(bD, ultDia));
         const vencISO = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-        itens.push({ valor: valorPorParcela, venc: vencISO, cartao: true });
+        itens.push({ valor: valorPorParcela, venc: vencISO, cartao: true, desc: `${p.descricao || "Parcela"} ${n}/${total}` });
       }
     });
     // 4) Despesas avulsas (transações de despesa não compensadas, sem origem fixa/parcela)
     (transacoes || []).filter(t => t.tipo === "despesa" && !t.compensado
       && !t.origemFixaOcorrenciaId && !t.origemParcelamentoId)
-      .forEach(t => itens.push({ valor: Number(t.valor) || 0, venc: t.vencimento || t.data, cartao: false }));
+      .forEach(t => itens.push({ valor: Number(t.valor) || 0, venc: t.vencimento || t.data, cartao: false, desc: t.descricao || "Despesa" }));
 
     let total = 0, pagarMes = 0, cartoes = 0;
     itens.forEach(it => {
@@ -98,8 +100,28 @@ export default function Planejamento(props) {
       // sem data cai no mês corrente (mesma regra da tela A Pagar)
       if (!it.venc || ymOf(it.venc) === mes) pagarMes += it.valor;
     });
-    return { total, pagarMes, cartoes };
+
+    // PRÓXIMOS 7 DIAS: tudo que vence de hoje a hoje+7 (data explícita).
+    const limite = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().slice(0, 10); })();
+    const semana = itens
+      .filter(it => it.venc && String(it.venc).slice(0, 10) >= hoje && String(it.venc).slice(0, 10) <= limite)
+      .sort((a, b) => String(a.venc).localeCompare(String(b.venc)));
+    const prox7 = {
+      total: semana.reduce((s, it) => s + it.valor, 0),
+      count: semana.length,
+      top: [...semana].sort((a, b) => b.valor - a.valor).slice(0, 3),
+    };
+
+    return { total, pagarMes, cartoes, prox7 };
   }, [dividas, fixas, fixaOcorrencias, parcelamentos, transacoes]);
+
+  // Cobertura do mês: saldo real das contas vs o que vence no mês.
+  const cobertura = useMemo(() => {
+    const saldo = somaContasBRL(props.contas || []);
+    const aPagarMes = resumoPagar.pagarMes;
+    const pct = aPagarMes > 0 ? (saldo / aPagarMes) * 100 : null;
+    return { saldo, aPagarMes, pct };
+  }, [props.contas, resumoPagar.pagarMes]);
 
   // Despesas Fixas · mês: já pago / pendente / atrasado / total previsto.
   const resumoFixas = useMemo(() => {
@@ -128,6 +150,31 @@ export default function Planejamento(props) {
         <p style={{ fontSize: 12, color: T.muted, marginTop: 6, fontStyle: "italic" }}>
           Toque numa seção para abrir os detalhes.
         </p>
+      </div>
+
+      {/* Semáforo de cobertura + vencimentos da semana */}
+      <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+        {cobertura.pct != null && (() => {
+          const cor = cobertura.pct >= 100 ? T.green : cobertura.pct >= 60 ? T.gold : T.red;
+          return (
+            <div style={{ background: `${cor}10`, border: `1px solid ${cor}55`, borderLeft: `4px solid ${cor}`, borderRadius: 12, padding: "10px 14px", fontSize: 12.5, color: T.ink }}
+                 title="Soma das contas (convertida pra R$) dividida pelo que vence este mês">
+              💰 <b style={{ color: cor }}>Cobertura do mês: {Math.min(999, Math.round(cobertura.pct))}%</b>
+              {" "}— você tem {hidden ? "•••" : fmt(cobertura.saldo)} em contas para {hidden ? "•••" : fmt(cobertura.aPagarMes)} a pagar no mês
+              {cobertura.pct < 100 && <> · faltam <b style={{ color: cor }}>{hidden ? "•••" : fmt(cobertura.aPagarMes - cobertura.saldo)}</b></>}.
+            </div>
+          );
+        })()}
+        {resumoPagar.prox7.total > 0 && (
+          <div style={{ background: `${T.gold}10`, border: `1px solid ${T.gold}55`, borderLeft: `4px solid ${T.gold}`, borderRadius: 12, padding: "10px 14px", fontSize: 12.5, color: T.ink }}>
+            ⏰ <b style={{ color: T.gold }}>Próximos 7 dias:</b> {hidden ? "•••" : fmt(resumoPagar.prox7.total)} em {resumoPagar.prox7.count} vencimento{resumoPagar.prox7.count === 1 ? "" : "s"}
+            <span style={{ color: T.muted }}>
+              {" "}· {resumoPagar.prox7.top.map(it =>
+                `${it.desc} (${String(it.venc).slice(8, 10)}/${String(it.venc).slice(5, 7)}${hidden ? "" : ` · ${fmt(it.valor)}`})`
+              ).join(" · ")}{resumoPagar.prox7.count > 3 ? " · …" : ""}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Módulos — visão geral sempre visível; detalhe abre ao clicar */}
@@ -188,6 +235,15 @@ export default function Planejamento(props) {
                          cheques={props.cheques} onVerCategoria={props.onVerCategoria}
                          apiKey={props.apiKey} onTabChange={props.onTabChange}
                          escopoAtivo={props.escopoAtivo} hidden={props.hidden} />
+        </Secao>
+
+        {/* Reserva de emergência — tela completa que existia órfã no código
+            (auditoria 2026-09-18) e voltou como 5ª seção do Centro. */}
+        <Secao on={aberto === "reserva"} onToggle={() => toggle("reserva")} titulo="Reserva de emergência">
+          <ReservaEmergenciaView
+            transacoes={props.transacoes} contas={props.contas}
+            metas={props.metas} setMetas={props.setMetas}
+            hidden={props.hidden} />
         </Secao>
       </div>
     </div>
