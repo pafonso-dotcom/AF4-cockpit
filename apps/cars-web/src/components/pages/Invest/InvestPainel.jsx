@@ -166,7 +166,7 @@ export default function InvestPainel({
       {/* Evolução da carteira — faixa logo abaixo dos KPIs (snapshots diários).
           campo="totalAtivos" = só investimentos (bate com o card Patrimônio total);
           o total geral (invest + contas) fica no relatório de Finanças. */}
-      <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} campo="totalAtivos" />
+      <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} campo="totalAtivos" compacto />
 
       {/* Linha 2 */}
       <section className="ip-mid-grid" style={{

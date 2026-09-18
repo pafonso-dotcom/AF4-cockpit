@@ -29,7 +29,9 @@ const CDI_KEY = "af4-cdi-anual";
 
 // campo: qual valor do snapshot plotar. "total" = patrimônio geral
 // (investimentos + contas); "totalAtivos" = só a carteira de investimentos.
-export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "total" }) {
+// compacto: versão enxuta pro Painel (gráfico baixo, paddings menores) —
+// a versão cheia fica pra página de Relatórios.
+export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "total", compacto = false }) {
   const [periodo, setPeriodo] = useState("90d");
   const [mostrarCDI, setMostrarCDI] = useState(true);
   const [cdiAnual, setCdiAnual] = useState(() => {
@@ -87,15 +89,15 @@ export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "to
 
   return (
     <div className="no-print" style={{
-      background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
-      padding: 14, marginBottom: 18,
+      background: T.card, border: `1px solid ${T.border}`, borderRadius: compacto ? 13 : 14,
+      padding: compacto ? 10 : 14, marginBottom: compacto ? 10 : 18,
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap", marginBottom: compacto ? 4 : 10 }}>
         <div>
-          <div className="label-eyebrow" style={{ marginBottom: 4 }}>Evolução do patrimônio</div>
+          <div className="label-eyebrow" style={{ marginBottom: compacto ? 2 : 4 }}>Evolução do patrimônio</div>
           {!dados.vazio && (
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-              <div style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 600, color: T.ink, fontVariantNumeric: "tabular-nums" }}>
+              <div style={{ fontFamily: T.serif, fontSize: compacto ? 16 : 22, fontWeight: 600, color: T.ink, fontVariantNumeric: "tabular-nums" }}>
                 {hidden ? "•••••" : fmt(dados.ultimo.total)}
               </div>
               <div style={{
@@ -138,7 +140,7 @@ export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "to
 
       {dados.vazio ? (
         <div style={{
-          padding: "32px 16px", textAlign: "center", color: T.muted, fontStyle: "italic",
+          padding: compacto ? "14px 12px" : "32px 16px", textAlign: "center", color: T.muted, fontStyle: "italic",
           fontSize: 12.5, lineHeight: 1.55,
         }}>
           <Activity size={22} style={{ color: T.muted, marginBottom: 8 }} />
@@ -150,7 +152,7 @@ export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "to
         </div>
       ) : (
         <>
-          <div style={{ width: "100%", height: 200 }}>
+          <div style={{ width: "100%", height: compacto ? 108 : 200 }}>
             <ResponsiveContainer>
               <AreaChart data={dados.pontos} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
                 <defs>
@@ -191,7 +193,7 @@ export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "to
           </div>
 
           {/* Legenda + controle do CDI */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 8, fontSize: 10.5, color: T.muted }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: compacto ? 5 : 8, fontSize: 10.5, color: T.muted }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 14, height: 2.5, background: T.gold, borderRadius: 2 }} /> Patrimônio
             </span>
