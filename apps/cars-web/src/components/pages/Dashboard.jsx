@@ -15,6 +15,7 @@ import { calcOrcamentoComGastos } from "../../lib/orcamentos.js";
 import { useLayout } from "../../lib/useLayout.js";
 import { supabase } from "../../lib/supabase.js";
 import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
+import CalculadoraJurosModal from "../modals/CalculadoraJurosModal.jsx";
 import Card, { SoftCardContext } from "../ui/Card.jsx";
 import { Sparkline, RingIcon } from "../ui/widget.jsx";
 
@@ -511,6 +512,8 @@ export default function Dashboard({
     });
   }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques, escopoAtivo]);
 
+  const [calcJurosOpen, setCalcJurosOpen] = useState(false);
+
   // ===== Insights =====
   const insights = useMemo(() => {
     try { return gerarInsights(transacoes, contas, ativos, cartoes, parcelamentos) || []; }
@@ -524,6 +527,19 @@ export default function Dashboard({
 
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
+
+      {/* Calculadora de juros — botão do Painel (pedido 2026-09-19) */}
+      <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <button onClick={() => setCalcJurosOpen(true)}
+                title="Juros simples ou compostos, com aporte mensal — calcula ao vivo"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
+                         background: T.card, border: `1px solid ${T.border}`, borderRadius: 100,
+                         color: T.gold, fontSize: 11.5, fontWeight: 700, letterSpacing: ".04em",
+                         cursor: "pointer" }}>
+          🧮 Calculadora de juros
+        </button>
+      </div>
+      {calcJurosOpen && <CalculadoraJurosModal onClose={() => setCalcJurosOpen(false)} />}
 
       {/* Linha 1: Patrimônio · Próximo compromisso · Contas */}
       <section className="dash-kpi-grid" style={{
