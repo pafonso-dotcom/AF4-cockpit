@@ -15,6 +15,7 @@ import { alertasDisparados, filtrarNovos, marcarNotificados } from "./lib/alerta
 import BackupsModal from "./components/modals/BackupsModal.jsx";
 import CompraCartaoModal from "./components/modals/CompraCartaoModal.jsx";
 import ComprasFotoModal from "./components/modals/ComprasFotoModal.jsx";
+import CalculadoraJurosModal from "./components/modals/CalculadoraJurosModal.jsx";
 import { toast } from "./lib/toast.js";
 import { createBackup, shouldAutoBackup } from "./lib/autoBackup.js";
 import { audit } from "./lib/auditLog.js";
@@ -173,6 +174,7 @@ export default function App() {
   const [cartaoAberto, setCartaoAberto] = useState(null);
   const [contaAberta, setContaAberta] = useState(null);
   const [comprasFotoOpen, setComprasFotoOpen] = useState(false);
+  const [calcJurosGlobalOpen, setCalcJurosGlobalOpen] = useState(false);
 
   applyTheme(themeId);
 
@@ -1214,6 +1216,7 @@ export default function App() {
       <Header
         modulo={modulo} setModulo={setModulo}
         tab={tab} setTab={irParaTab}
+        onCalculadoraJuros={() => setCalcJurosGlobalOpen(true)}
         contas={contas} cartoes={cartoes}
         contaAberta={contaAberta} setContaAberta={setContaAberta}
         cartaoAberto={cartaoAberto} setCartaoAberto={setCartaoAberto}
@@ -1273,6 +1276,9 @@ export default function App() {
           transacoes={transacoes} setTransacoes={setTransacoes}
           parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
           onClose={() => setCompraCartaoOpen(false)} />
+      )}
+      {calcJurosGlobalOpen && (
+        <CalculadoraJurosModal onClose={() => setCalcJurosGlobalOpen(false)} />
       )}
       {comprasFotoOpen && (
         <ComprasFotoModal
