@@ -102,7 +102,7 @@ function EscopoToggle({ escopoAtivo = "tudo", onEscopoChange, compact }) {
 }
 
 function HeaderHorizontal({
-  modulo, setModulo,
+  modulo, setModulo, onCalculadoraJuros,
   tab, setTab,
   hidden, setHidden,
   escopoAtivo, onEscopoChange,
@@ -408,6 +408,19 @@ function HeaderHorizontal({
               </button>
             );
           })}
+          {/* Calculadora de juros — junto dos módulos (pedido 2026-09-20) */}
+          {onCalculadoraJuros && (
+            <button onClick={onCalculadoraJuros} title="Calculadora de juros (simples/compostos, com aporte)"
+              style={{
+                padding: "9px 16px", borderRadius: 14, background: "transparent",
+                color: T.gold, border: "1px solid transparent",
+                fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500,
+                display: "flex", alignItems: "center", gap: 7, whiteSpace: "nowrap",
+                cursor: "pointer", fontFamily: T.sans,
+              }}>
+              <Calculator size={14} /> Juros
+            </button>
+          )}
         </div>
       </div>
 
@@ -607,7 +620,7 @@ function QuickBtn({ children, onClick, title, bg, fg, labelHide }) {
    HeaderVertical — sidebar fixa 220px à esquerda + topbar fina
    ============================================================ */
 function HeaderVertical({
-  modulo, setModulo,
+  modulo, setModulo, onCalculadoraJuros,
   tab, setTab,
   hidden, setHidden,
   escopoAtivo, onEscopoChange,
@@ -764,6 +777,13 @@ function HeaderVertical({
                 </button>
               );
             })}
+            {onCalculadoraJuros && (
+              <button onClick={onCalculadoraJuros} title="Calculadora de juros" aria-label="Calculadora de juros"
+                style={{ width: 42, height: 42, borderRadius: 12, border: "none", background: "transparent",
+                  color: T.gold, cursor: "pointer", display: "grid", placeItems: "center" }}>
+                <Calculator size={18} />
+              </button>
+            )}
             <div aria-hidden style={{ height: 1, width: 26, background: NAV_BORDER, margin: "4px 0" }} />
             {aplicarOrdem(SUBTABS[modulo] || [], tabOrders[`mod:${modulo}`]).map(s => {
               const SIcon = s.icon;
@@ -936,6 +956,22 @@ function HeaderVertical({
                 </React.Fragment>
               );
             })}
+            {/* Calculadora de juros — junto dos módulos (pedido 2026-09-20) */}
+            {onCalculadoraJuros && (
+              <>
+                <div aria-hidden style={{ height: 1, background: NAV_BORDER, margin: "4px 6px" }} />
+                <button onClick={onCalculadoraJuros}
+                  title="Juros simples ou compostos, com aporte mensal — calcula ao vivo"
+                  style={{
+                    width: "100%", padding: "8px 10px", borderRadius: 12, border: "none",
+                    background: "transparent", color: T.gold, cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 8, textAlign: "left",
+                    fontSize: 12.5, fontWeight: 600, fontFamily: T.sans,
+                  }}>
+                  <Calculator size={15} /> Calculadora de juros
+                </button>
+              </>
+            )}
           </div>
         </div>
         )}
