@@ -57,16 +57,60 @@ export function preservarNaoVazio(remote, localCache) {
   return out;
 }
 
-// Decide entre o estado da NUVEM e o LOCAL usando o carimbo `_savedAt`.
-// Se o local for mais novo que o remoto (edição feita e ainda não sincronizada,
-// ex.: usuário fechou antes do debounce), o LOCAL vence — senão a nuvem antiga
-// reverteria a edição ("troquei a categoria e voltou"). Sem carimbos, cai no
-// comportamento antigo (remoto vence, com preservarNaoVazio).
+// FUSÃO POR COLEÇÃO — o antídoto do "last-write-wins engolir o outro aparelho".
+// O blob mais novo (vencedor) dá a forma final, mas itens que SÓ existem no
+// blob mais velho (perdedor) são reincorporados:
+//  - arrays de objetos com `id`: união por id (item com mesmo id fica na
+//    versão do vencedor; item criado só no perdedor volta pro fim da lista);
+//  - arrays sem id: vencedor vazio + perdedor cheio → fica o perdedor
+//    (mesma proteção do preservarNaoVazio);
+//  - `proventosRecebidos` (objeto chaveado): união de chaves, vencedor manda;
+//  - escalares/objetos: vencedor.
+// Trade-off consciente: item DELETADO num aparelho pode "voltar" se o outro
+// ainda o tinha — preferível a perder lançamentos novos. A tela Contas detecta
+// dessincronia de saldo e o Reconciliar corrige.
+export function fundirEstados(vencedor, perdedor) {
+  if (!vencedor || typeof vencedor !== "object") return vencedor;
+  if (!perdedor || typeof perdedor !== "object") return vencedor;
+  const out = { ...vencedor };
+  const chaves = new Set([...Object.keys(vencedor), ...Object.keys(perdedor)]);
+  for (const k of chaves) {
+    if (k.startsWith("_")) continue;
+    const a = vencedor[k];
+    const b = perdedor[k];
+    if (Array.isArray(b)) {
+      if (!Array.isArray(a) || a.length === 0) {
+        if (b.length > 0 && (!Array.isArray(a) || a.length === 0)) out[k] = b; // proteção "vazio não apaga cheio"
+        continue;
+      }
+      if (b.length === 0) continue;
+      const comId = (x) => x && typeof x === "object" && x.id != null;
+      if (a.every(comId) && b.every(comId)) {
+        const ids = new Set(a.map((x) => x.id));
+        const extras = b.filter((x) => !ids.has(x.id));
+        if (extras.length) out[k] = [...a, ...extras];
+      }
+      // arrays sem id e ambos cheios: fica o vencedor (sem como casar itens)
+    } else if (k === "proventosRecebidos" && a && b && typeof a === "object" && typeof b === "object") {
+      out[k] = { ...b, ...a };
+    } else if (a === undefined && b !== undefined) {
+      out[k] = b; // chave que só o perdedor tem (coleção nova de app antigo/novo)
+    }
+  }
+  return out;
+}
+
+// Decide entre o estado da NUVEM e o LOCAL usando o carimbo `_savedAt`,
+// e FUNDE o perdedor no vencedor (fundirEstados) — assim uma edição feita
+// no iPhone de manhã e outra no PC à tarde não se engolem mais: o blob mais
+// novo dá a forma final e os itens criados no outro aparelho são mantidos.
 export function mesclarEstado(remote, localCache) {
   const rt = Number(remote && remote._savedAt) || 0;
   const lt = Number(localCache && localCache._savedAt) || 0;
-  if (localCache && lt > rt) return { estado: localCache, localVenceu: true };
-  return { estado: preservarNaoVazio(remote, localCache), localVenceu: false };
+  if (localCache && lt > rt) {
+    return { estado: fundirEstados(localCache, remote), localVenceu: true };
+  }
+  return { estado: fundirEstados(preservarNaoVazio(remote, localCache), localCache), localVenceu: false };
 }
 
 export const loadAll = async () => {
