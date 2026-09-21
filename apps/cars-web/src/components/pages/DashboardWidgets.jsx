@@ -89,7 +89,7 @@ export default function DashboardWidgets({ transacoes, categorias, devedores, di
                       {cat && <span style={{ color: cat.cor }}>● {cat.nome}</span>}
                       <span className="num">{t._date}</span>
                       {t._atrasada && (
-                        <span style={{ color: T.red, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", fontSize: 9 }}>Atrasada</span>
+                        <span style={{ color: T.red, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", fontSize: 10 }}>Atrasada</span>
                       )}
                       {t.fixa && <span style={{ color: T.blue }}>Fixa</span>}
                     </div>
@@ -125,7 +125,7 @@ export default function DashboardWidgets({ transacoes, categorias, devedores, di
                       <span style={{ width: 10, height: 10, background: c.cor, borderRadius: 2 }} />
                       <span style={{ color: T.ink, fontSize: 14, fontWeight: 500 }}>{c.nome}</span>
                       {c.estado === "estourado" && (
-                        <span style={{ background: `${T.red}22`, color: T.red, padding: "1px 6px", fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 600 }}>
+                        <span style={{ background: `${T.red}22`, color: T.red, padding: "1px 6px", fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 600 }}>
                           Estourado
                         </span>
                       )}

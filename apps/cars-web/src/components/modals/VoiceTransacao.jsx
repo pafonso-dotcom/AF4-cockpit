@@ -321,7 +321,7 @@ function ErroBox({ texto }) {
   return (
     <div style={{
       marginTop: 14, padding: 10, background: `${T.red}22`, color: T.red,
-      border: `1px solid ${T.red}`, borderRadius: 11, fontSize: 12,
+      border: `1px solid ${T.red}`, borderRadius: 12, fontSize: 12,
       display: "flex", alignItems: "center", gap: 8,
     }}>
       <AlertCircle size={14} /> {texto}

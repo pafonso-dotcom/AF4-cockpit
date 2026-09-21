@@ -37,13 +37,13 @@ export default function AssinaturasCard({ assinaturas = [], fixas = [], hidden, 
               {a.conhecida ? "★ " : ""}{a.descricao || "Assinatura"}
               {a.aumento && !a.parada && (
                 <span className="num" title={`Última cobrança acima da média das anteriores (+${a.aumento.pct.toFixed(0)}%)`}
-                      style={{ marginLeft: 6, fontSize: 9.5, fontWeight: 700, color: T.red, background: `${T.red}15`, border: `1px solid ${T.red}44`, borderRadius: 100, padding: "1px 7px", whiteSpace: "nowrap" }}>
+                      style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: T.red, background: `${T.red}15`, border: `1px solid ${T.red}44`, borderRadius: 100, padding: "1px 7px", whiteSpace: "nowrap" }}>
                   ▲ {hidden ? "•••" : `${fmt(a.aumento.de)} → ${fmt(a.aumento.para)}`}
                 </span>
               )}
               {a.parada && (
                 <span title="Sem cobrança há mais tempo que o normal — pode ter sido cancelada (ou a cobrança ainda vai cair)."
-                      style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, color: T.muted, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 100, padding: "1px 7px", whiteSpace: "nowrap", textTransform: "uppercase", letterSpacing: ".03em" }}>
+                      style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: T.muted, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 100, padding: "1px 7px", whiteSpace: "nowrap", textTransform: "uppercase", letterSpacing: ".03em" }}>
                   parou? {a.diasSemCobrar}d sem cobrar
                 </span>
               )}
@@ -51,11 +51,11 @@ export default function AssinaturasCard({ assinaturas = [], fixas = [], hidden, 
             <span style={{ fontSize: 10.5, color: T.muted }}>{a.frequencia}</span>
             <span className="num" style={{ color: T.ink, fontWeight: 600, minWidth: 70, textAlign: "right" }}>{hidden ? "•••" : fmt(a.valorUltimo ?? a.valorMedio)}</span>
             {jaFixa ? (
-              <span style={{ fontSize: 8.5, padding: "2px 7px", borderRadius: 100, background: `${T.green}1f`, color: T.green, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", whiteSpace: "nowrap" }}>já é fixa</span>
+              <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 100, background: `${T.green}1f`, color: T.green, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", whiteSpace: "nowrap" }}>já é fixa</span>
             ) : (
               <button onClick={() => onTabChange?.("fixas")}
                 title="Cadastrar como despesa fixa"
-                style={{ fontSize: 9.5, padding: "3px 9px", borderRadius: 100, background: `${T.gold}1f`, color: T.gold, border: `1px solid ${T.gold}55`, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", cursor: "pointer", whiteSpace: "nowrap" }}>
+                style={{ fontSize: 10.5, padding: "3px 9px", borderRadius: 100, background: `${T.gold}1f`, color: T.gold, border: `1px solid ${T.gold}55`, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", cursor: "pointer", whiteSpace: "nowrap" }}>
                 Virar fixa
               </button>
             )}

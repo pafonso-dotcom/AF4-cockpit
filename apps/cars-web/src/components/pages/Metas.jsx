@@ -451,7 +451,7 @@ export default function Metas({
                   return (
                     <div style={{
                       marginTop: 14, padding: 10, background: `${T.green}11`,
-                      border: `1px solid ${T.green}33`, borderRadius: 11,
+                      border: `1px solid ${T.green}33`, borderRadius: 12,
                       fontSize: 12, color: T.muted, display: "flex", alignItems: "center", gap: 8,
                     }}>
                       <CheckCircle2 size={14} style={{ color: T.green, flexShrink: 0 }} />
@@ -465,7 +465,7 @@ export default function Metas({
                           style={{
                             marginTop: 14, width: "100%",
                             background: T.gold, color: T.bg,
-                            border: "none", padding: "8px 14px", borderRadius: 11,
+                            border: "none", padding: "8px 14px", borderRadius: 12,
                             fontSize: 11.5, fontWeight: 700, cursor: "pointer",
                             letterSpacing: ".05em", textTransform: "uppercase",
                             display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
@@ -482,7 +482,7 @@ export default function Metas({
                 if (!cofre || saldoCofre <= 0.005) return null;
                 return (
                   <div style={{
-                    marginTop: 12, padding: 12, borderRadius: 14,
+                    marginTop: 12, padding: 12, borderRadius: 16,
                     background: `${T.gold}11`, border: `1px solid ${T.gold}33`,
                   }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -519,7 +519,7 @@ export default function Metas({
                               style={{
                                 marginTop: 10, width: "100%",
                                 background: "transparent", color: T.gold,
-                                border: `1px solid ${T.gold}`, padding: "7px 14px", borderRadius: 11,
+                                border: `1px solid ${T.gold}`, padding: "7px 14px", borderRadius: 12,
                                 fontSize: 11, fontWeight: 700, cursor: "pointer",
                                 letterSpacing: ".05em", textTransform: "uppercase",
                                 display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
@@ -533,7 +533,7 @@ export default function Metas({
                               style={{
                                 marginTop: 8, width: "100%",
                                 background: T.gold, color: T.bg,
-                                border: "none", padding: "7px 14px", borderRadius: 11,
+                                border: "none", padding: "7px 14px", borderRadius: 12,
                                 fontSize: 11, fontWeight: 700, cursor: "pointer",
                                 letterSpacing: ".05em", textTransform: "uppercase",
                                 display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
@@ -564,7 +564,7 @@ export default function Metas({
                 const rend = +(valorCdb - custo).toFixed(2);
                 return (
                   <div style={{
-                    marginTop: 12, padding: 12, borderRadius: 14,
+                    marginTop: 12, padding: 12, borderRadius: 16,
                     background: `${T.green}11`, border: `1px solid ${T.green}33`,
                   }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -592,7 +592,7 @@ export default function Metas({
                               style={{
                                 marginTop: 10, width: "100%",
                                 background: "transparent", color: T.green,
-                                border: `1px solid ${T.green}`, padding: "7px 14px", borderRadius: 11,
+                                border: `1px solid ${T.green}`, padding: "7px 14px", borderRadius: 12,
                                 fontSize: 11, fontWeight: 700, cursor: "pointer",
                                 letterSpacing: ".05em", textTransform: "uppercase",
                                 display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
@@ -678,7 +678,7 @@ export default function Metas({
                     <span style={{ color: T.faint }}>= (alvo − atual) ÷ prazo</span>
                     <button type="button"
                             onClick={() => setForm({ ...form, aporte: sugerido.toFixed(2) })}
-                            style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 4, padding: "2px 10px", fontSize: 10, fontWeight: 600, cursor: "pointer", letterSpacing: ".05em", textTransform: "uppercase" }}>
+                            style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 8, padding: "2px 10px", fontSize: 10, fontWeight: 600, cursor: "pointer", letterSpacing: ".05em", textTransform: "uppercase" }}>
                       Usar
                     </button>
                   </div>
@@ -720,7 +720,7 @@ export default function Metas({
                 return (
                   <button key={opt.id} onClick={() => setResgate({ ...resgate, modo: opt.id })}
                     style={{
-                      flex: 1, padding: "10px 8px", borderRadius: 14, cursor: "pointer",
+                      flex: 1, padding: "10px 8px", borderRadius: 16, cursor: "pointer",
                       background: active ? `${T.gold}22` : T.bgSoft,
                       border: `1px solid ${active ? T.gold : T.border}`,
                       color: active ? T.gold : T.muted, textAlign: "center",
@@ -764,7 +764,7 @@ export default function Metas({
             </Field>
 
             <div style={{
-              padding: 10, marginTop: 8, borderRadius: 11, fontSize: 11, lineHeight: 1.6,
+              padding: 10, marginTop: 8, borderRadius: 12, fontSize: 11, lineHeight: 1.6,
               background: `${T.gold}11`, border: `1px solid ${T.gold}33`, color: T.muted,
             }}>
               {isUsar

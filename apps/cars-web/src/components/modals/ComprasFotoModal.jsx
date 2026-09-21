@@ -138,7 +138,7 @@ export default function ComprasFotoModal({
             confirma antes de lançar na fatura — <strong>sem esperar a fatura fechar</strong>.
           </p>
           {!temGemini && (
-            <div style={{ padding: "10px 14px", borderRadius: 11, fontSize: 12, marginBottom: 12, background: `${T.red}15`, color: T.red, border: `1px solid ${T.red}55` }}>
+            <div style={{ padding: "10px 14px", borderRadius: 12, fontSize: 12, marginBottom: 12, background: `${T.red}15`, color: T.red, border: `1px solid ${T.red}55` }}>
               Configure a chave do Gemini em ⚙ Configurações → Inteligência Artificial pra ler fotos.
             </div>
           )}
@@ -150,7 +150,7 @@ export default function ComprasFotoModal({
             {lendo ? "⏳ Lendo a foto…" : "📷 Tirar foto / escolher print"}
           </button>
           <button onClick={() => { onClose?.(); onManual?.(); }}
-                  style={{ width: "100%", marginTop: 8, padding: "10px 14px", background: "transparent", color: T.muted, border: `1px dashed ${T.border}`, borderRadius: 11, cursor: "pointer", fontSize: 12 }}>
+                  style={{ width: "100%", marginTop: 8, padding: "10px 14px", background: "transparent", color: T.muted, border: `1px dashed ${T.border}`, borderRadius: 12, cursor: "pointer", fontSize: 12 }}>
             <Pencil size={12} style={{ display: "inline", marginRight: 6, verticalAlign: "-2px" }} />
             Prefiro digitar manualmente
           </button>
@@ -165,8 +165,8 @@ export default function ComprasFotoModal({
             {itens.map(c => (
               <button key={c.id} onClick={() => toggle(c.id)}
                       style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", textAlign: "left", cursor: "pointer",
-                               background: c.incluir ? `${T.gold}10` : T.bgSoft, border: `1px solid ${c.incluir ? T.gold : T.border}`, borderRadius: 11 }}>
-                <span style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                               background: c.incluir ? `${T.gold}10` : T.bgSoft, border: `1px solid ${c.incluir ? T.gold : T.border}`, borderRadius: 12 }}>
+                <span style={{ width: 18, height: 18, borderRadius: 8, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
                                background: c.incluir ? T.gold : "transparent", border: `1.5px solid ${c.incluir ? T.gold : T.border}`, color: T.bg }}>
                   {c.incluir && <Check size={12} />}
                 </span>
@@ -184,7 +184,7 @@ export default function ComprasFotoModal({
           </div>
           <div className="flex gap-3 justify-end" style={{ alignItems: "center" }}>
             <button onClick={() => setItens(null)}
-                    style={{ marginRight: "auto", padding: "8px 12px", background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, cursor: "pointer", fontSize: 11.5 }}>
+                    style={{ marginRight: "auto", padding: "8px 12px", background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, cursor: "pointer", fontSize: 11.5 }}>
               ← Outra foto
             </button>
             <button className="btn-ghost" onClick={onClose}>Cancelar</button>

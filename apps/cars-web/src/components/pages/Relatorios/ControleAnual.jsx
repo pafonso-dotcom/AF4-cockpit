@@ -273,7 +273,7 @@ export default function ControleAnual({
           <div className="flex gap-2 flex-wrap no-print">
             <select value={ano} onChange={e => setAno(parseInt(e.target.value))}
                     style={{ padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`,
-                             color: T.ink, fontSize: 12, borderRadius: 11 }}>
+                             color: T.ink, fontSize: 12, borderRadius: 12 }}>
               {[anoCorrente - 2, anoCorrente - 1, anoCorrente, anoCorrente + 1, anoCorrente + 2].map(y =>
                 <option key={y} value={y}>{y}</option>
               )}
@@ -301,7 +301,7 @@ export default function ControleAnual({
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
           <select value={ano} onChange={e => setAno(parseInt(e.target.value))}
                   style={{ padding: "6px 10px", background: T.bgSoft, border: `1px solid ${T.border}`,
-                           color: T.ink, fontSize: 12, borderRadius: 10, cursor: "pointer" }}>
+                           color: T.ink, fontSize: 12, borderRadius: 12, cursor: "pointer" }}>
             {[anoCorrente - 2, anoCorrente - 1, anoCorrente, anoCorrente + 1, anoCorrente + 2].map(y =>
               <option key={y} value={y}>{y}</option>
             )}
@@ -397,7 +397,7 @@ export default function ControleAnual({
                     </td>
                     <td style={{ ...td, textAlign: "center" }}>
                       <span style={{
-                        fontSize: 9.5, padding: "2px 8px", borderRadius: 100,
+                        fontSize: 10.5, padding: "2px 8px", borderRadius: 100,
                         letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 600,
                         color: corStatus(l.status),
                         background: l.status === "em-andamento" ? `${T.gold}22` : "transparent",
@@ -454,7 +454,7 @@ export default function ControleAnual({
 
 const th = {
   padding: "10px 14px", textAlign: "left",
-  fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
+  fontSize: 10.5, letterSpacing: ".15em", textTransform: "uppercase",
   color: "var(--tm)", fontWeight: 500,
 };
 const td = { padding: "12px 14px", verticalAlign: "middle" };
@@ -509,7 +509,7 @@ function BlocoTipo({ tipo, titulo, items, hidden }) {
         marginBottom: 8, paddingBottom: 6, borderBottom: `1px solid ${cor}33`,
       }}>
         <div style={{
-          fontSize: 9.5, letterSpacing: ".2em", color: cor,
+          fontSize: 10.5, letterSpacing: ".2em", color: cor,
           textTransform: "uppercase", fontWeight: 700,
         }}>
           {titulo} ({items.length})
@@ -535,7 +535,7 @@ function BlocoTipo({ tipo, titulo, items, hidden }) {
               <div key={it.id} style={{
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "5px 8px", background: T.card,
-                border: `1px solid ${T.border}`, borderRadius: 5,
+                border: `1px solid ${T.border}`, borderRadius: 8,
                 fontSize: 11,
               }}>
                 <span style={{ flex: 1, color: T.ink, minWidth: 0,
@@ -543,12 +543,12 @@ function BlocoTipo({ tipo, titulo, items, hidden }) {
                   {it.descricao}
                 </span>
                 {it.data && (
-                  <span style={{ fontSize: 9.5, color: T.muted, whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: 10.5, color: T.muted, whiteSpace: "nowrap" }}>
                     {it.data.slice(8, 10)}/{it.data.slice(5, 7)}
                   </span>
                 )}
                 <span style={{
-                  fontSize: 8, padding: "1px 5px", borderRadius: 3,
+                  fontSize: 10, padding: "1px 5px", borderRadius: 8,
                   background: statusCfg.bg, color: statusCfg.fg,
                   fontWeight: 700, whiteSpace: "nowrap",
                 }}>{statusCfg.lbl}</span>

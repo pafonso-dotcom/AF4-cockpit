@@ -29,7 +29,7 @@ const semDup = (arr) => Array.from(new Set(arr));
 // Chip de variação (sobe = vermelho, cai = verde) ou selo "novo".
 function Variacao({ nova, variacao }) {
   if (nova) {
-    return <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 100, background: `${T.blue || "#5b9bd5"}22`, color: T.blue || "#5b9bd5", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em" }}>novo</span>;
+    return <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 100, background: `${T.blue || "#5b9bd5"}22`, color: T.blue || "#5b9bd5", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em" }}>novo</span>;
   }
   if (variacao == null) return null;
   const subiu = variacao >= 0;
@@ -141,7 +141,7 @@ export default function AnaliseGastos(props) {
   });
   const botaoX = (onClick, titulo) => (
     <button onClick={onClick} title={titulo}
-      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: 6, border: "none", background: `${T.red}18`, color: T.red, cursor: "pointer", flexShrink: 0 }}>
+      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: 8, border: "none", background: `${T.red}18`, color: T.red, cursor: "pointer", flexShrink: 0 }}>
       <X size={12} />
     </button>
   );
@@ -164,14 +164,14 @@ export default function AnaliseGastos(props) {
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button onClick={() => passoMes(-1)} aria-label="Mês anterior"
-              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: 7, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.muted, cursor: "pointer", flexShrink: 0 }}>
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.muted, cursor: "pointer", flexShrink: 0 }}>
               <ChevronLeft size={14} />
             </button>
             <div style={{ fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 600, minWidth: 128, textAlign: "center" }}>
               Gasto do mês · {nomeMes(mes)}
             </div>
             <button onClick={() => passoMes(1)} aria-label="Próximo mês"
-              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: 7, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.muted, cursor: "pointer", flexShrink: 0 }}>
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.muted, cursor: "pointer", flexShrink: 0 }}>
               <ChevronRight size={14} />
             </button>
             {mes !== mesAtualISO && (
@@ -197,7 +197,7 @@ export default function AnaliseGastos(props) {
 
       {/* Destaque: maior alta */}
       {maiorAlta && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", marginBottom: 12, background: `${T.yellow}1a`, border: `1px solid ${T.yellow}55`, borderRadius: 10, color: T.ink, fontSize: 12.5 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", marginBottom: 12, background: `${T.yellow}1a`, border: `1px solid ${T.yellow}55`, borderRadius: 12, color: T.ink, fontSize: 12.5 }}>
           <AlertTriangle size={14} style={{ color: T.yellow, flexShrink: 0 }} />
           <span><b>{maiorAlta.nome}</b> foi o que mais subiu: {oculto(maiorAlta.valor - maiorAlta.valorAnterior, hidden)} a mais{maiorAlta.variacao != null ? ` (${pctStr(maiorAlta.variacao)})` : ""}.</span>
         </div>
@@ -253,8 +253,8 @@ export default function AnaliseGastos(props) {
                   <span style={{ color: T.faint, fontSize: 11, minWidth: 34, textAlign: "right" }}>{g.pct.toFixed(0)}%</span>
                 </span>
               </div>
-              <div style={{ height: 7, background: T.bgSoft, borderRadius: 5, overflow: "hidden" }}>
-                <div style={{ width: `${g.pct}%`, height: "100%", background: T.gold, borderRadius: 5 }} />
+              <div style={{ height: 7, background: T.bgSoft, borderRadius: 8, overflow: "hidden" }}>
+                <div style={{ width: `${g.pct}%`, height: "100%", background: T.gold, borderRadius: 8 }} />
               </div>
 
               {/* Orçamento: definir limite (modo Orçamento) ou barra gasto vs limite */}
@@ -269,7 +269,7 @@ export default function AnaliseGastos(props) {
                       <input type="number" step="0.01" defaultValue={cat.limite ?? ""} placeholder="sem limite"
                         onBlur={(e) => setLimite(g.nome, e.target.value)}
                         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-                        style={{ width: 100, padding: "3px 7px", fontSize: 12, borderRadius: 7, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink }} />
+                        style={{ width: 100, padding: "3px 7px", fontSize: 12, borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink }} />
                     </div>
                   );
                 }
@@ -283,8 +283,8 @@ export default function AnaliseGastos(props) {
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><Target size={10} style={{ color: cor }} /> Orçamento</span>
                       <span className="num" style={{ color: cor, fontWeight: 700 }}>{oculto(g.valor, hidden)} / {oculto(limite, hidden)} · {pctL.toFixed(0)}%</span>
                     </div>
-                    <div style={{ height: 5, background: T.bgSoft, borderRadius: 5, overflow: "hidden" }}>
-                      <div style={{ width: `${Math.min(100, pctL)}%`, height: "100%", background: cor, borderRadius: 5 }} />
+                    <div style={{ height: 5, background: T.bgSoft, borderRadius: 8, overflow: "hidden" }}>
+                      <div style={{ width: `${Math.min(100, pctL)}%`, height: "100%", background: cor, borderRadius: 8 }} />
                     </div>
                   </div>
                 );
@@ -298,7 +298,7 @@ export default function AnaliseGastos(props) {
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.muted, minWidth: 0 }}>
                         {editar && botaoX(() => tirar(f.nome, f.forcada), "Tirar da análise")}
                         <NomeFolha nome={f.nome} />
-                        {f.forcada && <span title="Colocada à mão na análise — normalmente ficaria de fora. Use o botão Ajustar pra tirar." style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase", cursor: "help" }}>avulso</span>}
+                        {f.forcada && <span title="Colocada à mão na análise — normalmente ficaria de fora. Use o botão Ajustar pra tirar." style={{ fontSize: 10, padding: "1px 5px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase", cursor: "help" }}>avulso</span>}
                       </span>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                         <Variacao nova={f.nova} variacao={f.variacao} />
@@ -407,7 +407,7 @@ export default function AnaliseGastos(props) {
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <div className="num" style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 700, color: T.green }}>{oculto(c.economia, hidden)}</div>
-                          <div style={{ fontSize: 8.5, color: T.muted, textTransform: "uppercase", letterSpacing: ".05em" }}>{c.pico ? "se não repetir" : "economia/mês"}</div>
+                          <div style={{ fontSize: 10, color: T.muted, textTransform: "uppercase", letterSpacing: ".05em" }}>{c.pico ? "se não repetir" : "economia/mês"}</div>
                         </div>
                       </div>
                     ))}
@@ -431,19 +431,19 @@ export default function AnaliseGastos(props) {
               {iaErro && <div style={{ fontSize: 11, color: T.red, marginTop: 7, textAlign: "center" }}>{iaErro}</div>}
               {iaTexto && (
                 <div style={{ marginTop: 12, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "12px 14px", fontSize: 12.5, lineHeight: 1.55, color: T.ink }}>
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 9.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: T.green, marginBottom: 6 }}>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: T.green, marginBottom: 6 }}>
                     <Sparkles size={11} /> Leitura da IA
                   </div>
                   <div>{iaTexto}</div>
                 </div>
               )}
-              <div style={{ fontSize: 9.5, color: T.faint, marginTop: 7, fontStyle: "italic", textAlign: "center" }}>
+              <div style={{ fontSize: 10.5, color: T.faint, marginTop: 7, fontStyle: "italic", textAlign: "center" }}>
                 A IA usa sua chave Anthropic (Configurações → API Keys) e recebe só os números por categoria.
               </div>
 
               {typeof onTabChange === "function" && (
                 <button onClick={() => onTabChange("relatorios-f")}
-                  style={{ marginTop: 10, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.gold, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                  style={{ marginTop: 10, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.gold, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
                   Ver relatório completo do mês →
                 </button>
               )}

@@ -20,6 +20,8 @@ export const CARD_SHADOW_SOFT =
 // cards (Centro de Controle, Alocação por Moeda) pra manter a mesma cara.
 // Texto/ícones devem ser brancos por cima dela.
 export const AURORA_BG =
+  // Véu escuro uniforme por cima dos blobs: devolve contraste ao texto branco.
+  "linear-gradient(rgba(18,24,30,0.26), rgba(18,24,30,0.26))," +
   "radial-gradient(120% 90% at 15% 20%, #7fa8c4 0%, transparent 55%)," +
   "radial-gradient(120% 100% at 85% 15%, #c9b48a 0%, transparent 50%)," +
   "radial-gradient(140% 120% at 70% 90%, #5b8a8f 0%, transparent 55%)," +

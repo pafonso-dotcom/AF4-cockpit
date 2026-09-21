@@ -246,11 +246,11 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
       {/* Banner */}
       <div className="cartao-hero" style={{
         display: "flex", alignItems: "center", gap: 18, padding: 24,
-        background: gradient, borderRadius: 18, marginBottom: 18,
+        background: gradient, borderRadius: 16, marginBottom: 18,
         color: "#fff", flexWrap: "wrap",
       }}>
         <div className="cartao-hero-icon" style={{
-          width: 60, height: 60, borderRadius: 18,
+          width: 60, height: 60, borderRadius: 16,
           display: "grid", placeItems: "center",
           fontSize: 32, flexShrink: 0,
           background: "rgba(0,0,0,.2)",
@@ -367,11 +367,11 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
                 </span>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={() => setSel(new Set())}
-                    style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 10, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>
+                    style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 12, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>
                     Limpar
                   </button>
                   <button onClick={() => excluirItens(itensFatura.filter(t => sel.has(t.id)))}
-                    style={{ background: T.red, border: "none", color: "#fff", borderRadius: 10, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                    style={{ background: T.red, border: "none", color: "#fff", borderRadius: 12, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}>
                     <Trash2 size={12} /> Excluir marcados
                   </button>
                 </div>
@@ -409,9 +409,9 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
                     <td>
                       {t.parcela && (
                         <span style={{
-                          fontSize: 9, padding: "1px 5px",
+                          fontSize: 10, padding: "1px 5px",
                           background: "#FAEEDA", color: "#633806",
-                          borderRadius: 3, marginRight: 5, fontWeight: 600,
+                          borderRadius: 8, marginRight: 5, fontWeight: 600,
                           letterSpacing: ".05em",
                         }}>PARCELA</span>
                       )}
@@ -424,7 +424,7 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
                         title="Alterar categoria"
                         style={{
                           background: T.bgSoft, color: T.ink,
-                          border: `1px solid ${T.border}`, borderRadius: 11,
+                          border: `1px solid ${T.border}`, borderRadius: 12,
                           padding: "4px 8px", fontSize: 11, cursor: "pointer", maxWidth: 180,
                         }}
                       >
@@ -460,7 +460,7 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
                     padding: "6px 14px", fontSize: 11, fontWeight: 600,
                     letterSpacing: ".05em", textTransform: "uppercase",
                     background: T.card, border: `1px solid ${T.border}`,
-                    borderRadius: 5, cursor: "pointer", color: T.muted,
+                    borderRadius: 8, cursor: "pointer", color: T.muted,
                   }}>
                   {verTodasParcelas ? "Ocultar parcelas" : `Ver todas as parcelas em curso (${parcCartao.length})`}
                 </button>
@@ -469,7 +469,7 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
 
             {verTodasParcelas && parcCartao.length > 0 && (
               <div style={{
-                marginTop: 10, background: T.bgSoft, padding: 12, borderRadius: 14,
+                marginTop: 10, background: T.bgSoft, padding: 12, borderRadius: 16,
                 border: `1px solid ${T.border}`,
               }}>
                 <div style={{
@@ -490,7 +490,7 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
                   const pct = totalParc > 0 ? (pagas / totalParc) * 100 : 0;
                   return (
                     <div key={p.id || i} style={{
-                      background: T.card, padding: 10, borderRadius: 11, marginBottom: 5,
+                      background: T.card, padding: 10, borderRadius: 12, marginBottom: 5,
                     }}>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
                         <span style={{ fontWeight: 600 }}>{p.descricao || p.nome || "—"}</span>

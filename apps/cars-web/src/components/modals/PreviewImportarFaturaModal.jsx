@@ -412,7 +412,7 @@ export default function PreviewImportarFaturaModal({
         <div style={{
           background: "#FFF6E0",
           border: "1px solid #BA7517",
-          borderRadius: 14,
+          borderRadius: 16,
           padding: "12px 14px",
           marginBottom: 14,
           display: "flex",
@@ -437,7 +437,7 @@ export default function PreviewImportarFaturaModal({
       <div style={{
         padding: 14, marginBottom: 14,
         background: `linear-gradient(135deg, ${T.gold}11, transparent)`,
-        border: `1px solid ${T.gold}55`, borderRadius: 14,
+        border: `1px solid ${T.gold}55`, borderRadius: 16,
       }}>
         {cartoes.length > 0 && (
           <Field label="Cartão da fatura" required hint="Qual cartão gerou essa fatura">
@@ -508,11 +508,11 @@ export default function PreviewImportarFaturaModal({
           );
           return (
             <div style={{
-              marginTop: 8, padding: "9px 11px", borderRadius: 11,
+              marginTop: 8, padding: "9px 11px", borderRadius: 12,
               background: T.bgSoft, border: `1px solid ${T.border}`,
               display: "flex", flexDirection: "column", gap: 3,
             }}>
-              <div style={{ fontSize: 9, letterSpacing: ".12em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 2 }}>
+              <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 2 }}>
                 Conciliação com o resumo da fatura
               </div>
               <Linha rotulo="Consumos do período" v={baseConsumos} sinal="" />
@@ -555,14 +555,14 @@ export default function PreviewImportarFaturaModal({
               padding: "0 10px", marginBottom: 4, minHeight: 44, boxSizing: "border-box",
               background: T.card, border: `1px solid ${matchBanner ? (T.blue || "#60a5fa") + "66" : conciliarBanner ? T.green + "66" : T.border}`,
               borderLeft: `3px solid ${cor}`,
-              borderRadius: 11, opacity: opacidade,
+              borderRadius: 12, opacity: opacidade,
             }}>
               <input type="checkbox" checked={item._incluir}
                      onChange={() => toggleItem(item._idx)}
                      style={{ accentColor: T.gold, flexShrink: 0 }} />
 
               <div style={{
-                width: 22, height: 22, borderRadius: 5,
+                width: 22, height: 22, borderRadius: 8,
                 background: `${cor}22`, display: "grid", placeItems: "center", flexShrink: 0,
               }}>
                 {iconePorTipo[item.tipo]}
@@ -580,17 +580,17 @@ export default function PreviewImportarFaturaModal({
                 <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2, display: "flex", gap: 6, alignItems: "center", flexWrap: "nowrap", overflow: "hidden", whiteSpace: "nowrap" }}>
                   <span style={{
                     padding: "1px 6px", background: `${cor}22`, color: cor,
-                    borderRadius: 3, fontWeight: 600, letterSpacing: ".05em",
-                    textTransform: "uppercase", fontSize: 9,
+                    borderRadius: 8, fontWeight: 600, letterSpacing: ".05em",
+                    textTransform: "uppercase", fontSize: 10,
                   }}>{labelPorTipo[item.tipo]}</span>
                   <span>{item.categoria_sugerida}</span>
                   {item.data_compra && <span>· {item.data_compra}</span>}
                   {matchBanner && (
                     <>
                       <span style={{
-                        fontSize: 9, padding: "1px 6px",
+                        fontSize: 10, padding: "1px 6px",
                         background: "#E1F5EE", color: "#04342C",
-                        borderRadius: 3, fontWeight: 700, letterSpacing: ".05em",
+                        borderRadius: 8, fontWeight: 700, letterSpacing: ".05em",
                         textTransform: "uppercase",
                       }}>Já existe</span>
                       <span style={{ color: T.blue || "#60a5fa", display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 600 }}>
@@ -601,15 +601,15 @@ export default function PreviewImportarFaturaModal({
                   {novaParcela && (
                     <span style={{
                       padding: "1px 5px", background: `${T.green}22`, color: T.green,
-                      borderRadius: 3, fontWeight: 600, fontSize: 9, letterSpacing: ".05em", textTransform: "uppercase",
+                      borderRadius: 8, fontWeight: 600, fontSize: 10, letterSpacing: ".05em", textTransform: "uppercase",
                     }}>NOVO</span>
                   )}
                   {conciliarBanner && (
                     <>
                       <span style={{
-                        fontSize: 9, padding: "1px 6px",
+                        fontSize: 10, padding: "1px 6px",
                         background: "#E1F5EE", color: "#04342C",
-                        borderRadius: 3, fontWeight: 700, letterSpacing: ".05em",
+                        borderRadius: 8, fontWeight: 700, letterSpacing: ".05em",
                         textTransform: "uppercase",
                       }}>Já lançado</span>
                       <span style={{ color: T.green, display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 600 }}>
@@ -622,7 +622,7 @@ export default function PreviewImportarFaturaModal({
 
               <select value={item.tipo} onChange={e => mudarTipo(item._idx, e.target.value)}
                       style={{
-                        width: "auto", padding: "3px 6px", fontSize: 10, borderRadius: 4,
+                        width: "auto", padding: "3px 6px", fontSize: 10, borderRadius: 8,
                         background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`,
                         flexShrink: 0,
                       }}
@@ -644,7 +644,7 @@ export default function PreviewImportarFaturaModal({
       {/* Avisos */}
       <div style={{
         marginTop: 10, padding: 10, fontSize: 11.5, color: T.muted,
-        background: T.bgSoft, borderRadius: 11, lineHeight: 1.5,
+        background: T.bgSoft, borderRadius: 12, lineHeight: 1.5,
       }}>
         ℹ️ A importação lança só o que está na fatura — <strong>não cria despesas fixas/recorrentes</strong>. Assinaturas você cadastra manualmente em Despesas Fixas.
         <br />

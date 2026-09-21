@@ -164,7 +164,7 @@ export default function CarteiraSaude({ ativos = [], hidden }) {
 const cardStyle = (T) => ({
   background: T.card,
   border: `1px solid ${T.border}`,
-  borderRadius: 14,
+  borderRadius: 16,
   padding: 14,
 });
 

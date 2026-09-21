@@ -30,10 +30,10 @@ export function BarChart({ data, color, height = 160, formatValue }) {
               height: `${h}%`,
               transition: "all .2s",
             }} title={`${d.label}: ${fmt(d.value)}`} />
-            <div style={{ fontSize: 9, color: T.muted, fontVariantNumeric: "tabular-nums" }}>
+            <div style={{ fontSize: 10, color: T.muted, fontVariantNumeric: "tabular-nums" }}>
               {fmt(d.value)}
             </div>
-            <div style={{ fontSize: 9.5, color: T.faint }}>{d.label}</div>
+            <div style={{ fontSize: 10.5, color: T.faint }}>{d.label}</div>
           </div>
         );
       })}
@@ -76,12 +76,12 @@ export function BarChartDouble({ data, colors, height = 160, labels, formatValue
           );
         })}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: T.faint, marginBottom: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: T.faint, marginBottom: 8 }}>
         {data.map((d, i) => <span key={i} style={{ flex: 1, textAlign: "center" }}>{d.label}</span>)}
       </div>
       <div style={{ display: "flex", gap: 14, fontSize: 10.5, color: T.muted }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, background: c1, borderRadius: 3 }} />{lbl[0]}</span>
-        <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, background: c2, borderRadius: 3 }} />{lbl[1]}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, background: c1, borderRadius: 8 }} />{lbl[0]}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, background: c2, borderRadius: 8 }} />{lbl[1]}</span>
       </div>
     </>
   );

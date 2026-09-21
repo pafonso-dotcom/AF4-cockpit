@@ -45,7 +45,7 @@ export default function Emprestimos({ devedores = [], hidden, onTabChange }) {
       {r.parcelasAtrasadas > 0 && (
         <div style={{
           background: `${T.red}11`, border: `1px solid ${T.red}55`, borderLeft: `4px solid ${T.red}`,
-          borderRadius: 14, padding: "12px 16px", marginBottom: 16,
+          borderRadius: 16, padding: "12px 16px", marginBottom: 16,
           display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
         }}>
           <Clock size={17} style={{ color: T.red, flexShrink: 0 }} />
@@ -82,11 +82,11 @@ export default function Emprestimos({ devedores = [], hidden, onTabChange }) {
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontFamily: T.serif, fontSize: 17, fontWeight: 700, color: T.ink }}>{e.nome}</span>
                     {e.quitado ? (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: `${T.green}1e`, color: T.green, fontSize: 9.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", padding: "2px 8px", borderRadius: 100 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: `${T.green}1e`, color: T.green, fontSize: 10.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", padding: "2px 8px", borderRadius: 100 }}>
                         <CheckCircle2 size={10} /> Quitado
                       </span>
                     ) : (
-                      <span style={{ background: `${T.gold}1e`, color: T.gold, fontSize: 9.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", padding: "2px 8px", borderRadius: 100 }}>
+                      <span style={{ background: `${T.gold}1e`, color: T.gold, fontSize: 10.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", padding: "2px 8px", borderRadius: 100 }}>
                         Em aberto
                       </span>
                     )}
@@ -105,7 +105,7 @@ export default function Emprestimos({ devedores = [], hidden, onTabChange }) {
               {/* Barra do quanto do total (principal + juros previstos) já voltou */}
               {(e.principal + e.jurosPrevisto) > 0 && (
                 <div style={{ marginBottom: 12 }} title="Quanto do total (principal + juros previstos) já voltou pro seu bolso">
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: T.faint, marginBottom: 3 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: T.faint, marginBottom: 3 }}>
                     <span>Retornado {e.retornadoPct.toFixed(0)}%</span>
                     <span className="num">{hidden ? "•••" : `${fmt(e.jurosRecebido + e.principalRecebido)} de ${fmt(e.principal + e.jurosPrevisto)}`}</span>
                   </div>
@@ -128,7 +128,7 @@ export default function Emprestimos({ devedores = [], hidden, onTabChange }) {
               {/* Cronograma das parcelas de juros: recebida ✓ · atrasada ⚠ · prevista */}
               {e.cronograma.length > 0 ? (
                 <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
-                  <div style={{ fontSize: 9.5, color: T.faint, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 6 }}>
+                  <div style={{ fontSize: 10.5, color: T.faint, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 6 }}>
                     Cronograma dos juros ({e.cronograma.filter(p => p.status === "recebida").length} de {e.cronograma.length} recebidas
                     {e.atrasadas > 0 && <b style={{ color: T.red }}> · {e.atrasadas} em atraso</b>})
                   </div>
@@ -144,8 +144,8 @@ export default function Emprestimos({ devedores = [], hidden, onTabChange }) {
                           <span className="num" style={{ color: cor, fontWeight: 600, whiteSpace: "nowrap" }}>
                             {p.status === "recebida" ? "✓ " : p.status === "atrasada" ? "⚠ " : ""}
                             {hidden ? "•••" : fmt(p.valor)}
-                            {p.status === "atrasada" && <span style={{ fontSize: 9.5 }}> atrasada</span>}
-                            {p.status === "prevista" && <span style={{ fontSize: 9.5, color: T.faint }}> prevista</span>}
+                            {p.status === "atrasada" && <span style={{ fontSize: 10.5 }}> atrasada</span>}
+                            {p.status === "prevista" && <span style={{ fontSize: 10.5, color: T.faint }}> prevista</span>}
                           </span>
                         </div>
                       );
@@ -154,7 +154,7 @@ export default function Emprestimos({ devedores = [], hidden, onTabChange }) {
                 </div>
               ) : e.jurosLancamentos.length > 0 && (
                 <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
-                  <div style={{ fontSize: 9.5, color: T.faint, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 6 }}>
+                  <div style={{ fontSize: 10.5, color: T.faint, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 6 }}>
                     Juros recebidos ({e.jurosLancamentos.length})
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -189,9 +189,9 @@ export default function Emprestimos({ devedores = [], hidden, onTabChange }) {
 function Mini({ label, valor, sub, cor, hidden }) {
   return (
     <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "9px 11px" }}>
-      <div style={{ fontSize: 9.5, color: T.muted, letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 10.5, color: T.muted, letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>{label}</div>
       <div className="num" style={{ fontSize: 15.5, fontWeight: 700, color: cor || T.ink, marginTop: 2 }}>{hidden ? "•••" : fmt(valor)}</div>
-      {sub && <div style={{ fontSize: 9.5, color: T.faint, marginTop: 1 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 10.5, color: T.faint, marginTop: 1 }}>{sub}</div>}
     </div>
   );
 }

@@ -81,7 +81,7 @@ export default function InstallPWA() {
            animation: "fadeUp .3s ease-out",
          }}>
       <div style={{
-        width: 36, height: 36, borderRadius: 14,
+        width: 36, height: 36, borderRadius: 16,
         background: `linear-gradient(135deg, ${T.gold}, ${T.goldHi})`,
         color: T.bg, display: "grid", placeItems: "center", flexShrink: 0,
       }}>

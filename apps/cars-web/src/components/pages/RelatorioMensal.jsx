@@ -241,7 +241,7 @@ ${geralHtml}
             style={{ ...navBtn, opacity: ehMesAtual ? 0.35 : 1, cursor: ehMesAtual ? "default" : "pointer" }}><ChevronRight size={16} /></button>
         </div>
         <button onClick={gerarPDF} className="btn-gold"
-          style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, borderRadius: 10, cursor: "pointer" }}>
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, borderRadius: 12, cursor: "pointer" }}>
           <Printer size={15} /> Salvar PDF
         </button>
       </div>
@@ -371,13 +371,13 @@ ${geralHtml}
 
 const navBtn = {
   width: 34, height: 34, display: "inline-flex", alignItems: "center", justifyContent: "center",
-  background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 10, color: T.ink, cursor: "pointer",
+  background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, color: T.ink, cursor: "pointer",
 };
 
 function SecTitulo({ children, style }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 10px", ...style }}>
-      <div style={{ width: 4, height: 16, borderRadius: 3, background: T.gold }} />
+      <div style={{ width: 4, height: 16, borderRadius: 8, background: T.gold }} />
       <h3 style={{ fontFamily: T.serif, fontSize: 15, fontWeight: 700, color: T.ink, margin: 0 }}>{children}</h3>
     </div>
   );

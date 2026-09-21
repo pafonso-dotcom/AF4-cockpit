@@ -150,7 +150,7 @@ Retorne EXATAMENTE este JSON (sem markdown):
             {INTERVALOS.map(i => (
               <button key={i.v} onClick={() => setIntervalo(i.v)}
                 style={{
-                  padding: "4px 10px", borderRadius: 5, fontSize: 11.5,
+                  padding: "4px 10px", borderRadius: 8, fontSize: 11.5,
                   background: intervalo === i.v ? T.gold : "transparent",
                   color: intervalo === i.v ? T.bg : T.muted,
                   border: `1px solid ${intervalo === i.v ? T.gold : T.border}`,
@@ -199,10 +199,10 @@ function KpiCard({ label, valor, sub, cor }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${cor}`, borderRadius: 14, padding: 14,
+      borderLeft: `3px solid ${cor}`, borderRadius: 16, padding: 14,
     }}>
       <div style={{
-        fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
+        fontSize: 10.5, letterSpacing: ".15em", textTransform: "uppercase",
         color: T.muted, fontWeight: 600,
       }}>{label}</div>
       <div className="num" style={{
@@ -231,7 +231,7 @@ function SinalCard({ s, explicacao, explicando, onExplicar }) {
         padding: "10px 14px", display: "flex", alignItems: "center", gap: 12,
         opacity: 0.6,
       }}>
-        <div style={{ width: 32, height: 32, borderRadius: 14, background: T.bgSoft,
+        <div style={{ width: 32, height: 32, borderRadius: 16, background: T.bgSoft,
                       display: "grid", placeItems: "center", fontSize: 16 }}>
           {s.icon}
         </div>
@@ -252,7 +252,7 @@ function SinalCard({ s, explicacao, explicando, onExplicar }) {
         padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
       }}>
         <div style={{
-          width: 36, height: 36, borderRadius: 14, background: T.bgSoft,
+          width: 36, height: 36, borderRadius: 16, background: T.bgSoft,
           display: "grid", placeItems: "center", flexShrink: 0,
           fontSize: 18, fontWeight: 700, color: T.gold,
         }}>{s.icon}</div>
@@ -284,14 +284,14 @@ function SinalCard({ s, explicacao, explicando, onExplicar }) {
             fontFamily: T.serif, color: scoreCor,
             fontSize: 26, fontWeight: 700, lineHeight: 1,
           }}>{s.score}</div>
-          <div style={{ fontSize: 9, color: T.faint, letterSpacing: ".1em", textTransform: "uppercase" }}>score</div>
+          <div style={{ fontSize: 10, color: T.faint, letterSpacing: ".1em", textTransform: "uppercase" }}>score</div>
         </div>
 
         <button onClick={onExplicar} disabled={explicando}
           style={{
             background: explicacao && !explicacao.erro ? `${T.gold}22` : "transparent",
             color: T.gold, border: `1px solid ${T.gold}55`,
-            padding: "6px 11px", borderRadius: 11, fontSize: 10.5, fontWeight: 600,
+            padding: "6px 11px", borderRadius: 12, fontSize: 10.5, fontWeight: 600,
             letterSpacing: ".05em", cursor: explicando ? "wait" : "pointer",
             display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
           }}>
@@ -317,7 +317,7 @@ function SinalCard({ s, explicacao, explicando, onExplicar }) {
         <div style={{
           margin: "0 14px 14px", padding: 12,
           background: `${T.gold}11`, border: `1px solid ${T.gold}55`,
-          borderRadius: 14,
+          borderRadius: 16,
         }}>
           <div style={{
             display: "flex", alignItems: "center", gap: 6, marginBottom: 6,
@@ -339,7 +339,7 @@ function SinalCard({ s, explicacao, explicando, onExplicar }) {
               ⚠ {explicacao.risco}
             </div>
           )}
-          <div style={{ fontSize: 9.5, color: T.faint, marginTop: 8, fontStyle: "italic" }}>
+          <div style={{ fontSize: 10.5, color: T.faint, marginTop: 8, fontStyle: "italic" }}>
             Gerado por Gemini · não é recomendação de investimento.
           </div>
         </div>
@@ -347,7 +347,7 @@ function SinalCard({ s, explicacao, explicando, onExplicar }) {
       {explicacao && explicacao.erro && (
         <div style={{
           margin: "0 14px 14px", padding: 10, fontSize: 11,
-          background: `${T.red}11`, color: T.red, borderRadius: 11,
+          background: `${T.red}11`, color: T.red, borderRadius: 12,
         }}>
           ✗ {explicacao.erro}
         </div>

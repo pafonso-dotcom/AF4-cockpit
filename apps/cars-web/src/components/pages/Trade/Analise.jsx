@@ -253,7 +253,7 @@ Retorne EXATAMENTE este JSON (sem markdown):
       }}>
         <select value={selectedKey} onChange={e => setSelectedKey(e.target.value)}
                 style={{ flex: "0 0 260px", padding: "8px 11px", background: T.bgSoft,
-                         border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }}>
+                         border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 12 }}>
           {itens.length === 0 && <option value="">Nenhum ativo disponível</option>}
           {(() => {
             const cripto = itens.filter(it => it.fonte === "binance");
@@ -282,7 +282,7 @@ Retorne EXATAMENTE este JSON (sem markdown):
           {INTERVALOS.filter(i => intervalosDisponiveis.includes(i.v)).map(i => (
             <button key={i.v} onClick={() => setIntervalo(i.v)}
               style={{
-                padding: "6px 11px", borderRadius: 5, fontSize: 11,
+                padding: "6px 11px", borderRadius: 8, fontSize: 11,
                 background: intervalo === i.v ? T.gold : "transparent",
                 color: intervalo === i.v ? T.bg : T.muted,
                 border: `1px solid ${intervalo === i.v ? T.gold : T.border}`,
@@ -414,9 +414,9 @@ function Kpi({ label, valor, sub, cor }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${cor}`, borderRadius: 14, padding: 12,
+      borderLeft: `3px solid ${cor}`, borderRadius: 16, padding: 12,
     }}>
-      <div style={{ fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
+      <div style={{ fontSize: 10.5, letterSpacing: ".15em", textTransform: "uppercase",
                     color: T.muted, fontWeight: 600 }}>{label}</div>
       <div className="num" style={{
         fontFamily: T.serif, fontSize: 18, color: cor,

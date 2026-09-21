@@ -111,7 +111,7 @@ export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "to
               </div>
               {mostrarCDI && (
                 <span style={{
-                  fontSize: 10.5, fontWeight: 700, padding: "2px 7px", borderRadius: 20,
+                  fontSize: 10.5, fontWeight: 700, padding: "2px 7px", borderRadius: 16,
                   letterSpacing: ".03em",
                   color: dados.vsCDI >= 0 ? T.green : T.red,
                   background: `${dados.vsCDI >= 0 ? T.green : T.red}1a`,
@@ -123,12 +123,12 @@ export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "to
             </div>
           )}
         </div>
-        <div style={{ display: "inline-flex", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 5, padding: 2 }}>
+        <div style={{ display: "inline-flex", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 8, padding: 2 }}>
           {PERIODOS.map(p => (
             <button key={p.id} onClick={() => setPeriodo(p.id)}
               style={{
                 padding: "4px 10px", fontSize: 10, letterSpacing: ".05em", textTransform: "uppercase",
-                fontWeight: 600, border: "none", borderRadius: 3, cursor: "pointer",
+                fontWeight: 600, border: "none", borderRadius: 8, cursor: "pointer",
                 background: periodo === p.id ? T.gold : "transparent",
                 color: periodo === p.id ? T.bg : T.muted,
               }}>
@@ -218,7 +218,7 @@ export default function EvolucaoPatrimonio({ historico = [], hidden, campo = "to
                 <input type="number" min={0} max={50} step={0.1} value={cdiAnual}
                        onChange={e => setCdiAnual(Math.max(0, Number(e.target.value) || 0))}
                        style={{
-                         width: 56, padding: "2px 6px", borderRadius: 4, textAlign: "right",
+                         width: 56, padding: "2px 6px", borderRadius: 8, textAlign: "right",
                          background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink,
                          fontSize: 11, fontVariantNumeric: "tabular-nums", outline: "none",
                        }} />

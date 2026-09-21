@@ -12,7 +12,7 @@ export default function StatusCotacoes({ status }) {
 
   const base = {
     display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap",
-    fontSize: 11, lineHeight: 1.5, padding: "5px 10px", borderRadius: 9,
+    fontSize: 11, lineHeight: 1.5, padding: "5px 10px", borderRadius: 12,
     marginBottom: 10,
   };
 

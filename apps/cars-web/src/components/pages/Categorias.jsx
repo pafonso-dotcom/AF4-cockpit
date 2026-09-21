@@ -102,7 +102,7 @@ export default function Categorias({
       {/* Resumo do orçamento do mês (despesas com limite definido) */}
       {vista === "despesa" && (
         <div style={{
-          background: T.card, border: `1px solid ${T.border}`, borderRadius: 13,
+          background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
           padding: "12px 14px", marginBottom: 12,
         }}>
           {totalOrcado > 0 ? (() => {
@@ -115,8 +115,8 @@ export default function Categorias({
                     {hidden ? "•••" : `${fmt(totalGastoOrcadas)} de ${fmt(totalOrcado)}`} · {Math.round(pctOrcamento)}%
                   </span>
                 </div>
-                <div style={{ height: 8, borderRadius: 6, background: T.bgSoft, overflow: "hidden" }}>
-                  <div style={{ width: `${Math.min(100, pctOrcamento)}%`, height: "100%", background: cor, borderRadius: 6, transition: "width .4s ease" }} />
+                <div style={{ height: 8, borderRadius: 8, background: T.bgSoft, overflow: "hidden" }}>
+                  <div style={{ width: `${Math.min(100, pctOrcamento)}%`, height: "100%", background: cor, borderRadius: 8, transition: "width .4s ease" }} />
                 </div>
                 <div style={{ fontSize: 10.5, color: T.faint, marginTop: 5 }}>
                   {orcadas.length} categoria{orcadas.length === 1 ? "" : "s"} com orçamento · sobra {hidden ? "•••" : fmt(Math.max(0, totalOrcado - totalGastoOrcadas))} no mês
@@ -136,7 +136,7 @@ export default function Categorias({
       <div className="flex items-center justify-between flex-wrap gap-2" style={{ marginBottom: 12 }}>
         <div style={{
           display: "inline-flex", gap: 0,
-          background: T.bgSoft, padding: 3, borderRadius: 14, border: `1px solid ${T.border}`,
+          background: T.bgSoft, padding: 3, borderRadius: 16, border: `1px solid ${T.border}`,
         }}>
           {[
             { id: "receita", label: `Receitas (${receitas.length})`, cor: T.green },
@@ -150,7 +150,7 @@ export default function Categorias({
                   background: ativo ? T.card : "transparent",
                   color: ativo ? t.cor : T.muted,
                   border: ativo ? `1px solid ${t.cor}55` : `1px solid transparent`,
-                  borderRadius: 11, cursor: "pointer",
+                  borderRadius: 12, cursor: "pointer",
                 }}>
                 {t.label}
               </button>
@@ -388,7 +388,7 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
   }, [cats]);
 
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, padding: 14, borderRadius: 14 }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, padding: 14, borderRadius: 16 }}>
       <div className="flex items-baseline justify-between mb-2">
         <h3 style={{ fontFamily: T.serif, fontSize: 16, color: T.ink, fontWeight: 600 }}>{titulo}</h3>
         <span style={{ fontSize: 11, color: T.faint }}>{raizes.length} {raizes.length === 1 ? "categoria" : "categorias"}</span>
@@ -479,20 +479,20 @@ function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, tra
     <div className="group" style={{ borderBottom: `1px solid ${T.border}` }}>
       <div className="flex items-center gap-2.5" style={{ padding: "7px 0", cursor: subs.length > 0 ? "pointer" : "default" }}
            onClick={() => { if (subs.length > 0) setOpen(!open); }}>
-        <div style={{ width: 18, height: 18, background: c.cor, borderRadius: 4, flexShrink: 0 }} />
+        <div style={{ width: 18, height: 18, background: c.cor, borderRadius: 8, flexShrink: 0 }} />
         <div className="flex-1 min-w-0">
           <div style={{ color: T.ink, fontSize: 12.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
             {c.nome}
             {subs.length > 0 && (
-              <span style={{ fontSize: 9.5, color: T.muted, marginLeft: 2 }}>
+              <span style={{ fontSize: 10.5, color: T.muted, marginLeft: 2 }}>
                 {open ? "▾" : "▸"} {subs.length} sub
               </span>
             )}
             {temFilhas && (
               <span onClick={e => { e.stopPropagation(); setOpenFilhas(v => !v); }}
                 style={{
-                  fontSize: 9, color: T.gold, marginLeft: 2, cursor: "pointer", fontWeight: 700,
-                  padding: "1px 6px", borderRadius: 3, background: `${T.gold}18`,
+                  fontSize: 10, color: T.gold, marginLeft: 2, cursor: "pointer", fontWeight: 700,
+                  padding: "1px 6px", borderRadius: 8, background: `${T.gold}18`,
                   letterSpacing: ".03em",
                 }}>
                 {openFilhas ? "▾" : "▸"} {filhas.length} {filhas.length === 1 ? "filha" : "filhas"}
@@ -508,7 +508,7 @@ function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, tra
               const cor = pct >= 100 ? T.red : pct >= 80 ? T.gold : T.green;
               return (
                 <div style={{ marginTop: 3 }} title={`Gasto do mês (com fixas e parcelas) vs orçamento — ${Math.round(pct)}%`}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, marginBottom: 2 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, marginBottom: 2 }}>
                     <span className="num" style={{ color: cor, fontWeight: 700 }}>
                       {hidden ? "•••" : `${fmt(gasto)} / ${fmt(limite)}`}
                     </span>
@@ -521,7 +521,7 @@ function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, tra
               );
             }
             return gasto > 0 ? (
-              <div className="num" style={{ marginTop: 2, fontSize: 9.5, color: T.faint }}>
+              <div className="num" style={{ marginTop: 2, fontSize: 10.5, color: T.faint }}>
                 {hidden ? "•••" : fmt(gasto)} no mês · <span onClick={e => { e.stopPropagation(); setForm(c); }} style={{ color: T.gold, cursor: "pointer" }}>definir orçamento</span>
               </div>
             ) : null;
@@ -581,7 +581,7 @@ function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, tra
               style={{
                 flex: 1, padding: "6px 10px", fontSize: 12,
                 background: T.bgSoft, border: `1px solid ${T.border}`,
-                borderRadius: 11, color: T.ink,
+                borderRadius: 12, color: T.ink,
               }} />
             <button onClick={addSub} className="btn-gold" style={{ padding: "6px 12px", fontSize: 10 }}>
               Add

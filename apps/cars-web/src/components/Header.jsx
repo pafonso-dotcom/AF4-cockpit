@@ -73,7 +73,7 @@ function EscopoToggle({ escopoAtivo = "tudo", onEscopoChange, compact }) {
   return (
     <div style={{
       display: "inline-flex", gap: 2, padding: 2,
-      background: "rgba(255,255,255,.06)", borderRadius: 11,
+      background: "rgba(255,255,255,.06)", borderRadius: 12,
       marginRight: compact ? 6 : 10,
     }}>
       {opcoes.map(esc => {
@@ -86,7 +86,7 @@ function EscopoToggle({ escopoAtivo = "tudo", onEscopoChange, compact }) {
               padding: compact ? "3px 7px" : "4px 9px",
               fontSize: compact ? 9.5 : 10, fontWeight: 600,
               letterSpacing: ".05em", textTransform: "uppercase",
-              borderRadius: 4, border: "none", cursor: "pointer",
+              borderRadius: 8, border: "none", cursor: "pointer",
               background: ativo ? "rgba(255,255,255,.18)" : "transparent",
               color: ativo ? "#fff" : "rgba(255,255,255,.6)",
               display: "inline-flex", alignItems: "center", gap: 4,
@@ -397,7 +397,7 @@ function HeaderHorizontal({
                 if (firstTab) setTab(firstTab);
               }}
                 style={{
-                  padding: "9px 16px", borderRadius: 14,
+                  padding: "9px 16px", borderRadius: 16,
                   background: active ? "rgba(255,255,255,0.10)" : "transparent",
                   color: active ? NAV_INK : NAV_MUTED,
                   border: `1px solid ${active ? NAV_BORDER : "transparent"}`,
@@ -413,7 +413,7 @@ function HeaderHorizontal({
           {onCalculadoraJuros && (
             <button onClick={onCalculadoraJuros} title="Calculadora de juros (simples/compostos, com aporte)"
               style={{
-                padding: "9px 16px", borderRadius: 14, background: "transparent",
+                padding: "9px 16px", borderRadius: 16, background: "transparent",
                 color: T.gold, border: "1px solid transparent",
                 fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500,
                 display: "flex", alignItems: "center", gap: 7, whiteSpace: "nowrap",
@@ -425,7 +425,7 @@ function HeaderHorizontal({
           {onCalculadoraBasica && (
             <button onClick={onCalculadoraBasica} title="Calculadora básica (+ − × ÷ %)"
               style={{
-                padding: "9px 16px", borderRadius: 14, background: "transparent",
+                padding: "9px 16px", borderRadius: 16, background: "transparent",
                 color: NAV_MUTED, border: "1px solid transparent",
                 fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500,
                 display: "flex", alignItems: "center", gap: 7, whiteSpace: "nowrap",
@@ -469,12 +469,12 @@ function HeaderHorizontal({
                 }}>
                 <Icon size={13} /> {st.label}
                 {st.agenda && (
-                  <span style={{ fontSize: 9, opacity: .8, marginLeft: 1, transform: active ? "rotate(90deg)" : "none", transition: "transform .15s", display: "inline-block" }}>▸</span>
+                  <span style={{ fontSize: 10, opacity: .8, marginLeft: 1, transform: active ? "rotate(90deg)" : "none", transition: "transform .15s", display: "inline-block" }}>▸</span>
                 )}
                 {pending > 0 && (
                   <span style={{
                     background: T.red, color: "#fff",
-                    fontSize: 9, padding: "1px 6px", borderRadius: 100, marginLeft: 2,
+                    fontSize: 10, padding: "1px 6px", borderRadius: 100, marginLeft: 2,
                     fontWeight: 700,
                   }}>{pending}</span>
                 )}
@@ -493,7 +493,7 @@ function HeaderHorizontal({
             maxWidth: 1280, margin: "0 auto",
             display: "flex", gap: 4, overflowX: "auto", padding: "6px 0", alignItems: "center",
           }}>
-            <span style={{ fontSize: 9.5, color: NAV_FAINT, letterSpacing: ".2em", textTransform: "uppercase", whiteSpace: "nowrap", paddingRight: 4 }}>
+            <span style={{ fontSize: 10.5, color: NAV_FAINT, letterSpacing: ".2em", textTransform: "uppercase", whiteSpace: "nowrap", paddingRight: 4 }}>
               Agenda ·
             </span>
             {agendaTabs.map(st => {
@@ -503,7 +503,7 @@ function HeaderHorizontal({
                 <button key={st.id} onClick={() => setTab(st.id)} title={`${st.label} — arraste para reordenar`}
                   {...dragProps("agenda", agendaTabs, st.id)}
                   style={{
-                    padding: "5px 12px", borderRadius: 14,
+                    padding: "5px 12px", borderRadius: 16,
                     background: active ? `${T.gold}22` : NAV_SOFT,
                     color: active ? T.gold : NAV_MUTED,
                     border: `1px solid ${active ? T.gold : NAV_BORDER}`,
@@ -534,7 +534,7 @@ function HeaderHorizontal({
               title={listaItensAberta ? "Recolher" : "Mostrar"}
               style={{
                 background: "transparent", border: "none", cursor: "pointer",
-                fontSize: 9.5, color: NAV_FAINT, letterSpacing: ".2em", textTransform: "uppercase",
+                fontSize: 10.5, color: NAV_FAINT, letterSpacing: ".2em", textTransform: "uppercase",
                 whiteSpace: "nowrap", paddingRight: 4, display: "inline-flex", alignItems: "center", gap: 5,
                 fontFamily: T.sans, fontWeight: 600,
               }}>
@@ -550,7 +550,7 @@ function HeaderHorizontal({
                 <button key={c.id}
                   onClick={() => tab === "contas" ? setContaAberta(c) : setCartaoAberto(c)}
                   style={{
-                    padding: "5px 12px", borderRadius: 14,
+                    padding: "5px 12px", borderRadius: 16,
                     background: ativo ? `${T.gold}22` : NAV_SOFT,
                     color: ativo ? T.gold : NAV_MUTED,
                     border: `1px solid ${ativo ? T.gold : NAV_BORDER}`,
@@ -760,7 +760,7 @@ function HeaderVertical({
         padding: sidebarColapsada ? "14px 6px" : "16px 12px",
         overflowY: "auto", overflowX: "hidden", zIndex: 100,
         display: "flex", flexDirection: "column", gap: sidebarColapsada ? 8 : 16,
-        border: `1px solid ${NAV_BORDER}`, borderRadius: 20,
+        border: `1px solid ${NAV_BORDER}`, borderRadius: 16,
         boxShadow: "0 10px 30px rgba(0,0,0,.28)",
         backdropFilter: "blur(14px)", transition: "width .2s",
       }}>
@@ -770,7 +770,7 @@ function HeaderVertical({
                       justifyContent: sidebarColapsada ? "center" : "space-between" }}>
           {sidebarColapsada ? <NumviMark size={26} /> : <Logo size={20} />}
           <button onClick={onToggleSidebar} title={sidebarColapsada ? "Expandir menu" : "Recolher menu"} aria-label={sidebarColapsada ? "Expandir menu" : "Recolher menu"}
-            style={{ width: 26, height: 26, borderRadius: 9, border: `1px solid ${NAV_BORDER}`, background: "rgba(255,255,255,.05)", color: NAV_MUTED, cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0, display: "grid", placeItems: "center" }}>
+            style={{ width: 26, height: 26, borderRadius: 12, border: `1px solid ${NAV_BORDER}`, background: "rgba(255,255,255,.05)", color: NAV_MUTED, cursor: "pointer", fontSize: 14, lineHeight: 1, flexShrink: 0, display: "grid", placeItems: "center" }}>
             {sidebarColapsada ? "»" : "«"}
           </button>
         </div>
@@ -826,7 +826,7 @@ function HeaderVertical({
 
         {!sidebarColapsada && (
         <div>
-          <div style={{ fontSize: 9, color: NAV_MUTED, letterSpacing: ".2em", marginBottom: 6, paddingLeft: 4 }}>MÓDULOS</div>
+          <div style={{ fontSize: 10, color: NAV_MUTED, letterSpacing: ".2em", marginBottom: 6, paddingLeft: 4 }}>MÓDULOS</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {MODULOS.map((m, mi) => {
               const Icon = m.icon;
@@ -842,7 +842,7 @@ function HeaderVertical({
                   {mi > 0 && <div aria-hidden style={{ height: 1, background: NAV_BORDER, margin: "4px 6px" }} />}
                   <button onClick={() => abrirModulo(m)}
                     style={{
-                      padding: "9px 11px", borderRadius: 14,
+                      padding: "9px 11px", borderRadius: 16,
                       // Módulo aberto/ativo: destaque em branco (fundo claro + texto branco).
                       background: (ativo || aberto) ? "rgba(255,255,255,0.16)" : "transparent",
                       color: (ativo || aberto) ? "#ffffff" : NAV_INK,
@@ -854,7 +854,7 @@ function HeaderVertical({
                     <span style={{ flex: 1 }}>{m.label}</span>
                     {!aberto && pendModulo > 0 && (
                       <span style={{
-                        background: T.red, color: "#fff", fontSize: 9,
+                        background: T.red, color: "#fff", fontSize: 10,
                         padding: "1px 6px", borderRadius: 100, fontWeight: 700,
                       }}>{pendModulo}</span>
                     )}
@@ -909,7 +909,7 @@ function HeaderVertical({
                               title="Arraste pra reordenar as pastas"
                               style={{
                                 position: "relative", width: "100%",
-                                padding: "7px 10px 7px 18px", borderRadius: 10, fontSize: 15,
+                                padding: "7px 10px 7px 18px", borderRadius: 12, fontSize: 15,
                                 fontFamily: "'Nunito', system-ui, sans-serif",
                                 background: sAtivo ? "rgba(255,255,255,0.10)" : "transparent",
                                 color: sAtivo ? NAV_INK : NAV_MUTED,
@@ -935,7 +935,7 @@ function HeaderVertical({
                                 <span style={{
                                   marginLeft: "auto",
                                   background: T.red, color: "#fff",
-                                  fontSize: 9, padding: "1px 6px", borderRadius: 100,
+                                  fontSize: 10, padding: "1px 6px", borderRadius: 100,
                                   fontWeight: 700,
                                 }}>{pending}</span>
                               )}
@@ -952,7 +952,7 @@ function HeaderVertical({
                                       <button onClick={f.onClick}
                                         style={{
                                           position: "relative", width: "100%",
-                                          padding: "5px 10px 5px 18px", borderRadius: 10, fontSize: 12,
+                                          padding: "5px 10px 5px 18px", borderRadius: 12, fontSize: 12,
                                           background: f.ativo ? "rgba(255,255,255,0.12)" : "transparent",
                                           color: f.ativo ? NAV_INK : NAV_MUTED,
                                           fontWeight: f.ativo ? 600 : 400,
@@ -1044,7 +1044,7 @@ function HeaderVertical({
               color: NAV_INK, cursor: "pointer", textAlign: "left",
               display: "flex", alignItems: "center", gap: 9, fontSize: 12.5, fontWeight: 600,
             }}>
-            <span style={{ width: 26, height: 26, borderRadius: 9, background: T.gold, color: T.bg, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 17, fontWeight: 700, lineHeight: 1 }}>+</span>
+            <span style={{ width: 26, height: 26, borderRadius: 12, background: T.gold, color: T.bg, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 17, fontWeight: 700, lineHeight: 1 }}>+</span>
             {modulo === "financas" ? "Nova transação" : modulo === "invest" ? "Novo aporte" : "Recebimento"}
           </button>
         )}
@@ -1073,7 +1073,7 @@ function HeaderVertical({
               return (
                 <button key={s.id} onClick={() => setTab(s.id)}
                   style={{
-                    padding: "7px 10px", borderRadius: 10,
+                    padding: "7px 10px", borderRadius: 12,
                     background: sAtivo ? "rgba(255,255,255,0.12)" : "transparent",
                     color: sAtivo ? T.gold : NAV_MUTED,
                     fontWeight: sAtivo ? 700 : 400, fontSize: 12,

@@ -92,7 +92,7 @@ export default function DiagnosticoIA({ ativos = [], hidden }) {
           </div>
         </div>
         <button onClick={diagnosticar} disabled={rodando}
-                style={{ display: "inline-flex", alignItems: "center", gap: 7, background: T.gold, color: "#fff", border: "none", borderRadius: 11, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: rodando ? "wait" : "pointer", opacity: rodando ? 0.7 : 1 }}>
+                style={{ display: "inline-flex", alignItems: "center", gap: 7, background: T.gold, color: "#fff", border: "none", borderRadius: 12, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: rodando ? "wait" : "pointer", opacity: rodando ? 0.7 : 1 }}>
           <Sparkles size={15} className={rodando ? "spin" : ""} />
           {rodando ? "Analisando…" : resultado ? "Gerar novo diagnóstico" : "Diagnosticar carteira"}
         </button>
@@ -155,9 +155,9 @@ export default function DiagnosticoIA({ ativos = [], hidden }) {
                 return (
                   <div key={i} style={{ padding: "7px 0", borderBottom: i < resultado.riscos.length - 1 ? `1px dashed ${T.border}` : "none" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: 4, background: cor, flexShrink: 0 }} />
+                      <span style={{ width: 8, height: 8, borderRadius: 8, background: cor, flexShrink: 0 }} />
                       <span style={{ fontSize: 12.5, fontWeight: 700, color: T.ink }}>{r.titulo}</span>
-                      <span style={{ fontSize: 9, letterSpacing: ".06em", textTransform: "uppercase", color: cor, fontWeight: 700 }}>{r.severidade}</span>
+                      <span style={{ fontSize: 10, letterSpacing: ".06em", textTransform: "uppercase", color: cor, fontWeight: 700 }}>{r.severidade}</span>
                     </div>
                     <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.5, marginTop: 2, paddingLeft: 15 }}>{r.detalhe}</div>
                   </div>

@@ -119,7 +119,7 @@ export default function OCRComprovante({
               <div onDrop={onDrop} onDragOver={e => e.preventDefault()}
                    onClick={() => fileRef.current?.click()}
                    style={{
-                     border: `2px dashed ${T.border}`, borderRadius: 18,
+                     border: `2px dashed ${T.border}`, borderRadius: 16,
                      padding: "40px 20px", textAlign: "center", cursor: "pointer",
                      background: T.bgSoft, transition: "all .2s",
                    }}
@@ -135,8 +135,8 @@ export default function OCRComprovante({
             </>
           ) : (
             <>
-              <div style={{ background: T.bgSoft, borderRadius: 14, padding: 14, marginBottom: 14, textAlign: "center" }}>
-                <img src={imagem.preview} alt="Preview" style={{ maxWidth: "100%", maxHeight: 400, borderRadius: 11, display: "block", margin: "0 auto" }} />
+              <div style={{ background: T.bgSoft, borderRadius: 16, padding: 14, marginBottom: 14, textAlign: "center" }}>
+                <img src={imagem.preview} alt="Preview" style={{ maxWidth: "100%", maxHeight: 400, borderRadius: 12, display: "block", margin: "0 auto" }} />
                 <div style={{ fontSize: 11, color: T.muted, marginTop: 8 }}>{imagem.file.name} · {Math.round(imagem.file.size / 1024)} KB</div>
               </div>
               <div className="flex gap-3">
@@ -148,7 +148,7 @@ export default function OCRComprovante({
             </>
           )}
           {erro && (
-            <div style={{ marginTop: 14, padding: 10, background: `${T.red}22`, color: T.red, border: `1px solid ${T.red}`, borderRadius: 11, fontSize: 12, display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ marginTop: 14, padding: 10, background: `${T.red}22`, color: T.red, border: `1px solid ${T.red}`, borderRadius: 12, fontSize: 12, display: "flex", alignItems: "center", gap: 8 }}>
               <AlertCircle size={14} /> {erro}
             </div>
           )}

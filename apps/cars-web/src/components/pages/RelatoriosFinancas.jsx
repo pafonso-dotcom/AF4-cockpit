@@ -438,13 +438,13 @@ td.neg { color:#b3261e; }
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <select value={anoProj} onChange={e => { setAnoProj(parseInt(e.target.value)); setMesOffset(0); }}
                     style={{ padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`,
-                             color: T.ink, fontSize: 12, borderRadius: 10, cursor: "pointer" }}>
+                             color: T.ink, fontSize: 12, borderRadius: 12, cursor: "pointer" }}>
               {[anoAtualProj - 1, anoAtualProj, anoAtualProj + 1, anoAtualProj + 2].map(y =>
                 <option key={y} value={y}>{y}</option>
               )}
             </select>
             {/* Avança/volta o início da projeção (tira/põe o mês corrente) — grudado no Imprimir */}
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 10, padding: 2 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: 2 }}>
               <button onClick={() => setMesOffset(o => Math.max(0, o - 1))} disabled={mesOffset === 0}
                       title="Voltar um mês (incluir o mês atual)"
                       style={{ width: 28, height: 28, border: "none", background: "transparent", color: T.ink, borderRadius: 8, cursor: mesOffset === 0 ? "default" : "pointer", fontSize: 15, opacity: mesOffset === 0 ? 0.35 : 1 }}>‹</button>
@@ -459,7 +459,7 @@ td.neg { color:#b3261e; }
             <button onClick={() => setOcultarPagos(v => !v)}
                     title={ocultarPagos ? "Mostrando só o que está em aberto" : "Mostrando tudo (inclui pagos/zerados)"}
                     style={{ padding: "8px 12px", background: ocultarPagos ? `${T.gold}1e` : T.bgSoft, border: `1px solid ${ocultarPagos ? T.gold : T.border}`,
-                             color: ocultarPagos ? T.gold : T.muted, fontSize: 12, borderRadius: 10, cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
+                             color: ocultarPagos ? T.gold : T.muted, fontSize: 12, borderRadius: 12, cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}>
               {ocultarPagos ? "Só em aberto" : "Mostrar tudo"}
             </button>
             <button onClick={() => imprimirProjecao()} className="btn-gold" style={{ padding: "8px 14px", fontSize: 12 }}>
@@ -599,7 +599,7 @@ td.neg { color:#b3261e; }
                     <tr style={{ borderTop: `2px solid ${T.ink}` }}>
                       <td style={{ fontWeight: 700, color: T.ink, fontSize: 10.5, letterSpacing: ".03em" }}>
                         Saldo do mês
-                        <span style={{ display: "block", fontSize: 9, color: T.muted, fontWeight: 400 }}>
+                        <span style={{ display: "block", fontSize: 10, color: T.muted, fontWeight: 400 }}>
                           receber − saídas
                         </span>
                       </td>
@@ -620,7 +620,7 @@ td.neg { color:#b3261e; }
                   <tr key={sc.label}>
                     <td style={{ fontWeight: 700, color: T.ink, fontSize: 10.5, letterSpacing: ".03em" }}>
                       {sc.label}
-                      <span style={{ display: "block", fontSize: 9, color: T.muted, fontWeight: 400 }}>
+                      <span style={{ display: "block", fontSize: 10, color: T.muted, fontWeight: 400 }}>
                         início {hidden ? "•••" : fmt(sc.cen.saldoInicial)}
                       </span>
                     </td>
@@ -676,8 +676,8 @@ function ExportBtn({ label, onClick }) {
     <button onClick={onClick}
       style={{
         background: "transparent", color: T.muted,
-        border: `1px solid ${T.border}`, borderRadius: 5,
-        padding: "5px 10px", fontSize: 9.5, fontWeight: 600,
+        border: `1px solid ${T.border}`, borderRadius: 8,
+        padding: "5px 10px", fontSize: 10.5, fontWeight: 600,
         letterSpacing: ".05em", cursor: "pointer", whiteSpace: "nowrap",
       }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = T.gold; e.currentTarget.style.color = T.gold; }}

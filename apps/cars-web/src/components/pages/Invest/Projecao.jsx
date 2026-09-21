@@ -190,7 +190,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
       />
 
       {/* Form */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20, marginBottom: 18 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20, marginBottom: 18 }}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Ativo">
             <select value={ativoId} onChange={e => setAtivoId(e.target.value)}>
@@ -335,7 +335,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
       </div>
 
       {/* Gráfico */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20, marginBottom: 18 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20, marginBottom: 18 }}>
         <div style={{ fontFamily: T.serif, fontSize: 18, fontWeight: 600, color: T.ink, marginBottom: 4 }}>
           Evolução em {prazoAnos} {prazoAnos === 1 ? "ano" : "anos"}
         </div>
@@ -409,7 +409,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
       </div>
 
       {/* Marcos por ano */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20, marginBottom: 18 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20, marginBottom: 18 }}>
         <div style={{ fontFamily: T.serif, fontSize: 18, fontWeight: 600, color: T.ink, marginBottom: 14 }}>
           Marcos no caminho
         </div>
@@ -444,7 +444,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
       </div>
 
       {/* Comparativos */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.ink, marginBottom: 12 }}>
           Comparativos
         </div>
@@ -456,7 +456,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
           const melhor = diff >= 0;
           return (
             <div style={{
-              padding: 12, marginBottom: 10, borderRadius: 14,
+              padding: 12, marginBottom: 10, borderRadius: 16,
               background: melhor ? `${T.green}10` : `${T.red}10`,
               border: `1px solid ${melhor ? T.green : T.red}33`,
             }}>
@@ -473,7 +473,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
         })()}
 
         {/* Sem aporte */}
-        <div style={{ padding: 12, borderRadius: 14, background: T.bgSoft, border: `1px solid ${T.border}` }}>
+        <div style={{ padding: 12, borderRadius: 16, background: T.bgSoft, border: `1px solid ${T.border}` }}>
           <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.6 }}>
             <strong style={{ color: T.ink }}>E se você não aportasse?</strong><br />
             Mantendo só {fmt(valorInicial)} na mesma taxa do ativo, em {prazoAnos} {prazoAnos === 1 ? "ano" : "anos"} você teria <strong style={{ color: T.ink }}>{fmt(cenarioSemAporte)}</strong>.

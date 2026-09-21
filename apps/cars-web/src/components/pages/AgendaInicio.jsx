@@ -163,7 +163,7 @@ export default function AgendaInicio({
           <span style={{
             fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
             color: PRIO_COR[focoDoDia.prioridade] || T.gold,
-            padding: "4px 9px", borderRadius: 4,
+            padding: "4px 9px", borderRadius: 8,
             background: `${PRIO_COR[focoDoDia.prioridade] || T.gold}1a`,
           }}>
             {PRIO_LBL[focoDoDia.prioridade] || "—"}
@@ -247,7 +247,7 @@ export default function AgendaInicio({
             {(ideias || []).filter(i => i.pinned).slice(0, 4).map(i => (
               <div key={i.id} onClick={() => go("ideias")}
                    style={{
-                     padding: "8px 10px", background: T.bgSoft, borderRadius: 11,
+                     padding: "8px 10px", background: T.bgSoft, borderRadius: 12,
                      borderLeft: `3px solid ${T.gold}`, cursor: "pointer",
                      fontSize: 12.5, color: T.ink, lineHeight: 1.4,
                      display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
@@ -317,14 +317,14 @@ function KpiCard({ icon: Icon, cor, valor, label, subtitle, onClick }) {
     <button onClick={onClick}
             className="kpi-card"
             style={{
-              background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
+              background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
               padding: "14px 14px", textAlign: "left", cursor: "pointer",
               display: "flex", flexDirection: "column", gap: 8,
               transition: "border-color .15s, transform .15s",
             }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{
-          width: 34, height: 34, borderRadius: 9,
+          width: 34, height: 34, borderRadius: 12,
           background: `${cor}22`, color: cor,
           display: "grid", placeItems: "center", flexShrink: 0,
         }}>
@@ -354,7 +354,7 @@ function KpiCard({ icon: Icon, cor, valor, label, subtitle, onClick }) {
 function SectionCard({ titulo, acao, vazio, vazioMsg, vazioIcone: VazioIcone, vazioTipo, children }) {
   return (
     <div style={{
-      background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
+      background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
       padding: "14px 16px",
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -391,7 +391,7 @@ function EventoRow({ ev, onClick }) {
     <div onClick={onClick}
          style={{
            display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12,
-           padding: "9px 10px", borderRadius: 14,
+           padding: "9px 10px", borderRadius: 16,
            background: T.bgSoft, borderLeft: `3px solid ${cat.cor}`,
            cursor: "pointer",
          }}>
@@ -400,7 +400,7 @@ function EventoRow({ ev, onClick }) {
         display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center",
       }}>
         <span className="num">{horarioLbl || "—"}</span>
-        {ev.duracao && <span style={{ fontSize: 9.5, color: T.faint, fontWeight: 400 }}>{ev.duracao}min</span>}
+        {ev.duracao && <span style={{ fontSize: 10.5, color: T.faint, fontWeight: 400 }}>{ev.duracao}min</span>}
       </div>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 500, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -421,7 +421,7 @@ function TarefaMiniRow({ t, onClick }) {
     <div onClick={onClick}
          style={{
            display: "flex", alignItems: "center", gap: 10,
-           padding: "9px 10px", borderRadius: 14,
+           padding: "9px 10px", borderRadius: 16,
            background: T.bgSoft,
            borderLeft: `3px solid ${PRIO_COR[t.prioridade] || T.gold}`,
            cursor: "pointer",
@@ -439,9 +439,9 @@ function TarefaMiniRow({ t, onClick }) {
         </div>
       </div>
       <span style={{
-        fontSize: 9.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
+        fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
         color: PRIO_COR[t.prioridade] || T.gold,
-        padding: "2px 7px", borderRadius: 3,
+        padding: "2px 7px", borderRadius: 8,
         background: `${PRIO_COR[t.prioridade] || T.gold}1a`,
         flexShrink: 0,
       }}>

@@ -84,7 +84,7 @@ export default function AuditLog({ embed = false }) {
           <button key={f.id} onClick={() => setFiltro(f.id)}
                   style={{
                     padding: "6px 11px", fontSize: 10.5, letterSpacing: ".1em",
-                    textTransform: "uppercase", fontWeight: 500, borderRadius: 11,
+                    textTransform: "uppercase", fontWeight: 500, borderRadius: 12,
                     background: filtro === f.id ? `${T.gold}22` : "transparent",
                     color: filtro === f.id ? T.gold : T.muted,
                     border: `1px solid ${filtro === f.id ? T.gold : T.border}`,
@@ -97,7 +97,7 @@ export default function AuditLog({ embed = false }) {
           <Search size={12} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: T.muted }} />
           <input value={busca} onChange={e => setBusca(e.target.value)}
                  placeholder="Buscar…"
-                 style={{ width: "100%", padding: "6px 10px 6px 28px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }} />
+                 style={{ width: "100%", padding: "6px 10px 6px 28px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 12 }} />
         </div>
       </div>
 
@@ -154,7 +154,7 @@ function AuditRow({ entry }) {
       </span>
       <span style={{
         display: "inline-flex", alignItems: "center", gap: 4,
-        fontSize: 9, padding: "2px 7px", borderRadius: 4,
+        fontSize: 10, padding: "2px 7px", borderRadius: 8,
         background: config.bg, color: config.cor,
         letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 600,
         flexShrink: 0, minWidth: 70, justifyContent: "center",

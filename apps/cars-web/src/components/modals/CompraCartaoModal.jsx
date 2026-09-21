@@ -109,13 +109,13 @@ export default function CompraCartaoModal({
       {/* À vista × parcelado */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "4px 0 10px", flexWrap: "wrap" }}>
         <button onClick={() => setParcelado(false)}
-                style={{ padding: "7px 14px", borderRadius: 11, cursor: "pointer", fontSize: 12, fontWeight: 700,
+                style={{ padding: "7px 14px", borderRadius: 12, cursor: "pointer", fontSize: 12, fontWeight: 700,
                          background: !parcelado ? `${T.gold}22` : T.bgSoft, color: !parcelado ? T.gold : T.muted,
                          border: `1px solid ${!parcelado ? T.gold : T.border}` }}>
           À vista
         </button>
         <button onClick={() => setParcelado(true)}
-                style={{ padding: "7px 14px", borderRadius: 11, cursor: "pointer", fontSize: 12, fontWeight: 700,
+                style={{ padding: "7px 14px", borderRadius: 12, cursor: "pointer", fontSize: 12, fontWeight: 700,
                          background: parcelado ? `${T.gold}22` : T.bgSoft, color: parcelado ? T.gold : T.muted,
                          border: `1px solid ${parcelado ? T.gold : T.border}` }}>
           Parcelado
@@ -125,7 +125,7 @@ export default function CompraCartaoModal({
             em
             <input type="number" min="2" max="48" value={nParcelas}
                    onChange={e => setNParcelas(e.target.value)}
-                   style={{ width: 58, padding: "6px 8px", borderRadius: 9, background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`, fontSize: 13 }} />
+                   style={{ width: 58, padding: "6px 8px", borderRadius: 12, background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`, fontSize: 13 }} />
             ×{v > 0 && <strong className="num" style={{ color: T.gold }}> de {fmt(v / n)}</strong>}
           </span>
         )}
@@ -143,7 +143,7 @@ export default function CompraCartaoModal({
         </Field>
       </div>
 
-      <div style={{ marginTop: 6, padding: 10, background: T.bgSoft, borderRadius: 11, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>
+      <div style={{ marginTop: 6, padding: 10, background: T.bgSoft, borderRadius: 12, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>
         {parcelado
           ? <>Cria o parcelamento no cartão — a 1ª parcela cai na <strong>fatura do mês seguinte</strong>.</>
           : <>Entra <strong style={{ color: T.gold }}>pendente</strong> na fatura do cartão — o banco só é debitado quando pagares a fatura.</>}

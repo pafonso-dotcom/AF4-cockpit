@@ -104,7 +104,7 @@ export default function PomodoroFloat() {
         maxWidth: 320, marginLeft: "auto",
         background: T.card,
         border: `2px solid ${cor}`,
-        borderRadius: 18,
+        borderRadius: 16,
         padding: 16,
         boxShadow: "0 8px 24px rgba(0,0,0,.35)",
         zIndex: 55,
@@ -136,7 +136,7 @@ export default function PomodoroFloat() {
       </div>
 
       {/* Barra de progresso */}
-      <div style={{ background: T.bgSoft, height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 14 }}>
+      <div style={{ background: T.bgSoft, height: 6, borderRadius: 8, overflow: "hidden", marginBottom: 14 }}>
         <div style={{ background: cor, width: `${progresso}%`, height: "100%", transition: "width 1s linear" }} />
       </div>
 
@@ -168,7 +168,7 @@ export default function PomodoroFloat() {
             background: modo === "trabalho" ? `${T.gold}22` : T.bgSoft,
             border: `1px solid ${modo === "trabalho" ? T.gold : T.border}`,
             color: modo === "trabalho" ? T.gold : T.muted,
-            fontSize: 10.5, fontWeight: 600, borderRadius: 5,
+            fontSize: 10.5, fontWeight: 600, borderRadius: 8,
             cursor: "pointer", letterSpacing: ".05em", textTransform: "uppercase",
             minHeight: 32,
           }}>
@@ -180,7 +180,7 @@ export default function PomodoroFloat() {
             background: modo === "descanso" ? `#5b9bd522` : T.bgSoft,
             border: `1px solid ${modo === "descanso" ? "#5b9bd5" : T.border}`,
             color: modo === "descanso" ? "#5b9bd5" : T.muted,
-            fontSize: 10.5, fontWeight: 600, borderRadius: 5,
+            fontSize: 10.5, fontWeight: 600, borderRadius: 8,
             cursor: "pointer", letterSpacing: ".05em", textTransform: "uppercase",
             minHeight: 32,
           }}>

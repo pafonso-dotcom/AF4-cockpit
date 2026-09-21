@@ -124,7 +124,7 @@ export default function RelatoriosInvest({ ativos = [], transacoes = [], patrimo
       <div style={{
         display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap",
         padding: 14, marginTop: 12, marginBottom: 6,
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
       }}>
         <div style={{ flex: 1, minWidth: 220 }}>
           <div style={{ fontSize: 11, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, marginBottom: 4 }}>
@@ -279,10 +279,10 @@ ${rel.vendasMeses.map(v => `<tr><td>${mesNome(v.mes)}</td><td class="n">${v.ops}
               { l: "JCP (tributável)", v: rel.provJCP, sub: rel.provJCP > 0 ? "declarar" : "nenhum", cor: T.gold },
               { l: "Vendas no ano", v: rel.totalVendido, sub: `resultado ${hidden ? "•••" : fmt(rel.resultadoVendas)}`, cor: rel.resultadoVendas >= 0 ? T.green : T.red },
             ].map((k, i) => (
-              <div key={i} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 11, padding: "9px 11px" }}>
-                <div style={{ fontSize: 9.5, color: T.muted, letterSpacing: ".05em", textTransform: "uppercase" }}>{k.l}</div>
+              <div key={i} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "9px 11px" }}>
+                <div style={{ fontSize: 10.5, color: T.muted, letterSpacing: ".05em", textTransform: "uppercase" }}>{k.l}</div>
                 <div className="num" style={{ fontSize: 15, fontWeight: 700, color: k.cor || T.ink, marginTop: 2 }}>{oculto(k.v)}</div>
-                <div style={{ fontSize: 9.5, color: T.faint, marginTop: 1 }}>{k.sub}</div>
+                <div style={{ fontSize: 10.5, color: T.faint, marginTop: 1 }}>{k.sub}</div>
               </div>
             ))}
           </div>
@@ -357,7 +357,7 @@ ${tabela("Proventos", mov.proventos.map((p) => `<tr><td><b>${p.ticker}</b> · ${
           <button onClick={() => passo(1)} aria-label="Próximo mês" style={navB}>›</button>
           {mes !== mesAtual && <button onClick={() => setMes(mesAtual)} style={{ ...navB, width: "auto", padding: "0 8px", fontSize: 11 }}>hoje</button>}
         </div>
-        <button onClick={exportarPDF} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 11px", borderRadius: 9, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.muted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>⤓ PDF</button>
+        <button onClick={exportarPDF} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 11px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.muted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>⤓ PDF</button>
       </div>
 
       {/* KPIs */}
@@ -366,7 +366,7 @@ ${tabela("Proventos", mov.proventos.map((p) => `<tr><td><b>${p.ticker}</b> · ${
           { k: "Vendido", v: oculto(mov.totalVendido), a: T.red, c: T.ink },
           { k: "Proventos", v: oculto(mov.totalProventos), a: T.gold, c: T.gold },
           { k: "Result. vendas", v: mov.resultadoVendas >= 0 ? `+ ${oculto(mov.resultadoVendas)}` : `− ${oculto(Math.abs(mov.resultadoVendas))}`, a: mov.resultadoVendas >= 0 ? T.green : T.red, c: mov.resultadoVendas >= 0 ? T.green : T.red }].map((t, i) => (
-          <div key={i} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px 13px", position: "relative", overflow: "hidden" }}>
+          <div key={i} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "12px 13px", position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: t.a }} />
             <div style={{ fontSize: 10, color: T.muted, textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>{t.k}</div>
             <div className="num" style={{ fontFamily: T.serif, fontSize: 18, fontWeight: 700, marginTop: 2, color: t.c }}>{t.v}</div>

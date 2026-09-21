@@ -133,7 +133,7 @@ export default function PesquisasFinancas({
 
   const corFonte = fonte === "despesas" ? T.red : fonte === "receitas" ? T.green : T.gold;
   const chip = (ativo) => ({
-    padding: "5px 11px", borderRadius: 10, cursor: "pointer", fontSize: 11.5, fontWeight: 600,
+    padding: "5px 11px", borderRadius: 12, cursor: "pointer", fontSize: 11.5, fontWeight: 600,
     background: ativo ? `${T.gold}22` : T.bgSoft, color: ativo ? T.gold : T.muted,
     border: `1px solid ${ativo ? T.gold : T.border}`, whiteSpace: "nowrap",
   });
@@ -174,18 +174,18 @@ export default function PesquisasFinancas({
           <Search size={13} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: T.faint }} />
           <input value={texto} onChange={e => setTexto(e.target.value)}
                  placeholder={fonte === "proventos" ? "Filtrar por ticker (ex.: MXRF11)…" : "Filtrar por texto (ex.: mercado, farmácia)…"}
-                 style={{ width: "100%", padding: "7px 10px 7px 28px", fontSize: 12.5, borderRadius: 10, background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}` }} />
+                 style={{ width: "100%", padding: "7px 10px 7px 28px", fontSize: 12.5, borderRadius: 12, background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}` }} />
         </div>
         {fonte !== "proventos" && (
           <>
             <select value={categoria} onChange={e => setCategoria(e.target.value)}
-                    style={{ padding: "7px 10px", fontSize: 12, borderRadius: 10, background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}` }}>
+                    style={{ padding: "7px 10px", fontSize: 12, borderRadius: 12, background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}` }}>
               <option value="">Categoria · todas</option>
               {catsDaFonte.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
               <option value="Outros">Outros</option>
             </select>
             <select value={conta} onChange={e => setConta(e.target.value)}
-                    style={{ padding: "7px 10px", fontSize: 12, borderRadius: 10, background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}` }}>
+                    style={{ padding: "7px 10px", fontSize: 12, borderRadius: 12, background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}` }}>
               <option value="">Conta · todas</option>
               {(contas || []).map(c => <option key={c.id || c.nome} value={c.nome}>{c.nome}</option>)}
             </select>
@@ -199,18 +199,18 @@ export default function PesquisasFinancas({
 
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderLeft: `3px solid ${corFonte}`, borderRadius: 14, padding: 12 }}>
-          <div style={{ fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Total no período</div>
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderLeft: `3px solid ${corFonte}`, borderRadius: 16, padding: 12 }}>
+          <div style={{ fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Total no período</div>
           <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, color: corFonte, marginTop: 4 }}>
             {hidden ? "•••" : fmt(resultado.total)}
           </div>
         </div>
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
-          <div style={{ fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Lançamentos</div>
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 12 }}>
+          <div style={{ fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Lançamentos</div>
           <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, color: T.ink, marginTop: 4 }}>{resultado.rows.length}</div>
         </div>
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
-          <div style={{ fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Média / mês</div>
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 12 }}>
+          <div style={{ fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Média / mês</div>
           <div className="num" style={{ fontFamily: T.serif, fontSize: 22, fontWeight: 700, color: T.ink, marginTop: 4 }}>
             {hidden ? "•••" : fmt(resultado.media)}
           </div>
@@ -218,22 +218,22 @@ export default function PesquisasFinancas({
       </div>
 
       {resultado.rows.length === 0 ? (
-        <div style={{ padding: 34, textAlign: "center", color: T.muted, fontStyle: "italic", background: T.card, border: `1px dashed ${T.border}`, borderRadius: 14 }}>
+        <div style={{ padding: 34, textAlign: "center", color: T.muted, fontStyle: "italic", background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16 }}>
           Nada encontrado com esses filtros. Ajusta o período ou o texto.
         </div>
       ) : (
         <>
           {/* Quebra por categoria + por mês */}
           <div className="pesq-grids" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
+            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 12 }}>
               <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginBottom: 8 }}>
                 Por {fonte === "proventos" ? "tipo" : "categoria"}
               </div>
               {resultado.categorias.slice(0, 8).map(([nome, v]) => (
                 <div key={nome} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
                   <span style={{ width: 110, fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nome}</span>
-                  <div style={{ flex: 1, height: 7, borderRadius: 5, background: T.bgSoft, overflow: "hidden" }}>
-                    <div style={{ width: `${(v / (resultado.categorias[0]?.[1] || 1)) * 100}%`, height: "100%", background: corFonte, borderRadius: 5 }} />
+                  <div style={{ flex: 1, height: 7, borderRadius: 8, background: T.bgSoft, overflow: "hidden" }}>
+                    <div style={{ width: `${(v / (resultado.categorias[0]?.[1] || 1)) * 100}%`, height: "100%", background: corFonte, borderRadius: 8 }} />
                   </div>
                   <span className="num" style={{ width: 84, textAlign: "right", fontSize: 11.5, color: T.ink, fontWeight: 600, whiteSpace: "nowrap" }}>
                     {hidden ? "•••" : fmt(v)}
@@ -241,15 +241,15 @@ export default function PesquisasFinancas({
                 </div>
               ))}
             </div>
-            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
+            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 12 }}>
               <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 700, marginBottom: 8 }}>
                 Por mês
               </div>
               {resultado.meses.map(([mes, v]) => (
                 <div key={mes} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
                   <span style={{ width: 52, fontSize: 11, color: T.muted, textTransform: "capitalize" }}>{mesLabel(mes)}</span>
-                  <div style={{ flex: 1, height: 7, borderRadius: 5, background: T.bgSoft, overflow: "hidden" }}>
-                    <div style={{ width: `${(v / Math.max(...resultado.meses.map(x => x[1]), 1)) * 100}%`, height: "100%", background: corFonte, borderRadius: 5 }} />
+                  <div style={{ flex: 1, height: 7, borderRadius: 8, background: T.bgSoft, overflow: "hidden" }}>
+                    <div style={{ width: `${(v / Math.max(...resultado.meses.map(x => x[1]), 1)) * 100}%`, height: "100%", background: corFonte, borderRadius: 8 }} />
                   </div>
                   <span className="num" style={{ width: 84, textAlign: "right", fontSize: 11.5, color: T.ink, fontWeight: 600, whiteSpace: "nowrap" }}>
                     {hidden ? "•••" : fmt(v)}
@@ -260,11 +260,11 @@ export default function PesquisasFinancas({
           </div>
 
           {/* Lista + exportar */}
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden" }}>
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 12px", borderBottom: `1px solid ${T.border}` }}>
               <span style={{ fontSize: 11.5, color: T.muted }}>{resultado.rows.length} {resultado.rows.length === 1 ? "lançamento" : "lançamentos"}</span>
               <button onClick={exportarCSV}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 9, fontSize: 11, fontWeight: 600, background: T.bgSoft, color: T.muted, border: `1px solid ${T.border}`, cursor: "pointer" }}>
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 12, fontSize: 11, fontWeight: 600, background: T.bgSoft, color: T.muted, border: `1px solid ${T.border}`, cursor: "pointer" }}>
                 <Download size={12} /> CSV
               </button>
             </div>
@@ -274,7 +274,7 @@ export default function PesquisasFinancas({
                   <span className="num" style={{ width: 66, color: T.faint, flexShrink: 0 }}>{r.data.slice(8, 10)}/{r.data.slice(5, 7)}/{r.data.slice(2, 4)}</span>
                   <span style={{ flex: 1, minWidth: 0, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {r.descricao}
-                    {r.pendente && <span style={{ marginLeft: 6, fontSize: 8.5, padding: "1px 5px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase" }}>pendente</span>}
+                    {r.pendente && <span style={{ marginLeft: 6, fontSize: 10, padding: "1px 5px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase" }}>pendente</span>}
                   </span>
                   <span style={{ fontSize: 10.5, color: T.muted, maxWidth: 130, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flexShrink: 0 }}>{r.categoria}{r.conta ? ` · ${r.conta}` : ""}</span>
                   <span className="num" style={{ width: 92, textAlign: "right", color: corFonte, fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap" }}>

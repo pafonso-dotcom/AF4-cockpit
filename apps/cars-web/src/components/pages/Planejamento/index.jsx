@@ -262,11 +262,11 @@ export default function Planejamento(props) {
 function VisaoGeral({ legenda, itens, hidden }) {
   return (
     <div style={{ borderTop: `1px solid ${T.border}`, padding: "10px 16px 12px" }}>
-      <div style={{ fontSize: 8.5, letterSpacing: ".14em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 8 }}>{legenda}</div>
+      <div style={{ fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 8 }}>{legenda}</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))", gap: 8 }}>
         {itens.map(it => (
           <div key={it.lbl} style={{ background: T.bgSoft, borderRadius: 12, padding: "10px 11px", borderLeft: `3px solid ${it.cor}` }}>
-            <div style={{ fontSize: 8.5, letterSpacing: ".05em", textTransform: "uppercase", color: T.faint, fontWeight: 700 }}>{it.lbl}</div>
+            <div style={{ fontSize: 10, letterSpacing: ".05em", textTransform: "uppercase", color: T.faint, fontWeight: 700 }}>{it.lbl}</div>
             <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 14, fontWeight: 700, color: it.cor, marginTop: 4, whiteSpace: "nowrap" }}>
               {hidden ? "•••" : fmt(it.v)}
             </div>
@@ -281,11 +281,11 @@ function VisaoGeral({ legenda, itens, hidden }) {
 function CardVG({ lbl, v, cor, hint, hidden }) {
   return (
     <div style={{ background: T.bgSoft, borderRadius: 12, padding: "10px 11px", borderLeft: `3px solid ${cor}`, minWidth: 0 }}>
-      <div style={{ fontSize: 8.5, letterSpacing: ".05em", textTransform: "uppercase", color: T.faint, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lbl}</div>
+      <div style={{ fontSize: 10, letterSpacing: ".05em", textTransform: "uppercase", color: T.faint, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lbl}</div>
       <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 14, fontWeight: 700, color: cor, marginTop: 4, whiteSpace: "nowrap" }}>
         {hidden ? "•••" : fmt(v)}
       </div>
-      {hint && <div style={{ fontSize: 9, color: T.faint, marginTop: 2 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 10, color: T.faint, marginTop: 2 }}>{hint}</div>}
     </div>
   );
 }
@@ -294,10 +294,10 @@ function CardVG({ lbl, v, cor, hint, hidden }) {
 function VisaoGeralGrupos({ legenda, entra, sai, hidden }) {
   return (
     <div style={{ borderTop: `1px solid ${T.border}`, padding: "10px 16px 12px" }}>
-      <div style={{ fontSize: 8.5, letterSpacing: ".14em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 8 }}>{legenda}</div>
+      <div style={{ fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 8 }}>{legenda}</div>
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(0,3fr)", gap: 14, alignItems: "stretch" }} className="vg-grupos">
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 8.5, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700, color: T.green }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700, color: T.green }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green }} /> A Receber
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 8 }}>
@@ -305,7 +305,7 @@ function VisaoGeralGrupos({ legenda, entra, sai, hidden }) {
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 8.5, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700, color: T.red }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700, color: T.red }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.red }} /> A Pagar
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>

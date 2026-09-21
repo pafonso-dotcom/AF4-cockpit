@@ -172,7 +172,7 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
 
   const fmtData = (d) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(2, 4)}` : "—";
   const fmtDataLonga = (d) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "— sem data —";
-  const btnGhost = { background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "5px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5 };
+  const btnGhost = { background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "5px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5 };
 
   // Imprime a relação de cheques a receber (A4 retrato): aguardando + já
   // compensados (riscados), com o total aguardando ao pé. Respeita o escopo.
@@ -241,7 +241,7 @@ tr.comp td.situ { text-decoration:none; color:#1f7a44; }
           { l: `Vencidos (${vencidos.length})`, v: totalVencidos, c: T.red },
           { l: "Compensado · mês", v: compensadoMes, c: T.green },
         ].map(k => (
-          <div key={k.l} style={{ flex: 1, minWidth: 120, background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 12px" }}>
+          <div key={k.l} style={{ flex: 1, minWidth: 120, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "10px 12px" }}>
             <div style={{ fontSize: 10.5, color: T.muted }}>{k.l}</div>
             <div className="num" style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: k.c, marginTop: 2 }}>{hidden ? "•••" : fmt(k.v)}</div>
           </div>
@@ -310,15 +310,15 @@ tr.comp td.situ { text-decoration:none; color:#1f7a44; }
                 {/* Número do cheque */}
                 {c.numero && <span style={{ fontSize: 11, color: T.green, fontWeight: 700, flexShrink: 0 }}>nº {c.numero}</span>}
                 {/* Status */}
-                <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${st.cor}22`, color: st.cor, textTransform: "uppercase", fontWeight: 700, letterSpacing: ".05em", flexShrink: 0 }}>{st.label}</span>
-                {vencido && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${T.red}22`, color: T.red, textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>vencido</span>}
+                <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 100, background: `${st.cor}22`, color: st.cor, textTransform: "uppercase", fontWeight: 700, letterSpacing: ".05em", flexShrink: 0 }}>{st.label}</span>
+                {vencido && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 100, background: `${T.red}22`, color: T.red, textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>vencido</span>}
                 {/* Valor */}
                 <div className="num" style={{ color: st.cor, fontFamily: T.serif, fontSize: 14.5, fontWeight: 600, minWidth: 90, textAlign: "right", flexShrink: 0 }}>{hidden ? "•••" : fmt(c.valor)}</div>
                 {/* Ações */}
                 <div style={{ display: "flex", gap: 5, flexShrink: 0, flexWrap: "wrap" }}>
                   {c.status === "aguardando" && (
                     <button onClick={() => abrirCompensar(c)} title="Compensar"
-                      style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 10, padding: "5px 10px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
+                      style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 12, padding: "5px 10px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
                       <Check size={12} /> Compensar
                     </button>
                   )}
@@ -411,7 +411,7 @@ tr.comp td.situ { text-decoration:none; color:#1f7a44; }
                 <input type="date" value={ln.vencimento} onChange={e => setLinha(i, { vencimento: e.target.value })} />
                 <input value={ln.numero} onChange={e => setLinha(i, { numero: e.target.value })} placeholder="nº" />
                 <button onClick={() => removerLinha(i)} title="Remover"
-                  style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 9, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+                  style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 12, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
                   <X size={13} />
                 </button>
               </div>

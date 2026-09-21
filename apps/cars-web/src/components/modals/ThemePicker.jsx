@@ -104,7 +104,7 @@ export default function ThemePicker({ themeId, setThemeId, onClose }) {
                   {active && (
                     <div style={{ background: th.gold, color: th.bg, padding: "4px 8px", flexShrink: 0,
                                   display: "flex", alignItems: "center", gap: 4,
-                                  fontFamily: T.sans, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 600 }}>
+                                  fontFamily: T.sans, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 600 }}>
                       <Check size={10} /> Ativo
                     </div>
                   )}
@@ -112,7 +112,7 @@ export default function ThemePicker({ themeId, setThemeId, onClose }) {
 
                 {/* Sample editorial card */}
                 <div style={{ background: th.cardHi, border: `1px solid ${th.border}`, padding: 12, marginTop: 8 }}>
-                  <div style={{ fontFamily: T.sans, fontSize: 9, letterSpacing: "0.2em",
+                  <div style={{ fontFamily: T.sans, fontSize: 10, letterSpacing: "0.2em",
                                 textTransform: "uppercase", color: th.muted, marginBottom: 4 }}>
                     Patrimônio
                   </div>

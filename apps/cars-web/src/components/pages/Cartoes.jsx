@@ -10,6 +10,7 @@ import Field from "../ui/Field.jsx";
 import { StatTile } from "../ui/widget.jsx";
 import Modal from "../ui/Modal.jsx";
 import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
+import Vazio from "../ui/Vazio.jsx";
 import BankIcon from "../ui/BankIcon.jsx";
 import NotasRapidasCard from "../ui/NotasRapidasCard.jsx";
 import AnaliseFatura from "./AnaliseFatura.jsx";
@@ -717,7 +718,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                 expandir de cada cartão. */}
             <button onClick={() => setAnaliseAberta(true)} title="Análise de fatura com IA (importar fatura)"
                     aria-label="Análise de fatura com IA"
-                    style={{ width: 32, height: 32, borderRadius: 10, background: "transparent", border: `1px solid ${T.border}`, color: T.gold, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                    style={{ width: 32, height: 32, borderRadius: 12, background: "transparent", border: `1px solid ${T.border}`, color: T.gold, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Sparkles size={14} />
             </button>
           </div>
@@ -858,10 +859,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                       </div>
                       <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                         {fiPaga
-                          ? <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.green}18`, color: T.green, whiteSpace: "nowrap" }}>Fatura paga</span>
+                          ? <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.green}18`, color: T.green, whiteSpace: "nowrap" }}>Fatura paga</span>
                           : faturaAberta > 0
-                            ? <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.gold}18`, color: T.gold, whiteSpace: "nowrap" }}>A pagar · {nomeMesCurto(mesFat)}</span>
-                            : <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>Sem fatura</span>}
+                            ? <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.gold}18`, color: T.gold, whiteSpace: "nowrap" }}>A pagar · {nomeMesCurto(mesFat)}</span>
+                            : <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>Sem fatura</span>}
                       </div>
                       {/* Mês seguinte: só quando acrescenta informação ao destaque. */}
                       {aPagar > 0 && fiProx > 0 ? (
@@ -922,7 +923,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         const corBarra = pct >= 85 ? T.red : pct >= 60 ? T.gold : T.green;
                         return (
                           <div style={{ marginTop: 6 }} title="Parcelas restantes + compras pendentes sobre o limite do cartão">
-                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: T.faint, marginBottom: 2 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: T.faint, marginBottom: 2 }}>
                               <span>Limite usado {pct.toFixed(0)}%</span>
                               <span className="num">{hidden ? "•••" : `${fmt(usadoLimite)} / ${fmt(Number(c.limite))}`}</span>
                             </div>
@@ -964,7 +965,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                               style={{
                                 flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
                                 letterSpacing: ".05em", textTransform: "uppercase",
-                                borderRadius: 4, background: T.gold,
+                                borderRadius: 8, background: T.gold,
                                 border: "none", color: T.bg, cursor: "pointer",
                               }}>
                         Pagar fatura{aPagar <= 0 && c.faturaImportada?.competencia ? ` · ${nomeMesCurto(c.faturaImportada.competencia)}` : ""}
@@ -975,7 +976,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         style={{
                           flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 700,
                           letterSpacing: ".05em", textTransform: "uppercase",
-                          borderRadius: 4, background: `${T.green}22`, border: `1px solid ${T.green}`,
+                          borderRadius: 8, background: `${T.green}22`, border: `1px solid ${T.green}`,
                           color: T.green, cursor: "pointer",
                           display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
                         }}>
@@ -986,7 +987,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                             style={{
                               flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
                               letterSpacing: ".05em", textTransform: "uppercase",
-                              borderRadius: 4, background: "transparent",
+                              borderRadius: 8, background: "transparent",
                               border: `1px solid ${T.border}`, color: T.muted, cursor: "pointer",
                               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
                             }}>
@@ -1005,7 +1006,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                             style={{
                               flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: 600,
                               letterSpacing: ".05em", textTransform: "uppercase",
-                              borderRadius: 4, background: "transparent",
+                              borderRadius: 8, background: "transparent",
                               border: `1px solid ${T.red}33`, color: T.red, cursor: "pointer",
                               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
                             }}>
@@ -1015,9 +1016,9 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   <button onClick={(e) => { e.stopPropagation(); excluirLancamentosDaFatura(c); }}
                           title="Remove transações, parcelamentos e fixas que vieram da importação da fatura deste cartão"
                           style={{
-                            width: "100%", marginTop: 6, padding: "5px 8px", fontSize: 9.5, fontWeight: 600,
+                            width: "100%", marginTop: 6, padding: "5px 8px", fontSize: 10.5, fontWeight: 600,
                             letterSpacing: ".05em", textTransform: "uppercase",
-                            borderRadius: 4, background: "transparent",
+                            borderRadius: 8, background: "transparent",
                             border: `1px dashed ${T.red}55`, color: T.red, cursor: "pointer",
                             display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
                           }}>
@@ -1026,9 +1027,9 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   <button onClick={(e) => { e.stopPropagation(); limparDuplicadosFatura(); }}
                           title="Manutenção: remove cópias de parcela de importações antigas e pagamentos que cobriram 0 parcelas (vale pra todos os cartões)"
                           style={{
-                            width: "100%", marginTop: 6, padding: "5px 8px", fontSize: 9.5, fontWeight: 600,
+                            width: "100%", marginTop: 6, padding: "5px 8px", fontSize: 10.5, fontWeight: 600,
                             letterSpacing: ".05em", textTransform: "uppercase",
-                            borderRadius: 4, background: "transparent",
+                            borderRadius: 8, background: "transparent",
                             border: `1px dashed ${T.border}`, color: T.muted, cursor: "pointer",
                             display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
                           }}>
@@ -1040,8 +1041,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           );
         })}
         {cartoes.length === 0 && (
-          <div className="md:col-span-2 lg:col-span-3 text-center py-12" style={{ color: T.muted, fontStyle: "italic" }}>
-            Nenhum cartão cadastrado.
+          <div className="md:col-span-2 lg:col-span-3">
+            <Vazio icone="💳" texto="Nenhum cartão cadastrado ainda — cadastre o primeiro e acompanhe fatura, parcelas e melhor dia de compra."
+                   acaoLabel="+ Novo cartão"
+                   onAcao={() => setForm({ id: null, nome: "", banco: "outro", limite: "", vencimento: 5, fechamento: 28, tipo: "principal", tags: [], ativo: true })} />
           </div>
         )}
       </div>
@@ -1104,7 +1107,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         <span style={{ fontSize: 11, color: T.faint }}>· {grupo.itens.length} {grupo.itens.length === 1 ? "compra" : "compras"}</span>
                       </span>
                       <span className="num" style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap" }}>
-                        {hidden ? "•••" : fmt(totalGrupo)} <span style={{ fontSize: 9.5, color: T.faint, fontWeight: 500 }}>a pagar</span>
+                        {hidden ? "•••" : fmt(totalGrupo)} <span style={{ fontSize: 10.5, color: T.faint, fontWeight: 500 }}>a pagar</span>
                       </span>
                     </div>
                     {/* Compras do cartão (escondidas quando recolhido). Quitadas
@@ -1200,13 +1203,13 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                             minWidth: 54, minHeight: 48, padding: "9px 6px",
                             background: bg, color: fg,
                             border: `1px solid ${cor}`,
-                            borderRadius: 14,
+                            borderRadius: 16,
                             cursor: "pointer",
                             display: "inline-flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                             fontFamily: T.mono, fontWeight: 600,
                           }}>
                           <div style={{ fontSize: 15 }}>{paga ? "✅" : isAtual ? "⏰" : "⬜"}</div>
-                          <div style={{ fontSize: 9, marginTop: 2, letterSpacing: ".05em", textTransform: "uppercase" }}>
+                          <div style={{ fontSize: 10, marginTop: 2, letterSpacing: ".05em", textTransform: "uppercase" }}>
                             {num}ª {isAtual ? "· hoje" : ""}
                           </div>
                         </button>
@@ -1345,12 +1348,12 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
               </div>
               {/* Live preview */}
               <div style={{
-                marginTop: 12, padding: 14, height: 90, borderRadius: 14,
+                marginTop: 12, padding: 14, height: 90, borderRadius: 16,
                 background: form.bandeiraCustom?.bg || "transparent",
                 color: form.bandeiraCustom?.fgColor || "#fff",
                 display: "flex", flexDirection: "column", justifyContent: "space-between",
               }}>
-                <div style={{ fontSize: 9, opacity: 0.6, letterSpacing: "0.25em", textTransform: "uppercase" }}>Pré-visualização</div>
+                <div style={{ fontSize: 10, opacity: 0.6, letterSpacing: "0.25em", textTransform: "uppercase" }}>Pré-visualização</div>
                 <div style={{ fontSize: 18, fontWeight: 600 }}>{form.bandeiraCustom?.nome || "Bandeira"}</div>
               </div>
             </div>
@@ -1466,7 +1469,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                 const cartao = cartoes.find(c => c.id === p.cartaoId);
                 return (
                   <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-                    border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 11px" }}>
+                    border: `1px solid ${T.border}`, borderRadius: 12, padding: "9px 11px" }}>
                     <div style={{ flex: 1, minWidth: 150 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.descricao || "Parcelamento"}</div>
                       <div style={{ fontSize: 10.5, color: T.muted }}>
@@ -1474,7 +1477,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                       </div>
                     </div>
                     <select value={catBulk[p.id] || ""} onChange={e => setCatBulk({ ...catBulk, [p.id]: e.target.value })}
-                      style={{ minWidth: 150, background: T.bgSoft, border: `1px solid ${catBulk[p.id] ? T.gold : T.border}`, borderRadius: 9, padding: "7px 10px", color: T.ink, fontSize: 12.5, fontFamily: "inherit" }}>
+                      style={{ minWidth: 150, background: T.bgSoft, border: `1px solid ${catBulk[p.id] ? T.gold : T.border}`, borderRadius: 12, padding: "7px 10px", color: T.ink, fontSize: 12.5, fontFamily: "inherit" }}>
                       <option value="">Selecione…</option>
                       {opcoes.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
                     </select>
@@ -1510,7 +1513,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                 <span className="label-eyebrow">Competência da fatura</span>
                 <input type="month" value={pagFatura.monthKey}
                        onChange={e => mudarCompetenciaPagamento(e.target.value)}
-                       style={{ background: T.bg, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 5, padding: "3px 8px", fontSize: 12 }} />
+                       style={{ background: T.bg, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 8, padding: "3px 8px", fontSize: 12 }} />
               </div>
               {pagFatura.parcelasDoMes.length === 0 && (pagFatura.avulsasDoMes || []).length === 0 ? (
                 <div style={{ color: T.muted, fontSize: 13, fontStyle: "italic" }}>
@@ -1633,7 +1636,7 @@ function ParcelasDoCartao({ cartao, parcelamentos = [], extras = 0, brand, hidde
             const valorParc = valorDaParcela(p);
             return (
               <div key={p.id} style={{
-                background: "rgba(0,0,0,0.25)", padding: "6px 8px", borderRadius: 5,
+                background: "rgba(0,0,0,0.25)", padding: "6px 8px", borderRadius: 8,
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, marginBottom: 3, color: brand.fg }}>
                   <span style={{ fontWeight: 600, opacity: 0.95 }}>{p.descricao}</span>
@@ -1651,7 +1654,7 @@ function ParcelasDoCartao({ cartao, parcelamentos = [], extras = 0, brand, hidde
           {extrasValor > 0 && (
             <div style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "6px 8px", borderRadius: 5, background: "rgba(0,0,0,0.18)",
+              padding: "6px 8px", borderRadius: 8, background: "rgba(0,0,0,0.18)",
               fontSize: 10.5, color: brand.fg,
             }}>
               <span style={{ fontWeight: 600, opacity: 0.95 }}>Compras à vista + fixas</span>

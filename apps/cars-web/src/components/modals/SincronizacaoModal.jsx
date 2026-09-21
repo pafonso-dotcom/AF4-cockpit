@@ -127,7 +127,7 @@ export default function SincronizacaoModal({ onClose }) {
                     style={{
                       width: "100%", padding: 10, height: 100,
                       background: T.bgSoft, color: T.faint,
-                      border: `1px solid ${T.border}`, borderRadius: 11,
+                      border: `1px solid ${T.border}`, borderRadius: 12,
                       fontSize: 10, fontFamily: "monospace",
                       resize: "vertical", outline: "none",
                       wordBreak: "break-all",
@@ -154,7 +154,7 @@ export default function SincronizacaoModal({ onClose }) {
             </button>
           </div>
 
-          <div style={{ marginTop: 14, padding: 10, background: T.bgSoft, borderRadius: 11, fontSize: 10.5, color: T.faint, lineHeight: 1.55 }}>
+          <div style={{ marginTop: 14, padding: 10, background: T.bgSoft, borderRadius: 12, fontSize: 10.5, color: T.faint, lineHeight: 1.55 }}>
             <strong style={{ color: T.gold }}>💡 Dica:</strong> envie pelo WhatsApp pro seu próprio número. Ele fica salvo no seu chat de "Conversa consigo mesmo" e você acessa em qualquer dispositivo logado.
           </div>
         </>
@@ -174,7 +174,7 @@ export default function SincronizacaoModal({ onClose }) {
             style={{
               width: "100%", padding: 10,
               background: T.bgSoft, color: T.ink,
-              border: `1px solid ${T.border}`, borderRadius: 11,
+              border: `1px solid ${T.border}`, borderRadius: 12,
               fontSize: 11, fontFamily: "monospace",
               resize: "vertical", outline: "none",
               wordBreak: "break-all",
@@ -196,7 +196,7 @@ export default function SincronizacaoModal({ onClose }) {
             <div style={{
               marginTop: 14, padding: 10,
               background: `${T.red}22`, color: T.red,
-              border: `1px solid ${T.red}`, borderRadius: 11,
+              border: `1px solid ${T.red}`, borderRadius: 12,
               fontSize: 12, display: "flex", alignItems: "center", gap: 8,
             }}>
               <AlertCircle size={14} /> {erroImport}

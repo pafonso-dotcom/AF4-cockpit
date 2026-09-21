@@ -5,7 +5,7 @@ import { AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tool
 import { T } from "../../lib/theme.js";
 import BankIcon from "../ui/BankIcon.jsx";
 import { MESES_UP as MESES_PT } from "../../lib/meses.js";
-import { fmt, fmtN } from "../../lib/format.js";
+import { fmt, fmtN , fmtAbrev } from "../../lib/format.js";
 import { somaContasBRL } from "../../lib/cambio.js";
 import { gerarInsights } from "../../lib/intelligence.js";
 import { calcMoMTransacoes } from "../../lib/mom.js";
@@ -731,7 +731,7 @@ function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, m
               {hidden ? "•••••" : fmt(patrimonio)}
             </div>
 
-            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "4px 18px", textAlign: "left" }}>
+            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "4px 18px", textAlign: "left" }}>
               {linha("Receitas do mês", receitasMes, T.green)}
               {linha("Despesas do mês", despesas, T.red)}
               {linha(sobra >= 0 ? "Sobra do mês" : "Déficit do mês", sobra, sobra >= 0 ? T.green : T.red)}
@@ -739,13 +739,13 @@ function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, m
             </div>
 
             {meta && metaAlvo > 0 && (
-              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 16, marginTop: 12, textAlign: "left" }}>
+              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, marginTop: 12, textAlign: "left" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 8 }}>
                   <span style={{ color: T.muted }}>Meta: {meta.nome || meta.titulo || "—"}</span>
                   <span style={{ color: T.gold, fontWeight: 600 }}>{fmtN(metaPct, 0)}%</span>
                 </div>
-                <div style={{ height: 7, background: T.bgSoft, borderRadius: 4, overflow: "hidden" }}>
-                  <div style={{ width: `${metaPct}%`, height: "100%", background: T.gold, borderRadius: 4 }} />
+                <div style={{ height: 7, background: T.bgSoft, borderRadius: 8, overflow: "hidden" }}>
+                  <div style={{ width: `${metaPct}%`, height: "100%", background: T.gold, borderRadius: 8 }} />
                 </div>
               </div>
             )}
@@ -782,7 +782,7 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
   return (
     <div onClick={() => setRevelado(v => !v)}
          title={visivel ? "Toque para ocultar" : "Toque para ver"}
-         style={{ background: bg, color: "#fff", borderRadius: 22, padding: "16px 17px 18px", position: "relative", overflow: "hidden", minHeight: 120, cursor: "pointer", userSelect: "none" }}>
+         style={{ background: bg, color: "#fff", borderRadius: 16, padding: "16px 17px 18px", position: "relative", overflow: "hidden", minHeight: 120, cursor: "pointer", userSelect: "none" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <RingIcon icon={Wallet} cor="rgba(255,255,255,0.55)" size={34} stroke="rgba(255,255,255,0.9)" />
         <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", color: "#38504a" }}>
@@ -898,7 +898,7 @@ function ProximosVencimentosCard({ devedores = [], hidden, onVer }) {
               <div key={d.id} onClick={onVer} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", fontSize: 11.5, cursor: onVer ? "pointer" : "default" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0, flex: 1 }}>
                   <div style={{ color: T.ink, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.nome}</div>
-                  <div style={{ fontSize: 9.5, color: atrasado ? T.red : T.muted }}>{atrasado ? "atrasado · " : ""}{formatarVenc(d.vencimento)}</div>
+                  <div style={{ fontSize: 10.5, color: atrasado ? T.red : T.muted }}>{atrasado ? "atrasado · " : ""}{formatarVenc(d.vencimento)}</div>
                 </div>
                 <div className="num" style={{ color: T.ink, fontWeight: 600, marginLeft: 8, flexShrink: 0 }}>{hidden ? "•••" : fmt(restanteDe(d))}</div>
               </div>
@@ -1012,7 +1012,7 @@ function ContasCard({ contas, hidden, onContaClick, onSeeAll }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {contas.slice(0, 4).map(c => (
           <button key={c.id} onClick={() => onContaClick?.(c)}
-            style={{ background: T.bgSoft, border: "none", borderRadius: 14, padding: "11px 12px", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 9, minHeight: 84 }}>
+            style={{ background: T.bgSoft, border: "none", borderRadius: 16, padding: "11px 12px", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 9, minHeight: 84 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
               <BankIcon c={c} size={30} />
               <div style={{ fontSize: 11.5, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
@@ -1036,7 +1036,7 @@ function ResumoMesCard({ mesNome, receitas, despesas, gastosCat, hidden }) {
   const titulo = String(mesNome || "").toLowerCase().replace(/^./, (c) => c.toUpperCase());
   const Stat = ({ label, valor, cor }) => (
     <div style={{ minWidth: 110 }}>
-      <div style={{ fontSize: 9.5, letterSpacing: ".06em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 10.5, letterSpacing: ".06em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>{label}</div>
       <div className="num" style={{ fontFamily: T.serif, fontSize: 17, fontWeight: 700, color: cor || T.ink, marginTop: 1, whiteSpace: "nowrap" }}>{valor}</div>
     </div>
   );
@@ -1049,7 +1049,7 @@ function ResumoMesCard({ mesNome, receitas, despesas, gastosCat, hidden }) {
         <Stat label="Sobrou" valor={hidden ? "•••" : `${sobra >= 0 ? "+ " : "− "}${fmt(Math.abs(sobra))}`} cor={sobra >= 0 ? T.green : T.red} />
         {top && (
           <div style={{ minWidth: 140 }}>
-            <div style={{ fontSize: 9.5, letterSpacing: ".06em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Maior gasto</div>
+            <div style={{ fontSize: 10.5, letterSpacing: ".06em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>Maior gasto</div>
             <div style={{ fontSize: 13, color: T.ink, fontWeight: 600, marginTop: 3, display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
               {top.cor && <span style={{ width: 8, height: 8, borderRadius: 2, background: top.cor }} />}
               {top.nome} <span className="num" style={{ color: T.muted, fontWeight: 500 }}>· {hidden ? "•••" : fmt(top.valor)}</span>
@@ -1091,10 +1091,10 @@ function OrcamentoCard({ categorias, gastos, hidden, onTabChange }) {
                   </span>
                   <span className="num" style={{ fontSize: 10.5, color: cor, fontWeight: 700, flexShrink: 0 }}>{Math.round(c.pct)}%</span>
                 </div>
-                <div style={{ height: 8, borderRadius: 6, background: T.bgSoft, overflow: "hidden" }}>
-                  <div style={{ width: `${w}%`, height: "100%", borderRadius: 6, background: cor, transition: "width .4s ease" }} />
+                <div style={{ height: 8, borderRadius: 8, background: T.bgSoft, overflow: "hidden" }}>
+                  <div style={{ width: `${w}%`, height: "100%", borderRadius: 8, background: cor, transition: "width .4s ease" }} />
                 </div>
-                <div style={{ fontSize: 9.5, color: T.muted, marginTop: 3 }}>
+                <div style={{ fontSize: 10.5, color: T.muted, marginTop: 3 }}>
                   {hidden ? "•••" : `${fmt(c.gasto)} de ${fmt(c.limite)}`}
                   {c.estado === "estourado" ? " · estourou" : c.estado === "alerta" ? " · quase no limite" : ""}
                 </div>
@@ -1119,7 +1119,7 @@ function AlocacaoCard({ data, total, hidden, onSeeAll }) {
       ) : (
       <>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-          <span style={{ fontSize: 9, color: T.muted, letterSpacing: ".15em" }}>TOTAL</span>
+          <span style={{ fontSize: 10, color: T.muted, letterSpacing: ".15em" }}>TOTAL</span>
           <span className="num" style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 600, color: T.ink }}>{hidden ? "•••" : fmt(total)}</span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
@@ -1128,8 +1128,8 @@ function AlocacaoCard({ data, total, hidden, onSeeAll }) {
             return (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
                 <span style={{ width: 92, flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.label}</span>
-                <div style={{ flex: 1, height: 8, borderRadius: 6, background: T.bgSoft, overflow: "hidden" }}>
-                  <div style={{ width: `${w}%`, height: "100%", borderRadius: 6, background: BAR_COR, transition: "width .5s ease" }} />
+                <div style={{ flex: 1, height: 8, borderRadius: 8, background: T.bgSoft, overflow: "hidden" }}>
+                  <div style={{ width: `${w}%`, height: "100%", borderRadius: 8, background: BAR_COR, transition: "width .5s ease" }} />
                 </div>
                 <span style={{ width: 32, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.ink }}>{fmtN(d.pct, 0)}%</span>
                 <span className="num" style={{ width: 78, textAlign: "right", flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(d.valor)}</span>
@@ -1146,7 +1146,7 @@ function AlocacaoCard({ data, total, hidden, onSeeAll }) {
 function InsightsCard({ insight, onSeeAll }) {
   const bg = "linear-gradient(135deg, #0d2818 0%, #1a3a26 100%)";
   return (
-    <div style={{ background: bg, color: "#fff", borderRadius: 18, padding: 16, display: "flex", flexDirection: "column" }}>
+    <div style={{ background: bg, color: "#fff", borderRadius: 16, padding: 16, display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
           🤖 Insights da IA
@@ -1158,7 +1158,7 @@ function InsightsCard({ insight, onSeeAll }) {
           || "Acompanhe aqui análises automáticas dos seus gastos, receitas e tendências."}
       </div>
       <button onClick={onSeeAll}
-              style={{ background: "rgba(255,255,255,0.1)", border: `1px solid rgba(255,255,255,0.2)`, color: "#fff", padding: "8px 12px", borderRadius: 11, fontSize: 12, cursor: "pointer", alignSelf: "flex-start" }}>
+              style={{ background: "rgba(255,255,255,0.1)", border: `1px solid rgba(255,255,255,0.2)`, color: "#fff", padding: "8px 12px", borderRadius: 12, fontSize: 12, cursor: "pointer", alignSelf: "flex-start" }}>
         Ver análise completa →
       </button>
     </div>
@@ -1171,7 +1171,7 @@ function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = fals
     <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Gastos por Categoria</div>
-        <div style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 11, padding: "3px 8px" }}>Este mês</div>
+        <div style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "3px 8px" }}>Este mês</div>
       </div>
       {data.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Nenhuma despesa este mês.</div>
@@ -1182,8 +1182,8 @@ function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = fals
           return (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
               <span style={{ width: 92, flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.nome}</span>
-              <div style={{ flex: 1, height: 8, borderRadius: 6, background: T.bgSoft, overflow: "hidden" }}>
-                <div style={{ width: `${w}%`, height: "100%", borderRadius: 6, background: BAR_COR, transition: "width .5s ease" }} />
+              <div style={{ flex: 1, height: 8, borderRadius: 8, background: T.bgSoft, overflow: "hidden" }}>
+                <div style={{ width: `${w}%`, height: "100%", borderRadius: 8, background: BAR_COR, transition: "width .5s ease" }} />
               </div>
               <span style={{ width: 32, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.ink }}>{fmtN(d.pct, 0)}%</span>
               <span className="num" style={{ width: 78, textAlign: "right", flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(d.valor)}</span>
@@ -1198,10 +1198,10 @@ function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = fals
 
 function EvolucaoCard({ data, valor, momAno, hidden }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 14 }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Evolução do Patrimônio</div>
-        <div style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 11, padding: "3px 8px" }}>Este ano</div>
+        <div style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "3px 8px" }}>Este ano</div>
       </div>
       <div className="num" style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: T.ink }}>{hidden ? "•••••" : fmt(valor)}</div>
       <div style={{ fontSize: 11, color: momAno >= 0 ? T.green : T.red, marginBottom: 8 }}>
@@ -1217,7 +1217,7 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
               </linearGradient>
             </defs>
             <XAxis dataKey="mes" tick={{ fontSize: 10, fill: T.muted }} />
-            <YAxis tick={{ fontSize: 9, fill: T.muted }} width={50} />
+            <YAxis tick={{ fontSize: 10, fill: T.muted }} width={50} />
             <Tooltip contentStyle={{ background: T.card, border: `1px solid ${T.border}`, fontSize: 11 }} />
             <Area type="monotone" dataKey="saldo" stroke={T.green} fill="url(#grad-evol)" strokeWidth={2} />
           </AreaChart>
@@ -1312,22 +1312,23 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
               <div style={{ fontSize: 10.5, lineHeight: 1.15, color: "rgba(255,255,255,0.9)", fontWeight: 600 }}>{b.label}</div>
             </div>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 6, marginTop: 10 }}>
-              <div className="num" style={{ fontSize: 16, fontWeight: 500, color: "#fff", letterSpacing: "-.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {oculto ? "•••" : fmt(b.valor)}
+              <div className="num" title={oculto ? undefined : fmt(b.valor)}
+                   style={{ fontSize: 16, fontWeight: 500, color: "#fff", letterSpacing: "-.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {oculto ? "•••" : fmtAbrev(b.valor)}
               </div>
               {!oculto && <Sparkline points={b.spark} cor="rgba(255,255,255,0.92)" w={44} h={20} />}
             </div>
             {b.subValor > 0 && (
-              <div className="num" style={{ fontSize: 9.5, color: "rgba(255,255,255,0.78)", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div className="num" style={{ fontSize: 10.5, color: "rgba(255,255,255,0.78)", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {b.subRotulo}: {oculto ? "•••" : fmt(b.subValor)}
               </div>
             )}
             {b.subLinhas?.length > 0 && (
               <div style={{ marginTop: 4, paddingTop: 4, borderTop: "1px solid rgba(255,255,255,0.16)", display: "flex", flexDirection: "column", gap: 1.5 }}>
                 {b.subLinhas.map(l => (
-                  <div key={l.rotulo} className="num" style={{ fontSize: 9.5, color: "rgba(255,255,255,0.78)", display: "flex", justifyContent: "space-between", gap: 6, whiteSpace: "nowrap" }}>
+                  <div key={l.rotulo} className="num" style={{ fontSize: 10.5, color: "rgba(255,255,255,0.78)", display: "flex", justifyContent: "space-between", gap: 6, whiteSpace: "nowrap" }}>
                     <span>{l.rotulo}</span>
-                    <span>{oculto ? "•••" : fmt(l.valor)}</span>
+                    <span>{oculto ? "•••" : fmtAbrev(l.valor)}</span>
                   </div>
                 ))}
               </div>
@@ -1342,7 +1343,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
           marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.border}`,
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <div style={{ fontSize: 9.5, color: T.red, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <div style={{ fontSize: 10.5, color: T.red, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: 5 }}>
               <AlertCircle size={11} /> A pagar hoje
             </div>
             <div className="num" style={{ fontSize: 12, fontWeight: 700, color: T.red }}>
@@ -1399,7 +1400,7 @@ function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }
 
   const ehHoje = (d) => d === hoje.getDate() && ref.m === hoje.getMonth() && ref.y === hoje.getFullYear();
   const passo = (delta) => setRef(r => { const nd = new Date(r.y, r.m + delta, 1); return { y: nd.getFullYear(), m: nd.getMonth() }; });
-  const navBtn = { width: 22, height: 22, border: `1px solid ${T.border}`, borderRadius: 7, display: "grid", placeItems: "center", color: T.muted, background: T.bgSoft, cursor: "pointer", fontWeight: 600, lineHeight: 0 };
+  const navBtn = { width: 22, height: 22, border: `1px solid ${T.border}`, borderRadius: 12, display: "grid", placeItems: "center", color: T.muted, background: T.bgSoft, cursor: "pointer", fontWeight: 600, lineHeight: 0 };
   const Dot = ({ c }) => <span style={{ width: 4, height: 4, borderRadius: "50%", background: c }} />;
 
   return (
@@ -1416,7 +1417,7 @@ function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }
       </div>
       <div style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 600, marginBottom: 6, textTransform: "capitalize" }}>{CAL_MESES[ref.m]} {ref.y}</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 3 }}>
-        {["D","S","T","Q","Q","S","S"].map((d, i) => <span key={i} style={{ fontSize: 9, textAlign: "center", color: T.faint, fontWeight: 700 }}>{d}</span>)}
+        {["D","S","T","Q","Q","S","S"].map((d, i) => <span key={i} style={{ fontSize: 10, textAlign: "center", color: T.faint, fontWeight: 700 }}>{d}</span>)}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
         {cells.map((d, i) => {
@@ -1464,8 +1465,8 @@ function ProjecaoMesesCard({ projecao, hidden }) {
       <div style={{ fontSize: 10, letterSpacing: ".15em", color: T.muted, fontWeight: 600, marginBottom: 10 }}>PROJEÇÃO · PRÓXIMOS 6 MESES</div>
       <div className="dash-proj-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
         {projecao.map(p => (
-          <div key={p.label} style={{ background: T.bgSoft, borderRadius: 11, padding: 9, borderTop: `2px solid ${p.saldo >= 0 ? T.green : T.red}` }}>
-            <div style={{ fontSize: 9.5, letterSpacing: ".1em", color: T.muted, fontWeight: 600 }}>{p.label}</div>
+          <div key={p.label} style={{ background: T.bgSoft, borderRadius: 12, padding: 9, borderTop: `2px solid ${p.saldo >= 0 ? T.green : T.red}` }}>
+            <div style={{ fontSize: 10.5, letterSpacing: ".1em", color: T.muted, fontWeight: 600 }}>{p.label}</div>
             <div className="num" style={{ fontSize: 11, color: T.green }}>+ {hidden ? "•••" : fmt(p.receita)}</div>
             <div className="num" style={{ fontSize: 11, color: T.red }}>− {hidden ? "•••" : fmt(p.despesa)}</div>
             <div className="num" style={{ fontSize: 12, fontWeight: 700, color: p.saldo >= 0 ? T.green : T.red, marginTop: 2, paddingTop: 4, borderTop: `1px solid ${T.border}` }}>
@@ -1502,7 +1503,7 @@ function OrcamentosFuturosCard({ itens = [], setItens, hidden }) {
     setForm(null);
   };
   const mesLabel = (ym) => `${["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][parseInt(String(ym).slice(5,7),10)-1] || "?"}/${String(ym).slice(2,4)}`;
-  const inp = { padding: "7px 9px", fontSize: 12.5, borderRadius: 9 };
+  const inp = { padding: "7px 9px", fontSize: 12.5, borderRadius: 12 };
 
   return (
     <Card>
@@ -1518,7 +1519,7 @@ function OrcamentosFuturosCard({ itens = [], setItens, hidden }) {
 
       {/* CALCULADORA (novo/editar) */}
       {form && (
-        <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 13, padding: 12, marginBottom: 10 }}>
+        <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: 12, marginBottom: 10 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1fr", gap: 8 }} className="no-mobile-stack">
             <input style={inp} placeholder="O que? (ex: Moto, Reforma…)" value={form.nome}
                    onChange={e => setForm({ ...form, nome: e.target.value })} autoFocus />
@@ -1541,7 +1542,7 @@ function OrcamentosFuturosCard({ itens = [], setItens, hidden }) {
             </button>
             {form.id && (
               <button onClick={() => { setItens?.(itens.filter(x => x.id !== form.id)); setForm(null); }}
-                      style={{ background: "transparent", border: `1px solid ${T.red}55`, color: T.red, borderRadius: 9, padding: "6px 12px", fontSize: 11, cursor: "pointer" }}>
+                      style={{ background: "transparent", border: `1px solid ${T.red}55`, color: T.red, borderRadius: 12, padding: "6px 12px", fontSize: 11, cursor: "pointer" }}>
                 Excluir
               </button>
             )}
@@ -1553,7 +1554,7 @@ function OrcamentosFuturosCard({ itens = [], setItens, hidden }) {
       {/* Lista de planos */}
       {itens.length === 0 && !form ? (
         <button onClick={() => setForm(vazio())}
-                style={{ width: "100%", background: "transparent", border: `2px dashed ${T.border}`, borderRadius: 14, padding: 18, color: T.muted, fontSize: 12.5, cursor: "pointer" }}>
+                style={{ width: "100%", background: "transparent", border: `2px dashed ${T.border}`, borderRadius: 16, padding: 18, color: T.muted, fontSize: 12.5, cursor: "pointer" }}>
           Planeje uma compra ou compromisso futuro — a calculadora mostra quanto guardar por mês.
         </button>
       ) : (
@@ -1599,8 +1600,8 @@ function OrcamentosFuturosCard({ itens = [], setItens, hidden }) {
 function PergunteIACard({ onClick }) {
   return (
     <button onClick={onClick}
-            style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 14, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
-      <div style={{ width: 36, height: 36, borderRadius: 14, background: `${T.green}22`, display: "grid", placeItems: "center", flexShrink: 0 }}>
+            style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
+      <div style={{ width: 36, height: 36, borderRadius: 16, background: `${T.green}22`, display: "grid", placeItems: "center", flexShrink: 0 }}>
         <Sparkles size={18} style={{ color: T.green }} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>

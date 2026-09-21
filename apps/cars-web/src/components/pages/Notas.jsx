@@ -289,7 +289,7 @@ export default function Notas({ agenda = [], setAgenda, notasLegacy = [], setNot
           <button onClick={handleQuickAdd}
             style={{
               background: T.gold, color: T.bg, border: "none",
-              padding: "6px 14px", borderRadius: 4, fontSize: 11, fontWeight: 700,
+              padding: "6px 14px", borderRadius: 8, fontSize: 11, fontWeight: 700,
               cursor: "pointer", letterSpacing: ".05em", textTransform: "uppercase",
             }}>
             Criar
@@ -308,7 +308,7 @@ export default function Notas({ agenda = [], setAgenda, notasLegacy = [], setNot
             style={{
               width: "100%", padding: "9px 10px 9px 32px",
               background: T.card, border: `1px solid ${T.border}`,
-              color: T.ink, fontSize: 13, borderRadius: 11,
+              color: T.ink, fontSize: 13, borderRadius: 12,
             }}
           />
         </div>
@@ -499,7 +499,7 @@ function StatBox({ label, value, cor, destaque }) {
     <div style={{
       background: destaque ? `${cor}15` : T.card,
       border: `1px solid ${destaque ? `${cor}55` : T.border}`,
-      borderRadius: 14, padding: "10px 12px",
+      borderRadius: 16, padding: "10px 12px",
     }}>
       <div style={{ fontSize: 10, color: T.muted, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 600 }}>
         {label}
@@ -542,7 +542,7 @@ function EventoCard({ ev, onEdit, onPin, onFeito, onExcluir, dimmed }) {
       background: `${meta.cor}0d`,
       border: `1px solid ${meta.cor}33`,
       borderLeft: `4px solid ${meta.cor}`,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: "12px 14px",
       display: "grid",
       gridTemplateColumns: "auto 1fr auto",
@@ -555,7 +555,7 @@ function EventoCard({ ev, onEdit, onPin, onFeito, onExcluir, dimmed }) {
         <div style={{ fontSize: 18, fontWeight: 700, color: atrasado ? T.red : T.ink, lineHeight: 1 }}>
           {formatarDataCurta(ev.data)?.split(" ")[0]}
         </div>
-        <div style={{ fontSize: 9, color: T.muted, letterSpacing: ".1em", textTransform: "uppercase", marginTop: 2 }}>
+        <div style={{ fontSize: 10, color: T.muted, letterSpacing: ".1em", textTransform: "uppercase", marginTop: 2 }}>
           {formatarDataCurta(ev.data)?.split(" ")[1] || ""}
         </div>
         <div style={{
@@ -578,9 +578,9 @@ function EventoCard({ ev, onEdit, onPin, onFeito, onExcluir, dimmed }) {
             {ev.titulo}
           </strong>
           <span style={{
-            fontSize: 9, fontWeight: 700, letterSpacing: ".08em",
+            fontSize: 10, fontWeight: 700, letterSpacing: ".08em",
             textTransform: "uppercase", color: meta.cor,
-            padding: "1px 6px", borderRadius: 3, background: `${meta.cor}22`,
+            padding: "1px 6px", borderRadius: 8, background: `${meta.cor}22`,
           }}>
             {meta.label}
           </span>
@@ -643,7 +643,7 @@ function IconBtn({ children, onClick, title, cor, bg }) {
         background: bg || "transparent",
         border: `1px solid ${T.border}`,
         color: cor,
-        width: 26, height: 26, borderRadius: 5,
+        width: 26, height: 26, borderRadius: 8,
         cursor: "pointer", display: "grid", placeItems: "center",
         transition: "all .15s ease",
         minHeight: 26,
@@ -657,11 +657,11 @@ function EmptyState({ onCriar, temEventos }) {
   return (
     <div style={{
       textAlign: "center", padding: "64px 24px",
-      background: T.card, border: `1px dashed ${T.border}`, borderRadius: 18,
+      background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
     }}>
       <div style={{
         width: 60, height: 60, margin: "0 auto 16px",
-        borderRadius: 14, background: `${T.gold}15`,
+        borderRadius: 16, background: `${T.gold}15`,
         display: "grid", placeItems: "center", color: T.gold,
       }}>
         <StickyNote size={28} />

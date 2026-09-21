@@ -289,7 +289,7 @@ export default function NovaFixaModal({ editing, ocorrencias = [], categorias = 
           }}>
             {mesesEmprestimo.map(({ mes, paga }, i) => (
               <div key={mes} style={{ opacity: paga ? 0.55 : 1 }}>
-                <div style={{ fontSize: 9.5, color: paga ? T.green : T.muted, fontWeight: 700, marginBottom: 2, textTransform: "uppercase", letterSpacing: ".05em" }}>
+                <div style={{ fontSize: 10.5, color: paga ? T.green : T.muted, fontWeight: 700, marginBottom: 2, textTransform: "uppercase", letterSpacing: ".05em" }}>
                   {i + 1}ª · {labelMes(mes)}{paga ? " · paga" : ""}
                 </div>
                 {paga ? (
@@ -312,7 +312,7 @@ export default function NovaFixaModal({ editing, ocorrencias = [], categorias = 
         <div style={{
           marginTop: 12, padding: 12,
           background: "#3b82f622", border: `1px solid #3b82f655`,
-          borderRadius: 14, fontSize: 12, color: T.ink, lineHeight: 1.5,
+          borderRadius: 16, fontSize: 12, color: T.ink, lineHeight: 1.5,
         }}>
           {emprestimo ? (
             <>💡 Serão criadas <strong>{mesesEmprestimo.length} parcelas</strong> a partir de {inicioLabel} (até {labelMes(mesesEmprestimo[mesesEmprestimo.length - 1]?.mes || form.inicioEm)}), cada uma com o valor da grade acima.</>
@@ -328,7 +328,7 @@ export default function NovaFixaModal({ editing, ocorrencias = [], categorias = 
         <div style={{
           marginTop: 12, padding: 12,
           background: `${T.gold}11`, border: `1px solid ${T.gold}55`,
-          borderRadius: 14, fontSize: 12, color: T.ink,
+          borderRadius: 16, fontSize: 12, color: T.ink,
         }}>
           <div style={{ fontWeight: 600, marginBottom: 6 }}>Aplicar mudança em:</div>
           {[

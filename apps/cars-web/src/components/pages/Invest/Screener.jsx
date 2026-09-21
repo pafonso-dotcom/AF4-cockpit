@@ -240,11 +240,11 @@ export default function Screener({ hidden }) {
           ...f, ordenarPor: campo,
           direcao: f.ordenarPor === campo && f.direcao === "desc" ? "asc" : "desc",
         }))}
-        style={{ textAlign: right ? "right" : "left", padding: "9px 10px", fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: filtros.ordenarPor === campo ? T.gold : T.muted, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", userSelect: "none" }}>
+        style={{ textAlign: right ? "right" : "left", padding: "9px 10px", fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: filtros.ordenarPor === campo ? T.gold : T.muted, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", userSelect: "none" }}>
       {label}{filtros.ordenarPor === campo && (filtros.direcao === "desc" ? <ArrowDown size={9} className="inline ml-1" /> : <ArrowUp size={9} className="inline ml-1" />)}
     </th>
   );
-  const inpStyle = { width: 90, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 9, padding: "7px 9px", color: T.ink, fontSize: 12, fontFamily: "inherit" };
+  const inpStyle = { width: 90, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "7px 9px", color: T.ink, fontSize: 12, fontFamily: "inherit" };
 
   return (
     <div className="fade-up py-8 px-6">
@@ -254,7 +254,7 @@ export default function Screener({ hidden }) {
         sub="A B3 inteira numa tabela: filtre por tipo, setor, preço e liquidez — ou pergunte em português e deixe a IA montar o filtro."
         action={
           <button onClick={() => carregarMercado(true)} disabled={carregando}
-                  style={{ display: "flex", alignItems: "center", gap: 6, background: T.gold, border: "none", color: "#fff", borderRadius: 10, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: carregando ? "wait" : "pointer", opacity: carregando ? 0.7 : 1 }}>
+                  style={{ display: "flex", alignItems: "center", gap: 6, background: T.gold, border: "none", color: "#fff", borderRadius: 12, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: carregando ? "wait" : "pointer", opacity: carregando ? 0.7 : 1 }}>
             <RefreshCw size={13} className={carregando ? "spin" : ""} />
             {carregando ? "Carregando…" : lista.length ? "Atualizar mercado" : "Carregar mercado (1 req)"}
           </button>
@@ -266,24 +266,24 @@ export default function Screener({ hidden }) {
         <Sparkles size={15} style={{ color: T.gold, flexShrink: 0 }} />
         <input value={pergunta} onChange={(e) => setPergunta(e.target.value)}
                placeholder={'Ex.: "FIIs com volume acima de 1 milhão" · "ações de energia abaixo de R$ 30" · "BDRs de tecnologia"'}
-               style={{ flex: "1 1 320px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 12px", color: T.ink, fontSize: 13, fontFamily: "inherit" }} />
+               style={{ flex: "1 1 320px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "9px 12px", color: T.ink, fontSize: 13, fontFamily: "inherit" }} />
         <button type="submit" disabled={iaRodando}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.gold}`, color: T.gold, borderRadius: 10, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: iaRodando ? "wait" : "pointer" }}>
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.gold}`, color: T.gold, borderRadius: 12, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: iaRodando ? "wait" : "pointer" }}>
           <Search size={13} /> Filtrar com IA
         </button>
         <button type="button" onClick={analisarShortlist} disabled={iaRodando || !filtrada.length}
                 title="A IA dá um parecer curto (nota 0-10) pra cada um dos 15 primeiros papéis filtrados"
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.gold, border: "none", color: "#fff", borderRadius: 10, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: iaRodando ? "wait" : "pointer", opacity: !filtrada.length ? 0.5 : 1 }}>
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.gold, border: "none", color: "#fff", borderRadius: 12, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: iaRodando ? "wait" : "pointer", opacity: !filtrada.length ? 0.5 : 1 }}>
           <Sparkles size={13} className={iaRodando ? "spin" : ""} /> Analisar top 15
         </button>
         <button type="button" onClick={() => buscarIndicadores(200)} disabled={buscandoFund || !filtrada.length}
                 title="Busca P/L, P/VP, ROE e EV/EBITDA dos 200 primeiros papéis filtrados — 20 tickers por requisição (10 req no total). Fica em cache."
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.gold}`, color: T.gold, borderRadius: 10, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: buscandoFund ? "wait" : "pointer", opacity: !filtrada.length ? 0.5 : 1 }}>
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.gold}`, color: T.gold, borderRadius: 12, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: buscandoFund ? "wait" : "pointer", opacity: !filtrada.length ? 0.5 : 1 }}>
           <RefreshCw size={13} className={buscandoFund ? "spin" : ""} /> {buscandoFund ? "Buscando…" : "Buscar indicadores (top 200)"}
         </button>
         <button type="button" onClick={() => buscarDYTopN(20)} disabled={buscandoDY || !filtrada.length}
                 title="Busca os proventos anunciados dos 20 primeiros papéis filtrados e calcula o DY 12m real (1 requisição brapi POR papel; fica em cache e alimenta também o Mapa de Dividendos). Atenção: o histórico de dividendos pode não estar incluso no plano free da brapi."
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.green}`, color: T.green, borderRadius: 10, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: buscandoDY ? "wait" : "pointer", opacity: !filtrada.length ? 0.5 : 1 }}>
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.green}`, color: T.green, borderRadius: 12, padding: "8px 13px", fontSize: 12, fontWeight: 700, cursor: buscandoDY ? "wait" : "pointer", opacity: !filtrada.length ? 0.5 : 1 }}>
           <RefreshCw size={13} className={buscandoDY ? "spin" : ""} /> {buscandoDY ? "Buscando…" : "Buscar DY (top 20)"}
         </button>
       </form>
@@ -322,7 +322,7 @@ export default function Screener({ hidden }) {
         <input placeholder="P/VP máx" inputMode="decimal" value={filtros.pvpMax ?? ""} onChange={setNum("pvpMax")} style={{ ...inpStyle, width: 82 }} title="Só papéis com P/VP até este valor" />
         <input placeholder="ROE mín %" inputMode="decimal" value={filtros.roeMin ?? ""} onChange={setNum("roeMin")} style={{ ...inpStyle, width: 86 }} title="Só papéis com ROE a partir deste %" />
         <button onClick={() => { setFiltros(FILTROS_VAZIOS); setAnalise(null); setSoIA910(false); }}
-                style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 9, padding: "7px 11px", fontSize: 11.5, cursor: "pointer" }}>
+                style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 12, padding: "7px 11px", fontSize: 11.5, cursor: "pointer" }}>
           Limpar
         </button>
         <span style={{ marginLeft: "auto", fontSize: 11.5, color: T.faint }}>
@@ -357,7 +357,7 @@ export default function Screener({ hidden }) {
                 {th("ROE", "roe")}
                 {th("Volume", "volume")}
                 {th("Mkt cap", "marketCap")}
-                <th style={{ textAlign: "right", padding: "9px 10px", fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 700 }}>Ações</th>
+                <th style={{ textAlign: "right", padding: "9px 10px", fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, fontWeight: 700 }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -368,7 +368,7 @@ export default function Screener({ hidden }) {
                     <td style={{ padding: "9px 10px" }}>
                       <div style={{ display: "flex", alignItems: "baseline", gap: 7, flexWrap: "wrap" }}>
                         <span style={{ fontWeight: 700, color: T.ink }}>{x.ticker}</span>
-                        <span style={{ fontSize: 9.5, letterSpacing: ".05em", textTransform: "uppercase", color: T.gold }}>{x.tipo === "fund" ? "FII" : x.tipo}</span>
+                        <span style={{ fontSize: 10.5, letterSpacing: ".05em", textTransform: "uppercase", color: T.gold }}>{x.tipo === "fund" ? "FII" : x.tipo}</span>
                         <span style={{ fontSize: 11, color: T.faint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>{x.nome}{x.setor ? ` · ${x.setor}` : ""}</span>
                         {ia && (
                           <span title={ia.parecer} style={{ fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 100, background: `${ia.nota >= 7 ? T.green : ia.nota >= 4 ? T.yellow : T.red}22`, color: ia.nota >= 7 ? T.green : ia.nota >= 4 ? T.yellow : T.red }}>
@@ -422,7 +422,7 @@ export default function Screener({ hidden }) {
         {filtradaIA.length > limite && (
           <div style={{ padding: 10, textAlign: "center" }}>
             <button onClick={() => setLimite((l) => l + 50)}
-                    style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 9, padding: "7px 16px", fontSize: 12, cursor: "pointer" }}>
+                    style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 12, padding: "7px 16px", fontSize: 12, cursor: "pointer" }}>
               Mostrar mais ({filtradaIA.length - limite} restantes)
             </button>
           </div>
