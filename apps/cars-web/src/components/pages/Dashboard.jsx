@@ -6,7 +6,7 @@ import { T } from "../../lib/theme.js";
 import BankIcon from "../ui/BankIcon.jsx";
 import { MESES_UP as MESES_PT } from "../../lib/meses.js";
 import { fmt, fmtN , fmtAbrev } from "../../lib/format.js";
-import { somaContasBRL } from "../../lib/cambio.js";
+import { somaContasBRL, contasCambioDefasado } from "../../lib/cambio.js";
 import { gerarInsights } from "../../lib/intelligence.js";
 import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
@@ -14,6 +14,7 @@ import { getKPIsMes, getDespesasDoMes, getGanhosDoMes } from "../../lib/agregado
 import { calcOrcamentoComGastos } from "../../lib/orcamentos.js";
 import { montarResumoDia, alertasDisparadosHoje } from "../../lib/resumoDia.js";
 import { proventosPendentesDoMes, lerProvReaisCache } from "../../lib/proventosPrevistos.js";
+import { backupNuvemAtraso } from "../../lib/gistSync.js";
 import { useLayout } from "../../lib/useLayout.js";
 import { supabase } from "../../lib/supabase.js";
 import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
@@ -534,6 +535,8 @@ export default function Dashboard({
         ativos, proventosRecebidos, proventosIgnorados, proventosManuais,
         provReais: lerProvReaisCache(),
       }),
+      backupAtraso: backupNuvemAtraso(),
+      cambioDefasado: contasCambioDefasado(contasRaw).length,
       fmt: (v) => (hidden ? "•••" : fmt(v)),
     });
   }, [mesISO, stateAgg, escopoAtivo, cartoes, categorias, gastosCat, hidden,

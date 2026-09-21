@@ -346,6 +346,8 @@ export default function App() {
     const timer = setTimeout(async () => {
       const r = await gistBackupAutomatico(montarDadosRef.current());
       if (r.feito) toast.success("☁️ Backup automático enviado pro GitHub.");
+      // Falha NUNCA fica muda — silêncio aqui já escondeu backup quebrado.
+      else if (r.motivo === "erro") toast.error("☁️ Backup automático FALHOU — confira o token em Configurações → Backup.");
     }, 4000);
     return () => clearTimeout(timer);
   }, [loading]);
@@ -919,7 +921,7 @@ export default function App() {
           conversaHistorico={conversaHistorico}
           setConversaHistorico={setConversaHistorico}
           transacoes={transacoes} setTransacoes={setTransacoes}
-          categorias={categorias}
+          categorias={categorias} contas={contas}
           agenda={agenda} setAgenda={setAgenda}
           tarefas={tarefas} setTarefas={setTarefas}
           lembretes={lembretes} setLembretes={setLembretes}

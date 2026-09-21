@@ -228,6 +228,19 @@ export async function gistBackupAutomatico(state) {
   }
 }
 
+// Backup na nuvem ATRASADO? Só alerta quando o automático está configurado
+// (token + interruptor ligado). Retorna { dias } quando o último envio tem
+// `minDias` ou mais (dias = null se NUNCA enviou), senão null.
+export function backupNuvemAtraso(hoje = new Date(), minDias = 3) {
+  if (!gistEnabled() || !gistAutoAtivo()) return null;
+  const ultimo = gistAutoUltimo();
+  if (!ultimo) return { dias: null };
+  const t = Date.parse(ultimo);
+  if (!Number.isFinite(t)) return { dias: null };
+  const dias = Math.floor((hoje.getTime() - t) / 86400000);
+  return dias >= minDias ? { dias } : null;
+}
+
 export async function gistFetchKeys() {
   const token = getGistToken();
   if (!token) throw new Error("Token GitHub não configurado.");

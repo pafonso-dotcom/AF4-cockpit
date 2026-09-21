@@ -7,7 +7,7 @@ import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
 import { calcSaldoConta, reconciliarContas, serieSaldoConta, pendentesDaConta, ultimaMovimentacao } from "../../lib/saldoConta.js";
 import { filtrarPorEscopo, detectarEscopoConta } from "../../lib/escopo.js";
-import { somaContasBRL, semCotacao, buscarCotacao, saldoContaBRL } from "../../lib/cambio.js";
+import { somaContasBRL, semCotacao, buscarCotacao, saldoContaBRL, contasCambioDefasado } from "../../lib/cambio.js";
 import Field from "../ui/Field.jsx";
 import BankIcon from "../ui/BankIcon.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
@@ -363,6 +363,15 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               · ⚠ {contasSemCotacao.length} conta(s) do exterior sem cotação (não somam)
             </span>
           )}
+          {(() => {
+            const defasadas = contasCambioDefasado(contas).filter(c => !semCotacao(c));
+            return defasadas.length > 0 ? (
+              <span className="num" style={{ fontSize: 10.5, color: T.gold }}
+                    title={defasadas.map(c => c.nome).join(", ")}>
+                · 💱 câmbio de {defasadas.length} conta(s) há 3+ dias sem atualizar — R$ pode estar defasado
+              </span>
+            ) : null;
+          })()}
         </div>
         <button onClick={toggleOcultarZeradas}
           style={{
@@ -466,7 +475,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             {!ehBRL(c) && (
               <div className="num" style={{ fontSize: 11.5, marginTop: 1, color: Number(c.cotacao) > 0 ? T.muted : T.gold, whiteSpace: "nowrap" }}>
                 {Number(c.cotacao) > 0
-                  ? <>≈ {hidden ? "•••" : fmt(saldoContaBRL(c))} <span style={{ fontSize: 10, color: T.faint }}>({c.moeda} {fmt(c.cotacao)}{String(c.cotacaoAtualizadaEm || "").slice(0, 10) === new Date().toISOString().slice(0, 10) ? " · hoje" : ""})</span></>
+                  ? <>≈ {hidden ? "•••" : fmt(saldoContaBRL(c))} <span style={{ fontSize: 10, color: T.faint }}>({c.moeda} {fmt(c.cotacao)}{String(c.cotacaoAtualizadaEm || "").slice(0, 10) === new Date().toISOString().slice(0, 10) ? " · hoje" : ""})</span>{contasCambioDefasado([c]).length > 0 && <span style={{ fontSize: 10, color: T.gold, fontWeight: 700 }} title="A atualização automática do câmbio parou há 3+ dias — o valor em R$ pode estar velho"> · 💱 defasada</span>}</>
                   : "sem cotação — buscando…"}
               </div>
             )}

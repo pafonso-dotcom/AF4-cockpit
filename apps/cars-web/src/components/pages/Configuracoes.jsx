@@ -30,6 +30,14 @@ export default function Configuracoes({
 }) {
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
+      {/* Responsivo no NÍVEL DA PÁGINA — o .cfg-2col também é usado na aba
+          Backup, então a regra não pode morar só dentro da Aparência. */}
+      <style>{`
+        @media (max-width: 520px) {
+          .cfg-2col { grid-template-columns: 1fr !important; }
+          .fb { padding: 14px 12px !important; }
+        }
+      `}</style>
       <div className="eb">Sistema · Configurações</div>
       <h1 className="h1">Painel de <em>controle.</em></h1>
       <p className="hs">Tema, integrações de API, módulos ativos e backup de dados.</p>

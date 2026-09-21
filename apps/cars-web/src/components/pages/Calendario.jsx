@@ -349,6 +349,15 @@ export default function Calendario({
       {vista === "mes" && (<>
       {/* Calendar grid */}
       <div style={{ background: T.card, border: `1px solid ${T.border}`, padding: 16 }}>
+        {/* Celular: células menores, valor compacto e sem o rótulo "N fin" —
+            senão o mês não cabe em 7 colunas numa tela de 360px. */}
+        <style>{`
+          @media (max-width: 520px) {
+            .cal-cell { min-height: 58px !important; padding: 3px !important; }
+            .cal-net { font-size: 8.5px !important; letter-spacing: -0.02em; }
+            .cal-fin { display: none !important; }
+          }
+        `}</style>
         <div className="grid grid-cols-7 gap-px mb-2" style={{ background: T.border }}>
           {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map(d => (
             <div key={d} style={{ background: T.bgSoft, padding: "8px 4px", textAlign: "center",
@@ -359,13 +368,13 @@ export default function Calendario({
         </div>
         <div className="grid grid-cols-7 gap-px" style={{ background: T.border }}>
           {grid.map((d, idx) => {
-            if (d === null) return <div key={idx} style={{ background: T.bgSoft, minHeight: 82 }} />;
+            if (d === null) return <div key={idx} className="cal-cell" style={{ background: T.bgSoft, minHeight: 82 }} />;
             const info = cellInfoByDay[d] || {};
             const isHoje = isToday(d);
             const isSelected = d === selectedDay;
             const cor = info.atrasado ? T.red : (info.net > 0 ? T.green : info.net < 0 ? T.red : T.muted);
             return (
-              <button key={idx} onClick={() => setSelectedDay(isSelected ? null : d)}
+              <button key={idx} className="cal-cell" onClick={() => setSelectedDay(isSelected ? null : d)}
                 style={{
                   background: isSelected ? T.cardHi : (isHoje ? `${T.gold}11` : T.bgSoft),
                   minHeight: 82, padding: 6, textAlign: "left", cursor: "pointer",
@@ -382,12 +391,12 @@ export default function Calendario({
                 </div>
                 {info.net != null && (
                   <div style={{ textAlign: "center", marginTop: 6 }}>
-                    <div className="num" style={{
+                    <div className="num cal-net" style={{
                       fontSize: 11, fontWeight: 600, color: cor, lineHeight: 1.1,
                     }}>
                       {info.net > 0 ? "+ " : info.net < 0 ? "− " : ""}{hidden ? "•••" : fmt(Math.abs(info.net))}
                     </div>
-                    <div style={{ fontSize: 10, color: T.muted, marginTop: 1 }}>
+                    <div className="cal-fin" style={{ fontSize: 10, color: T.muted, marginTop: 1 }}>
                       {info.itensFin} fin
                       {info.atrasado && <span style={{ color: T.red, marginLeft: 3 }}>⚠</span>}
                     </div>
@@ -610,7 +619,7 @@ export default function Calendario({
                    autoFocus />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Data" required error={formErrors.data}>
               <input type="date" value={eventoForm.data}
                      onChange={e => setEventoForm({ ...eventoForm, data: e.target.value })} />

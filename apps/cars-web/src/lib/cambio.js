@@ -23,6 +23,21 @@ export function semCotacao(c) {
   return c && c.moeda && c.moeda !== "BRL" && !(Number(c.cotacao) > 0);
 }
 
+// Contas do exterior com câmbio PROBLEMÁTICO: sem cotação (não somam no
+// total) ou com cotação ao vivo DEFASADA (a atualização automática vinha
+// funcionando e parou há `minDias`+ dias — o valor em R$ pode estar velho).
+// Cotação definida manualmente (sem cotacaoAtualizadaEm) não é flagrada:
+// é determinística por escolha do usuário.
+export function contasCambioDefasado(contas = [], hoje = new Date(), minDias = 3) {
+  return (contas || []).filter(c => {
+    if (!c || !c.moeda || c.moeda === "BRL") return false;
+    if (semCotacao(c)) return true;
+    const t = Date.parse(c.cotacaoAtualizadaEm || "");
+    if (!Number.isFinite(t)) return false;
+    return (hoje.getTime() - t) / 86400000 >= minDias;
+  });
+}
+
 // Busca a cotação ao vivo (R$ por 1 unidade da moeda). null se indisponível.
 export async function buscarCotacao(moeda) {
   if (!moeda || moeda === "BRL") return 1;

@@ -237,7 +237,7 @@ export default function Habitos({ habitos = [], setHabitos }) {
                    placeholder="Ex.: Beber água, Caminhar, Ler..."
                    autoFocus />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Ícone">
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {ICONES_SUGERIDOS.map(i => (
@@ -267,7 +267,7 @@ export default function Habitos({ habitos = [], setHabitos }) {
               </div>
             </Field>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Meta diária (opcional)" hint="Ex.: 8 copos">
               <input type="number" min="1" value={form.meta}
                      onChange={e => setForm({ ...form, meta: e.target.value })}

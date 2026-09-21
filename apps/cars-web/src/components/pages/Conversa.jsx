@@ -3,6 +3,7 @@ import { Send, MessageCircle, Loader } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { uid, todayISO, fmt } from "../../lib/format.js";
 import { parsear } from "../../lib/conversaParser.js";
+import { categoriaAuto } from "../../lib/autoCategorizar.js";
 import PageHeader from "../ui/PageHeader.jsx";
 
 const CATEGORIAS_DEFAULT = ["Alimentação", "Transporte", "Saúde", "Lazer", "Outro"];
@@ -22,7 +23,7 @@ function RelatorioCard({ transacoes, tarefas, lembretes, treinos }) {
   const isoSemana = inicioSemana.toISOString().slice(0, 10);
 
   const gastosSemana = (transacoes || [])
-    .filter(t => t.tipo === "saida" && t.data >= isoSemana)
+    .filter(t => (t.tipo === "despesa" || t.tipo === "saida") && t.data >= isoSemana)
     .reduce((s, t) => s + (Number(t.valor) || 0), 0);
 
   const tarefasPendentes = (tarefas || []).filter(t => !t.concluida).length;
@@ -67,7 +68,7 @@ function RelatorioCard({ transacoes, tarefas, lembretes, treinos }) {
 export default function Conversa({
   conversaHistorico = [], setConversaHistorico,
   transacoes = [], setTransacoes,
-  categorias = [],
+  categorias = [], contas = [],
   agenda = [], setAgenda,
   tarefas = [], setTarefas,
   lembretes = [], setLembretes,
@@ -91,14 +92,22 @@ export default function Conversa({
     const { action, params } = parsed;
 
     if (action === "gasto") {
-      const cat = detectarCategoria(params.descricao);
-      const catId = (categorias.find(c => c.nome === cat) || categorias[0])?.id || "outro";
+      // Formato PADRÃO do app: tipo "despesa" + categoria pelo NOME + conta.
+      // (Antes criava tipo "saida" + categoriaId — a transação aparecia na
+      // lista mas não entrava em nenhum cálculo de gastos/orçamento.)
+      const cat = categoriaAuto({ descricao: params.descricao, tipo: "despesa" }, categorias, transacoes)
+               || (categorias.find(c => c.nome === detectarCategoria(params.descricao)) ? detectarCategoria(params.descricao) : null)
+               || categorias.find(c => c.tipo === "despesa")?.nome
+               || "Outros";
       const nova = {
-        id: uid(), tipo: "saida", valor: params.valor,
-        descricao: params.descricao, categoriaId: catId,
-        data: todayISO(), createdAt: new Date().toISOString(),
+        id: uid(), tipo: "despesa", valor: params.valor,
+        descricao: params.descricao, categoria: cat,
+        conta: contas[0]?.nome || "",
+        data: todayISO(), compensado: false, fixa: false,
+        obs: "Registrado pela Conversa",
+        createdAt: new Date().toISOString(),
       };
-      setTransacoes(prev => [...prev, nova]);
+      setTransacoes(prev => [nova, ...prev]);
       return {
         texto: `✅ Despesa registrada`,
         detalhes: `${fmt(params.valor)} · ${params.descricao} · ${cat}`,
