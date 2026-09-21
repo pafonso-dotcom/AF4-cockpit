@@ -2,12 +2,12 @@
 // cheques e do A Receber: data (pílula) · nome (+ meta) · selos · valor · ações.
 // (Movido de AReceberEDividas.jsx na fatia de 2026-09-21 — código idêntico.)
 import React from "react";
-import { Trash2, Edit3, Check, MessageCircle, CalendarDays, Tag } from "lucide-react";
+import { Trash2, Edit3, Check, MessageCircle, CalendarDays, Tag, Copy } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import { corDoNome } from "./corDoNome.js";
 
-export default function CompromissoCard({ item, hidden, dueLabel, corAccent, isReceber, labelAcao, showCredor, onBaixa, onWhats, onEditar, onExcluir }) {
+export default function CompromissoCard({ item, hidden, dueLabel, corAccent, isReceber, labelAcao, showCredor, onBaixa, onWhats, onEditar, onExcluir, onDuplicar }) {
   const due = dueLabel ? dueLabel(item.vencimento) : null;
   const isOver = due?.status === "over";
   const isWarn = due?.status === "warn";
@@ -82,6 +82,12 @@ export default function CompromissoCard({ item, hidden, dueLabel, corAccent, isR
           style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
           <Edit3 size={13} />
         </button>
+        {onDuplicar && (
+          <button onClick={onDuplicar} title="Duplicar (novo compromisso igual, vencimento no mês seguinte)"
+            style={{ background: "transparent", color: T.gold, border: `1px solid ${T.gold}55`, borderRadius: 12, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+            <Copy size={13} />
+          </button>
+        )}
         <button onClick={onExcluir} title="Excluir"
           style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 12, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
           <Trash2 size={13} />

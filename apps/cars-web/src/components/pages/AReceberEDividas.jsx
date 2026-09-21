@@ -88,6 +88,36 @@ export default function AReceberEDividas({
     return { txt: `${data.slice(8,10)}/${data.slice(5,7)} · ${dias}d`, cor: T.muted, status: "ok" };
   };
 
+  /* ===== Duplicar compromisso (A Pagar) ===== */
+  // Pras contas iguais que se repetem: abre o form de NOVO compromisso já
+  // preenchido com os dados do item, vencimento sugerido pro MÊS SEGUINTE
+  // (mesmo dia, sem transbordar em meses curtos). A cópia é sempre uma
+  // dívida tradicional nova — não herda vínculos de fixa/parcela/transação.
+  const duplicarDivida = (item) => {
+    let venc = "";
+    const vs = typeof item.vencimento === "string" ? item.vencimento.slice(0, 10) : "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(vs)) {
+      const [y, m, d] = vs.split("-").map(Number);
+      const alvo = new Date(y, m, 1); // índice m = mês seguinte
+      const ultimoDia = new Date(y, m + 1, 0).getDate();
+      alvo.setDate(Math.min(d, ultimoDia));
+      venc = `${alvo.getFullYear()}-${String(alvo.getMonth() + 1).padStart(2, "0")}-${String(alvo.getDate()).padStart(2, "0")}`;
+    }
+    setForm({
+      id: null, tipo: "dividas",
+      nome: item.nome || "",
+      valor: Number(item._valorCheio ?? item.valor) || "",
+      vencimento: venc,
+      categoria: item.categoria || "Outros",
+      subcategoria: item.subcategoria || "",
+      credor: item.credor || "", telefone: item.telefone || "",
+      combinado: item.combinado || "",
+      escopo: item.escopo || "pessoal", obs: item.obs || "",
+      parcela: "", parcelar: false, numParcelas: 3, modoValor: "total",
+    });
+    toast.info(`Duplicando "${item.nome}" — vencimento sugerido pro mês seguinte; confira e salve.`);
+  };
+
   /* ===== Salvar novo/editar ===== */
   const save = () => {
     if (!form.nome?.trim()) { toast.error("Nome obrigatório."); return; }
@@ -1575,6 +1605,7 @@ export default function AReceberEDividas({
           }}
           onExcluir={(item) => excluir(item, "dividas")}
           onWhats={(item) => whatsapp.cobrarDivida(item)}
+          onDuplicar={duplicarDivida}
           dueLabel={dueLabel}
           hidden={hidden}
           mesLabelTitulo={mesAtivo ? mesLabel(mesAtivo) : "Todos os meses"}
