@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { CreditCard, Calendar, TrendingUp, TrendingDown, Plus, Trash2, Edit3, Check, Repeat, ChevronDown, ChevronUp, Sparkles, AlertCircle } from "lucide-react";
-import { T } from "../../lib/theme.js";
+import { T, CARD_PAPEL } from "../../lib/theme.js";
 import { fmt, fmtN, uid, todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
@@ -778,6 +778,8 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         marginBottom: 30,
       }}>
         {cartoes.map(c => {
+          // Card SEMPRE bege (CARD_PAPEL), mesmo no modo noturno — T sombreado.
+          const T = CARD_PAPEL;
           // If c.banco is "custom", use c.bandeiraCustom; otherwise look up in BANK_BRANDS
           const brand = c.banco === "custom" && c.bandeiraCustom
             ? c.bandeiraCustom
@@ -1578,6 +1580,8 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
    Mostra parcelamentos ativos com progressbar.
    ============================================================ */
 function ParcelasDoCartao({ cartao, parcelamentos = [], extras = 0, brand, hidden }) {
+  // Vive dentro do card bege — usa a mesma paleta papel.
+  const T = CARD_PAPEL;
   const [aberto, setAberto] = useState(false);
 
   // Match por cartaoId OU por nome normalizado

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Plus, Trash2, Edit3, Building2, Receipt, ArrowRightLeft, ChevronRight, ChevronUp, ChevronDown, GripVertical, RefreshCw, AlertCircle, Eye, EyeOff, Upload, MoreHorizontal } from "lucide-react";
-import { T } from "../../lib/theme.js";
+import { T, CARD_PAPEL } from "../../lib/theme.js";
 import { fmt, uid } from "../../lib/format.js";
 import { parseValorBR } from "../../lib/importExport.js";
 import { confirm } from "../../lib/confirm.js";
@@ -416,6 +416,9 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
         // Card de uma conta — mantém TODOS os handlers/ações originais.
         // Estilo widget: card branco arredondado; a cor da conta vai no ícone.
         // Clique abre a conta; "⋯" expande as ações (mover/app/Tx/editar/excluir).
+        // Os CARDS ficam SEMPRE na paleta bege (CARD_PAPEL), mesmo no modo
+        // noturno — o T daqui pra baixo é o sombreado, de propósito.
+        const T = CARD_PAPEL;
         const acaoBtn = {
           background: T.bgSoft, border: `1px solid ${T.border}`, color: T.muted,
           borderRadius: 8, padding: "5px 8px", cursor: "pointer", fontSize: 10, fontWeight: 600,
