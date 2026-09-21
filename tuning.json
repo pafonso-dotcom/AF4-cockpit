@@ -1,0 +1,244 @@
+{
+  "atualizadoEm": "2026-08-14T16:32:50.193Z",
+  "ultimoConcurso": 3197,
+  "totalConcursos": 3197,
+  "janelaBacktest": 100,
+  "jogosPorConcurso": 5,
+  "pesos": {
+    "zonas": 0.1156,
+    "cinco5": 0.0985,
+    "colunas": 0.0775,
+    "ciclo": 0.1945,
+    "markov": 0.0745,
+    "balanceado": 0.1796,
+    "bayesiano": 0.1067,
+    "ponderado": 0.153
+  },
+  "estatisticas": {
+    "zonas": {
+      "totalApostas": 500,
+      "acertos11plus": 51,
+      "pctPremio": 0.102,
+      "acertosMedio": 8.904,
+      "dist": {
+        "11": 44,
+        "12": 6,
+        "13": 1,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 366,
+      "dt": "0.1"
+    },
+    "cinco5": {
+      "totalApostas": 500,
+      "acertos11plus": 47,
+      "pctPremio": 0.094,
+      "acertosMedio": 8.968,
+      "dist": {
+        "11": 40,
+        "12": 6,
+        "13": 1,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 342,
+      "dt": "0.1"
+    },
+    "colunas": {
+      "totalApostas": 500,
+      "acertos11plus": 41,
+      "pctPremio": 0.082,
+      "acertosMedio": 8.934,
+      "dist": {
+        "11": 36,
+        "12": 5,
+        "13": 0,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 276,
+      "dt": "0.1"
+    },
+    "ciclo": {
+      "totalApostas": 500,
+      "acertos11plus": 64,
+      "pctPremio": 0.128,
+      "acertosMedio": 9.148,
+      "dist": {
+        "11": 56,
+        "12": 8,
+        "13": 0,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 432,
+      "dt": "0.8"
+    },
+    "markov": {
+      "totalApostas": 500,
+      "acertos11plus": 40,
+      "pctPremio": 0.08,
+      "acertosMedio": 8.886,
+      "dist": {
+        "11": 34,
+        "12": 6,
+        "13": 0,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 276,
+      "dt": "2.4"
+    },
+    "balanceado": {
+      "totalApostas": 500,
+      "acertos11plus": 62,
+      "pctPremio": 0.124,
+      "acertosMedio": 9.066,
+      "dist": {
+        "11": 54,
+        "12": 7,
+        "13": 1,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 438,
+      "dt": "0.1"
+    },
+    "bayesiano": {
+      "totalApostas": 500,
+      "acertos11plus": 49,
+      "pctPremio": 0.098,
+      "acertosMedio": 8.962,
+      "dist": {
+        "11": 40,
+        "12": 9,
+        "13": 0,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 348,
+      "dt": "0.3"
+    },
+    "ponderado": {
+      "totalApostas": 500,
+      "acertos11plus": 58,
+      "pctPremio": 0.116,
+      "acertosMedio": 9.02,
+      "dist": {
+        "11": 44,
+        "12": 13,
+        "13": 1,
+        "14": 0,
+        "15": 0
+      },
+      "premioEstimado": 450,
+      "dt": "0.1"
+    }
+  },
+  "ranking": [
+    {
+      "estrategia": "ciclo",
+      "nome": "Ciclo Atrasado",
+      "pctPremio": 12.8,
+      "acertosMedio": 9.148,
+      "peso": 0.1945
+    },
+    {
+      "estrategia": "balanceado",
+      "nome": "Balanceada",
+      "pctPremio": 12.4,
+      "acertosMedio": 9.066,
+      "peso": 0.1796
+    },
+    {
+      "estrategia": "ponderado",
+      "nome": "IA Ponderada",
+      "pctPremio": 11.6,
+      "acertosMedio": 9.02,
+      "peso": 0.153
+    },
+    {
+      "estrategia": "zonas",
+      "nome": "Zonas + Primos",
+      "pctPremio": 10.2,
+      "acertosMedio": 8.904,
+      "peso": 0.1156
+    },
+    {
+      "estrategia": "bayesiano",
+      "nome": "Bayesiana",
+      "pctPremio": 9.8,
+      "acertosMedio": 8.962,
+      "peso": 0.1067
+    },
+    {
+      "estrategia": "cinco5",
+      "nome": "5×5 Balanceada",
+      "pctPremio": 9.4,
+      "acertosMedio": 8.968,
+      "peso": 0.0985
+    },
+    {
+      "estrategia": "colunas",
+      "nome": "5×5 Colunas",
+      "pctPremio": 8.2,
+      "acertosMedio": 8.934,
+      "peso": 0.0775
+    },
+    {
+      "estrategia": "markov",
+      "nome": "Markov",
+      "pctPremio": 8,
+      "acertosMedio": 8.886,
+      "peso": 0.0745
+    }
+  ],
+  "insight": {
+    "cabecalho": "Análise sobre 100 concursos (até #3197)",
+    "paragrafos": [
+      "Nos últimos 100 concursos, a estratégia **Ciclo Atrasado** teve o melhor desempenho: 12.80% das apostas premiadas (≥11 pts), média de 9.15 acertos por jogo. Recebeu peso 19% no Combo IA.",
+      "A menos performática foi **Markov** (8.00%), mas mantida com peso mínimo 5% pra diversificação.",
+      "Dezenas quentes nos últimos 30: 12, 24, 25, 01, 06. Frias: 14, 16, 09, 11, 08.",
+      "Dezenas mais atrasadas: 14(6c), 10(4c), 08(3c), 23(2c), 01(1c)."
+    ]
+  },
+  "contexto": {
+    "quentes30": [
+      12,
+      24,
+      25,
+      1,
+      6
+    ],
+    "frias30": [
+      14,
+      16,
+      9,
+      11,
+      8
+    ],
+    "maisAtrasadas": [
+      {
+        "dezena": 14,
+        "atraso": 6
+      },
+      {
+        "dezena": 10,
+        "atraso": 4
+      },
+      {
+        "dezena": 8,
+        "atraso": 3
+      },
+      {
+        "dezena": 23,
+        "atraso": 2
+      },
+      {
+        "dezena": 1,
+        "atraso": 1
+      }
+    ]
+  }
+}
