@@ -13,6 +13,7 @@ import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { getKPIsMes, getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
 import { calcOrcamentoComGastos } from "../../lib/orcamentos.js";
 import { montarResumoDia, alertasDisparadosHoje } from "../../lib/resumoDia.js";
+import { proventosPendentesDoMes, lerProvReaisCache } from "../../lib/proventosPrevistos.js";
 import { useLayout } from "../../lib/useLayout.js";
 import { supabase } from "../../lib/supabase.js";
 import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
@@ -86,6 +87,7 @@ export default function Dashboard({
   hidden, contas: contasRaw, ativos = [], transacoes: transacoesRaw,
   categorias, metas, cartoes = [], parcelamentos = [], devedores = [], dividas = [], cheques = [],
   orcamentosFuturos = [], setOrcamentosFuturos,
+  proventosRecebidos = {}, proventosIgnorados = {}, proventosManuais = [],
   fixas = [], fixaOcorrencias = [],
   agenda = [],
   patrimonioHistorico = [],
@@ -528,9 +530,14 @@ export default function Dashboard({
       cartoes,
       orcamentos: calcOrcamentoComGastos(categorias, gastosCat),
       alertasHoje: alertasDisparadosHoje(),
+      proventosMes: proventosPendentesDoMes({
+        ativos, proventosRecebidos, proventosIgnorados, proventosManuais,
+        provReais: lerProvReaisCache(),
+      }),
       fmt: (v) => (hidden ? "•••" : fmt(v)),
     });
-  }, [mesISO, stateAgg, escopoAtivo, cartoes, categorias, gastosCat, hidden]);
+  }, [mesISO, stateAgg, escopoAtivo, cartoes, categorias, gastosCat, hidden,
+      ativos, proventosRecebidos, proventosIgnorados, proventosManuais]);
 
   // ===== Insights =====
   const insights = useMemo(() => {

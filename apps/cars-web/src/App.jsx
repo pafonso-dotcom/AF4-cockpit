@@ -244,6 +244,9 @@ export default function App() {
   // Objetivos da carteira (árvore IdV-style)
   const [objetivosCarteira, setObjetivosCarteira] = useState([]);
   const [orcamentosFuturos, setOrcamentosFuturos] = useState([]); // compras/compromissos planejados (Painel)
+  // Fotos da carteira em datas específicas (posição congelada pro IR):
+  // [{ id, data, criadoEm, itens: [{ticker,tipo,qtd,pm,preco,custo,valor}] }]
+  const [snapshotsCarteira, setSnapshotsCarteira] = useState([]);
 
   // Carteiras modelo IdV (custom + builtin) + qual está ativo
   const [carteirasModeloCustom, setCarteirasModeloCustom] = useState([]);
@@ -304,7 +307,7 @@ export default function App() {
     setExerciciosDB, setTreinoTemplates, setTreinos, setPatrimonioHistorico,
     setNegocioVeiculos, setNegocioVendasVeiculos, setNegocioServicos,
     setNegocioVendasServicos, setNegocioContratos, setNegocioClientes,
-    setNegocioInstaladores, setObjetivosCarteira, setOrcamentosFuturos, setCarteirasModeloCustom,
+    setNegocioInstaladores, setObjetivosCarteira, setOrcamentosFuturos, setSnapshotsCarteira, setCarteirasModeloCustom,
     setModeloAtivoId, setCarteiraProventos, setCaixaNegocio, setNegocioBancos,
     setNegocioFinContas, setNegocioFinCategorias, setNegocioFinDespesasFixas, setNegocioFinDespesasVar,
     setNegocioLojas, setNegocioLojaAtiva, setNegocioRecebimentos,
@@ -318,7 +321,7 @@ export default function App() {
     contas, categorias, transacoes, ativos, metas, notas,
     cartoes, parcelamentos, devedores, dividas, cheques,
     fixas, fixaOcorrencias, agenda,
-    habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira, orcamentosFuturos,
+    habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira, orcamentosFuturos, snapshotsCarteira,
     negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes, negocioInstaladores,
     carteirasModeloCustom, modeloAtivoId,
     carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
@@ -403,7 +406,7 @@ export default function App() {
     saveAll(montarDados());
   }, [contas, categorias, transacoes, ativos, metas, notas, cartoes, parcelamentos, devedores, dividas, cheques,
       fixas, fixaOcorrencias, agenda,
-      habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira, orcamentosFuturos,
+      habitos, diario, compras, ideias, tarefas, sugestoes, patrimonioHistorico, objetivosCarteira, orcamentosFuturos, snapshotsCarteira,
       negocioVeiculos, negocioVendasVeiculos, negocioServicos, negocioVendasServicos, negocioContratos, negocioClientes, negocioInstaladores,
       carteirasModeloCustom, modeloAtivoId,
       carteiraProventos, proventosRecebidos, proventosIgnorados, proventosManuais,
@@ -700,6 +703,7 @@ export default function App() {
         <Dashboard totais={totais} hidden={hidden} contas={contas} ativos={ativos}
                    transacoes={transacoes} categorias={categorias} metas={metas}
                    orcamentosFuturos={orcamentosFuturos} setOrcamentosFuturos={setOrcamentosFuturos}
+                   proventosRecebidos={proventosRecebidos} proventosIgnorados={proventosIgnorados} proventosManuais={proventosManuais}
                    cartoes={cartoes} parcelamentos={parcelamentos}
                    devedores={devedores} dividas={dividas} cheques={cheques}
                    fixas={fixas} fixaOcorrencias={fixaOcorrencias}
@@ -1015,7 +1019,7 @@ export default function App() {
           }}
         />
       )}
-      {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} transacoes={transacoes} patrimonioHistorico={patrimonioHistorico} proventos={[]} operacoes={[]} hidden={hidden} />}
+      {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} transacoes={transacoes} patrimonioHistorico={patrimonioHistorico} proventos={[]} operacoes={[]} hidden={hidden} snapshotsCarteira={snapshotsCarteira} setSnapshotsCarteira={setSnapshotsCarteira} />}
       {/* Hub Mercado — funde Construtor de mercado + Screener; "screener",
           "pesquisador-mercado" e a antiga "mercado" viram atalhos. */}
       {(tab === "construtor-mercado" || tab === "pesquisador-mercado" || tab === "mercado" || tab === "screener") && (

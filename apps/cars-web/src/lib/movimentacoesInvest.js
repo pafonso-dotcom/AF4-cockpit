@@ -43,6 +43,41 @@ const tipoProvento = (t) => {
   return "Provento";
 };
 
+/**
+ * Linha do tempo de um ATIVO: todas as operações dele em ordem cronológica —
+ * compras/vendas (transações), proventos recebidos via conta (transações) e
+ * via carteira virtual (historico de carteiraProventos, incl. reinvestimentos).
+ * @returns eventos [{data, tipo: "compra"|"venda"|"provento"|"reinvestimento", valor, qtd?, preco?, resultado?, detalhe}]
+ */
+export function linhaTempoAtivo(ticker, { transacoes = [], historicoCarteira = [] } = {}) {
+  const tk = String(ticker || "").trim().toUpperCase();
+  if (!tk) return [];
+  const eventos = [];
+
+  for (const t of transacoes || []) {
+    if (ehCompra(t) && tickerDe(t).toUpperCase() === tk) {
+      eventos.push({ id: t.id, data: t.data, tipo: "compra", valor: money(t.valor), qtd: qtdDe(t), preco: qtdDe(t) > 0 ? money(t.valor) / qtdDe(t) : money(t.preco), detalhe: t.descricao || "" });
+    } else if (ehVenda(t) && tickerDe(t).toUpperCase() === tk) {
+      eventos.push({ id: t.id, data: t.data, tipo: "venda", valor: money(t.valor), qtd: qtdDe(t), preco: qtdDe(t) > 0 ? money(t.valor) / qtdDe(t) : money(t.preco), resultado: resultadoDe(t), detalhe: t.descricao || "" });
+    } else if (ehProventoTx(t) && tickerDe(t).toUpperCase() === tk) {
+      eventos.push({ id: t.id, data: t.data, tipo: "provento", valor: money(t.valor), detalhe: `${tipoProvento(t)} · em conta (${t.conta || "—"})` });
+    }
+  }
+
+  for (const h of historicoCarteira || []) {
+    const htk = String(h?.ticker || "").trim().toUpperCase();
+    if (htk !== tk) continue;
+    if (h.tipo === "recebimento") {
+      eventos.push({ id: h.id, data: h.data, tipo: "provento", valor: money(h.valor), detalhe: `${h.descricao || "Provento"} · carteira de proventos` });
+    } else if (h.tipo === "reinvestimento") {
+      eventos.push({ id: h.id, data: h.data, tipo: "reinvestimento", valor: Math.abs(money(h.valor)), detalhe: h.descricao || "Reinvestimento" });
+    }
+  }
+
+  eventos.sort((a, b) => (a.data || "").localeCompare(b.data || ""));
+  return eventos;
+}
+
 export function movimentacoesInvestMes(transacoes = [], mesISO = "") {
   const doMes = (transacoes || []).filter((t) => String(t?.data || "").startsWith(mesISO));
 

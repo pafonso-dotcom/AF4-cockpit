@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart, Calculator, Printer } from "lucide-react";
+import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart, Calculator, Printer, History } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, fmtP, fmtUSD, uid, generateHistory, todayISO } from "../../lib/format.js";
@@ -17,6 +17,7 @@ import PdfCarteira from "./Invest/PdfCarteira.jsx";
 import CarteiraSaude from "./Invest/CarteiraSaude.jsx";
 import { proventosPorCota12m } from "../../lib/mapaDividendos.js";
 import { proventosRecebidosPorTicker } from "../../lib/invest-utils.js";
+import { linhaTempoAtivo } from "../../lib/movimentacoesInvest.js";
 import StatusCotacoes from "../ui/StatusCotacoes.jsx";
 
 // Segmentos/setores sugeridos por tipo de ativo (B3 + padrões de mercado).
@@ -76,6 +77,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
   const [selected, setSelected] = useState(null);
   // Quando setado, abre PdfCarteira com este ativo pré-selecionado.
   const [pdfAtivoId, setPdfAtivoId] = useState(null);
+  // Linha do tempo de operações do ativo (modal) — guarda o ativo alvo.
+  const [timelineAtivo, setTimelineAtivo] = useState(null);
 
   // Tick a cada 15s pra recalcular o indicador "ao vivo" sem depender
   // de re-render externo. Ativo é considerado "ao vivo" se recebeu
@@ -215,6 +218,14 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
     if (pm <= 0) return null;
     const porCota = proventosPorCota12m(proventosReais[(a.ticker || "").toUpperCase()]);
     return porCota > 0 ? (porCota / pm) * 100 : null;
+  };
+  // DY atual: mesmos proventos de 12m, mas sobre o PREÇO DE HOJE (o que um
+  // comprador novo levaria). YoC usa o preço que VOCÊ pagou.
+  const dyAtual = (a) => {
+    const preco = Number(a.preco) || 0;
+    if (preco <= 0) return null;
+    const porCota = proventosPorCota12m(proventosReais[(a.ticker || "").toUpperCase()]);
+    return porCota > 0 ? (porCota / preco) * 100 : null;
   };
 
   // Proventos REALMENTE recebidos por ticker (baixados na tela Proventos) —
@@ -674,6 +685,26 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                 </span>
               </div>
 
+              {/* Linha de renda: YoC/DY (anunciados 12m) + proventos recebidos de verdade */}
+              {(() => {
+                const yoc = yieldOnCost(a);
+                const dy = dyAtual(a);
+                const prov = proventosPorTicker[(a.ticker || "").toUpperCase()] || 0;
+                if (yoc == null && !(prov > 0)) return null;
+                const pctComProv = prov > 0 && investido > 0 ? ((ganho + prov) / investido) * 100 : null;
+                return (
+                  <div className="num" style={{ marginTop: 5, fontSize: 10.5, color: T.green, whiteSpace: "nowrap", overflowX: "auto" }}
+                       title="YoC: proventos 12m ÷ seu preço médio · DY: proventos 12m ÷ preço atual · prov: recebidos de verdade (baixados em Proventos)">
+                    {yoc != null && <>YoC {yoc.toFixed(1)}%{dy != null && <> · DY {dy.toFixed(1)}%</>}</>}
+                    {prov > 0 && (
+                      <span style={{ color: T.gold }}>
+                        {yoc != null && " · "}prov {hidden ? "•••" : fmtMoedaAtivo(a, prov)}{pctComProv != null && ` · c/ prov ${fmtP(pctComProv)}`}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Linha 3: ações numa linha só */}
               <div className="no-print" onClick={e => e.stopPropagation()}
                    style={{ display: "flex", gap: 6, marginTop: 9, alignItems: "stretch", flexWrap: "wrap" }}>
@@ -699,6 +730,10 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     <Calculator size={13} />
                   </button>
                 )}
+                <button onClick={() => setTimelineAtivo(a)} aria-label={`Linha do tempo de ${a.ticker}`} title="Linha do tempo: compras, vendas e proventos deste ativo"
+                        style={{ color: T.gold, padding: "5px 8px", background: "transparent", border: `1px solid ${T.gold}55`, borderRadius: 8, cursor: "pointer" }}>
+                  <History size={13} />
+                </button>
                 <button onClick={() => setPdfAtivoId(a.id)} aria-label={`Imprimir PDF de ${a.ticker}`} title="Imprimir PDF deste ativo"
                         style={{ color: T.gold, padding: "5px 8px", background: "transparent", border: `1px solid ${T.gold}55`, borderRadius: 8, cursor: "pointer" }}>
                   <Printer size={13} />
@@ -840,9 +875,10 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                           {" "}· investido {hidden ? "•••" : fmtMoedaAtivo(a, investido)}
                           {(() => {
                             const yoc = yieldOnCost(a);
+                            const dy = dyAtual(a);
                             return yoc != null ? (
-                              <span style={{ color: T.green, fontWeight: 600 }} title="Yield-on-cost: proventos por cota dos últimos 12 meses ÷ seu preço médio pago (fonte: proventos reais do Mapa de Dividendos)">
-                                {" "}· YoC {yoc.toFixed(1)}%
+                              <span style={{ color: T.green, fontWeight: 600 }} title="YoC (yield-on-cost): proventos por cota dos últimos 12 meses ÷ seu preço médio pago. DY: os mesmos proventos ÷ preço atual (fonte: proventos reais do Mapa de Dividendos)">
+                                {" "}· YoC {yoc.toFixed(1)}%{dy != null ? ` · DY ${dy.toFixed(1)}%` : ""}
                               </span>
                             ) : null;
                           })()}
@@ -900,6 +936,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                           <button onClick={e => { e.stopPropagation(); onProjetar(a); }} aria-label={`Projetar ${a.ticker}`} title="Projetar evolução deste ativo"
                                   style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Calculator size={13} /></button>
                         )}
+                        <button onClick={e => { e.stopPropagation(); setTimelineAtivo(a); }} aria-label={`Linha do tempo de ${a.ticker}`} title="Linha do tempo: compras, vendas e proventos deste ativo"
+                                style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><History size={13} /></button>
                         <button onClick={e => { e.stopPropagation(); setPdfAtivoId(a.id); }} aria-label={`Imprimir PDF de ${a.ticker}`} title="Imprimir PDF deste ativo"
                                 style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Printer size={13} /></button>
                         <button onClick={e => { e.stopPropagation(); setForm(a); }} aria-label={`Editar ${a.ticker}`} title="Editar"
@@ -936,6 +974,72 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       </div>
 
       {selected && <DetalheAtivo ativo={selected} onClose={() => setSelected(null)} />}
+
+      {/* MODAL: linha do tempo do ativo (compras, vendas, proventos) */}
+      {timelineAtivo && (() => {
+        const a = timelineAtivo;
+        const eventos = linhaTempoAtivo(a.ticker, { transacoes, historicoCarteira: carteiraProventos?.historico });
+        const soma = (tipo) => eventos.filter(e => e.tipo === tipo).reduce((s, e) => s + e.valor, 0);
+        const CORES = { compra: T.gold, venda: T.blue || "#5b9bd5", provento: T.green, reinvestimento: T.green };
+        const ROTULOS = { compra: "Compra", venda: "Venda", provento: "Provento", reinvestimento: "Reinvest." };
+        const ICONES = { compra: "▼", venda: "▲", provento: "💰", reinvestimento: "↻" };
+        return (
+          <Modal title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><History size={18} style={{ color: T.gold }} /> Linha do tempo · {a.ticker}</span>}
+                 onClose={() => setTimelineAtivo(null)}>
+            <div className="grid grid-cols-3 gap-2" style={{ marginBottom: 12 }}>
+              {[
+                { l: "Comprado", v: soma("compra") + soma("reinvestimento"), cor: T.gold },
+                { l: "Vendido", v: soma("venda"), cor: T.blue || "#5b9bd5" },
+                { l: "Proventos", v: soma("provento"), cor: T.green },
+              ].map((k, i) => (
+                <div key={i} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "8px 10px" }}>
+                  <div style={{ fontSize: 10, color: T.muted, letterSpacing: ".06em", textTransform: "uppercase" }}>{k.l}</div>
+                  <div className="num" style={{ fontSize: 13.5, fontWeight: 700, color: k.cor, marginTop: 2 }}>{hidden ? "•••" : fmtMoedaAtivo(a, k.v)}</div>
+                </div>
+              ))}
+            </div>
+            {eventos.length === 0 ? (
+              <div style={{ padding: 24, textAlign: "center", color: T.muted, fontSize: 12.5, border: `1px dashed ${T.border}`, borderRadius: 12 }}>
+                Nenhuma operação registrada pra {a.ticker}. Aportes, vendas e baixas de proventos aparecem aqui.
+              </div>
+            ) : (
+              <div style={{ maxHeight: 340, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+                {[...eventos].reverse().map(e => (
+                  <div key={`${e.tipo}-${e.id}`} style={{
+                    display: "grid", gridTemplateColumns: "auto auto 1fr auto", gap: 10, alignItems: "center",
+                    padding: "8px 10px", background: T.bgSoft, borderRadius: 12,
+                    borderLeft: `2px solid ${CORES[e.tipo] || T.border}`,
+                  }}>
+                    <span style={{ fontSize: 10.5, color: T.muted, fontFamily: T.mono, minWidth: 62 }}>
+                      {String(e.data || "").slice(8, 10)}/{String(e.data || "").slice(5, 7)}/{String(e.data || "").slice(2, 4)}
+                    </span>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase",
+                      color: CORES[e.tipo], padding: "2px 7px", borderRadius: 8, background: `${CORES[e.tipo]}18`, whiteSpace: "nowrap",
+                    }}>
+                      {ICONES[e.tipo]} {ROTULOS[e.tipo]}
+                    </span>
+                    <span style={{ fontSize: 11, color: T.muted, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                          title={e.detalhe}>
+                      {e.qtd > 0 && <span className="num">{fmtN(e.qtd, e.qtd % 1 ? 4 : 0)} un{e.preco > 0 ? ` × ${hidden ? "•••" : fmtMoedaAtivo(a, e.preco)}` : ""}</span>}
+                      {e.qtd > 0 && e.detalhe ? " · " : ""}{!e.qtd && e.detalhe}
+                      {e.resultado != null && (
+                        <span className="num" style={{ color: e.resultado >= 0 ? T.green : T.red }}> · result. {hidden ? "•••" : fmtMoedaAtivo(a, e.resultado)}</span>
+                      )}
+                    </span>
+                    <span className="num" style={{ fontSize: 12.5, fontWeight: 700, color: CORES[e.tipo], whiteSpace: "nowrap" }}>
+                      {hidden ? "•••" : fmtMoedaAtivo(a, e.valor)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ fontSize: 10, color: T.faint, marginTop: 10, fontStyle: "italic" }}>
+              Fontes: aportes e vendas registrados nas transações + proventos baixados na tela Proventos (em conta ou na carteira virtual). Operações antigas sem registro não aparecem.
+            </div>
+          </Modal>
+        );
+      })()}
 
       {pdfAtivoId && (
         <PdfCarteira

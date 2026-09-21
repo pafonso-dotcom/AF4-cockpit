@@ -7,6 +7,7 @@
      nesta fatura)
    - orçamento de categoria em ≥90% (ou estourado)
    - alertas de preço que dispararam hoje
+   - proventos ainda pendentes no mês (lib/proventosPrevistos.js)
 
    Puro: recebe os dados prontos e devolve [{ icone, texto, cor }].
    Quem monta os dados é o Dashboard.
@@ -19,6 +20,7 @@ export function montarResumoDia({
   cartoes = [],
   orcamentos = [],         // saída de calcOrcamentoComGastos
   alertasHoje = [],        // tickers que dispararam hoje
+  proventosMes = null,     // { total, qtd } de proventosPendentesDoMes
   fmt = (v) => String(v),
   hoje = new Date(),
 } = {}) {
@@ -72,7 +74,18 @@ export function montarResumoDia({
     });
   }
 
-  return avisos.slice(0, 4);
+  const out = avisos.slice(0, 4);
+
+  // 5) Proventos previstos — informativo, entra por último (avisos urgentes
+  // têm prioridade nas 4 vagas; este é um extra sempre visível quando existe).
+  if (proventosMes && Number(proventosMes.total) > 0) {
+    out.push({
+      icone: "💰", cor: "green",
+      texto: `Proventos previstos: ${fmt(proventosMes.total)} ainda este mês (${proventosMes.qtd} pagamento${proventosMes.qtd === 1 ? "" : "s"})`,
+    });
+  }
+
+  return out;
 }
 
 /** Tickers cujo alerta de preço disparou HOJE (lido do dedupe em localStorage). */
