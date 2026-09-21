@@ -67,6 +67,7 @@ export function aplicarDadosCarregados(data, S) {
   S.setNegocioClientes(data.negocioClientes || []);
   S.setNegocioInstaladores(data.negocioInstaladores || []);
   S.setObjetivosCarteira(data.objetivosCarteira || []);
+  S.setOrcamentosFuturos?.(data.orcamentosFuturos || []);
   S.setCarteirasModeloCustom(data.carteirasModeloCustom || []);
   if (data.modeloAtivoId) S.setModeloAtivoId(data.modeloAtivoId);
   S.setCarteiraProventos(data.carteiraProventos || { saldo: 0, historico: [] });

@@ -16,6 +16,8 @@ import { useLayout } from "../../lib/useLayout.js";
 import { supabase } from "../../lib/supabase.js";
 import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
 import CalculadoraJurosModal from "../modals/CalculadoraJurosModal.jsx";
+import { uid } from "../../lib/format.js";
+import { calcOrcamentoCompra, resumoOrcamentos } from "../../lib/orcamentosFuturos.js";
 import Card, { SoftCardContext } from "../ui/Card.jsx";
 import { Sparkline, RingIcon } from "../ui/widget.jsx";
 
@@ -82,6 +84,7 @@ function nextMonthsISO(n = 6) {
 export default function Dashboard({
   hidden, contas: contasRaw, ativos = [], transacoes: transacoesRaw,
   categorias, metas, cartoes = [], parcelamentos = [], devedores = [], dividas = [], cheques = [],
+  orcamentosFuturos = [], setOrcamentosFuturos,
   fixas = [], fixaOcorrencias = [],
   agenda = [],
   patrimonioHistorico = [],
@@ -593,7 +596,7 @@ export default function Dashboard({
       <section className="dash-metas-grid" style={{
         display: "grid", gridTemplateColumns: "2.5fr 1fr", gap: 12, marginBottom: 24,
       }}>
-        <MetasCard metas={metas || []} hidden={hidden} onSeeAll={() => onTabChange?.("metas")} />
+        <OrcamentosFuturosCard itens={orcamentosFuturos} setItens={setOrcamentosFuturos} hidden={hidden} />
         {principalInsight && <InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("inteligencia")} />}
         <PergunteIACard onClick={() => onTabChange?.("perguntar")} />
       </section>
@@ -1443,52 +1446,116 @@ function ProjecaoMesesCard({ projecao, hidden }) {
 }
 
 // Anel de progresso (gauge radial) com o % no centro.
-function GaugeRing({ pct = 0, size = 54, cor = T.gold }) {
-  const r = 22, circ = 2 * Math.PI * r;
-  const dash = Math.max(0, Math.min(100, pct)) / 100 * circ;
-  return (
-    <svg width={size} height={size} viewBox="0 0 56 56" style={{ flexShrink: 0 }}>
-      <circle cx="28" cy="28" r={r} fill="none" stroke={T.border} strokeWidth="6" />
-      <circle cx="28" cy="28" r={r} fill="none" stroke={cor} strokeWidth="6" strokeLinecap="round"
-              strokeDasharray={`${dash} ${circ}`} transform="rotate(-90 28 28)" />
-      <text x="28" y="32" textAnchor="middle" fontSize="13" fontWeight="700" fill={T.ink}>{fmtN(pct, 0)}%</text>
-    </svg>
-  );
-}
+/* Orçamentos de compras futuras — substitui o card Metas Financeiras do
+   Painel (pedido 2026-09-21). Funciona como CALCULADORA: valor + quando →
+   quanto guardar por mês; salva os planos e acompanha o progresso. */
+function OrcamentosFuturosCard({ itens = [], setItens, hidden }) {
+  const [form, setForm] = useState(null); // null | { id?, nome, valor, alvo, guardado }
+  const vazio = () => {
+    const d = new Date(); d.setMonth(d.getMonth() + 6);
+    return { id: null, nome: "", valor: "", guardado: "", alvo: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` };
+  };
+  const calc = form ? calcOrcamentoCompra({ valor: parseFloat(form.valor) || 0, guardado: parseFloat(form.guardado) || 0, alvo: form.alvo }) : null;
+  const resumo = resumoOrcamentos(itens);
 
-function MetasCard({ metas, hidden, onSeeAll }) {
+  const salvar = () => {
+    const valor = parseFloat(form.valor) || 0;
+    if (!form.nome.trim() || valor <= 0) return;
+    const item = { id: form.id || uid(), nome: form.nome.trim(), valor, guardado: parseFloat(form.guardado) || 0, alvo: form.alvo };
+    setItens?.(form.id ? itens.map(x => x.id === form.id ? item : x) : [...itens, item]);
+    setForm(null);
+  };
+  const mesLabel = (ym) => `${["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][parseInt(String(ym).slice(5,7),10)-1] || "?"}/${String(ym).slice(2,4)}`;
+  const inp = { padding: "7px 9px", fontSize: 12.5, borderRadius: 9 };
+
   return (
     <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Metas Financeiras</div>
-        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver todas</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
+        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>🛒 Orçamentos · compras futuras</div>
+        {!form && (
+          <button onClick={() => setForm(vazio())}
+                  style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
+            + Planejar compra
+          </button>
+        )}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
-        {metas.slice(0, 3).map(m => {
-          const meta = Number(m.alvo ?? m.valorMeta ?? m.valor ?? 0);
-          const atual = Number(m.atual ?? m.valorAtual ?? m.aplicado ?? 0);
-          const pct = meta > 0 ? Math.min(100, (atual / meta) * 100) : 0;
-          const cor = pct >= 100 ? T.green : T.gold;
-          return (
-            <div key={m.id} style={{ background: T.bgSoft, borderRadius: 14, padding: 10, display: "flex", alignItems: "center", gap: 10 }}>
-              <GaugeRing pct={pct} cor={cor} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.nome || m.titulo || "Meta"}</div>
-                <div className="num" style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>
-                  {hidden ? "•••" : fmt(atual)}
-                </div>
-                <div className="num" style={{ fontSize: 9.5, color: T.faint }}>
-                  de {hidden ? "•••" : fmt(meta)}
-                </div>
-              </div>
+
+      {/* CALCULADORA (novo/editar) */}
+      {form && (
+        <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 13, padding: 12, marginBottom: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1fr", gap: 8 }} className="no-mobile-stack">
+            <input style={inp} placeholder="O que? (ex: Moto, Reforma…)" value={form.nome}
+                   onChange={e => setForm({ ...form, nome: e.target.value })} autoFocus />
+            <input style={inp} type="number" step="0.01" min="0" placeholder="Valor R$" value={form.valor}
+                   onChange={e => setForm({ ...form, valor: e.target.value })} />
+            <input style={inp} type="month" value={form.alvo}
+                   onChange={e => setForm({ ...form, alvo: e.target.value })} title="Quando quer comprar" />
+            <input style={inp} type="number" step="0.01" min="0" placeholder="Já tenho R$" value={form.guardado}
+                   onChange={e => setForm({ ...form, guardado: e.target.value })} />
+          </div>
+          {calc && calc.valor > 0 && (
+            <div style={{ marginTop: 8, fontSize: 12.5, color: T.ink }}>
+              → faltam <b className="num">{fmt(calc.falta)}</b> em <b>{calc.meses} {calc.meses === 1 ? "mês" : "meses"}</b>
+              {" "}= guardar <b className="num" style={{ color: T.gold }}>{fmt(calc.porMes)}/mês</b>
             </div>
-          );
-        })}
-        <button onClick={onSeeAll}
-                style={{ background: "transparent", border: `2px dashed ${T.border}`, borderRadius: 14, padding: 10, color: T.muted, fontSize: 12, cursor: "pointer", minHeight: 70 }}>
-          + Nova Meta
+          )}
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <button onClick={salvar} className="btn-gold" style={{ padding: "6px 14px", fontSize: 11 }}>
+              {form.id ? "Atualizar" : "Salvar plano"}
+            </button>
+            {form.id && (
+              <button onClick={() => { setItens?.(itens.filter(x => x.id !== form.id)); setForm(null); }}
+                      style={{ background: "transparent", border: `1px solid ${T.red}55`, color: T.red, borderRadius: 9, padding: "6px 12px", fontSize: 11, cursor: "pointer" }}>
+                Excluir
+              </button>
+            )}
+            <button onClick={() => setForm(null)} className="btn-ghost" style={{ padding: "6px 12px", fontSize: 11 }}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {/* Lista de planos */}
+      {itens.length === 0 && !form ? (
+        <button onClick={() => setForm(vazio())}
+                style={{ width: "100%", background: "transparent", border: `2px dashed ${T.border}`, borderRadius: 14, padding: 18, color: T.muted, fontSize: 12.5, cursor: "pointer" }}>
+          Planeje uma compra ou compromisso futuro — a calculadora mostra quanto guardar por mês.
         </button>
-      </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {itens.map(it => {
+            const c = calcOrcamentoCompra(it);
+            const cor = c.pct >= 100 ? T.green : c.passado ? T.red : T.gold;
+            return (
+              <button key={it.id} onClick={() => setForm({ id: it.id, nome: it.nome, valor: String(it.valor), guardado: String(it.guardado || ""), alvo: it.alvo })}
+                      title="Toque pra editar / registrar quanto já guardou"
+                      style={{ background: T.bgSoft, border: "none", borderRadius: 12, padding: "9px 11px", cursor: "pointer", textAlign: "left" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {it.nome} <span style={{ color: T.faint, fontWeight: 500 }}>· {mesLabel(it.alvo)}</span>
+                  </span>
+                  <span className="num" style={{ fontSize: 12, fontWeight: 700, color: T.ink, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(c.valor)}</span>
+                </div>
+                <div style={{ height: 5, borderRadius: 100, background: `${cor}22`, overflow: "hidden", margin: "6px 0 4px" }}>
+                  <div style={{ width: `${c.pct}%`, height: "100%", background: cor, borderRadius: 100 }} />
+                </div>
+                <div className="num" style={{ fontSize: 10, color: T.muted }}>
+                  {c.pct >= 100
+                    ? <span style={{ color: T.green, fontWeight: 700 }}>✓ valor completo — pode comprar</span>
+                    : c.passado
+                      ? <span style={{ color: T.red, fontWeight: 700 }}>⚠ alvo passou · faltam {hidden ? "•••" : fmt(c.falta)}</span>
+                      : <>guardado {hidden ? "•••" : fmt(c.guardado)} · faltam {hidden ? "•••" : fmt(c.falta)} → <b style={{ color: cor }}>{hidden ? "•••" : fmt(c.porMes)}/mês</b> por {c.meses}m</>}
+                </div>
+              </button>
+            );
+          })}
+          {itens.length > 1 && (
+            <div style={{ fontSize: 10.5, color: T.muted, padding: "2px 4px" }}>
+              Total dos planos: guardar <b className="num" style={{ color: T.gold }}>{hidden ? "•••" : fmt(resumo.totalPorMes)}/mês</b>
+              {" "}· falta juntar {hidden ? "•••" : fmt(resumo.totalFalta)} de {hidden ? "•••" : fmt(resumo.totalValor)}
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
