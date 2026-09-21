@@ -1284,7 +1284,7 @@ export default function App() {
       )}
       {comprasFotoOpen && (
         <ComprasFotoModal
-          cartoes={cartoes}
+          cartoes={cartoes} categorias={categorias}
           transacoes={transacoes} setTransacoes={setTransacoes}
           onClose={() => setComprasFotoOpen(false)}
           onManual={() => setCompraCartaoOpen(true)} />

@@ -6,6 +6,7 @@ import { toast } from "../../lib/toast.js";
 import Modal from "../ui/Modal.jsx";
 import { gerarJSONGeminiComImagem, fileToBase64 } from "../../lib/gemini.js";
 import { montarPromptComprasFoto, normalizarCompraFoto, marcarJaLancadas } from "../../lib/comprasFoto.js";
+import { categoriaAuto } from "../../lib/autoCategorizar.js";
 
 const KEY_ULTIMO_CARTAO = "af4:compra-cartao:ultimo"; // mesmo do CompraCartaoModal
 
@@ -36,7 +37,7 @@ async function comprimirImagem(file, maxLado = 1600) {
  * As já lançadas (mesmo valor + data próxima) vêm desmarcadas.
  */
 export default function ComprasFotoModal({
-  cartoes = [], transacoes = [], setTransacoes,
+  cartoes = [], transacoes = [], setTransacoes, categorias = [],
   onClose, onManual,
 }) {
   const [cartaoId, setCartaoId] = useState(() => {
@@ -76,7 +77,11 @@ export default function ComprasFotoModal({
         return;
       }
       const marcadas = marcarJaLancadas(compras, transacoes, cartaoId);
-      setItens(marcadas.map((c, i) => ({ ...c, id: i, incluir: !c.jaLancada })));
+      setItens(marcadas.map((c, i) => ({
+        ...c, id: i, incluir: !c.jaLancada,
+        // Categoria automática: aprende com o histórico + regras por palavra-chave
+        catAuto: categoriaAuto({ descricao: c.descricao, tipo: "despesa" }, categorias, transacoes),
+      })));
     } catch (e) {
       toast.error(e?.message || "Falha ao ler a foto.");
     } finally {
@@ -98,7 +103,7 @@ export default function ComprasFotoModal({
       descricao: c.descricao,
       valor: c.valor,
       data: c.data,
-      categoria: "Outros",
+      categoria: c.catAuto || "Outros",
       cartaoId,
       compensado: false,
       origem: "compra-foto",
@@ -169,6 +174,7 @@ export default function ComprasFotoModal({
                   <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.descricao}</span>
                   <span style={{ fontSize: 10.5, color: T.muted }}>
                     {c.data.slice(8, 10)}/{c.data.slice(5, 7)}
+                    {c.catAuto && <span style={{ color: T.green }}> · {c.catAuto}</span>}
                     {c.jaLancada && <strong style={{ color: T.gold }}> · já lançada?</strong>}
                   </span>
                 </span>

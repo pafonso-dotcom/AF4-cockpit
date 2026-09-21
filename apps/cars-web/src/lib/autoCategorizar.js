@@ -83,3 +83,41 @@ export function sugerirCategorias(transacoes = [], categorias = [], opts = {}) {
 
   return { sugestoes, porCategoria, semSugestao };
 }
+
+// Normalização fuzzy da descrição (remove acentos, dígitos e pontuação) —
+// "IFD*Maestro 123" ≈ "Maestro" pra fins de aprendizado com o histórico.
+const normDesc = (s) => String(s || "")
+  .toLowerCase()
+  .normalize("NFD").replace(/[̀-ͯ]/g, "")
+  .replace(/^(ifd|dl|pag|mp|ebn|pay|pg)\s*\*\s*/i, "") // prefixo de adquirente
+  .replace(/[\d*#.,/_-]+/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+
+/**
+ * Categoria automática pra UM lançamento novo (compra por foto, importação).
+ * Ordem: 1) HISTÓRICO — a transação mais recente com descrição parecida e
+ * categoria válida ensina a categoria; 2) REGRAS por palavra-chave.
+ * Só devolve categoria que EXISTE no cadastro; null se nada casar.
+ */
+export function categoriaAuto({ descricao, tipo = "despesa" } = {}, categorias = [], historico = []) {
+  const nomesValidos = new Set((categorias || []).map((c) => c?.nome).filter(Boolean));
+  const desc = String(descricao || "");
+  const chave = normDesc(desc);
+
+  // 1) Aprende com o histórico (do mais recente pro mais antigo)
+  if (chave) {
+    for (let i = (historico || []).length - 1; i >= 0; i--) {
+      const t = historico[i];
+      if (!t || t.tipo !== tipo) continue;
+      const c = (t.categoria || "").trim();
+      if (!c || c.toLowerCase() === "outros" || !nomesValidos.has(c)) continue;
+      const ct = normDesc(t.descricao);
+      if (ct && (ct === chave || ct.startsWith(chave) || chave.startsWith(ct))) return c;
+    }
+  }
+
+  // 2) Regras por palavra-chave
+  const regra = REGRAS.find((r) => (!r.tipo || r.tipo === tipo) && r.re.test(desc) && nomesValidos.has(r.cat));
+  return regra ? regra.cat : null;
+}

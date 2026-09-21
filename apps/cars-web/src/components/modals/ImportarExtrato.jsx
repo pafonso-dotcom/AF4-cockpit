@@ -7,6 +7,7 @@ import { gerarJSONGeminiComPDF, fileToBase64 } from "../../lib/gemini.js";
 import { toast } from "../../lib/toast.js";
 import { audit } from "../../lib/auditLog.js";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
+import { categoriaAuto } from "../../lib/autoCategorizar.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
 
@@ -151,10 +152,17 @@ export default function ImportarExtrato({
       .filter(t => selecionadas.has(t._id))
       .map(t => {
         const edits = edicoes[t._id] || {};
+        const descFinal = edits.descricao ?? t.descricao;
+        const tipoFinal = edits.tipo ?? t.tipo;
+        let catFinal = edits.categoria ?? t.categoria;
+        // Sem categoria (ou "Outros") → automática: histórico + palavras-chave
+        if (!catFinal || String(catFinal).toLowerCase() === "outros") {
+          catFinal = categoriaAuto({ descricao: descFinal, tipo: tipoFinal }, categorias, transacoes) || catFinal || "Outros";
+        }
         return {
           id: uid(),
-          descricao: edits.descricao ?? t.descricao,
-          categoria: edits.categoria ?? t.categoria,
+          descricao: descFinal,
+          categoria: catFinal,
           subcategoria: edits.subcategoria ?? t.subcategoria ?? null,
           tipo: edits.tipo ?? t.tipo,
           conta: contaDestino,
