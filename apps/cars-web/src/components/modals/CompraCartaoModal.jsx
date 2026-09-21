@@ -4,6 +4,7 @@ import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
+import { categoriaAuto } from "../../lib/autoCategorizar.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
 import MoneyInput from "../ui/MoneyInput.jsx";
@@ -48,6 +49,8 @@ export default function CompraCartaoModal({
     if (!cartaoId) { toast.error("Selecione o cartão."); return; }
     const cartao = cartoes.find(c => c.id === cartaoId);
     const desc = descricao.trim() || "Compra no cartão";
+    // Sem categoria escolhida → automática (histórico + palavras-chave)
+    const catFinal = categoria || categoriaAuto({ descricao: desc, tipo: "despesa" }, categorias, transacoes) || "";
     try { localStorage.setItem(KEY_ULTIMO_CARTAO, cartaoId); } catch {}
 
     if (parcelado) {
@@ -55,7 +58,7 @@ export default function CompraCartaoModal({
         id: `parc-${uid()}`,
         cartaoId,
         descricao: desc,
-        categoria: categoria || "",
+        categoria: catFinal,
         valorTotal: v,
         totalParcelas: n,
         valorParcela: +(v / n).toFixed(2),
@@ -73,7 +76,7 @@ export default function CompraCartaoModal({
         descricao: desc,
         valor: v,
         data,
-        categoria: categoria || "Outros",
+        categoria: catFinal || "Outros",
         cartaoId,
         compensado: false,
         origem: "compra-manual",
