@@ -12,6 +12,7 @@ import { calcMoMTransacoes } from "../../lib/mom.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { getKPIsMes, getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
 import { calcOrcamentoComGastos } from "../../lib/orcamentos.js";
+import { montarResumoDia, alertasDisparadosHoje } from "../../lib/resumoDia.js";
 import { useLayout } from "../../lib/useLayout.js";
 import { supabase } from "../../lib/supabase.js";
 import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
@@ -517,6 +518,20 @@ export default function Dashboard({
 
   const [calcJurosOpen, setCalcJurosOpen] = useState(false);
 
+  // Resumo do dia: vence hoje · cartão fechando · orçamento apertado · alerta
+  // de preço — tudo calculado localmente com dados que o Painel já tem.
+  const resumoDia = useMemo(() => {
+    let despesasMes = [];
+    try { despesasMes = getDespesasDoMes(mesISO, stateAgg, escopoAtivo); } catch {}
+    return montarResumoDia({
+      despesasMes,
+      cartoes,
+      orcamentos: calcOrcamentoComGastos(categorias, gastosCat),
+      alertasHoje: alertasDisparadosHoje(),
+      fmt: (v) => (hidden ? "•••" : fmt(v)),
+    });
+  }, [mesISO, stateAgg, escopoAtivo, cartoes, categorias, gastosCat, hidden]);
+
   // ===== Insights =====
   const insights = useMemo(() => {
     try { return gerarInsights(transacoes, contas, ativos, cartoes, parcelamentos) || []; }
@@ -543,6 +558,27 @@ export default function Dashboard({
         </button>
       </div>
       {calcJurosOpen && <CalculadoraJurosModal onClose={() => setCalcJurosOpen(false)} />}
+
+      {/* RESUMO DO DIA — uma olhada e o dia está decidido */}
+      {resumoDia.length > 0 && (
+        <div className="no-print" style={{
+          display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12,
+        }}>
+          {resumoDia.map((a, i) => {
+            const cor = a.cor === "red" ? T.red : a.cor === "green" ? T.green : T.gold;
+            return (
+              <span key={i} style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                background: `${cor}12`, border: `1px solid ${cor}44`,
+                borderRadius: 100, padding: "6px 12px",
+                fontSize: 12, color: T.ink, fontWeight: 600,
+              }}>
+                <span aria-hidden>{a.icone}</span> {a.texto}
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       {/* Linha 1: Patrimônio · Próximo compromisso · Contas */}
       <section className="dash-kpi-grid" style={{
