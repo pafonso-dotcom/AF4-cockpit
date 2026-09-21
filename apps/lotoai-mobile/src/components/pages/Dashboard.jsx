@@ -30,7 +30,7 @@ export default function Dashboard({ historico, onHistoricoUpdate }) {
   const analise = ultimo ? analisarJogo(ultimo.dezenas) : null;
 
   return (
-    <div className="px-4 pt-4 pb-28 space-y-4">
+    <div className="px-4 pt-4 pb-28 space-y-3">
       <JogoDoDia historico={historico} />
 
       <PainelPlacar historico={historico} onHistoricoUpdate={onHistoricoUpdate} />
@@ -39,64 +39,29 @@ export default function Dashboard({ historico, onHistoricoUpdate }) {
 
       {ultimo && (
         <section className="card">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <div className="text-[11px] uppercase tracking-wider text-white/40">Último sorteio</div>
-              <div className="text-lg font-bold">
-                Concurso #{ultimo.numero}
-                <span className="text-white/50 text-sm font-normal ml-2">{ultimo.data}</span>
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[11px] uppercase tracking-wider text-white/40">
+              Último · <span className="text-gold">#{ultimo.numero}</span>
+              <span className="text-white/40 ml-1.5 normal-case tracking-normal">{ultimo.data}</span>
+            </div>
+            {analise && (
+              <div className="text-[10px] text-white/50 flex gap-2">
+                <span>{analise.pares}P</span>
+                <span>{analise.primos}Pr</span>
+                <span>{analise.moldura}M</span>
+                <span className="text-gold">Σ{analise.soma}</span>
               </div>
-            </div>
+            )}
           </div>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {ultimo.dezenas.map(n => <Ball key={n} n={n} highlight />)}
+          <div className="flex flex-wrap gap-1.5">
+            {ultimo.dezenas.map(n => <Ball key={n} n={n} size="sm" highlight />)}
           </div>
-          {analise && (
-            <div className="grid grid-cols-4 gap-2 text-center">
-              <Mini label="Pares" value={analise.pares} />
-              <Mini label="Primos" value={analise.primos} />
-              <Mini label="Moldura" value={analise.moldura} />
-              <Mini label="Soma" value={analise.soma} />
-            </div>
-          )}
         </section>
       )}
 
       {stats && (
         <>
-          <PainelCiclos historico={historico} ultimo={ultimo} />
-
-          <PainelTrincas historico={historico} />
-
-          {/* Quentes + Frias consolidados em UM card, lado a lado */}
-          <section className="card">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold flex items-center gap-2">
-                <Flame size={14} className="text-orange-400" />
-                <Snowflake size={14} className="text-sky-300" />
-                Quentes & Frias
-              </h3>
-              <span className="chip">{historico.length}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-orange-300/70 mb-1.5">
-                  Mais sorteadas
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {stats.quentes.map(n => <Ball key={n} n={n} size="sm" />)}
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-sky-300/70 mb-1.5">
-                  Menos sorteadas
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {stats.frias.map(n => <Ball key={n} n={n} size="sm" />)}
-                </div>
-              </div>
-            </div>
-          </section>
+          <PainelAnalise historico={historico} ultimo={ultimo} stats={stats} />
 
           {/* Mais análise: colapsado por padrão */}
           <details className="card">
@@ -270,6 +235,151 @@ function PainelProbabilidade() {
      2. Recalcula o placar automaticamente
      3. Força reload do bundle (pega auto-deploy novo)
    ============================================================ */
+/* ============================================================
+   PAINEL ANÁLISE (consolidado)
+   3 abas: Ciclo · Trincas · Quentes/Frias
+   ============================================================ */
+function PainelAnalise({ historico, ultimo, stats }) {
+  const [tab, setTab] = useState("ciclo"); // ciclo | trincas | quentes
+
+  const ciclos = useMemo(() => {
+    if (!historico?.length) return null;
+    return analisarCiclos(historico.map(c => c.dezenas));
+  }, [historico]);
+
+  const trincas = useMemo(() => {
+    if (!historico?.length) return [];
+    return topTrincas(historico.map(c => c.dezenas), 6, { minCount: 40 });
+  }, [historico]);
+
+  const linhaDist = useMemo(() => ultimo ? distPorLinha(ultimo.dezenas) : null, [ultimo]);
+  const colDist  = useMemo(() => ultimo ? distPorColuna(ultimo.dezenas) : null, [ultimo]);
+
+  const TABS = [
+    { id: "ciclo",   label: "Ciclo",   icon: <RefreshCw size={12} /> },
+    { id: "trincas", label: "Trincas", icon: <TrendingUp size={12} /> },
+    { id: "quentes", label: "Quentes", icon: <Flame size={12} /> },
+  ];
+
+  return (
+    <section className="card">
+      <div className="flex gap-1 mb-3 -mx-1">
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`flex-1 flex items-center justify-center gap-1 text-[11px] font-semibold py-1.5 rounded-md ${
+              tab === t.id ? "bg-gold/15 text-gold" : "text-white/50"
+            }`}
+          >
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "ciclo" && ciclos && (
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between">
+            <div className="text-xs text-white/60">
+              Ciclo <b className="text-white">#{ciclos.cicloAtual}</b> · {ciclos.concursosNoCiclo}c
+              {ciclos.tamanhoMedio && <span className="text-white/40 ml-1">/ média {ciclos.tamanhoMedio.toFixed(1)}</span>}
+            </div>
+            <div className="text-lg font-bold text-gold">{ciclos.dezenasFaltando.length} <span className="text-[10px] text-white/50 font-normal">faltam</span></div>
+          </div>
+          {ciclos.tamanhoMedio && (
+            <div className="h-1 bg-ink/60 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-emerald-500 to-gold"
+                   style={{ width: `${Math.min(100, (ciclos.concursosNoCiclo / ciclos.tamanhoMedio) * 100)}%` }} />
+            </div>
+          )}
+          {ciclos.dezenasFaltando.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {ciclos.dezenasFaltando.map(n => (
+                <span key={n} className="inline-flex items-center justify-center w-7 h-7 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  {String(n).padStart(2, "0")}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="text-[11px] text-emerald-300">✓ Ciclo fechou · novo começa agora</div>
+          )}
+          {(linhaDist || colDist) && (
+            <div className="grid grid-cols-2 gap-2 pt-1 text-[10px]">
+              {linhaDist && (
+                <div>
+                  <div className="text-white/40 mb-1">Último · linhas (alvo 3)</div>
+                  <div className="flex gap-0.5">
+                    {linhaDist.map((n, i) => (
+                      <span key={i} className={`flex-1 py-0.5 text-center rounded font-bold ${n === 3 ? "bg-emerald-500/20 text-emerald-300" : "bg-ink/60 text-white/70"}`}>{n}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {colDist && (
+                <div>
+                  <div className="text-white/40 mb-1">Último · colunas (alvo 3)</div>
+                  <div className="flex gap-0.5">
+                    {colDist.map((n, i) => (
+                      <span key={i} className={`flex-1 py-0.5 text-center rounded font-bold ${n === 3 ? "bg-emerald-500/20 text-emerald-300" : "bg-ink/60 text-white/70"}`}>{n}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "trincas" && (
+        <div className="space-y-1.5">
+          <div className="text-[10px] text-white/50 mb-1">3 dezenas que saem juntas mais que o esperado</div>
+          {trincas.length === 0 && <div className="text-xs text-white/50">Histórico insuficiente.</div>}
+          {trincas.map((t, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs">
+              <span className="w-4 text-white/40 tabular-nums">#{i + 1}</span>
+              <div className="flex gap-0.5">
+                {t.dezenas.map(n => (
+                  <span key={n} className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold ${
+                    i === 0 ? "bg-gradient-to-br from-gold to-amber-500 text-ink" : "bg-ink/60 border border-line text-white/80"
+                  }`}>
+                    {String(n).padStart(2, "0")}
+                  </span>
+                ))}
+              </div>
+              <span className="ml-auto text-white/50 tabular-nums">{t.lift.toFixed(3)}</span>
+              <span className="text-white/40 tabular-nums w-8 text-right">{t.count}×</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "quentes" && (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-orange-300/70 mb-1.5 flex items-center gap-1">
+              <Flame size={10} /> Quentes
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {stats.quentes.map(n => <Ball key={n} n={n} size="sm" />)}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-sky-300/70 mb-1.5 flex items-center gap-1">
+              <Snowflake size={10} /> Frias
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {stats.frias.map(n => <Ball key={n} n={n} size="sm" />)}
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ============================================================
+   PAINEL PLACAR + ATUALIZAR SISTEMA (mantido, mas usado como estava)
+   ============================================================ */
 function PainelPlacar({ historico, onHistoricoUpdate }) {
   const [placar, setPlacar] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -386,89 +496,66 @@ function PainelPlacar({ historico, onHistoricoUpdate }) {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Trophy size={16} className="text-gold" />
-          <h3 className="font-semibold">Meu placar</h3>
-        </div>
+      <div className="flex items-center gap-2 mb-2">
+        <Trophy size={14} className="text-gold" />
+        <h3 className="font-semibold text-sm">Meu placar</h3>
+        <button
+          onClick={atualizarTudo}
+          disabled={estado === "loading"}
+          className={`ml-auto text-[11px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1 disabled:opacity-60 ${
+            estado === "done" ? "bg-emerald-500/20 text-emerald-300"
+            : estado === "erro" ? "bg-red-500/20 text-red-300"
+            : "bg-accent/20 text-accent hover:bg-accent/30"
+          }`}
+        >
+          {estado === "loading" ? <><RefreshCw size={11} className="animate-spin" /> Atualizando…</>
+          : estado === "done" ? <><Check size={11} /> OK</>
+          : estado === "erro" ? <><Info size={11} /> Erro</>
+          : <><Zap size={11} /> Atualizar</>}
+        </button>
         <button
           onClick={forcarAtualizacao}
           title="Forçar recarregar app (limpa cache)"
           aria-label="Forçar recarregar app"
           className="text-white/40 active:text-white p-1 rounded"
         >
-          <RefreshCw size={12} />
+          <RefreshCw size={11} />
         </button>
       </div>
 
-      {loading && <div className="text-xs text-white/50 text-center py-3">Carregando…</div>}
+      {loading && <div className="text-xs text-white/50 text-center py-2">Carregando…</div>}
 
       {placar && !loading && placar.totalApostas === 0 && (
-        <div className="text-center py-3">
-          <p className="text-xs text-white/50">Nenhum bilhete salvo ainda.</p>
-          <p className="text-[10px] text-white/40 mt-1">
-            Salve jogos em Gerar / Fechar / Bolão pra ver seu placar aqui.
-          </p>
+        <div className="text-[11px] text-white/50 text-center py-2">
+          Sem bilhetes ainda · salve jogos em Gerar / Fechar / Bolão
         </div>
       )}
 
       {placar && !loading && placar.totalApostas > 0 && (
         <>
-          <div className="grid grid-cols-4 gap-1.5 mb-3">
+          <div className="grid grid-cols-4 gap-1.5">
             <MiniStat label="Bilhetes" value={placar.totalApostas} />
-            <MiniStat
-              label="Premiadas"
-              value={`${placar.premiadas}/${placar.conferidas}`}
-              tone={placar.premiadas > 0 ? "gold" : "gray"}
-            />
-            <MiniStat
-              label="Prêmio est."
-              value={`R$ ${placar.premioTotal.toLocaleString("pt-BR")}`}
-              tone={placar.premioTotal > 0 ? "gold" : "gray"}
-            />
-            <MiniStat
-              label="Melhor"
-              value={placar.melhor > 0 ? `${placar.melhor} pts` : "—"}
-              tone={placar.melhor >= 11 ? "gold" : "gray"}
-            />
+            <MiniStat label="Premiadas" value={`${placar.premiadas}/${placar.conferidas}`} tone={placar.premiadas > 0 ? "gold" : "gray"} />
+            <MiniStat label="Prêmio" value={`R$ ${placar.premioTotal.toLocaleString("pt-BR")}`} tone={placar.premioTotal > 0 ? "gold" : "gray"} />
+            <MiniStat label="Melhor" value={placar.melhor > 0 ? `${placar.melhor}` : "—"} tone={placar.melhor >= 11 ? "gold" : "gray"} />
           </div>
 
           {placar.premiadas > 0 && (
-            <div className="bg-gold/10 border border-gold/30 rounded-lg p-2 mb-3 flex items-center gap-2">
-              <Trophy size={14} className="text-gold flex-none" />
-              <div className="text-[11px] text-white/80">
-                <b className="text-gold">{placar.premiadas}</b>{" "}
-                {placar.premiadas > 1 ? "apostas premiadas" : "aposta premiada"}
-                {" · "}total <b className="text-gold">R$ {placar.premioTotal.toLocaleString("pt-BR")}</b>
-                {" · "}ROI <b className={placar.roi > 0 ? "text-green-400" : "text-red-400"}>{placar.roi > 0 ? "+" : ""}{placar.roi}%</b>
-              </div>
+            <div className="mt-2 text-[10px] text-gold text-center">
+              🏆 {placar.premiadas} premiada{placar.premiadas > 1 ? "s" : ""} · ROI{" "}
+              <b className={placar.roi > 0 ? "text-green-400" : "text-red-400"}>
+                {placar.roi > 0 ? "+" : ""}{placar.roi}%
+              </b>
             </div>
           )}
-
           {placar.pendentes > 0 && (
-            <div className="text-[10px] text-white/50 mb-3">
-              {placar.pendentes} bilhete{placar.pendentes > 1 ? "s aguardando" : " aguardando"} sorteio
+            <div className="mt-1 text-[10px] text-white/40 text-center">
+              {placar.pendentes} aguardando sorteio
             </div>
           )}
         </>
       )}
 
-      {/* Botão de atualização de sistema */}
-      <button
-        onClick={atualizarTudo}
-        disabled={estado === "loading"}
-        className="btn-primary w-full flex items-center justify-center gap-2 text-sm disabled:opacity-60"
-      >
-        {estado === "loading" ? (
-          <><RefreshCw size={14} className="animate-spin" /> Atualizando…</>
-        ) : estado === "done" ? (
-          <><Check size={14} /> Atualizado</>
-        ) : estado === "erro" ? (
-          <><Info size={14} /> Erro</>
-        ) : (
-          <><Zap size={14} /> Atualizar sistema</>
-        )}
-      </button>
       {(progresso || info) && (
         <div className="text-[11px] text-white/60 text-center mt-2">
           {estado === "loading" && progresso
@@ -531,17 +618,13 @@ function PainelGuru({ historico }) {
         </div>
         <span className="text-[10px] text-white/40">{data} · #{ultimoConcurso}</span>
       </div>
-      <div className="text-sm text-white/90 leading-snug">
-        {insight.paragrafos[0].replace(/\*\*/g, "")}
+      <div className="text-[13px] text-white/85 leading-snug">
+        {insight.paragrafos[0].replace(/\*\*/g, "").split("Recebeu peso")[0].trim()}
       </div>
 
       {defasado && (
-        <div className="mt-2 bg-amber-900/20 border border-amber-700/40 rounded-lg p-2 flex items-start gap-2 text-[11px] text-amber-200">
-          <Info size={12} className="flex-none mt-0.5" />
-          <div className="flex-1">
-            Guru está treinado até #{ultimoConcurso}, mas você tem até #{ultimoLocal}.
-            Toque em "Retreinar" pra o Guru aprender com os concursos novos.
-          </div>
+        <div className="mt-2 text-[11px] text-amber-300 flex items-center gap-1">
+          <Info size={11} /> Guru até #{ultimoConcurso}, você tem até #{ultimoLocal}. Retreine.
         </div>
       )}
 
@@ -550,29 +633,27 @@ function PainelGuru({ historico }) {
           onClick={() => setOpen(o => !o)}
           className="text-[11px] text-emerald-300/70 hover:text-emerald-300"
         >
-          {open ? "▲ menos" : "▼ ver ranking + dezenas"}
+          {open ? "▲ menos" : "▼ ranking + dezenas"}
         </button>
+        {origem === "client-local" && !defasado && (
+          <span className="text-[10px] text-emerald-300/60" title="Treinado localmente com seus dados">✓ local</span>
+        )}
         <button
           onClick={retreinar}
           disabled={retreinando || !historico?.length}
-          className={`ml-auto text-[11px] px-2 py-1 rounded-lg border flex items-center gap-1 disabled:opacity-50 ${
+          className={`ml-auto text-[11px] px-2 py-0.5 rounded-lg border flex items-center gap-1 disabled:opacity-50 ${
             defasado
               ? "border-amber-500/60 bg-amber-500/10 text-amber-200"
               : "border-emerald-500/40 text-emerald-300/70 hover:bg-emerald-500/10"
           }`}
         >
           {retreinando
-            ? <><RefreshCw size={10} className="animate-spin" /> Retreinando…</>
+            ? <><RefreshCw size={10} className="animate-spin" /> …</>
             : <><Sparkles size={10} /> Retreinar</>}
         </button>
       </div>
       {retreinoInfo && (
         <div className="text-[10px] text-white/60 mt-1.5">{retreinoInfo}</div>
-      )}
-      {origem === "client-local" && !defasado && (
-        <div className="text-[10px] text-emerald-300/60 mt-1.5">
-          ✓ Treinado localmente com seus dados
-        </div>
       )}
 
       {open && (

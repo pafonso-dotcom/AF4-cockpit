@@ -6,14 +6,14 @@ import { analisarJogo, NUMEROS, custoAposta } from "../../lib/lotofacil.js";
 import { salvarJogos } from "../../lib/supabase.js";
 
 const ESTRATEGIAS = [
-  { id: "combo",         nome: "Combo IA",       hint: "8 estratégias + filtro combinado · MAX", badge: "IA RECOMENDA" },
-  { id: "zonas",         nome: "Zonas + Primos", hint: "8 de 1–15 + 7 de 16–25 · primos primeiro", badge: "PRIMOS" },
-  { id: "cinco5",        nome: "5×5 Balanceada", hint: "3 dezenas em cada LINHA do volante" },
-  { id: "colunas",       nome: "5×5 Colunas",    hint: "3 dezenas em cada COLUNA do volante", badge: "NOVO" },
-  { id: "markov",        nome: "Markov",         hint: "P(dezena | último concurso)", badge: "NOVO" },
-  { id: "ciclo",         nome: "Ciclo Atrasado", hint: "Prioriza dezenas não sorteadas no ciclo" },
+  { id: "combo",         nome: "Combo IA",       hint: "Mix de 8 · MAX", badge: "IA", destaque: true },
+  { id: "zonas",         nome: "Zonas + Primos", hint: "8 de 1–15 + 7 de 16–25", badge: "PRIMOS", destaque: true },
+  { id: "ciclo",         nome: "Ciclo Atrasado", hint: "Dezenas não sorteadas no ciclo", destaque: true },
+  { id: "cinco5",        nome: "5×5 Linhas",     hint: "3 dezenas em cada linha", destaque: true },
+  { id: "colunas",       nome: "5×5 Colunas",    hint: "3 dezenas em cada coluna" },
+  { id: "markov",        nome: "Markov",         hint: "P(dezena | último)" },
   { id: "estratificado", nome: "Estratificada",  hint: "Cobre estratos do espaço" },
-  { id: "bayesiano",     nome: "Bayesiana",      hint: "Posterior Beta · prior Beta(15,10)" },
+  { id: "bayesiano",     nome: "Bayesiana",      hint: "Posterior Beta" },
   { id: "ponderado",     nome: "IA Ponderada",   hint: "Frequência + atraso" },
   { id: "balanceado",    nome: "Balanceada",     hint: "Pares 7–8 alvo" },
   { id: "aleatorio",     nome: "Aleatória",      hint: "Surpresinha pura" },
@@ -27,6 +27,8 @@ export default function GerarJogos({ historico }) {
   const [jogos, setJogos] = useState([]);
   const [salvando, setSalvando] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
+  const [expandirEstrat, setExpandirEstrat] = useState(false);
+  const [expandirFiltros, setExpandirFiltros] = useState(false);
 
   const toggle = (lista, setLista, n, outraLista) => {
     if (outraLista.includes(n)) return;
@@ -60,13 +62,21 @@ export default function GerarJogos({ historico }) {
     <div className="px-4 pt-4 pb-28 space-y-4">
       <section className="card space-y-4">
         <div>
-          <label className="text-xs uppercase tracking-wider text-white/40">Estratégia</label>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            {ESTRATEGIAS.map(e => (
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs uppercase tracking-wider text-white/40">Estratégia</label>
+            <button
+              onClick={() => setExpandirEstrat(v => !v)}
+              className="text-[10px] text-white/50 hover:text-white"
+            >
+              {expandirEstrat ? "▲ menos" : "▼ ver todas"}
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {ESTRATEGIAS.filter(e => e.destaque || expandirEstrat || estrategia === e.id).map(e => (
               <button
                 key={e.id}
                 onClick={() => setEstrategia(e.id)}
-                className={`rounded-xl px-2 py-3 text-left border transition relative ${
+                className={`rounded-xl px-2 py-2.5 text-left border transition relative ${
                   estrategia === e.id
                     ? "border-gold bg-gold/10"
                     : "border-line bg-ink/40"
@@ -74,7 +84,7 @@ export default function GerarJogos({ historico }) {
               >
                 {e.badge && (
                   <span className={`absolute -top-1.5 -right-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full border ${
-                    e.badge === "IA RECOMENDA"
+                    e.badge === "IA"
                       ? "bg-gold text-ink border-gold"
                       : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                   }`}>
@@ -102,20 +112,39 @@ export default function GerarJogos({ historico }) {
           />
         </div>
 
-        <FiltrosDezenas
-          icon={<Lock size={14} className="text-gold" />}
-          titulo="Dezenas fixas"
-          selecionadas={fixos}
-          outra={excluir}
-          onToggle={n => toggle(fixos, setFixos, n, excluir)}
-        />
-        <FiltrosDezenas
-          icon={<Ban size={14} className="text-red-400" />}
-          titulo="Dezenas excluídas"
-          selecionadas={excluir}
-          outra={fixos}
-          onToggle={n => toggle(excluir, setExcluir, n, fixos)}
-        />
+        <button
+          onClick={() => setExpandirFiltros(v => !v)}
+          className="w-full text-left flex items-center justify-between text-xs uppercase tracking-wider text-white/50 hover:text-white/80 py-1"
+        >
+          <span className="flex items-center gap-1.5">
+            <Lock size={11} /> Filtros
+            {(fixos.length > 0 || excluir.length > 0) && (
+              <span className="text-[10px] normal-case text-gold">
+                · {fixos.length}f {excluir.length > 0 && `· ${excluir.length}x`}
+              </span>
+            )}
+          </span>
+          <span>{expandirFiltros ? "▲" : "▼"}</span>
+        </button>
+
+        {expandirFiltros && (
+          <>
+            <FiltrosDezenas
+              icon={<Lock size={14} className="text-gold" />}
+              titulo="Dezenas fixas (em todos)"
+              selecionadas={fixos}
+              outra={excluir}
+              onToggle={n => toggle(fixos, setFixos, n, excluir)}
+            />
+            <FiltrosDezenas
+              icon={<Ban size={14} className="text-red-400" />}
+              titulo="Dezenas excluídas"
+              selecionadas={excluir}
+              outra={fixos}
+              onToggle={n => toggle(excluir, setExcluir, n, fixos)}
+            />
+          </>
+        )}
 
         <div className="flex gap-2">
           <button onClick={gerar} className="btn-primary flex-1 flex items-center justify-center gap-2">
