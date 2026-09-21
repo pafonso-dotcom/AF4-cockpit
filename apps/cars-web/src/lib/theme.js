@@ -99,6 +99,11 @@ export { THEMES };
 
 export const T = { ...getTheme("gold") };
 
+// Paleta FIXA dos "documentos" (cards de Contas e Cartões): sempre bege
+// claro (tema Névoa), MESMO no modo noturno — pedido do usuário 2026-09-21.
+// É uma cópia congelada; applyTheme não mexe nela.
+export const CARD_PAPEL = Object.freeze({ ...THEMES.nevoa, ...FONTS });
+
 // Aplica vars CSS de tamanho/cor de texto no root. Idempotente.
 export const applyTextStyle = () => {
   if (typeof document === "undefined") return;
