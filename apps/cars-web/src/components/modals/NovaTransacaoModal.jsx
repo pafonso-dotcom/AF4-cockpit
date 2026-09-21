@@ -22,18 +22,25 @@ function signed(t) {
 export default function NovaTransacaoModal({
   contaFixa,          // conta pré-selecionada (extrato) — opcional
   transacaoEdit,      // transação existente p/ editar — opcional
+  transacaoBase,      // transação MODELO pra duplicar (cria NOVA pré-preenchida, data de hoje) — opcional
   contas = [], categorias = [],
   transacoes = [], setTransacoes, setContas,
   onClose,
 }) {
-  const [form, setForm] = useState(() => transacaoEdit
-    ? { ...transacaoEdit, valor: transacaoEdit.valor ?? "" }
-    : {
-        id: null, tipo: "despesa", valor: "", descricao: "", categoria: "",
-        conta: contaFixa?.nome || contas[0]?.nome || "",
-        data: todayISO(), obs: "", compensado: true, fixa: false, vencimento: null,
-      }
-  );
+  const [form, setForm] = useState(() => {
+    if (transacaoEdit) return { ...transacaoEdit, valor: transacaoEdit.valor ?? "" };
+    if (transacaoBase) {
+      // Duplicar: copia tudo MENOS id (vira nova), comprovante (anexo é do
+      // original) e vínculo de transferência (duplicar uma perna quebra o par).
+      const { id, comprovante, transferenciaId, createdAt, ...resto } = transacaoBase;
+      return { ...resto, id: null, data: todayISO(), valor: transacaoBase.valor ?? "" };
+    }
+    return {
+      id: null, tipo: "despesa", valor: "", descricao: "", categoria: "",
+      conta: contaFixa?.nome || contas[0]?.nome || "",
+      data: todayISO(), obs: "", compensado: true, fixa: false, vencimento: null,
+    };
+  });
   const ehEdicao = !!transacaoEdit;
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 

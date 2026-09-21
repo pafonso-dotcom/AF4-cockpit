@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, ArrowRightLeft, Search, Printer, ArrowUp, ArrowDown, Edit3, Trash2, Scale, Check } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, ArrowRightLeft, Search, Printer, ArrowUp, ArrowDown, Edit3, Trash2, Scale, Check, Copy } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt } from "../../lib/format.js";
 import { confirm } from "../../lib/confirm.js";
@@ -582,6 +582,11 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                         <button onClick={() => editarTransacao(t)} title="Editar" style={iconBtn}>
                           <Edit3 size={14} />
                         </button>
+                        <button onClick={() => setTxModal({ modo: "duplicar", tx: t })}
+                                title="Duplicar lançamento (abre pré-preenchido com a data de hoje)"
+                                style={{ ...iconBtn, color: T.gold }}>
+                          <Copy size={14} />
+                        </button>
                         <button onClick={() => removerTransacao(t)} title="Excluir" style={{ ...iconBtn, color: T.red }}>
                           <Trash2 size={14} />
                         </button>
@@ -616,6 +621,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         <NovaTransacaoModal
           contaFixa={txModal.modo === "novo" ? conta : undefined}
           transacaoEdit={txModal.modo === "editar" ? txModal.tx : undefined}
+          transacaoBase={txModal.modo === "duplicar" ? txModal.tx : undefined}
           contas={contas}
           categorias={categorias}
           transacoes={transacoes}
