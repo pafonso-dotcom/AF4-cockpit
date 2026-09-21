@@ -21,6 +21,8 @@ export function montarResumoDia({
   orcamentos = [],         // saída de calcOrcamentoComGastos
   alertasHoje = [],        // tickers que dispararam hoje
   proventosMes = null,     // { total, qtd } de proventosPendentesDoMes
+  backupAtraso = null,     // { dias } de backupNuvemAtraso (null = em dia/desligado)
+  cambioDefasado = 0,      // nº de contas de contasCambioDefasado
   fmt = (v) => String(v),
   hoje = new Date(),
 } = {}) {
@@ -63,6 +65,24 @@ export function montarResumoDia({
       texto: pior.pct >= 100
         ? `Orçamento de ${pior.nome} ESTOUROU (${Math.round(pior.pct)}%)`
         : `Orçamento de ${pior.nome} em ${Math.round(pior.pct)}%`,
+    });
+  }
+
+  // 3½) Backup na nuvem atrasado — silêncio aqui já escondeu backup quebrado
+  if (backupAtraso) {
+    avisos.push({
+      icone: "☁️", cor: "gold",
+      texto: backupAtraso.dias == null
+        ? "Backup na nuvem nunca enviou — confira o token em Configurações → Backup"
+        : `Backup na nuvem há ${backupAtraso.dias} dia${backupAtraso.dias === 1 ? "" : "s"} sem enviar — veja Configurações → Backup`,
+    });
+  }
+
+  // 3¾) Câmbio defasado — total em R$ pode estar errado sem ninguém saber
+  if (Number(cambioDefasado) > 0) {
+    avisos.push({
+      icone: "💱", cor: "gold",
+      texto: `Câmbio de ${cambioDefasado} conta${cambioDefasado === 1 ? "" : "s"} do exterior defasado — o total em R$ pode estar velho (abra Contas)`,
     });
   }
 

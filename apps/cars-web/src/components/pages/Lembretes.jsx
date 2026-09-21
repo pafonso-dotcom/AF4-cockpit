@@ -220,7 +220,7 @@ function LembreteModal({ lembrete, onSalvar, onClose }) {
       <Field label="Título" required error={errors.titulo}>
         <input value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} autoFocus placeholder="Ex.: Pagar fatura" />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Data">
           <input type="date" value={form.data} onChange={e => setForm({ ...form, data: e.target.value })} />
         </Field>

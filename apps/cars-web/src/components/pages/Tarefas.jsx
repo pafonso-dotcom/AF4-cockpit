@@ -228,7 +228,7 @@ export default function Tarefas({ tarefas = [], setTarefas }) {
                    placeholder="Ex.: Responder e-mail do cliente"
                    autoFocus />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Prioridade">
               <select value={form.prioridade} onChange={e => setForm({ ...form, prioridade: e.target.value })}>
                 {PRIORIDADES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
@@ -239,7 +239,7 @@ export default function Tarefas({ tarefas = [], setTarefas }) {
                      onChange={e => setForm({ ...form, prazo: e.target.value })} />
             </Field>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Projeto / Categoria" hint="Agrupa tarefas relacionadas.">
               <input value={form.projeto || ""}
                      onChange={e => setForm({ ...form, projeto: e.target.value })}

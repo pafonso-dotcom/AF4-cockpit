@@ -409,7 +409,7 @@ export default function Notas({ agenda = [], setAgenda, notasLegacy = [], setNot
                    placeholder="Ex.: Reunião com cliente, Voo São Paulo..."
                    autoFocus />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Data" required error={formErrors.data}>
               <input type="date" value={form.data}
                      onChange={e => setForm({ ...form, data: e.target.value })} />
