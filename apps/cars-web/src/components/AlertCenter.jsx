@@ -43,7 +43,7 @@ export default function AlertCenter({
       <div style={{
         position: "fixed", top: 62, right: 14, zIndex: 1001,
         width: "min(380px, calc(100vw - 28px))", maxHeight: "75vh",
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
         boxShadow: "0 12px 40px rgba(0,0,0,.35)", display: "flex", flexDirection: "column",
         overflow: "hidden",
       }}>
@@ -73,9 +73,9 @@ export default function AlertCenter({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{
-                      fontSize: 8.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase",
+                      fontSize: 10, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase",
                       color: corSev(a.severidade), background: `${corSev(a.severidade)}22`,
-                      padding: "1px 6px", borderRadius: 3, flexShrink: 0,
+                      padding: "1px 6px", borderRadius: 8, flexShrink: 0,
                     }}>{labelSev(a.severidade)}</span>
                     <span style={{ fontSize: 12.5, fontWeight: 600, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {a.titulo}
@@ -107,7 +107,7 @@ export default function AlertCenter({
           <span style={{
             position: "absolute", top: 4, right: 4, minWidth: 15, height: 15, padding: "0 3px",
             background: corBadge, color: "#fff", borderRadius: 100,
-            fontSize: 9, fontWeight: 700, display: "grid", placeItems: "center", lineHeight: 1,
+            fontSize: 10, fontWeight: 700, display: "grid", placeItems: "center", lineHeight: 1,
           }}>
             {qtd > 9 ? "9+" : qtd}
           </span>

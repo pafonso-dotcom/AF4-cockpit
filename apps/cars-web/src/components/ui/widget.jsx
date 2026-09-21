@@ -60,7 +60,7 @@ export function StatTile({ icon, cor = T.gold, label, valor, sub, spark, hidden,
           </div>
           {!oculto && spark && <Sparkline points={spark} cor={cor} w={44} h={20} />}
         </div>
-        {sub && <div style={{ fontSize: 9.5, color: T.faint, marginTop: 3 }}>{sub}</div>}
+        {sub && <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3 }}>{sub}</div>}
       </div>
     </div>
   );

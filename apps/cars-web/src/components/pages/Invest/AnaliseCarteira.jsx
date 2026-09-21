@@ -241,9 +241,9 @@ function KpiCell({ label, valor, cor }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${cor}`, borderRadius: 14, padding: 12,
+      borderLeft: `3px solid ${cor}`, borderRadius: 16, padding: 12,
     }}>
-      <div style={{ fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 10.5, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>{label}</div>
       <div className="num" style={{ fontFamily: T.serif, fontSize: 22, color: cor, fontWeight: 600, marginTop: 5, lineHeight: 1.1 }}>{valor}</div>
     </div>
   );
@@ -328,7 +328,7 @@ function LinhaAtivo({ ativo, r, hidden, onAnalisar }) {
         {onAnalisar && (
           <button onClick={() => onAnalisar(ativo)} aria-label={`Analisar ${ativo.ticker}`}
                   title="Análise detalhada"
-                  style={{ color: T.gold, padding: 4, background: "transparent", border: `1px solid ${T.gold}`, borderRadius: 4, cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+                  style={{ color: T.gold, padding: 4, background: "transparent", border: `1px solid ${T.gold}`, borderRadius: 8, cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
             <LineChart size={12} />
           </button>
         )}
@@ -338,13 +338,13 @@ function LinhaAtivo({ ativo, r, hidden, onAnalisar }) {
 }
 
 const chip = (active) => ({
-  padding: "5px 11px", borderRadius: 5, fontSize: 11, fontWeight: 600,
+  padding: "5px 11px", borderRadius: 8, fontSize: 11, fontWeight: 600,
   background: active ? T.gold : "transparent", color: active ? T.bg : T.muted,
   border: `1px solid ${active ? T.gold : T.border}`, cursor: "pointer", whiteSpace: "nowrap",
 });
 
 const chipTf = (active) => ({
-  padding: "5px 11px", borderRadius: 5, fontSize: 11, fontWeight: 600,
+  padding: "5px 11px", borderRadius: 8, fontSize: 11, fontWeight: 600,
   background: active ? T.ink : "transparent", color: active ? "#fff" : T.muted,
   border: `1px solid ${active ? T.ink : T.border}`, cursor: "pointer",
 });

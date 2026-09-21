@@ -119,7 +119,7 @@ function Aparencia({ themeId, setThemeId }) {
             padding: "14px 16px", textAlign: "left",
             border: `${layoutPref === "horizontal" ? "2px" : "1px"} solid ${layoutPref === "horizontal" ? T.gold : T.border}`,
             background: layoutPref === "horizontal" ? `${T.gold}11` : T.card,
-            borderRadius: 14, cursor: "pointer",
+            borderRadius: 16, cursor: "pointer",
             display: "flex", alignItems: "center", gap: 12,
           }}>
           <div style={{ fontSize: 22 }}>📊</div>
@@ -133,7 +133,7 @@ function Aparencia({ themeId, setThemeId }) {
             padding: "14px 16px", textAlign: "left",
             border: `${layoutPref === "vertical" ? "2px" : "1px"} solid ${layoutPref === "vertical" ? T.gold : T.border}`,
             background: layoutPref === "vertical" ? `${T.gold}11` : T.card,
-            borderRadius: 14, cursor: "pointer",
+            borderRadius: 16, cursor: "pointer",
             display: "flex", alignItems: "center", gap: 12,
           }}>
           <div style={{ fontSize: 22 }}>📋</div>
@@ -145,7 +145,7 @@ function Aparencia({ themeId, setThemeId }) {
       </div>
       <div style={{
         marginBottom: 24, padding: 10, fontSize: 11, color: T.muted,
-        background: T.bgSoft, borderRadius: 11, fontStyle: "italic",
+        background: T.bgSoft, borderRadius: 12, fontStyle: "italic",
       }}>
         ℹ️ Em celular portrait o layout sempre força horizontal automaticamente.
       </div>
@@ -159,11 +159,11 @@ function Aparencia({ themeId, setThemeId }) {
                  style={{
                    background: T.card,
                    border: `2px solid ${active ? theme.gold : T.border}`,
-                   borderRadius: 18, padding: 16, cursor: "pointer",
+                   borderRadius: 16, padding: 16, cursor: "pointer",
                    transition: "all .2s", position: "relative",
                  }}>
               <div style={{
-                width: "100%", height: 60, borderRadius: 14,
+                width: "100%", height: 60, borderRadius: 16,
                 background: `linear-gradient(135deg, ${theme.gold}, ${theme.goldHi})`,
                 marginBottom: 12,
               }} />
@@ -209,10 +209,10 @@ function Aparencia({ themeId, setThemeId }) {
                    style={{ width: 15, height: 15, accentColor: T.gold }} />
             <span style={{ fontSize: 13, fontWeight: 500, flex: 1, color: T.ink }}>{card.label}</span>
             {card.fase === 2 && (
-              <span style={{ fontSize: 9, padding: "1px 6px", background: `${T.gold}22`, color: T.gold, borderRadius: 3, fontWeight: 700, letterSpacing: ".05em" }}>NOVO</span>
+              <span style={{ fontSize: 10, padding: "1px 6px", background: `${T.gold}22`, color: T.gold, borderRadius: 8, fontWeight: 700, letterSpacing: ".05em" }}>NOVO</span>
             )}
             {card.fixo && (
-              <span style={{ fontSize: 9, color: T.faint, letterSpacing: ".05em" }}>fixo</span>
+              <span style={{ fontSize: 10, color: T.faint, letterSpacing: ".05em" }}>fixo</span>
             )}
           </label>
         ))}
@@ -330,7 +330,7 @@ function APIs({ apiKeys, setApiKeys }) {
             <div className="hint">Gratuito · 1.000 req/mês · <a href="https://brapi.dev" target="_blank" rel="noopener noreferrer" style={{ color: T.gold }}>brapi.dev</a></div>
             {statusTesteBrapi && (
               <div style={{
-                marginTop: 6, padding: "6px 10px", borderRadius: 5, fontSize: 11,
+                marginTop: 6, padding: "6px 10px", borderRadius: 8, fontSize: 11,
                 background: statusTesteBrapi.ok ? `${T.green}15` : `${T.red}15`,
                 color: statusTesteBrapi.ok ? T.green : T.red,
               }}>
@@ -375,7 +375,7 @@ function APIs({ apiKeys, setApiKeys }) {
             </div>
             {statusTesteGemini && (
               <div style={{
-                marginTop: 10, padding: "8px 12px", borderRadius: 11, fontSize: 11.5,
+                marginTop: 10, padding: "8px 12px", borderRadius: 12, fontSize: 11.5,
                 background: statusTesteGemini.ok ? `${T.green}15` : `${T.red}15`,
                 color: statusTesteGemini.ok ? T.green : T.red,
                 border: `1px solid ${statusTesteGemini.ok ? T.green : T.red}55`,
@@ -515,7 +515,7 @@ function Modulos({ modulesEnabled, setModulesEnabled, onClearModule }) {
         const ativo = modulesEnabled?.[m.id] !== false;
         return (
           <div key={m.id} style={{
-            background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
+            background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
             padding: 18, marginBottom: 12,
             display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
           }}>
@@ -767,7 +767,7 @@ function SyncGist() {
       <div className="fb">
         <h4>1. Conectar com GitHub</h4>
         <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 12 }}>
-          Use um <strong>Personal Access Token</strong> do GitHub com escopo <code style={{ background: T.bgSoft, padding: "1px 6px", borderRadius: 3 }}>gist</code>.
+          Use um <strong>Personal Access Token</strong> do GitHub com escopo <code style={{ background: T.bgSoft, padding: "1px 6px", borderRadius: 8 }}>gist</code>.
           Veja o passo a passo de como gerar logo abaixo.
         </p>
 
@@ -802,7 +802,7 @@ function SyncGist() {
 
         {conectado && !dirty && (
           <div style={{
-            marginTop: 12, padding: "10px 14px", borderRadius: 11, fontSize: 12.5,
+            marginTop: 12, padding: "10px 14px", borderRadius: 12, fontSize: 12.5,
             background: `${T.green}15`, color: T.green, border: `1px solid ${T.green}55`,
           }}>
             ● Conectado como <strong>@{user.login}</strong>{user.name ? ` (${user.name})` : ""}.
@@ -811,7 +811,7 @@ function SyncGist() {
 
         {msg && (
           <div style={{
-            marginTop: 12, padding: "10px 14px", borderRadius: 11, fontSize: 12,
+            marginTop: 12, padding: "10px 14px", borderRadius: 12, fontSize: 12,
             background: msg.ok ? `${T.green}15` : `${T.red}15`,
             color: msg.ok ? T.green : T.red,
             border: `1px solid ${msg.ok ? T.green : T.red}55`,
@@ -902,9 +902,9 @@ function SyncGist() {
           </li>
           <li><strong>Note</strong> (descrição): <em>Afinanças</em> (ou o que quiser)</li>
           <li><strong>Expiration</strong>: escolha "No expiration" pra nunca expirar, ou "1 year" pra renovar anualmente</li>
-          <li><strong>Select scopes</strong>: marque apenas <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>gist</code> (importante — só esse, mais nada)</li>
+          <li><strong>Select scopes</strong>: marque apenas <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 8 }}>gist</code> (importante — só esse, mais nada)</li>
           <li>Botão verde "Generate token" no fim</li>
-          <li>O token aparece <strong>uma única vez</strong> — começa com <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>ghp_</code>. Copie e cole no campo acima.</li>
+          <li>O token aparece <strong>uma única vez</strong> — começa com <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 8 }}>ghp_</code>. Copie e cole no campo acima.</li>
         </ol>
       </div>
 
@@ -992,14 +992,14 @@ function MigracaoSupabase() {
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="eb">Migração de dados pras tabelas relacionais</div>
       <p className="hs" style={{ marginBottom: 14 }}>
-        Move seus dados do snapshot JSON (<code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>aurum_state</code>) pras tabelas normalizadas novas
-        (definidas em <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 3 }}>supabase/migrations/</code>).
+        Move seus dados do snapshot JSON (<code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 8 }}>aurum_state</code>) pras tabelas normalizadas novas
+        (definidas em <code style={{ background: T.bgSoft, padding: "1px 5px", borderRadius: 8 }}>supabase/migrations/</code>).
         Estratégia: espelhamento gradual — app continua salvando em localStorage até cutover final.
       </p>
 
       {/* Status das tabelas */}
       <div style={{
-        padding: 12, marginBottom: 12, borderRadius: 14,
+        padding: 12, marginBottom: 12, borderRadius: 16,
         background: statusTabelas === "existem" ? `${T.green}11`
                   : statusTabelas === "nao_existem" ? `${T.gold}11`
                   : `${T.muted}22`,
@@ -1030,7 +1030,7 @@ function MigracaoSupabase() {
 
       {/* Contagens atuais */}
       {contagens && (
-        <div style={{ marginBottom: 12, padding: 10, background: T.bgSoft, borderRadius: 11 }}>
+        <div style={{ marginBottom: 12, padding: 10, background: T.bgSoft, borderRadius: 12 }}>
           <div className="eb" style={{ fontSize: 10, marginBottom: 6 }}>Linhas hoje nas tabelas</div>
           <div style={{
             display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
@@ -1049,7 +1049,7 @@ function MigracaoSupabase() {
       {/* Cobertura V2 */}
       <div style={{
         padding: 10, marginBottom: 12,
-        background: T.bgSoft, border: `1px dashed ${T.border}`, borderRadius: 11,
+        background: T.bgSoft, border: `1px dashed ${T.border}`, borderRadius: 12,
         fontSize: 11.5, color: T.muted,
       }}>
         <strong style={{ color: T.ink }}>V2 cobre 13 entidades:</strong> contas, categorias (self-ref),
@@ -1082,7 +1082,7 @@ function MigracaoSupabase() {
         <div style={{
           padding: 10, marginBottom: 12,
           background: `${T.gold}11`, border: `1px solid ${T.gold}44`,
-          borderRadius: 11, fontSize: 12,
+          borderRadius: 12, fontSize: 12,
         }}>
           <strong style={{ color: T.gold }}>{progresso.tabela}</strong>
           {progresso.total > 0 && (
@@ -1104,7 +1104,7 @@ function MigracaoSupabase() {
           padding: 12, marginBottom: 4,
           background: T.card, border: `1px solid ${resultado.ok ? T.green : T.gold}55`,
           borderLeft: `3px solid ${resultado.ok ? T.green : T.gold}`,
-          borderRadius: 14,
+          borderRadius: 16,
         }}>
           <div style={{
             fontSize: 12, fontWeight: 700,
@@ -1119,7 +1119,7 @@ function MigracaoSupabase() {
           }}>
             {Object.entries(resultado.resultados).map(([tabela, r]) => (
               <div key={tabela} style={{
-                padding: 8, background: T.bgSoft, borderRadius: 4,
+                padding: 8, background: T.bgSoft, borderRadius: 8,
                 borderLeft: `2px solid ${r.erro > 0 ? T.red : T.green}`,
               }}>
                 <div style={{ color: T.ink, fontWeight: 600 }}>{tabela}</div>
@@ -1137,7 +1137,7 @@ function MigracaoSupabase() {
               </summary>
               <div style={{
                 maxHeight: 200, overflowY: "auto", marginTop: 6,
-                padding: 8, background: T.bg, borderRadius: 4,
+                padding: 8, background: T.bg, borderRadius: 8,
               }}>
                 {resultado.erros.map((e, i) => (
                   <div key={i} style={{ marginBottom: 4, color: T.muted }}>

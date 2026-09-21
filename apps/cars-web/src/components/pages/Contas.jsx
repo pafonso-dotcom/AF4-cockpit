@@ -249,7 +249,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
     padding: "7px 12px", fontFamily: T.sans, fontSize: 11,
     letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600,
     cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5,
-    borderRadius: 11, color: T.muted, whiteSpace: "nowrap",
+    borderRadius: 12, color: T.muted, whiteSpace: "nowrap",
   };
 
   return (
@@ -316,7 +316,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
       {dessincronizadas.length > 0 && (
         <div style={{
           background: `${T.red}11`, border: `1px solid ${T.red}55`, borderLeft: `4px solid ${T.red}`,
-          borderRadius: 14, padding: "12px 16px", marginBottom: 16,
+          borderRadius: 16, padding: "12px 16px", marginBottom: 16,
           display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
         }}>
           <AlertCircle size={18} style={{ color: T.red, flexShrink: 0 }} />
@@ -340,11 +340,11 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
       {!isMobile && (
       <div style={{
         marginBottom: 10, padding: "8px 12px",
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span style={{ fontSize: 9, letterSpacing: ".15em", color: T.muted, textTransform: "uppercase", fontWeight: 700 }}>
+          <span style={{ fontSize: 10, letterSpacing: ".15em", color: T.muted, textTransform: "uppercase", fontWeight: 700 }}>
             Total
           </span>
           <span className="num" style={{ fontFamily: T.serif, fontSize: 22, color: T.gold, lineHeight: 1 }}>
@@ -367,8 +367,8 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
         <button onClick={toggleOcultarZeradas}
           style={{
             background: "transparent", border: `1px solid ${T.border}`,
-            color: T.muted, padding: "4px 9px", borderRadius: 5,
-            fontSize: 9.5, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 600,
+            color: T.muted, padding: "4px 9px", borderRadius: 8,
+            fontSize: 10.5, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 600,
             cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
           }}>
           {ocultarZeradas
@@ -466,7 +466,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             {!ehBRL(c) && (
               <div className="num" style={{ fontSize: 11.5, marginTop: 1, color: Number(c.cotacao) > 0 ? T.muted : T.gold, whiteSpace: "nowrap" }}>
                 {Number(c.cotacao) > 0
-                  ? <>≈ {hidden ? "•••" : fmt(saldoContaBRL(c))} <span style={{ fontSize: 9, color: T.faint }}>({c.moeda} {fmt(c.cotacao)}{String(c.cotacaoAtualizadaEm || "").slice(0, 10) === new Date().toISOString().slice(0, 10) ? " · hoje" : ""})</span></>
+                  ? <>≈ {hidden ? "•••" : fmt(saldoContaBRL(c))} <span style={{ fontSize: 10, color: T.faint }}>({c.moeda} {fmt(c.cotacao)}{String(c.cotacaoAtualizadaEm || "").slice(0, 10) === new Date().toISOString().slice(0, 10) ? " · hoje" : ""})</span></>
                   : "sem cotação — buscando…"}
               </div>
             )}
@@ -510,7 +510,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               const d = String(u.data).slice(0, 10);
               const quando = d === hojeISO ? "hoje" : d === ontemISO ? "ontem" : `${d.slice(8, 10)}/${d.slice(5, 7)}`;
               return (
-                <div className="num" style={{ fontSize: 9.5, marginTop: 2, color: T.faint, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                <div className="num" style={{ fontSize: 10.5, marginTop: 2, color: T.faint, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                      title={u.descricao}>
                   última: <span style={{ color: u.tipo === "receita" ? T.green : T.red }}>{u.tipo === "receita" ? "+" : "−"}{hidden ? "•••" : fmt(u.valor, c.moeda || "BRL")}</span> · {quando}
                 </div>
@@ -518,8 +518,8 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             })()}
             {(selo || c.instituicao) && (
               <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                {selo && <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>{selo}</span>}
-                {c.instituicao && !selo && <span style={{ fontSize: 9, color: T.faint, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.instituicao}</span>}
+                {selo && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>{selo}</span>}
+                {c.instituicao && !selo && <span style={{ fontSize: 10, color: T.faint, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.instituicao}</span>}
               </div>
             )}
             {exp && (
@@ -560,7 +560,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               display: "flex", alignItems: "baseline", justifyContent: "space-between",
               gap: 8, margin: "4px 2px 8px",
             }}>
-              <span style={{ fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase", fontWeight: 700, color: T.muted }}>
+              <span style={{ fontSize: 10.5, letterSpacing: ".15em", textTransform: "uppercase", fontWeight: 700, color: T.muted }}>
                 {g.titulo}
                 <span style={{ color: T.faint, fontWeight: 600 }}> · {g.contas.length}</span>
               </span>
@@ -620,7 +620,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           <Field label="Logo do banco (opcional)" hint="Imagem pequena (PNG/JPG, máx. 200 KB). Se vazio, usa o logo automático pelo nome do banco.">
             {form.logo ? (
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <img src={form.logo} alt="" style={{ width: 40, height: 40, borderRadius: 10, objectFit: "contain", background: "#fff", border: `1px solid ${T.border}` }} />
+                <img src={form.logo} alt="" style={{ width: 40, height: 40, borderRadius: 12, objectFit: "contain", background: "#fff", border: `1px solid ${T.border}` }} />
                 <button type="button" onClick={() => setForm({ ...form, logo: null })}
                         style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 8, padding: "5px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
                   Remover

@@ -94,7 +94,7 @@ export default function CommandPalette({
       <div style={{
         width: "100%", maxWidth: 540,
         background: T.card, border: `1px solid ${T.borderHi}`,
-        borderRadius: 18, boxShadow: "0 24px 60px rgba(0,0,0,.5)",
+        borderRadius: 16, boxShadow: "0 24px 60px rgba(0,0,0,.5)",
         overflow: "hidden", display: "flex", flexDirection: "column",
         maxHeight: "70vh",
       }}>
@@ -116,7 +116,7 @@ export default function CommandPalette({
             }} />
           <kbd style={{
             fontSize: 10, color: T.muted, border: `1px solid ${T.border}`,
-            borderRadius: 4, padding: "2px 6px", flexShrink: 0,
+            borderRadius: 8, padding: "2px 6px", flexShrink: 0,
           }}>ESC</kbd>
         </div>
 
@@ -142,7 +142,7 @@ export default function CommandPalette({
                     color: T.ink,
                   }}>
                   <span style={{
-                    fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase",
+                    fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase",
                     color: T.muted, minWidth: 92, fontWeight: 600,
                   }}>
                     {item.grupo}

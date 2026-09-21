@@ -75,7 +75,7 @@ export default function Historico({ tradeHistorico = [], setTradeHistorico }) {
                               fontSize: 10.5, fontWeight: 600, fontFamily: "monospace",
                             }}>
                               {t.symbol.replace(/USDT$/, "")} {t.score}
-                              <span style={{ color: T.faint, marginLeft: 4, fontSize: 9 }}>{t.direcao}</span>
+                              <span style={{ color: T.faint, marginLeft: 4, fontSize: 10 }}>{t.direcao}</span>
                             </span>
                           );
                         })}
@@ -94,7 +94,7 @@ export default function Historico({ tradeHistorico = [], setTradeHistorico }) {
 
 const th = {
   padding: "10px 14px", textAlign: "left",
-  fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
+  fontSize: 10.5, letterSpacing: ".15em", textTransform: "uppercase",
   color: "var(--tm)", fontWeight: 500,
 };
 const td = { padding: "12px 14px", verticalAlign: "middle" };

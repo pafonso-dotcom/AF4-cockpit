@@ -30,7 +30,7 @@ export default function AtalhosOverlay({ onClose }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: T.card, borderRadius: 14, padding: "22px 26px",
+          background: T.card, borderRadius: 16, padding: "22px 26px",
           maxWidth: 440, width: "100%",
           border: `1px solid ${T.border}`,
           boxShadow: "0 20px 50px rgba(0,0,0,.5)",
@@ -48,7 +48,7 @@ export default function AtalhosOverlay({ onClose }) {
             style={{
               background: "transparent", border: "none",
               cursor: "pointer", color: T.muted,
-              padding: 6, borderRadius: 11,
+              padding: 6, borderRadius: 12,
             }}>
             <X size={18} />
           </button>
@@ -63,7 +63,7 @@ export default function AtalhosOverlay({ onClose }) {
             }}>
               <span style={{ fontSize: 13, color: T.ink }}>{a.desc}</span>
               <kbd style={{
-                background: T.bgSoft, padding: "4px 12px", borderRadius: 11,
+                background: T.bgSoft, padding: "4px 12px", borderRadius: 12,
                 fontFamily: "monospace", fontSize: 12, fontWeight: 700,
                 color: T.gold, border: `1px solid ${T.border}`,
                 minWidth: 32, textAlign: "center", display: "inline-block",
@@ -76,7 +76,7 @@ export default function AtalhosOverlay({ onClose }) {
           fontSize: 11, color: T.muted, marginTop: 16,
           fontStyle: "italic", lineHeight: 1.5,
         }}>
-          Atalhos desabilitados em campos de texto. <kbd style={{ background: T.bgSoft, padding: "1px 6px", borderRadius: 3, fontFamily: "monospace", fontSize: 10 }}>?</kbd> funciona sempre.
+          Atalhos desabilitados em campos de texto. <kbd style={{ background: T.bgSoft, padding: "1px 6px", borderRadius: 8, fontFamily: "monospace", fontSize: 10 }}>?</kbd> funciona sempre.
         </div>
       </div>
     </div>

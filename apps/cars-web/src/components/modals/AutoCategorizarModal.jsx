@@ -68,10 +68,10 @@ export default function AutoCategorizarModal({ transacoes = [], categorias = [],
               const aberto = abertos.has(cat);
               const algum = marcados > 0;
               return (
-                <div key={cat} style={{ border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+                <div key={cat} style={{ border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 11px", background: T.bgSoft }}>
                     <button onClick={() => toggleGrupo(cat)} title={algum ? "Desmarcar grupo" : "Marcar grupo"}
-                      style={{ width: 18, height: 18, borderRadius: 5, border: `1px solid ${algum ? T.gold : T.border}`, background: algum ? T.gold : "transparent", color: T.bg, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                      style={{ width: 18, height: 18, borderRadius: 8, border: `1px solid ${algum ? T.gold : T.border}`, background: algum ? T.gold : "transparent", color: T.bg, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
                       {algum && <Check size={12} />}
                     </button>
                     <button onClick={() => toggleAberto(cat)} style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", padding: 0, minWidth: 0 }}>
@@ -88,7 +88,7 @@ export default function AutoCategorizarModal({ transacoes = [], categorias = [],
                         return (
                           <div key={x.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 11px 7px 34px", borderTop: `1px solid ${T.border}`, opacity: marcado ? 1 : 0.5 }}>
                             <button onClick={() => toggleItem(x.id)}
-                              style={{ width: 16, height: 16, borderRadius: 4, border: `1px solid ${marcado ? T.gold : T.border}`, background: marcado ? T.gold : "transparent", color: T.bg, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                              style={{ width: 16, height: 16, borderRadius: 8, border: `1px solid ${marcado ? T.gold : T.border}`, background: marcado ? T.gold : "transparent", color: T.bg, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
                               {marcado && <Check size={11} />}
                             </button>
                             <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

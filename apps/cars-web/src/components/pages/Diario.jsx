@@ -78,7 +78,7 @@ export default function Diario({ diario = [], setDiario }) {
 
       {/* Entrada de hoje */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
         padding: 18, marginBottom: 18,
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
@@ -112,7 +112,7 @@ export default function Diario({ diario = [], setDiario }) {
                   padding: "8px 14px",
                   background: humor === h.v ? `${h.cor}22` : T.bgSoft,
                   border: `1px solid ${humor === h.v ? h.cor : T.border}`,
-                  borderRadius: 14,
+                  borderRadius: 16,
                   cursor: "pointer",
                   display: "flex", alignItems: "center", gap: 6,
                   fontSize: 12, color: humor === h.v ? h.cor : T.muted,
@@ -188,7 +188,7 @@ export default function Diario({ diario = [], setDiario }) {
                   <div key={d.data} style={{
                     background: T.card, border: `1px solid ${T.border}`,
                     borderLeft: `3px solid ${hm?.cor || T.muted}`,
-                    borderRadius: 14, padding: 14,
+                    borderRadius: 16, padding: 14,
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 12, color: T.muted, fontWeight: 600, letterSpacing: ".05em" }}>

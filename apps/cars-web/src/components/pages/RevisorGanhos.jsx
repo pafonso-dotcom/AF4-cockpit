@@ -38,7 +38,7 @@ export default function RevisorGanhos({ transacoes = [], hidden = false, embed =
       onChange={(e) => setMes(e.target.value)}
       style={{
         background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`,
-        borderRadius: 10, padding: "6px 10px", fontSize: 13, fontFamily: "inherit",
+        borderRadius: 12, padding: "6px 10px", fontSize: 13, fontFamily: "inherit",
       }}
     />
   );
@@ -85,8 +85,8 @@ export default function RevisorGanhos({ transacoes = [], hidden = false, embed =
               const atual = s.mes === mes;
               return (
                 <div key={s.mes} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                  <div title={oculto(fmt(s.total), hidden)} style={{ width: "100%", height: h, background: atual ? T.gold : T.borderHi, borderRadius: 6 }} />
-                  <span style={{ fontSize: 9.5, color: atual ? T.ink : T.faint, fontWeight: atual ? 700 : 400 }}>
+                  <div title={oculto(fmt(s.total), hidden)} style={{ width: "100%", height: h, background: atual ? T.gold : T.borderHi, borderRadius: 8 }} />
+                  <span style={{ fontSize: 10.5, color: atual ? T.ink : T.faint, fontWeight: atual ? 700 : 400 }}>
                     {s.mes.slice(5)}
                   </span>
                 </div>
@@ -107,7 +107,7 @@ export default function RevisorGanhos({ transacoes = [], hidden = false, embed =
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {rev.concentracao && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: `${T.yellow}1a`, border: `1px solid ${T.yellow}55`, borderRadius: 10, color: T.ink, fontSize: 12.5 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: `${T.yellow}1a`, border: `1px solid ${T.yellow}55`, borderRadius: 12, color: T.ink, fontSize: 12.5 }}>
                 <AlertTriangle size={14} style={{ color: T.yellow, flexShrink: 0 }} />
                 Renda concentrada: <b>{rev.concentracao.fonte}</b> representa {rev.concentracao.pct.toFixed(0)}% do total.
               </div>
@@ -118,8 +118,8 @@ export default function RevisorGanhos({ transacoes = [], hidden = false, embed =
                   <span style={{ color: T.ink, fontWeight: 600 }}>{f.fonte}</span>
                   <span style={{ color: T.muted }}>{oculto(fmt(f.valor), hidden)} · {f.pct.toFixed(0)}%</span>
                 </div>
-                <div style={{ height: 8, background: T.bgSoft, borderRadius: 5, overflow: "hidden" }}>
-                  <div style={{ width: `${f.pct}%`, height: "100%", background: T.gold, borderRadius: 5 }} />
+                <div style={{ height: 8, background: T.bgSoft, borderRadius: 8, overflow: "hidden" }}>
+                  <div style={{ width: `${f.pct}%`, height: "100%", background: T.gold, borderRadius: 8 }} />
                 </div>
               </div>
             ))}
@@ -139,7 +139,7 @@ export default function RevisorGanhos({ transacoes = [], hidden = false, embed =
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {rev.faltando.map((f) => (
-                <div key={f.descricao} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: `${T.red}12`, border: `1px solid ${T.red}40`, borderRadius: 10 }}>
+                <div key={f.descricao} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: `${T.red}12`, border: `1px solid ${T.red}40`, borderRadius: 12 }}>
                   <div>
                     <div style={{ color: T.ink, fontWeight: 600, fontSize: 13 }}>{f.descricao}</div>
                     <div style={{ color: T.faint, fontSize: 11 }}>visto em {f.mesesVistos} meses · última {f.ultimaData.split("-").reverse().join("/")}</div>
@@ -161,7 +161,7 @@ export default function RevisorGanhos({ transacoes = [], hidden = false, embed =
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {rev.duplicadas.map((dp, i) => (
-                <div key={`${dp.descricao}-${i}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: `${T.yellow}12`, border: `1px solid ${T.yellow}40`, borderRadius: 10 }}>
+                <div key={`${dp.descricao}-${i}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: `${T.yellow}12`, border: `1px solid ${T.yellow}40`, borderRadius: 12 }}>
                   <div style={{ color: T.ink, fontWeight: 600, fontSize: 13 }}>
                     {dp.descricao}
                     <span style={{ color: T.faint, fontWeight: 400, fontSize: 11 }}> · {dp.ocorrencias}×</span>

@@ -41,7 +41,7 @@ export default function CalculadoraJurosModal({ onClose }) {
   }, [r.serie]);
 
   const chip = (ativo) => ({
-    padding: "7px 14px", borderRadius: 11, cursor: "pointer", fontSize: 12, fontWeight: 700,
+    padding: "7px 14px", borderRadius: 12, cursor: "pointer", fontSize: 12, fontWeight: 700,
     background: ativo ? `${T.gold}22` : T.bgSoft, color: ativo ? T.gold : T.muted,
     border: `1px solid ${ativo ? T.gold : T.border}`,
   });
@@ -96,8 +96,8 @@ export default function CalculadoraJurosModal({ onClose }) {
       {/* Resultado */}
       {temResultado ? (
         <>
-          <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 13, padding: "12px 14px", marginBottom: 10 }}>
-            <div style={{ fontSize: 9.5, color: T.muted, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700 }}>Montante final</div>
+          <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 10 }}>
+            <div style={{ fontSize: 10.5, color: T.muted, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700 }}>Montante final</div>
             <div className="num" style={{ fontFamily: T.serif, fontSize: 26, fontWeight: 700, color: T.gold, marginTop: 2 }}>{fmt(r.montante)}</div>
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 6, fontSize: 11.5 }}>
               <span style={{ color: T.muted }}>Investido: <b className="num" style={{ color: T.ink }}>{fmt(r.totalInvestido)}</b></span>

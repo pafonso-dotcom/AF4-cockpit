@@ -34,7 +34,7 @@ export default function NotasRapidasCard({ style, storageKey = NOTAS_KEY }) {
       <textarea value={txt} onChange={(e) => setTxt(e.target.value)}
         placeholder="Anote lembretes, ideias, números… fica salvo automaticamente."
         rows={5}
-        style={{ width: "100%", boxSizing: "border-box", resize: "vertical", minHeight: 96, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 11px", color: T.ink, fontFamily: "inherit", fontSize: 14, lineHeight: 1.5, outline: "none" }} />
+        style={{ width: "100%", boxSizing: "border-box", resize: "vertical", minHeight: 96, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "9px 11px", color: T.ink, fontFamily: "inherit", fontSize: 14, lineHeight: 1.5, outline: "none" }} />
     </div>
   );
 }

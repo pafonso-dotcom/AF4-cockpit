@@ -608,7 +608,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
             // truncada, PM/Preço/Valor lado a lado (grade inline — não depende de
             // classes) e todas as ações numa linha só.
             <div key={a.id} onClick={() => setSelected(a)}
-                 style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 12px", cursor: "pointer" }}>
+                 style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "10px 12px", cursor: "pointer" }}>
               {/* Linha 1: ticker + chip | resultado */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
@@ -620,8 +620,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     )}
                     {a.segmento && (
                       <span style={{
-                        padding: "1px 7px", borderRadius: 4, background: `${T.gold}15`, color: T.gold,
-                        fontSize: 9, fontWeight: 600, letterSpacing: ".03em", whiteSpace: "nowrap",
+                        padding: "1px 7px", borderRadius: 8, background: `${T.gold}15`, color: T.gold,
+                        fontSize: 10, fontWeight: 600, letterSpacing: ".03em", whiteSpace: "nowrap",
                         maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis",
                       }}>{a.segmento}</span>
                     )}
@@ -656,20 +656,20 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                 whiteSpace: "nowrap", overflowX: "auto",
               }}>
                 <span style={{ fontSize: 12 }}>
-                  <span style={{ color: T.faint, fontSize: 9, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>PM</span>
+                  <span style={{ color: T.faint, fontSize: 10, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>PM</span>
                   <span className="num" style={{ color: T.muted }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.pm)}</span>
                 </span>
                 <span style={{ fontSize: 12 }}>
-                  <span style={{ color: T.faint, fontSize: 9, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Preço</span>
+                  <span style={{ color: T.faint, fontSize: 10, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Preço</span>
                   <span className="num" style={{ color: T.gold }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.preco)}</span>
                   {Number.isFinite(Number(a.variacao24h)) && (
-                    <span className="num" style={{ fontSize: 9.5, marginLeft: 3, color: Number(a.variacao24h) >= 0 ? T.green : T.red }}>
+                    <span className="num" style={{ fontSize: 10.5, marginLeft: 3, color: Number(a.variacao24h) >= 0 ? T.green : T.red }}>
                       {Number(a.variacao24h) >= 0 ? "+" : ""}{Number(a.variacao24h).toFixed(1)}%
                     </span>
                   )}
                 </span>
                 <span style={{ fontSize: 12 }}>
-                  <span style={{ color: T.faint, fontSize: 9, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Valor</span>
+                  <span style={{ color: T.faint, fontSize: 10, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Valor</span>
                   <span className="num" style={{ color: T.ink, fontWeight: 700 }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</span>
                 </span>
               </div>
@@ -747,11 +747,11 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                 backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite",
               }} />
               <div style={{ flex: 1 }}>
-                <div style={{ height: 13, width: 110, background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`, backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite", borderRadius: 4 }} />
+                <div style={{ height: 13, width: 110, background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`, backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite", borderRadius: 8 }} />
                 <div style={{ height: 4 }} />
-                <div style={{ height: 10, width: 70, background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`, backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite", borderRadius: 4 }} />
+                <div style={{ height: 10, width: 70, background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`, backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite", borderRadius: 8 }} />
               </div>
-              <div style={{ width: 90, height: 14, background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`, backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite", borderRadius: 4 }} />
+              <div style={{ width: 90, height: 14, background: `linear-gradient(90deg, ${T.bgSoft || T.card}, ${T.border}, ${T.bgSoft || T.card})`, backgroundSize: "200% 100%", animation: "skelPulse 1.6s ease-in-out infinite", borderRadius: 8 }} />
             </div>
           ))
         )}
@@ -823,7 +823,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     )}
                           <span style={{ color: T.muted, fontSize: 11 }}>
                             {a.nome && <span className="italic">{a.nome} · </span>}
-                            <span style={{ fontFamily: T.sans, letterSpacing: "0.03em", textTransform: "uppercase", fontSize: 9.5 }}>{a.tipo}</span>
+                            <span style={{ fontFamily: T.sans, letterSpacing: "0.03em", textTransform: "uppercase", fontSize: 10.5 }}>{a.tipo}</span>
                             {a.tipo !== "capitalSocial" && valorPorTipo[a.tipo] > 0 && (
                               <span style={{ color: T.gold, fontWeight: 600 }}> · {pesoNaCategoria(a).toFixed(0)}%</span>
                             )}
@@ -1054,7 +1054,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                   }
                   setForm({ ...form, pm: (total / q).toFixed(4) });
                 }}
-                style={{ background: T.gold, color: T.bg, border: "none", padding: "0 14px", cursor: "pointer", fontSize: 11, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", borderRadius: 11 }}>
+                style={{ background: T.gold, color: T.bg, border: "none", padding: "0 14px", cursor: "pointer", fontSize: 11, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", borderRadius: 12 }}>
                 ↻ Calcular PM
               </button>
             </div>
@@ -1265,7 +1265,7 @@ function DetalheAtivo({ ativo, onClose }) {
           <div className="label-eyebrow">Preço Atual</div>
           <div className="num" style={{ color: T.gold, fontSize: 18, marginTop: 4 }}>{fmt(ativo.preco)}</div>
           {!rendaFixa && (
-            <div style={{ fontSize: 9.5, fontWeight: 700, marginTop: 3, display: "inline-flex", alignItems: "center", gap: 4, color: ativo.realtime ? T.green : T.gold }}
+            <div style={{ fontSize: 10.5, fontWeight: 700, marginTop: 3, display: "inline-flex", alignItems: "center", gap: 4, color: ativo.realtime ? T.green : T.gold }}
                  title={ativo.realtime
                    ? `Cotação de mercado${ativo.fonteCotacao ? ` (${ativo.fonteCotacao})` : ""}${ativo.ultimaAtt ? ` · ${new Date(ativo.ultimaAtt).toLocaleString("pt-BR")}` : ""}`
                    : "Preço SIMULADO — não é o da bolsa. Ative o Mercado real em Configurações → APIs → BRAPI e clique em Atualizar mercado pra puxar a cotação real."}>

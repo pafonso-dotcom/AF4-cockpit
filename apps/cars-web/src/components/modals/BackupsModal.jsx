@@ -71,7 +71,7 @@ export default function BackupsModal({ onRestaurar, onClose }) {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 360, overflowY: "auto" }}>
           {lista.map((b) => (
-            <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 11, flexWrap: "wrap" }}>
+            <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 160 }}>
                 <div style={{ fontSize: 13, color: T.ink, fontWeight: 600 }}>{fmtData(b.ts)}</div>
                 <div style={{ fontSize: 10.5, color: T.muted }}>{b.motivo} · {fmtBytes(b.bytes)}</div>
@@ -96,4 +96,4 @@ export default function BackupsModal({ onRestaurar, onClose }) {
   );
 }
 
-const btn = { background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 9, padding: "6px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center" };
+const btn = { background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "6px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center" };

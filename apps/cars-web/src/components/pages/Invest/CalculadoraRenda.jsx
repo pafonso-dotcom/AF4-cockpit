@@ -189,7 +189,7 @@ export default function CalculadoraRenda({ embed = false } = {}) {
             <button
               onClick={() => setCenariosAberto(v => !v)}
               style={{
-                padding: "6px 12px", borderRadius: 11, cursor: "pointer",
+                padding: "6px 12px", borderRadius: 12, cursor: "pointer",
                 fontSize: 11.5, fontWeight: 600,
                 background: cenarioAtivo ? `${corAtivo}22` : T.bgSoft,
                 color: cenarioAtivo ? corAtivo : T.ink,
@@ -217,7 +217,7 @@ export default function CalculadoraRenda({ embed = false } = {}) {
             <div style={{
               position: "absolute", top: "100%", left: 0, marginTop: 6, zIndex: 10,
               background: T.card, border: `1px solid ${T.border}`,
-              borderRadius: 14, padding: 10,
+              borderRadius: 16, padding: 10,
               boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
               maxWidth: 540, width: "max-content",
               maxHeight: "70vh", overflowY: "auto",
@@ -229,7 +229,7 @@ export default function CalculadoraRenda({ embed = false } = {}) {
                 return (
                   <div key={g.id} style={{ marginBottom: 8 }}>
                     <div style={{
-                      fontSize: 9, color: corGrupo, fontWeight: 700,
+                      fontSize: 10, color: corGrupo, fontWeight: 700,
                       letterSpacing: ".12em", textTransform: "uppercase", marginBottom: 4,
                     }}>
                       {g.label}
@@ -240,7 +240,7 @@ export default function CalculadoraRenda({ embed = false } = {}) {
                         return (
                           <button key={a.id} onClick={() => { aplicarAtalho(a); setCenariosAberto(false); }}
                             style={{
-                              padding: "4px 8px", borderRadius: 5, cursor: "pointer",
+                              padding: "4px 8px", borderRadius: 8, cursor: "pointer",
                               fontSize: 11, fontWeight: 500,
                               background: ativo ? `${corGrupo}22` : T.bgSoft,
                               color: ativo ? corGrupo : T.ink,
@@ -266,7 +266,7 @@ export default function CalculadoraRenda({ embed = false } = {}) {
 
       {/* SLIDERS em linha (grid responsivo) */}
       <div className="calc-card" style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
         padding: 12, marginBottom: 10,
       }}>
         <div className="calc-sliders-grid" style={{
@@ -375,7 +375,7 @@ export default function CalculadoraRenda({ embed = false } = {}) {
       {/* GRÁFICO: evolução do poder de compra (30 anos) */}
       <div style={{
         marginTop: 14, padding: 14,
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6, flexWrap: "wrap", gap: 8 }}>
           <div>
@@ -426,7 +426,7 @@ export default function CalculadoraRenda({ embed = false } = {}) {
         </div>
         <div style={{
           marginTop: 8, padding: 10, background: `${T.red}11`,
-          border: `1px solid ${T.red}33`, borderRadius: 11,
+          border: `1px solid ${T.red}33`, borderRadius: 12,
           fontSize: 12, color: T.muted, lineHeight: 1.5,
         }}>
           <strong style={{ color: T.red }}>⚠ Se você sacar tudo:</strong> em {insight.anoMeio} anos o
@@ -442,7 +442,7 @@ export default function CalculadoraRenda({ embed = false } = {}) {
       {/* COMO INTERPRETAR — conselhos sobre os cenários */}
       <div style={{
         marginTop: 14, padding: 14,
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
       }}>
         <div className="label-eyebrow" style={{ marginBottom: 10, display: "inline-flex", alignItems: "center", gap: 6 }}>
           <Info size={11} style={{ color: T.gold }} />
@@ -465,7 +465,7 @@ export default function CalculadoraRenda({ embed = false } = {}) {
             "consome" o patrimônio, só os juros reais (acima da inflação).
           </DicaItem>
           <div style={{
-            marginTop: 4, padding: 10, background: T.bgSoft, borderRadius: 11,
+            marginTop: 4, padding: 10, background: T.bgSoft, borderRadius: 12,
             fontSize: 11.5, color: T.muted,
           }}>
             <strong style={{ color: T.ink }}>Exemplo</strong> com os defaults
@@ -481,7 +481,7 @@ export default function CalculadoraRenda({ embed = false } = {}) {
       {/* Rodapé (disclaimer) */}
       <div style={{
         marginTop: 14, padding: 12,
-        background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 11,
+        background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12,
         fontSize: 11.5, color: T.muted, lineHeight: 1.55, fontStyle: "italic",
       }}>
         Cenários usam CDI a ~14,4% a.a. como base. "Saca tudo" retira todo o
@@ -550,7 +550,7 @@ function CampoValor({ label, value, min, max, step, onChange }) {
         onBlur={() => { setFocado(false); commit(texto); }}
         onChange={e => { setTexto(e.target.value); commit(e.target.value); }}
         style={{
-          width: "100%", padding: "7px 10px", borderRadius: 11,
+          width: "100%", padding: "7px 10px", borderRadius: 12,
           background: T.bgSoft, border: `1px solid ${T.border}`,
           color: T.gold, fontFamily: T.serif, fontSize: 18, fontWeight: 600,
           outline: "none",
@@ -561,7 +561,7 @@ function CampoValor({ label, value, min, max, step, onChange }) {
              value={value}
              onChange={e => onChange(Number(e.target.value))}
              style={{ width: "100%", accentColor: T.gold, cursor: "pointer", marginTop: 6 }} />
-      <div className="calc-slider-range" style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: T.faint, marginTop: 2 }}>
+      <div className="calc-slider-range" style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: T.faint, marginTop: 2 }}>
         <span>{fmtBRL.format(min)}</span>
         <span>{fmtBRL.format(max)}</span>
       </div>
@@ -594,7 +594,7 @@ function Slider({ label, value, min, max, step, onChange, display }) {
              }} />
       <div className="calc-slider-range" style={{
         display: "flex", justifyContent: "space-between",
-        fontSize: 9.5, color: T.faint, marginTop: 2,
+        fontSize: 10.5, color: T.faint, marginTop: 2,
       }}>
         <span>{formatRange(min, label)}</span>
         <span>{formatRange(max, label)}</span>
@@ -621,12 +621,12 @@ function ValorIdealCard({ valor, valorAnual, liquidoMes, taxaRealAnual, viavel }
         : `linear-gradient(135deg, ${T.red}22 0%, ${T.red}08 60%, ${T.card} 100%)`,
       border: `1px solid ${viavel ? T.green : T.red}`,
       borderLeft: `3px solid ${viavel ? T.green : T.red}`,
-      borderRadius: 14, padding: 12,
+      borderRadius: 16, padding: 12,
       position: "relative",
     }}>
       <div style={{
         position: "absolute", top: 8, right: 10,
-        fontSize: 8.5, padding: "2px 6px", borderRadius: 100,
+        fontSize: 10, padding: "2px 6px", borderRadius: 100,
         background: viavel ? T.green : T.red, color: T.bg,
         fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase",
       }}>
@@ -651,7 +651,7 @@ function ValorIdealCard({ valor, valorAnual, liquidoMes, taxaRealAnual, viavel }
             marginTop: 10, paddingTop: 8, borderTop: `1px dashed ${T.green}55`,
           }}>
             <div>
-              <div style={{ fontSize: 9, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 1 }}>
+              <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 1 }}>
                 Por ano
               </div>
               <div className="num" style={{ fontSize: 13, color: T.ink, fontWeight: 600 }}>
@@ -659,7 +659,7 @@ function ValorIdealCard({ valor, valorAnual, liquidoMes, taxaRealAnual, viavel }
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 9, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 1 }}>
+              <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, marginBottom: 1 }}>
                 Taxa real
               </div>
               <div className="num" style={{ fontSize: 13, color: T.green, fontWeight: 600 }}>
@@ -672,7 +672,7 @@ function ValorIdealCard({ valor, valorAnual, liquidoMes, taxaRealAnual, viavel }
           </div>
           <div style={{
             marginTop: 8, padding: 8, background: `${T.green}11`,
-            border: `1px solid ${T.green}33`, borderRadius: 11,
+            border: `1px solid ${T.green}33`, borderRadius: 12,
             fontSize: 11, color: T.ink, lineHeight: 1.4,
           }}>
             💡 <strong>Sacar até este valor todo mês mantém o poder de
@@ -689,7 +689,7 @@ function ValorIdealCard({ valor, valorAnual, liquidoMes, taxaRealAnual, viavel }
       ) : (
         <div style={{
           marginTop: 8, padding: 8, background: `${T.red}11`,
-          border: `1px solid ${T.red}33`, borderRadius: 11,
+          border: `1px solid ${T.red}33`, borderRadius: 12,
           fontSize: 11, color: T.ink, lineHeight: 1.4,
         }}>
           ⚠ <strong>Cenário inviável pra preservar o patrimônio:</strong>{" "}
@@ -714,10 +714,10 @@ function ReinvestirCard({ principal, snap1Anos, snap2Anos, snap3Anos, reinveste,
     <div style={{
       background: `linear-gradient(135deg, ${cor}22 0%, ${cor}08 60%, ${T.card} 100%)`,
       border: `1px solid ${cor}`, borderLeft: `3px solid ${cor}`,
-      borderRadius: 14, padding: 12, position: "relative",
+      borderRadius: 16, padding: 12, position: "relative",
     }}>
       <div style={{
-        position: "absolute", top: 8, right: 10, fontSize: 8.5, padding: "2px 6px",
+        position: "absolute", top: 8, right: 10, fontSize: 10, padding: "2px 6px",
         borderRadius: 100, background: cor, color: T.bg, fontWeight: 700,
         letterSpacing: ".12em", textTransform: "uppercase",
       }}>
@@ -741,7 +741,7 @@ function ReinvestirCard({ principal, snap1Anos, snap2Anos, snap3Anos, reinveste,
 
       <div style={{
         fontSize: 11.5, color: T.ink, lineHeight: 1.5, marginTop: 8,
-        background: `${cor}14`, border: `1px solid ${cor}44`, borderRadius: 11, padding: "8px 10px",
+        background: `${cor}14`, border: `1px solid ${cor}44`, borderRadius: 12, padding: "8px 10px",
       }}>
         💡 Em <strong>{snap3Anos} anos</strong>, os {fmtBRL.format(principal)} investidos viram{" "}
         <strong className="num" style={{ color: cor }}>{fmtBRL.format(p3.real)}</strong>{" "}
@@ -755,11 +755,11 @@ function ReinvestirCard({ principal, snap1Anos, snap2Anos, snap3Anos, reinveste,
 function ReinvestCol({ anos, valor, cor, destaque }) {
   return (
     <div style={{
-      padding: "6px 8px", borderRadius: 11, textAlign: "center",
+      padding: "6px 8px", borderRadius: 12, textAlign: "center",
       background: destaque ? `${cor}1c` : "transparent",
       border: destaque ? `1px solid ${cor}55` : `1px solid ${T.border}`,
     }}>
-      <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
+      <div style={{ fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted, marginBottom: 2 }}>
         {anos}
       </div>
       <div className="num" style={{ fontSize: 13, fontWeight: 600, color: destaque ? cor : T.ink }}>
@@ -777,7 +777,7 @@ function ResultCard({ titulo, valor, valorEur, descricao, cor, destaque }) {
       background: T.card,
       border: `1px solid ${destaque ? cor : T.border}`,
       borderLeft: `3px solid ${cor}`,
-      borderRadius: 14, padding: 10,
+      borderRadius: 16, padding: 10,
     }}>
       <div className="label-eyebrow" style={{ color: cor, marginBottom: 3 }}>
         {titulo}

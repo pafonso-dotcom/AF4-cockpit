@@ -30,13 +30,13 @@ export default function BaixaParcelaModal({ item, contas, onConfirm, onClose }) 
       display: "grid", placeItems: "center", zIndex: 1000,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: T.card, borderRadius: 18, padding: 22,
+        background: T.card, borderRadius: 16, padding: 22,
         minWidth: 340, maxWidth: 460, border: `1px solid ${T.border}`,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{
-              fontSize: 9.5, letterSpacing: ".18em", color: T.faint,
+              fontSize: 10.5, letterSpacing: ".18em", color: T.faint,
               textTransform: "uppercase", fontWeight: 600,
             }}>
               Dar baixa em parcela
@@ -66,7 +66,7 @@ export default function BaixaParcelaModal({ item, contas, onConfirm, onClose }) 
           </div>
           <select value={contaId} onChange={e => setContaId(e.target.value)} style={{
             width: "100%", padding: "8px 11px", background: T.bgSoft,
-            border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11,
+            border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 12,
           }}>
             {contasFiltradas.length === 0 && <option value="">— Nenhuma conta disponível —</option>}
             {contasFiltradas.map(c => (
@@ -91,7 +91,7 @@ export default function BaixaParcelaModal({ item, contas, onConfirm, onClose }) 
           </div>
           <input type="date" value={data} onChange={e => setData(e.target.value)} style={{
             width: "100%", padding: "8px 11px", background: T.bgSoft,
-            border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11,
+            border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 12,
           }} />
         </div>
 
@@ -106,7 +106,7 @@ export default function BaixaParcelaModal({ item, contas, onConfirm, onClose }) 
                  placeholder="Ex.: pago via PIX"
                  style={{
                    width: "100%", padding: "8px 11px", background: T.bgSoft,
-                   border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11,
+                   border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 12,
                  }} />
         </div>
 
@@ -114,12 +114,12 @@ export default function BaixaParcelaModal({ item, contas, onConfirm, onClose }) 
           <button onClick={onClose} style={{
             padding: "8px 14px", background: "transparent",
             border: `1px solid ${T.border}`, color: T.muted,
-            borderRadius: 11, fontSize: 11, fontWeight: 600, cursor: "pointer",
+            borderRadius: 12, fontSize: 11, fontWeight: 600, cursor: "pointer",
             letterSpacing: ".05em", textTransform: "uppercase",
           }}>Cancelar</button>
           <button onClick={confirmar} disabled={!contaId} style={{
             padding: "8px 14px", background: T.green, color: "#fff",
-            border: "none", borderRadius: 11, fontSize: 11, fontWeight: 600,
+            border: "none", borderRadius: 12, fontSize: 11, fontWeight: 600,
             cursor: contaId ? "pointer" : "not-allowed",
             letterSpacing: ".05em", textTransform: "uppercase",
             display: "inline-flex", alignItems: "center", gap: 6,

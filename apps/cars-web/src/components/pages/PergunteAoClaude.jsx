@@ -107,7 +107,7 @@ export default function PergunteAoClaude({
 
       {!apiKey && (
         <div style={{
-          padding: 16, marginBottom: 16, borderRadius: 14,
+          padding: 16, marginBottom: 16, borderRadius: 16,
           background: `${T.yellow}11`, border: `1px solid ${T.yellow}`,
         }}>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 12 }}>
@@ -128,7 +128,7 @@ export default function PergunteAoClaude({
                 placeholder="sk-ant-..."
                 style={{
                   width: "100%", fontSize: 13, padding: "8px 36px 8px 10px",
-                  border: `1px solid ${T.border}`, borderRadius: 11,
+                  border: `1px solid ${T.border}`, borderRadius: 12,
                   background: T.bg, color: T.ink, boxSizing: "border-box",
                 }}
               />
@@ -293,7 +293,7 @@ function Bubble({ msg }) {
       wordBreak: "break-word",
     }}>
       {!isUser && (
-        <div style={{ fontSize: 9, letterSpacing: ".15em", textTransform: "uppercase", color: T.gold, marginBottom: 4, display: "flex", alignItems: "center", gap: 4, fontWeight: 600 }}>
+        <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.gold, marginBottom: 4, display: "flex", alignItems: "center", gap: 4, fontWeight: 600 }}>
           <Sparkles size={9} /> Claude
         </div>
       )}

@@ -672,7 +672,7 @@ export default function Proventos({
                     <Td><strong>{i.ticker}</strong></Td>
                     <Td>
                       {i.temTaxa ? i.rotulo : (
-                        <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: `${T.gold}22`, color: T.gold, fontWeight: 700, letterSpacing: ".03em" }}>
+                        <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 8, background: `${T.gold}22`, color: T.gold, fontWeight: 700, letterSpacing: ".03em" }}>
                           definir taxa
                         </span>
                       )}
@@ -749,7 +749,7 @@ export default function Proventos({
                         {p.manual && (
                           <span title="Lançamento manual"
                                 style={{
-                                  marginLeft: 6, fontSize: 8.5, padding: "1px 5px", borderRadius: 3,
+                                  marginLeft: 6, fontSize: 10, padding: "1px 5px", borderRadius: 8,
                                   background: `${T.gold}33`, color: T.gold,
                                   letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700,
                                 }}>
@@ -759,7 +759,7 @@ export default function Proventos({
                         {p.real && (
                           <span title="Provento anunciado — data e cota oficiais (brapi)"
                                 style={{
-                                  marginLeft: 6, fontSize: 8.5, padding: "1px 5px", borderRadius: 3,
+                                  marginLeft: 6, fontSize: 10, padding: "1px 5px", borderRadius: 8,
                                   background: `${T.green}33`, color: T.green,
                                   letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700,
                                 }}>
@@ -769,7 +769,7 @@ export default function Proventos({
                         {p.estimado && (
                           <span title="Projeção com a última cota real anunciada (o mês ainda não tem anúncio)"
                                 style={{
-                                  marginLeft: 6, fontSize: 8.5, padding: "1px 5px", borderRadius: 3,
+                                  marginLeft: 6, fontSize: 10, padding: "1px 5px", borderRadius: 8,
                                   background: `${T.border}`, color: T.muted,
                                   letterSpacing: ".06em", textTransform: "uppercase", fontWeight: 700,
                                 }}>
@@ -779,7 +779,7 @@ export default function Proventos({
                       </Td>
                       <Td>
                         <span style={{
-                          fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                          fontSize: 10, padding: "2px 7px", borderRadius: 8,
                           background: p.tipo === "Rendimento" ? `${T.green}22`
                                     : p.tipo === "Dividendo" ? `${T.gold}22`
                                     : `${T.blue || "#5b9bd5"}22`,
@@ -802,7 +802,7 @@ export default function Proventos({
                             <span style={{
                               display: "inline-flex", alignItems: "center", gap: 4,
                               fontSize: 10, color: T.green, fontWeight: 700,
-                              padding: "3px 7px", background: `${T.green}22`, borderRadius: 4,
+                              padding: "3px 7px", background: `${T.green}22`, borderRadius: 8,
                             }}>
                               <Check size={11} /> Recebido
                             </span>
@@ -811,7 +811,7 @@ export default function Proventos({
                                     aria-label={`Estornar baixa de ${p.ticker}`}
                                     style={{
                                       background: "transparent", border: `1px solid ${T.border}`,
-                                      color: T.red, padding: "2px 5px", borderRadius: 4,
+                                      color: T.red, padding: "2px 5px", borderRadius: 8,
                                       cursor: "pointer", display: "inline-flex", alignItems: "center",
                                     }}>
                               <X size={11} />
@@ -822,7 +822,7 @@ export default function Proventos({
                             <span style={{
                               display: "inline-flex", alignItems: "center", gap: 4,
                               fontSize: 10, color: T.muted, fontWeight: 600,
-                              padding: "3px 7px", background: `${T.muted}22`, borderRadius: 4,
+                              padding: "3px 7px", background: `${T.muted}22`, borderRadius: 8,
                               fontStyle: "italic",
                             }}>
                               Ignorado
@@ -832,7 +832,7 @@ export default function Proventos({
                                     aria-label={`Reativar provento ${p.ticker}`}
                                     style={{
                                       background: "transparent", border: `1px solid ${T.border}`,
-                                      color: T.gold, padding: "2px 7px", borderRadius: 4,
+                                      color: T.gold, padding: "2px 7px", borderRadius: 8,
                                       cursor: "pointer", fontSize: 10, letterSpacing: ".05em",
                                     }}>
                               ↺
@@ -843,7 +843,7 @@ export default function Proventos({
                             <button onClick={() => abrirBaixa(p)}
                                     style={{
                                       background: T.gold, color: T.bg,
-                                      border: "none", padding: "5px 11px", borderRadius: 5,
+                                      border: "none", padding: "5px 11px", borderRadius: 8,
                                       fontSize: 10.5, fontWeight: 700, cursor: "pointer",
                                       letterSpacing: ".05em", textTransform: "uppercase",
                                       display: "inline-flex", alignItems: "center", gap: 4,
@@ -857,7 +857,7 @@ export default function Proventos({
                                     aria-label={`Editar provento ${p.ticker}`}
                                     style={{
                                       background: "transparent", border: `1px solid ${T.border}`,
-                                      color: T.muted, padding: "2px 7px", borderRadius: 4,
+                                      color: T.muted, padding: "2px 7px", borderRadius: 8,
                                       cursor: "pointer", fontSize: 10, letterSpacing: ".05em",
                                     }}>
                               ✎
@@ -867,7 +867,7 @@ export default function Proventos({
                                     aria-label={p.manual ? `Excluir lançamento manual ${p.ticker}` : `Excluir provento previsto ${p.ticker}`}
                                     style={{
                                       background: "transparent", border: `1px solid ${T.border}`,
-                                      color: T.red, padding: "2px 5px", borderRadius: 4,
+                                      color: T.red, padding: "2px 5px", borderRadius: 8,
                                       cursor: "pointer", display: "inline-flex", alignItems: "center",
                                     }}>
                               <X size={11} />
@@ -934,7 +934,7 @@ export default function Proventos({
                                   <Td align="right" mono style={{ color: T.green, fontWeight: 600 }}>{hidden ? "•••" : fmt(valorRecebido(p))}</Td>
                                   <Td align="right">
                                     <button onClick={() => estornarBaixa(p)} title="Estornar baixa"
-                                            style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.red, padding: "3px 8px", borderRadius: 5, cursor: "pointer", fontSize: 10.5 }}>
+                                            style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.red, padding: "3px 8px", borderRadius: 8, cursor: "pointer", fontSize: 10.5 }}>
                                       Estornar
                                     </button>
                                   </Td>
@@ -955,7 +955,7 @@ export default function Proventos({
 
       {/* Histórico da carteira de proventos (colapsível) — sempre por último */}
       {(carteiraProventos.historico || []).length > 0 && (
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 14px", marginBottom: 14 }}>
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "10px 14px", marginBottom: 14 }}>
           <button onClick={() => setHistoricoAberto(!historicoAberto)}
                   style={{
                     background: "transparent", border: "none", color: T.muted,
@@ -975,7 +975,7 @@ export default function Proventos({
                     display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10,
                     alignItems: "center",
                     padding: "8px 10px", marginBottom: 4,
-                    background: T.bgSoft, borderRadius: 11,
+                    background: T.bgSoft, borderRadius: 12,
                     borderLeft: `2px solid ${positivo ? T.green : T.red}`,
                   }}>
                     <div style={{ fontSize: 10.5, color: T.muted, fontFamily: T.mono, minWidth: 56 }}>
@@ -1044,7 +1044,7 @@ export default function Proventos({
             return total > 0 ? (
               <div style={{
                 padding: 10, marginTop: 4, background: `${T.green}11`,
-                border: `1px solid ${T.green}33`, borderRadius: 11,
+                border: `1px solid ${T.green}33`, borderRadius: 12,
                 fontSize: 12.5, color: T.muted, display: "flex", justifyContent: "space-between",
               }}>
                 <span>Total previsto:</span>
@@ -1166,7 +1166,7 @@ export default function Proventos({
                 {ativoDestino && precoAtivo > 0 && (
                   <div style={{
                     padding: 10, background: `${T.green}11`,
-                    border: `1px solid ${T.green}33`, borderRadius: 11,
+                    border: `1px solid ${T.green}33`, borderRadius: 12,
                     fontSize: 11.5, color: T.muted, marginBottom: 10,
                   }}>
                     Vai comprar <strong className="num" style={{ color: T.green }}>
@@ -1223,7 +1223,7 @@ export default function Proventos({
           </Field>
           <div style={{
             padding: 10, background: `${T.green}11`, border: `1px solid ${T.green}33`,
-            borderRadius: 11, fontSize: 11.5, color: T.green, marginTop: 8,
+            borderRadius: 12, fontSize: 11.5, color: T.green, marginTop: 8,
           }}>
             ✓ Cria transação de receita "Transferência da Carteira de Proventos"<br />
             ✓ Aumenta saldo da conta destino<br />
@@ -1272,7 +1272,7 @@ export default function Proventos({
             {ativoSel && preco > 0 && (
               <div style={{
                 padding: 10, background: `${T.green}11`, border: `1px solid ${T.green}33`,
-                borderRadius: 11, fontSize: 11.5, color: T.muted, marginTop: 8,
+                borderRadius: 12, fontSize: 11.5, color: T.muted, marginTop: 8,
               }}>
                 Vai comprar <strong className="num" style={{ color: T.green }}>
                   {qtdCompravel.toFixed(6)} {ativoSel.ticker}
@@ -1332,7 +1332,7 @@ function Th({ children, align }) {
   return (
     <th style={{
       padding: "10px 12px", textAlign: align || "left",
-      fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
+      fontSize: 10.5, letterSpacing: ".15em", textTransform: "uppercase",
       color: T.muted, fontWeight: 600,
       background: T.bgSoft, borderBottom: `1px solid ${T.border}`,
     }}>{children}</th>

@@ -48,3 +48,14 @@ export const generateHistory = (basePrice, days = 30, vol = 0.018) => {
   out[out.length - 1].preco = basePrice;
   return out;
 };
+
+// Abreviação elegante pra valores grandes em espaços apertados (tiles):
+// 1.234.567 → "R$ 1,23 mi" · 524.700 → "R$ 524,7 mil". Abaixo de 100 mil,
+// formato normal. Use com title={fmt(v)} pro valor completo no toque.
+export const fmtAbrev = (v) => {
+  const n = Number(v) || 0;
+  const a = Math.abs(n);
+  if (a >= 1e6) return `R$ ${(n / 1e6).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} mi`;
+  if (a >= 1e5) return `R$ ${(n / 1e3).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mil`;
+  return fmt(n);
+};

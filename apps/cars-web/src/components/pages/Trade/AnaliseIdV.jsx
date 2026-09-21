@@ -115,7 +115,7 @@ export default function AnaliseIdV({ analises = [], setAnalises, ativos = [] }) 
           const ativo = classeAtiva === c.id, disp = c.criterios.length > 0;
           return (
             <button key={c.id} onClick={() => disp && setClasseAtiva(c.id)} disabled={!disp}
-              style={{ padding: "7px 14px", fontSize: 11, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", borderRadius: 11,
+              style={{ padding: "7px 14px", fontSize: 11, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", borderRadius: 12,
                 border: `1px solid ${ativo ? T.ink : T.border}`, background: ativo ? T.ink : T.card,
                 color: ativo ? "#fff" : (disp ? T.muted : T.faint), cursor: disp ? "pointer" : "not-allowed", opacity: disp ? 1 : 0.5 }}>
               {c.icon} {c.label}{!disp && " (em breve)"}
@@ -150,7 +150,7 @@ export default function AnaliseIdV({ analises = [], setAnalises, ativos = [] }) 
             <div onClick={() => setEditId(expandido ? null : analise.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", cursor: "pointer" }}>
               <div>
                 <span style={{ fontSize: 16, fontWeight: 700, color: T.ink }}>{analise.ticker}</span>
-                {analise.origem && <span style={{ fontSize: 9, padding: "1px 6px", background: T.bgSoft, color: T.muted, borderRadius: 3, marginLeft: 8, letterSpacing: ".05em" }}>{analise.origem}</span>}
+                {analise.origem && <span style={{ fontSize: 10, padding: "1px 6px", background: T.bgSoft, color: T.muted, borderRadius: 8, marginLeft: 8, letterSpacing: ".05em" }}>{analise.origem}</span>}
                 <span style={{ fontSize: 11, color: T.muted, marginLeft: 10 }}>{sc.preenchidos}/{sc.total} critérios</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -162,7 +162,7 @@ export default function AnaliseIdV({ analises = [], setAnalises, ativos = [] }) 
                     <span style={{ fontSize: 10, fontWeight: 700, color: sc.cor, letterSpacing: ".05em" }}>{sc.badge}</span>
                   </div>
                   {sc.parcial && sc.preenchidos > 0 && (
-                    <span style={{ fontSize: 9, color: T.faint }}>parcial · faltam {sc.faltam}</span>
+                    <span style={{ fontSize: 10, color: T.faint }}>parcial · faltam {sc.faltam}</span>
                   )}
                 </div>
                 <span style={{ fontSize: 11, color: T.faint }}>{expandido ? "▲" : "▼"}</span>
@@ -183,7 +183,7 @@ export default function AnaliseIdV({ analises = [], setAnalises, ativos = [] }) 
                         <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: T.bgSoft, borderRadius: 12, marginBottom: 4, borderLeft: `3px solid ${COR[aval]}` }}>
                           <span style={{ fontSize: 14 }}>{IC[aval]}</span>
                           <span style={{ flex: 1, fontSize: 12.5, fontWeight: 500, color: T.ink }}>{c.label} <span style={{ fontSize: 10, color: T.faint }}>· {c.hint}</span></span>
-                          <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 3, fontWeight: 700, letterSpacing: ".05em",
+                          <span style={{ fontSize: 10, padding: "1px 5px", borderRadius: 8, fontWeight: 700, letterSpacing: ".05em",
                             background: c.fonte === "planilha" ? "rgba(74,123,58,.14)" : c.fonte === "auto" ? "rgba(58,92,138,.14)" : "rgba(186,117,23,.14)",
                             color: c.fonte === "planilha" ? "#4A7B3A" : c.fonte === "auto" ? "#3A5C8A" : "#BA7517" }}>
                             {c.fonte === "planilha" ? "PLANILHA" : c.fonte === "auto" ? "AUTO" : "MANUAL"}
@@ -194,12 +194,12 @@ export default function AnaliseIdV({ analises = [], setAnalises, ativos = [] }) 
                               ? [valorAtual, ...c.opcoes]
                               : c.opcoes;
                             return (
-                              <select value={valorAtual} onChange={e => atualizar(analise.id, c.id, e.target.value)} style={{ width: 150, padding: "4px 8px", fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 5, background: T.card, color: T.ink }}>
+                              <select value={valorAtual} onChange={e => atualizar(analise.id, c.id, e.target.value)} style={{ width: 150, padding: "4px 8px", fontSize: 11, border: `1px solid ${T.border}`, borderRadius: 8, background: T.card, color: T.ink }}>
                                 <option value="">—</option>{opcoesFinais.map(o => <option key={o} value={o}>{o}</option>)}
                               </select>
                             );
                           })() : (
-                            <input value={analise.valores[c.id] || ""} onChange={e => atualizar(analise.id, c.id, e.target.value)} placeholder={c.unidade || ""} style={{ width: 100, padding: "6px 8px", fontSize: 13, border: `1px solid ${T.border}`, borderRadius: 5, background: T.card, color: T.ink }} />
+                            <input value={analise.valores[c.id] || ""} onChange={e => atualizar(analise.id, c.id, e.target.value)} placeholder={c.unidade || ""} style={{ width: 100, padding: "6px 8px", fontSize: 13, border: `1px solid ${T.border}`, borderRadius: 8, background: T.card, color: T.ink }} />
                           )}
                         </div>
                       );

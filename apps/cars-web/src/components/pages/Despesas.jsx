@@ -314,7 +314,7 @@ export default function Despesas(props) {
         {mes !== mesAtual() && (
           <button onClick={irHoje} style={{
             padding: "6px 12px", background: T.gold, color: T.bg, border: "none",
-            borderRadius: 11, fontSize: 10, fontWeight: 600, letterSpacing: ".05em",
+            borderRadius: 12, fontSize: 10, fontWeight: 600, letterSpacing: ".05em",
             textTransform: "uppercase", cursor: "pointer", marginLeft: 4,
           }}>Hoje</button>
         )}
@@ -329,7 +329,7 @@ export default function Despesas(props) {
           return (
             <button key={i} onClick={() => setMesIdx(i)}
               style={{
-                padding: "6px 10px", borderRadius: 11,
+                padding: "6px 10px", borderRadius: 12,
                 background: ativo ? T.gold : T.bgSoft,
                 color: ativo ? T.bg : T.muted,
                 border: `1px solid ${ativo ? T.gold : T.border}`,
@@ -405,11 +405,11 @@ function Kpi({ lbl, val, qtd, cor, hidden }) {
   return (
     <div style={{
       background: T.card, padding: "12px 14px",
-      borderRadius: 14, borderLeft: `3px solid ${cor}`,
+      borderRadius: 16, borderLeft: `3px solid ${cor}`,
       border: `1px solid ${T.border}`,
     }}>
       <div style={{
-        fontSize: 8.5, letterSpacing: ".15em", color: T.muted,
+        fontSize: 10, letterSpacing: ".15em", color: T.muted,
         textTransform: "uppercase", fontWeight: 700,
       }}>{lbl}</div>
       <div className="num" style={{
@@ -419,7 +419,7 @@ function Kpi({ lbl, val, qtd, cor, hidden }) {
         {hidden ? "•••" : val}
       </div>
       {typeof qtd === "number" && (
-        <div style={{ fontSize: 9.5, color: T.faint, marginTop: 3 }}>
+        <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3 }}>
           {qtd} {qtd === 1 ? "lançamento" : "lançamentos"}
         </div>
       )}
@@ -441,7 +441,7 @@ function FiltroChip({ label, qtd, ativo, cor, onClick }) {
       }}>
       {label}
       <span style={{
-        fontSize: 9.5, padding: "1px 6px", borderRadius: 16,
+        fontSize: 10.5, padding: "1px 6px", borderRadius: 16,
         background: ativo ? cor : T.border,
         color: ativo ? T.bg : T.muted, fontWeight: 700,
       }}>{qtd}</span>
@@ -503,7 +503,7 @@ function GrupoCategoria({ grupo, categorias, hidden, onPagar }) {
                 fontSize: 12,
               }}>
                 <span style={{
-                  fontSize: 9, padding: "2px 6px", borderRadius: 3,
+                  fontSize: 10, padding: "2px 6px", borderRadius: 8,
                   background: `${badge.cor}22`, color: badge.cor,
                   fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
                   flexShrink: 0, whiteSpace: "nowrap", minWidth: 60, textAlign: "center",
@@ -518,7 +518,7 @@ function GrupoCategoria({ grupo, categorias, hidden, onPagar }) {
                   </span>
                 )}
                 <span style={{
-                  fontSize: 9, padding: "1px 6px", borderRadius: 3,
+                  fontSize: 10, padding: "1px 6px", borderRadius: 8,
                   background: statusCfg.bg, color: statusCfg.fg,
                   fontWeight: 700, whiteSpace: "nowrap",
                 }}>{statusCfg.lbl}</span>
@@ -528,10 +528,10 @@ function GrupoCategoria({ grupo, categorias, hidden, onPagar }) {
                   <button onClick={() => onPagar(it)}
                     title="Marcar como paga"
                     style={{
-                      padding: "3px 8px", fontSize: 9.5, fontWeight: 700,
+                      padding: "3px 8px", fontSize: 10.5, fontWeight: 700,
                       letterSpacing: ".05em", textTransform: "uppercase",
                       background: T.green, color: "#fff", border: "none",
-                      borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
+                      borderRadius: 8, cursor: "pointer", whiteSpace: "nowrap",
                       display: "inline-flex", alignItems: "center", gap: 3,
                     }}>
                     <Check size={10} /> Pagar
@@ -555,6 +555,6 @@ function GrupoCategoria({ grupo, categorias, hidden, onPagar }) {
 const navBtn = {
   width: 30, height: 30, padding: 0,
   background: T.bgSoft, border: `1px solid ${T.border}`,
-  color: T.muted, borderRadius: 11, cursor: "pointer",
+  color: T.muted, borderRadius: 12, cursor: "pointer",
   display: "inline-flex", alignItems: "center", justifyContent: "center",
 };

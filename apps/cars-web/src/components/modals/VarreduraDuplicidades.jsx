@@ -43,7 +43,7 @@ export default function VarreduraDuplicidades({ dados = {}, setters = {}, onClos
       </div>
 
       {res.totalExtra === 0 ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "18px 14px", background: `${T.green}12`, border: `1px solid ${T.green}44`, borderRadius: 14, color: T.ink }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "18px 14px", background: `${T.green}12`, border: `1px solid ${T.green}44`, borderRadius: 16, color: T.ink }}>
           <ShieldCheck size={20} style={{ color: T.green, flexShrink: 0 }} />
           <div>
             <div style={{ fontWeight: 700 }}>Nenhuma duplicidade encontrada 🎉</div>
@@ -63,7 +63,7 @@ export default function VarreduraDuplicidades({ dados = {}, setters = {}, onClos
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {tipos.map((t) => (
-              <div key={t.tipo} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
+              <div key={t.tipo} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 16, padding: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{t.label}</div>
@@ -72,14 +72,14 @@ export default function VarreduraDuplicidades({ dados = {}, setters = {}, onClos
                     </div>
                   </div>
                   <button onClick={() => limpar([{ tipo: t.tipo, remover: t.remover }])}
-                          style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "transparent", border: `1px solid ${T.red}55`, color: T.red, borderRadius: 9, padding: "6px 11px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                          style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "transparent", border: `1px solid ${T.red}55`, color: T.red, borderRadius: 12, padding: "6px 11px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
                     <Trash2 size={13} /> Remover {t.remover.length}
                   </button>
                 </div>
                 <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
                   {t.grupos.slice(0, 6).map((g, i) => (
                     <div key={i} style={{ fontSize: 11.5, color: T.muted, display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 8.5, fontWeight: 800, padding: "1px 5px", borderRadius: 4, background: `${T.gold}22`, color: T.gold }}>×{g.qtd}</span>
+                      <span style={{ fontSize: 10, fontWeight: 800, padding: "1px 5px", borderRadius: 8, background: `${T.gold}22`, color: T.gold }}>×{g.qtd}</span>
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.exemplos[0]}</span>
                     </div>
                   ))}

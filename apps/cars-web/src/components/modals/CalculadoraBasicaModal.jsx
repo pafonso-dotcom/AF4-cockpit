@@ -100,7 +100,7 @@ export default function CalculadoraBasicaModal({ onClose }) {
     <Modal title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Calculator size={20} style={{ color: T.gold }} /> Calculadora</span>} onClose={onClose}>
       {/* Display */}
       <div className="num" style={{
-        background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 13,
+        background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12,
         padding: "14px 16px", marginBottom: 10, textAlign: "right",
         fontSize: 30, fontWeight: 600, color: T.ink, overflow: "hidden",
         whiteSpace: "nowrap", textOverflow: "ellipsis", minHeight: 62,

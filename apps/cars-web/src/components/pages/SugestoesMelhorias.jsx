@@ -168,7 +168,7 @@ function FiltroChip({ ativo, onClick, label, count, cor = "muted" }) {
   const corHex = T[cor] || T.muted;
   return (
     <button onClick={onClick} style={{
-      padding: "8px 14px", borderRadius: 11, cursor: "pointer",
+      padding: "8px 14px", borderRadius: 12, cursor: "pointer",
       background: ativo ? `${corHex}22` : "transparent",
       border: `1px solid ${ativo ? corHex : T.border}`,
       color: ativo ? corHex : T.muted,
@@ -178,7 +178,7 @@ function FiltroChip({ ativo, onClick, label, count, cor = "muted" }) {
     }}>
       {label}
       <span style={{
-        fontSize: 9.5, padding: "1px 6px", borderRadius: 100,
+        fontSize: 10.5, padding: "1px 6px", borderRadius: 100,
         background: ativo ? corHex : T.border, color: ativo ? T.bg : T.muted, fontWeight: 700,
       }}>{count || 0}</span>
     </button>
@@ -193,20 +193,20 @@ function Card({ sugestao, onEditar, onExcluir, onMudarStatus }) {
       background: T.card,
       border: `1px solid ${T.border}`,
       borderLeft: `3px solid ${corP}`,
-      borderRadius: 14, padding: 16,
+      borderRadius: 16, padding: 16,
     }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
             <span style={{
-              fontSize: 9, padding: "2px 7px", borderRadius: 4,
+              fontSize: 10, padding: "2px 7px", borderRadius: 8,
               background: `${corP}22`, color: corP,
               letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700,
             }}>
               {sugestao.prioridade || "media"}
             </span>
             <span style={{
-              fontSize: 9, padding: "2px 7px", borderRadius: 4,
+              fontSize: 10, padding: "2px 7px", borderRadius: 8,
               background: `${corS}22`, color: corS,
               letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700,
             }}>
@@ -226,7 +226,7 @@ function Card({ sugestao, onEditar, onExcluir, onMudarStatus }) {
           <button onClick={onEditar} title="Editar"
                   style={{
                     background: "transparent", border: `1px solid ${T.border}`,
-                    color: T.muted, padding: 8, borderRadius: 4, cursor: "pointer",
+                    color: T.muted, padding: 8, borderRadius: 8, cursor: "pointer",
                     minWidth: 36, minHeight: 36, display: "grid", placeItems: "center",
                   }}>
             <Edit3 size={14} />
@@ -234,7 +234,7 @@ function Card({ sugestao, onEditar, onExcluir, onMudarStatus }) {
           <button onClick={onExcluir} title="Excluir"
                   style={{
                     background: "transparent", border: `1px solid ${T.border}`,
-                    color: T.red, padding: 8, borderRadius: 4, cursor: "pointer",
+                    color: T.red, padding: 8, borderRadius: 8, cursor: "pointer",
                     minWidth: 36, minHeight: 36, display: "grid", placeItems: "center",
                   }}>
             <Trash2 size={14} />
@@ -251,7 +251,7 @@ function Card({ sugestao, onEditar, onExcluir, onMudarStatus }) {
             <button key={st.id} onClick={() => onMudarStatus(st.id)}
                     disabled={ativo}
                     style={{
-                      padding: "4px 10px", borderRadius: 4,
+                      padding: "4px 10px", borderRadius: 8,
                       background: ativo ? `${cor}22` : "transparent",
                       border: `1px solid ${ativo ? cor : T.border}`,
                       color: ativo ? cor : T.faint,
@@ -279,7 +279,7 @@ function FormModal({ form, setForm, onSalvar, onCancelar }) {
       <div onClick={e => e.stopPropagation()} style={{
         background: T.card, border: `1px solid ${T.borderHi}`, maxWidth: 520, width: "100%",
         maxHeight: "92vh", overflowY: "auto", padding: 24, position: "relative",
-        borderRadius: 18, boxShadow: "0 24px 60px rgba(0,0,0,.6)",
+        borderRadius: 16, boxShadow: "0 24px 60px rgba(0,0,0,.6)",
       }}>
         <button onClick={onCancelar}
                 style={{
@@ -348,6 +348,6 @@ const labelStyle = {
 const inputStyle = {
   width: "100%", padding: "10px 12px",
   background: "var(--be)", color: "var(--tx)",
-  border: "1px solid var(--bd)", borderRadius: 14,
+  border: "1px solid var(--bd)", borderRadius: 16,
   fontSize: 14, fontFamily: "inherit", outline: "none",
 };

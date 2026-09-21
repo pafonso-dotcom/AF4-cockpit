@@ -282,7 +282,7 @@ REGRAS:
         {temAlocacaoAlvo && (
           <div style={{
             padding: 10, background: T.bgSoft, border: `1px solid ${T.border}`,
-            borderLeft: `3px solid ${T.gold}`, borderRadius: 14,
+            borderLeft: `3px solid ${T.gold}`, borderRadius: 16,
           }}>
             <div className="label-eyebrow" style={{ marginBottom: 4 }}>
               Alocação-alvo (Monte sua Carteira)
@@ -334,13 +334,13 @@ REGRAS:
                             background: ativo ? `${p.cor}22` : T.card,
                             border: `1px solid ${ativo ? p.cor : T.border}`,
                             color: ativo ? p.cor : T.muted,
-                            fontSize: 12, fontWeight: 600, borderRadius: 14,
+                            fontSize: 12, fontWeight: 600, borderRadius: 16,
                             cursor: "pointer", letterSpacing: ".03em",
                             display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3,
                             minWidth: 120,
                           }}>
                     <span>{p.label}</span>
-                    <span style={{ fontSize: 9.5, color: ativo ? p.cor : T.faint, fontWeight: 500 }}>
+                    <span style={{ fontSize: 10.5, color: ativo ? p.cor : T.faint, fontWeight: 500 }}>
                       {p.aloc.cdb}% CDB · {p.aloc.fii}% FII · {p.aloc.acao}% Ação
                     </span>
                   </button>
@@ -380,7 +380,7 @@ REGRAS:
         {erro && (
           <div style={{
             padding: 10, background: `${T.red}11`, border: `1px solid ${T.red}55`,
-            borderRadius: 14, fontSize: 12, color: T.red,
+            borderRadius: 16, fontSize: 12, color: T.red,
           }}>
             <AlertCircle size={12} className="inline mr-1" /> {erro}
           </div>
@@ -390,7 +390,7 @@ REGRAS:
         {resultado?.raw && (
           <div style={{
             padding: 12, background: T.bgSoft, border: `1px solid ${T.border}`,
-            borderRadius: 14, fontSize: 12, color: T.ink, whiteSpace: "pre-wrap",
+            borderRadius: 16, fontSize: 12, color: T.ink, whiteSpace: "pre-wrap",
             maxHeight: 400, overflowY: "auto",
           }}>
             {resultado.raw}
@@ -444,7 +444,7 @@ function ResultadoSugestao({ resultado, valorTotal, onAplicar }) {
           padding: 12, background: `${T.gold}11`,
           border: `1px solid ${T.gold}44`,
           borderLeft: `3px solid ${T.gold}`,
-          borderRadius: 14, fontSize: 13, color: T.ink, lineHeight: 1.5,
+          borderRadius: 16, fontSize: 13, color: T.ink, lineHeight: 1.5,
         }}>
           <Sparkles size={13} className="inline mr-2" style={{ color: T.gold }} />
           {resumo}
@@ -525,7 +525,7 @@ function TopList({ titulo, icone: Icon, cor, itens, onAplicar, classe }) {
           }}>
             <div style={{
               padding: "4px 9px", background: `${cor}22`, color: cor,
-              fontSize: 11, fontWeight: 700, borderRadius: 5, letterSpacing: ".05em",
+              fontSize: 11, fontWeight: 700, borderRadius: 8, letterSpacing: ".05em",
             }}>
               {item.ticker}
             </div>
@@ -544,7 +544,7 @@ function TopList({ titulo, icone: Icon, cor, itens, onAplicar, classe }) {
                     title="Aplicar à projeção"
                     style={{
                       background: "transparent", border: `1px solid ${T.border}`,
-                      color: T.gold, padding: "5px 10px", borderRadius: 11,
+                      color: T.gold, padding: "5px 10px", borderRadius: 12,
                       fontSize: 10.5, fontWeight: 600, cursor: "pointer",
                       display: "inline-flex", alignItems: "center", gap: 4,
                     }}>

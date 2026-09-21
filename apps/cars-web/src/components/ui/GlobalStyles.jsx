@@ -71,6 +71,8 @@ export default function GlobalStyles() {
         0%, 100% { background-position: 0% 50%; opacity: 0.85; }
         50% { background-position: 100% 50%; opacity: 0.55; }
       }
+      /* Pulso sutil enquanto as cotações atualizam (sem pulo de layout) */
+      .skel-att { animation: skelPulse 1.1s ease-in-out infinite; }
 
       /* ========== PRINT / PDF (item 4) ========== */
       @media print {

@@ -195,7 +195,7 @@ export default function ImportarExtrato({
 
         {parsing ? (
           <div style={{
-            border: `2px dashed ${T.gold}`, borderRadius: 18,
+            border: `2px dashed ${T.gold}`, borderRadius: 16,
             padding: "40px 20px", textAlign: "center",
             background: T.bgSoft,
           }}>
@@ -211,7 +211,7 @@ export default function ImportarExtrato({
         <div onDrop={onDrop} onDragOver={onDragOver}
              onClick={() => fileRef.current?.click()}
              style={{
-               border: `2px dashed ${T.border}`, borderRadius: 18,
+               border: `2px dashed ${T.border}`, borderRadius: 16,
                padding: "40px 20px", textAlign: "center", cursor: "pointer",
                background: T.bgSoft, transition: "all .2s",
              }}
@@ -238,14 +238,14 @@ export default function ImportarExtrato({
             marginTop: 14, padding: 10,
             background: `${T.red}22`, color: T.red,
             border: `1px solid ${T.red}`,
-            borderRadius: 11, fontSize: 12,
+            borderRadius: 12, fontSize: 12,
             display: "flex", alignItems: "center", gap: 8,
           }}>
             <AlertCircle size={14} /> {erro}
           </div>
         )}
 
-        <div style={{ marginTop: 18, padding: 12, background: T.bgSoft, borderRadius: 11, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
+        <div style={{ marginTop: 18, padding: 12, background: T.bgSoft, borderRadius: 12, fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
           <strong style={{ color: T.gold }}>Como funciona:</strong>
           <ol style={{ margin: "6px 0 0 18px", padding: 0 }}>
             <li>Sistema lê e detecta automaticamente o banco</li>
@@ -316,22 +316,22 @@ export default function ImportarExtrato({
                 {t._duplicada && (
                   <div style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
-                    fontSize: 9, fontWeight: 700, letterSpacing: ".08em",
+                    fontSize: 10, fontWeight: 700, letterSpacing: ".08em",
                     textTransform: "uppercase",
                     color: T.yellow || "#f59e0b",
                     background: `${T.yellow || "#f59e0b"}22`,
                     border: `1px solid ${T.yellow || "#f59e0b"}`,
-                    borderRadius: 4, padding: "1px 5px", marginBottom: 3,
+                    borderRadius: 8, padding: "1px 5px", marginBottom: 3,
                   }}>
                     ⚠ Já lançada
                   </div>
                 )}
                 <input type="text" value={edits.descricao ?? t.descricao}
                        onChange={e => updateLinha(t._id, "descricao", e.target.value)}
-                       style={{ width: "100%", background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 4, fontSize: 12.5, padding: "4px 6px", outline: "none", minHeight: 26, WebkitAppearance: "none" }} />
+                       style={{ width: "100%", background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12.5, padding: "4px 6px", outline: "none", minHeight: 26, WebkitAppearance: "none" }} />
                 <select value={cat}
                         onChange={e => updateLinha(t._id, "categoria", e.target.value)}
-                        style={{ width: "100%", marginTop: 3, background: T.bgSoft, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 4, fontSize: 11, padding: "3px 6px", cursor: "pointer", outline: "none" }}>
+                        style={{ width: "100%", marginTop: 3, background: T.bgSoft, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11, padding: "3px 6px", cursor: "pointer", outline: "none" }}>
                   {ordenarPorNome(categorias.filter(c => c.tipo === t.tipo)).map(c => (
                     <option key={c.id} value={c.nome}>{c.nome}</option>
                   ))}
@@ -352,7 +352,7 @@ export default function ImportarExtrato({
         })}
       </div>
 
-      <div style={{ marginTop: 14, padding: 10, background: T.bgSoft, borderRadius: 11, fontSize: 11, color: T.muted }}>
+      <div style={{ marginTop: 14, padding: 10, background: T.bgSoft, borderRadius: 12, fontSize: 11, color: T.muted }}>
         <strong style={{ color: T.gold }}>{selecionadas.size}</strong> de {parsed.transacoes.length} marcadas para importar.
         {qtdDuplicadas > 0 && (
           <span style={{ color: T.yellow || "#f59e0b", marginLeft: 8 }}>

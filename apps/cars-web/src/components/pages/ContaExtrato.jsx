@@ -309,7 +309,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         display: "flex", alignItems: "center", gap: 18, padding: 24,
         background: T.card, border: `1px solid ${T.border}`,
         borderLeft: `4px solid ${conta.cor || T.gold}`,
-        borderRadius: 18, marginBottom: 14,
+        borderRadius: 16, marginBottom: 14,
         color: T.ink, flexWrap: "wrap",
         boxShadow: CARD_SHADOW,
       }}>
@@ -373,13 +373,13 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12, alignItems: "center",
       }}>
         <select value={periodo} onChange={e => setPeriodo(e.target.value)}
-                style={{ flex: "1 1 150px", minWidth: 130, padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }}>
+                style={{ flex: "1 1 150px", minWidth: 130, padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 12 }}>
           <option value="mes">Período · este mês</option>
           <option value="3meses">Período · últimos 3 meses</option>
           <option value="tudo">Período · tudo</option>
         </select>
         <select value={tipo} onChange={e => setTipo(e.target.value)}
-                style={{ flex: "1 1 130px", minWidth: 120, padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 11 }}>
+                style={{ flex: "1 1 130px", minWidth: 120, padding: "8px 11px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 12 }}>
           <option value="todos">Tipo · todos</option>
           <option value="receita">Tipo · receitas</option>
           <option value="despesa">Tipo · despesas</option>
@@ -387,7 +387,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         <button onClick={() => setSortDir(sortDir === "desc" ? "asc" : "desc")}
                 title="Alternar ordem por data"
                 style={{
-                  padding: "8px 12px", borderRadius: 11, fontSize: 11.5,
+                  padding: "8px 12px", borderRadius: 12, fontSize: 11.5,
                   background: T.bgSoft, color: T.muted, border: `1px solid ${T.border}`,
                   cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", flexShrink: 0,
                 }}>
@@ -406,7 +406,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             <button onClick={() => setTodos(todosRecolhidos)}
                     title="Recolher ou expandir todos os dias"
                     style={{
-                      padding: "8px 12px", borderRadius: 11, fontSize: 11.5,
+                      padding: "8px 12px", borderRadius: 12, fontSize: 11.5,
                       background: T.bgSoft, color: T.muted, border: `1px solid ${T.border}`,
                       cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", flexShrink: 0,
                     }}>
@@ -425,7 +425,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           Nenhum lançamento {busca ? `para "${busca}"` : "no período selecionado"}.
         </div>
       ) : (
-        <div className="extrato-lista" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, overflow: "hidden", boxShadow: `0 1px 3px ${T.bg}55` }}>
+        <div className="extrato-lista" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden", boxShadow: `0 1px 3px ${T.bg}55` }}>
           <style>{`
             .extrato-row { transition: background .12s ease; }
             .extrato-row:hover { background: ${T.gold}10; }
@@ -473,7 +473,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                     </span>
                     {saldoDoDiaMap.has(grupo.dia) && (
                       <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.1 }}>
-                        <span style={{ fontSize: 8.5, color: T.faint, letterSpacing: ".06em", textTransform: "uppercase" }}>saldo do dia</span>
+                        <span style={{ fontSize: 10, color: T.faint, letterSpacing: ".06em", textTransform: "uppercase" }}>saldo do dia</span>
                         <span className="num" style={{ fontSize: 12.5, fontWeight: 700, color: T.ink, fontVariantNumeric: "tabular-nums" }}>
                           {hidden ? "•••" : fmt(saldoDoDiaMap.get(grupo.dia))}
                         </span>
@@ -498,7 +498,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                               title={t.conferido ? "Conferido com o extrato — clique pra desmarcar" : "Marcar como conferido no extrato do banco"}
                               aria-label={t.conferido ? "Desmarcar conferido" : "Marcar conferido"}
                               style={{
-                                width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                                width: 18, height: 18, borderRadius: 8, flexShrink: 0,
                                 border: `1.5px solid ${t.conferido ? T.green : T.border}`,
                                 background: t.conferido ? T.green : "transparent",
                                 display: "grid", placeItems: "center", cursor: "pointer", padding: 0,
@@ -520,10 +520,10 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                           <span style={{ color: T.ink, fontWeight: 600, fontSize: 12.5 }}>{t.descricao}</span>
                           {!t.compensado && (
-                            <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 3, background: `${T.gold}22`, color: T.gold, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>Pendente</span>
+                            <span style={{ fontSize: 10, padding: "1px 5px", borderRadius: 8, background: `${T.gold}22`, color: T.gold, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>Pendente</span>
                           )}
                           {t.fixa && t.compensado && (
-                            <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 3, background: `${T.blue || "#60a5fa"}22`, color: T.blue || "#60a5fa", fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>Fixa</span>
+                            <span style={{ fontSize: 10, padding: "1px 5px", borderRadius: 8, background: `${T.blue || "#60a5fa"}22`, color: T.blue || "#60a5fa", fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>Fixa</span>
                           )}
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 1, flexWrap: "wrap" }}>
@@ -536,7 +536,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                               onBlur={() => setEditCatId(null)}
                               style={{
                                 background: T.bgSoft, border: `1px solid ${T.gold}`,
-                                color: T.ink, fontSize: 11, padding: "3px 7px", borderRadius: 5, maxWidth: 180,
+                                color: T.ink, fontSize: 11, padding: "3px 7px", borderRadius: 8, maxWidth: 180,
                               }}>
                               <option value="">— sem categoria —</option>
                               {ordenarPorNome(categorias.filter(c => c.tipo === t.tipo)).map(c => (
@@ -571,7 +571,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                         <span className="num" style={{ color: corTipo, fontWeight: 700, fontSize: 13 }}>
                           {t.tipo === "receita" ? "+ " : "− "}{hidden ? "•••" : fmt(t.valor)}
                         </span>
-                        <span className="num extrato-saldo-linha" style={{ fontSize: 9.5, color: T.faint }}
+                        <span className="num extrato-saldo-linha" style={{ fontSize: 10.5, color: T.faint }}
                               title={t.compensado ? "Saldo após esta transação" : "Pendentes não afetam o saldo"}>
                           {!t.compensado ? "pendente" : `saldo ${hidden ? "•••" : fmt(saldoApos ?? 0)}`}
                         </span>
@@ -630,7 +630,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         <div onClick={() => setConferir(null)}
              style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", display: "grid", placeItems: "center", zIndex: 1000, padding: 16 }}>
           <div onClick={e => e.stopPropagation()}
-               style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 22, width: "100%", maxWidth: 420, boxShadow: `0 12px 44px ${T.bg}` }}>
+               style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 22, width: "100%", maxWidth: 420, boxShadow: `0 12px 44px ${T.bg}` }}>
             <div style={{ fontFamily: T.serif, fontSize: 18, fontWeight: 600, color: T.ink, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
               <Scale size={17} style={{ color: T.green }} /> Conferir com o banco
             </div>
@@ -640,11 +640,11 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
 
             <label style={{ fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted }}>Saldo no banco (R$)</label>
             <input autoFocus value={conferir.valor} onChange={e => setConferir({ ...conferir, valor: e.target.value })} placeholder="50.405,57"
-                   style={{ width: "100%", padding: "10px 12px", marginTop: 5, marginBottom: 14, background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 15, borderRadius: 14 }} />
+                   style={{ width: "100%", padding: "10px 12px", marginTop: 5, marginBottom: 14, background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 15, borderRadius: 16 }} />
 
             <label style={{ fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: T.muted }}>Data de referência</label>
             <input type="date" value={conferir.data} onChange={e => setConferir({ ...conferir, data: e.target.value })}
-                   style={{ width: "100%", padding: "10px 12px", marginTop: 5, marginBottom: 4, background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 14, borderRadius: 14 }} />
+                   style={{ width: "100%", padding: "10px 12px", marginTop: 5, marginBottom: 4, background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 14, borderRadius: 16 }} />
 
             {(() => {
               const alvo = parseBR(conferir.valor);
@@ -665,11 +665,11 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
 
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
               <button onClick={() => setConferir(null)}
-                      style={{ padding: "9px 14px", background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 14, cursor: "pointer", fontSize: 12.5 }}>
+                      style={{ padding: "9px 14px", background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 16, cursor: "pointer", fontSize: 12.5 }}>
                 Cancelar
               </button>
               <button onClick={aplicarConferencia}
-                      style={{ padding: "9px 16px", background: T.gold, border: "none", color: T.bg, borderRadius: 14, cursor: "pointer", fontWeight: 600, fontSize: 12.5 }}>
+                      style={{ padding: "9px 16px", background: T.gold, border: "none", color: T.bg, borderRadius: 16, cursor: "pointer", fontWeight: 600, fontSize: 12.5 }}>
                 Ajustar e bater
               </button>
             </div>
@@ -692,7 +692,7 @@ function parseBR(s) {
 function KPI({ l, v, c }) {
   return (
     <div>
-      <div style={{ fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, marginBottom: 3 }}>{l}</div>
+      <div style={{ fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, marginBottom: 3 }}>{l}</div>
       <div className="num" style={{ fontSize: 14, color: c, fontWeight: 500 }}>{v}</div>
     </div>
   );
@@ -743,6 +743,6 @@ const iconBtn = {
   color: "inherit",
   cursor: "pointer",
   padding: 6,
-  borderRadius: 11,
+  borderRadius: 12,
   marginLeft: 4,
 };

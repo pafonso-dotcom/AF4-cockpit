@@ -287,7 +287,7 @@ export default function ObjetivosCarteira({
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10,
       }} className="objetivos-resumo">
         <div style={{
-          background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
+          background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
           padding: 10,
         }}>
           <div className="label-eyebrow">
@@ -308,7 +308,7 @@ export default function ObjetivosCarteira({
           background: `linear-gradient(135deg, ${T.gold}11, ${T.card})`,
           border: `1px solid ${T.gold}66`,
           borderLeft: `3px solid ${T.gold}`,
-          borderRadius: 14, padding: 10,
+          borderRadius: 16, padding: 10,
         }}>
           <div className="label-eyebrow" style={{ color: T.gold }}>
             <ArrowRight size={10} className="inline mr-1" />
@@ -337,7 +337,7 @@ export default function ObjetivosCarteira({
         <div style={{
           padding: 12, background: `${T.gold}11`,
           border: `1px solid ${T.gold}55`, borderLeft: `3px solid ${T.gold}`,
-          borderRadius: 14, marginBottom: 14,
+          borderRadius: 16, marginBottom: 14,
         }}>
           <div style={{ fontSize: 11, color: T.gold, fontWeight: 700, marginBottom: 4, letterSpacing: ".05em", textTransform: "uppercase" }}>
             <AlertCircle size={12} className="inline mr-1" /> Atenção
@@ -356,7 +356,7 @@ export default function ObjetivosCarteira({
           {raizes.length === 0 ? (
             <div style={{
               textAlign: "center", padding: "60px 24px",
-              background: T.card, border: `1px dashed ${T.border}`, borderRadius: 18,
+              background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
             }}>
               <Target size={36} style={{ color: T.gold, marginBottom: 12 }} />
               <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, margin: "0 0 8px", fontWeight: 600 }}>
@@ -706,10 +706,10 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
         {!temFilhos && temAporte && (
           <div style={{
             marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "5px 8px", background: `${T.gold}12`, border: `1px solid ${T.gold}44`, borderRadius: 11,
+            padding: "5px 8px", background: `${T.gold}12`, border: `1px solid ${T.gold}44`, borderRadius: 12,
           }}>
             <div>
-              <div style={{ fontSize: 9, color: T.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em" }}>
+              <div style={{ fontSize: 10, color: T.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em" }}>
                 Aportar
               </div>
               <div className="num" style={{ fontSize: 13, color: T.gold, fontWeight: 700, lineHeight: 1 }}>
@@ -719,7 +719,7 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
             <button onClick={() => onSugerir(node, aporteSugerido)} title="Sugerir ticker com IA"
                     style={{
                       background: T.gold, color: T.bg, border: "none",
-                      padding: "4px 7px", fontSize: 9.5, fontWeight: 700, borderRadius: 5,
+                      padding: "4px 7px", fontSize: 10.5, fontWeight: 700, borderRadius: 8,
                       cursor: "pointer", display: "flex", alignItems: "center", gap: 3,
                     }}>
               <Sparkles size={9} /> IA
@@ -734,7 +734,7 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
                     marginTop: 6, width: "100%",
                     background: `${T.gold}15`, color: T.gold,
                     border: `1px solid ${T.gold}55`, padding: "4px 8px",
-                    fontSize: 10, fontWeight: 700, borderRadius: 5,
+                    fontSize: 10, fontWeight: 700, borderRadius: 8,
                     cursor: "pointer",
                     display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
                   }}>
@@ -752,7 +752,7 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
       background: T.card,
       border: `1px solid ${T.border}`,
       borderLeft: `4px solid ${corStatus}`,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: 12,
       display: "grid",
       gridTemplateColumns: "auto 1fr auto",
@@ -769,7 +769,7 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>{node.label}</span>
           <span style={{
-            fontSize: 10, padding: "2px 7px", borderRadius: 4,
+            fontSize: 10, padding: "2px 7px", borderRadius: 8,
             background: `${T.gold}22`, color: T.gold, fontWeight: 700,
           }}>
             {Number(node.percent).toFixed(1)}%
@@ -790,7 +790,7 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
             </div>
             {!temFilhos && temAporte && (
               <div style={{
-                marginTop: 6, padding: "5px 8px", borderRadius: 11,
+                marginTop: 6, padding: "5px 8px", borderRadius: 12,
                 background: `${T.gold}15`, border: `1px solid ${T.gold}55`,
                 display: "flex", justifyContent: "space-between", alignItems: "center",
               }}>
@@ -799,7 +799,7 @@ function NodeCard({ node, valorPorNo, valorAlvo, distribuicaoAporte, aporteN, hi
                 </span>
                 <span className="num" style={{ fontSize: 12, color: T.gold, fontWeight: 700 }}>
                   {hidden ? "•••" : fmt(aporteSugerido)}
-                  <span style={{ fontSize: 9.5, color: T.faint, fontWeight: 500, marginLeft: 5 }}>
+                  <span style={{ fontSize: 10.5, color: T.faint, fontWeight: 500, marginLeft: 5 }}>
                     ({pctDoAporte.toFixed(0)}%)
                   </span>
                 </span>
@@ -839,7 +839,7 @@ const iconBtnStyle = (cor) => ({
   background: "transparent", border: "none", color: cor,
   cursor: "pointer", padding: 1, minHeight: 14,
   display: "inline-flex", alignItems: "center", justifyContent: "center",
-  borderRadius: 3,
+  borderRadius: 8,
 });
 
 function corDaClasse(classeMatch) {
@@ -990,7 +990,7 @@ function PlanoDeMes({ tree, distribuicaoAporte, valorPorNo, valorAlvo, aporteN, 
         display: "flex", alignItems: "center", gap: 8,
         padding: "10px 14px", marginBottom: 12,
         background: `${T.gold}10`, border: `1px solid ${T.gold}40`,
-        borderLeft: `3px solid ${T.gold}`, borderRadius: 14,
+        borderLeft: `3px solid ${T.gold}`, borderRadius: 16,
       }}>
         <Target size={15} style={{ color: T.gold, flexShrink: 0 }} />
         <div>
@@ -1016,13 +1016,13 @@ function PlanoDeMes({ tree, distribuicaoAporte, valorPorNo, valorAlvo, aporteN, 
           return (
             <div key={node.id} style={{
               background: T.card, border: `1px solid ${T.border}`,
-              borderLeft: `3px solid ${cor}`, borderRadius: 14,
+              borderLeft: `3px solid ${cor}`, borderRadius: 16,
               padding: "12px 14px",
               display: "grid", gridTemplateColumns: "auto 1fr auto",
               gap: 12, alignItems: "center",
             }}>
               <div style={{
-                width: 38, height: 38, borderRadius: 9,
+                width: 38, height: 38, borderRadius: 12,
                 background: `${cor}20`, color: cor,
                 display: "grid", placeItems: "center", flexShrink: 0,
               }}>
@@ -1033,7 +1033,7 @@ function PlanoDeMes({ tree, distribuicaoAporte, valorPorNo, valorAlvo, aporteN, 
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
                   <span style={{ fontSize: 13.5, fontWeight: 600, color: T.ink }}>{node.label}</span>
                   <span style={{
-                    fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                    fontSize: 10, padding: "2px 7px", borderRadius: 8,
                     background: `${cor}18`, color: cor, fontWeight: 700,
                   }}>
                     {pctAporte.toFixed(0)}% do aporte
@@ -1058,7 +1058,7 @@ function PlanoDeMes({ tree, distribuicaoAporte, valorPorNo, valorAlvo, aporteN, 
                         style={{
                           background: T.gold, color: T.bg, border: "none",
                           padding: "5px 10px", fontSize: 10.5, fontWeight: 700,
-                          borderRadius: 5, cursor: "pointer",
+                          borderRadius: 8, cursor: "pointer",
                           display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
                         }}>
                   <Sparkles size={9} /> IA
@@ -1106,7 +1106,7 @@ function VerAtivosModal({ node, ativos, valorTotal, hidden, onClose }) {
         padding: 12, marginBottom: 12,
         background: `${cor}11`, border: `1px solid ${cor}44`,
         borderLeft: `3px solid ${cor}`,
-        borderRadius: 14,
+        borderRadius: 16,
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
         <span style={{ fontSize: 11, color: T.muted, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 600 }}>
@@ -1145,12 +1145,12 @@ function VerAtivosModal({ node, ativos, valorTotal, hidden, onClose }) {
               <div key={a.id} style={{
                 background: T.card, border: `1px solid ${T.border}`,
                 borderLeft: `3px solid ${cor}`,
-                borderRadius: 14, padding: "10px 12px",
+                borderRadius: 16, padding: "10px 12px",
                 display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center",
               }}>
                 <div style={{
                   padding: "4px 8px", background: `${cor}22`, color: cor,
-                  fontSize: 11, fontWeight: 700, borderRadius: 5, letterSpacing: ".03em",
+                  fontSize: 11, fontWeight: 700, borderRadius: 8, letterSpacing: ".03em",
                   minWidth: 56, textAlign: "center",
                 }}>
                   {a.ticker}
@@ -1177,7 +1177,7 @@ function VerAtivosModal({ node, ativos, valorTotal, hidden, onClose }) {
                   <div className="num" style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>
                     {hidden ? "•••" : fmt(a.valor)}
                   </div>
-                  <div style={{ fontSize: 9.5, color: T.faint, marginTop: 1 }}>
+                  <div style={{ fontSize: 10.5, color: T.faint, marginTop: 1 }}>
                     {pctNoObj.toFixed(1)}% do objetivo
                   </div>
                 </div>

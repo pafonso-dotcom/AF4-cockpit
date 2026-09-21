@@ -56,7 +56,7 @@ export default function CalendarioSemanaDia({ modo, refDate, eventos = [], catMe
   const alturaPx = (dur) => Math.max(22, ((Number(dur) || 60) / 60) * PX_HORA);
 
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden" }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
       {/* Cabeçalho dos dias */}
       <div style={{ display: "grid", gridTemplateColumns: `48px repeat(${dias.length}, 1fr)`, borderBottom: `1px solid ${T.border}` }}>
         <div style={{ background: T.bgSoft }} />
@@ -68,7 +68,7 @@ export default function CalendarioSemanaDia({ modo, refDate, eventos = [], catMe
               padding: "8px 4px", textAlign: "center", background: T.bgSoft,
               borderLeft: `1px solid ${T.border}`,
             }}>
-              <div style={{ fontSize: 9.5, color: T.muted, textTransform: "uppercase", letterSpacing: ".1em" }}>{DOW[d.getDay()]}</div>
+              <div style={{ fontSize: 10.5, color: T.muted, textTransform: "uppercase", letterSpacing: ".1em" }}>{DOW[d.getDay()]}</div>
               <div style={{
                 fontSize: 16, fontWeight: isHoje ? 700 : 500,
                 color: isHoje ? T.gold : T.ink, fontFamily: T.serif,
@@ -86,7 +86,7 @@ export default function CalendarioSemanaDia({ modo, refDate, eventos = [], catMe
         if (!temAllDay) return null;
         return (
           <div style={{ display: "grid", gridTemplateColumns: `48px repeat(${dias.length}, 1fr)`, borderBottom: `1px solid ${T.border}`, minHeight: 26 }}>
-            <div style={{ fontSize: 8.5, color: T.faint, padding: "4px 4px 0", textAlign: "right", textTransform: "uppercase", letterSpacing: ".05em" }}>dia</div>
+            <div style={{ fontSize: 10, color: T.faint, padding: "4px 4px 0", textAlign: "right", textTransform: "uppercase", letterSpacing: ".05em" }}>dia</div>
             {dias.map(d => {
               const iso = fmtISO(d);
               const all = (porDia[iso] || []).filter(e => !e.horario);
@@ -98,7 +98,7 @@ export default function CalendarioSemanaDia({ modo, refDate, eventos = [], catMe
                       <button key={ev.id} onClick={() => onEvento?.(ev)} title={ev.titulo}
                         style={{
                           background: `${meta.cor}26`, color: meta.cor, border: `1px solid ${meta.cor}55`,
-                          borderRadius: 4, padding: "2px 5px", fontSize: 10.5, fontWeight: 600, cursor: "pointer",
+                          borderRadius: 8, padding: "2px 5px", fontSize: 10.5, fontWeight: 600, cursor: "pointer",
                           textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         }}>
                         {ev.titulo}
@@ -119,7 +119,7 @@ export default function CalendarioSemanaDia({ modo, refDate, eventos = [], catMe
           <div>
             {horas.map(h => (
               <div key={h} style={{ height: PX_HORA, position: "relative", borderTop: `1px solid ${T.border}` }}>
-                <span style={{ position: "absolute", top: -7, right: 5, fontSize: 9.5, color: T.faint }}>
+                <span style={{ position: "absolute", top: -7, right: 5, fontSize: 10.5, color: T.faint }}>
                   {String(h).padStart(2, "0")}h
                 </span>
               </div>
@@ -164,12 +164,12 @@ export default function CalendarioSemanaDia({ modo, refDate, eventos = [], catMe
                         top: topoPx(ev.horario), height: alturaPx(ev.duracao),
                         background: `${meta.cor}26`, borderLeft: `3px solid ${meta.cor}`,
                         border: `1px solid ${meta.cor}55`, borderLeftWidth: 3,
-                        borderRadius: 5, padding: "2px 6px", cursor: "pointer", zIndex: 2,
+                        borderRadius: 8, padding: "2px 6px", cursor: "pointer", zIndex: 2,
                         textAlign: "left", overflow: "hidden",
                         display: "flex", flexDirection: "column",
                       }}>
                       <span style={{ fontSize: 11, fontWeight: 600, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.titulo}</span>
-                      <span style={{ fontSize: 9.5, color: meta.cor }}>{ev.horario}{ev.duracao ? ` · ${ev.duracao}min` : ""}</span>
+                      <span style={{ fontSize: 10.5, color: meta.cor }}>{ev.horario}{ev.duracao ? ` · ${ev.duracao}min` : ""}</span>
                     </button>
                   );
                 })}

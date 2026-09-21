@@ -89,7 +89,7 @@ export default function Planejador({ transacoes = [], hidden = false }) {
         title={<>Planejador de <em>Paz Financeira.</em></>}
         sub="Sua sobra do mês dividida em 3 baldes — reserva, bens duráveis e riqueza — com projeção e metas."
         action={
-          <button onClick={() => setVerAvancado((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 10, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
+          <button onClick={() => setVerAvancado((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 12, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
             <Settings2 size={13} /> Editar dados
           </button>
         }
@@ -234,20 +234,20 @@ export default function Planejador({ transacoes = [], hidden = false }) {
         {Number(parc.valor) > 0 && Number(parc.nParcelas) > 0 && (
           <>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginTop: 14 }}>
-              <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 12px" }}>
                 <div style={{ fontSize: 10.5, color: T.muted, textTransform: "uppercase", letterSpacing: ".06em" }}>Parcela</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: T.ink, marginTop: 2 }}>{oculto(fmt(resParc.parcela), hidden)}</div>
               </div>
-              <div style={{ border: `1px solid ${T.red}40`, borderRadius: 10, padding: "10px 12px", background: `${T.red}0c` }}>
+              <div style={{ border: `1px solid ${T.red}40`, borderRadius: 12, padding: "10px 12px", background: `${T.red}0c` }}>
                 <div style={{ fontSize: 10.5, color: T.muted, textTransform: "uppercase", letterSpacing: ".06em" }}>Juros totais</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: T.red, marginTop: 2 }}>{oculto(fmt(resParc.jurosTotais), hidden)}</div>
               </div>
-              <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 12px" }}>
                 <div style={{ fontSize: 10.5, color: T.muted, textTransform: "uppercase", letterSpacing: ".06em" }}>Total pago</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: T.ink, marginTop: 2 }}>{oculto(fmt(resParc.totalPago), hidden)}</div>
               </div>
             </div>
-            <div style={{ marginTop: 12, padding: "10px 12px", background: `${T.gold}10`, border: `1px solid ${T.gold}33`, borderRadius: 10, fontSize: 12.5, color: T.ink }}>
+            <div style={{ marginTop: 12, padding: "10px 12px", background: `${T.gold}10`, border: `1px solid ${T.gold}33`, borderRadius: 12, fontSize: 12.5, color: T.ink }}>
               ⚠ Custa <b>{oculto(fmt(resParc.jurosTotais), hidden)}</b> em juros — e esses <b>{oculto(fmt(Number(parc.valor) || 0), hidden)}</b> à vista, investidos na riqueza, virariam <b style={{ color: T.green }}>{oculto(fmt(resParc.custoOportunidade), hidden)}</b> em {anosHoriz} anos.
             </div>
           </>

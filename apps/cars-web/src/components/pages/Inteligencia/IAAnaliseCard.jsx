@@ -39,7 +39,7 @@ export default function IAAnaliseCard({ resumo, extras }) {
           title={temKey ? "Gerar resumo do mês" : "Configure a chave do Gemini em Configurações → API Keys"}
           style={{
             background: temKey ? T.gold : T.border, color: temKey ? T.bg : T.muted,
-            border: "none", borderRadius: 10, padding: "6px 12px", fontSize: 11.5, fontWeight: 600,
+            border: "none", borderRadius: 12, padding: "6px 12px", fontSize: 11.5, fontWeight: 600,
             cursor: (carregando || !temKey) ? "not-allowed" : "pointer", opacity: (carregando || !temKey) ? 0.75 : 1,
             display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
           }}>

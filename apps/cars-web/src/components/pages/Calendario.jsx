@@ -315,7 +315,7 @@ export default function Calendario({
         </div>
         <div className="flex items-center gap-2">
           {/* Toggle de vista */}
-          <div style={{ display: "inline-flex", gap: 0, background: T.bgSoft, padding: 3, borderRadius: 14, border: `1px solid ${T.border}` }}>
+          <div style={{ display: "inline-flex", gap: 0, background: T.bgSoft, padding: 3, borderRadius: 16, border: `1px solid ${T.border}` }}>
             {[{ id: "mes", l: "Mês" }, { id: "semana", l: "Semana" }, { id: "dia", l: "Dia" }].map(o => {
               const ativo = vista === o.id;
               return (
@@ -324,7 +324,7 @@ export default function Calendario({
                     padding: "5px 12px", fontSize: 11, fontWeight: ativo ? 700 : 500,
                     background: ativo ? T.card : "transparent", color: ativo ? T.gold : T.muted,
                     border: ativo ? `1px solid ${T.gold}55` : "1px solid transparent",
-                    borderRadius: 11, cursor: "pointer",
+                    borderRadius: 12, cursor: "pointer",
                   }}>{o.l}</button>
               );
             })}
@@ -387,7 +387,7 @@ export default function Calendario({
                     }}>
                       {info.net > 0 ? "+ " : info.net < 0 ? "− " : ""}{hidden ? "•••" : fmt(Math.abs(info.net))}
                     </div>
-                    <div style={{ fontSize: 8.5, color: T.muted, marginTop: 1 }}>
+                    <div style={{ fontSize: 10, color: T.muted, marginTop: 1 }}>
                       {info.itensFin} fin
                       {info.atrasado && <span style={{ color: T.red, marginLeft: 3 }}>⚠</span>}
                     </div>
@@ -399,7 +399,7 @@ export default function Calendario({
                       <span key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: c }} />
                     ))}
                     {info.itensAgenda > 3 && (
-                      <span style={{ fontSize: 8, color: T.muted, marginLeft: 2 }}>+{info.itensAgenda - 3}</span>
+                      <span style={{ fontSize: 10, color: T.muted, marginLeft: 2 }}>+{info.itensAgenda - 3}</span>
                     )}
                   </div>
                 )}
@@ -447,7 +447,7 @@ export default function Calendario({
                           background: `${meta.cor}0d`,
                           border: `1px solid ${meta.cor}33`,
                           borderLeft: `4px solid ${meta.cor}`,
-                          padding: 12, borderRadius: 11,
+                          padding: 12, borderRadius: 12,
                           display: "flex", alignItems: "flex-start", gap: 10,
                           opacity: feito ? 0.55 : 1,
                         }}>
@@ -464,9 +464,9 @@ export default function Calendario({
                                 {ev.titulo}
                               </strong>
                               <span style={{
-                                fontSize: 9, fontWeight: 700, letterSpacing: ".08em",
+                                fontSize: 10, fontWeight: 700, letterSpacing: ".08em",
                                 textTransform: "uppercase", color: meta.cor,
-                                padding: "1px 6px", borderRadius: 3, background: `${meta.cor}22`,
+                                padding: "1px 6px", borderRadius: 8, background: `${meta.cor}22`,
                               }}>
                                 {meta.label}
                               </span>
@@ -498,15 +498,15 @@ export default function Calendario({
                           <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                             <button onClick={() => marcarFeito(ev)}
                               title={feito ? "Desmarcar" : "Marcar como feito"}
-                              style={{ background: feito ? T.green : "transparent", color: feito ? T.bg : T.muted, border: `1px solid ${feito ? T.green : T.border}`, width: 26, height: 26, borderRadius: 5, cursor: "pointer", display: "grid", placeItems: "center" }}>
+                              style={{ background: feito ? T.green : "transparent", color: feito ? T.bg : T.muted, border: `1px solid ${feito ? T.green : T.border}`, width: 26, height: 26, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}>
                               <Check size={13} />
                             </button>
                             <button onClick={() => editarEvento(ev)} title="Editar"
-                              style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, width: 26, height: 26, borderRadius: 5, cursor: "pointer", display: "grid", placeItems: "center" }}>
+                              style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, width: 26, height: 26, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}>
                               <Edit3 size={13} />
                             </button>
                             <button onClick={() => excluirEvento(ev)} title="Excluir"
-                              style={{ background: "transparent", color: T.red, border: `1px solid ${T.border}`, width: 26, height: 26, borderRadius: 5, cursor: "pointer", display: "grid", placeItems: "center" }}>
+                              style={{ background: "transparent", color: T.red, border: `1px solid ${T.border}`, width: 26, height: 26, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}>
                               <Trash2 size={13} />
                             </button>
                           </div>
@@ -556,15 +556,15 @@ export default function Calendario({
                               {t.descricao}
                             </div>
                             <div className="flex gap-2 mt-1 flex-wrap text-xs">
-                              <span style={{ background: `${tipoBadge.cor}22`, color: tipoBadge.cor, padding: "1px 6px", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 3 }}>
+                              <span style={{ background: `${tipoBadge.cor}22`, color: tipoBadge.cor, padding: "1px 6px", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 8 }}>
                                 {tipoBadge.lbl}
                               </span>
                               {cat && (
-                                <span style={{ background: cat.cor + "22", color: cat.cor, padding: "1px 8px", fontSize: 10, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 3 }}>
+                                <span style={{ background: cat.cor + "22", color: cat.cor, padding: "1px 8px", fontSize: 10, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 8 }}>
                                   {cat.nome}
                                 </span>
                               )}
-                              <span style={{ background: statusCfg.bg, color: statusCfg.fg, padding: "1px 8px", fontSize: 10, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 3 }}>
+                              <span style={{ background: statusCfg.bg, color: statusCfg.fg, padding: "1px 8px", fontSize: 10, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 8 }}>
                                 {statusCfg.lbl}
                               </span>
                             </div>

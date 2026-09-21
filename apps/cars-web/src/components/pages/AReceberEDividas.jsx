@@ -1214,7 +1214,7 @@ export default function AReceberEDividas({
             background: `linear-gradient(135deg, ${T.gold}08, transparent)`,
           }}>
             <div style={{
-              fontSize: 9.5, letterSpacing: ".2em", textTransform: "uppercase",
+              fontSize: 10.5, letterSpacing: ".2em", textTransform: "uppercase",
               color: T.gold, fontWeight: 600, marginBottom: 12,
             }}>
               📊 Visão geral · todos os meses
@@ -1320,14 +1320,14 @@ export default function AReceberEDividas({
                 padding: "5px 10px", fontSize: 10.5, letterSpacing: ".05em",
                 background: ativo ? T.gold : T.bgSoft, color: ativo ? T.bg : T.muted,
                 border: `1px solid ${ativo ? T.gold : T.border}`,
-                borderRadius: 11, cursor: "pointer", fontWeight: ativo ? 700 : 500,
+                borderRadius: 12, cursor: "pointer", fontWeight: ativo ? 700 : 500,
                 whiteSpace: "nowrap", textTransform: "uppercase",
                 display: "inline-flex", alignItems: "center", gap: 6,
               }}>
               📊 Geral
               {totalGeral > 0 && (
                 <span style={{
-                  fontSize: 9.5, padding: "1px 6px", borderRadius: 100,
+                  fontSize: 10.5, padding: "1px 6px", borderRadius: 100,
                   background: ativo ? T.bg : T.border, color: ativo ? T.gold : T.muted, fontWeight: 600,
                 }}>{totalGeral}</span>
               )}
@@ -1345,14 +1345,14 @@ export default function AReceberEDividas({
                 padding: "5px 10px", fontSize: 10.5, letterSpacing: ".05em",
                 background: ativo ? T.gold : T.bgSoft, color: ativo ? T.bg : T.muted,
                 border: `1px solid ${ativo ? T.gold : T.border}`,
-                borderRadius: 11, cursor: "pointer", fontWeight: ativo ? 700 : 500,
+                borderRadius: 12, cursor: "pointer", fontWeight: ativo ? 700 : 500,
                 whiteSpace: "nowrap", textTransform: "uppercase",
                 display: "inline-flex", alignItems: "center", gap: 6,
               }}>
               {mesLabel(ym)}
               {countNoMes > 0 && (
                 <span style={{
-                  fontSize: 9.5, padding: "1px 6px", borderRadius: 100,
+                  fontSize: 10.5, padding: "1px 6px", borderRadius: 100,
                   background: ativo ? T.bg : T.border, color: ativo ? T.gold : T.muted, fontWeight: 600,
                 }}>{countNoMes}</span>
               )}
@@ -1619,7 +1619,7 @@ export default function AReceberEDividas({
                         title="Desfazer pagamento (volta para A Pagar para corrigir)"
                         style={{
                           background: "transparent", border: `1px solid ${T.border}`, color: T.muted,
-                          borderRadius: 5, padding: "3px 8px", fontSize: 10.5, cursor: "pointer",
+                          borderRadius: 8, padding: "3px 8px", fontSize: 10.5, cursor: "pointer",
                         }}>
                         ↩ Desfazer
                       </button>
@@ -1772,7 +1772,7 @@ export default function AReceberEDividas({
 
           {/* Parcelado: aplicar a mudança a várias parcelas de uma vez */}
           {form.id && form.grupoParcelamento && (
-            <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12, marginTop: 4 }}>
+            <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 16, padding: 12, marginTop: 4 }}>
               <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 13, color: T.ink }}>Aplicar mudança em:</div>
               {[
                 { v: "esta",    l: "Só esta parcela" },
@@ -1827,7 +1827,7 @@ export default function AReceberEDividas({
                         </div>
                       </div>
                       <button onClick={() => estornarRecebimento(dev, r)}
-                        style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600 }}>
+                        style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 12, padding: "6px 10px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 600 }}>
                         <RotateCcw size={12} /> Estornar
                       </button>
                     </div>
@@ -1906,7 +1906,7 @@ export default function AReceberEDividas({
 
             {/* Juros de empréstimo — valor editável (recebeu diferente do previsto). */}
             {isReceber && baixaForm.modoEmprestimo === "juros" && (
-              <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12, marginBottom: 14 }}>
+              <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 16, padding: 12, marginBottom: 14 }}>
                 <Field label="Valor do juros a receber (R$)" hint="Ajuste se o valor recebido foi diferente do previsto — o mês fica marcado como recebido de qualquer forma.">
                   <MoneyInput value={baixaForm.valor} onChange={v => setBaixaForm({ ...baixaForm, valor: v })} />
                 </Field>
@@ -1919,7 +1919,7 @@ export default function AReceberEDividas({
                 background: T.bgSoft,
                 border: `1px solid ${ehParcial ? T.green : T.border}`,
                 borderLeft: `3px solid ${ehParcial ? T.green : T.border}`,
-                borderRadius: 14, padding: 12, marginBottom: 14,
+                borderRadius: 16, padding: 12, marginBottom: 14,
               }}>
                 <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}>
                   <input type="checkbox" checked={!!baixaForm.parcial}
@@ -1951,7 +1951,7 @@ export default function AReceberEDividas({
                       </div>
                     ) : (
                       <div style={{
-                        padding: 8, marginTop: 8, borderRadius: 11, fontSize: 11.5,
+                        padding: 8, marginTop: 8, borderRadius: 12, fontSize: 11.5,
                         background: `${T.green}11`, border: `1px solid ${T.green}33`, color: T.muted,
                         display: "flex", justifyContent: "space-between",
                       }}>
@@ -1972,7 +1972,7 @@ export default function AReceberEDividas({
                 background: T.bgSoft,
                 border: `1px solid ${(ehParcial || adiantN > 0) ? T.gold : T.border}`,
                 borderLeft: `3px solid ${(ehParcial || adiantN > 0) ? T.gold : T.border}`,
-                borderRadius: 14, padding: 12, marginBottom: 14,
+                borderRadius: 16, padding: 12, marginBottom: 14,
               }}>
                 <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}>
                   <input type="checkbox" checked={!!baixaForm.parcial}
@@ -1992,7 +1992,7 @@ export default function AReceberEDividas({
                     {parcialInvalido ? (
                       <div style={{ fontSize: 11, color: T.red, marginTop: 4 }}>⚠ Informe um valor entre {fmt(0.01)} e {fmt(saldoAberto)}.</div>
                     ) : (
-                      <div style={{ padding: 8, marginTop: 8, borderRadius: 11, fontSize: 11.5, background: `${T.gold}11`, border: `1px solid ${T.gold}33`, color: T.muted, display: "flex", justifyContent: "space-between" }}>
+                      <div style={{ padding: 8, marginTop: 8, borderRadius: 12, fontSize: 11.5, background: `${T.gold}11`, border: `1px solid ${T.gold}33`, color: T.muted, display: "flex", justifyContent: "space-between" }}>
                         <span>Após este pagamento:</span>
                         <span className="num" style={{ fontWeight: 600, color: faltaApos <= 0.005 ? T.green : T.ink }}>
                           {faltaApos <= 0.005 ? "Quitado ✓" : `falta ${fmt(faltaApos)}`}
@@ -2008,7 +2008,7 @@ export default function AReceberEDividas({
                       <div style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>Adiantar próximos meses</div>
                       <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>Paga também os próximos meses desta fixa (saem do "A pagar").</div>
                     </div>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 2 }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 2 }}>
                       <button type="button" onClick={() => setBaixaForm({ ...baixaForm, adiantarMeses: Math.max(0, adiantN - 1) })} disabled={adiantN === 0}
                               style={{ width: 28, height: 28, border: "none", background: "transparent", color: T.ink, borderRadius: 8, cursor: adiantN === 0 ? "default" : "pointer", fontSize: 16, opacity: adiantN === 0 ? 0.35 : 1 }}>−</button>
                       <span className="num" style={{ minWidth: 44, textAlign: "center", fontSize: 13, fontWeight: 700, color: adiantN > 0 ? T.gold : T.muted }}>{adiantN} {adiantN === 1 ? "mês" : "meses"}</span>
@@ -2016,7 +2016,7 @@ export default function AReceberEDividas({
                               style={{ width: 28, height: 28, border: "none", background: "transparent", color: T.ink, borderRadius: 8, cursor: "pointer", fontSize: 16 }}>+</button>
                     </div>
                     {adiantN > 0 && (
-                      <div style={{ width: "100%", padding: 8, borderRadius: 11, fontSize: 11.5, background: `${T.gold}11`, border: `1px solid ${T.gold}33`, color: T.muted, display: "flex", justifyContent: "space-between" }}>
+                      <div style={{ width: "100%", padding: 8, borderRadius: 12, fontSize: 11.5, background: `${T.gold}11`, border: `1px solid ${T.gold}33`, color: T.muted, display: "flex", justifyContent: "space-between" }}>
                         <span>Total (este mês + {adiantN}):</span>
                         <span className="num" style={{ fontWeight: 700, color: T.ink }}>{fmt(valor)}</span>
                       </div>
@@ -2043,7 +2043,7 @@ export default function AReceberEDividas({
                 padding: 10, marginBottom: 12,
                 background: `${isReceber ? T.green : T.red}11`,
                 border: `1px solid ${isReceber ? T.green : T.red}33`,
-                borderRadius: 11, fontSize: 11.5, color: T.muted,
+                borderRadius: 12, fontSize: 11.5, color: T.muted,
               }}>
                 Saldo {hidden ? "•••" : fmt(saldoAtual)} → <strong style={{ color: isReceber ? T.green : T.red }}>{hidden ? "•••" : fmt(saldoFinal)}</strong>
               </div>
@@ -2068,7 +2068,7 @@ export default function AReceberEDividas({
             <div style={{
               padding: 10, marginTop: 12,
               background: `${T.green}11`, border: `1px solid ${T.green}33`,
-              borderRadius: 11, fontSize: 11, color: T.green, lineHeight: 1.6,
+              borderRadius: 12, fontSize: 11, color: T.green, lineHeight: 1.6,
             }}>
               {ehAporteMeta ? (
                 <>
@@ -2162,7 +2162,7 @@ function ParcelarBlock({ form, setForm }) {
       background: T.bgSoft,
       border: `1px solid ${ativo ? T.gold : T.border}`,
       borderLeft: `3px solid ${ativo ? T.gold : T.border}`,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: 12,
       marginBottom: 14,
     }}>
@@ -2208,7 +2208,7 @@ function ParcelarBlock({ form, setForm }) {
               padding: 10, marginBottom: 10,
               background: `${T.gold}11`,
               border: `1px solid ${T.gold}44`,
-              borderRadius: 11, fontSize: 12, color: T.ink,
+              borderRadius: 12, fontSize: 12, color: T.ink,
               display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6,
             }}>
               <span>
@@ -2225,14 +2225,14 @@ function ParcelarBlock({ form, setForm }) {
           {preview.length > 0 && (
             <div>
               <div style={{
-                fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
+                fontSize: 10.5, letterSpacing: ".15em", textTransform: "uppercase",
                 color: T.muted, fontWeight: 600, marginBottom: 6,
               }}>
                 Vencimentos previstos
               </div>
               <div style={{
                 maxHeight: 180, overflowY: "auto",
-                background: T.card, border: `1px solid ${T.border}`, borderRadius: 11,
+                background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
               }}>
                 {preview.map((p, i) => (
                   <div key={p.parcela} style={{
@@ -2273,7 +2273,7 @@ function VisaoCard({ label, valor, sub, cor, small }) {
       borderLeft: `3px solid ${cor || T.border}`,
     }}>
       <div style={{
-        fontSize: 8.5, letterSpacing: ".15em", textTransform: "uppercase",
+        fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase",
         color: T.muted, marginBottom: 4, fontWeight: 600,
       }}>
         {label}
@@ -2284,7 +2284,7 @@ function VisaoCard({ label, valor, sub, cor, small }) {
       }}>
         {valor == null ? "•••" : (typeof valor === "number" ? fmt(valor) : valor)}
       </div>
-      <div style={{ fontSize: 9.5, color: T.faint, marginTop: 3 }}>{sub}</div>
+      <div style={{ fontSize: 10.5, color: T.faint, marginTop: 3 }}>{sub}</div>
     </div>
   );
 }
@@ -2295,13 +2295,13 @@ function AlertCard({ cor, titulo, count, valor, sub, icone, actions }) {
       background: T.card,
       border: `1px solid ${cor}55`,
       borderLeft: `3px solid ${cor}`,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: "6px 8px",
       display: "flex", alignItems: "center", gap: 7, minWidth: 0,
     }}>
       <span style={{ fontSize: 14, flexShrink: 0 }}>{icone}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div className="label-eyebrow" style={{ color: cor, fontSize: 8, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{titulo}</div>
+        <div className="label-eyebrow" style={{ color: cor, fontSize: 10, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{titulo}</div>
         <div className="num" style={{ fontSize: 13, fontWeight: 600, color: cor, lineHeight: 1.2, whiteSpace: "nowrap" }}>
           {count}{valor != null ? ` · ${fmt(valor)}` : ""}
         </div>
@@ -2312,7 +2312,7 @@ function AlertCard({ cor, titulo, count, valor, sub, icone, actions }) {
             <button key={a.label} onClick={a.onClick} title={a.title}
               style={{
                 background: `${cor}22`, color: cor,
-                border: `1px solid ${cor}55`, borderRadius: 11,
+                border: `1px solid ${cor}55`, borderRadius: 12,
                 padding: "4px 6px", fontSize: 12, cursor: "pointer", lineHeight: 1,
               }}>
               {a.icon || a.label}
@@ -2402,7 +2402,7 @@ function CompromissoTabela({
             title="Juntar as ocorrências do mesmo nome (ex.: a mesma conta fixa de vários meses)"
             style={{
               display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer",
-              padding: "4px 10px", borderRadius: 10, fontSize: 11.5, fontWeight: 600,
+              padding: "4px 10px", borderRadius: 12, fontSize: 11.5, fontWeight: 600,
               background: agrupar ? `${T.gold}22` : T.bgSoft,
               color: agrupar ? T.gold : T.muted,
               border: `1px solid ${agrupar ? T.gold : T.border}`,
@@ -2525,8 +2525,8 @@ function CompromissoCard({ item, hidden, dueLabel, corAccent, isReceber, labelAc
         )}
       </div>
       {/* Selos */}
-      {isOver && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${T.red}22`, color: T.red, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>vencido</span>}
-      {isWarn && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>3 dias</span>}
+      {isOver && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 100, background: `${T.red}22`, color: T.red, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>vencido</span>}
+      {isWarn && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>3 dias</span>}
       {/* Valor */}
       <div className="num" style={{ color: corAccent, fontFamily: T.serif, fontSize: 14.5, fontWeight: 600, minWidth: 90, textAlign: "right", flexShrink: 0, whiteSpace: "nowrap" }}>
         {hidden ? "•••" : fmt(item.valor)}
@@ -2534,20 +2534,20 @@ function CompromissoCard({ item, hidden, dueLabel, corAccent, isReceber, labelAc
       {/* Ações */}
       <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
         <button onClick={onBaixa} title={`✓ ${labelAcao}`}
-          style={{ background: corAccent, color: isReceber ? T.bg : "#fff", border: "none", borderRadius: 10,
+          style={{ background: corAccent, color: isReceber ? T.bg : "#fff", border: "none", borderRadius: 12,
                    padding: "6px 10px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
           <Check size={12} /> {labelAcao}
         </button>
         <button onClick={onWhats} title="WhatsApp"
-          style={{ background: "transparent", color: "#25D366", border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+          style={{ background: "transparent", color: "#25D366", border: `1px solid ${T.border}`, borderRadius: 12, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
           <MessageCircle size={13} />
         </button>
         <button onClick={onEditar} title="Editar"
-          style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+          style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
           <Edit3 size={13} />
         </button>
         <button onClick={onExcluir} title="Excluir"
-          style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+          style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 12, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
           <Trash2 size={13} />
         </button>
       </div>
@@ -2614,18 +2614,18 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, onVerRec
       </div>
 
       {/* Selos */}
-      {isOver && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${T.red}22`, color: T.red, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>vencido</span>}
-      {isWarn && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>3 dias</span>}
-      {d.emprestimo && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>empréstimo</span>}
+      {isOver && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 100, background: `${T.red}22`, color: T.red, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>vencido</span>}
+      {isWarn && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>3 dias</span>}
+      {d.emprestimo && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 100, background: `${T.gold}22`, color: T.gold, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 700, flexShrink: 0 }}>empréstimo</span>}
 
       {/* Valor */}
       <div style={{ textAlign: "right", flexShrink: 0, minWidth: 90 }}>
         <div className="num" style={{ color: T.green, fontFamily: T.serif, fontSize: 14.5, fontWeight: 600, lineHeight: 1.1, whiteSpace: "nowrap" }}>
           {hidden ? "•••" : fmt(temParcial ? faltaReceber : d.valor)}
         </div>
-        {temParcial && <div style={{ fontSize: 9, color: T.muted }}>falta · de {hidden ? "•••" : fmt(valorTotal)}</div>}
+        {temParcial && <div style={{ fontSize: 10, color: T.muted }}>falta · de {hidden ? "•••" : fmt(valorTotal)}</div>}
         {d.emprestimo && !temParcial && (Number(d.juros) || 0) > 0 && (
-          <div style={{ fontSize: 9, color: T.muted }}>
+          <div style={{ fontSize: 10, color: T.muted }}>
             princ. {hidden ? "•••" : fmt(d.principal)} + juros {hidden ? "•••" : fmt(d.juros)}
             {!hidden && (Number(d.jurosMensal) || 0) > 0 ? ` (${fmt(d.jurosMensal)}/mês × ${d.meses || 1})` : ""}
           </div>
@@ -2638,14 +2638,14 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, onVerRec
             <>
               {(Number(d.jurosMensal) || Number(d.juros) || 0) > 0 && onReceberJuros && (
                 <button onClick={() => onReceberJuros(d)} title="Receber o juros do mês"
-                  style={{ background: "transparent", color: T.gold, border: `1px solid ${T.gold}88`, borderRadius: 10, padding: "6px 10px",
+                  style={{ background: "transparent", color: T.gold, border: `1px solid ${T.gold}88`, borderRadius: 12, padding: "6px 10px",
                            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
                   Juros
                 </button>
               )}
               {onQuitar && (
                 <button onClick={() => onQuitar(d)} title="Receber o principal (quitar)"
-                  style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 10, padding: "6px 10px",
+                  style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 12, padding: "6px 10px",
                            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
                   <Check size={12} /> Quitar
                 </button>
@@ -2653,23 +2653,23 @@ export function DevedorCard({ d, onBaixa, onWhats, onEditar, onExcluir, onVerRec
             </>
           ) : (
             <button onClick={() => onBaixa(d)} title="Receber"
-              style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 10, padding: "6px 10px",
+              style={{ background: T.gold, color: T.bg, border: "none", borderRadius: 12, padding: "6px 10px",
                        cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600 }}>
               <Check size={12} /> Receber
             </button>
           )}
           {(d.recebimentos?.length || 0) > 0 && onVerRecebimentos && (
             <button onClick={() => onVerRecebimentos(d)} title="Ver / estornar recebimentos"
-              style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+              style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
               <RotateCcw size={13} />
             </button>
           )}
           <button onClick={() => onEditar(d)} title="Editar"
-            style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+            style={{ background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
             <Edit3 size={13} />
           </button>
           <button onClick={() => onExcluir(d)} title="Excluir"
-            style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 10, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
+            style={{ background: "transparent", color: T.red, border: `1px solid ${T.red}55`, borderRadius: 12, padding: "6px 7px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
             <Trash2 size={13} />
           </button>
         </div>

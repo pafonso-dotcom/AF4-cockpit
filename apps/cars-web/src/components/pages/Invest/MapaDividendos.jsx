@@ -18,7 +18,7 @@ const CARD = { background: T.card, border: `1px solid ${T.border}`, borderRadius
 const TIPOS = [{ v: "acao", l: "Ação" }, { v: "fii", l: "FII" }, { v: "stock", l: "Stock (US)" }, { v: "reit", l: "REIT (US)" }];
 
 // Tabelas da calculadora — mesmo visual alinhado dos relatórios (Projeção).
-const thCal = (align = "right") => ({ textAlign: align, padding: "8px 12px", fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 700, borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap" });
+const thCal = (align = "right") => ({ textAlign: align, padding: "8px 12px", fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 700, borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap" });
 const tdCal = (align = "right") => ({ textAlign: align, padding: "7px 12px", borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap" });
 
 const LABEL_PROJ = { ativos: "Ações / FIIs", cdb: "CDB", tesouro: "Tesouro IPCA+" };
@@ -237,10 +237,10 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
       <button onClick={atualizarProventosReais} disabled={buscandoReal}
               title="Busca na brapi os proventos anunciados de verdade (data e valor por cota) de cada ativo da carteira"
-              style={{ display: "flex", alignItems: "center", gap: 6, background: T.gold, border: "none", color: "#fff", borderRadius: 10, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: buscandoReal ? "wait" : "pointer", opacity: buscandoReal ? 0.7 : 1 }}>
+              style={{ display: "flex", alignItems: "center", gap: 6, background: T.gold, border: "none", color: "#fff", borderRadius: 12, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: buscandoReal ? "wait" : "pointer", opacity: buscandoReal ? 0.7 : 1 }}>
         <RefreshCw size={13} className={buscandoReal ? "spin" : ""} /> {buscandoReal ? "Buscando…" : "Atualizar proventos reais"}
       </button>
-      <button onClick={() => setVerDicas((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 10, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
+      <button onClick={() => setVerDicas((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 12, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
         <Info size={13} /> Como usar
       </button>
     </div>
@@ -299,7 +299,7 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
               <span style={{ fontSize: 13, color: T.muted }}>R$</span>
               <input value={metaMensal || ""} onChange={(e) => setMetaMensal(Number(e.target.value) || 0)}
                      placeholder="Ex.: 2000" inputMode="numeric"
-                     style={{ width: 130, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.ink, fontSize: 15, fontWeight: 700, fontFamily: "inherit" }} />
+                     style={{ width: 130, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "8px 10px", color: T.ink, fontSize: 15, fontWeight: 700, fontFamily: "inherit" }} />
               <span style={{ fontSize: 12, color: T.faint }}>/mês</span>
             </div>
           </div>
@@ -327,7 +327,7 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
           {metaMensal > 0 && (
             <button onClick={() => setDetalhesMeta((v) => !v)}
                     title={detalhesMeta ? "Recolher detalhes (tabelas, comparativo e gráfico)" : "Mostrar detalhes"}
-                    style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 4, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 9, padding: "6px 10px", fontSize: 11.5, cursor: "pointer", whiteSpace: "nowrap" }}>
+                    style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 4, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 12, padding: "6px 10px", fontSize: 11.5, cursor: "pointer", whiteSpace: "nowrap" }}>
               {detalhesMeta ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               {detalhesMeta ? "Recolher" : "Detalhes"}
             </button>
@@ -355,7 +355,7 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
                         title={x.origem === "juros" ? "Juros estimados (renda fixa)" : x.origem === "real" ? "Proventos reais (últimos 12 meses)" : "Proventos estimados por DY"}>
                       <td style={{ ...tdCal("left"), fontWeight: 700, color: T.ink }}>{x.ticker}</td>
                       <td style={tdCal("left")}>
-                        <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", padding: "1px 6px", borderRadius: 4,
+                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", padding: "1px 6px", borderRadius: 8,
                                        background: x.origem === "juros" ? `${T.blue || "#5b9bd5"}22` : x.origem === "real" ? `${T.green}22` : `${T.border}`,
                                        color: x.origem === "juros" ? (T.blue || "#5b9bd5") : x.origem === "real" ? T.green : T.muted }}>
                           {x.origem}
@@ -396,8 +396,8 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
                     <tr key={s.ticker}>
                       <td style={{ ...tdCal("left"), borderBottom: i === arr.length - 1 ? "none" : tdCal().borderBottom }}>
                         <span style={{ fontWeight: 700, color: T.ink }}>{s.ticker}</span>
-                        {s.candidato && <span style={{ marginLeft: 6, fontSize: 8.5, padding: "1px 5px", borderRadius: 4, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase" }}>plano</span>}
-                        {s.real && <span style={{ marginLeft: 6, fontSize: 8.5, padding: "1px 5px", borderRadius: 4, background: `${T.green}22`, color: T.green, fontWeight: 700, textTransform: "uppercase" }}>real</span>}
+                        {s.candidato && <span style={{ marginLeft: 6, fontSize: 10, padding: "1px 5px", borderRadius: 8, background: `${T.gold}22`, color: T.gold, fontWeight: 700, textTransform: "uppercase" }}>plano</span>}
+                        {s.real && <span style={{ marginLeft: 6, fontSize: 10, padding: "1px 5px", borderRadius: 8, background: `${T.green}22`, color: T.green, fontWeight: 700, textTransform: "uppercase" }}>real</span>}
                       </td>
                       <td className="num" style={{ ...tdCal(), color: T.green, fontWeight: 700, borderBottom: i === arr.length - 1 ? "none" : tdCal().borderBottom }}>{s.dy.toFixed(1)}%</td>
                       <td className="num" style={{ ...tdCal(), color: T.gold, fontWeight: 700, borderBottom: i === arr.length - 1 ? "none" : tdCal().borderBottom }}>{oculto(fmt(s.aporteNecessario), hidden)}</td>
@@ -456,7 +456,7 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
               <span style={{ fontSize: 12, color: T.muted }}>R$</span>
               <input value={aporteMensalSim || ""} onChange={(e) => setAporteMensalSim(Number(e.target.value) || 0)}
                      placeholder="1.000" inputMode="numeric"
-                     style={{ width: 100, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 9, padding: "6px 9px", color: T.ink, fontSize: 13, fontWeight: 700, fontFamily: "inherit" }} />
+                     style={{ width: 100, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "6px 9px", color: T.ink, fontSize: 13, fontWeight: 700, fontFamily: "inherit" }} />
               <span style={{ fontSize: 11.5, color: T.muted }}>/mês nesse mix (reinvestindo os proventos), você alcança a meta em</span>
               <b style={{ fontSize: 13, color: aporteMensalSim > 0 && mesesSim != null ? T.green : T.faint }}>
                 {aporteMensalSim > 0 && mesesSim != null
@@ -514,8 +514,8 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
               { l: `CDB · ${pctCDI}% CDI${irCDB > 0 ? " líq." : ""}`, cor: T.blue || "#5b9bd5", r: comparativo.cdbAnual, cap: comparativo.capMetaCDB, sub: cdiAnual != null ? `CDI ${cdiAnual.toFixed(1)}%` : "CDI · BCB" },
               { l: "Tesouro IPCA+", cor: T.gold, r: comparativo.tesouroAnual, cap: comparativo.capMetaTesouro, sub: ipcaAnual != null ? `IPCA ${ipcaAnual.toFixed(1)}% + ${jurosRealTesouro}%` : "IPCA · BCB" },
             ].map((t) => (
-              <div key={t.l} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
-                <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: t.cor }}>{t.l}</div>
+              <div key={t.l} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 16, padding: 12 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: t.cor }}>{t.l}</div>
                 <div style={{ fontSize: 11, color: T.muted, marginTop: 3 }}>{t.r != null ? <b style={{ color: t.cor }}>{t.r.toFixed(2)}%/ano</b> : "—"} <span style={{ color: T.faint }}>· {t.sub}</span></div>
                 <div className="num" style={{ fontSize: 19, fontWeight: 800, color: t.cor, marginTop: 6 }}>{t.cap != null ? oculto(fmt(t.cap), hidden) : "—"}</div>
                 <div style={{ fontSize: 10, color: T.faint }}>capital necessário</div>
@@ -550,8 +550,8 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
                         <tr key={x.id} style={{ background: win ? `${x.cor}12` : "transparent" }}>
                           <td style={{ ...tdCal("left") }}>
                             <span style={{ fontWeight: 700, color: x.cor }}>{x.l}</span>
-                            {win && <span style={{ marginLeft: 6, fontSize: 8.5, padding: "1px 6px", borderRadius: 4, background: `${x.cor}22`, color: x.cor, fontWeight: 800, textTransform: "uppercase" }}>+ patrimônio</span>}
-                            <div style={{ fontSize: 9.5, color: T.faint }}>{x.sub}</div>
+                            {win && <span style={{ marginLeft: 6, fontSize: 10, padding: "1px 6px", borderRadius: 8, background: `${x.cor}22`, color: x.cor, fontWeight: 800, textTransform: "uppercase" }}>+ patrimônio</span>}
+                            <div style={{ fontSize: 10.5, color: T.faint }}>{x.sub}</div>
                           </td>
                           <td className="num" style={{ ...tdCal(), color: x.cor, fontWeight: 700 }}>{x.r != null ? `${x.r.toFixed(2)}%` : "—"}</td>
                           <td className="num" style={{ ...tdCal(), color: x.cor, fontWeight: 700 }}>+{oculto(fmt(x.g), hidden)}</td>
@@ -629,7 +629,7 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
                 <span style={{ width: 12, height: 3, borderRadius: 2, background: c.cor }} />
                 <span style={{ color: T.muted }}>{c.label}</span>
                 <b className="num" style={{ color: c.cor }}>{oculto(fmt(c.valor), hidden)}</b>
-                {projecao.melhor.id === c.id && <span style={{ fontSize: 8.5, padding: "1px 6px", borderRadius: 4, background: `${c.cor}22`, color: c.cor, fontWeight: 800, textTransform: "uppercase" }}>melhor</span>}
+                {projecao.melhor.id === c.id && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: `${c.cor}22`, color: c.cor, fontWeight: 800, textTransform: "uppercase" }}>melhor</span>}
               </div>
             ))}
           </div>
@@ -659,16 +659,16 @@ export default function MapaDividendos({ ativos = [], proventosManuais = [], hid
         </div>
         <form onSubmit={addCandidato} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           <input value={form.ticker} onChange={(e) => setForm({ ...form, ticker: e.target.value })} placeholder="Ticker (ex.: MXRF11)"
-                 style={{ flex: "1 1 130px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.ink, fontSize: 13, textTransform: "uppercase", fontFamily: "inherit" }} />
+                 style={{ flex: "1 1 130px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "8px 10px", color: T.ink, fontSize: 13, textTransform: "uppercase", fontFamily: "inherit" }} />
           <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-                  style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.ink, fontSize: 13, fontFamily: "inherit" }}>
+                  style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "8px 10px", color: T.ink, fontSize: 13, fontFamily: "inherit" }}>
             {TIPOS.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}
           </select>
           <input value={form.valorPlanejado} onChange={(e) => setForm({ ...form, valorPlanejado: e.target.value })} placeholder="R$ planejado" inputMode="numeric"
-                 style={{ width: 120, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.ink, fontSize: 13, fontFamily: "inherit" }} />
+                 style={{ width: 120, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "8px 10px", color: T.ink, fontSize: 13, fontFamily: "inherit" }} />
           <input value={form.dy} onChange={(e) => setForm({ ...form, dy: e.target.value })} placeholder="DY% (opc.)" inputMode="decimal"
-                 style={{ width: 90, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.ink, fontSize: 13, fontFamily: "inherit" }} />
-          <button type="submit" style={{ display: "flex", alignItems: "center", gap: 6, background: T.gold, color: "#fff", border: "none", borderRadius: 9, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                 style={{ width: 90, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "8px 10px", color: T.ink, fontSize: 13, fontFamily: "inherit" }} />
+          <button type="submit" style={{ display: "flex", alignItems: "center", gap: 6, background: T.gold, color: "#fff", border: "none", borderRadius: 12, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
             <Plus size={14} /> Adicionar
           </button>
         </form>

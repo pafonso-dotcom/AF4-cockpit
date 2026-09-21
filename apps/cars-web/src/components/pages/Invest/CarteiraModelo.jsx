@@ -192,7 +192,7 @@ export default function CarteiraModelo({
 
       {/* Seletor de modelo + descrição */}
       <div style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
         padding: 14, marginBottom: 12,
       }}>
         <div className="label-eyebrow" style={{ marginBottom: 8 }}>Modelo ativo</div>
@@ -206,12 +206,12 @@ export default function CarteiraModelo({
                         background: ativo ? `${T.gold}22` : T.bgSoft,
                         border: `1px solid ${ativo ? T.gold : T.border}`,
                         color: ativo ? T.gold : T.muted,
-                        borderRadius: 14, cursor: "pointer",
+                        borderRadius: 16, cursor: "pointer",
                         fontSize: 12, fontWeight: 600,
                         display: "inline-flex", alignItems: "center", gap: 6,
                       }}>
                 {m.nome}
-                {!m.builtin && <span style={{ fontSize: 9.5, color: T.faint, fontWeight: 500 }}>custom</span>}
+                {!m.builtin && <span style={{ fontSize: 10.5, color: T.faint, fontWeight: 500 }}>custom</span>}
               </button>
             );
           })}
@@ -228,7 +228,7 @@ export default function CarteiraModelo({
         background: `linear-gradient(135deg, ${T.gold}11, ${T.card})`,
         border: `1px solid ${T.gold}66`,
         borderLeft: `3px solid ${T.gold}`,
-        borderRadius: 18, padding: 14, marginBottom: 14,
+        borderRadius: 16, padding: 14, marginBottom: 14,
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12,
       }} className="carteira-modelo-topo">
         <div>
@@ -358,7 +358,7 @@ function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaC
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
       borderLeft: `3px solid ${cor}`,
-      borderRadius: 18, marginBottom: 12, overflow: "hidden",
+      borderRadius: 16, marginBottom: 12, overflow: "hidden",
     }}>
       {/* Header */}
       <button onClick={onToggle}
@@ -369,7 +369,7 @@ function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaC
                 cursor: "pointer", textAlign: "left",
               }}>
         <div style={{
-          width: 36, height: 36, borderRadius: 14,
+          width: 36, height: 36, borderRadius: 16,
           background: `${cor}22`, color: cor,
           display: "grid", placeItems: "center", flexShrink: 0,
         }}>
@@ -387,7 +387,7 @@ function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaC
               </span>
             )}
             {analise.foraDoModelo.length > 0 && (
-              <span style={{ fontSize: 10, color: T.ink, fontWeight: 700, marginLeft: 6, padding: "1px 6px", background: `${T.ink}1a`, borderRadius: 3 }}>
+              <span style={{ fontSize: 10, color: T.ink, fontWeight: 700, marginLeft: 6, padding: "1px 6px", background: `${T.ink}1a`, borderRadius: 8 }}>
                 {analise.foraDoModelo.length} fora
               </span>
             )}
@@ -422,7 +422,7 @@ function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaC
           {resultadosRegras.length > 0 && (
             <div style={{
               marginBottom: 12, padding: 10,
-              background: T.bgSoft, borderRadius: 14,
+              background: T.bgSoft, borderRadius: 16,
               border: `1px solid ${T.border}`,
             }}>
               <div className="label-eyebrow" style={{ marginBottom: 6 }}>
@@ -527,12 +527,12 @@ function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaC
                   <div key={f.ticker} style={{
                     background: T.bgSoft, border: `1px solid ${T.border}`,
                     borderLeft: `3px solid ${barraCor}`,
-                    borderRadius: 14, padding: "9px 12px",
+                    borderRadius: 16, padding: "9px 12px",
                     display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center",
                   }}>
                     <div style={{
                       padding: "4px 9px", background: `${T.ink}1a`, color: T.ink,
-                      fontSize: 11, fontWeight: 700, borderRadius: 5, letterSpacing: ".03em",
+                      fontSize: 11, fontWeight: 700, borderRadius: 8, letterSpacing: ".03em",
                       minWidth: 64, textAlign: "center",
                     }}>
                       {f.ticker}
@@ -575,7 +575,7 @@ function ClasseBlock({ classeKey, classeConfig, ativos, totalDaClasse, aporteDaC
                     marginTop: 14, width: "100%",
                     background: `${cor}11`, color: cor,
                     border: `1.5px dashed ${cor}88`, padding: "10px 12px",
-                    fontSize: 12, fontWeight: 600, borderRadius: 14,
+                    fontSize: 12, fontWeight: 600, borderRadius: 16,
                     cursor: "pointer", letterSpacing: ".03em",
                     display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
                   }}>
@@ -600,12 +600,12 @@ function TickerRow({ linha, cor, hidden, onSugerirIA }) {
     <div style={{
       background: T.bgSoft, border: `1px solid ${T.border}`,
       borderLeft: `3px solid ${status}`,
-      borderRadius: 14, padding: "9px 12px",
+      borderRadius: 16, padding: "9px 12px",
       display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: 10, alignItems: "center",
     }}>
       <div style={{
         padding: "4px 9px", background: `${cor}22`, color: cor,
-        fontSize: 11, fontWeight: 700, borderRadius: 5, letterSpacing: ".03em",
+        fontSize: 11, fontWeight: 700, borderRadius: 8, letterSpacing: ".03em",
         minWidth: 64, textAlign: "center",
       }}>
         {ticker}
@@ -645,7 +645,7 @@ function TickerRow({ linha, cor, hidden, onSugerirIA }) {
                 title={`Sugerir aporte em ${ticker} com IA`}
                 style={{
                   background: T.gold, color: T.bg,
-                  border: "none", padding: "5px 10px", borderRadius: 5,
+                  border: "none", padding: "5px 10px", borderRadius: 8,
                   fontSize: 10.5, fontWeight: 700, cursor: "pointer",
                   display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
                 }}>
@@ -716,7 +716,7 @@ function EditarClasseModal({ classeKey, classeConfig, onSalvar, onClose }) {
                 marginBottom: 10, width: "100%",
                 background: T.gold, color: T.bg,
                 border: "none", padding: "10px 14px",
-                fontSize: 12, fontWeight: 700, borderRadius: 14,
+                fontSize: 12, fontWeight: 700, borderRadius: 16,
                 cursor: "pointer", letterSpacing: ".05em", textTransform: "uppercase",
                 display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
               }}>
@@ -732,7 +732,7 @@ function EditarClasseModal({ classeKey, classeConfig, onSalvar, onClose }) {
               padding: 6, marginBottom: 6,
               background: isNew ? `${T.gold}15` : T.bgSoft,
               border: isNew ? `1px solid ${T.gold}` : `1px solid transparent`,
-              borderRadius: 11, alignItems: "center",
+              borderRadius: 12, alignItems: "center",
               transition: "background .3s, border .3s",
             }}>
               <input id={`ticker-input-${i}`}
@@ -770,5 +770,5 @@ const iconBtn = (cor) => ({
   background: "transparent", border: "none", color: cor,
   cursor: "pointer", padding: 6, minHeight: 24,
   display: "inline-flex", alignItems: "center", justifyContent: "center",
-  borderRadius: 4,
+  borderRadius: 8,
 });

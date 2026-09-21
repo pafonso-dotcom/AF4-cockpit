@@ -124,7 +124,7 @@ export default function Performance({ ativos = [], hidden }) {
             { label: "Vs CDI 12m", value: alphaPP != null ? `${alphaPP >= 0 ? "+" : "−"}${Math.abs(alphaPP).toFixed(1)}pp` : "—", desc: "Carteira (sobre o custo) − CDI real" },
           ].map(m => (
             <div key={m.label}>
-              <div className="label-eyebrow" style={{ marginBottom: 6, fontSize: 9 }}>{m.label}</div>
+              <div className="label-eyebrow" style={{ marginBottom: 6, fontSize: 10 }}>{m.label}</div>
               <div className="num" style={{ fontSize: 22, fontWeight: 300, color: T.ink }}>{m.value}</div>
               <div style={{ fontSize: 10, color: T.muted, marginTop: 3 }}>{m.desc}</div>
             </div>

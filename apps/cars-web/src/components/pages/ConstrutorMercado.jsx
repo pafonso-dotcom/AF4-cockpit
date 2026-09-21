@@ -63,7 +63,7 @@ export default function ConstrutorMercado({ onIrMonteCarteira }) {
         sub="Defina os pesos-alvo dos papéis que você acompanha e monte sua carteira ideal."
         action={
           <button onClick={() => document.getElementById("pesquisador-embutido")?.scrollIntoView({ behavior: "smooth" })}
-                  style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 10, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
+                  style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 12, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
             <Search size={13} /> Pesquisar papéis
           </button>
         }
@@ -115,7 +115,7 @@ export default function ConstrutorMercado({ onIrMonteCarteira }) {
                 {total.toFixed(1)}%
               </span>
             </div>
-            <div style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", background: T.bgSoft }}>
+            <div style={{ display: "flex", height: 14, borderRadius: 12, overflow: "hidden", background: T.bgSoft }}>
               {lista.map((x, i) => {
                 const w = total > 0 ? (Number(x.peso) || 0) : 0;
                 const cores = [T.gold, T.blue, T.green, T.yellow, T.goldHi, "#a78bfa", "#fb7185"];
@@ -131,14 +131,14 @@ export default function ConstrutorMercado({ onIrMonteCarteira }) {
 
           {/* Ações */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-            <button onClick={() => setLista((prev) => normalizarPesos(prev))} style={{ display: "flex", alignItems: "center", gap: 6, background: T.gold, color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+            <button onClick={() => setLista((prev) => normalizarPesos(prev))} style={{ display: "flex", alignItems: "center", gap: 6, background: T.gold, color: "#fff", border: "none", borderRadius: 12, padding: "10px 16px", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
               <Scale size={15} /> Normalizar 100%
             </button>
-            <button onClick={copiarPlano} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", color: T.ink, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={copiarPlano} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", color: T.ink, border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
               {copiado ? <Check size={15} style={{ color: T.green }} /> : <Copy size={15} />} {copiado ? "Copiado!" : "Copiar plano"}
             </button>
             {onIrMonteCarteira && (
-              <button onClick={onIrMonteCarteira} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", color: T.gold, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
+              <button onClick={onIrMonteCarteira} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", color: T.gold, border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
                 <PieChart size={15} /> Abrir Monte sua Carteira
               </button>
             )}

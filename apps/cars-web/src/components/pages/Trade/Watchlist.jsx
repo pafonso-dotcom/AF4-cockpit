@@ -84,7 +84,7 @@ export default function Watchlist({ tradeWatchlist, setTradeWatchlist }) {
         {lista.map(w => (
           <div key={w.symbol} style={{
             background: T.card, border: `1px solid ${T.border}`,
-            borderRadius: 14, padding: "10px 14px",
+            borderRadius: 16, padding: "10px 14px",
             display: "flex", alignItems: "center", gap: 12,
           }}>
             <div style={{
@@ -104,7 +104,7 @@ export default function Watchlist({ tradeWatchlist, setTradeWatchlist }) {
               style={{
                 background: "transparent", color: T.red,
                 border: `1px solid ${T.red}55`, padding: "6px 10px",
-                borderRadius: 11, cursor: "pointer",
+                borderRadius: 12, cursor: "pointer",
               }}>
               <Trash2 size={12} />
             </button>
@@ -129,7 +129,7 @@ export default function Watchlist({ tradeWatchlist, setTradeWatchlist }) {
                    onChange={e => setNovo({ ...novo, display: e.target.value })}
                    placeholder="BTC/USDT" />
           </Field>
-          <div style={{ padding: 10, marginTop: 8, fontSize: 11, color: T.muted, background: T.bgSoft, borderRadius: 11 }}>
+          <div style={{ padding: 10, marginTop: 8, fontSize: 11, color: T.muted, background: T.bgSoft, borderRadius: 12 }}>
             ℹ️ Use apenas symbols válidos da Binance (terminando em USDT é mais seguro). Liste em
             <a href="https://binance.com" target="_blank" rel="noopener noreferrer" style={{ color: T.gold, marginLeft: 4 }}>binance.com</a>.
           </div>

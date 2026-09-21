@@ -152,7 +152,7 @@ export default function Compras({ compras = [], setCompras }) {
         <div style={{
           display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14,
         }}>
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 12px" }}>
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "10px 12px" }}>
             <div style={{ fontSize: 10, color: T.muted, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 600 }}>
               A comprar
             </div>
@@ -161,7 +161,7 @@ export default function Compras({ compras = [], setCompras }) {
             </div>
             <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>{pendentes.length} {pendentes.length === 1 ? "item" : "itens"}</div>
           </div>
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 12px" }}>
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "10px 12px" }}>
             <div style={{ fontSize: 10, color: T.muted, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 600 }}>
               Já comprado
             </div>
@@ -177,7 +177,7 @@ export default function Compras({ compras = [], setCompras }) {
       {pendentes.length === 0 && comprados.length === 0 ? (
         <div style={{
           textAlign: "center", padding: "60px 24px",
-          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 18,
+          background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
         }}>
           <ShoppingCart size={36} style={{ color: T.gold, marginBottom: 12 }} />
           <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, margin: "0 0 8px", fontWeight: 600 }}>
@@ -226,14 +226,14 @@ function CompraRow({ item, onToggle, onExcluir, setPreco, setQtd }) {
       background: item.checked ? T.bgSoft : T.card,
       border: `1px solid ${T.border}`,
       borderLeft: `4px solid ${cat.cor}`,
-      borderRadius: 14,
+      borderRadius: 16,
       padding: "10px 12px",
       display: "flex", alignItems: "center", gap: 10,
       opacity: item.checked ? 0.55 : 1,
     }}>
       <button onClick={() => onToggle(item)}
         style={{
-          width: 26, height: 26, borderRadius: 5,
+          width: 26, height: 26, borderRadius: 8,
           background: item.checked ? T.green : "transparent",
           border: `1px solid ${item.checked ? T.green : T.border}`,
           color: item.checked ? T.bg : "transparent",
@@ -256,7 +256,7 @@ function CompraRow({ item, onToggle, onExcluir, setPreco, setQtd }) {
           <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <button onClick={() => setQtd(item, -1)} disabled={(item.qtd || 1) <= 1}
               style={{
-                width: 22, height: 22, borderRadius: 4,
+                width: 22, height: 22, borderRadius: 8,
                 background: T.bgSoft, border: `1px solid ${T.border}`,
                 color: T.muted, cursor: "pointer", minHeight: 22,
                 opacity: (item.qtd || 1) <= 1 ? 0.4 : 1,
@@ -266,7 +266,7 @@ function CompraRow({ item, onToggle, onExcluir, setPreco, setQtd }) {
             </span>
             <button onClick={() => setQtd(item, +1)}
               style={{
-                width: 22, height: 22, borderRadius: 4,
+                width: 22, height: 22, borderRadius: 8,
                 background: T.bgSoft, border: `1px solid ${T.border}`,
                 color: T.muted, cursor: "pointer", minHeight: 22,
               }}>+</button>
@@ -279,7 +279,7 @@ function CompraRow({ item, onToggle, onExcluir, setPreco, setQtd }) {
                  style={{
                    width: 70, padding: "3px 6px", fontSize: 11,
                    background: T.bgSoft, border: `1px solid ${T.border}`,
-                   borderRadius: 4, fontFamily: T.mono,
+                   borderRadius: 8, fontFamily: T.mono,
                  }} />
           {item.preco != null && (item.qtd || 1) > 1 && (
             <span className="num" style={{ fontSize: 10.5, color: T.muted }}>

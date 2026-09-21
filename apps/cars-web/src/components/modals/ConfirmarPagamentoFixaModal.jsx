@@ -76,7 +76,7 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
   return (
     <Modal title={`Marcar "${fixa.descricao}" como paga?`} onClose={onClose}>
       <div style={{
-        background: T.bgSoft, padding: 12, borderRadius: 14, marginBottom: 14,
+        background: T.bgSoft, padding: 12, borderRadius: 16, marginBottom: 14,
         fontSize: 12.5, color: T.muted, lineHeight: 1.6,
       }}>
         <strong style={{ color: T.ink }}>{m}/{a}</strong>
@@ -104,7 +104,7 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
       {/* Baixa parcial: paga uma parte e o restante continua pendente. */}
       <div style={{
         marginTop: 12, padding: "10px 14px",
-        background: T.bgSoft, border: `1px solid ${parcial ? T.gold : T.border}`, borderRadius: 14,
+        background: T.bgSoft, border: `1px solid ${parcial ? T.gold : T.border}`, borderRadius: 16,
       }}>
         <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
           <input type="checkbox" checked={parcial}
@@ -128,7 +128,7 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
       {/* Bloco dourado: lançar no banco? */}
       <div style={{
         marginTop: 14, padding: 14,
-        background: `${T.gold}11`, border: `1px solid ${T.gold}55`, borderRadius: 14,
+        background: `${T.gold}11`, border: `1px solid ${T.gold}55`, borderRadius: 16,
       }}>
         <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
           <input type="checkbox" checked={lancarNoBanco}
@@ -144,7 +144,7 @@ export default function ConfirmarPagamentoFixaModal({ ocorrencia, fixa, contas =
                         onClick={e => e.stopPropagation()}
                         style={{ width: "100%", padding: "8px 11px",
                                  background: T.bg, border: `1px solid ${T.border}`,
-                                 color: T.ink, fontSize: 12, borderRadius: 11 }}>
+                                 color: T.ink, fontSize: 12, borderRadius: 12 }}>
                   <option value="">— Selecione a conta —</option>
                   {(contas || []).map(c => (
                     <option key={c.id || c.nome} value={c.nome}>

@@ -71,7 +71,7 @@ export default function SimuladorFiiRf({ embed = false } = {}) {
 
       {/* SLIDERS */}
       <div className="sfr-card" style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
         padding: 12, marginBottom: 10,
       }}>
         <div className="sfr-sliders-grid" style={{
@@ -112,7 +112,7 @@ export default function SimuladorFiiRf({ embed = false } = {}) {
       {/* GRÁFICO patrimônio acumulado */}
       <div style={{
         marginTop: 4, padding: 14,
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6, flexWrap: "wrap", gap: 8 }}>
           <div>
@@ -172,7 +172,7 @@ export default function SimuladorFiiRf({ embed = false } = {}) {
         {r.vencedor !== "empate" && (
           <div style={{
             marginTop: 8, padding: 10, background: `${corVenc}11`,
-            border: `1px solid ${corVenc}33`, borderRadius: 11,
+            border: `1px solid ${corVenc}33`, borderRadius: 12,
             fontSize: 12, color: T.muted, lineHeight: 1.5,
           }}>
             <strong style={{ color: corVenc }}>🏁 {vencedorNome}</strong> acumula mais:{" "}
@@ -187,7 +187,7 @@ export default function SimuladorFiiRf({ embed = false } = {}) {
       {/* Rodapé */}
       <div style={{
         marginTop: 14, padding: 12,
-        background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 11,
+        background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12,
         fontSize: 11.5, color: T.muted, lineHeight: 1.55, fontStyle: "italic",
       }}>
         Cada aporte rende à taxa anual informada convertida em taxa mensal composta.
@@ -216,10 +216,10 @@ function LadoCard({ nome, cor, icone, lado, rentAA, vencedor }) {
     <div style={{
       background: `linear-gradient(135deg, ${cor}22 0%, ${cor}08 60%, ${T.card} 100%)`,
       border: `1px solid ${cor}`, borderLeft: `3px solid ${cor}`,
-      borderRadius: 14, padding: 12, position: "relative",
+      borderRadius: 16, padding: 12, position: "relative",
     }}>
       <div style={{
-        position: "absolute", top: 8, right: 10, fontSize: 8.5, padding: "2px 6px",
+        position: "absolute", top: 8, right: 10, fontSize: 10, padding: "2px 6px",
         borderRadius: 100, background: vencedor ? cor : T.bgSoft,
         color: vencedor ? T.bg : T.muted, fontWeight: 700,
         letterSpacing: ".12em", textTransform: "uppercase",
@@ -246,7 +246,7 @@ function LadoCard({ nome, cor, icone, lado, rentAA, vencedor }) {
         marginTop: 10, paddingTop: 8, borderTop: `1px dashed ${cor}55`,
       }}>
         <div>
-          <div style={{ fontSize: 9, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, marginBottom: 1 }}>
+          <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, marginBottom: 1 }}>
             Ganho (juros)
           </div>
           <div className="num" style={{ fontSize: 13, color: T.green, fontWeight: 600 }}>
@@ -254,7 +254,7 @@ function LadoCard({ nome, cor, icone, lado, rentAA, vencedor }) {
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 9, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, marginBottom: 1 }}>
+          <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, marginBottom: 1 }}>
             Renda mensal
           </div>
           <div className="num" style={{ fontSize: 13, color: cor, fontWeight: 600 }}>
@@ -292,7 +292,7 @@ function CampoValor({ label, value, min, max, step, onChange }) {
         onBlur={() => { setFocado(false); commit(texto); }}
         onChange={(e) => { setTexto(e.target.value); commit(e.target.value); }}
         style={{
-          width: "100%", padding: "7px 10px", borderRadius: 11,
+          width: "100%", padding: "7px 10px", borderRadius: 12,
           background: T.bgSoft, border: `1px solid ${T.border}`,
           color: T.gold, fontFamily: T.serif, fontSize: 18, fontWeight: 600,
           outline: "none",
@@ -301,7 +301,7 @@ function CampoValor({ label, value, min, max, step, onChange }) {
       <input type="range" min={min} max={max} step={step} value={value}
              onChange={(e) => onChange(Number(e.target.value))}
              style={{ width: "100%", accentColor: T.gold, cursor: "pointer", marginTop: 6 }} />
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: T.faint, marginTop: 2 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: T.faint, marginTop: 2 }}>
         <span>{fmtBRL.format(min)}</span>
         <span>{fmtBRL.format(max)}</span>
       </div>

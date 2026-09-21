@@ -77,7 +77,7 @@ export default function PerfisModal({ onClose }) {
               <div key={p.id} style={{
                 background: isAtivo ? `${p.cor}11` : T.card,
                 border: `${isAtivo ? "2px" : "1px"} solid ${isAtivo ? p.cor : T.border}`,
-                borderRadius: 14, padding: 12,
+                borderRadius: 16, padding: 12,
                 display: "flex", alignItems: "center", gap: 12,
               }}>
                 <div style={{
@@ -92,7 +92,7 @@ export default function PerfisModal({ onClose }) {
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <strong style={{ color: T.ink, fontSize: 13 }}>{p.nome}</strong>
                     <span style={{
-                      fontSize: 9, padding: "1px 6px", borderRadius: 4,
+                      fontSize: 10, padding: "1px 6px", borderRadius: 8,
                       background: `${p.cor}33`, color: p.cor,
                       letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 600,
                     }}>
@@ -100,7 +100,7 @@ export default function PerfisModal({ onClose }) {
                     </span>
                     {isAtivo && (
                       <span style={{
-                        fontSize: 9, padding: "1px 6px", borderRadius: 4,
+                        fontSize: 10, padding: "1px 6px", borderRadius: 8,
                         background: `${T.green}22`, color: T.green,
                         letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 600,
                       }}>
@@ -170,7 +170,7 @@ export default function PerfisModal({ onClose }) {
             </select>
           </Field>
 
-          <div style={{ marginTop: 10, padding: 10, background: T.bgSoft, borderRadius: 11, fontSize: 11, color: T.muted }}>
+          <div style={{ marginTop: 10, padding: 10, background: T.bgSoft, borderRadius: 12, fontSize: 11, color: T.muted }}>
             <strong style={{ color: roles[form.role].cor }}>{roles[form.role].label}</strong> verá:&nbsp;
             {Object.entries(roles[form.role].permissoes).filter(([, v]) => v).map(([k]) => k).join(", ") || "nenhum módulo"}
           </div>

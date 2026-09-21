@@ -381,7 +381,7 @@ export default function DespesasFixas({
           const d = new Date(y, m - 1 + delta, 1);
           return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
         };
-        const navBtn = { background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 14, width: 34, height: 34, cursor: "pointer", fontSize: 16, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center" };
+        const navBtn = { background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 16, width: 34, height: 34, cursor: "pointer", fontSize: 16, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center" };
         return (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
             <button onClick={() => setMesAtivo(addMes(-1))} aria-label="Mês anterior" style={navBtn}>‹</button>
@@ -393,7 +393,7 @@ export default function DespesasFixas({
             </div>
             <button onClick={() => setMesAtivo(addMes(1))} aria-label="Próximo mês" style={navBtn}>›</button>
             {!isCorrente && (
-              <button onClick={() => setMesAtivo(mesAtualISO)} style={{ background: "transparent", color: T.gold, border: `1px solid ${T.border}`, borderRadius: 14, padding: "0 12px", height: 34, cursor: "pointer", fontSize: 12 }}>Hoje</button>
+              <button onClick={() => setMesAtivo(mesAtualISO)} style={{ background: "transparent", color: T.gold, border: `1px solid ${T.border}`, borderRadius: 16, padding: "0 12px", height: 34, cursor: "pointer", fontSize: 12 }}>Hoje</button>
             )}
           </div>
         );
@@ -452,8 +452,8 @@ export default function DespesasFixas({
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 1, fontSize: 11, color: T.muted, flexWrap: "wrap" }}>
                     <span style={{
                       padding: "1px 7px", background: cat ? `${cat.cor}22` : T.bgSoft,
-                      color: cat ? cat.cor : T.muted, borderRadius: 4,
-                      fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", fontSize: 9.5,
+                      color: cat ? cat.cor : T.muted, borderRadius: 8,
+                      fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", fontSize: 10.5,
                     }}>{fixa.categoria || "—"}</span>
                     {fixa.emprestimo ? (
                       <span>
@@ -482,7 +482,7 @@ export default function DespesasFixas({
                       : `Vence ${occ.dataVencimento.slice(8,10)}/${occ.dataVencimento.slice(5,7)}`}
                   </div>
                   {!isPaga && Number(occ.valorPagoParcial) > 0 && (
-                    <div className="num" style={{ fontSize: 9.5, color: T.gold, marginTop: 1 }}>
+                    <div className="num" style={{ fontSize: 10.5, color: T.gold, marginTop: 1 }}>
                       já abatido {hidden ? "•••" : fmt(occ.valorPagoParcial)}
                     </div>
                   )}
@@ -496,13 +496,13 @@ export default function DespesasFixas({
                         background: T.green, color: T.bg, border: "none",
                         padding: "5px 11px", fontSize: 11, letterSpacing: ".08em",
                         textTransform: "uppercase", fontWeight: 600, cursor: "pointer",
-                        borderRadius: 11, display: "inline-flex", alignItems: "center", gap: 5,
+                        borderRadius: 12, display: "inline-flex", alignItems: "center", gap: 5,
                       }}>
                       <Check size={11} /> Pagar
                     </button>
                   ) : (
                     <span style={{
-                      padding: "5px 10px", borderRadius: 5,
+                      padding: "5px 10px", borderRadius: 8,
                       background: v.badgeBg, color: v.labelCor, fontSize: 10,
                       letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 700,
                       display: "inline-flex", alignItems: "center", gap: 4,
@@ -514,7 +514,7 @@ export default function DespesasFixas({
                       title="Desmarcar pagamento"
                       style={{ background: "transparent", color: T.muted,
                                border: `1px solid ${T.border}`, padding: "5px 8px",
-                               borderRadius: 11, cursor: "pointer", fontSize: 10 }}>
+                               borderRadius: 12, cursor: "pointer", fontSize: 10 }}>
                       ↶
                     </button>
                   )}
@@ -523,14 +523,14 @@ export default function DespesasFixas({
                     title="Editar fixa"
                     style={{ background: "transparent", color: T.muted,
                              border: `1px solid ${T.border}`, padding: "5px 8px",
-                             borderRadius: 11, cursor: "pointer" }}>
+                             borderRadius: 12, cursor: "pointer" }}>
                     <Edit3 size={12} />
                   </button>
                   <button onClick={() => handleExcluirFixa(fixa)}
                     title="Excluir fixa"
                     style={{ background: "transparent", color: T.red,
                              border: `1px solid ${T.red}55`, padding: "5px 8px",
-                             borderRadius: 11, cursor: "pointer" }}>
+                             borderRadius: 12, cursor: "pointer" }}>
                     <Trash2 size={12} />
                   </button>
                 </div>
@@ -575,10 +575,10 @@ function ResumoCard({ label, valor, sub, cor }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${cor}`, borderRadius: 14, padding: 14,
+      borderLeft: `3px solid ${cor}`, borderRadius: 16, padding: 14,
     }}>
       <div style={{
-        fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
+        fontSize: 10.5, letterSpacing: ".15em", textTransform: "uppercase",
         color: T.muted, fontWeight: 600,
       }}>{label}</div>
       <div className="num" style={{

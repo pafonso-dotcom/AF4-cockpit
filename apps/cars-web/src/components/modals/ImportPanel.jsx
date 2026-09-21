@@ -229,7 +229,7 @@ export default function ImportPanel({ transacoes, setTransacoes, contas, setCont
                 <tr style={{ borderBottom: `1px solid ${T.border}` }}>
                   {["Data", "Tipo", "Descrição", "Valor"].map(h => (
                     <th key={h} style={{ padding: "8px 10px", color: T.muted, fontFamily: T.sans,
-                                          fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase",
+                                          fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase",
                                           textAlign: h === "Valor" ? "right" : "left", fontWeight: 500 }}>{h}</th>
                   ))}
                 </tr>

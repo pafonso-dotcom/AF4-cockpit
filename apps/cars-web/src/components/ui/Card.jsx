@@ -24,7 +24,7 @@ export default function Card({ variant, style, children, ...rest }) {
   const soft = useContext(SoftCardContext);
   const v = variant || (soft ? "panel" : "default");
   const base = {
-    background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 14,
+    background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14,
     // Sombra suave estilo SaaS (quase imperceptível no escuro, elegante no claro).
     boxShadow: CARD_SHADOW,
   };
@@ -34,7 +34,7 @@ export default function Card({ variant, style, children, ...rest }) {
     outlined: { background: "transparent", boxShadow: "none" },
     soft: { background: T.bgSoft, boxShadow: "none" },
     flat: { background: "transparent", border: "none", boxShadow: "none", borderRadius: 0, padding: 4 },
-    panel: { border: "none", boxShadow: CARD_SHADOW_SOFT, borderRadius: 20 },
+    panel: { border: "none", boxShadow: CARD_SHADOW_SOFT, borderRadius: 16 },
   };
   return (
     <div style={{ ...base, ...(variants[v] || {}), ...style }} {...rest}>

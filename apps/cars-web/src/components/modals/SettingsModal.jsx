@@ -49,7 +49,7 @@ export default function SettingsModal({ apiKeys, setApiKeys, onClose }) {
                   display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div style={{ background: T.card, border: `1px solid ${T.borderHi}`, maxWidth: 640, width: "100%",
                     maxHeight: "90vh", overflowY: "auto", padding: 32, position: "relative",
-                    borderRadius: 18, boxShadow: "0 24px 60px rgba(0,0,0,.6)" }}>
+                    borderRadius: 16, boxShadow: "0 24px 60px rgba(0,0,0,.6)" }}>
         <button onClick={onClose}
                 style={{ position: "absolute", top: 16, right: 16, color: T.muted,
                          background: "transparent", border: "none", cursor: "pointer", padding: 4 }}>
@@ -301,7 +301,7 @@ function NotificationsBlock() {
                 </label>
                 <select value={cfg.antecedenciaDias}
                         onChange={e => { const v = parseInt(e.target.value); persistir(prev => ({ ...prev, antecedenciaDias: v })); }}
-                        style={{ padding: "6px 10px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 5 }}>
+                        style={{ padding: "6px 10px", background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, fontSize: 12, borderRadius: 8 }}>
                   <option value="1">1 dia</option>
                   <option value="2">2 dias</option>
                   <option value="3">3 dias</option>
@@ -336,7 +336,7 @@ function NotificationsBlock() {
           marginTop: 10, padding: 8,
           background: msg.tipo === "ok" ? `${T.green}22` : `${T.red}22`,
           color: msg.tipo === "ok" ? T.green : T.red,
-          fontSize: 12, borderRadius: 5,
+          fontSize: 12, borderRadius: 8,
         }}>
           {msg.txt}
         </div>
@@ -376,7 +376,7 @@ function MarketPollingBlock() {
               style={{
                 width: "100%", padding: "8px 10px",
                 background: T.card, color: T.ink,
-                border: `1px solid ${T.border}`, borderRadius: 11,
+                border: `1px solid ${T.border}`, borderRadius: 12,
                 fontSize: 13, fontFamily: "inherit", cursor: "pointer",
               }}>
         {POLLING_OPTIONS.map(o => (
@@ -581,7 +581,7 @@ function AutoBackupsList() {
               borderBottom: `1px dashed ${T.border}`, fontSize: 12,
             }}>
               <span style={{
-                fontSize: 9, padding: "2px 7px", borderRadius: 100,
+                fontSize: 10, padding: "2px 7px", borderRadius: 100,
                 background: b.label === "manual" ? `${T.gold}22` : `${T.green}22`,
                 color: b.label === "manual" ? T.gold : T.green,
                 letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500,
@@ -589,7 +589,7 @@ function AutoBackupsList() {
               <span style={{ flex: 1, color: T.ink }}>{formatBackupDate(b.ts)}</span>
               <span style={{ color: T.muted, fontSize: 11 }}>{b.sizeKb}KB</span>
               <button onClick={() => restaurar(b.id)} disabled={busy}
-                style={{ background: "transparent", border: `1px solid ${T.gold}`, color: T.gold, padding: "4px 9px", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.5 : 1, borderRadius: 4 }}>
+                style={{ background: "transparent", border: `1px solid ${T.gold}`, color: T.gold, padding: "4px 9px", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.5 : 1, borderRadius: 8 }}>
                 Restaurar
               </button>
               <button onClick={() => apagar(b.id)} disabled={busy}
@@ -603,7 +603,7 @@ function AutoBackupsList() {
       )}
 
       <button onClick={criarAgora} disabled={busy}
-        style={{ marginTop: 10, background: "transparent", color: T.muted, border: `1px solid ${T.border}`, padding: "7px 12px", fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.5 : 1, borderRadius: 11 }}>
+        style={{ marginTop: 10, background: "transparent", color: T.muted, border: `1px solid ${T.border}`, padding: "7px 12px", fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.5 : 1, borderRadius: 12 }}>
         {busy ? "Trabalhando…" : "+ Criar backup agora"}
       </button>
 
@@ -612,7 +612,7 @@ function AutoBackupsList() {
           marginTop: 10, padding: 8,
           background: msg.tipo === "ok" ? `${T.green}22` : `${T.red}22`,
           color: msg.tipo === "ok" ? T.green : T.red,
-          fontSize: 12, borderRadius: 5,
+          fontSize: 12, borderRadius: 8,
         }}>
           {msg.txt}
         </div>

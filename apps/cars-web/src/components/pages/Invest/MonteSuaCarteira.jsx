@@ -138,7 +138,7 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
 
       {/* ============ SEÇÃO 1 · QUANTO INVESTIR ============ */}
       <section className="mc-card" style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
         padding: 12, marginBottom: 10,
       }}>
         <div className="label-eyebrow" style={{ marginBottom: 8 }}>
@@ -155,7 +155,7 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
 
       {/* ============ SEÇÃO 2 · MIX DE OBJETIVOS ============ */}
       <section className="mc-card" style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
         padding: 12, marginBottom: 10,
       }}>
         <div className="label-eyebrow" style={{ marginBottom: 8 }}>
@@ -169,7 +169,7 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
             return (
               <button key={a.id} onClick={() => aplicarAtalho(a)}
                 style={{
-                  padding: "5px 11px", borderRadius: 11, cursor: "pointer",
+                  padding: "5px 11px", borderRadius: 12, cursor: "pointer",
                   fontSize: 11.5, fontWeight: 500,
                   background: ativo ? `${T.gold}22` : T.bgSoft,
                   color: ativo ? T.gold : T.ink,
@@ -206,7 +206,7 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
           {/* Alocação resultante: pie + tabela */}
           <div style={{
             background: T.bgSoft, border: `1px solid ${T.border}`,
-            borderRadius: 14, padding: 10,
+            borderRadius: 16, padding: 10,
           }}>
             <div className="label-eyebrow" style={{ marginBottom: 6 }}>
               Alocação resultante
@@ -233,7 +233,7 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
 
       {/* ============ SEÇÃO 3 · Modo Manual / IA ============ */}
       <section className="mc-card" style={{
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
         padding: 12, marginBottom: 10,
       }}>
         <div style={{
@@ -241,14 +241,14 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
           marginBottom: 10, gap: 10, flexWrap: "wrap",
         }}>
           <div className="label-eyebrow">3 · Como preencher</div>
-          <div style={{ display: "inline-flex", gap: 4, background: T.bgSoft, padding: 3, borderRadius: 11, border: `1px solid ${T.border}` }}>
+          <div style={{ display: "inline-flex", gap: 4, background: T.bgSoft, padding: 3, borderRadius: 12, border: `1px solid ${T.border}` }}>
             {[
               { id: "manual", label: "Manual" },
               { id: "ia",     label: "Com IA" },
             ].map(opt => (
               <button key={opt.id} onClick={() => setModo(opt.id)}
                 style={{
-                  padding: "5px 12px", borderRadius: 4, cursor: "pointer",
+                  padding: "5px 12px", borderRadius: 8, cursor: "pointer",
                   fontSize: 11.5, fontWeight: 600,
                   background: modo === opt.id ? T.gold : "transparent",
                   color: modo === opt.id ? T.bg : T.muted,
@@ -284,7 +284,7 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
         background: T.card,
         border: `1px solid ${T.green}`,
         borderLeft: `4px solid ${T.green}`,
-        borderRadius: 14, padding: 12, marginBottom: 10,
+        borderRadius: 16, padding: 12, marginBottom: 10,
       }}>
         <div className="label-eyebrow" style={{ color: T.green, marginBottom: 6 }}>
           4 · Renda mensal estimada
@@ -377,7 +377,7 @@ function ValorSlider({ value, min, max, step, onChange }) {
             style={{
               fontFamily: T.serif, fontSize: 18, fontWeight: 600, color: T.gold,
               textAlign: "right", width: 180, background: T.bgSoft,
-              border: `1px solid ${T.gold}`, borderRadius: 11, padding: "2px 8px",
+              border: `1px solid ${T.gold}`, borderRadius: 12, padding: "2px 8px",
             }}
           />
         ) : (
@@ -404,7 +404,7 @@ function ValorSlider({ value, min, max, step, onChange }) {
              }} />
       <div style={{
         display: "flex", justifyContent: "space-between",
-        fontSize: 9.5, color: T.faint, marginTop: 1,
+        fontSize: 10.5, color: T.faint, marginTop: 1,
       }}>
         <span>{fmtBRL.format(min)}</span>
         <span>{value > max ? `${fmtBRL.format(value)} (digitado)` : fmtBRL.format(max)}</span>
@@ -525,7 +525,7 @@ function ClasseBreakdown({ tipo, pct, target, atual, tickers }) {
   return (
     <div style={{
       background: T.bgSoft, border: `1px solid ${T.border}`,
-      borderLeft: `3px solid ${corClasse}`, borderRadius: 11, padding: 10,
+      borderLeft: `3px solid ${corClasse}`, borderRadius: 12, padding: 10,
     }}>
       {/* Cabeçalho: classe + target + diff */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
@@ -570,7 +570,7 @@ function ClasseBreakdown({ tipo, pct, target, atual, tickers }) {
           {top.map(t => (
             <span key={t.ticker} style={{
               background: T.card, border: `1px solid ${T.border}`,
-              padding: "2px 7px", borderRadius: 4, fontFamily: T.serif,
+              padding: "2px 7px", borderRadius: 8, fontFamily: T.serif,
               display: "inline-flex", alignItems: "center", gap: 5,
             }}>
               <span style={{ fontWeight: 600 }}>{t.ticker}</span>

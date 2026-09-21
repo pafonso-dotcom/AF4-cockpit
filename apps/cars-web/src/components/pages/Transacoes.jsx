@@ -567,7 +567,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
         }[filterPeriodo] || (/^\d{4}-\d{2}$/.test(filterPeriodo) ? filterPeriodo.split("-").reverse().join("/") : null);
         return (
           <div style={{
-            background: `${T.gold}11`, border: `1px solid ${T.gold}66`, borderRadius: 10,
+            background: `${T.gold}11`, border: `1px solid ${T.gold}66`, borderRadius: 12,
             padding: "8px 12px", marginBottom: 10,
             display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
           }}>
@@ -673,7 +673,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                       background: "transparent", border: `1px solid ${T.border}`, color: T.muted,
                       cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
                       fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase",
-                      padding: "4px 10px", borderRadius: 5,
+                      padding: "4px 10px", borderRadius: 8,
                     }}>
               <Trash2 size={12} /> Remover duplicados
             </button>
@@ -720,18 +720,18 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                   <div className="flex items-center gap-2 flex-wrap">
                     <div style={{ color: T.ink, fontSize: 13, fontWeight: 500 }} className="truncate">{t.descricao}</div>
                     {t.fixa && (
-                      <span style={{ background: `${T.blue}22`, color: T.blue, padding: "1px 6px", fontSize: 8.5, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 100, display: "inline-flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
+                      <span style={{ background: `${T.blue}22`, color: T.blue, padding: "1px 6px", fontSize: 10, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 100, display: "inline-flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
                         <Repeat size={8} /> Fixa{t.vencimento ? ` · ${t.vencimento}` : ""}
                       </span>
                     )}
                     {isPend && (
-                      <span style={{ background: `${T.gold}22`, color: T.gold, padding: "1px 6px", fontSize: 8.5, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 100, whiteSpace: "nowrap" }}>
+                      <span style={{ background: `${T.gold}22`, color: T.gold, padding: "1px 6px", fontSize: 10, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 100, whiteSpace: "nowrap" }}>
                         Pendente
                       </span>
                     )}
                     {t.foraDoRelatorio && (
                       <span title="Não entra no relatório mensal"
-                        style={{ background: `${T.muted}22`, color: T.muted, padding: "1px 6px", fontSize: 8.5, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 100, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                        style={{ background: `${T.muted}22`, color: T.muted, padding: "1px 6px", fontSize: 10, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 100, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 3 }}>
                         <EyeOff size={8} /> Sem relatório
                       </span>
                     )}
@@ -739,7 +739,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                       <button onClick={() => setComprovanteVisualizar(t.comprovante)}
                               aria-label="Ver comprovante anexado"
                               title="Ver comprovante"
-                              style={{ background: "transparent", border: `1px solid ${T.gold}`, color: T.gold, padding: "0px 5px", fontSize: 8.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 3, borderRadius: 100 }}>
+                              style={{ background: "transparent", border: `1px solid ${T.gold}`, color: T.gold, padding: "0px 5px", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 3, borderRadius: 100 }}>
                         <Paperclip size={8} /> Anexo
                       </button>
                     )}
@@ -1137,7 +1137,7 @@ function TabelaMensal({ transacoes, hidden, onEdit }) {
                 background: ativo ? T.gold : "transparent",
                 color: ativo ? T.bg : T.muted,
                 border: `1px solid ${ativo ? T.gold : T.border}`,
-                borderRadius: 11, cursor: "pointer", whiteSpace: "nowrap",
+                borderRadius: 12, cursor: "pointer", whiteSpace: "nowrap",
                 fontWeight: ativo ? 600 : 500, textTransform: "uppercase",
               }}>
               {isCorrente && "★ "}{MESES_NOMES[idx]}
@@ -1183,7 +1183,7 @@ function TabelaMensal({ transacoes, hidden, onEdit }) {
                     </td>
                     <td className="hidden md:table-cell" style={{ ...tdMensal, textAlign: "center" }}>
                       <span style={{
-                        fontSize: 9.5, padding: "2px 8px", borderRadius: 100,
+                        fontSize: 10.5, padding: "2px 8px", borderRadius: 100,
                         background: `${st.cor}22`, color: st.cor,
                         letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 600,
                       }}>{st.label}</span>
@@ -1192,7 +1192,7 @@ function TabelaMensal({ transacoes, hidden, onEdit }) {
                       <button onClick={() => onEdit(t)}
                         style={{
                           background: "transparent", color: T.muted,
-                          border: `1px solid ${T.border}`, borderRadius: 5,
+                          border: `1px solid ${T.border}`, borderRadius: 8,
                           padding: "4px 9px", fontSize: 10, cursor: "pointer",
                         }}>Editar</button>
                     </td>
@@ -1223,7 +1223,7 @@ function TabelaMensal({ transacoes, hidden, onEdit }) {
 
 const thMensal = {
   padding: "10px 12px", textAlign: "left",
-  fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
+  fontSize: 10.5, letterSpacing: ".15em", textTransform: "uppercase",
   color: "var(--tm)", fontWeight: 500,
 };
 const tdMensal = { padding: "11px 12px", verticalAlign: "middle" };

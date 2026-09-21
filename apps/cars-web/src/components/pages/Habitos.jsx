@@ -152,7 +152,7 @@ export default function Habitos({ habitos = [], setHabitos }) {
                 background: `${h.cor}0d`,
                 border: `1px solid ${h.cor}33`,
                 borderLeft: `4px solid ${h.cor}`,
-                borderRadius: 14,
+                borderRadius: 16,
                 padding: "12px 14px",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
@@ -198,13 +198,13 @@ export default function Habitos({ habitos = [], setHabitos }) {
                           background: feito ? h.cor : (folga ? `${h.cor}22` : T.bgSoft),
                           color: feito ? "#fff" : T.muted,
                           border: hoje ? `2px solid ${h.cor}` : (folga ? `1px dashed ${h.cor}88` : `1px solid ${T.border}`),
-                          borderRadius: 11,
+                          borderRadius: 12,
                           padding: "8px 4px",
                           cursor: "pointer",
                           display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
                           minHeight: 50,
                         }}>
-                        <span className="habitos-dia-label" style={{ fontSize: 9, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", opacity: 0.8 }}>
+                        <span className="habitos-dia-label" style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase", opacity: 0.8 }}>
                           {lbl.dia}
                         </span>
                         <span className="habitos-dia-num" style={{ fontSize: 14, fontWeight: 600 }}>
@@ -246,7 +246,7 @@ export default function Habitos({ habitos = [], setHabitos }) {
                       fontSize: 18, width: 36, height: 36,
                       background: form.icone === i ? `${form.cor}33` : T.bgSoft,
                       border: `1px solid ${form.icone === i ? form.cor : T.border}`,
-                      borderRadius: 11, cursor: "pointer",
+                      borderRadius: 12, cursor: "pointer",
                     }}>
                     {i}
                   </button>
@@ -295,7 +295,7 @@ function IconBtn({ children, onClick, title, cor }) {
         background: "transparent",
         border: `1px solid ${T.border}`,
         color: cor || T.muted,
-        width: 28, height: 28, borderRadius: 5,
+        width: 28, height: 28, borderRadius: 8,
         cursor: "pointer", display: "grid", placeItems: "center",
         minHeight: 28,
       }}>
@@ -308,7 +308,7 @@ function EmptyState({ onCriar }) {
   return (
     <div style={{
       textAlign: "center", padding: "60px 24px",
-      background: T.card, border: `1px dashed ${T.border}`, borderRadius: 18,
+      background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
     }}>
       <Flame size={36} style={{ color: T.gold, marginBottom: 12 }} />
       <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.ink, margin: "0 0 8px", fontWeight: 600 }}>

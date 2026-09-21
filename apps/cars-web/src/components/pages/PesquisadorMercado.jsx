@@ -122,7 +122,7 @@ export default function PesquisadorMercado({ onIrConstrutor, embutido = false, w
         title={<>Pesquisador de <em>mercado.</em></>}
         sub="Consulte um papel: cotação, faixa de 52 semanas e mini-gráfico. Acompanhe pra montar carteira."
         action={
-          <button onClick={onIrConstrutor} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 10, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
+          <button onClick={onIrConstrutor} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 12, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
             <Star size={13} /> {watchAtual.length} acompanhados
           </button>
         }
@@ -189,13 +189,13 @@ export default function PesquisadorMercado({ onIrConstrutor, embutido = false, w
                 <span style={{ letterSpacing: ".06em", textTransform: "uppercase" }}>52 semanas</span>
                 <span>{fmt(quote.fiftyTwoWeekHigh)}</span>
               </div>
-              <div style={{ position: "relative", height: 8, background: T.bgSoft, borderRadius: 5 }}>
+              <div style={{ position: "relative", height: 8, background: T.bgSoft, borderRadius: 8 }}>
                 <div style={{ position: "absolute", left: `calc(${pos}% - 5px)`, top: -2, width: 12, height: 12, borderRadius: "50%", background: T.gold, border: `2px solid ${T.card}` }} />
               </div>
             </div>
           )}
 
-          <div style={{ marginTop: 14, padding: "10px 12px", background: T.bgSoft, borderRadius: 10, color: T.ink, fontSize: 13 }}>
+          <div style={{ marginTop: 14, padding: "10px 12px", background: T.bgSoft, borderRadius: 12, color: T.ink, fontSize: 13 }}>
             {leituraRapida(quote)}
           </div>
 
@@ -203,11 +203,11 @@ export default function PesquisadorMercado({ onIrConstrutor, embutido = false, w
             <button
               onClick={acompanhar}
               disabled={naWatchlist}
-              style={{ display: "flex", alignItems: "center", gap: 6, background: naWatchlist ? "transparent" : T.gold, color: naWatchlist ? T.muted : "#fff", border: naWatchlist ? `1px solid ${T.border}` : "none", borderRadius: 10, padding: "9px 14px", fontSize: 13.5, fontWeight: 700, cursor: naWatchlist ? "default" : "pointer" }}>
+              style={{ display: "flex", alignItems: "center", gap: 6, background: naWatchlist ? "transparent" : T.gold, color: naWatchlist ? T.muted : "#fff", border: naWatchlist ? `1px solid ${T.border}` : "none", borderRadius: 12, padding: "9px 14px", fontSize: 13.5, fontWeight: 700, cursor: naWatchlist ? "default" : "pointer" }}>
               <Star size={15} fill={naWatchlist ? T.gold : "none"} /> {naWatchlist ? "Acompanhando" : "Acompanhar"}
             </button>
             {!embutido && watchAtual.length > 0 && (
-              <button onClick={onIrConstrutor} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", color: T.gold, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 14px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
+              <button onClick={onIrConstrutor} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", color: T.gold, border: `1px solid ${T.border}`, borderRadius: 12, padding: "9px 14px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
                 Montar carteira <ArrowUpRight size={15} />
               </button>
             )}

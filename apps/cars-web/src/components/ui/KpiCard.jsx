@@ -37,11 +37,11 @@ export default function KpiCard({
     return (
       <div style={{
         background: T.card, border: `1px solid ${T.border}`,
-        borderLeft: `3px solid ${corFinal}`, borderRadius: 18, padding: 12,
+        borderLeft: `3px solid ${corFinal}`, borderRadius: 16, padding: 12,
         boxShadow: CARD_SHADOW,
       }}>
         <div style={{
-          fontSize: 9.5, letterSpacing: ".15em", textTransform: "uppercase",
+          fontSize: 10.5, letterSpacing: ".15em", textTransform: "uppercase",
           color: T.muted, fontWeight: 600,
         }}>{label}</div>
         <div className="num" style={{
