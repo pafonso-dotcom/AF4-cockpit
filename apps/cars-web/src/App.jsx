@@ -16,6 +16,7 @@ import BackupsModal from "./components/modals/BackupsModal.jsx";
 import CompraCartaoModal from "./components/modals/CompraCartaoModal.jsx";
 import ComprasFotoModal from "./components/modals/ComprasFotoModal.jsx";
 import CalculadoraJurosModal from "./components/modals/CalculadoraJurosModal.jsx";
+import CalculadoraBasicaModal from "./components/modals/CalculadoraBasicaModal.jsx";
 import { toast } from "./lib/toast.js";
 import { createBackup, shouldAutoBackup } from "./lib/autoBackup.js";
 import { audit } from "./lib/auditLog.js";
@@ -175,6 +176,7 @@ export default function App() {
   const [contaAberta, setContaAberta] = useState(null);
   const [comprasFotoOpen, setComprasFotoOpen] = useState(false);
   const [calcJurosGlobalOpen, setCalcJurosGlobalOpen] = useState(false);
+  const [calcBasicaOpen, setCalcBasicaOpen] = useState(false);
 
   applyTheme(themeId);
 
@@ -1219,6 +1221,7 @@ export default function App() {
         modulo={modulo} setModulo={setModulo}
         tab={tab} setTab={irParaTab}
         onCalculadoraJuros={() => setCalcJurosGlobalOpen(true)}
+        onCalculadoraBasica={() => setCalcBasicaOpen(true)}
         contas={contas} cartoes={cartoes}
         contaAberta={contaAberta} setContaAberta={setContaAberta}
         cartaoAberto={cartaoAberto} setCartaoAberto={setCartaoAberto}
@@ -1281,6 +1284,9 @@ export default function App() {
       )}
       {calcJurosGlobalOpen && (
         <CalculadoraJurosModal onClose={() => setCalcJurosGlobalOpen(false)} />
+      )}
+      {calcBasicaOpen && (
+        <CalculadoraBasicaModal onClose={() => setCalcBasicaOpen(false)} />
       )}
       {comprasFotoOpen && (
         <ComprasFotoModal

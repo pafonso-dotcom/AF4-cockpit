@@ -102,7 +102,7 @@ function EscopoToggle({ escopoAtivo = "tudo", onEscopoChange, compact }) {
 }
 
 function HeaderHorizontal({
-  modulo, setModulo, onCalculadoraJuros,
+  modulo, setModulo, onCalculadoraJuros, onCalculadoraBasica,
   tab, setTab,
   hidden, setHidden,
   escopoAtivo, onEscopoChange,
@@ -422,6 +422,18 @@ function HeaderHorizontal({
               <Calculator size={14} /> Juros
             </button>
           )}
+          {onCalculadoraBasica && (
+            <button onClick={onCalculadoraBasica} title="Calculadora básica (+ − × ÷ %)"
+              style={{
+                padding: "9px 16px", borderRadius: 14, background: "transparent",
+                color: NAV_MUTED, border: "1px solid transparent",
+                fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 500,
+                display: "flex", alignItems: "center", gap: 7, whiteSpace: "nowrap",
+                cursor: "pointer", fontFamily: T.sans,
+              }}>
+              <Calculator size={14} /> Calc
+            </button>
+          )}
         </div>
       </div>
 
@@ -622,7 +634,7 @@ function QuickBtn({ children, onClick, title, bg, fg, labelHide }) {
    HeaderVertical — sidebar fixa 220px à esquerda + topbar fina
    ============================================================ */
 function HeaderVertical({
-  modulo, setModulo, onCalculadoraJuros,
+  modulo, setModulo, onCalculadoraJuros, onCalculadoraBasica,
   tab, setTab,
   hidden, setHidden,
   escopoAtivo, onEscopoChange,
@@ -785,6 +797,13 @@ function HeaderVertical({
                 style={{ width: 42, height: 42, borderRadius: 12, border: "none", background: "transparent",
                   color: T.gold, cursor: "pointer", display: "grid", placeItems: "center" }}>
                 <Calculator size={18} />
+              </button>
+            )}
+            {onCalculadoraBasica && (
+              <button onClick={onCalculadoraBasica} title="Calculadora básica" aria-label="Calculadora básica"
+                style={{ width: 42, height: 42, borderRadius: 12, border: "none", background: "transparent",
+                  color: NAV_MUTED, cursor: "pointer", display: "grid", placeItems: "center", fontSize: 15 }}>
+                🧮
               </button>
             )}
             <div aria-hidden style={{ height: 1, width: 26, background: NAV_BORDER, margin: "4px 0" }} />
@@ -973,6 +992,18 @@ function HeaderVertical({
                   }}>
                   <Calculator size={15} /> Calculadora de juros
                 </button>
+                {onCalculadoraBasica && (
+                  <button onClick={onCalculadoraBasica}
+                    title="Calculadora básica (+ − × ÷ %) — também pelo teclado"
+                    style={{
+                      width: "100%", padding: "8px 10px", borderRadius: 12, border: "none",
+                      background: "transparent", color: NAV_MUTED, cursor: "pointer",
+                      display: "flex", alignItems: "center", gap: 8, textAlign: "left",
+                      fontSize: 12.5, fontWeight: 600, fontFamily: T.sans,
+                    }}>
+                    🧮 Calculadora
+                  </button>
+                )}
               </>
             )}
           </div>
