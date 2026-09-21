@@ -128,6 +128,7 @@ function HeaderHorizontal({
   const TODOS_MODULOS = [
     { id: "financas", label: "Finanças",      icon: Wallet,    desc: "Pessoal" },
     { id: "invest",   label: "Investimentos", icon: Briefcase, desc: "Carteira" },
+    { id: "agenda",   label: "Agenda",        icon: Calendar,  desc: "Vida" },
   ];
   const MODULOS = TODOS_MODULOS.filter(m => perms[m.id] !== false);
 
@@ -143,7 +144,6 @@ function HeaderHorizontal({
       { id: "relatorios-f", label: "Análises & Relatórios", icon: BarChart3 },
       // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
       // que ficam escondidas até clicar aqui.
-      { id: "inicio",       label: "Agenda",       icon: Calendar, agenda: true },
       // O resto:
       { id: "transacoes",   label: "Transações",   icon: Receipt },
       { id: "categorias",   label: "Categorias",   icon: Tag },
@@ -159,6 +159,7 @@ function HeaderHorizontal({
       { id: "construtor-mercado",  label: "Mercado",           icon: HandCoins },
       { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
     ],
+    agenda: AGENDA_TABS,
     config: [
       { id: "cfg-aparencia", label: "Aparência",    icon: Sparkles },
       { id: "cfg-apis",      label: "APIs",         icon: Settings },
@@ -472,8 +473,9 @@ function HeaderHorizontal({
         </div>
       </div>
 
-      {/* ===== Sub-abas da matriz Agenda — escondidas; só aparecem ao abrir a Agenda ===== */}
-      {AGENDA_TAB_IDS.has(tab) && (
+      {/* Matriz Agenda DESATIVADA: a Agenda virou módulo próprio (2026-09-21);
+          as abas dela aparecem na linha de subtabs normal. */}
+      {false && AGENDA_TAB_IDS.has(tab) && (
         <div style={{ borderTop: `1px solid ${NAV_BORDER}`, padding: "0 16px", background: NAV_SOFT }}>
           <div style={{
             maxWidth: 1280, margin: "0 auto",
@@ -641,6 +643,7 @@ function HeaderVertical({
   const TODOS_MODULOS = [
     { id: "financas", label: "Finanças",      icon: Wallet },
     { id: "invest",   label: "Investimentos", icon: Briefcase },
+    { id: "agenda",   label: "Agenda",        icon: Calendar },
   ];
   const MODULOS = TODOS_MODULOS.filter(m => perms[m.id] !== false);
 
@@ -656,7 +659,6 @@ function HeaderVertical({
       { id: "relatorios-f", label: "Análises & Relatórios", icon: BarChart3 },
       // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
       // que ficam escondidas até clicar aqui.
-      { id: "inicio",       label: "Agenda",       icon: Calendar, agenda: true },
       // O resto:
       { id: "transacoes",   label: "Transações",   icon: Receipt },
       { id: "categorias",   label: "Categorias",   icon: Tag },
@@ -672,6 +674,7 @@ function HeaderVertical({
       { id: "construtor-mercado",  label: "Mercado",           icon: HandCoins },
       { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
     ],
+    agenda: AGENDA_TABS,
     config: [
       { id: "cfg-aparencia", label: "Aparência", icon: Sparkles },
       { id: "cfg-apis",      label: "APIs",      icon: Settings },

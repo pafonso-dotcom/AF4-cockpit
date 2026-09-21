@@ -1311,7 +1311,7 @@ export default function App() {
         {modulo === "financas" && renderFinancas()}
 
         {/* AGENDA — agora incorporada ao módulo Finanças (as tabs vivem em financas). */}
-        {modulo === "financas" && renderAgenda()}
+        {modulo === "agenda" && renderAgenda()}
 
         {/* MÓDULO: NEGÓCIO (revenda + serviços) */}
 
