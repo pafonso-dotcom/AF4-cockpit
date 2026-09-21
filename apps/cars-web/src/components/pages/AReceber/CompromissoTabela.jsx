@@ -9,7 +9,7 @@ import { corDoNome } from "./corDoNome.js";
 
 export default function CompromissoTabela({
   titulo, icone, tipo, itens, corAccent,
-  onBaixa, onEditar, onExcluir, onWhats,
+  onBaixa, onEditar, onExcluir, onWhats, onDuplicar,
   dueLabel, hidden, mesLabelTitulo, showCredor,
 }) {
   const isReceber = tipo === "receber";
@@ -58,7 +58,8 @@ export default function CompromissoTabela({
     <CompromissoCard key={item.id} item={item} hidden={hidden} dueLabel={dueLabel}
       corAccent={corAccent} isReceber={isReceber} labelAcao={labelAcao} showCredor={showCredor}
       onBaixa={() => onBaixa(item)} onWhats={() => onWhats(item)}
-      onEditar={() => onEditar(item)} onExcluir={() => onExcluir(item)} />
+      onEditar={() => onEditar(item)} onExcluir={() => onExcluir(item)}
+      onDuplicar={onDuplicar ? () => onDuplicar(item) : undefined} />
   );
 
   return (
