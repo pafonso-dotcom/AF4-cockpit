@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { T } from "../../../lib/theme.js";
-import { fmt, fmtUSD, fmtN } from "../../../lib/format.js";
+import { fmt, fmtUSD, fmtN, uid } from "../../../lib/format.js";
 import { BarChart, HorizontalBarList, ReportCard, ReportGrid } from "../../ui/Charts.jsx";
 import EvolucaoPatrimonio from "./EvolucaoPatrimonio.jsx";
 import { PROVENTO_REGEX, ehUS, fmtMoedaAtivo } from "../../../lib/invest-constants.js";
@@ -8,6 +8,8 @@ import PdfCarteira from "./PdfCarteira.jsx";
 import { MESES_CURTO as MESES_PT, MESES_LONGO } from "../../../lib/meses.js";
 import { movimentacoesInvestMes } from "../../../lib/movimentacoesInvest.js";
 import { montarRelatorioIR, anosDisponiveisIR } from "../../../lib/relatorioIR.js";
+import { congelarCarteira, snapshotParaAno } from "../../../lib/snapshotCarteira.js";
+import { toast } from "../../../lib/toast.js";
 import { printHTML } from "../../../lib/importExport.js";
 import SecaoColapsavel from "../../ui/SecaoColapsavel.jsx";
 
@@ -36,7 +38,7 @@ const ehProvento = (tx) =>
 /**
  * Relatórios de Investimentos.
  */
-export default function RelatoriosInvest({ ativos = [], transacoes = [], patrimonioHistorico = [], proventos: proventosProp = [], operacoes = [], hidden }) {
+export default function RelatoriosInvest({ ativos = [], transacoes = [], patrimonioHistorico = [], proventos: proventosProp = [], operacoes = [], hidden, snapshotsCarteira = [], setSnapshotsCarteira }) {
   const [pdfAberto, setPdfAberto] = useState(false);
   // Patrimônio atual — separado por moeda (Brasil R$ vs EUA US$).
   const valorBR = ativos.filter(a => !ehUS(a)).reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
@@ -119,7 +121,8 @@ export default function RelatoriosInvest({ ativos = [], transacoes = [], patrimo
 
       <MovInvestMes transacoes={transacoes} hidden={hidden} />
 
-      <RelatorioIRSecao ativos={ativos} transacoes={transacoes} hidden={hidden} />
+      <RelatorioIRSecao ativos={ativos} transacoes={transacoes} hidden={hidden}
+                        snapshots={snapshotsCarteira} setSnapshots={setSnapshotsCarteira} />
 
       <div style={{
         display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap",
@@ -229,11 +232,24 @@ const nomeMesLongo = (iso) => { const [a, m] = (iso || "").split("-").map(Number
    direitos (custo), proventos (isentos × JCP) e vendas por mês
    (isenção de R$ 20 mil visível). Gera PDF/Excel via printHTML.
    ============================================================ */
-function RelatorioIRSecao({ ativos = [], transacoes = [], hidden = false }) {
+function RelatorioIRSecao({ ativos = [], transacoes = [], hidden = false, snapshots = [], setSnapshots }) {
   const anos = useMemo(() => anosDisponiveisIR(transacoes), [transacoes]);
   const [ano, setAno] = useState(() => String(new Date().getFullYear() - (new Date().getMonth() < 3 ? 1 : 0)));
-  const rel = useMemo(() => montarRelatorioIR({ ativos, transacoes, ano }), [ativos, transacoes, ano]);
+  // Snapshot congelado do ano-base (o mais perto de 31/12) — se existir, a
+  // seção "Bens e direitos" usa a posição congelada em vez da carteira viva.
+  const snapAno = useMemo(() => snapshotParaAno(snapshots, ano), [snapshots, ano]);
+  const rel = useMemo(() => montarRelatorioIR({ ativos, transacoes, ano, snapshot: snapAno }), [ativos, transacoes, ano, snapAno]);
   const oculto = (v) => (hidden ? "•••" : fmt(v));
+  const dataBR = (iso) => `${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}/${String(iso).slice(0, 4)}`;
+
+  // Congela a posição de HOJE. Já congelou hoje → substitui (idempotente).
+  const congelarHoje = () => {
+    const hojeISO = new Date().toISOString().slice(0, 10);
+    const snap = congelarCarteira(ativos, hojeISO, uid);
+    if (!snap.itens.length) { toast.error("Carteira vazia — nada pra congelar."); return; }
+    setSnapshots?.([...(snapshots || []).filter(s => s.data !== hojeISO), snap]);
+    toast.success(`Posição de hoje congelada: ${snap.itens.length} ativos · custo ${fmt(snap.totalCusto)}.`);
+  };
 
   const exportar = () => {
     const brl = (v) => `R$ ${(Number(v) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -241,7 +257,7 @@ function RelatorioIRSecao({ ativos = [], transacoes = [], hidden = false }) {
     printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Relatório IR ${rel.ano}</title>
 <style>body{font-family:system-ui,sans-serif;color:#222;padding:24px}h1{font-size:20px;margin:0 0 4px}h2{font-size:13px;margin:18px 0 6px;color:#555;text-transform:uppercase;letter-spacing:.05em}table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;font-size:10px;color:#777;text-transform:uppercase;padding:4px 6px;border-bottom:1px solid #ccc}td{padding:4px 6px;border-bottom:1px solid #eee}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}.tot td{font-weight:700;border-top:2px solid #ccc}.aviso{margin-top:16px;color:#888;font-size:10.5px;line-height:1.5}</style></head><body>
 <h1>Relatório para o Imposto de Renda · ano-base ${rel.ano}</h1>
-<h2>1 · Bens e direitos (posição pelo custo de aquisição)</h2>
+<h2>1 · Bens e direitos (posição pelo custo de aquisição${rel.posicaoDe ? ` · congelada em ${rel.posicaoDe.slice(8, 10)}/${rel.posicaoDe.slice(5, 7)}/${rel.posicaoDe.slice(0, 4)}` : " · carteira atual"})</h2>
 <table><tr><th>Ativo</th><th>Classe</th><th class="n">Qtd</th><th class="n">Preço médio</th><th class="n">Custo total</th></tr>
 ${rel.bens.map(b => `<tr><td><b>${b.ticker}</b>${b.nome ? ` · ${b.nome}` : ""}</td><td>${b.tipo}</td><td class="n">${b.qtd.toLocaleString("pt-BR")}</td><td class="n">${brl(b.pm)}</td><td class="n">${brl(b.custo)}</td></tr>`).join("")}
 <tr class="tot"><td colspan="4">Total</td><td class="n">${brl(rel.totalBens)}</td></tr></table>
@@ -255,7 +271,7 @@ ${rel.provJCP > 0 ? `<tr class="tot"><td colspan="3">JCP (tributável)</td><td c
 ${rel.vendasMeses.length === 0 ? "<p style='font-size:12px;color:#888'>Nenhuma venda registrada no ano.</p>" : `<table><tr><th>Mês</th><th class="n">Operações</th><th class="n">Total vendido</th><th class="n">Resultado</th><th>Isenção ações (≤ R$ 20 mil/mês)</th></tr>
 ${rel.vendasMeses.map(v => `<tr><td>${mesNome(v.mes)}</td><td class="n">${v.ops}</td><td class="n">${brl(v.total)}</td><td class="n">${brl(v.resultado)}</td><td>${v.isento20k ? "dentro do limite" : "ACIMA de R$ 20 mil"}</td></tr>`).join("")}
 <tr class="tot"><td>Total</td><td class="n">${rel.vendas.length}</td><td class="n">${brl(rel.totalVendido)}</td><td class="n">${brl(rel.resultadoVendas)}</td><td></td></tr></table>`}
-<div class="aviso">⚠ Documento de APOIO, não substitui os informes de rendimentos das corretoras. A posição de "Bens e direitos" reflete a carteira ATUAL do app (qtd × preço médio), não necessariamente a de 31/12/${rel.ano}. A isenção de R$ 20 mil/mês vale só pra AÇÕES à vista (FIIs não têm isenção). Confira tudo com seu contador. Gerado em ${new Date().toLocaleString("pt-BR")}.</div>
+<div class="aviso">⚠ Documento de APOIO, não substitui os informes de rendimentos das corretoras. ${rel.posicaoDe ? `A posição de "Bens e direitos" é a congelada em ${rel.posicaoDe.slice(8, 10)}/${rel.posicaoDe.slice(5, 7)}/${rel.posicaoDe.slice(0, 4)}.` : `A posição de "Bens e direitos" reflete a carteira ATUAL do app (qtd × preço médio), não necessariamente a de 31/12/${rel.ano}.`} A isenção de R$ 20 mil/mês vale só pra AÇÕES à vista (FIIs não têm isenção). Confira tudo com seu contador. Gerado em ${new Date().toLocaleString("pt-BR")}.</div>
 </body></html>`);
   };
 
@@ -268,9 +284,28 @@ ${rel.vendasMeses.map(v => `<tr><td>${mesNome(v.mes)}</td><td class="n">${v.ops}
             <select value={ano} onChange={e => setAno(e.target.value)} style={{ width: "auto", padding: "6px 10px", fontSize: 13 }}>
               {anos.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
-            <button className="btn-gold" style={{ marginLeft: "auto" }} onClick={exportar}>
+            <button onClick={congelarHoje}
+                    title="Salva a foto da carteira de hoje (ticker, qtd, preço médio). No fim do ano, congele em 31/12 e o relatório do ano-base usa essa posição."
+                    style={{
+                      marginLeft: "auto", padding: "7px 12px", borderRadius: 12,
+                      border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink,
+                      fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    }}>
+              📸 Congelar posição de hoje
+            </button>
+            <button className="btn-gold" onClick={exportar}>
               🧾 Gerar relatório (PDF / Excel)
             </button>
+          </div>
+          <div style={{
+            fontSize: 11.5, marginBottom: 12, padding: "8px 11px", borderRadius: 10,
+            background: snapAno ? `${T.green}11` : `${T.gold}11`,
+            border: `1px solid ${snapAno ? T.green : T.gold}33`,
+            color: snapAno ? T.green : T.gold,
+          }}>
+            {snapAno
+              ? <>✓ Bens e direitos usando a posição <strong>congelada em {dataBR(snapAno.data)}</strong> ({snapAno.itens.length} ativos).</>
+              : <>Nenhuma posição congelada em {ano} — "Bens e direitos" usa a carteira ATUAL. Perto de 31/12, clique em "Congelar posição de hoje" pra guardar a foto do ano.</>}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2" style={{ marginBottom: 10 }}>
             {[

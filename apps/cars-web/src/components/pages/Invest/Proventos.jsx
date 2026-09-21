@@ -19,6 +19,7 @@ import { CARD_SHADOW_ELEVATED } from "../../../lib/styles.js";
 import { MESES_LONGO } from "../../../lib/meses.js";
 import { fmt, fmtN, uid } from "../../../lib/format.js";
 import { calendarioProventos } from "../../../lib/invest-metrics.js";
+import { montarBaixaLote } from "../../../lib/proventosLote.js";
 import { resumoRendaFixa } from "../../../lib/rendaFixa.js";
 import { buscarTaxasMensais } from "../../../lib/bcb.js";
 import { getCdiAnual } from "../../../lib/cdbMeta.js";
@@ -154,6 +155,7 @@ export default function Proventos({
   }, [ativos, provReais, proventosIgnorados, proventosManuais]);
 
   const [baixaForm, setBaixaForm] = useState(null);
+  const [loteForm, setLoteForm] = useState(null);
   const [transferirForm, setTransferirForm] = useState(null);
   const [comprarForm, setComprarForm] = useState(null);
   const [historicoAberto, setHistoricoAberto] = useState(false);
@@ -325,6 +327,35 @@ export default function Proventos({
         ? `${fmt(valor)} reinvestido em ${ativos.find(a => a.id === ativoDestinoId)?.ticker}.`
         : `${fmt(valor)} recebido na Carteira de Proventos.`
     );
+  };
+
+  /* ===== Ação: BAIXAR TODOS do mês (lote) ===== */
+  // Um clique marca todos os pendentes do mês como recebidos, num único
+  // update de estado (nada de N modais). Destinos: carteira virtual ou
+  // depósito direto numa conta. Reinvestir fica de fora — é por ativo.
+  const confirmarLote = () => {
+    const { pendentes: lista, destino, contaDestino, dataBaixa } = loteForm;
+    if (destino === "conta" && !contaDestino) { toast.error("Selecione a conta destino."); return; }
+    const catProv = categorias.find(c => c.tipo === "receita" && /provent|dividend|renda/i.test(c.nome))?.nome
+                 || categorias.find(c => c.tipo === "receita")?.nome
+                 || "Outros";
+    const lote = montarBaixaLote(lista, { destino, contaDestino, dataBaixa, categoria: catProv, mkId: uid });
+    if (!lote.itens.length) { setLoteForm(null); return; }
+
+    if (destino === "conta") {
+      const conta = contas.find(c => c.nome === contaDestino);
+      if (!conta) { toast.error("Conta não encontrada."); return; }
+      setTransacoes([...lote.transacoes, ...transacoes]);
+      setContas(contas.map(c => c.id === conta.id ? { ...c, saldo: (parseFloat(c.saldo) || 0) + lote.total } : c));
+    } else {
+      setCarteiraProventos({
+        saldo: (carteiraProventos.saldo || 0) + lote.total,
+        historico: [...(carteiraProventos.historico || []), ...lote.movimentos],
+      });
+    }
+    setProventosRecebidos({ ...proventosRecebidos, ...lote.recebidos });
+    setLoteForm(null);
+    toast.success(`${lote.itens.length} provento(s) recebidos · ${fmt(lote.total)}${destino === "conta" ? ` em ${contaDestino}` : " na Carteira de Proventos"}.`);
   };
 
   /* ===== Ação: ESTORNAR baixa (excluir provento já recebido) ===== */
@@ -711,13 +742,27 @@ export default function Proventos({
         const totalMesLista = lista.reduce((s, p) => s + (p.total || 0), 0);
         return (
         <div key={mes} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "12px 14px", marginBottom: 12 }}>
-          <button onClick={() => toggleRecolher(mes)}
-                  className="label-eyebrow"
-                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 6, color: T.muted, width: "100%" }}>
-            {mesRecolhido ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
-            {nomeMes(mes)} · {lista.length} pagamento(s)
-            <span className="num" style={{ color: T.green, fontWeight: 700, marginLeft: "auto", textTransform: "none", letterSpacing: 0 }}>{hidden ? "•••" : fmt(totalMesLista)}</span>
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={() => toggleRecolher(mes)}
+                    className="label-eyebrow"
+                    style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 6, color: T.muted, flex: 1, minWidth: 200 }}>
+              {mesRecolhido ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+              {nomeMes(mes)} · {lista.length} pagamento(s)
+              <span className="num" style={{ color: T.green, fontWeight: 700, marginLeft: "auto", textTransform: "none", letterSpacing: 0 }}>{hidden ? "•••" : fmt(totalMesLista)}</span>
+            </button>
+            {lista.length >= 2 && (
+              <button onClick={() => setLoteForm({ mes, pendentes: lista, destino: "carteira", contaDestino: contas[0]?.nome || "", dataBaixa: hoje.toISOString().slice(0, 10) })}
+                      title={`Baixar os ${lista.length} proventos de ${nomeMes(mes)} de uma vez`}
+                      style={{
+                        background: `${T.green}22`, color: T.green, border: `1px solid ${T.green}55`,
+                        padding: "4px 10px", borderRadius: 8, fontSize: 10.5, fontWeight: 700,
+                        cursor: "pointer", letterSpacing: ".05em", textTransform: "uppercase",
+                        display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0,
+                      }}>
+                <ArrowDownToLine size={11} /> Receber todos
+              </button>
+            )}
+          </div>
           {!mesRecolhido && (
           <div style={{
             marginTop: 10, border: `1px solid ${T.border}`,
@@ -1191,6 +1236,90 @@ export default function Proventos({
                       }>
                 <Check size={13} className="inline mr-1" />
                 Confirmar baixa
+              </button>
+            </div>
+          </Modal>
+        );
+      })()}
+
+      {/* MODAL: RECEBER TODOS DO MÊS (lote) */}
+      {loteForm && (() => {
+        const totalLote = loteForm.pendentes.reduce((s, p) => s + (Number(p.total) || 0), 0);
+        return (
+          <Modal title={`Receber todos · ${nomeMes(loteForm.mes)}`} onClose={() => setLoteForm(null)}>
+            <div style={{ maxHeight: 180, overflowY: "auto", border: `1px solid ${T.border}`, borderRadius: 12, marginBottom: 12 }}>
+              {loteForm.pendentes.map(p => (
+                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "7px 12px", borderBottom: `1px solid ${T.border}`, fontSize: 12 }}>
+                  <span style={{ color: T.ink }}>
+                    <strong>{p.ticker}</strong>
+                    <span style={{ color: T.muted }}> · {p.tipo} · {String(p.data || "").slice(8, 10)}/{String(p.data || "").slice(5, 7)}</span>
+                  </span>
+                  <span className="num" style={{ color: T.green, fontWeight: 600 }}>{fmt(p.total)}</span>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", fontSize: 12.5, background: T.bgSoft }}>
+                <strong>Total ({loteForm.pendentes.length})</strong>
+                <strong className="num" style={{ color: T.green }}>{fmt(totalLote)}</strong>
+              </div>
+            </div>
+
+            <div className="label-eyebrow" style={{ marginBottom: 8 }}>O que fazer com o valor?</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+              {[
+                { id: "carteira", label: "Deixar na Carteira de Proventos", desc: "Acumula pra usar depois." },
+                { id: "conta",    label: "Depositar em conta bancária",     desc: "Vira uma receita por provento na conta." },
+              ].map(opt => {
+                const ativo = loteForm.destino === opt.id;
+                return (
+                  <button key={opt.id} onClick={() => setLoteForm({ ...loteForm, destino: opt.id })}
+                          style={{
+                            padding: "10px 12px",
+                            background: ativo ? `${T.gold}22` : T.bgSoft,
+                            border: `1px solid ${ativo ? T.gold : T.border}`,
+                            borderRadius: 12, cursor: "pointer", textAlign: "left",
+                            display: "flex", alignItems: "flex-start", gap: 10,
+                          }}>
+                    <div style={{
+                      width: 16, height: 16, borderRadius: "50%",
+                      border: `2px solid ${ativo ? T.gold : T.border}`,
+                      background: ativo ? T.gold : "transparent",
+                      flexShrink: 0, marginTop: 2,
+                    }} />
+                    <div>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: ativo ? T.gold : T.ink }}>{opt.label}</div>
+                      <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{opt.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {loteForm.destino === "conta" && (
+              <Field label="Conta bancária destino" required>
+                <select value={loteForm.contaDestino || ""}
+                        onChange={e => setLoteForm({ ...loteForm, contaDestino: e.target.value })}>
+                  <option value="">Selecione…</option>
+                  {contas.map(c => (
+                    <option key={c.id} value={c.nome}>{c.nome} · saldo {fmt(c.saldo || 0)}</option>
+                  ))}
+                </select>
+              </Field>
+            )}
+
+            <Field label="Data da baixa">
+              <input type="date" value={loteForm.dataBaixa}
+                     onChange={e => setLoteForm({ ...loteForm, dataBaixa: e.target.value })} />
+            </Field>
+            <div style={{ fontSize: 11, color: T.muted, fontStyle: "italic", marginTop: 4 }}>
+              Cada provento é baixado com o valor previsto. Se algum veio diferente (IR retido etc.), baixe esse individualmente pelo botão "Baixar" da linha.
+            </div>
+
+            <div className="flex gap-3 justify-end mt-6">
+              <button className="btn-ghost" onClick={() => setLoteForm(null)}>Cancelar</button>
+              <button className="btn-gold" onClick={confirmarLote}
+                      disabled={loteForm.destino === "conta" && !loteForm.contaDestino}>
+                <Check size={13} className="inline mr-1" />
+                Receber {loteForm.pendentes.length} provento(s)
               </button>
             </div>
           </Modal>

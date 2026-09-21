@@ -25,11 +25,18 @@ export function anosDisponiveisIR(transacoes = []) {
   return [...anos].sort().reverse();
 }
 
-export function montarRelatorioIR({ ativos = [], transacoes = [], ano }) {
+export function montarRelatorioIR({ ativos = [], transacoes = [], ano, snapshot = null }) {
   const anoStr = String(ano || new Date().getFullYear());
 
-  // 1. Bens e direitos (posição atual pelo custo de aquisição)
-  const bens = (ativos || [])
+  // 1. Bens e direitos pelo CUSTO de aquisição. Com um snapshot congelado do
+  // ano (lib/snapshotCarteira.js), usa a posição da data congelada; sem ele,
+  // cai na carteira atual (com o aviso de sempre).
+  const bens = snapshot
+    ? (snapshot.itens || [])
+        .filter(i => (Number(i?.qtd) || 0) > 0 && (Number(i?.pm) || 0) > 0)
+        .map(i => ({ ticker: i.ticker, nome: i.nome || "", tipo: i.tipo, qtd: Number(i.qtd) || 0, pm: Number(i.pm) || 0, custo: (Number(i.qtd) || 0) * (Number(i.pm) || 0) }))
+        .sort((a, b) => b.custo - a.custo)
+    : (ativos || [])
     .filter(a => (Number(a?.qtd) || 0) > 0 && (Number(a?.pm ?? a?.precoMedio) || 0) > 0)
     .map(a => {
       const qtd = Number(a.qtd) || 0;
@@ -44,6 +51,7 @@ export function montarRelatorioIR({ ativos = [], transacoes = [], ano }) {
     })
     .sort((a, b) => b.custo - a.custo);
   const totalBens = bens.reduce((s, b) => s + b.custo, 0);
+  const posicaoDe = snapshot ? snapshot.data : null; // null = carteira atual
 
   // 2 e 3. Proventos e vendas do ano (movimentacoesInvestMes com o ANO
   // funciona porque o filtro é por prefixo da data).
@@ -74,7 +82,7 @@ export function montarRelatorioIR({ ativos = [], transacoes = [], ano }) {
 
   return {
     ano: anoStr,
-    bens, totalBens,
+    bens, totalBens, posicaoDe,
     proventos, totalProventos: mov.totalProventos, provIsentos, provJCP,
     vendas: mov.vendas, vendasMeses,
     totalVendido: mov.totalVendido, resultadoVendas: mov.resultadoVendas,
