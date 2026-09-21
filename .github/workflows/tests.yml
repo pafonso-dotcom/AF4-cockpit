@@ -1,0 +1,33 @@
+# Testes + build do app pessoal (apps/cars-web) em todo push/PR na main.
+# Protege contra regressão mesmo quando ninguém roda a suíte localmente.
+name: Testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        # versão vem do packageManager do package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Testes (vitest)
+        run: pnpm --filter @repo/cars-web exec vitest run
+
+      - name: Build (vite)
+        run: pnpm --filter @repo/cars-web build
