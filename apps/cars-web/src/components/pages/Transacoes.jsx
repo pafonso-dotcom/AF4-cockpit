@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Activity, Plus, Trash2, Edit3, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText, Mic, Sparkles, EyeOff } from "lucide-react";
+import { Activity, Plus, Trash2, Edit3, Copy, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText, Mic, Sparkles, EyeOff } from "lucide-react";
 import EmptyState from "../ui/EmptyState.jsx";
 import { StatTile } from "../ui/widget.jsx";
 import { T } from "../../lib/theme.js";
@@ -415,6 +415,22 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
     setFormErrors({});
   };
 
+  // Duplicar lançamento — pras contas iguais que se repetem (pedido
+  // 2026-09-21): abre o formulário de NOVA transação já preenchido com os
+  // dados do original, data de hoje. O que NÃO copia: comprovante (anexo é
+  // do lançamento original) e vínculo de transferência (duplicar uma perna
+  // de transferência quebraria o par).
+  const duplicar = (t) => {
+    const { id, comprovante, transferenciaId, createdAt, ...resto } = t;
+    setForm({
+      ...resto,
+      id: null,
+      data: todayISO(),
+      valor: t.valor == null || t.valor === "" ? "" : parseValorBR(t.valor),
+    });
+    toast.info(`Duplicando "${t.descricao}" — confira e salve.`);
+  };
+
   const del = async (t) => {
     const ok = await confirm({
       title: `Excluir "${t.descricao}"?`,
@@ -787,6 +803,11 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                   <button onClick={() => setForm({ ...t, valor: t.valor == null || t.valor === "" ? "" : parseValorBR(t.valor) })} aria-label="Editar"
                           style={{ color: T.muted, padding: 3, background: "transparent", border: "none", cursor: "pointer" }}>
                     <Edit3 size={12} />
+                  </button>
+                  <button onClick={() => duplicar(t)} aria-label={`Duplicar ${t.descricao}`}
+                          title="Duplicar lançamento (abre pré-preenchido com a data de hoje)"
+                          style={{ color: T.gold, padding: 3, background: "transparent", border: "none", cursor: "pointer" }}>
+                    <Copy size={12} />
                   </button>
                   <button onClick={() => del(t)} aria-label="Excluir"
                           style={{ color: T.red, padding: 3, background: "transparent", border: "none", cursor: "pointer" }}>
