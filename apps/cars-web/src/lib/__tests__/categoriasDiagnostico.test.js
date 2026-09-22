@@ -103,3 +103,36 @@ describe("fundirCategorias (De → Para, manual)", () => {
     expect(r.categorias.find(c => c.id === "fil").parentId).toBe("ali");
   });
 });
+
+describe("fundirTodasFilhas (unificar tudo de uma vez)", () => {
+  const cats = [
+    { id: "auto", nome: "Automóveis", tipo: "despesa" },
+    { id: "comb", nome: "Combustivel", tipo: "despesa", parentId: "auto" },
+    { id: "ipva", nome: "IPVA", tipo: "despesa", parentId: "auto" },
+    { id: "outra", nome: "Lazer", tipo: "despesa" },
+  ];
+  const dados = {
+    categorias: cats,
+    transacoes: [
+      { id: "t1", tipo: "despesa", categoria: "Combustivel", valor: 100, data: "2026-09-01" },
+      { id: "t2", tipo: "despesa", categoria: "IPVA", valor: 200, data: "2026-09-02" },
+      { id: "t3", tipo: "despesa", categoria: "Lazer", valor: 50, data: "2026-09-03" },
+    ],
+    fixas: [], parcelamentos: [], dividas: [],
+  };
+  const { fundirTodasFilhas } = require("../categoriasDiagnostico.js");
+  const r = fundirTodasFilhas(cats[0], dados);
+
+  it("todas as filhas somem e viram subcategorias da mãe", () => {
+    expect(r.n).toBe(2);
+    expect(r.categorias.find(c => c.id === "comb")).toBeUndefined();
+    expect(r.categorias.find(c => c.id === "ipva")).toBeUndefined();
+    const mae = r.categorias.find(c => c.id === "auto");
+    expect(mae.subcategorias.map(s => s.nome).sort()).toEqual(["Combustivel", "IPVA"]);
+  });
+  it("transações das filhas migram com rastro; alheias ficam", () => {
+    expect(r.transacoes.find(t => t.id === "t1")).toMatchObject({ categoria: "Automóveis", subcategoria: "Combustivel" });
+    expect(r.transacoes.find(t => t.id === "t2")).toMatchObject({ categoria: "Automóveis", subcategoria: "IPVA" });
+    expect(r.transacoes.find(t => t.id === "t3").categoria).toBe("Lazer");
+  });
+});

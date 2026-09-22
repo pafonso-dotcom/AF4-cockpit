@@ -8,7 +8,7 @@ import { confirm } from "../../lib/confirm.js";
 import { PACOTES } from "../../lib/categoriasPacotes.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
-import { diagnosticoCategorias, aplicarUnificacao, fundirCategorias } from "../../lib/categoriasDiagnostico.js";
+import { diagnosticoCategorias, aplicarUnificacao, fundirCategorias, fundirTodasFilhas } from "../../lib/categoriasDiagnostico.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
@@ -53,6 +53,26 @@ export default function Categorias({
     setDividas?.(r.dividas);
     setFundirAlvo(null); setFundirDestino("");
     toast.success(`"${origem.nome}" agora vive dentro de ${destino.nome}.`);
+  };
+
+  // Unificar TODAS as filhas de uma mãe de uma vez (pedido 2026-09-22):
+  // cada filha vira subcategoria da mãe, com os lançamentos migrando.
+  const unificarFilhas = async (mae) => {
+    const filhas = (categorias || []).filter(c => c.parentId === mae.id);
+    if (!filhas.length) return;
+    const ok = await confirm({
+      title: `Unificar as ${filhas.length} filhas em "${mae.nome}"?`,
+      body: `${filhas.map(f => `"${f.nome}"`).join(", ")} viram SUBCATEGORIAS de ${mae.nome}, e tudo delas (transações, fixas, parcelamentos, dívidas) passa pra ${mae.nome}. O detalhe de cada uma continua visível como subcategoria.`,
+      confirmLabel: `Unificar ${filhas.length} filhas`,
+    });
+    if (!ok) return;
+    const r = fundirTodasFilhas(mae, { categorias, transacoes, fixas, parcelamentos, dividas });
+    setCategorias(r.categorias);
+    setTransacoes?.(r.transacoes);
+    setFixas?.(r.fixas);
+    setParcelamentos?.(r.parcelamentos);
+    setDividas?.(r.dividas);
+    toast.success(`${r.n} filhas unificadas em ${mae.nome}.`);
   };
 
   const [formErrors, setFormErrors] = useState({});
@@ -207,9 +227,9 @@ export default function Categorias({
       </div>
 
       {vista === "receita" ? (
-        <CategoriaCol titulo="Receitas" cats={receitas} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.green} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} onFundir={setFundirAlvo} />
+        <CategoriaCol titulo="Receitas" cats={receitas} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.green} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} onFundir={setFundirAlvo} onFundirFilhas={unificarFilhas} />
       ) : (
-        <CategoriaCol titulo="Despesas" cats={despesas} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.red} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} gastoDe={gastoDe} onFundir={setFundirAlvo} />
+        <CategoriaCol titulo="Despesas" cats={despesas} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.red} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} gastoDe={gastoDe} onFundir={setFundirAlvo} onFundirFilhas={unificarFilhas} />
       )}
 
       {/* MODAL: unificar categoria (aberto pelo ⇆ da linha) */}
@@ -435,7 +455,7 @@ export default function Categorias({
   );
 }
 
-function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias, accent, hidden, transacoes, expandSig, expandTo, gastoDe, onFundir }) {
+function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias, accent, hidden, transacoes, expandSig, expandTo, gastoDe, onFundir, onFundirFilhas }) {
   // Apenas categorias-raiz neste nível; filhas aparecem indentadas via CategoriaItem
   // (ambas em ordem alfabética)
   const raizes = ordenarPorNome(cats.filter(c => !c.parentId));
@@ -472,6 +492,7 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
             gastoDe={gastoDe}
             hidden={hidden}
             onFundir={onFundir}
+            onFundirFilhas={onFundirFilhas}
           />
         ))}
       </div>
@@ -479,7 +500,7 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
   );
 }
 
-function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, transacoes, expandSig = 0, expandTo = false, gastoDe, hidden, onFundir }) {
+function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, transacoes, expandSig = 0, expandTo = false, gastoDe, hidden, onFundir, onFundirFilhas }) {
   const [open, setOpen] = useState(false);
   const [openFilhas, setOpenFilhas] = useState(false); // filhas colapsadas por default
   const [novaSub, setNovaSub] = useState("");
@@ -667,6 +688,18 @@ function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, tra
           paddingLeft: 32, marginTop: 4,
           background: `${T.bgSoft}66`, borderLeft: `2px solid ${T.gold}55`,
         }}>
+          {onFundirFilhas && filhas.length > 1 && (
+            <div style={{ padding: "7px 10px", borderBottom: `1px dashed ${T.border}` }}>
+              <button onClick={() => onFundirFilhas(c)}
+                      title={`Junta as ${filhas.length} filhas dentro de ${c.nome} de uma vez — cada uma vira subcategoria`}
+                      style={{
+                        background: `${T.gold}18`, color: T.gold, border: `1px solid ${T.gold}55`,
+                        borderRadius: 10, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                      }}>
+                ⇆ Unificar as {filhas.length} filhas de uma vez
+              </button>
+            </div>
+          )}
           {filhas.map(f => {
             return (
               <div key={f.id} style={{
