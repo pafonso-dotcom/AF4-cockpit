@@ -1392,10 +1392,6 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
                 <span className="num" style={{ color: l.s === "−" ? T.red : T.ink }}>{l.s === "−" ? "− " : ""}{oculto ? "•••" : fmt(l.v)}</span>
               </div>
             ))}
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, paddingTop: 4, marginTop: 2, borderTop: `1px dashed ${T.border}` }}>
-              <span style={{ color: T.ink }}>Líquido (contas + invest − cartões)</span>
-              <span className="num" style={{ color: consolidado.liquido >= 0 ? T.green : T.red }}>{oculto ? "•••" : fmt(consolidado.liquido)}</span>
-            </div>
             {consolidado.investUSD > 0 && (
               <div style={{ fontSize: 10, color: T.faint, fontStyle: "italic" }}>
                 + US$ {consolidado.investUSD.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} em Stocks/REITs (fora do total em R$)
