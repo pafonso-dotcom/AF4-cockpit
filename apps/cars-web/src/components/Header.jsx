@@ -38,9 +38,6 @@ export const AGENDA_TABS = [
   { id: "lembretes",  label: "Lembretes",    icon: Bell },
   { id: "treino",     label: "Treino",       icon: Dumbbell },
   { id: "metas",      label: "Metas",        icon: Target },
-  { id: "compras",    label: "Compras",      icon: Tag },
-  { id: "diario",     label: "Diário",       icon: BookOpen },
-  { id: "ideias",     label: "Ideias",       icon: Sparkles },
 ];
 const AGENDA_TAB_IDS = new Set(AGENDA_TABS.map(t => t.id));
 

@@ -89,8 +89,6 @@ export default function AgendaInicio({
 
   const focoDoDia = tarefasPendentes.find(t => t.prioridade === "alta") || tarefasPendentes[0] || null;
 
-  const comprasPendentes = (compras || []).filter(c => !c.checked).length;
-  const ideiasFixadas = (ideias || []).filter(i => i.pinned).length;
   const metasAtivas = (metas || []).filter(m => (m.atual || 0) < (m.alvo || 0)).length;
 
   const go = (tab) => setTab?.(tab);
@@ -120,8 +118,6 @@ export default function AgendaInicio({
         <KpiCard icon={Calendar}     cor={T.gold}     valor={eventosHoje.length} label="Eventos hoje"     subtitle={eventosHoje.length === 0 ? "Dia livre" : "Programado"}     onClick={() => go("calendario")} />
         <KpiCard icon={CheckSquare}  cor={T.blue}     valor={tarefasPendentes.length} label="Tarefas"     subtitle={tarefasHoje.length === 0 ? "Nada pra hoje" : `${tarefasHoje.length} pra hoje`} onClick={() => go("tarefas")} />
         <KpiCard icon={Target}       cor={T.gold}     valor={metasAtivas}             label="Metas ativas" subtitle="Em progresso"           onClick={() => go("metas")} />
-        <KpiCard icon={ShoppingCart} cor={T.yellow}   valor={comprasPendentes}        label="Compras"      subtitle={comprasPendentes === 0 ? "Lista vazia" : "A comprar"} onClick={() => go("compras")} />
-        <KpiCard icon={Sparkles}     cor={T.green}    valor={(ideias || []).length}   label="Ideias"       subtitle={ideiasFixadas > 0 ? `${ideiasFixadas} fixada${ideiasFixadas > 1 ? "s" : ""}` : "Brain dump"}    onClick={() => go("ideias")} />
       </div>
 
       {/* FOCO DO DIA · ocupa largura toda quando tem */}
@@ -219,28 +215,6 @@ export default function AgendaInicio({
           </div>
         </SectionCard>
 
-        <SectionCard
-          titulo="Ideias fixadas"
-          acao={{ lbl: "Ver ideias", onClick: () => go("ideias") }}
-          vazio={(ideias || []).filter(i => i.pinned).length === 0}
-          vazioMsg="Nenhuma ideia fixada."
-          vazioTipo="ideias"
-          vazioIcone={Sparkles}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {(ideias || []).filter(i => i.pinned).slice(0, 4).map(i => (
-              <div key={i.id} onClick={() => go("ideias")}
-                   style={{
-                     padding: "8px 10px", background: T.bgSoft, borderRadius: 12,
-                     borderLeft: `3px solid ${T.gold}`, cursor: "pointer",
-                     fontSize: 12.5, color: T.ink, lineHeight: 1.4,
-                     display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-                     overflow: "hidden",
-                   }}>
-                {i.texto}
-              </div>
-            ))}
-          </div>
-        </SectionCard>
       </div>
 
       <style>{`
@@ -248,7 +222,7 @@ export default function AgendaInicio({
         .agenda-hero { margin-bottom: 16px; }
         .agenda-kpis {
           display: grid; gap: 10px;
-          grid-template-columns: repeat(5, 1fr);
+          grid-template-columns: repeat(3, 1fr);
           margin-bottom: 14px;
         }
         .agenda-foco {
