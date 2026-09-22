@@ -225,6 +225,38 @@ export async function gerarJSONGeminiComAudio(prompt, audioBase64, mimeType = "a
   return _gerarJSONGeminiComArquivo(prompt, audioBase64, mimeType, opts);
 }
 
+/**
+ * Vários arquivos numa chamada só (ex.: fotos das páginas da ficha de treino).
+ * `arquivos` = [{ base64, mimeType }].
+ */
+export async function gerarJSONGeminiComArquivos(prompt, arquivos, opts = {}) {
+  const key = getKey(opts);
+  if (!key) throw new Error("Chave do Gemini não configurada");
+
+  const body = {
+    contents: [{
+      parts: [
+        { text: prompt },
+        ...arquivos.map(a => ({ inline_data: { mime_type: a.mimeType, data: a.base64 } })),
+      ],
+    }],
+    generationConfig: {
+      temperature: opts.temperature ?? 0.1,
+      maxOutputTokens: opts.maxOutputTokens ?? 8192,
+      responseMimeType: "application/json",
+    },
+  };
+
+  const res = await postGemini(key, body);
+  const data = await res.json();
+  const texto = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  if (!texto) throw new Error("Gemini retornou resposta vazia.");
+  const parsed = parseJSONTolerante(texto);
+  if (parsed) return parsed;
+  console.error("[gemini] JSON malformado · primeiros 500 chars:", texto.slice(0, 500));
+  throw new Error("O Gemini retornou um formato que não consegui entender. Tente de novo.");
+}
+
 async function _gerarJSONGeminiComArquivo(prompt, base64, mimeType, opts = {}) {
   const key = getKey(opts);
   if (!key) throw new Error("Chave do Gemini não configurada");

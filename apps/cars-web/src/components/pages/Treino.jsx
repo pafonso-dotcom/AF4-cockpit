@@ -2,11 +2,12 @@ import React, { useMemo, useState, useEffect } from "react";
 import {
   Dumbbell, Plus, Check, Edit3, Trash2, ChevronLeft, ChevronRight,
   Sparkles, X, Save, Bike, Zap, Trophy, TrendingUp, TrendingDown, Minus,
-  Image as ImageIcon,
+  Image as ImageIcon, Camera, FileText,
 } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { uid, todayISO } from "../../lib/format.js";
 import { carregarCatalogo, equipamentoPT } from "../../lib/exercicioCatalogo.js";
+import { PROMPT_FICHA, montarImportacaoFicha } from "../../lib/fichaTreino.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import PageHeader from "../ui/PageHeader.jsx";
@@ -229,6 +230,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
   const [templateModal, setTemplateModal] = useState(false);
   const [bancoModal, setBancoModal] = useState(false);
   const [iaModal, setIaModal] = useState(false);
+  const [fichaModal, setFichaModal] = useState(false);
   const [sessaoAtiva, setSessaoAtiva] = useState(null);
   const hoje = todayISO();
 
@@ -292,9 +294,13 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
         title="Treino"
         sub="Musculação, corrida e ciclismo. Registre seus treinos e acompanhe a evolução."
         action={
-          <div style={{ display: "flex", gap: 6 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <button className="btn-ghost" onClick={() => setBancoModal(true)}>Banco</button>
             <button className="btn-ghost" onClick={() => setTemplateModal(true)}>Templates</button>
+            <button className="btn-ghost" onClick={() => setFichaModal(true)}
+                    title="Importar a ficha que o personal montou (foto ou PDF)">
+              <Camera size={13} className="inline mr-1" /> Ficha do personal
+            </button>
             <button className="btn-gold" onClick={() => setSessaoModal(true)}>
               <Plus size={13} className="inline mr-1" /> Iniciar treino
             </button>
@@ -492,6 +498,9 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
             <button className="btn-ghost" style={{ flex: 1 }} onClick={() => { setSessaoModal(false); setIaModal(true); }}>
               <Sparkles size={12} className="inline mr-1" /> Criar com IA
             </button>
+            <button className="btn-ghost" style={{ flex: 1 }} onClick={() => { setSessaoModal(false); setFichaModal(true); }}>
+              <Camera size={12} className="inline mr-1" /> Ficha do personal
+            </button>
           </div>
         </Modal>
       )}
@@ -507,6 +516,21 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
             iniciarTreino(template);
           }}
           onClose={() => setIaModal(false)}
+        />
+      )}
+
+      {/* Modal: Importar ficha do personal (foto/PDF) */}
+      {fichaModal && (
+        <ImportarFichaModal
+          exerciciosDB={exerciciosDB}
+          apiKeys={apiKeys}
+          onImportar={({ templates, novosExercicios }) => {
+            if (novosExercicios.length) setExerciciosDB(prev => [...prev, ...novosExercicios]);
+            setTreinoTemplates(prev => [...prev, ...templates]);
+            setFichaModal(false);
+            toast.success(`${templates.length} ficha${templates.length > 1 ? "s" : ""} importada${templates.length > 1 ? "s" : ""}! Está em Templates.`);
+          }}
+          onClose={() => setFichaModal(false)}
         />
       )}
 
@@ -536,6 +560,8 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
         <BancoExerciciosModal
           exerciciosDB={exerciciosDB}
           setExerciciosDB={setExerciciosDB}
+          treinoTemplates={treinoTemplates}
+          treinos={treinos}
           onClose={() => setBancoModal(false)}
         />
       )}
@@ -940,14 +966,249 @@ Retorne APENAS JSON válido no formato:
   );
 }
 
-/* ---- BancoExerciciosModal: catálogo aberto (free-exercise-db) ---- */
-function BancoExerciciosModal({ exerciciosDB, setExerciciosDB, onClose }) {
+/* ---- ImportarFichaModal: ficha do personal por FOTO ou PDF ----
+   Pensado pro CELULAR: botão grande de câmera (capture), aceita várias fotos
+   (páginas/fichas A-B-C) ou um PDF. A IA extrai as fichas, o usuário revisa
+   e salva — viram templates prontos pra "Iniciar treino". */
+function ImportarFichaModal({ exerciciosDB, apiKeys, onImportar, onClose }) {
+  const [arquivos, setArquivos] = useState([]); // File[]
+  const [lendo, setLendo] = useState(false);
+  const [preview, setPreview] = useState(null); // { templates, novosExercicios }
+  const fotoRef = React.useRef(null);
+  const pdfRef = React.useRef(null);
+
+  // Comprime foto (celular manda 3-8MB) — canvas máx. 1600px, JPEG 0.82.
+  const comprimirFoto = async (file) => {
+    try {
+      const img = await new Promise((res, rej) => {
+        const url = URL.createObjectURL(file);
+        const el = new Image();
+        el.onload = () => { URL.revokeObjectURL(url); res(el); };
+        el.onerror = rej;
+        el.src = url;
+      });
+      const MAX = 1600;
+      const escala = Math.min(1, MAX / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * escala);
+      canvas.height = Math.round(img.height * escala);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.82));
+      if (blob && blob.size < file.size) return new File([blob], file.name || "ficha.jpg", { type: "image/jpeg" });
+    } catch {}
+    return file;
+  };
+
+  const addArquivos = (lista, ehPdf) => {
+    const files = Array.from(lista || []);
+    if (!files.length) return;
+    if (ehPdf) setArquivos(files.slice(0, 1)); // PDF: um só, substitui
+    else setArquivos(prev => [...prev.filter(f => f.type !== "application/pdf"), ...files].slice(0, 6));
+  };
+
+  const ler = async () => {
+    if (!arquivos.length) return;
+    if (!apiKeys.gemini && !apiKeys.anthropic) {
+      toast.error("Configure uma chave de IA (Gemini ou Anthropic) nas Configurações → APIs.");
+      return;
+    }
+    setLendo(true);
+    try {
+      const { fileToBase64, gerarJSONGeminiComArquivos, parseJSONTolerante } = await import("../../lib/gemini.js");
+      const preparados = [];
+      for (const f of arquivos) {
+        const ehPdf = f.type === "application/pdf";
+        const pronto = ehPdf ? f : await comprimirFoto(f);
+        preparados.push({ base64: await fileToBase64(pronto), mimeType: ehPdf ? "application/pdf" : (pronto.type || "image/jpeg") });
+      }
+      let parsed;
+      if (apiKeys.gemini) {
+        parsed = await gerarJSONGeminiComArquivos(PROMPT_FICHA, preparados, { apiKey: apiKeys.gemini });
+      } else {
+        const { default: Anthropic } = await import("@anthropic-ai/sdk");
+        const client = new Anthropic({ apiKey: apiKeys.anthropic, dangerouslyAllowBrowser: true });
+        const blocos = preparados.map(p => p.mimeType === "application/pdf"
+          ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: p.base64 } }
+          : { type: "image", source: { type: "base64", media_type: p.mimeType, data: p.base64 } });
+        const msg = await client.messages.create({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 4000,
+          messages: [{ role: "user", content: [...blocos, { type: "text", text: PROMPT_FICHA }] }],
+        });
+        parsed = parseJSONTolerante(msg.content[0].text);
+      }
+      const imp = montarImportacaoFicha(parsed, exerciciosDB);
+      if (!imp.templates.length) {
+        toast.error("Não achei nenhuma ficha legível. Tenta uma foto mais de perto/nítida.");
+        return;
+      }
+      setPreview(imp);
+    } catch (e) {
+      console.error("[ficha]", e);
+      toast.error(e.message || "Erro ao ler a ficha. Tente de novo.");
+    } finally {
+      setLendo(false);
+    }
+  };
+
+  const btnGrande = {
+    flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+    padding: "22px 10px", background: `${T.gold}10`, border: `1px dashed ${T.gold}66`,
+    borderRadius: 16, color: T.gold, cursor: "pointer", fontSize: 13, fontWeight: 700,
+  };
+
+  return (
+    <Modal title="Importar ficha do personal" onClose={onClose}>
+      {!preview ? (
+        <>
+          <p style={{ fontSize: 13, color: T.muted, marginBottom: 12 }}>
+            Tira foto da ficha (pode mais de uma — páginas ou fichas A/B/C) ou manda o PDF que o personal enviou.
+          </p>
+          <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+            <button style={btnGrande} onClick={() => fotoRef.current?.click()}>
+              <Camera size={26} /> Foto / câmera
+            </button>
+            <button style={btnGrande} onClick={() => pdfRef.current?.click()}>
+              <FileText size={26} /> PDF
+            </button>
+          </div>
+          <input ref={fotoRef} type="file" accept="image/*" capture="environment" multiple style={{ display: "none" }}
+                 onChange={e => { addArquivos(e.target.files, false); e.target.value = ""; }} />
+          <input ref={pdfRef} type="file" accept="application/pdf" style={{ display: "none" }}
+                 onChange={e => { addArquivos(e.target.files, true); e.target.value = ""; }} />
+          {arquivos.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
+              {arquivos.map((f, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5, color: T.ink, background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: "7px 10px" }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {f.type === "application/pdf" ? "📄" : "🖼️"} {f.name || `foto ${i + 1}`}
+                  </span>
+                  <button onClick={() => setArquivos(prev => prev.filter((_, xi) => xi !== i))}
+                          style={{ background: "none", border: "none", color: T.red, cursor: "pointer", padding: 2 }}>
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-3 justify-end mt-2">
+            <button className="btn-ghost" onClick={onClose}>Cancelar</button>
+            <button className="btn-gold" onClick={ler} disabled={lendo || arquivos.length === 0}>
+              {lendo ? "Lendo a ficha..." : <><Sparkles size={12} className="inline mr-1" /> Ler ficha</>}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 10 }}>
+            Confere o que eu li — depois é só salvar que as fichas viram templates.
+          </p>
+          {preview.templates.map((t, ti) => (
+            <div key={ti} style={{ background: T.card, border: `1px solid ${T.gold}55`, borderRadius: 16, padding: 12, marginBottom: 10 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: T.ink, marginBottom: 6 }}>{t.nome}</div>
+              {t.exercicios.map((ex, i) => {
+                const base = exerciciosDB.find(e => e.id === ex.exercicioId)
+                  || preview.novosExercicios.find(e => e.id === ex.exercicioId);
+                const novo = preview.novosExercicios.some(e => e.id === ex.exercicioId);
+                return (
+                  <div key={i} style={{ fontSize: 12.5, color: T.muted, padding: "3px 0" }}>
+                    {i + 1}. {base?.nome || "Exercício"} — {ex.series}×{ex.reps}{ex.carga > 0 ? ` @ ${ex.carga}kg` : ""}
+                    {ex.obs ? <span style={{ color: T.faint }}> · {ex.obs}</span> : null}
+                    {novo && <span style={{ marginLeft: 6, fontSize: 10, color: T.gold, border: `1px solid ${T.gold}66`, borderRadius: 100, padding: "1px 6px" }}>novo</span>}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+          {preview.novosExercicios.length > 0 && (
+            <p style={{ fontSize: 11.5, color: T.faint, marginBottom: 10 }}>
+              {preview.novosExercicios.length} exercício(s) marcado(s) como <b>novo</b> serão adicionados ao seu banco.
+            </p>
+          )}
+          <div className="flex gap-3 justify-end">
+            <button className="btn-ghost" onClick={() => setPreview(null)}>Ler de novo</button>
+            <button className="btn-gold" onClick={() => onImportar(preview)}>
+              <Save size={12} className="inline mr-1" /> Salvar fichas
+            </button>
+          </div>
+        </>
+      )}
+    </Modal>
+  );
+}
+
+/* ---- BancoExerciciosModal ----
+   Duas abas (reforma 2026-09-22, pedido do usuário):
+   - "Meu banco": o que VOCÊ tem — busca, apagar (com aviso se estiver em uso
+     em template/treino), limpar tudo e CRIAR exercício personalizado.
+   - "Catálogo": o catálogo aberto (free-exercise-db) pra adicionar prontos. */
+const GRUPOS_MUSCULARES = ["peito", "costas", "pernas", "ombros", "biceps", "triceps", "abdomen", "gluteos", "panturrilha", "outros"];
+
+function BancoExerciciosModal({ exerciciosDB, setExerciciosDB, treinoTemplates = [], treinos = [], onClose }) {
+  const [aba, setAba] = useState("meu"); // meu | catalogo
   const [estado, setEstado] = useState("carregando"); // carregando | ok | erro
   const [todos, setTodos] = useState([]);
   const [busca, setBusca] = useState("");
   const [grupo, setGrupo] = useState("todos");
   const [equip, setEquip] = useState("todos");
   const [limite, setLimite] = useState(40);
+  const [buscaMeu, setBuscaMeu] = useState("");
+  const [grupoMeu, setGrupoMeu] = useState("todos");
+  const [novo, setNovo] = useState(null); // {nome, grupoMuscular, equipamento}
+
+  // Em quantos templates/treinos cada exercício aparece (pro aviso ao apagar).
+  const usoPorEx = useMemo(() => {
+    const uso = {};
+    (treinoTemplates || []).forEach(t => (t.exercicios || []).forEach(e => { uso[e.exercicioId] = (uso[e.exercicioId] || 0) + 1; }));
+    (treinos || []).forEach(s => (s.exerciciosFeitos || []).forEach(e => { uso[e.exercicioId] = (uso[e.exercicioId] || 0) + 1; }));
+    return uso;
+  }, [treinoTemplates, treinos]);
+
+  const meusFiltrados = useMemo(() => {
+    const q = buscaMeu.trim().toLowerCase();
+    return (exerciciosDB || [])
+      .filter(e => (grupoMeu === "todos" || e.grupoMuscular === grupoMeu) && (!q || (e.nome || "").toLowerCase().includes(q)))
+      .sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+  }, [exerciciosDB, buscaMeu, grupoMeu]);
+
+  const gruposMeu = useMemo(() => ["todos", ...Array.from(new Set((exerciciosDB || []).map(e => e.grupoMuscular).filter(Boolean))).sort()], [exerciciosDB]);
+
+  const apagarMeu = async (e) => {
+    const uso = usoPorEx[e.id] || 0;
+    const ok = await confirm({
+      title: `Apagar "${e.nome}"?`,
+      body: uso > 0 ? `Ele aparece em ${uso} template(s)/treino(s) — esses registros ficam com nome genérico.` : "",
+      confirmLabel: "Apagar", danger: true,
+    });
+    if (!ok) return;
+    setExerciciosDB(prev => (prev || []).filter(x => x.id !== e.id));
+    toast.success(`"${e.nome}" apagado do banco.`);
+  };
+
+  const limparTudo = async () => {
+    const ok = await confirm({
+      title: `Apagar TODOS os ${(exerciciosDB || []).length} exercícios do seu banco?`,
+      body: "Templates e treinos antigos ficam com nomes genéricos. Não dá pra desfazer.",
+      confirmLabel: "Apagar tudo", danger: true,
+    });
+    if (!ok) return;
+    setExerciciosDB([]);
+    toast.success("Banco de exercícios limpo.");
+  };
+
+  const salvarNovo = () => {
+    const nome = (novo?.nome || "").trim();
+    if (!nome) { toast.error("Dá um nome pro exercício."); return; }
+    const ja = (exerciciosDB || []).some(x => (x.nome || "").toLowerCase() === nome.toLowerCase());
+    if (ja) { toast.info("Já existe um exercício com esse nome."); return; }
+    setExerciciosDB(prev => [...(prev || []), {
+      id: uid(), nome, grupoMuscular: novo.grupoMuscular || "outros",
+      equipamento: (novo.equipamento || "").trim() || undefined,
+      modalidade: "musculacao", isCustom: true,
+    }]);
+    toast.success(`"${nome}" criado no seu banco.`);
+    setNovo(null);
+  };
 
   useEffect(() => {
     let vivo = true;
@@ -983,8 +1244,104 @@ function BancoExerciciosModal({ exerciciosDB, setExerciciosDB, onClose }) {
 
   const selSty = { fontSize: 12, padding: "6px 8px", border: `1px solid ${T.border}`, borderRadius: 12, background: T.bg, color: T.ink };
 
+  const abaBtn = (id, label) => (
+    <button onClick={() => setAba(id)} style={{
+      flex: 1, padding: "9px 10px", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+      background: aba === id ? `${T.gold}18` : "transparent",
+      border: `1px solid ${aba === id ? T.gold : T.border}`, borderRadius: 12,
+      color: aba === id ? T.gold : T.muted,
+    }}>{label}</button>
+  );
+
   return (
     <Modal title="Banco de exercícios" onClose={onClose} wide>
+      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        {abaBtn("meu", `Meu banco (${(exerciciosDB || []).length})`)}
+        {abaBtn("catalogo", "Catálogo")}
+      </div>
+
+      {aba === "meu" && (
+        <>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+            <input value={buscaMeu} onChange={e => setBuscaMeu(e.target.value)}
+              placeholder="Buscar no meu banco…"
+              style={{ fontSize: 12, padding: "6px 8px", border: `1px solid ${T.border}`, borderRadius: 12, background: T.bg, color: T.ink, flex: "1 1 160px", minWidth: 140 }} />
+            <select value={grupoMeu} onChange={e => setGrupoMeu(e.target.value)}
+              style={{ fontSize: 12, padding: "6px 8px", border: `1px solid ${T.border}`, borderRadius: 12, background: T.bg, color: T.ink }}>
+              {gruposMeu.map(g => <option key={g} value={g}>{g === "todos" ? "Todos os grupos" : g}</option>)}
+            </select>
+          </div>
+
+          {/* Criar exercício personalizado */}
+          {novo ? (
+            <div style={{ background: T.bgSoft, border: `1px solid ${T.gold}55`, borderRadius: 16, padding: 12, marginBottom: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+              <input autoFocus value={novo.nome} onChange={e => setNovo(n => ({ ...n, nome: e.target.value }))}
+                placeholder="Nome do exercício (ex.: Remada baixa no cabo)"
+                style={{ fontSize: 13, padding: "8px 10px", border: `1px solid ${T.border}`, borderRadius: 12, background: T.bg, color: T.ink }} />
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <select value={novo.grupoMuscular} onChange={e => setNovo(n => ({ ...n, grupoMuscular: e.target.value }))}
+                  style={{ fontSize: 12, padding: "7px 8px", border: `1px solid ${T.border}`, borderRadius: 12, background: T.bg, color: T.ink, flex: 1 }}>
+                  {GRUPOS_MUSCULARES.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+                <input value={novo.equipamento} onChange={e => setNovo(n => ({ ...n, equipamento: e.target.value }))}
+                  placeholder="Equipamento (opcional)"
+                  style={{ fontSize: 12, padding: "7px 8px", border: `1px solid ${T.border}`, borderRadius: 12, background: T.bg, color: T.ink, flex: 1, minWidth: 120 }} />
+              </div>
+              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                <button className="btn-ghost" onClick={() => setNovo(null)}>Cancelar</button>
+                <button className="btn-gold" onClick={salvarNovo}><Save size={12} className="inline mr-1" /> Criar</button>
+              </div>
+            </div>
+          ) : (
+            <button className="btn-gold" style={{ width: "100%", marginBottom: 10 }}
+              onClick={() => setNovo({ nome: "", grupoMuscular: "outros", equipamento: "" })}>
+              <Plus size={13} className="inline mr-1" /> Criar exercício personalizado
+            </button>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: "48vh", overflowY: "auto" }}>
+            {meusFiltrados.map(e => (
+              <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", background: T.bgSoft, borderRadius: 16, border: `1px solid ${T.border}` }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, overflow: "hidden", flexShrink: 0, background: T.bg, display: "grid", placeItems: "center" }}>
+                  {e.imagem ? <img src={e.imagem} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Dumbbell size={15} style={{ color: T.muted }} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, color: T.ink, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.nome}</span>
+                    {(e.isCustom || e.origem === "ficha-importada") && (
+                      <span style={{ fontSize: 9.5, color: T.gold, border: `1px solid ${T.gold}66`, borderRadius: 100, padding: "1px 6px", flexShrink: 0 }}>
+                        {e.origem === "ficha-importada" ? "da ficha" : "meu"}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: T.muted }}>
+                    {e.grupoMuscular || "—"}{e.equipamento ? ` · ${equipamentoPT(e.equipamento)}` : ""}
+                    {usoPorEx[e.id] ? ` · em uso (${usoPorEx[e.id]})` : ""}
+                  </div>
+                </div>
+                <button onClick={() => apagarMeu(e)} title="Apagar do banco"
+                  style={{ flexShrink: 0, background: "none", border: "none", color: T.red, cursor: "pointer", padding: 6 }}>
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ))}
+            {meusFiltrados.length === 0 && (
+              <div style={{ padding: 16, textAlign: "center", color: T.muted, fontSize: 12.5 }}>
+                {(exerciciosDB || []).length === 0 ? "Banco vazio — crie um exercício ou adicione do Catálogo." : "Nada encontrado com esse filtro."}
+              </div>
+            )}
+          </div>
+          {(exerciciosDB || []).length > 0 && (
+            <button onClick={limparTudo}
+              style={{ marginTop: 10, width: "100%", padding: "8px 0", background: "transparent", border: `1px solid ${T.red}55`, borderRadius: 12, color: T.red, fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
+              <Trash2 size={12} className="inline mr-1" /> Apagar todos ({(exerciciosDB || []).length})
+            </button>
+          )}
+        </>
+      )}
+
+      {aba === "catalogo" && (
+      <>
       {estado === "carregando" && (
         <div style={{ padding: 30, textAlign: "center", color: T.muted, fontSize: 13 }}>Carregando catálogo aberto…</div>
       )}
@@ -1034,6 +1391,8 @@ function BancoExerciciosModal({ exerciciosDB, setExerciciosDB, onClose }) {
             {filtrados.length === 0 && <div style={{ padding: 16, textAlign: "center", color: T.muted, fontSize: 12.5 }}>Nada encontrado.</div>}
           </div>
         </>
+      )}
+      </>
       )}
     </Modal>
   );
