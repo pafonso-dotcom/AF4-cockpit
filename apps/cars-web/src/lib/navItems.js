@@ -52,9 +52,6 @@ export const NAV_ITEMS = [
   { modulo: "agenda", tab: "notas",      label: "Compromissos", grupo: "Agenda" },
   { modulo: "agenda", tab: "tarefas",    label: "Tarefas",      grupo: "Agenda" },
   { modulo: "agenda", tab: "metas",      label: "Metas",        grupo: "Agenda" },
-  { modulo: "agenda", tab: "compras",    label: "Compras",      grupo: "Agenda" },
-  { modulo: "agenda", tab: "diario",     label: "Diário",       grupo: "Agenda" },
-  { modulo: "agenda", tab: "ideias",     label: "Ideias",       grupo: "Agenda" },
   { modulo: "agenda", tab: "inicio",     label: "Agenda · Início", grupo: "Agenda" },
 ];
 

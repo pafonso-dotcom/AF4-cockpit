@@ -77,9 +77,6 @@ const Calendario = lz(() => import("./components/pages/Calendario.jsx"));
 const Categorias = lz(() => import("./components/pages/Categorias.jsx"));
 const Metas = lz(() => import("./components/pages/Metas.jsx"));
 const Notas = lz(() => import("./components/pages/Notas.jsx"));
-const Diario = lz(() => import("./components/pages/Diario.jsx"));
-const Compras = lz(() => import("./components/pages/Compras.jsx"));
-const Ideias = lz(() => import("./components/pages/Ideias.jsx"));
 const Tarefas = lz(() => import("./components/pages/Tarefas.jsx"));
 const AgendaInicio = lz(() => import("./components/pages/AgendaInicio.jsx"));
 const Despesas = lz(() => import("./components/pages/Despesas.jsx"));
@@ -889,9 +886,6 @@ export default function App() {
       {tab === "tarefas" && (
         <Tarefas tarefas={tarefas} setTarefas={setTarefas} />
       )}
-      {tab === "ideias" && (
-        <Ideias ideias={ideias} setIdeias={setIdeias} />
-      )}
       {tab === "metas" && (
         <Metas metas={metas} setMetas={setMetas} hidden={hidden}
                fixas={fixas} setFixas={setFixas}
@@ -899,12 +893,6 @@ export default function App() {
                categorias={categorias} contas={contas} setContas={setContas}
                transacoes={transacoes} setTransacoes={setTransacoes}
                ativos={ativos} setAtivos={setAtivos} />
-      )}
-      {tab === "compras" && (
-        <Compras compras={compras} setCompras={setCompras} />
-      )}
-      {tab === "diario" && (
-        <Diario diario={diario} setDiario={setDiario} />
       )}
       {tab === "lembretes" && (
         <Lembretes lembretes={lembretes} setLembretes={setLembretes} />
