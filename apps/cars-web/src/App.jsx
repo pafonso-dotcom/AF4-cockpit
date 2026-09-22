@@ -642,7 +642,13 @@ export default function App() {
   // mesmo wrapper estava repetido inline em Header, KeyboardShortcuts, Dashboard,
   // InvestPainel e BottomTabBar.
   const irParaTab = useCallback((t) => {
-    setCartaoAberto(null); setContaAberta(null); setTab(t);
+    setCartaoAberto(null); setContaAberta(null);
+    // Troca também o módulo quando a aba pertence a outro (ex.: card do
+    // Painel → "calendario", que vive na Agenda). Sem isso a tela ficava
+    // em branco (bug 2026-09-22). Aba fora do mapa: mantém o módulo atual.
+    const mod = Object.keys(SUBTAB_IDS).find(m => SUBTAB_IDS[m].includes(t));
+    if (mod) setModulo(mod);
+    setTab(t);
   }, []);
 
   // Quick actions (também usadas pelos atalhos N/V/A)
