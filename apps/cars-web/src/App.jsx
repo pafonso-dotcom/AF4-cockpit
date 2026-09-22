@@ -77,12 +77,10 @@ const Calendario = lz(() => import("./components/pages/Calendario.jsx"));
 const Categorias = lz(() => import("./components/pages/Categorias.jsx"));
 const Metas = lz(() => import("./components/pages/Metas.jsx"));
 const Notas = lz(() => import("./components/pages/Notas.jsx"));
-const Habitos = lz(() => import("./components/pages/Habitos.jsx"));
 const Diario = lz(() => import("./components/pages/Diario.jsx"));
 const Compras = lz(() => import("./components/pages/Compras.jsx"));
 const Ideias = lz(() => import("./components/pages/Ideias.jsx"));
 const Tarefas = lz(() => import("./components/pages/Tarefas.jsx"));
-const SugestoesMelhorias = lz(() => import("./components/pages/SugestoesMelhorias.jsx"));
 const AgendaInicio = lz(() => import("./components/pages/AgendaInicio.jsx"));
 const Despesas = lz(() => import("./components/pages/Despesas.jsx"));
 const Planejamento = lz(() => import("./components/pages/Planejamento/index.jsx"));
@@ -109,7 +107,6 @@ const Configuracoes = lz(() => import("./components/pages/Configuracoes.jsx"));
 // Os DADOS negocio* continuam no estado e nos backups — nada é apagado; se um
 // dia voltar, é só restaurar as páginas (histórico do git) e religar aqui.
 const Lembretes = lz(() => import("./components/pages/Lembretes.jsx"));
-const Conversa = lz(() => import("./components/pages/Conversa.jsx"));
 const Treino = lz(() => import("./components/pages/Treino.jsx"));
 import { EXERCICIOS_BASE } from "./lib/exerciciosBase.js";
 import { dispararLembretes } from "./lib/lembretes.js";
@@ -710,7 +707,7 @@ export default function App() {
                    cartoes={cartoes} parcelamentos={parcelamentos}
                    devedores={devedores} dividas={dividas} cheques={cheques}
                    fixas={fixas} fixaOcorrencias={fixaOcorrencias}
-                   agenda={agenda}
+                   agenda={agenda} lembretes={lembretes} tarefas={tarefas}
                    patrimonioHistorico={patrimonioHistorico}
                    escopoAtivo={escopoAtivo}
                    onTabChange={irParaTab}
@@ -895,9 +892,6 @@ export default function App() {
       {tab === "ideias" && (
         <Ideias ideias={ideias} setIdeias={setIdeias} />
       )}
-      {tab === "sugestoes" && (
-        <SugestoesMelhorias sugestoes={sugestoes} setSugestoes={setSugestoes} />
-      )}
       {tab === "metas" && (
         <Metas metas={metas} setMetas={setMetas} hidden={hidden}
                fixas={fixas} setFixas={setFixas}
@@ -909,28 +903,11 @@ export default function App() {
       {tab === "compras" && (
         <Compras compras={compras} setCompras={setCompras} />
       )}
-      {tab === "habitos" && (
-        <Habitos habitos={habitos} setHabitos={setHabitos} />
-      )}
       {tab === "diario" && (
         <Diario diario={diario} setDiario={setDiario} />
       )}
       {tab === "lembretes" && (
         <Lembretes lembretes={lembretes} setLembretes={setLembretes} />
-      )}
-      {tab === "conversa" && (
-        <Conversa
-          conversaHistorico={conversaHistorico}
-          setConversaHistorico={setConversaHistorico}
-          transacoes={transacoes} setTransacoes={setTransacoes}
-          categorias={categorias} contas={contas}
-          agenda={agenda} setAgenda={setAgenda}
-          tarefas={tarefas} setTarefas={setTarefas}
-          lembretes={lembretes} setLembretes={setLembretes}
-          treinos={treinos}
-          apiKeys={apiKeys}
-          hidden={hidden}
-        />
       )}
       {tab === "treino" && (
         <Treino

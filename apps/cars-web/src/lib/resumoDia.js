@@ -23,6 +23,7 @@ export function montarResumoDia({
   proventosMes = null,     // { total, qtd } de proventosPendentesDoMes
   backupAtraso = null,     // { dias } de backupNuvemAtraso (null = em dia/desligado)
   cambioDefasado = 0,      // nº de contas de contasCambioDefasado
+  agendaHoje = null,       // { eventos, lembretes, tarefas } do dia (Agenda)
   fmt = (v) => String(v),
   hoje = new Date(),
 } = {}) {
@@ -40,6 +41,18 @@ export function montarResumoDia({
         ? `Vence hoje: ${nome} (${fmt(total)})`
         : `Vencem hoje: ${vencemHoje.length} contas (${fmt(total)})`,
     });
+  }
+
+  // 1½) Agenda de hoje — compromissos, lembretes e tarefas do dia (a Agenda
+  // ficou enxuta; o Painel avisa o que tem pra hoje).
+  if (agendaHoje) {
+    const partes = [];
+    if (agendaHoje.eventos > 0) partes.push(`${agendaHoje.eventos} compromisso${agendaHoje.eventos === 1 ? "" : "s"}`);
+    if (agendaHoje.lembretes > 0) partes.push(`${agendaHoje.lembretes} lembrete${agendaHoje.lembretes === 1 ? "" : "s"}`);
+    if (agendaHoje.tarefas > 0) partes.push(`${agendaHoje.tarefas} tarefa${agendaHoje.tarefas === 1 ? "" : "s"}`);
+    if (partes.length) {
+      avisos.push({ icone: "📌", cor: "gold", texto: `Hoje na agenda: ${partes.join(" · ")}` });
+    }
   }
 
   // 2) Cartão fechando (hoje, amanhã ou depois de amanhã)
