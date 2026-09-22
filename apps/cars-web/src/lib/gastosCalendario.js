@@ -19,7 +19,11 @@
 const ehPagFatura = (t) =>
   !!t && (t.origem === "fatura-pagamento" || /pagamento\s+(de\s+)?fatura/i.test(t.descricao || ""));
 
-export function mapaGastosMes({ transacoes = [], categorias = [], ym, categoriaFiltro = "" } = {}) {
+/** Monta o mapa a partir de ITENS já agregados ([{data, valor, categoria,
+ *  descricao?}]) — a MESMA base do resto do calendário (getDespesasDoMes:
+ *  fixas + parcelas de cartão + dívidas + avulsas). É o caminho usado pela
+ *  tela; sem ele o mapa só via transações avulsas e pintava quase nada. */
+export function mapaGastosDeItens(itens = [], { categorias = [], categoriaFiltro = "", ym = "" } = {}) {
   // Filtro por categoria: a raiz escolhida + as filhas dela (parentId).
   let nomesFiltro = null;
   if (categoriaFiltro) {
@@ -30,14 +34,14 @@ export function mapaGastosMes({ transacoes = [], categorias = [], ym, categoriaF
 
   const porDia = {};
   let total = 0;
-  for (const t of transacoes || []) {
-    if (!t || (t.tipo !== "despesa" && t.tipo !== "saida")) continue;
-    if (!String(t.data || "").startsWith(ym)) continue;
-    if (t.transferenciaId) continue;
+  for (const t of itens || []) {
+    if (!t) continue;
+    if (ym && !String(t.data || "").startsWith(ym)) continue;
+    if (t.transferenciaId || /transf/i.test(t.categoria || "")) continue;
     if (ehPagFatura(t)) continue;
     const cat = t.categoria || "Sem categoria";
     if (nomesFiltro && !nomesFiltro.has(cat)) continue;
-    const dia = parseInt(String(t.data).slice(8, 10), 10);
+    const dia = parseInt(String(t.data || "").slice(8, 10), 10);
     if (!(dia >= 1 && dia <= 31)) continue;
     const v = Number(t.valor) || 0;
     if (v <= 0) continue;
@@ -58,6 +62,12 @@ export function mapaGastosMes({ transacoes = [], categorias = [], ym, categoriaF
   }
 
   return { porDia, max, diaMax, total };
+}
+
+/** Variante que parte de TRANSAÇÕES cruas (filtra receitas/tipo legado). */
+export function mapaGastosMes({ transacoes = [], categorias = [], ym, categoriaFiltro = "" } = {}) {
+  const itens = (transacoes || []).filter(t => t && (t.tipo === "despesa" || t.tipo === "saida"));
+  return mapaGastosDeItens(itens, { categorias, categoriaFiltro, ym });
 }
 
 /** Intensidade 0..1 pro heat da célula — raiz quadrada pra dias pequenos
