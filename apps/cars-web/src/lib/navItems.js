@@ -21,7 +21,8 @@ export const NAV_ITEMS = [
   { modulo: "financas", tab: "revisor-ganhos",      label: "Revisor de ganhos",     grupo: "Finanças" },
   { modulo: "financas", tab: "relatorios-f", label: "Relatórios",         grupo: "Finanças" },
   { modulo: "financas", tab: "relatorios-f", label: "Pesquisas (relatórios diversos)", grupo: "Finanças" },
-  { modulo: "financas", tab: "audit",        label: "Histórico",          grupo: "Finanças" },
+  // Histórico (auditoria) mudou pra Configurações → Backup (2026-09-22).
+  { modulo: "financas", tab: "cfg-backup",   label: "Histórico",          grupo: "Sistema" },
 
   // Investimentos
   { modulo: "invest", tab: "investimentos",  label: "Painel",              grupo: "Investimentos" },

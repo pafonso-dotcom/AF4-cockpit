@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Search, Printer, BarChart3, Brain, History } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Search, Printer, BarChart3, Brain } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN } from "../../lib/format.js";
 import { MESES_LONGO } from "../../lib/meses.js";
@@ -15,7 +15,6 @@ import Modal from "../ui/Modal.jsx";
 import PesquisasFinancas from "./PesquisasFinancas.jsx";
 import RelatoriosFinancas from "./RelatoriosFinancas.jsx";
 import Inteligencia from "./Inteligencia.jsx";
-import AuditLog from "./AuditLog.jsx";
 
 const mesAtualISO = () => {
   const d = new Date();
@@ -134,6 +133,29 @@ export default function AnalisesFinancas(props) {
     return Number(c?.limite) > 0 ? Number(c.limite) : null;
   };
 
+  // Tendência · últimos 6 meses (receitas × despesas × sobra) — o motor
+  // mensal roda uma vez por mês da janela (memoizado; só recalcula se os
+  // dados ou o mês selecionado mudarem).
+  const tendencia = useMemo(() => {
+    const [y, m] = mesISO.split("-").map(Number);
+    const out = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(y, m - 1 - i, 1);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      let r = null;
+      try { r = relatorioMensal(iso, state, escopoAtivo, []); } catch { r = null; }
+      out.push({
+        iso,
+        label: (MESES_LONGO[d.getMonth()] || "").slice(0, 3),
+        receitas: r?.financas?.receitas || 0,
+        despesas: r?.financas?.despesas || 0,
+        sobra: r?.financas?.sobra || 0,
+      });
+    }
+    return out;
+  }, [mesISO, state, escopoAtivo]);
+  const maxTend = Math.max(1, ...tendencia.flatMap(t => [t.receitas, t.despesas]));
+
   const gerarPDF = () => {
     const mapaG = mapaGastosDeItens(despesasAgg, { categorias, ym: mesISO });
     gerarPDFMensal({
@@ -251,6 +273,36 @@ export default function AnalisesFinancas(props) {
         </div>
       )}
 
+      {/* TENDÊNCIA · últimos 6 meses — receitas × despesas, sobra embaixo */}
+      {tendencia.some(t => t.receitas > 0 || t.despesas > 0) && (
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px 14px", marginBottom: 12 }}>
+          <div className="label-eyebrow" style={{ marginBottom: 10 }}>
+            Tendência · últimos 6 meses
+            <span style={{ marginLeft: 10, textTransform: "none", letterSpacing: 0, fontWeight: 500, color: T.faint }}>
+              <span style={{ color: T.green }}>■</span> receitas · <span style={{ color: T.red }}>■</span> despesas
+            </span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${tendencia.length}, 1fr)`, gap: 8, alignItems: "end" }}>
+            {tendencia.map(t => {
+              const atual = t.iso === mesISO;
+              return (
+                <div key={t.iso} title={`${t.label}: receitas ${fmt(t.receitas)} · despesas ${fmt(t.despesas)} · ${t.sobra >= 0 ? "sobrou" : "faltou"} ${fmt(Math.abs(t.sobra))}`}
+                     style={{ textAlign: "center", opacity: atual ? 1 : 0.85 }}>
+                  <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 3, height: 72 }}>
+                    <div style={{ width: 12, borderRadius: "4px 4px 0 0", background: T.green, height: `${Math.max(2, (t.receitas / maxTend) * 100)}%` }} />
+                    <div style={{ width: 12, borderRadius: "4px 4px 0 0", background: T.red, height: `${Math.max(2, (t.despesas / maxTend) * 100)}%` }} />
+                  </div>
+                  <div style={{ fontSize: 10, color: atual ? T.gold : T.muted, fontWeight: atual ? 700 : 500, marginTop: 4, textTransform: "capitalize" }}>{t.label}</div>
+                  <div className="num" style={{ fontSize: 9.5, fontWeight: 700, color: t.sobra >= 0 ? T.green : T.red }}>
+                    {hidden ? "•••" : `${t.sobra >= 0 ? "+" : "−"}${Math.round(Math.abs(t.sobra)).toLocaleString("pt-BR")}`}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* GASTOS POR CATEGORIA — o coração: barra + % + delta + drill-down */}
       <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px 14px", marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
@@ -354,10 +406,8 @@ export default function AnalisesFinancas(props) {
           fixas={fixas}
           escopoAtivo={escopoAtivo} hidden={hidden} onTabChange={onTabChange} embed />
       </ExtraSec>
-      <ExtraSec {...extra("historico")} icon={History} titulo="Histórico de alterações"
-                desc="Registro técnico de tudo que mudou no cockpit (auditoria).">
-        <AuditLog embed />
-      </ExtraSec>
+      {/* Histórico de alterações mudou pra Configurações → Backup (auditoria
+          técnica não é análise de gasto). */}
 
       {/* MODAL: Pesquisas (busca livre) */}
       {pesquisaAberta && (
