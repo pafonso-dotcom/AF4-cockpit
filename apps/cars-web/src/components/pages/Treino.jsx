@@ -244,6 +244,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
     const sessao = {
       id: uid(),
       templateId: template?.id || null,
+      nome: template?.nome || "",
       data: hoje,
       modalidade: template?.modalidade || "musculacao",
       exerciciosFeitos: (template?.exercicios || []).map(e => ({
@@ -341,6 +342,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
                 onConcluir={() => concluirSessao(sessao.id)}
                 onExcluir={() => excluirSessao(sessao.id)}
                 setExerciciosDB={setExerciciosDB}
+                nomeTemplate={treinoTemplates.find(t => t.id === sessao.templateId)?.nome || ""}
               />
             ))}
           </div>
@@ -426,7 +428,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
                   <Icon size={16} style={{ color: cor, flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>
-                      {template?.nome || MODALIDADE_LABEL[s.modalidade]}
+                      {s.nome || template?.nome || MODALIDADE_LABEL[s.modalidade]}
                     </div>
                     <div style={{ fontSize: 11, color: T.muted }}>{s.data}</div>
                   </div>
@@ -571,9 +573,19 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
 }
 
 /* ---- SessaoCard ---- */
-function SessaoCard({ sessao, exerciciosDB, ativa, onToggleAtiva, onAtualizar, onConcluir, onExcluir, setExerciciosDB }) {
+function SessaoCard({ sessao, exerciciosDB, ativa, onToggleAtiva, onAtualizar, onConcluir, onExcluir, setExerciciosDB, nomeTemplate = "" }) {
   const cor = MODALIDADE_COR[sessao.modalidade] || T.gold;
   const Icon = MODALIDADE_ICON[sessao.modalidade] || Dumbbell;
+  // Nome do treino: o próprio da sessão > nome do template > modalidade.
+  // Editável pelo lápis (pedido 2026-09-22 — três "Musculação" iguais na tela).
+  const titulo = sessao.nome || nomeTemplate || MODALIDADE_LABEL[sessao.modalidade];
+  const [editandoNome, setEditandoNome] = useState(null); // null = não editando
+  const salvarNome = () => {
+    if (editandoNome == null) return;
+    const nome = editandoNome.trim();
+    onAtualizar({ nome });
+    setEditandoNome(null);
+  };
   const totalEx = sessao.exerciciosFeitos.length;
   const concluidosEx = sessao.exerciciosFeitos.filter(e =>
     sessao.modalidade === "musculacao"
@@ -639,8 +651,25 @@ function SessaoCard({ sessao, exerciciosDB, ativa, onToggleAtiva, onAtualizar, o
     <div style={{ background: T.card, border: `1px solid ${cor}55`, borderTop: `3px solid ${cor}`, borderRadius: 16, padding: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
         <Icon size={18} style={{ color: cor }} />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{MODALIDADE_LABEL[sessao.modalidade]}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {editandoNome != null ? (
+            <input autoFocus value={editandoNome}
+              onChange={e => setEditandoNome(e.target.value)}
+              onBlur={salvarNome}
+              onKeyDown={e => { if (e.key === "Enter") salvarNome(); if (e.key === "Escape") setEditandoNome(null); }}
+              placeholder={MODALIDADE_LABEL[sessao.modalidade]}
+              style={{ fontSize: 14, fontWeight: 700, color: T.ink, background: T.bg, border: `1px solid ${T.gold}`, borderRadius: 8, padding: "3px 8px", width: "100%", maxWidth: 280 }} />
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{titulo}</span>
+              {!sessao.concluido && (
+                <button onClick={() => setEditandoNome(titulo)} title="Renomear treino"
+                  style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", padding: 3, flexShrink: 0 }}>
+                  <Edit3 size={12} />
+                </button>
+              )}
+            </div>
+          )}
           {totalEx > 0 && (
             <div style={{ fontSize: 11, color: T.muted }}>{concluidosEx}/{totalEx} exercícios · {pct}%</div>
           )}
