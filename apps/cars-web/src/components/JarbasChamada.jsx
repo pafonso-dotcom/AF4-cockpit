@@ -221,6 +221,21 @@ export default function JarbasChamada({ dados = {}, apiKeys = {}, msgs = [], set
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Gesto/botão VOLTAR do sistema fecha SÓ o Jarbas (não sai do app):
+  // empurra um estado no histórico ao abrir; popstate → encerrar. Se fechar
+  // pelo botão, consome o estado no cleanup pra não deixar rastro.
+  const fechouPeloHistoricoRef = useRef(false);
+  useEffect(() => {
+    try { window.history.pushState({ jarbas: 1 }, ""); } catch {}
+    const aoVoltar = () => { fechouPeloHistoricoRef.current = true; onEncerrar(); };
+    window.addEventListener("popstate", aoVoltar);
+    return () => {
+      window.removeEventListener("popstate", aoVoltar);
+      if (!fechouPeloHistoricoRef.current) { try { window.history.back(); } catch {} }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const toggleMudo = () => {
     if (faseRef.current === "mudo") {
       comecarAOuvir();
@@ -259,11 +274,20 @@ export default function JarbasChamada({ dados = {}, apiKeys = {}, msgs = [], set
         linear-gradient(90deg, ${HUD.grade} 1px, transparent 1px),
         radial-gradient(circle at 50% 32%, #0a2e3c 0%, ${HUD.fundo} 62%)`,
       backgroundSize: "34px 34px, 34px 34px, cover",
-      display: "flex", flexDirection: "column", alignItems: "center", padding: "56px 24px 30px",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      padding: "56px 24px calc(22px + env(safe-area-inset-bottom, 12px))",
     }}>
       <div style={{ fontSize: 12, color: HUD.sub, fontWeight: 700, letterSpacing: ".28em", textTransform: "uppercase" }}>
         J·A·R·B·A·S
       </div>
+
+      {/* ← VOLTAR — sempre visível no topo (usuário ficava "preso" na tela) */}
+      <button onClick={onEncerrar} title="Voltar pro aplicativo"
+        style={{ position: "absolute", top: 48, left: 18, display: "inline-flex", alignItems: "center", gap: 6,
+                 padding: "9px 16px", borderRadius: 100, background: HUD.card, border: `1px solid ${HUD.borda}`,
+                 color: HUD.texto, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+        ← Voltar
+      </button>
 
       {/* 🧠 memórias — canto superior direito */}
       <button onClick={() => setMemoriasOpen(true)} title="O que o Jarbas lembra de você"
@@ -304,7 +328,8 @@ export default function JarbasChamada({ dados = {}, apiKeys = {}, msgs = [], set
         </div>
       )}
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, width: "100%", minHeight: 0 }}>
+      {/* Coluna central ROLÁVEL — resposta longa nunca empurra os controles pra fora */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "safe center", gap: 24, width: "100%", minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "8px 0" }}>
         <div ref={orbeWrapRef} style={{ "--jnivel": 0 }}>
           <JarbasOrbe size={200} fase={faseOrbe} />
         </div>
@@ -324,8 +349,8 @@ export default function JarbasChamada({ dados = {}, apiKeys = {}, msgs = [], set
               <div style={{ display: "grid", gridTemplateColumns: ultima.destaques.length > 1 ? "1fr 1fr" : "1fr", gap: 8 }}>
                 {ultima.destaques.map((d, i) => (
                   <div key={i} style={{ background: HUD.card, border: `1px solid ${HUD.ciano}66`, borderRadius: 14, padding: "10px 14px" }}>
-                    <div style={{ fontSize: 10, color: HUD.sub, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase" }}>{d.rotulo}</div>
-                    <div className="num" style={{ fontSize: 20, fontWeight: 800, color: HUD.texto, textShadow: `0 0 14px ${HUD.ciano}55` }}>{d.valor}</div>
+                    <div style={{ fontSize: 10, color: HUD.sub, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase" }}>{String(d?.rotulo ?? "")}</div>
+                    <div className="num" style={{ fontSize: 20, fontWeight: 800, color: HUD.texto, textShadow: `0 0 14px ${HUD.ciano}55` }}>{String(d?.valor ?? "")}</div>
                   </div>
                 ))}
               </div>
@@ -341,7 +366,7 @@ export default function JarbasChamada({ dados = {}, apiKeys = {}, msgs = [], set
                 {ultima.fontes.map((f, i) => (
                   <a key={i} href={f.url} target="_blank" rel="noopener noreferrer"
                      style={{ fontSize: 10.5, color: HUD.ciano, background: "rgba(77,208,225,.08)", border: `1px solid ${HUD.borda}`, borderRadius: 100, padding: "3px 10px", textDecoration: "none", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    🌐 {f.titulo}
+                    🌐 {String(f?.titulo ?? "")}
                   </a>
                 ))}
               </div>
