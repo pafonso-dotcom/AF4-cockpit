@@ -14,6 +14,26 @@ import { tabelasNovasExistem, snapshotContagens } from "../../lib/db/client.js";
 import { lembretesAtivos, setLembretesAtivos, pedirPermissao, suportaNotificacao } from "../../lib/lembretes.js";
 import { exportarBackupCSV } from "../../lib/exportCSV.js";
 import { baixarCopiaDoApp } from "../../lib/exportApp.js";
+import AuditLog from "./AuditLog.jsx";
+
+// Histórico de alterações (auditoria) — morava em Análises & Relatórios;
+// mudou pra cá na unificação de 2026-09-22 (é ferramenta técnica, não análise).
+function HistoricoAlteracoes() {
+  const [aberto, setAberto] = React.useState(false);
+  return (
+    <>
+      <div className="st"><h2>Histórico de alterações</h2><div className="mt">Auditoria</div></div>
+      <div className="fb">
+        <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 12 }}>
+          Registro de tudo que mudou no cockpit — útil pra revisar erros e entender quando algo foi alterado.
+        </p>
+        {aberto
+          ? <AuditLog embed />
+          : <button className="btn-ghost" onClick={() => setAberto(true)}>📜 Abrir histórico</button>}
+      </div>
+    </>
+  );
+}
 
 /**
  * Configurações centralizadas (estilo demo v3).
@@ -84,6 +104,7 @@ export default function Configuracoes({
             </>
           )}
           <Backup />
+          <HistoricoAlteracoes />
         </>
       )}
     </div>

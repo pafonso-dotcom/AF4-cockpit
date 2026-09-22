@@ -5,7 +5,6 @@ import { fmt } from "../../../lib/format.js";
 import AReceberEDividas from "../AReceberEDividas.jsx";
 import DespesasFixas from "../DespesasFixas.jsx";
 import Cheques from "../Cheques.jsx";
-import AnaliseGastos from "./AnaliseGastos.jsx";
 import ReservaEmergenciaView from "./ReservaEmergenciaView.jsx";
 import { somaContasBRL } from "../../../lib/cambio.js";
 
@@ -227,15 +226,27 @@ export default function Planejamento(props) {
                    escopoAtivo={props.escopoAtivo} hidden={props.hidden} embed />
         </Secao>
 
-        <Secao on={aberto === "analise-gastos"} onToggle={() => toggle("analise-gastos")} titulo="Análise de gastos">
-          <AnaliseGastos transacoes={props.transacoes} contas={props.contas}
-                         categorias={props.categorias} setCategorias={props.setCategorias} fixas={props.fixas}
-                         fixaOcorrencias={props.fixaOcorrencias} dividas={props.dividas}
-                         parcelamentos={props.parcelamentos} devedores={props.devedores}
-                         cheques={props.cheques} onVerCategoria={props.onVerCategoria}
-                         apiKey={props.apiKey} onTabChange={props.onTabChange}
-                         escopoAtivo={props.escopoAtivo} hidden={props.hidden} />
-        </Secao>
+        {/* Análise de gastos MUDOU DE CASA (unificação 2026-09-22): agora é a
+            tela única "Análise do mês" em Análises & Relatórios — aqui fica só
+            o atalho, pra não duplicar a mesma informação em dois lugares. */}
+        {props.onTabChange && (
+          <button onClick={() => props.onTabChange("relatorios-f")}
+                  style={{
+                    width: "100%", textAlign: "left", cursor: "pointer",
+                    background: T.card, border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`,
+                    borderRadius: 16, padding: "13px 16px", marginBottom: 12,
+                    display: "flex", alignItems: "center", gap: 10, color: T.ink,
+                  }}>
+            <span style={{ fontSize: 15 }}>📊</span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 13.5, fontWeight: 700 }}>Análise de gastos → Análise do mês</span>
+              <span style={{ display: "block", fontSize: 11, color: T.faint, marginTop: 1 }}>
+                Categorias com comparação, leitura do consultor e PDF — tudo numa tela só, em Análises &amp; Relatórios.
+              </span>
+            </span>
+            <span style={{ color: T.gold, fontSize: 13, flexShrink: 0 }}>abrir →</span>
+          </button>
+        )}
 
         {/* Reserva de emergência — tela completa que existia órfã no código
             (auditoria 2026-09-18) e voltou como 5ª seção do Centro. */}
