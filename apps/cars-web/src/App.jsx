@@ -182,6 +182,9 @@ export default function App() {
   // Lápides de itens apagados (lib/tumbas.js) — viajam no estado sincronizado
   // pra fusão do sync não ressuscitar o que foi deletado.
   const [tumbas, setTumbas] = useState({});
+  // Notas rápidas (Contas/Cartões) — { contas: "...", cartoes: "..." }.
+  // No estado sincronizado pra aparecer em todos os aparelhos (pedido 2026-09-22).
+  const [notasRapidas, setNotasRapidas] = useState({});
   // setTransacoes rastreado: toda exclusão (id que some da lista) vira lápide
   // automaticamente — cobre os 16+ pontos de exclusão sem tocar em cada um.
   // O flush fica FORA do updater (updaters devem ser puros).
@@ -321,7 +324,7 @@ export default function App() {
     // setTransacoes cru de propósito: hidratação/restauração troca a lista
     // inteira e NÃO deve gerar lápides (só exclusões do usuário geram).
     setContas, setCategorias, setTransacoes: setTransacoesBase, setAtivos, setMetas, setNotas,
-    setTumbas,
+    setTumbas, setNotasRapidas,
     setCartoes, setParcelamentos, setDevedores, setDividas, setCheques,
     setFixas, setFixaOcorrencias, setAgenda, setHabitos, setDiario, setCompras,
     setIdeias, setTarefas, setSugestoes, setLembretes, setConversaHistorico,
@@ -352,7 +355,7 @@ export default function App() {
     tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
     lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
     themeId,
-    tumbas,
+    tumbas, notasRapidas,
   });
 
   // Backup automático diário na nuvem (GitHub Gist): 1x por dia, na abertura,
@@ -439,7 +442,7 @@ export default function App() {
       negocioLojas, negocioLojaAtiva, negocioRecebimentos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
-      themeId, tumbas, loading]);
+      themeId, tumbas, notasRapidas, loading]);
 
   useEffect(() => {
     if (loading) return;
@@ -753,7 +756,9 @@ export default function App() {
                   escopoAtivo={escopoAtivo}
                   onCreateTransacao={handleCreateTransacao}
                   contaAtiva={contaAberta}
-                  onContaClick={setContaAberta} />
+                  onContaClick={setContaAberta}
+                  notaRapida={notasRapidas.contas}
+                  onSalvarNota={(t) => setNotasRapidas(p => ({ ...p, contas: t }))} />
         </div>
       )}
       {tab === "contas" && contaAberta && (
@@ -824,6 +829,8 @@ export default function App() {
                    apiKeys={apiKeys}
                    hidden={hidden}
                    cartaoAtivo={cartaoAberto}
+                   notaRapida={notasRapidas.cartoes}
+                   onSalvarNota={(t) => setNotasRapidas(p => ({ ...p, cartoes: t }))}
                    onPontoRestauracao={(motivo) => criarBackup(montarDados(), motivo)}
                    onCartaoClick={setCartaoAberto} />
         </div>

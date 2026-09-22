@@ -94,6 +94,8 @@ export function aplicarDadosCarregados(data, S) {
   // Lápides de itens apagados (lib/tumbas.js) — restaurar um backup antigo
   // sem `tumbas` zera as lápides de propósito (o backup manda no estado).
   if (S.setTumbas) S.setTumbas(data.tumbas || {});
+  // Notas rápidas (Contas/Cartões) sincronizadas entre aparelhos.
+  if (S.setNotasRapidas) S.setNotasRapidas(data.notasRapidas || {});
   // Migração one-shot: marca contas/categorias antigas com escopo detectado
   setTimeout(() => {
     migrarEscoposAuto(
@@ -106,6 +108,7 @@ export function aplicarDadosCarregados(data, S) {
 // Primeiro uso (sem nada salvo): popula com seeds.
 export function aplicarSeeds(S) {
   if (S.setTumbas) S.setTumbas({});
+  if (S.setNotasRapidas) S.setNotasRapidas({});
   S.setContas(seedContas);
   S.setCategorias(seedCategorias);
   S.setTransacoes(seedTransacoes);
