@@ -6,7 +6,9 @@ import {
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN } from "../../lib/format.js";
 import { MESES_LONGO } from "../../lib/meses.js";
-import { relatorioMensal } from "../../lib/relatorioMensal.js";
+import { relatorioMensal, posicaoConsolidada, leituraConsultor } from "../../lib/relatorioMensal.js";
+import { mapaGastosMes, insightFimDeSemana } from "../../lib/gastosCalendario.js";
+import { saldoContaBRL } from "../../lib/cambio.js";
 import { printHTML } from "../../lib/importExport.js";
 
 const FONTE_PRINT = "'Nunito','Inter',-apple-system,system-ui,sans-serif";
@@ -29,6 +31,7 @@ function rotuloMes(mesISO) {
  */
 export default function RelatorioMensal({
   transacoes = [], contas = [], categorias = [],
+  ativos = [], carteiraProventos = { saldo: 0 },
   fixas = [], fixaOcorrencias = [], parcelamentos = [], dividas = [],
   devedores = [], cheques = [], cartoes = [],
   patrimonioHistorico = [], escopoAtivo = "tudo", hidden, embed = false,
@@ -59,6 +62,29 @@ export default function RelatorioMensal({
   const gerarPDF = () => {
     const esc = (s) => String(s ?? "").replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
     const sinal = (v) => (v >= 0 ? "+" : "−") + fmt(Math.abs(v));
+
+    // Leitura do consultor — frases automáticas com os números do mês.
+    const mapaG = mapaGastosMes({ transacoes, categorias, ym: mesISO });
+    const frases = leituraConsultor({
+      financas: f, mesISO, mapaGastos: mapaG,
+      insightFds: insightFimDeSemana(mapaG.porDia, mesISO), fmt,
+    });
+    const consultorHtml = frases.length
+      ? `<h2>Leitura do consultor</h2><ul class="cons">${frases.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`
+      : "";
+
+    // Posição consolidada de HOJE (contas + proventos + invest − cartões).
+    const pos = posicaoConsolidada({ contas, ativos, parcelamentos, carteiraProventos, saldoContaBRL });
+    const consolidadaHtml = `<h2>Posição consolidada · hoje</h2>
+<div class="note">Fotografia de agora (não do fim de ${esc(rotuloMes(mesISO))}): contas, carteira de proventos e investimentos, menos o que está em aberto nos cartões.</div>
+<div class="stats">
+  <div class="row"><span>🏦 Contas</span><b class="n">${esc(fmt(pos.contas))}</b></div>
+  ${pos.proventos > 0 ? `<div class="row"><span>💰 Carteira de proventos</span><b class="n">${esc(fmt(pos.proventos))}</b></div>` : ""}
+  <div class="row"><span>📈 Investimentos (Brasil)</span><b class="n">${esc(fmt(pos.investBR))}</b></div>
+  ${pos.investUSD > 0 ? `<div class="row"><span>🇺🇸 Investimentos (US$, fora do total)</span><b class="n">US$ ${pos.investUSD.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b></div>` : ""}
+  <div class="row"><span>💳 Cartões em aberto</span><b class="n neg">− ${esc(fmt(pos.cartoesAbertos))}</b></div>
+  <div class="row" style="border-top:1.5px solid #cfcabf;border-bottom:none;font-weight:800"><span>Líquido consolidado</span><b class="n ${pos.liquido >= 0 ? "pos" : "neg"}">${esc(fmt(pos.liquido))}</b></div>
+</div>`;
 
     // Tabela resumida de categorias, com barra de % e linha de TOTAL.
     const tabelaCat = (linhas, total, cor, vazio) => {
@@ -157,6 +183,9 @@ tr.filho td.cat { padding-left:10px; }
 .cc { border:1px solid #e7e3db; border-radius:10px; padding:9px 12px; break-inside:avoid; }
 .cc-h { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px; font-size:11.5px; }
 .cc-h b { color:#22262b; } .cc-h span { color:#8a8f96; font-size:10px; font-variant-numeric:tabular-nums; }
+ul.cons { margin:6px 0 0; padding:0 0 0 4px; list-style:none; }
+ul.cons li { font-size:11px; color:#3a3f45; padding:5px 0 5px 18px; border-bottom:1px solid #f0ede7; position:relative; line-height:1.45; }
+ul.cons li::before { content:"◆"; position:absolute; left:2px; color:#3f6d6a; font-size:8px; top:8px; }
 .foot { margin-top:22px; padding-top:8px; border-top:1px solid #eee; font-size:8.5px; color:#b3b7bc; display:flex; justify-content:space-between; }
 .pos, .green { color:#1f7a44; } .neg, .red { color:#b3261e; }
 </style></head><body><div class="wrap">
@@ -182,6 +211,8 @@ tr.filho td.cat { padding-left:10px; }
   <div class="row"><span>Despesas vs mês anterior</span><b class="n">${deltaDesp}</b></div>
 </div>
 
+${consultorHtml}
+
 <div class="two">
   <div><div class="sub">Recebimentos por categoria</div>${recTab}</div>
   <div><div class="sub">Despesas por categoria · bancos</div>${despTab}</div>
@@ -203,6 +234,8 @@ ${detCartoes.length ? `<h2>Cartões · detalhe</h2>
 <h2>Resumo geral · por categoria</h2>
 <div class="note">Bancos + cartões juntos — o gasto real do mês por categoria (pai) e subcategoria (filho).</div>
 ${geralHtml}
+
+${consolidadaHtml}
 
 <div class="foot"><span>Afinanças · relatório mensal</span><span>${esc(rotuloMes(mesISO))}</span></div>
 </div></body></html>`);

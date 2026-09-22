@@ -705,6 +705,7 @@ export default function App() {
         <Dashboard totais={totais} hidden={hidden} contas={contas} ativos={ativos}
                    transacoes={transacoes} categorias={categorias} metas={metas}
                    orcamentosFuturos={orcamentosFuturos} setOrcamentosFuturos={setOrcamentosFuturos}
+                   carteiraProventos={carteiraProventos}
                    proventosRecebidos={proventosRecebidos} proventosIgnorados={proventosIgnorados} proventosManuais={proventosManuais}
                    cartoes={cartoes} parcelamentos={parcelamentos}
                    devedores={devedores} dividas={dividas} cheques={cheques}
@@ -818,7 +819,7 @@ export default function App() {
           fixas={fixas} fixaOcorrencias={fixaOcorrencias}
           parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
           cheques={cheques} cartoes={cartoes} metas={metas}
-          proventosManuais={proventosManuais}
+          proventosManuais={proventosManuais} carteiraProventos={carteiraProventos}
           patrimonioHistorico={patrimonioHistorico}
           apiKey={apiKeys.anthropic}
           escopoAtivo={escopoAtivo}

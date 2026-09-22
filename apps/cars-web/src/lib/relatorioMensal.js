@@ -231,3 +231,77 @@ export function relatorioMensal(mesISO, state = {}, escopo = "tudo", patrimonioH
 
   return { mes: mesISO, financas, invest, cartoes };
 }
+
+/* ============================================================
+   POSIÇÃO CONSOLIDADA + LEITURA DO CONSULTOR (puros, pro PDF)
+   ============================================================ */
+
+// Posição consolidada de AGORA: contas + carteira de proventos +
+// investimentos (Brasil) − cartões em aberto = líquido. US$ à parte.
+export function posicaoConsolidada({ contas = [], ativos = [], parcelamentos = [], carteiraProventos = {}, saldoContaBRL } = {}) {
+  const somaContas = (contas || []).filter(c => c && !c.foraPatrimonio)
+    .reduce((s, c) => s + (saldoContaBRL ? saldoContaBRL(c) : (Number(c.saldo) || 0)), 0);
+  const proventos = Number(carteiraProventos?.saldo) || 0;
+  let investBR = 0, investUSD = 0;
+  for (const a of ativos || []) {
+    const v = (Number(a?.qtd) || 0) * (Number(a?.preco) || 0);
+    if (a?.tipo === "stock" || a?.tipo === "reit") investUSD += v; else investBR += v;
+  }
+  const cartoesAbertos = (parcelamentos || []).reduce((s, p) => {
+    const total = p?.totalParcelas || 0;
+    if (total <= 0) return s;
+    const vpp = Number(p.valorParcela) || (p.valorTotal || 0) / total;
+    return s + vpp * Math.max(0, total - (p.parcelasPagas || []).length);
+  }, 0);
+  return {
+    contas: somaContas, proventos, investBR, investUSD, cartoesAbertos,
+    liquido: somaContas + proventos + investBR - cartoesAbertos,
+  };
+}
+
+// Leitura do consultor: 3–6 frases automáticas sobre o mês, tiradas dos
+// mesmos números do relatório (nada inventado).
+export function leituraConsultor({ financas: f, mesISO, mapaGastos = null, insightFds = null, fmt = (v) => String(v) } = {}) {
+  const frases = [];
+  if (!f) return frases;
+
+  // 1. Taxa de poupança
+  if (f.receitas > 0) {
+    const taxa = (f.sobra / f.receitas) * 100;
+    if (f.sobra >= 0) {
+      frases.push(`Você poupou ${taxa.toFixed(0)}% da renda do mês (${fmt(f.sobra)} de ${fmt(f.receitas)})${taxa >= 20 ? " — acima da regra dos 20%, ótimo sinal" : taxa >= 10 ? " — dentro do razoável; a meta clássica é 20%" : " — abaixo dos 10%; vale caçar o vazamento nas maiores categorias"}.`);
+    } else {
+      frases.push(`O mês fechou NO VERMELHO: as despesas superaram a renda em ${fmt(Math.abs(f.sobra))}. Prioridade: cortar nas 2 maiores categorias abaixo.`);
+    }
+  }
+
+  // 2. Maior categoria vs renda
+  const top = (f.categoriasGeral || f.categorias || [])[0];
+  if (top && f.receitas > 0) {
+    const pctRenda = (top.valor / f.receitas) * 100;
+    frases.push(`"${top.nome}" foi o maior destino do dinheiro: ${fmt(top.valor)} (${pctRenda.toFixed(0)}% da renda).`);
+  }
+
+  // 3. Comparação com o mês anterior
+  if (f.deltaDespesas != null) {
+    frases.push(f.deltaDespesas >= 0
+      ? `Os gastos SUBIRAM ${f.deltaDespesas.toFixed(0)}% em relação ao mês anterior.`
+      : `Os gastos CAÍRAM ${Math.abs(f.deltaDespesas).toFixed(0)}% em relação ao mês anterior — mantenha o ritmo.`);
+  }
+
+  // 4. Dia de pico + média diária (do mapa de gastos do calendário)
+  if (mapaGastos && mapaGastos.diaMax) {
+    const nDias = Object.keys(mapaGastos.porDia).length;
+    const media = nDias > 0 ? mapaGastos.total / nDias : 0;
+    frases.push(`O dia mais pesado foi ${String(mapaGastos.diaMax).padStart(2, "0")}/${String(mesISO).slice(5, 7)} (${fmt(mapaGastos.max)}); nos ${nDias} dias com gasto, a média foi ${fmt(media)}/dia.`);
+  }
+
+  // 5. Padrão fim de semana × dias úteis
+  if (insightFds) {
+    frases.push(insightFds.tipo === "fds"
+      ? `Padrão que dói: fins de semana custam ${String(insightFds.ratio).replace(".", ",")}× mais que dias úteis.`
+      : `Curioso: os dias úteis custam ${String(insightFds.ratio).replace(".", ",")}× mais que os fins de semana.`);
+  }
+
+  return frases;
+}

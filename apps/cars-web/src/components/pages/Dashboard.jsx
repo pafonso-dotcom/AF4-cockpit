@@ -88,6 +88,7 @@ export default function Dashboard({
   hidden, contas: contasRaw, ativos = [], transacoes: transacoesRaw,
   categorias, metas, cartoes = [], parcelamentos = [], devedores = [], dividas = [], cheques = [],
   orcamentosFuturos = [], setOrcamentosFuturos,
+  carteiraProventos = { saldo: 0 },
   proventosRecebidos = {}, proventosIgnorados = {}, proventosManuais = [],
   fixas = [], fixaOcorrencias = [],
   agenda = [],
@@ -135,6 +136,12 @@ export default function Dashboard({
     const ehUSD = a.tipo === "stock" || a.tipo === "reit";
     return ehUSD ? s : s + Number(a.qtd||0) * Number(a.preco||0);
   }, 0), [ativos]);
+  // Investimentos em US$ (Stocks/REITs) — informativo na visão consolidada,
+  // fora do total em R$ (decisão do usuário).
+  const totalInvestUSD = useMemo(() => ativos.reduce((s, a) =>
+    (a.tipo === "stock" || a.tipo === "reit") ? s + Number(a.qtd||0) * Number(a.preco||0) : s, 0), [ativos]);
+  // Saldo da Carteira de Proventos — dinheiro real acumulado; entra no total.
+  const provSaldo = Number(carteiraProventos?.saldo) || 0;
   const patrimonio = totalContas + totalInvest;
 
   // ===== Patrimônio Total (card do painel) =====
@@ -322,7 +329,8 @@ export default function Dashboard({
   // lançado no sistema (todos os anos — mesma base do "Total a pagar" do
   // Centro de Controle), não só o ano corrente. A receber/cheques já entram
   // completos.
-  const patrimonioTotal = totalContas + totalInvest + aReceber + chequesAReceber - aPagarTotal;
+  // + saldo da Carteira de Proventos (dinheiro real que ficava fora do total).
+  const patrimonioTotal = totalContas + provSaldo + totalInvest + aReceber + chequesAReceber - aPagarTotal;
   const mesAnteriorISO = useMemo(() => {
     const [y, m] = mesISO.split("-").map(Number);
     const d = new Date(y, m - 2, 1);
@@ -595,7 +603,9 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
-                 breakdown={{ contas: totalContas, aReceber: aReceber, cheques: chequesAReceber, invest: totalInvest, aPagar: aPagarTotal }} />
+                 breakdown={{ contas: totalContas, proventos: provSaldo, aReceber: aReceber, cheques: chequesAReceber,
+                              invest: totalInvest, investUSD: totalInvestUSD,
+                              cartoes: cartoesTotal, outrasAPagar: Math.max(0, aPagarTotal - cartoesTotal) }} />
         <span className="dash-prox">
           <ProximosVencimentosCard devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} />
         </span>
@@ -823,11 +833,36 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
       </div>
       {visivel && breakdown && (
         <div className="kpi-breakdown" style={{ position: "relative", zIndex: 1, marginTop: 10, paddingTop: 9, borderTop: "1px solid rgba(255,255,255,0.22)", display: "flex", flexDirection: "column", gap: 3 }}>
-          <Linha rotulo="Contas" v={breakdown.contas} sinal="+" />
-          <Linha rotulo="A receber" v={breakdown.aReceber} sinal="+" />
-          {breakdown.cheques > 0 && <Linha rotulo="Cheques a receber" v={breakdown.cheques} sinal="+" />}
-          <Linha rotulo="Investimentos (Brasil)" v={breakdown.invest} sinal="+" />
-          <Linha rotulo="A pagar (total)" v={breakdown.aPagar} sinal="-" />
+          {/* Visão consolidada: o que você TEM, o que vai ENTRAR, o que DEVE */}
+          <Linha rotulo="🏦 Contas" v={breakdown.contas} sinal="+" />
+          {breakdown.proventos > 0 && <Linha rotulo="💰 Carteira de proventos" v={breakdown.proventos} sinal="+" />}
+          <Linha rotulo="📈 Investimentos (Brasil)" v={breakdown.invest} sinal="+" />
+          <Linha rotulo="🤝 A receber" v={breakdown.aReceber} sinal="+" />
+          {breakdown.cheques > 0 && <Linha rotulo="🧾 Cheques a receber" v={breakdown.cheques} sinal="+" />}
+          <Linha rotulo="💳 Cartões em aberto" v={breakdown.cartoes} sinal="-" />
+          <Linha rotulo="📉 Outras contas a pagar" v={breakdown.outrasAPagar} sinal="-" />
+          {breakdown.investUSD > 0 && (
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontStyle: "italic", marginTop: 2 }}>
+              + US$ {(breakdown.investUSD).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} em Stocks/REITs (fora do total em R$)
+            </div>
+          )}
+          {/* Barrinha de composição do que você TEM (contas · proventos · invest) */}
+          {(() => {
+            const partes = [
+              { v: breakdown.contas, c: "rgba(255,255,255,0.95)" },
+              { v: breakdown.proventos, c: "rgba(255,215,130,0.95)" },
+              { v: breakdown.invest, c: "rgba(140,220,180,0.95)" },
+            ].filter(p => p.v > 0);
+            const soma = partes.reduce((s, p) => s + p.v, 0);
+            return soma > 0 ? (
+              <div style={{ display: "flex", height: 5, borderRadius: 100, overflow: "hidden", marginTop: 5, background: "rgba(255,255,255,0.18)" }}
+                   title="Composição: contas · carteira de proventos · investimentos">
+                {partes.map((p, i) => (
+                  <div key={i} style={{ width: `${(p.v / soma) * 100}%`, background: p.c }} />
+                ))}
+              </div>
+            ) : null;
+          })()}
         </div>
       )}
     </div>
