@@ -21,7 +21,6 @@ function rotuloMes(mesISO) {
 
 export function gerarPDFMensal({ mesISO, rel, escopoAtivo = "tudo", frases = [], pos = null }) {
   const { financas: f, invest: iv } = rel;
-  const detCartoes = rel.cartoes || [];
   const esc = (s) => String(s ?? "").replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
   const sinal = (v) => (v >= 0 ? "+" : "−") + fmt(Math.abs(v));
 
@@ -55,7 +54,6 @@ export function gerarPDFMensal({ mesISO, rel, escopoAtivo = "tudo", frases = [],
   };
 
   const recTab = tabelaCat(f.receitasCategorias, f.receitas, "#3f6d6a", "Sem receitas no mês.");
-  const despTab = tabelaCat(f.categorias, f.despesasBancos, "#a86b4b", "Sem gastos por banco.");
   const geralHtml = (f.categoriasGeral || []).length
     ? `<table class="cat-t"><tbody>${(f.categoriasGeral || []).map((p) => {
         const pai = `<tr class="pai"><td class="cat"><b>${esc(p.nome)}</b></td>
@@ -74,18 +72,6 @@ export function gerarPDFMensal({ mesISO, rel, escopoAtivo = "tudo", frases = [],
 
   const investVazio = !(iv.totalComprado > 0 || iv.totalVendido > 0 || iv.totalProventos > 0 || iv.patrimonioFim != null);
   const deltaDesp = f.deltaDespesas == null ? "—" : `${f.deltaDespesas >= 0 ? "▲ +" : "▼ "}${fmtN(Math.abs(f.deltaDespesas), 0)}%`;
-
-  const cartoesHtml = detCartoes.map((cc) => {
-    const rows = cc.categorias.map((c) => `<tr>
-      <td class="cat">${esc(c.nome)}</td>
-      <td class="bar"><i style="width:${Math.max(3, Math.round(c.pct))}%;background:#8a6a2a"></i></td>
-      <td class="n">${esc(fmt(c.valor))}</td><td class="pc">${fmtN(c.pct, 0)}%</td>
-    </tr>`).join("") || `<tr><td colspan="4" class="muted">—</td></tr>`;
-    return `<div class="cc">
-      <div class="cc-h"><b>${esc(cc.nome)}</b><span>Gasto ${esc(fmt(cc.total))}${cc.pagamento > 0 ? ` · Pago ${esc(fmt(cc.pagamento))}` : ""}</span></div>
-      <table class="cat-t"><tbody>${rows}</tbody></table>
-    </div>`;
-  }).join("");
 
   printHTML(`<!doctype html><html><head><meta charset="utf-8"><title>Relatório · ${esc(rotuloMes(mesISO))}</title>
 <style>
@@ -160,10 +146,12 @@ ul.cons li::before { content:"◆"; position:absolute; left:2px; color:#3f6d6a; 
 
 ${consultorHtml}
 
-<div class="two">
-  <div><div class="sub">Recebimentos por categoria</div>${recTab}</div>
-  <div><div class="sub">Despesas por categoria · bancos</div>${despTab}</div>
-</div>
+<h2>Despesas por categoria</h2>
+<div class="note">Bancos + cartões UNIFICADOS — o gasto real do mês por categoria (pai) e subcategoria (filho). Compras dentro de fatura em aberto já contam na categoria delas.</div>
+${geralHtml}
+
+<h2>Recebimentos por categoria</h2>
+${recTab}
 
 <h2>Investimentos do mês</h2>
 ${investVazio ? `<div class="empty">Sem movimentações de investimento neste mês.</div>` : `
@@ -173,14 +161,6 @@ ${investVazio ? `<div class="empty">Sem movimentações de investimento neste m�
   <div class="card"><div class="l">Proventos</div><div class="v green">${esc(fmt(iv.totalProventos))}</div></div>
 </div>
 <div class="chips">${provChips}</div>`}
-
-${detCartoes.length ? `<h2>Cartões · detalhe</h2>
-<div class="note">Informativo — compras/parcelas lançadas em cada cartão. O pagamento da fatura não soma.</div>
-<div class="ccs">${cartoesHtml}</div>` : ""}
-
-<h2>Resumo geral · por categoria</h2>
-<div class="note">Bancos + cartões juntos — o gasto real do mês por categoria (pai) e subcategoria (filho).</div>
-${geralHtml}
 
 ${consolidadaHtml}
 

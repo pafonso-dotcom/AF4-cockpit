@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Plus, Trash2, Edit3, Package, Check } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { uid, fmt } from "../../lib/format.js";
-import { getDespesasDoMes } from "../../lib/agregador.js";
+import { itensConsumoDoMes } from "../../lib/relatorioMensal.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import { PACOTES } from "../../lib/categoriasPacotes.js";
@@ -61,9 +61,11 @@ export default function Categorias({
   // fixas + parcelas + avulsas de cartão + transações), pra os números baterem.
   const mesISO = new Date().toISOString().slice(0, 7);
   const gastoPorCat = useMemo(() => {
+    // BASE ÚNICA de consumo (itensConsumoDoMes): bancos + cartões unificados,
+    // fatura importada aberta pelos itens — mesmos números do Painel/Análise.
     let itens = [];
     try {
-      itens = getDespesasDoMes(mesISO, { transacoes, fixas, fixaOcorrencias, parcelamentos, cartoes, categorias }, escopoAtivo);
+      itens = itensConsumoDoMes(mesISO, { transacoes, fixas, fixaOcorrencias, parcelamentos, cartoes, categorias }, escopoAtivo) || [];
     } catch { itens = []; }
     const m = {};
     itens.forEach(d => { const k = d.categoria || "Outros"; m[k] = (m[k] || 0) + (Number(d.valor) || 0); });
