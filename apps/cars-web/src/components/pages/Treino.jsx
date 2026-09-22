@@ -9,6 +9,7 @@ import { uid, todayISO } from "../../lib/format.js";
 import { carregarCatalogo, equipamentoPT } from "../../lib/exercicioCatalogo.js";
 import { PROMPT_FICHA, montarImportacaoFicha } from "../../lib/fichaTreino.js";
 import { FICHA_ABC } from "../../lib/fichaABC.js";
+import { sugerirFotos } from "../../lib/fotosExercicios.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import PageHeader from "../ui/PageHeader.jsx";
@@ -1271,6 +1272,30 @@ function BancoExerciciosModal({ exerciciosDB, setExerciciosDB, treinoTemplates =
     toast.success("Banco de exercícios limpo.");
   };
 
+  // Banco de fotos automático: casa nomes PT com o catálogo (lib/fotosExercicios)
+  // e preenche a imagem de quem não tem — sem caçar foto na mão.
+  const [buscandoFotos, setBuscandoFotos] = useState(false);
+  const semFoto = (exerciciosDB || []).filter(e => e && !e.imagem).length;
+  const buscarFotos = async () => {
+    setBuscandoFotos(true);
+    try {
+      const catalogo = await carregarCatalogo();
+      const sugestoes = sugerirFotos(exerciciosDB, catalogo);
+      if (!sugestoes.length) {
+        toast.info("Não achei correspondência no catálogo pros que estão sem foto.");
+        return;
+      }
+      const mapa = Object.fromEntries(sugestoes.map(s => [s.id, s.imagem]));
+      setExerciciosDB(prev => (prev || []).map(e => mapa[e.id] ? { ...e, imagem: mapa[e.id] } : e));
+      const resto = semFoto - sugestoes.length;
+      toast.success(`📷 ${sugestoes.length} foto(s) adicionada(s)!${resto > 0 ? ` ${resto} sem correspondência — adiciona manual pela camerazinha.` : ""}`);
+    } catch {
+      toast.error("Não consegui carregar o catálogo de fotos (precisa de internet).");
+    } finally {
+      setBuscandoFotos(false);
+    }
+  };
+
   const salvarNovo = () => {
     const nome = (novo?.nome || "").trim();
     if (!nome) { toast.error("Dá um nome pro exercício."); return; }
@@ -1368,10 +1393,18 @@ function BancoExerciciosModal({ exerciciosDB, setExerciciosDB, treinoTemplates =
               </div>
             </div>
           ) : (
-            <button className="btn-gold" style={{ width: "100%", marginBottom: 10 }}
-              onClick={() => setNovo({ nome: "", grupoMuscular: "outros", equipamento: "" })}>
-              <Plus size={13} className="inline mr-1" /> Criar exercício personalizado
-            </button>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+              <button className="btn-gold" style={{ flex: "1 1 200px" }}
+                onClick={() => setNovo({ nome: "", grupoMuscular: "outros", equipamento: "" })}>
+                <Plus size={13} className="inline mr-1" /> Criar exercício personalizado
+              </button>
+              {semFoto > 0 && (
+                <button className="btn-ghost" style={{ flex: "1 1 200px" }} onClick={buscarFotos} disabled={buscandoFotos}
+                  title="Casa os nomes com o catálogo aberto e preenche as fotos de execução sozinho">
+                  {buscandoFotos ? "Buscando fotos…" : <><Camera size={13} className="inline mr-1" /> Buscar fotos ({semFoto} sem foto)</>}
+                </button>
+              )}
+            </div>
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: "48vh", overflowY: "auto" }}>

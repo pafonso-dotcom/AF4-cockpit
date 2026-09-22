@@ -291,13 +291,12 @@ function HeaderHorizontal({
         <div className="util-cluster" style={{ display: "inline-flex", gap: 8, alignItems: "center", position: "relative" }}>
           {/* Sino de alertas em primeiro */}
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={utilBtn} iconSize={18} />
-          {/* Busca rápida (Command Palette) — atalho ⌘K/Ctrl+K visível */}
-          <button onClick={() => onOpenPalette?.()}
-                  title="Busca rápida (⌘K / Ctrl+K)" aria-label="Busca rápida"
-                  className="hdr-util"
-                  style={{ ...utilBtn, width: "auto", padding: "0 10px", gap: 6, display: "inline-flex", alignItems: "center", background: NAV_SOFT, color: NAV_MUTED }}>
-            <Search size={16} />
-            <span className="header-brand-text" style={{ fontSize: 11, fontWeight: 600, letterSpacing: ".04em" }}>⌘K</span>
+          {/* Atalho do Treino no lugar da lupa (pedido 2026-09-22).
+              A busca continua no ⌘K/Ctrl+K e no menu "Mais ações". */}
+          <button onClick={() => { setModulo("agenda"); setTab("treino"); }}
+                  title="Treino" aria-label="Treino"
+                  className="hdr-util" style={{ ...utilBtn, background: NAV_SOFT, color: NAV_MUTED }}>
+            <Dumbbell size={16} />
           </button>
           {/* Calendário vive no módulo Agenda — apontar pra "financas" abria tela em branco (bug 2026-09-22). */}
           <button onClick={() => { setModulo("agenda"); setTab("calendario"); }}
@@ -1113,10 +1112,11 @@ function HeaderVertical({
         </div>
         <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={vertUtilBtn} iconSize={16} />
-          <button onClick={() => onOpenPalette?.()}
-            title="Busca rápida de abas (Ctrl/Cmd+K)"
+          {/* Atalho do Treino no lugar da lupa (pedido 2026-09-22). */}
+          <button onClick={() => { setModulo("agenda"); setTab("treino"); }}
+            title="Treino"
             style={vertUtilBtn}>
-            <Search size={16} />
+            <Dumbbell size={16} />
           </button>
           <button onClick={() => { setModulo("agenda"); setTab("calendario"); }}
             title="Calendário"
