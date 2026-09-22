@@ -173,3 +173,21 @@ export function fundirCategorias(origem, destino, dados = {}) {
     dividas: dividas.map(troca),
   };
 }
+
+/** Funde TODAS as filhas (parentId) de uma categoria nela, de uma vez —
+ *  aplica fundirCategorias em sequência, puro. Cada filha vira subcategoria
+ *  da mãe e os lançamentos migram com rastro. */
+export function fundirTodasFilhas(mae, dados = {}) {
+  const filhas = (dados.categorias || []).filter(c => c?.parentId === mae.id);
+  let atual = {
+    categorias: dados.categorias || [], transacoes: dados.transacoes || [],
+    fixas: dados.fixas || [], parcelamentos: dados.parcelamentos || [], dividas: dados.dividas || [],
+  };
+  let maeAtual = mae;
+  for (const f of filhas) {
+    const r = fundirCategorias(f, maeAtual, atual);
+    atual = r;
+    maeAtual = r.categorias.find(c => c.id === mae.id) || maeAtual;
+  }
+  return { ...atual, n: filhas.length };
+}
