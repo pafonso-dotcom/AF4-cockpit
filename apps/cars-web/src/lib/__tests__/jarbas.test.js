@@ -52,6 +52,32 @@ describe("jarbas — contexto completo", () => {
   });
 });
 
+describe("jarbas — memórias e fontes da web", () => {
+  it("memórias entram no contexto", () => {
+    const ctx = montarContextoJarbas({
+      memorias: [{ id: "1", texto: "Meta: juntar 50 mil até dezembro" }],
+    });
+    expect(ctx).toContain("MEMÓRIAS");
+    expect(ctx).toContain("Meta: juntar 50 mil até dezembro");
+  });
+
+  it("extrairFontesGrounding pega título+url sem duplicar", async () => {
+    const { extrairFontesGrounding } = await import("../gemini.js");
+    const fontes = extrairFontesGrounding({
+      candidates: [{ groundingMetadata: { groundingChunks: [
+        { web: { uri: "https://g1.com/a", title: "G1" } },
+        { web: { uri: "https://g1.com/a", title: "G1 repetido" } },
+        { web: { uri: "https://infomoney.com/b", title: "InfoMoney" } },
+        { retrieved: {} },
+      ] } }],
+    });
+    expect(fontes).toEqual([
+      { titulo: "G1", url: "https://g1.com/a" },
+      { titulo: "InfoMoney", url: "https://infomoney.com/b" },
+    ]);
+  });
+});
+
 describe("tts — utilitários puros", () => {
   it("limparParaFala tira emoji e markdown", () => {
     expect(limparParaFala("**Saldo**: R$ 100 💰 [ver](http://x)")).toBe("Saldo : R$ 100 ver");

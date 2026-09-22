@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Mic, MicOff, Keyboard, PhoneOff, Send } from "lucide-react";
+import { Mic, MicOff, Keyboard, PhoneOff, Send, Brain, X, Trash2 } from "lucide-react";
 import { toast } from "../lib/toast.js";
-import { montarContextoJarbas, montarPromptAudio, PROMPT_JARBAS } from "../lib/jarbas.js";
+import { montarContextoJarbas, montarPromptAudio, montarPromptTexto, montarPromptWeb } from "../lib/jarbas.js";
 import { falar, pararFala } from "../lib/tts.js";
 import { criarMonitorFala } from "../lib/vad.js";
 import JarbasOrbe from "./JarbasOrbe.jsx";
@@ -26,11 +26,12 @@ const HUD = {
  * PERFORMANCE: o nível do mic NÃO passa pelo React — vai direto pra CSS var
  * `--jnivel` no wrapper do orbe (zero re-render por frame de áudio).
  */
-export default function JarbasChamada({ dados = {}, apiKeys = {}, msgs = [], setMsgs, onEncerrar }) {
-  const [fase, setFase] = useState("iniciando"); // iniciando|ouvindo|pensando|voz|falando|mudo|erro
-  const [ultima, setUltima] = useState(null);    // {pergunta, resposta}
+export default function JarbasChamada({ dados = {}, apiKeys = {}, msgs = [], setMsgs, onEncerrar, onMemorizar, onEsquecer }) {
+  const [fase, setFase] = useState("iniciando"); // iniciando|ouvindo|pensando|web|voz|falando|mudo|erro
+  const [ultima, setUltima] = useState(null);    // {pergunta, resposta, destaques, fontes}
   const [teclado, setTeclado] = useState(false);
   const [texto, setTexto] = useState("");
+  const [memoriasOpen, setMemoriasOpen] = useState(false);
 
   const geminiKey = apiKeys.gemini || (() => { try { return localStorage.getItem("af4:gemini-key") || ""; } catch { return ""; } })();
   const contexto = useMemo(() => {
@@ -50,12 +51,49 @@ export default function JarbasChamada({ dados = {}, apiKeys = {}, msgs = [], set
   const irPara = (f) => { faseRef.current = f; setFase(f); };
   const setNivelCss = (v) => { orbeWrapRef.current?.style.setProperty("--jnivel", String(v)); };
 
-  const registrar = (pergunta, resposta) => {
-    setUltima({ pergunta, resposta });
+  const registrar = (pergunta, resposta, extra = {}) => {
+    setUltima({ pergunta, resposta, destaques: extra.destaques || [], fontes: extra.fontes || [] });
     setMsgs(prev => [...prev,
       ...(pergunta ? [{ role: "user", texto: pergunta }] : []),
-      ...(resposta ? [{ role: "jarbas", texto: resposta }] : []),
+      ...(resposta ? [{ role: "jarbas", texto: resposta, ...extra }] : []),
     ]);
+  };
+
+  /**
+   * Trata a resposta JSON do Jarbas (áudio OU texto):
+   * destaques → valores POR ESCRITO na tela · memorizar → memória permanente
+   * · buscaWeb → 2ª chamada com Google Search (fontes na tela).
+   */
+  const tratarResposta = async (pergunta, r) => {
+    const resposta = (r?.resposta || "").trim();
+    const destaques = Array.isArray(r?.destaques) ? r.destaques.slice(0, 4) : [];
+    if (r?.memorizar && onMemorizar) {
+      onMemorizar(String(r.memorizar).trim());
+      toast.success("🧠 Guardei na memória.");
+    }
+    if (r?.buscaWeb) {
+      // mostra a pergunta e vai pra web — sem falar o "deixa eu ver" (mais rápido)
+      if (pergunta) setMsgs(prev => [...prev, { role: "user", texto: pergunta }]);
+      setUltima({ pergunta, resposta: "", destaques: [], fontes: [] });
+      irPara("web");
+      try {
+        const { gerarTextoGeminiComBusca } = await import("../lib/gemini.js");
+        const w = await gerarTextoGeminiComBusca(montarPromptWeb(String(r.buscaWeb)), { apiKey: geminiKey, maxOutputTokens: 500 });
+        if (!vivoRef.current) return;
+        const respostaWeb = (w.texto || "").trim() || "Não achei nada conclusivo na busca.";
+        registrar("", respostaWeb, { fontes: w.fontes });
+        await falarResposta(respostaWeb);
+      } catch (e) {
+        if (!vivoRef.current) return;
+        toast.error(e.message || "A busca na internet falhou.");
+        comecarAOuvir();
+      }
+      return;
+    }
+    if (!pergunta && !resposta) { comecarAOuvir(); return; }
+    registrar(pergunta, resposta, { destaques }); // texto (e valores) na tela NA HORA
+    if (resposta) await falarResposta(resposta);
+    else comecarAOuvir();
   };
 
   // Fala a resposta: fase "voz" (gerando áudio) → aoIniciar → "falando".
@@ -115,12 +153,7 @@ export default function JarbasChamada({ dados = {}, apiKeys = {}, msgs = [], set
         base64, blob.type || "audio/webm", { apiKey: geminiKey, maxOutputTokens: 400 },
       );
       if (!vivoRef.current) return;
-      const pergunta = (r?.transcricao || "").trim();
-      const resposta = (r?.resposta || "").trim();
-      if (!pergunta && !resposta) { comecarAOuvir(); return; }
-      registrar(pergunta, resposta); // texto aparece NA HORA
-      if (!resposta) { comecarAOuvir(); return; }
-      await falarResposta(resposta);
+      await tratarResposta((r?.transcricao || "").trim(), r);
     } catch (e) {
       if (!vivoRef.current) return;
       toast.error(e.message || "Erro na conversa — voltei a te ouvir.");
@@ -138,16 +171,13 @@ export default function JarbasChamada({ dados = {}, apiKeys = {}, msgs = [], set
     try { recorderRef.current?.state === "recording" && recorderRef.current.stop(); } catch {}
     irPara("pensando");
     try {
-      const { gerarTextoGemini } = await import("../lib/gemini.js");
-      const conversa = msgsRef.current.slice(-6).map(m => `${m.role === "user" ? "Paulo" : "Jarbas"}: ${m.texto}`).join("\n");
-      const resposta = (await gerarTextoGemini(
-        `${PROMPT_JARBAS}\n\n${contexto}\n\n${conversa ? conversa + "\n" : ""}Paulo: ${p}\nJarbas:`,
+      const { gerarJSONGemini } = await import("../lib/gemini.js");
+      const r = await gerarJSONGemini(
+        montarPromptTexto(contexto, msgsRef.current, p),
         { apiKey: geminiKey, temperature: 0.4, maxOutputTokens: 400 },
-      ) || "").trim();
+      );
       if (!vivoRef.current) return;
-      registrar(p, resposta || "Não consegui montar a resposta.");
-      if (resposta) await falarResposta(resposta);
-      else comecarAOuvir();
+      await tratarResposta(p, r);
     } catch (e) {
       if (!vivoRef.current) return;
       toast.error(e.message || "Erro ao perguntar.");
@@ -207,12 +237,13 @@ export default function JarbasChamada({ dados = {}, apiKeys = {}, msgs = [], set
     ouvindo: "Pode falar — eu envio quando você pausar",
     pensando: "Processando…",
     processar: "Processando…",
+    web: "🌐 Pesquisando na internet…",
     voz: "Preparando a voz…",
     falando: "Jarbas falando — pode interromper",
     mudo: "Microfone mudo",
     erro: "Sem microfone",
   }[fase] || "";
-  const faseOrbe = { ouvindo: "ouvindo", pensando: "pensando", processar: "pensando", voz: "pensando", falando: "falando", mudo: "mudo" }[fase] || "idle";
+  const faseOrbe = { ouvindo: "ouvindo", pensando: "pensando", processar: "pensando", web: "pensando", voz: "pensando", falando: "falando", mudo: "mudo" }[fase] || "idle";
 
   const btnRedondo = (extra = {}) => ({
     width: 56, height: 56, borderRadius: "50%", background: HUD.card,
@@ -234,6 +265,45 @@ export default function JarbasChamada({ dados = {}, apiKeys = {}, msgs = [], set
         J·A·R·B·A·S
       </div>
 
+      {/* 🧠 memórias — canto superior direito */}
+      <button onClick={() => setMemoriasOpen(true)} title="O que o Jarbas lembra de você"
+        style={{ position: "absolute", top: 48, right: 18, width: 40, height: 40, borderRadius: "50%",
+                 background: HUD.card, border: `1px solid ${HUD.borda}`, color: HUD.ciano, cursor: "pointer",
+                 display: "grid", placeItems: "center" }}>
+        <Brain size={17} />
+      </button>
+
+      {/* Painel de memórias */}
+      {memoriasOpen && (
+        <div style={{ position: "absolute", inset: 0, zIndex: 5, background: "rgba(4,20,28,.9)", display: "flex", alignItems: "center", justifyContent: "center", padding: 22 }}
+             onClick={() => setMemoriasOpen(false)}>
+          <div onClick={e => e.stopPropagation()}
+               style={{ width: "min(440px, 100%)", maxHeight: "70vh", overflowY: "auto", background: HUD.card, border: `1px solid ${HUD.borda}`, borderRadius: 18, padding: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: HUD.texto }}>🧠 Memórias do Jarbas</div>
+              <button onClick={() => setMemoriasOpen(false)} style={{ background: "none", border: "none", color: HUD.sub, cursor: "pointer", padding: 4 }}><X size={16} /></button>
+            </div>
+            {(dados.memorias || []).length === 0 ? (
+              <p style={{ fontSize: 12.5, color: HUD.sub }}>
+                Nada guardado ainda. É só falar: <em>"Jarbas, lembra que…"</em> — meta, preferência, qualquer coisa — e eu guardo pra sempre (sincroniza nos teus aparelhos).
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {(dados.memorias || []).map(m => (
+                  <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "rgba(77,208,225,.06)", border: `1px solid ${HUD.borda}`, borderRadius: 12, padding: "8px 10px" }}>
+                    <span style={{ flex: 1, fontSize: 12.5, color: HUD.texto, lineHeight: 1.4 }}>{m.texto}</span>
+                    <button onClick={() => onEsquecer?.(m.id)} title="Esquecer"
+                      style={{ background: "none", border: "none", color: HUD.vermelho, cursor: "pointer", padding: 3, flexShrink: 0 }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, width: "100%", minHeight: 0 }}>
         <div ref={orbeWrapRef} style={{ "--jnivel": 0 }}>
           <JarbasOrbe size={200} fase={faseOrbe} />
@@ -249,9 +319,31 @@ export default function JarbasChamada({ dados = {}, apiKeys = {}, msgs = [], set
                 {ultima.pergunta}
               </div>
             )}
+            {/* VALORES POR ESCRITO — cartões com o número grande */}
+            {ultima.destaques?.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: ultima.destaques.length > 1 ? "1fr 1fr" : "1fr", gap: 8 }}>
+                {ultima.destaques.map((d, i) => (
+                  <div key={i} style={{ background: HUD.card, border: `1px solid ${HUD.ciano}66`, borderRadius: 14, padding: "10px 14px" }}>
+                    <div style={{ fontSize: 10, color: HUD.sub, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase" }}>{d.rotulo}</div>
+                    <div className="num" style={{ fontSize: 20, fontWeight: 800, color: HUD.texto, textShadow: `0 0 14px ${HUD.ciano}55` }}>{d.valor}</div>
+                  </div>
+                ))}
+              </div>
+            )}
             {ultima.resposta && (
               <div style={{ alignSelf: "flex-start", maxWidth: "88%", fontSize: 13, color: HUD.texto, background: HUD.card, border: `1px solid ${HUD.borda}`, borderRadius: 14, padding: "8px 12px" }}>
                 {ultima.resposta}
+              </div>
+            )}
+            {/* FONTES da busca na internet */}
+            {ultima.fontes?.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {ultima.fontes.map((f, i) => (
+                  <a key={i} href={f.url} target="_blank" rel="noopener noreferrer"
+                     style={{ fontSize: 10.5, color: HUD.ciano, background: "rgba(77,208,225,.08)", border: `1px solid ${HUD.borda}`, borderRadius: 100, padding: "3px 10px", textDecoration: "none", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    🌐 {f.titulo}
+                  </a>
+                ))}
               </div>
             )}
           </div>
