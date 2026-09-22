@@ -61,3 +61,46 @@ describe("leituraConsultor", () => {
     expect(leituraConsultor({})).toEqual([]);
   });
 });
+
+describe("categoriasGeral · fatura importada aberta entra pelos ITENS", () => {
+  const state = {
+    contas: [], fixas: [], fixaOcorrencias: [], dividas: [], devedores: [], cheques: [],
+    cartoes: [{
+      id: "cx", nome: "XP",
+      faturaImportada: { valorTotal: 500, vencimento: "2026-09-10", competencia: "2026-09", paga: false },
+    }],
+    parcelamentos: [{
+      id: "px", cartaoId: "cx", descricao: "Geladeira", categoria: "Casa",
+      dataPrimeira: "2026-09-05", totalParcelas: 2, valorParcela: 100, parcelasPagas: [],
+    }],
+    transacoes: [
+      // compra à vista DENTRO da fatura (pendente) — categoria real
+      { id: "tv", tipo: "despesa", cartaoId: "cx", origem: "fatura-import", compensado: false,
+        data: "2026-08-28", valor: 300, categoria: "Alimentação", descricao: "Mercado no cartão" },
+      // gasto normal de banco no mês
+      { id: "tb", tipo: "despesa", data: "2026-09-03", valor: 200, categoria: "Alimentação",
+        compensado: true, descricao: "Feira débito" },
+    ],
+  };
+  const { relatorioMensal } = require("../relatorioMensal.js");
+  const rel = relatorioMensal("2026-09", state, "tudo", []);
+  const geral = Object.fromEntries(rel.financas.categoriasGeral.map(p => [p.nome, p.valor]));
+
+  it("Alimentação soma banco + cartão (fatura aberta pelos itens)", () => {
+    expect(geral["Alimentação"]).toBe(500); // 200 banco + 300 dentro da fatura
+  });
+  it("parcela pendente do cartão com fatura aberta entra na categoria dela", () => {
+    expect(geral["Casa"]).toBe(100); // parcela 1/2 de setembro
+  });
+  it("o lump 'Cartão · fatura' some do ranking (sem dobrar)", () => {
+    expect(geral["Cartão · fatura"]).toBeUndefined();
+    expect(rel.financas.despesasGeral).toBe(600); // 200 banco + 300 fatura + 100 parcela
+  });
+  it("nos COMPROMISSOS (despesas do mês) a fatura continua como um item só", () => {
+    expect(rel.financas.despesas).toBe(700); // fatura 500 + feira 200 (itens dela ocultos lá)
+  });
+  it("itensConsumo alimenta o drill-down com os itens da fatura", () => {
+    const alim = rel.financas.itensConsumo.filter(i => i.categoria === "Alimentação");
+    expect(alim.map(i => i.id).sort()).toEqual(["tb", "tv"]);
+  });
+});
