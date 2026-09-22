@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Mic, Square, Send, X, Volume2, VolumeX, Bot } from "lucide-react";
+import { Mic, Square, Send, X, Volume2, VolumeX, Bot, Phone } from "lucide-react";
 import { T } from "../lib/theme.js";
 import { toast } from "../lib/toast.js";
-import { montarContextoJarbas, PROMPT_JARBAS, PROMPT_JARBAS_AUDIO, SUGESTOES_JARBAS } from "../lib/jarbas.js";
+import { montarContextoJarbas, PROMPT_JARBAS, montarPromptAudio, SUGESTOES_JARBAS } from "../lib/jarbas.js";
 import { falar, pararFala } from "../lib/tts.js";
+import JarbasChamada from "./JarbasChamada.jsx";
 
 const SOM_KEY = "af4:jarbas-som";
 
@@ -18,6 +19,7 @@ export default function JarbasModal({ dados = {}, apiKeys = {}, userName = "", o
   const [texto, setTexto] = useState("");
   const [pensando, setPensando] = useState(false);
   const [gravando, setGravando] = useState(false);
+  const [chamada, setChamada] = useState(false); // Modo Conversa contínua
   const [som, setSom] = useState(() => { try { return localStorage.getItem(SOM_KEY) !== "0"; } catch { return true; } });
 
   const mediaRef = useRef(null);
@@ -102,7 +104,7 @@ export default function JarbasModal({ dados = {}, apiKeys = {}, userName = "", o
           const { fileToBase64, gerarJSONGeminiComAudio } = await import("../lib/gemini.js");
           const base64 = await fileToBase64(blob);
           const r = await gerarJSONGeminiComAudio(
-            `${PROMPT_JARBAS_AUDIO}\n\nCONTEXTO DE DADOS:\n${contexto}`,
+            montarPromptAudio(contexto, msgs),
             base64, mr.mimeType || "audio/webm", { apiKey: geminiKey, maxOutputTokens: 700 },
           );
           if (r?.transcricao) setMsgs(prev => [...prev, { role: "user", texto: r.transcricao }]);
@@ -136,6 +138,13 @@ export default function JarbasModal({ dados = {}, apiKeys = {}, userName = "", o
             <div style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>Jarbas</div>
             <div style={{ fontSize: 10.5, color: T.muted }}>{pensando ? "pensando…" : gravando ? "ouvindo…" : "seu assistente pessoal"}</div>
           </div>
+          <button onClick={() => {
+            if (!geminiKey) { toast.error("O Modo Conversa usa o Gemini — configura a chave em Configurações → APIs."); return; }
+            pararFala(); setChamada(true);
+          }} title="Modo Conversa — voz contínua, sem apertar botão"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${T.green}18`, border: `1px solid ${T.green}`, borderRadius: 100, padding: "6px 12px", color: T.green, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+            <Phone size={13} /> Conversar
+          </button>
           <button onClick={toggleSom} title={som ? "Silenciar respostas" : "Falar respostas"}
             style={{ background: "none", border: "none", color: som ? T.gold : T.muted, cursor: "pointer", padding: 6 }}>
             {som ? <Volume2 size={17} /> : <VolumeX size={17} />}
@@ -152,8 +161,8 @@ export default function JarbasModal({ dados = {}, apiKeys = {}, userName = "", o
               <div style={{ fontSize: 14.5, color: T.ink, fontWeight: 700, marginBottom: 4 }}>
                 Às ordens{userName ? `, ${userName}` : ""}. 🤖
               </div>
-              <div style={{ fontSize: 12, color: T.muted, marginBottom: 14 }}>
-                Segura o microfone e fala, ou toca numa sugestão:
+              <div style={{ fontSize: 12, color: T.muted, marginBottom: 12 }}>
+                Toca em <strong style={{ color: T.green }}>Conversar</strong> pra um papo contínuo por voz, usa o microfone avulso, ou uma sugestão:
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
                 {SUGESTOES_JARBAS.map(s => (
@@ -203,6 +212,18 @@ export default function JarbasModal({ dados = {}, apiKeys = {}, userName = "", o
         </div>
         <style>{`@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }`}</style>
       </div>
+
+      {/* MODO CONVERSA — chamada de voz contínua */}
+      {chamada && (
+        <JarbasChamada
+          contexto={contexto}
+          geminiKey={geminiKey}
+          msgs={msgs}
+          setMsgs={setMsgs}
+          onVoltarChat={() => setChamada(false)}
+          onEncerrar={() => setChamada(false)}
+        />
+      )}
     </div>
   );
 }

@@ -122,6 +122,21 @@ export const PROMPT_JARBAS_AUDIO = `${PROMPT_JARBAS}
 O usuário enviou um ÁUDIO com a pergunta. Transcreva e responda usando o contexto abaixo. Retorne APENAS JSON válido:
 {"transcricao": "o que o usuário falou", "resposta": "sua resposta falável"}`;
 
+/**
+ * Prompt completo pro caminho de ÁUDIO com MEMÓRIA da conversa — sem isso,
+ * "e no Nubank?" depois de perguntar do Itaú perdia o fio.
+ * `msgs` = [{role:"user"|"jarbas", texto}].
+ */
+export function montarPromptAudio(contexto, msgs = []) {
+  const historico = msgs.slice(-6)
+    .map(m => `${m.role === "user" ? "Paulo" : "Jarbas"}: ${m.texto}`)
+    .join("\n");
+  return `${PROMPT_JARBAS_AUDIO}
+
+${historico ? `CONVERSA ATÉ AGORA:\n${historico}\n\n` : ""}CONTEXTO DE DADOS:
+${contexto}`;
+}
+
 // Sugestões prontas do chat.
 export const SUGESTOES_JARBAS = [
   "Quanto tenho em contas?",

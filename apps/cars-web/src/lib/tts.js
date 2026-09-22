@@ -11,7 +11,7 @@
  */
 
 const MODELO_TTS = "gemini-2.5-flash-preview-tts";
-const VOZ_GEMINI = "Kore"; // voz neutra e clara em PT-BR
+const VOZ_GEMINI = "Charon"; // voz MASCULINA grave e informativa (pedido: estilo Jarvis)
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
 let audioAtual = null;
@@ -62,10 +62,13 @@ async function falarGemini(texto, geminiKey) {
   const url = URL.createObjectURL(pcmParaWav(b64));
   return new Promise((resolve, reject) => {
     const audio = new Audio(url);
+    const limpar = () => { URL.revokeObjectURL(url); if (audioAtual === audio) audioAtual = null; };
+    // pararFala() usa isto pra INTERROMPER e resolver a promise (barge-in).
+    audio._cancelar = () => { try { audio.pause(); } catch {} limpar(); resolve(); };
     audioAtual = audio;
-    audio.onended = () => { URL.revokeObjectURL(url); if (audioAtual === audio) audioAtual = null; resolve(); };
-    audio.onerror = () => { URL.revokeObjectURL(url); reject(new Error("play falhou")); };
-    audio.play().catch(reject);
+    audio.onended = () => { limpar(); resolve(); };
+    audio.onerror = () => { limpar(); reject(new Error("play falhou")); };
+    audio.play().catch((e) => { limpar(); reject(e); });
   });
 }
 
@@ -78,8 +81,10 @@ function falarNativo(texto) {
       const u = new SpeechSynthesisUtterance(texto);
       u.lang = "pt-BR";
       const vozes = synth.getVoices() || [];
-      u.voice = vozes.find(v => /luciana/i.test(v.name))
-        || vozes.find(v => v.lang === "pt-BR")
+      // Preferência: voz MASCULINA pt-BR (Felipe/Daniel/Ricardo) > qualquer pt-BR > pt.
+      const ptBR = vozes.filter(v => v.lang === "pt-BR");
+      u.voice = ptBR.find(v => /felipe|daniel|ricardo|male/i.test(v.name))
+        || ptBR[0]
         || vozes.find(v => (v.lang || "").startsWith("pt"))
         || null;
       u.rate = 1.02;
@@ -107,5 +112,10 @@ export async function falar(texto, { geminiKey } = {}) {
 
 export function pararFala() {
   try { window.speechSynthesis?.cancel(); } catch {}
-  try { if (audioAtual) { audioAtual.pause(); audioAtual = null; } } catch {}
+  try {
+    if (audioAtual) {
+      const a = audioAtual; audioAtual = null;
+      if (a._cancelar) a._cancelar(); else a.pause();
+    }
+  } catch {}
 }
