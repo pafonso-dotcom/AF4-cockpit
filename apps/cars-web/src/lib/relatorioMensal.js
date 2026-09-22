@@ -54,18 +54,19 @@ export function itensConsumoDoMes(mesISO, state = {}, escopo = "tudo") {
     !transferIds.has(x.id) && !ehCategoriaTransfer(x.categoria) && !foraIds.has(x.id)
     && !pagIds.has(x.id) && !naoEhGasto(x.categoria) && !x.transferenciaId);
 
-  const cartoesFaturaAberta = new Set(
-    (state.cartoes || [])
-      .filter(c => c?.faturaImportada && !c.faturaImportada.paga && c.faturaImportada.competencia === mesISO)
-      .map(c => c.id)
-  );
-  if (!cartoesFaturaAberta.size) return gastos;
-
+  // O lump "Cartão · fatura" nunca entra no consumo (as compras contam uma a uma).
   const out = gastos.filter(g => g.categoria !== "Cartão · fatura");
+
+  // Compras DENTRO de fatura importada (origem "fatura-<banco>", pendentes):
+  // o agregador as esconde — a fatura conta como bloco no mês de COMPETÊNCIA
+  // (que pode ser o mês seguinte!). No consumo elas contam na DATA da compra,
+  // com a categoria própria, seja de qual fatura forem. As compensadas já
+  // entram pelo agregador normalmente.
   (state.transacoes || []).forEach(t => {
-    if (!t || t.tipo !== "despesa" || !cartoesFaturaAberta.has(t.cartaoId)) return;
-    if (!(typeof t.origem === "string" && t.origem.startsWith("fatura-")) || t.compensado) return;
-    if (t.origem === "fatura-pagamento") return;
+    if (!t || t.tipo !== "despesa") return;
+    if (!(typeof t.origem === "string" && t.origem.startsWith("fatura-")) || t.origem === "fatura-pagamento") return;
+    if (t.compensado) return;
+    if (!String(t.data || "").startsWith(mesISO)) return;
     if (foraIds.has(t.id) || ehCategoriaTransfer(t.categoria) || naoEhGasto(t.categoria)) return;
     out.push({
       id: t.id, data: t.data, descricao: t.descricao || "Compra no cartão",
@@ -73,6 +74,14 @@ export function itensConsumoDoMes(mesISO, state = {}, escopo = "tudo") {
       categoria: t.categoria || "Outros", subcategoria: t.subcategoria || "",
     });
   });
+
+  // Parcelas pendentes escondidas pela fatura importada ABERTA deste mês
+  // (o agregador as pula porque o valor está dentro do lump).
+  const cartoesFaturaAberta = new Set(
+    (state.cartoes || [])
+      .filter(c => c?.faturaImportada && !c.faturaImportada.paga && c.faturaImportada.competencia === mesISO)
+      .map(c => c.id)
+  );
   (state.parcelamentos || []).forEach(p => {
     if (!p || !cartoesFaturaAberta.has(p.cartaoId) || !p.dataPrimeira || !p.totalParcelas) return;
     if (naoEhGasto(p.categoria)) return;

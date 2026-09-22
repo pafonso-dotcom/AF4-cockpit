@@ -74,12 +74,15 @@ describe("categoriasGeral · fatura importada aberta entra pelos ITENS", () => {
       dataPrimeira: "2026-09-05", totalParcelas: 2, valorParcela: 100, parcelasPagas: [],
     }],
     transacoes: [
-      // compra à vista DENTRO da fatura (pendente) — categoria real
-      { id: "tv", tipo: "despesa", cartaoId: "cx", origem: "fatura-import", compensado: false,
-        data: "2026-08-28", valor: 300, categoria: "Alimentação", descricao: "Mercado no cartão" },
+      // compra à vista DENTRO da fatura (pendente) — categoria real, DATA no mês
+      { id: "tv", tipo: "despesa", cartaoId: "cx", origem: "fatura-itau", compensado: false,
+        data: "2026-09-01", valor: 300, categoria: "Alimentação", descricao: "Mercado no cartão" },
       // gasto normal de banco no mês
       { id: "tb", tipo: "despesa", data: "2026-09-03", valor: 200, categoria: "Alimentação",
         compensado: true, descricao: "Feira débito" },
+      // compra em fatura de MÊS ANTERIOR (data ago): consumo de agosto, não set
+      { id: "tprev", tipo: "despesa", cartaoId: "cx", origem: "fatura-itau", compensado: false,
+        data: "2026-08-28", valor: 999, categoria: "Alimentação", descricao: "Compra de agosto" },
     ],
   };
   const { relatorioMensal } = require("../relatorioMensal.js");
@@ -102,5 +105,36 @@ describe("categoriasGeral · fatura importada aberta entra pelos ITENS", () => {
   it("itensConsumo alimenta o drill-down com os itens da fatura", () => {
     const alim = rel.financas.itensConsumo.filter(i => i.categoria === "Alimentação");
     expect(alim.map(i => i.id).sort()).toEqual(["tb", "tv"]);
+  });
+});
+
+describe("consumo · fatura do MÊS SEGUINTE (compra em set, fatura de out)", () => {
+  // Caso real do usuário: compra depois do fechamento → fatura de outubro.
+  // O agregador de setembro esconde a compra (nem lump nem item); no CONSUMO
+  // ela conta em SETEMBRO, na data da compra, com a categoria dela.
+  const state = {
+    contas: [], fixas: [], fixaOcorrencias: [], dividas: [], devedores: [], cheques: [], parcelamentos: [],
+    cartoes: [{
+      id: "cx", nome: "XP",
+      faturaImportada: { valorTotal: 800, vencimento: "2026-10-10", competencia: "2026-10", paga: false },
+    }],
+    transacoes: [
+      { id: "t1", tipo: "despesa", cartaoId: "cx", origem: "fatura-sicredi", compensado: false,
+        data: "2026-09-15", valor: 800, categoria: "Alimentação", descricao: "Mercado grande" },
+      { id: "t2", tipo: "despesa", data: "2026-09-03", valor: 200, categoria: "Alimentação",
+        compensado: true, descricao: "Feira débito" },
+    ],
+  };
+  const { itensConsumoDoMes } = require("../relatorioMensal.js");
+
+  it("setembro soma banco + compra da fatura de outubro (pela data)", () => {
+    const itens = itensConsumoDoMes("2026-09", state, "tudo");
+    const alim = itens.filter(i => i.categoria === "Alimentação");
+    expect(alim.reduce((s, i) => s + i.valor, 0)).toBe(1000); // 200 + 800
+  });
+  it("outubro não conta a compra de novo (só o lump, que fica fora do consumo)", () => {
+    const itens = itensConsumoDoMes("2026-10", state, "tudo");
+    expect(itens.filter(i => i.categoria === "Alimentação")).toHaveLength(0);
+    expect(itens.filter(i => i.categoria === "Cartão · fatura")).toHaveLength(0);
   });
 });
