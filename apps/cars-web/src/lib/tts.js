@@ -43,7 +43,7 @@ export function pcmParaWav(base64, sampleRate = 24000) {
   return new Blob([header, pcm], { type: "audio/wav" });
 }
 
-async function falarGemini(texto, geminiKey) {
+async function falarGemini(texto, geminiKey, aoIniciar) {
   const res = await fetch(`${ENDPOINT}/${MODELO_TTS}:generateContent?key=${encodeURIComponent(geminiKey)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -68,16 +68,18 @@ async function falarGemini(texto, geminiKey) {
     audioAtual = audio;
     audio.onended = () => { limpar(); resolve(); };
     audio.onerror = () => { limpar(); reject(new Error("play falhou")); };
+    aoIniciar?.(); // avisa o chamador que a voz VAI começar (muda de fase/arma barge-in)
     audio.play().catch((e) => { limpar(); reject(e); });
   });
 }
 
-function falarNativo(texto) {
+function falarNativo(texto, aoIniciar) {
   return new Promise((resolve) => {
     try {
       const synth = window.speechSynthesis;
       if (!synth) return resolve();
       synth.cancel();
+      aoIniciar?.();
       const u = new SpeechSynthesisUtterance(texto);
       u.lang = "pt-BR";
       const vozes = synth.getVoices() || [];
@@ -99,15 +101,15 @@ function falarNativo(texto) {
  * Fala o texto. Tenta Gemini TTS (se houver chave); qualquer falha (cota do
  * dia, offline, formato) cai na voz nativa sem incomodar o usuário.
  */
-export async function falar(texto, { geminiKey } = {}) {
+export async function falar(texto, { geminiKey, aoIniciar } = {}) {
   const limpo = limparParaFala(texto);
   if (!limpo) return;
   pararFala();
   if (geminiKey) {
-    try { await falarGemini(limpo, geminiKey); return; }
+    try { await falarGemini(limpo, geminiKey, aoIniciar); return; }
     catch { /* cai no nativo */ }
   }
-  await falarNativo(limpo);
+  await falarNativo(limpo, aoIniciar);
 }
 
 export function pararFala() {
