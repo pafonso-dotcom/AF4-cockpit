@@ -738,6 +738,15 @@ function SessaoCard({ sessao, exerciciosDB, ativa, onToggleAtiva, onAtualizar, o
                           }}>
                           {s.feita && <Check size={11} style={{ color: "#fff" }} />}
                         </button>
+                        <button onClick={() => {
+                          const novas = sessao.exerciciosFeitos.map((e, idx) =>
+                            idx === ei ? { ...e, series: e.series.filter((_, xsi) => xsi !== si) } : e
+                          );
+                          onAtualizar({ exerciciosFeitos: novas });
+                        }} title="Apagar esta série"
+                          style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", padding: 4 }}>
+                          <X size={13} />
+                        </button>
                       </div>
                     ))}
                     <button onClick={() => {
