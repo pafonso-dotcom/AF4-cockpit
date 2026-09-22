@@ -17,6 +17,7 @@ import { proventosPendentesDoMes, lerProvReaisCache } from "../../lib/proventosP
 import { backupNuvemAtraso } from "../../lib/gistSync.js";
 import { itensConsumoDoMes } from "../../lib/relatorioMensal.js";
 import { useLayout } from "../../lib/useLayout.js";
+import { OLHADA_KEY, hojeISOLocal, deveMostrarOlhada, dataPorExtenso } from "../../lib/olhadaRapida.js";
 import { supabase } from "../../lib/supabase.js";
 import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
 import CalculadoraJurosModal from "../modals/CalculadoraJurosModal.jsx";
@@ -119,6 +120,86 @@ function MobileColapsavel({ id, titulo, isMobile, children }) {
   );
 }
 
+// Modo "olhada rápida" (item 5 do estudo mobile · 2026-09-22): tela cheia na
+// PRIMEIRA abertura do dia no celular — saudação, saldo em contas e o Resumo
+// do dia em letras grandes. Desliza pra cima (ou toca no botão) pra entrar.
+function OlhadaRapida({ resumoDia, totalContas, hidden, userName, onFechar }) {
+  const [saindo, setSaindo] = useState(false);
+  const touchRef = React.useRef(null);
+  const fechar = () => {
+    if (saindo) return;
+    setSaindo(true);
+    setTimeout(onFechar, 280);
+  };
+  return (
+    <div
+      onTouchStart={(e) => { const t = e.touches?.[0]; if (t) touchRef.current = t.clientY; }}
+      onTouchEnd={(e) => {
+        const y0 = touchRef.current; touchRef.current = null;
+        const t = e.changedTouches?.[0];
+        if (y0 != null && t && (y0 - t.clientY) >= 60) fechar(); // arrastou pra CIMA
+      }}
+      style={{
+        position: "fixed", inset: 0, zIndex: 400, background: T.bg,
+        display: "flex", flexDirection: "column", padding: "56px 22px 26px",
+        overflowY: "auto", WebkitOverflowScrolling: "touch",
+        transform: saindo ? "translateY(-100%)" : "translateY(0)",
+        opacity: saindo ? 0 : 1, transition: "transform .28s ease, opacity .28s ease",
+      }}>
+      <div style={{ fontSize: 26, fontWeight: 800, color: T.ink, lineHeight: 1.2 }}>
+        {greetingForTime()}{userName ? `, ${userName}` : ""} 👋
+      </div>
+      <div style={{ fontSize: 13, color: T.muted, marginTop: 4, textTransform: "capitalize" }}>
+        {dataPorExtenso()}
+      </div>
+
+      <div style={{
+        marginTop: 22, background: T.card, border: `1px solid ${T.border}`,
+        borderRadius: 18, padding: "16px 18px",
+      }}>
+        <div style={{ fontSize: 11, color: T.muted, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase" }}>
+          Saldo em contas
+        </div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: T.ink, marginTop: 4 }}>
+          {hidden ? "•••••" : fmt(totalContas)}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+        {resumoDia.length === 0 ? (
+          <div style={{
+            background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
+            padding: "16px 18px", fontSize: 14.5, color: T.ink, fontWeight: 600,
+          }}>
+            ✨ Nada vencendo hoje — dia livre.
+          </div>
+        ) : resumoDia.map((a, i) => {
+          const cor = a.cor === "red" ? T.red : a.cor === "green" ? T.green : T.gold;
+          return (
+            <div key={i} style={{
+              display: "flex", alignItems: "flex-start", gap: 10,
+              background: `${cor}12`, border: `1px solid ${cor}44`,
+              borderRadius: 16, padding: "13px 16px",
+              fontSize: 14.5, color: T.ink, fontWeight: 600, lineHeight: 1.35,
+            }}>
+              <span aria-hidden style={{ fontSize: 17 }}>{a.icone}</span>
+              <span>{a.texto}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <button onClick={fechar} style={{
+        marginTop: 20, width: "100%", padding: "14px 0",
+        background: "transparent", border: `1px solid ${T.border}`, borderRadius: 100,
+        color: T.gold, fontSize: 13, fontWeight: 700, letterSpacing: ".04em", cursor: "pointer",
+      }}>
+        ↑ Deslize pra cima ou toque pra entrar
+      </button>
+    </div>
+  );
+}
+
 export default function Dashboard({
   hidden, contas: contasRaw, ativos = [], transacoes: transacoesRaw,
   categorias, metas, cartoes = [], parcelamentos = [], devedores = [], dividas = [], cheques = [],
@@ -132,6 +213,20 @@ export default function Dashboard({
   onTabChange, onContaClick, onQuickAction,
 }) {
   const { isMobile } = useLayout();
+
+  // Olhada rápida: só celular, só na primeira abertura do dia.
+  const [olhadaAberta, setOlhadaAberta] = useState(false);
+  useEffect(() => {
+    if (!isMobile) return;
+    try {
+      if (deveMostrarOlhada(localStorage.getItem(OLHADA_KEY), hojeISOLocal())) setOlhadaAberta(true);
+    } catch {}
+  }, [isMobile]);
+  const fecharOlhada = () => {
+    try { localStorage.setItem(OLHADA_KEY, hojeISOLocal()); } catch {}
+    setOlhadaAberta(false);
+  };
+
   // Nome do usuário logado, resolvido via Supabase auth.
   // Sem sessão (modo local em dev) o nome fica vazio → saudação sem nome.
   const [userName, setUserName] = useState("");
@@ -608,6 +703,11 @@ export default function Dashboard({
   return (
     <SoftCardContext.Provider value={true}>
     <div className="fade-up" style={{ paddingTop: 12 }}>
+
+      {olhadaAberta && (
+        <OlhadaRapida resumoDia={resumoDia} totalContas={totalContas} hidden={hidden}
+                      userName={userName} onFechar={fecharOlhada} />
+      )}
 
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
