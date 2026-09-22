@@ -15,6 +15,7 @@ import { calcOrcamentoComGastos } from "../../lib/orcamentos.js";
 import { montarResumoDia, alertasDisparadosHoje } from "../../lib/resumoDia.js";
 import { proventosPendentesDoMes, lerProvReaisCache } from "../../lib/proventosPrevistos.js";
 import { backupNuvemAtraso } from "../../lib/gistSync.js";
+import { itensConsumoDoMes } from "../../lib/relatorioMensal.js";
 import { useLayout } from "../../lib/useLayout.js";
 import { supabase } from "../../lib/supabase.js";
 import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
@@ -409,12 +410,10 @@ export default function Dashboard({
   // (agregador, com fatura expandida + fixas/parcelas/dívidas). Assim o total do
   // donut BATE com o "Desp. total".
   const gastosCat = useMemo(() => {
+    // BASE ÚNICA de consumo (itensConsumoDoMes): bancos + cartões unificados,
+    // fatura importada aberta pelos itens — mesmos números da Análise do mês.
     let desp = [];
-    try { desp = getDespesasDoMes(mesISO, stateAgg, escopoAtivo); } catch {}
-    // Só GASTO de verdade (consumo). Fora transferências, depósitos e
-    // investimentos/aportes/resgates — são movimentação de dinheiro, não gasto.
-    const naoEhGasto = (nome) => /investim|transfer|dep[oó]sito|aporte|resgate/i.test(String(nome || ""));
-    desp = desp.filter(d => !naoEhGasto(d.categoria) && !d.transferenciaId);
+    try { desp = itensConsumoDoMes(mesISO, stateAgg, escopoAtivo) || []; } catch {}
     const m = {};
     desp.forEach(d => { const k = d.categoria || "Outros"; m[k] = (m[k] || 0) + (Number(d.valor) || 0); });
     const tot = Object.values(m).reduce((s,v) => s+v, 0) || 1;
@@ -1267,6 +1266,9 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
   // fino e mini-sparkline (traço ilustrativo de tendência; série real depois).
   // Ordem pedida pelo usuário: primeiro o MÊS (a receber, a pagar, cartões),
   // depois os TOTAIS (a receber, a pagar) e os cheques.
+  // 4 tiles de MESMA altura (grade 2×2). "Total a pagar" (com a quebra por
+  // ano) e "Cheques" saíram dos cards — viravam alturas desiguais e ficava
+  // feio; agora são LINHAS compactas logo abaixo (pedido 2026-09-22).
   const resumo = [
     { id: "arecebermes", label: "A receber (mês)",     valor: receberMes,   cor: T.gold,  icon: Calendar,     spark: sparks?.receber },
     { id: "apagarmes",   label: "A pagar (mês)",       valor: apagarMesVal, cor: apagarMesVal > 0 ? T.red : T.muted, icon: Calendar, spark: sparks?.pagar },
@@ -1274,10 +1276,6 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
     // o total em aberto vai pra linha de baixo.
     { id: "cartoes",     label: cartoesTile?.label || "Cartões", valor: cartoesTile?.valor || 0, cor: cartoesTotal > 0 ? T.yellow : T.muted, icon: CreditCard, spark: sparks?.cartoes, subRotulo: "total em aberto", subValor: cartoesTotal },
     { id: "areceber",    label: "Total a receber",    valor: totalReceber, cor: T.green, icon: ArrowDownLeft, spark: sparks?.receber },
-    // Sub-linhas por ano (2026, 2027, …) — só quando há mais de um ano.
-    { id: "apagar",      label: "Total a pagar",      valor: aPagarTotal,  cor: aPagarTotal > 0 ? T.red : T.muted, icon: ArrowUpRight, spark: sparks?.pagar,
-      subLinhas: (aPagarPorAno || []).length > 1 ? aPagarPorAno.map(x => ({ rotulo: x.ano, valor: x.valor })) : null },
-    { id: "cheques",     label: "Cheques",            valor: chequesTotal, cor: chequesTotal > 0 ? (T.blue || "#60a5fa") : T.muted, icon: Receipt, spark: sparks?.cheques },
   ];
 
   return (
@@ -1342,6 +1340,38 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
           </div>
         ))}
       </div>
+
+      {/* TOTAIS — Total a pagar (com a quebra por ano) e Cheques em linhas,
+          no mesmo estilo da Visão consolidada (saíram dos cards da grade). */}
+      {(aPagarTotal > 0 || chequesTotal > 0) && (
+        <div style={{ paddingTop: 10, borderTop: `1px solid ${T.border}`, marginBottom: 8 }}>
+          <div style={{ fontSize: 10.5, color: T.muted, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>
+            Totais
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {aPagarTotal > 0 && (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: T.muted }}>
+                  <span>📉 Total a pagar</span>
+                  <span className="num" style={{ color: T.red, fontWeight: 700 }}>{oculto ? "•••" : fmt(aPagarTotal)}</span>
+                </div>
+                {(aPagarPorAno || []).length > 1 && aPagarPorAno.map(x => (
+                  <div key={x.ano} style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: T.faint, paddingLeft: 18 }}>
+                    <span>{x.ano}</span>
+                    <span className="num">{oculto ? "•••" : fmt(x.valor)}</span>
+                  </div>
+                ))}
+              </>
+            )}
+            {chequesTotal > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: T.muted }}>
+                <span>🧾 Cheques a receber</span>
+                <span className="num" style={{ color: T.blue || "#60a5fa", fontWeight: 700 }}>{oculto ? "•••" : fmt(chequesTotal)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* VISÃO CONSOLIDADA — o que você TEM num lugar só: contas + proventos +
           investimentos − cartões em aberto (movida do card Patrimônio Total). */}
