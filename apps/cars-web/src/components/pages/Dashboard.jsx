@@ -630,6 +630,11 @@ export default function Dashboard({
         <ProjecaoMesesCard projecao={projecao} hidden={hidden} />
       </section>
 
+      {/* Orçamentos · compras futuras — acima da Alocação (pedido do usuário) */}
+      <section style={{ marginBottom: 16 }}>
+        <OrcamentosFuturosCard itens={orcamentosFuturos} setItens={setOrcamentosFuturos} hidden={hidden} />
+      </section>
+
       {/* Alocação Atual · Gastos por Categoria — abaixo da projeção.
           Quando empilha (mobile), Gastos sobe pra cima da Alocação. */}
       <section className="dash-mid-grid" style={{
@@ -651,11 +656,11 @@ export default function Dashboard({
         </section>
       )}
 
-      {/* Metas + Pergunte IA */}
+      {/* Insights + Pergunte IA (Orçamentos de compras futuras subiu pra
+          cima da Alocação — pedido do usuário 2026-09-22) */}
       <section className="dash-metas-grid" style={{
-        display: "grid", gridTemplateColumns: "2.5fr 1fr", gap: 12, marginBottom: 24,
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24,
       }}>
-        <OrcamentosFuturosCard itens={orcamentosFuturos} setItens={setOrcamentosFuturos} hidden={hidden} />
         {principalInsight && <InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("inteligencia")} />}
         <PergunteIACard onClick={() => onTabChange?.("perguntar")} />
       </section>
@@ -1350,18 +1355,18 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
           no mesmo estilo da Visão consolidada (saíram dos cards da grade). */}
       {(aPagarTotal > 0 || chequesTotal > 0) && (
         <div style={{ paddingTop: 10, borderTop: `1px solid ${T.border}`, marginBottom: 8 }}>
-          <div style={{ fontSize: 10.5, color: T.muted, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>
+          <div style={{ fontSize: 11.5, color: T.muted, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>
             Totais
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {aPagarTotal > 0 && (
               <>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: T.muted }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: T.muted }}>
                   <span>📉 Total a pagar</span>
                   <span className="num" style={{ color: T.red, fontWeight: 700 }}>{oculto ? "•••" : fmt(aPagarTotal)}</span>
                 </div>
                 {(aPagarPorAno || []).length > 1 && aPagarPorAno.map(x => (
-                  <div key={x.ano} style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: T.faint, paddingLeft: 18 }}>
+                  <div key={x.ano} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: T.faint, paddingLeft: 18 }}>
                     <span>{x.ano}</span>
                     <span className="num">{oculto ? "•••" : fmt(x.valor)}</span>
                   </div>
@@ -1369,7 +1374,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
               </>
             )}
             {chequesTotal > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: T.muted }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: T.muted }}>
                 <span>🧾 Cheques a receber</span>
                 <span className="num" style={{ color: T.blue || "#60a5fa", fontWeight: 700 }}>{oculto ? "•••" : fmt(chequesTotal)}</span>
               </div>
@@ -1382,7 +1387,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
           investimentos − cartões em aberto (movida do card Patrimônio Total). */}
       {consolidado && (
         <div style={{ paddingTop: 10, borderTop: `1px solid ${T.border}`, marginBottom: 4 }}>
-          <div style={{ fontSize: 10.5, color: T.gold, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>
+          <div style={{ fontSize: 11.5, color: T.gold, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>
             Visão consolidada
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -1392,13 +1397,13 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
               { r: "📈 Investimentos (Brasil)", v: consolidado.investBR, s: "+" },
               { r: "💳 Cartões em aberto", v: consolidado.cartoes, s: "−" },
             ].map(l => (
-              <div key={l.r} style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: T.muted }}>
+              <div key={l.r} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: T.muted }}>
                 <span>{l.r}</span>
                 <span className="num" style={{ color: l.s === "−" ? T.red : T.ink }}>{l.s === "−" ? "− " : ""}{oculto ? "•••" : fmt(l.v)}</span>
               </div>
             ))}
             {consolidado.investUSD > 0 && (
-              <div style={{ fontSize: 10, color: T.faint, fontStyle: "italic" }}>
+              <div style={{ fontSize: 11.5, color: T.faint, fontStyle: "italic" }}>
                 + US$ {consolidado.investUSD.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} em Stocks/REITs (fora do total em R$)
               </div>
             )}
