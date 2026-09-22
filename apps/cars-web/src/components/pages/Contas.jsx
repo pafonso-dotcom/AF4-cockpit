@@ -18,7 +18,7 @@ import { useLayout } from "../../lib/useLayout.js";
 import TransferenciaModal from "../modals/TransferenciaModal.jsx";
 import ImportarExtrato from "../modals/ImportarExtrato.jsx";
 
-export default function Contas({ contas, setContas, hidden, onCreateTransacao, onContaClick, contaAtiva, transacoes, setTransacoes, categorias, escopoAtivo = "tudo" }) {
+export default function Contas({ contas, setContas, hidden, onCreateTransacao, onContaClick, contaAtiva, transacoes, setTransacoes, categorias, escopoAtivo = "tudo", notaRapida, onSalvarNota }) {
   const { isMobile } = useLayout();
   const [form, setForm] = useState(null);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -595,9 +595,9 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
       })()}
       </SecaoColapsavel>
 
-      {/* Notas rápidas — anotações à mão, salvas automaticamente */}
+      {/* Notas rápidas — sincronizadas entre aparelhos via estado do app */}
       <div style={{ marginTop: 20 }}>
-        <NotasRapidasCard />
+        <NotasRapidasCard valor={notaRapida} onSalvar={onSalvarNota} />
       </div>
 
       {form && (

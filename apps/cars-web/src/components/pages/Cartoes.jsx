@@ -97,7 +97,7 @@ function parcelasEmAbertoNoMes(cartao, parcelamentos = [], monthKey) {
   return { valor, count };
 }
 
-export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, fixas = [], setFixas, fixaOcorrencias = [], setFixaOcorrencias, categorias, setCategorias, apiKeys = {}, hidden, onCartaoClick, cartaoAtivo, onPontoRestauracao }) {
+export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, fixas = [], setFixas, fixaOcorrencias = [], setFixaOcorrencias, categorias, setCategorias, apiKeys = {}, hidden, onCartaoClick, cartaoAtivo, onPontoRestauracao, notaRapida, onSalvarNota }) {
   const [analiseAberta, setAnaliseAberta] = useState(false);
   const [form, setForm] = useState(null);
   const [parcForm, setParcForm] = useState(null);
@@ -1266,7 +1266,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
       {/* Notas rápidas dos cartões — anotações à mão, salvas automaticamente
           (nota própria deste módulo, separada da nota de Contas). */}
       <div style={{ marginTop: 20 }}>
-        <NotasRapidasCard storageKey="af4:notas-rapidas:cartoes:v1" />
+        <NotasRapidasCard storageKey="af4:notas-rapidas:cartoes:v1" valor={notaRapida} onSalvar={onSalvarNota} />
       </div>
 
       {/* Card form modal */}
