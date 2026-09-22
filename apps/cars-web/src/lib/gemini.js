@@ -226,6 +226,46 @@ export async function gerarJSONGeminiComAudio(prompt, audioBase64, mimeType = "a
 }
 
 /**
+ * Extrai as FONTES (título+url) do groundingMetadata de uma resposta com
+ * busca no Google. Pura — testável com JSON mockado.
+ */
+export function extrairFontesGrounding(data) {
+  const chunks = data?.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+  const vistos = new Set();
+  const fontes = [];
+  for (const c of chunks) {
+    const url = c?.web?.uri || "";
+    if (!url || vistos.has(url)) continue;
+    vistos.add(url);
+    fontes.push({ titulo: c.web.title || url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0], url });
+    if (fontes.length >= 5) break;
+  }
+  return fontes;
+}
+
+/**
+ * Texto com BUSCA NO GOOGLE (grounding) — usado pelo Jarbas pra notícias,
+ * cotações e qualquer pergunta de fora do app. Retorna { texto, fontes }.
+ * Obs.: grounding não aceita responseMimeType JSON — a saída é texto puro.
+ */
+export async function gerarTextoGeminiComBusca(prompt, opts = {}) {
+  const key = getKey(opts);
+  if (!key) throw new Error("Chave do Gemini não configurada");
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }],
+    tools: [{ google_search: {} }],
+    generationConfig: {
+      temperature: opts.temperature ?? 0.3,
+      maxOutputTokens: opts.maxOutputTokens ?? 600,
+    },
+  };
+  const res = await postGemini(key, body);
+  const data = await res.json();
+  const texto = data.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join("") || "";
+  return { texto, fontes: extrairFontesGrounding(data) };
+}
+
+/**
  * Vários arquivos numa chamada só (ex.: fotos das páginas da ficha de treino).
  * `arquivos` = [{ base64, mimeType }].
  */

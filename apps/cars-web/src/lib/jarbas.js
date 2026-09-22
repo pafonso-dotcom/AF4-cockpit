@@ -92,7 +92,11 @@ export function montarContextoJarbas(d = {}) {
     ...tarefas.filter(t => t && !t.concluida && t.prazo === hojeISO).map(t => `tarefa "${t.titulo}"`),
   ];
 
+  // Memórias permanentes do Jarbas (metas, preferências — o usuário pediu pra lembrar).
+  const memorias = (d.memorias || []).map(m => `• ${m.texto}`).join("\n");
+
   return `${base}
+${memorias ? `\n═══ MEMÓRIAS (coisas que o Paulo pediu pra eu lembrar) ═══\n${memorias}\n` : ""}
 
 ═══ CONTAS (uma a uma) ═══
 ${linhasContas}
@@ -116,11 +120,46 @@ Regras:
 - Se faltar dado pra responder, diga o que falta em uma frase.
 - Chame o usuário de "Paulo" quando fizer sentido.`;
 
+// Campos extras do JSON (áudio E texto): valores na tela, memória e web.
+export const REGRAS_JSON_EXTRAS = `Campos OPCIONAIS do JSON (inclua só quando se aplicarem):
+- "destaques": SEMPRE que a resposta citar valores/números importantes (saldo, fatura, total, preço), liste até 4 itens [{"rotulo":"Saldo Itaú","valor":"R$ 1.234,56"}] pra aparecerem POR ESCRITO na tela.
+- "memorizar": quando o usuário pedir pra lembrar/anotar/guardar algo pessoal ("lembra que...", "anota que..."), o texto curto da memória. Confirme na "resposta" que guardou.
+- "buscaWeb": se a pergunta precisar de informação da INTERNET (notícias, cotações e fatos que NÃO estão no contexto), coloque aqui a consulta de busca em português e deixe "resposta" curta tipo "Deixa eu verificar na internet.". NÃO use pra dados que já estão no contexto.`;
+
 // Versão pra ÁUDIO: transcreve E responde numa chamada só (Gemini).
 export const PROMPT_JARBAS_AUDIO = `${PROMPT_JARBAS}
 
 O usuário enviou um ÁUDIO com a pergunta. Transcreva e responda usando o contexto abaixo. Retorne APENAS JSON válido:
-{"transcricao": "o que o usuário falou", "resposta": "sua resposta falável"}`;
+{"transcricao": "o que o usuário falou", "resposta": "sua resposta falável"}
+
+${REGRAS_JSON_EXTRAS}`;
+
+// Versão pra TEXTO digitado (mesma estrutura, sem transcrição).
+export function montarPromptTexto(contexto, msgs = [], pergunta = "") {
+  const historico = msgs.slice(-6)
+    .map(m => `${m.role === "user" ? "Paulo" : "Jarbas"}: ${m.texto}`)
+    .join("\n");
+  return `${PROMPT_JARBAS}
+
+Responda a pergunta do Paulo usando o contexto abaixo. Retorne APENAS JSON válido:
+{"resposta": "sua resposta falável"}
+
+${REGRAS_JSON_EXTRAS}
+
+${historico ? `CONVERSA ATÉ AGORA:\n${historico}\n\n` : ""}CONTEXTO DE DADOS:
+${contexto}
+
+Paulo: ${pergunta}`;
+}
+
+// Prompt da 2ª chamada quando precisa de WEB (grounding não aceita JSON).
+export function montarPromptWeb(pergunta) {
+  return `${PROMPT_JARBAS}
+
+Pesquise na internet e responda a pergunta do Paulo em 1 a 4 frases faláveis, em pt-BR, SEM URLs nem markdown no texto (as fontes aparecem separadas na tela).
+
+Pergunta: ${pergunta}`;
+}
 
 /**
  * Prompt completo pro caminho de ÁUDIO com MEMÓRIA da conversa — sem isso,

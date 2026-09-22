@@ -177,6 +177,8 @@ export default function App() {
   // O histórico vive aqui pra sobreviver a abrir/fechar na sessão.
   const [jarbasOpen, setJarbasOpen] = useState(false);
   const [jarbasMsgs, setJarbasMsgs] = useState([]);
+  // Memória PERMANENTE do Jarbas ("lembra que...") — sincronizada na conta.
+  const [jarbasMemoria, setJarbasMemoria] = useState([]);
   const swipeRef = useRef(null); // swipe entre abas (mobile)
   const [calcJurosGlobalOpen, setCalcJurosGlobalOpen] = useState(false);
   const [calcBasicaOpen, setCalcBasicaOpen] = useState(false);
@@ -333,7 +335,7 @@ export default function App() {
     // setTransacoes cru de propósito: hidratação/restauração troca a lista
     // inteira e NÃO deve gerar lápides (só exclusões do usuário geram).
     setContas, setCategorias, setTransacoes: setTransacoesBase, setAtivos, setMetas, setNotas,
-    setTumbas, setNotasRapidas, setVoos: setVoosDados,
+    setTumbas, setNotasRapidas, setVoos: setVoosDados, setJarbasMemoria,
     setCartoes, setParcelamentos, setDevedores, setDividas, setCheques,
     setFixas, setFixaOcorrencias, setAgenda, setHabitos, setDiario, setCompras,
     setIdeias, setTarefas, setSugestoes, setLembretes, setConversaHistorico,
@@ -364,7 +366,7 @@ export default function App() {
     tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
     lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
     themeId,
-    tumbas, notasRapidas, voos: voosDados,
+    tumbas, notasRapidas, voos: voosDados, jarbasMemoria,
   });
 
   // Backup automático diário na nuvem (GitHub Gist): 1x por dia, na abertura,
@@ -483,7 +485,7 @@ export default function App() {
       negocioLojas, negocioLojaAtiva, negocioRecebimentos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
-      themeId, tumbas, notasRapidas, voosDados, loading]);
+      themeId, tumbas, notasRapidas, voosDados, jarbasMemoria, loading]);
 
   useEffect(() => {
     if (loading) return;
@@ -1224,9 +1226,16 @@ export default function App() {
         <Suspense fallback={null}>
           <JarbasChamada
             dados={{ contas, cartoes, transacoes, ativos, devedores, dividas, cheques,
-                     fixas, fixaOcorrencias, parcelamentos, agenda, lembretes, tarefas }}
+                     fixas, fixaOcorrencias, parcelamentos, agenda, lembretes, tarefas,
+                     memorias: jarbasMemoria }}
             apiKeys={apiKeys}
             msgs={jarbasMsgs} setMsgs={setJarbasMsgs}
+            onMemorizar={(texto) => setJarbasMemoria(prev => [...prev, { id: uid(), texto, criadoEm: new Date().toISOString() }])}
+            onEsquecer={(id) => {
+              setJarbasMemoria(prev => prev.filter(m => m.id !== id));
+              // lápide: a fusão do sync não ressuscita a memória apagada
+              setTumbas(t => comTumbas(t, "jarbasMemoria", [id]));
+            }}
             onEncerrar={() => setJarbasOpen(false)} />
         </Suspense>
       )}
