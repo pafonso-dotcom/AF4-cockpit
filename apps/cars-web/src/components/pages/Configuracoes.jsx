@@ -277,6 +277,28 @@ function APIs({ apiKeys, setApiKeys }) {
   });
   const [statusTesteGemini, setStatusTesteGemini] = useState(null);
 
+  // Amadeus (módulo Voos): Key + Secret vivem em apiKeys (sincronizam na conta).
+  const [amadeusDraft, setAmadeusDraft] = useState({
+    key: apiKeys?.amadeusKey || "", secret: apiKeys?.amadeusSecret || "",
+  });
+  const [statusAmadeus, setStatusAmadeus] = useState(null);
+  const salvarAmadeus = () => {
+    const key = (amadeusDraft.key || "").trim();
+    const secret = (amadeusDraft.secret || "").trim();
+    setApiKeys(prev => ({ ...prev, amadeusKey: key, amadeusSecret: secret }));
+    toast.success("Chaves do Amadeus salvas.");
+    setStatusAmadeus(null);
+  };
+  const testarAmadeus = async () => {
+    setStatusAmadeus({ ok: null, resposta: "Testando…" });
+    try {
+      const { pingAmadeus } = await import("../../lib/amadeus.js");
+      setStatusAmadeus(await pingAmadeus((amadeusDraft.key || "").trim(), (amadeusDraft.secret || "").trim()));
+    } catch (e) {
+      setStatusAmadeus({ ok: false, erro: e.message });
+    }
+  };
+
   // PIN do scanner de recibo (Worker /api/recibo). Vive em localStorage.
   const [reciboPinDraft, setReciboPinDraft] = useState(() => {
     try { return localStorage.getItem("af4:recibo-pin") || ""; } catch { return ""; }
@@ -416,6 +438,43 @@ function APIs({ apiKeys, setApiKeys }) {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="fb">
+        <h4>✈️ Voos (Amadeus)</h4>
+        <p style={{ fontSize: 11.5, color: T.muted, marginTop: -4, marginBottom: 10 }}>
+          O módulo <strong>Voos</strong> (Agenda) usa a API gratuita do Amadeus. Crie uma conta em{" "}
+          <a href="https://developers.amadeus.com" target="_blank" rel="noopener noreferrer" style={{ color: T.gold }}>developers.amadeus.com</a>
+          {" "}→ "My Self-Service Workspace" → Create App, e cole a <strong>API Key</strong> e o <strong>API Secret</strong> aqui.
+        </p>
+        <div className="fr">
+          <div className="ff">
+            <label>Amadeus API Key</label>
+            <input type="password" value={amadeusDraft.key}
+                   onChange={e => setAmadeusDraft(d => ({ ...d, key: e.target.value }))}
+                   placeholder="Sua API Key" />
+          </div>
+          <div className="ff">
+            <label>Amadeus API Secret</label>
+            <input type="password" value={amadeusDraft.secret}
+                   onChange={e => setAmadeusDraft(d => ({ ...d, secret: e.target.value }))}
+                   placeholder="Seu API Secret" />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+          <button onClick={salvarAmadeus} className="btn-gold" style={{ padding: "6px 14px", fontSize: 11 }}>Salvar</button>
+          <button onClick={testarAmadeus} className="btn-ghost" style={{ padding: "6px 14px", fontSize: 11 }}>🧪 Testar</button>
+        </div>
+        {statusAmadeus && (
+          <div style={{
+            marginTop: 10, padding: "8px 12px", borderRadius: 12, fontSize: 11.5,
+            background: statusAmadeus.ok ? `${T.green}15` : `${T.red}15`,
+            color: statusAmadeus.ok ? T.green : T.red,
+            border: `1px solid ${statusAmadeus.ok ? T.green : T.red}55`,
+          }}>
+            {statusAmadeus.ok ? `✓ ${statusAmadeus.resposta}` : `✗ ${statusAmadeus.erro}`}
+          </div>
+        )}
       </div>
 
       <div className="fb">

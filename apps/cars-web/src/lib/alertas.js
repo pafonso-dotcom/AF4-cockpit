@@ -43,6 +43,7 @@ export function computarAlertas({
   agenda = [],
   lembretes = [],
   tarefas = [],
+  voos = {},
 } = {}) {
   const alertas = [];
   const mesAtual = (hoje || "").slice(0, 7);
@@ -190,6 +191,18 @@ export function computarAlertas({
       id: `tar:${t.id}`, tipo: "tarefa", severidade: "info",
       titulo: t.titulo || "Tarefa",
       sub: "Prazo hoje", data: hoje, modulo: "agenda", tab: "tarefas",
+    });
+  });
+
+  // 7) Voos monitorados que BATERAM o preço-alvo (módulo Voos, 2026-09-22).
+  (voos?.monitores || []).forEach(m => {
+    if (!m || !(Number(m.alvo) > 0) || !(Number(m.ultimoPreco) > 0)) return;
+    if (Number(m.ultimoPreco) > Number(m.alvo)) return;
+    alertas.push({
+      id: `voo:${m.id}`, tipo: "voo", severidade: "proximo",
+      titulo: `✈️ ${m.origem} → ${m.destino} bateu o alvo!`,
+      sub: `${money(m.ultimoPreco)} (alvo ${money(m.alvo)})`,
+      data: hoje, modulo: "agenda", tab: "voos",
     });
   });
 

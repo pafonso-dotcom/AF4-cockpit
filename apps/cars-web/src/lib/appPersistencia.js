@@ -96,6 +96,8 @@ export function aplicarDadosCarregados(data, S) {
   if (S.setTumbas) S.setTumbas(data.tumbas || {});
   // Notas rápidas (Contas/Cartões) sincronizadas entre aparelhos.
   if (S.setNotasRapidas) S.setNotasRapidas(data.notasRapidas || {});
+  // Módulo Voos (monitores de preço).
+  if (S.setVoos) S.setVoos(data.voos || { monitores: [] });
   // Migração one-shot: marca contas/categorias antigas com escopo detectado
   setTimeout(() => {
     migrarEscoposAuto(
@@ -109,6 +111,7 @@ export function aplicarDadosCarregados(data, S) {
 export function aplicarSeeds(S) {
   if (S.setTumbas) S.setTumbas({});
   if (S.setNotasRapidas) S.setNotasRapidas({});
+  if (S.setVoos) S.setVoos({ monitores: [] });
   S.setContas(seedContas);
   S.setCategorias(seedCategorias);
   S.setTransacoes(seedTransacoes);
