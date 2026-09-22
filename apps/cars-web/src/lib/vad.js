@@ -13,8 +13,8 @@
 export const VAD_DEFAULTS = {
   limiarFala: 0.045,     // nível pra considerar "tem voz"
   limiarSilencio: 0.028, // abaixo disso conta como silêncio (histerese)
-  minFalaMs: 300,        // voz contínua mínima pra valer como fala
-  silencioMs: 1400,      // silêncio após fala → terminou o turno
+  minFalaMs: 250,        // voz contínua mínima pra valer como fala
+  silencioMs: 1100,      // silêncio após fala → terminou o turno (ágil)
   limiarBarge: 0.09,     // barge-in: precisa falar mais alto (eco não passa)
   minBargeMs: 550,       // ... e por mais tempo
 };

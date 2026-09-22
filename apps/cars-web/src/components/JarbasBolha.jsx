@@ -70,9 +70,10 @@ export default function JarbasBolha({ onAbrir }) {
         background: "radial-gradient(circle at 35% 30%, #0e3a46, #041820 75%)",
         border: "1px solid #4dd0e155", cursor: "grab",
         display: "grid", placeItems: "center", touchAction: "none",
-        boxShadow: "0 4px 18px rgba(0,0,0,.35)",
+        willChange: "transform",
       }}>
-      <JarbasOrbe size={54} fase="idle" rotulo="" />
+      {/* estático = só o anel externo girando devagar (custo ~zero) */}
+      <JarbasOrbe size={54} fase="idle" rotulo="" estatico />
     </button>
   );
 }
