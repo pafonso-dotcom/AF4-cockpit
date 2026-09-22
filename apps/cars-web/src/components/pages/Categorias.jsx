@@ -29,6 +29,32 @@ export default function Categorias({
   const [expandTo, setExpandTo] = useState(false);
   const expandirTudo = (v) => { setExpandTo(v); setExpandSig(s => s + 1); };
 
+  // Unificar DIRETO NA CATEGORIA (pedido 2026-09-22 — a caixa De→Para no
+  // Diagnóstico dava trabalho): botão ⇆ na linha abre este modal com UMA
+  // escolha ("juntar em…"). O motor é o fundirCategorias.
+  const [fundirAlvo, setFundirAlvo] = useState(null);   // categoria origem
+  const [fundirDestino, setFundirDestino] = useState("");
+  const executarFusao = async () => {
+    const origem = fundirAlvo;
+    const destino = categorias.find(c => c.id === fundirDestino);
+    if (!origem || !destino || origem.id === destino.id) { toast.error("Escolha a categoria destino."); return; }
+    const usos = (transacoes || []).filter(t => (t?.categoria || "").trim() === origem.nome).length;
+    const ok = await confirm({
+      title: `Juntar "${origem.nome}" em "${destino.nome}"?`,
+      body: `Tudo de "${origem.nome}" (${usos} transação(ões), mais fixas/parcelamentos/dívidas) passa pra "${destino.nome}". "${origem.nome}" vira SUBCATEGORIA — o detalhe não se perde e a soma fica unificada em todas as telas.`,
+      confirmLabel: "Unificar",
+    });
+    if (!ok) return;
+    const r = fundirCategorias(origem, destino, { categorias, transacoes, fixas, parcelamentos, dividas });
+    setCategorias(r.categorias);
+    setTransacoes?.(r.transacoes);
+    setFixas?.(r.fixas);
+    setParcelamentos?.(r.parcelamentos);
+    setDividas?.(r.dividas);
+    setFundirAlvo(null); setFundirDestino("");
+    toast.success(`"${origem.nome}" agora vive dentro de ${destino.nome}.`);
+  };
+
   const [formErrors, setFormErrors] = useState({});
 
   const save = () => {
@@ -181,9 +207,36 @@ export default function Categorias({
       </div>
 
       {vista === "receita" ? (
-        <CategoriaCol titulo="Receitas" cats={receitas} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.green} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} />
+        <CategoriaCol titulo="Receitas" cats={receitas} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.green} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} onFundir={setFundirAlvo} />
       ) : (
-        <CategoriaCol titulo="Despesas" cats={despesas} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.red} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} gastoDe={gastoDe} />
+        <CategoriaCol titulo="Despesas" cats={despesas} setForm={setForm} setCategorias={setCategorias} categorias={categorias} accent={T.red} hidden={hidden} transacoes={transacoes} expandSig={expandSig} expandTo={expandTo} gastoDe={gastoDe} onFundir={setFundirAlvo} />
+      )}
+
+      {/* MODAL: unificar categoria (aberto pelo ⇆ da linha) */}
+      {fundirAlvo && (
+        <Modal title={`⇆ Unificar "${fundirAlvo.nome}"`} onClose={() => { setFundirAlvo(null); setFundirDestino(""); }}>
+          <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 12 }}>
+            Escolha onde <strong style={{ color: T.ink }}>{fundirAlvo.nome}</strong> vai morar: tudo dela
+            (transações, fixas, parcelamentos, dívidas) passa pra categoria escolhida e ela vira uma
+            <strong> subcategoria</strong> — o detalhe não se perde e a soma fica unificada em todas as telas.
+          </div>
+          <Field label="Juntar dentro de…" required>
+            <select value={fundirDestino} onChange={e => setFundirDestino(e.target.value)}>
+              <option value="">Selecione a categoria destino…</option>
+              {ordenarPorNome(categorias.filter(c =>
+                c.id !== fundirAlvo.id && c.parentId !== fundirAlvo.id && c.tipo === fundirAlvo.tipo
+              )).map(c => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </Field>
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => { setFundirAlvo(null); setFundirDestino(""); }}>Cancelar</button>
+            <button className="btn-gold" disabled={!fundirDestino} onClick={executarFusao}>
+              <Check size={13} className="inline mr-1" /> Unificar
+            </button>
+          </div>
+        </Modal>
       )}
 
       {form && (
@@ -382,7 +435,7 @@ export default function Categorias({
   );
 }
 
-function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias, accent, hidden, transacoes, expandSig, expandTo, gastoDe }) {
+function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias, accent, hidden, transacoes, expandSig, expandTo, gastoDe, onFundir }) {
   // Apenas categorias-raiz neste nível; filhas aparecem indentadas via CategoriaItem
   // (ambas em ordem alfabética)
   const raizes = ordenarPorNome(cats.filter(c => !c.parentId));
@@ -418,6 +471,7 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
             expandTo={expandTo}
             gastoDe={gastoDe}
             hidden={hidden}
+            onFundir={onFundir}
           />
         ))}
       </div>
@@ -425,7 +479,7 @@ function CategoriaCol({ titulo, cats, stats, setForm, setCategorias, categorias,
   );
 }
 
-function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, transacoes, expandSig = 0, expandTo = false, gastoDe, hidden }) {
+function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, transacoes, expandSig = 0, expandTo = false, gastoDe, hidden, onFundir }) {
   const [open, setOpen] = useState(false);
   const [openFilhas, setOpenFilhas] = useState(false); // filhas colapsadas por default
   const [novaSub, setNovaSub] = useState("");
@@ -549,6 +603,12 @@ function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, tra
                 style={{ color: T.muted, padding: 4, background: "transparent", border: "none", cursor: "pointer" }}>
           <Edit3 size={12} />
         </button>
+        <button onClick={e => { e.stopPropagation(); onFundir?.(c); }}
+                aria-label={`Unificar ${c.nome} em outra categoria`}
+                title="Unificar: juntar esta categoria dentro de outra"
+                style={{ color: T.gold, padding: 4, background: "transparent", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
+          ⇆
+        </button>
         <button onClick={e => { e.stopPropagation(); excluirCat(c); }}
                 aria-label={`Excluir categoria ${c.nome}`}
                 title="Excluir categoria"
@@ -620,6 +680,12 @@ function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, tra
                   style={{ color: T.muted, background: "transparent", border: "none", cursor: "pointer", padding: 2 }}>
                   <Edit3 size={11} />
                 </button>
+                <button onClick={() => onFundir?.(f)}
+                  aria-label={`Unificar ${f.nome} em outra categoria`}
+                  title="Unificar: juntar esta dentro de outra categoria"
+                  style={{ color: T.gold, background: "transparent", border: "none", cursor: "pointer", padding: 2, fontSize: 11, fontWeight: 700 }}>
+                  ⇆
+                </button>
                 <button onClick={() => excluirCat(f)}
                   aria-label={`Excluir ${f.nome}`}
                   title="Excluir subcategoria"
@@ -645,35 +711,11 @@ function DiagnosticoCategorias({
   fixas = [], setFixas, parcelamentos = [], setParcelamentos, dividas = [], setDividas,
 }) {
   const [aberto, setAberto] = useState(false);
-  // Fusão manual De → Para (juntar "Padaria" em "Alimentação", por ex.)
-  const [fundirDe, setFundirDe] = useState("");
-  const [fundirPara, setFundirPara] = useState("");
   const diag = useMemo(
     () => diagnosticoCategorias({ categorias, transacoes }),
     [categorias, transacoes]
   );
   const nAcao = diag.totalProblemas;
-
-  const fundir = async () => {
-    const origem = categorias.find(c => c.id === fundirDe);
-    const destino = categorias.find(c => c.id === fundirPara);
-    if (!origem || !destino || origem.id === destino.id) { toast.error("Escolha duas categorias diferentes."); return; }
-    const usos = (transacoes || []).filter(t => (t?.categoria || "").trim() === origem.nome).length;
-    const ok = await confirm({
-      title: `Unificar "${origem.nome}" em "${destino.nome}"?`,
-      body: `Tudo que está em "${origem.nome}" (${usos} transação(ões), mais fixas/parcelamentos/dívidas) passa pra "${destino.nome}". "${origem.nome}" vira SUBCATEGORIA de ${destino.nome} — você não perde o detalhe, e a soma aparece unificada em todas as telas.`,
-      confirmLabel: "Unificar",
-    });
-    if (!ok) return;
-    const r = fundirCategorias(origem, destino, { categorias, transacoes, fixas, parcelamentos, dividas });
-    setCategorias(r.categorias);
-    setTransacoes?.(r.transacoes);
-    setFixas?.(r.fixas);
-    setParcelamentos?.(r.parcelamentos);
-    setDividas?.(r.dividas);
-    setFundirDe(""); setFundirPara("");
-    toast.success(`"${origem.nome}" agora é subcategoria de ${destino.nome} — somas unificadas.`);
-  };
 
   const criarCategoria = (item) => {
     setCategorias([...categorias, {
@@ -741,38 +783,6 @@ function DiagnosticoCategorias({
 
       {aberto && (
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
-          {/* UNIFICAÇÃO MANUAL — juntar uma categoria na outra (De → Para) */}
-          <div style={{ background: T.bgSoft, border: `1px solid ${T.gold}44`, borderRadius: 12, padding: "10px 12px" }}>
-            <div className="label-eyebrow" style={{ color: T.gold, marginBottom: 6 }}>
-              Unificar categorias — junte "Padaria" em "Alimentação", por exemplo
-            </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <select value={fundirDe} onChange={e => setFundirDe(e.target.value)}
-                      style={{ flex: "1 1 150px", padding: "7px 10px", fontSize: 12 }}>
-                <option value="">Juntar esta…</option>
-                {ordenarPorNome(categorias.filter(c => c.id !== fundirPara)).map(c => (
-                  <option key={c.id} value={c.id}>{c.nome}{c.tipo === "receita" ? " (receita)" : ""}</option>
-                ))}
-              </select>
-              <span style={{ color: T.muted, fontSize: 13, flexShrink: 0 }}>→ dentro de</span>
-              <select value={fundirPara} onChange={e => setFundirPara(e.target.value)}
-                      style={{ flex: "1 1 150px", padding: "7px 10px", fontSize: 12 }}>
-                <option value="">…nesta</option>
-                {ordenarPorNome(categorias.filter(c => c.id !== fundirDe)).map(c => (
-                  <option key={c.id} value={c.id}>{c.nome}{c.tipo === "receita" ? " (receita)" : ""}</option>
-                ))}
-              </select>
-              <button className="btn-gold" style={{ fontSize: 11, padding: "7px 14px" }}
-                      disabled={!fundirDe || !fundirPara} onClick={fundir}>
-                Unificar
-              </button>
-            </div>
-            <div style={{ fontSize: 10.5, color: T.faint, marginTop: 6 }}>
-              Tudo da primeira passa pra segunda (transações, fixas, parcelamentos, dívidas) e ela vira uma
-              subcategoria — o detalhe não se perde e a soma fica unificada em todas as telas.
-            </div>
-          </div>
-
           {diag.foraDoCadastro.length > 0 && (
             <div>
               <div className="label-eyebrow" style={{ color: T.red, marginBottom: 6 }}>

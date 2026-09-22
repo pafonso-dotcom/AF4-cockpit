@@ -313,9 +313,14 @@ export default function AnalisesFinancas(props) {
           const ant = gastoAntPorPai[p.nome];
           const deltaCat = ant > 0 ? ((p.valor - ant) / ant) * 100 : null;
           // Drill nos MESMOS itens do ranking (f.itensConsumo inclui o que está
-          // dentro da fatura importada) — assim a lista bate com o total da barra.
+          // dentro da fatura importada). O grupo inclui as FILHAS da categoria
+          // (o ranking soma filha na mãe) — assim a lista bate com a barra.
+          const catRaiz = aberto ? (categorias || []).find(c => c.nome === p.nome) : null;
+          const nomesGrupo = aberto
+            ? new Set([p.nome, ...(catRaiz ? (categorias || []).filter(c => c.parentId === catRaiz.id).map(c => c.nome) : [])])
+            : null;
           const itensDaCat = aberto
-            ? (f.itensConsumo || despesasAgg).filter(t => (String(t.categoria || "").trim() || "Outros") === p.nome)
+            ? (f.itensConsumo || despesasAgg).filter(t => nomesGrupo.has(String(t.categoria || "").trim() || "Outros"))
                 .sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0))
             : [];
           return (
