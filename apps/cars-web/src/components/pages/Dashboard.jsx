@@ -602,10 +602,7 @@ export default function Dashboard({
       <section className="dash-kpi-grid" style={{
         display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
-                 breakdown={{ contas: totalContas, proventos: provSaldo, aReceber: aReceber, cheques: chequesAReceber,
-                              invest: totalInvest, investUSD: totalInvestUSD,
-                              cartoes: cartoesTotal, outrasAPagar: Math.max(0, aPagarTotal - cartoesTotal) }} />
+        <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao} />
         <span className="dash-prox">
           <ProximosVencimentosCard devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} />
         </span>
@@ -618,6 +615,8 @@ export default function Dashboard({
       }}>
         <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
         <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} aPagarPorAno={aPagarPorAno} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesTile={cartoesTile} sparks={sparks} hidden={hidden}
+          consolidado={{ contas: totalContas, proventos: provSaldo, investBR: totalInvest, investUSD: totalInvestUSD,
+                         cartoes: cartoesTotal, liquido: totalContas + provSaldo + totalInvest - cartoesTotal }}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
       </section>
@@ -785,7 +784,7 @@ function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, m
   );
 }
 
-function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
+function KpiHero({ value, mom, hidden, evolucao }) {
   // Sempre começa oculto; só revela quando o usuário clica no card. O modo
   // privado global (hidden) tem prioridade e mantém oculto.
   const [revelado, setRevelado] = useState(false);
@@ -793,12 +792,6 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
   const animado = useCountUp(value, visivel);
   // Topo "aurora" (variação B) — superfície colorida própria, texto branco.
   const bg = AURORA_BG;
-  const Linha = ({ rotulo, v, sinal }) => (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "rgba(255,255,255,0.8)" }}>
-      <span>{rotulo}</span>
-      <span className="num">{sinal === "-" ? "− " : sinal === "+" ? "+ " : ""}{fmt(v)}</span>
-    </div>
-  );
   return (
     <div onClick={() => setRevelado(v => !v)}
          title={visivel ? "Toque para ocultar" : "Toque para ver"}
@@ -831,40 +824,8 @@ function KpiHero({ value, mom, hidden, evolucao, breakdown }) {
           <span style={{ color: "rgba(255,255,255,0.7)" }}>toque para revelar</span>
         )}
       </div>
-      {visivel && breakdown && (
-        <div className="kpi-breakdown" style={{ position: "relative", zIndex: 1, marginTop: 10, paddingTop: 9, borderTop: "1px solid rgba(255,255,255,0.22)", display: "flex", flexDirection: "column", gap: 3 }}>
-          {/* Visão consolidada: o que você TEM, o que vai ENTRAR, o que DEVE */}
-          <Linha rotulo="🏦 Contas" v={breakdown.contas} sinal="+" />
-          {breakdown.proventos > 0 && <Linha rotulo="💰 Carteira de proventos" v={breakdown.proventos} sinal="+" />}
-          <Linha rotulo="📈 Investimentos (Brasil)" v={breakdown.invest} sinal="+" />
-          <Linha rotulo="🤝 A receber" v={breakdown.aReceber} sinal="+" />
-          {breakdown.cheques > 0 && <Linha rotulo="🧾 Cheques a receber" v={breakdown.cheques} sinal="+" />}
-          <Linha rotulo="💳 Cartões em aberto" v={breakdown.cartoes} sinal="-" />
-          <Linha rotulo="📉 Outras contas a pagar" v={breakdown.outrasAPagar} sinal="-" />
-          {breakdown.investUSD > 0 && (
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontStyle: "italic", marginTop: 2 }}>
-              + US$ {(breakdown.investUSD).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} em Stocks/REITs (fora do total em R$)
-            </div>
-          )}
-          {/* Barrinha de composição do que você TEM (contas · proventos · invest) */}
-          {(() => {
-            const partes = [
-              { v: breakdown.contas, c: "rgba(255,255,255,0.95)" },
-              { v: breakdown.proventos, c: "rgba(255,215,130,0.95)" },
-              { v: breakdown.invest, c: "rgba(140,220,180,0.95)" },
-            ].filter(p => p.v > 0);
-            const soma = partes.reduce((s, p) => s + p.v, 0);
-            return soma > 0 ? (
-              <div style={{ display: "flex", height: 5, borderRadius: 100, overflow: "hidden", marginTop: 5, background: "rgba(255,255,255,0.18)" }}
-                   title="Composição: contas · carteira de proventos · investimentos">
-                {partes.map((p, i) => (
-                  <div key={i} style={{ width: `${(p.v / soma) * 100}%`, background: p.c }} />
-                ))}
-              </div>
-            ) : null;
-          })()}
-        </div>
-      )}
+      {/* Composição completa: fica no Centro de Controle (Visão consolidada) —
+          aqui só o número, limpo (pedido do usuário 2026-09-22). */}
     </div>
   );
 }
@@ -1272,7 +1233,7 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, aPagarPorAno = [], chequesTotal = 0, cartoesTotal = 0, cartoesTile = null, sparks = null, hidden, onSeeAll, onVerPagar }) {
+function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, aPagarPorAno = [], chequesTotal = 0, cartoesTotal = 0, cartoesTile = null, sparks = null, consolidado = null, hidden, onSeeAll, onVerPagar }) {
   // Valores começam VISÍVEIS ao abrir a tela (pedido do usuário); o botão do
   // olho continua lá pra esconder. O modo privado global (hidden) segue
   // mandando por cima de tudo.
@@ -1381,6 +1342,38 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
           </div>
         ))}
       </div>
+
+      {/* VISÃO CONSOLIDADA — o que você TEM num lugar só: contas + proventos +
+          investimentos − cartões em aberto (movida do card Patrimônio Total). */}
+      {consolidado && (
+        <div style={{ paddingTop: 10, borderTop: `1px solid ${T.border}`, marginBottom: 4 }}>
+          <div style={{ fontSize: 10.5, color: T.gold, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>
+            Visão consolidada
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {[
+              { r: "🏦 Contas", v: consolidado.contas, s: "+" },
+              ...(consolidado.proventos > 0 ? [{ r: "💰 Carteira de proventos", v: consolidado.proventos, s: "+" }] : []),
+              { r: "📈 Investimentos (Brasil)", v: consolidado.investBR, s: "+" },
+              { r: "💳 Cartões em aberto", v: consolidado.cartoes, s: "−" },
+            ].map(l => (
+              <div key={l.r} style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: T.muted }}>
+                <span>{l.r}</span>
+                <span className="num" style={{ color: l.s === "−" ? T.red : T.ink }}>{l.s === "−" ? "− " : ""}{oculto ? "•••" : fmt(l.v)}</span>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, paddingTop: 4, marginTop: 2, borderTop: `1px dashed ${T.border}` }}>
+              <span style={{ color: T.ink }}>Líquido (contas + invest − cartões)</span>
+              <span className="num" style={{ color: consolidado.liquido >= 0 ? T.green : T.red }}>{oculto ? "•••" : fmt(consolidado.liquido)}</span>
+            </div>
+            {consolidado.investUSD > 0 && (
+              <div style={{ fontSize: 10, color: T.faint, fontStyle: "italic" }}>
+                + US$ {consolidado.investUSD.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} em Stocks/REITs (fora do total em R$)
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* A PAGAR vencendo HOJE — contas (fixas/parcelas/dívidas) que vencem hoje */}
       {aPagarHoje.length > 0 && (
