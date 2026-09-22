@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Search, Printer, BarChart3, Brain } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Search, Printer, BarChart3, Brain, Sparkles, TrendingUp, Tag } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN } from "../../lib/format.js";
 import { MESES_LONGO } from "../../lib/meses.js";
@@ -180,10 +180,12 @@ export default function AnalisesFinancas(props) {
     );
   };
 
-  /* ===== Seção recolhível (extras no rodapé) ===== */
-  const KEY = "af4:analise-extras:v2";
+  /* ===== Seções recolhíveis — TODAS abrem e fecham (pedido 2026-09-22);
+     o que você deixa aberto fica salvo. Padrão: consultor + categorias. ===== */
+  const KEY = "af4:analise-secoes:v3";
   const [abertos, setAbertos] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem(KEY) || "[]")); } catch { return new Set(); }
+    try { return new Set(JSON.parse(localStorage.getItem(KEY) || '["consultor","categorias"]')); }
+    catch { return new Set(["consultor", "categorias"]); }
   });
   const toggle = (id) => setAbertos(prev => {
     const n = new Set(prev);
@@ -259,10 +261,10 @@ export default function AnalisesFinancas(props) {
         ))}
       </div>
 
-      {/* Leitura do consultor */}
+      {/* Leitura do consultor — recolhível */}
       {frases.length > 0 && (
-        <div style={{ background: T.card, border: `1px solid ${T.gold}44`, borderLeft: `3px solid ${T.gold}`, borderRadius: 14, padding: "12px 14px", marginBottom: 12 }}>
-          <div className="label-eyebrow" style={{ color: T.gold, marginBottom: 7 }}>Leitura do consultor</div>
+        <ExtraSec {...extra("consultor")} icon={Sparkles} titulo="Leitura do consultor"
+                  desc="O que os números do mês estão dizendo, em frases diretas.">
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {frases.map((x, i) => (
               <div key={i} style={{ fontSize: 12.5, color: T.ink, lineHeight: 1.5, paddingLeft: 14, position: "relative" }}>
@@ -270,18 +272,13 @@ export default function AnalisesFinancas(props) {
               </div>
             ))}
           </div>
-        </div>
+        </ExtraSec>
       )}
 
-      {/* TENDÊNCIA · últimos 6 meses — receitas × despesas, sobra embaixo */}
+      {/* TENDÊNCIA · últimos 6 meses — recolhível */}
       {tendencia.some(t => t.receitas > 0 || t.despesas > 0) && (
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px 14px", marginBottom: 12 }}>
-          <div className="label-eyebrow" style={{ marginBottom: 10 }}>
-            Tendência · últimos 6 meses
-            <span style={{ marginLeft: 10, textTransform: "none", letterSpacing: 0, fontWeight: 500, color: T.faint }}>
-              <span style={{ color: T.green }}>■</span> receitas · <span style={{ color: T.red }}>■</span> despesas
-            </span>
-          </div>
+        <ExtraSec {...extra("tendencia")} icon={TrendingUp} titulo="Tendência · últimos 6 meses"
+                  desc="Receitas (verde) × despesas (vermelho) mês a mês, com a sobra embaixo.">
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${tendencia.length}, 1fr)`, gap: 8, alignItems: "end" }}>
             {tendencia.map(t => {
               const atual = t.iso === mesISO;
@@ -300,15 +297,12 @@ export default function AnalisesFinancas(props) {
               );
             })}
           </div>
-        </div>
+        </ExtraSec>
       )}
 
-      {/* GASTOS POR CATEGORIA — o coração: barra + % + delta + drill-down */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px 14px", marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-          <div className="label-eyebrow">Gastos por categoria · bancos + cartões</div>
-          <div className="num" style={{ fontSize: 13, fontWeight: 700, color: T.red }}>{mask(f.despesasGeral)}</div>
-        </div>
+      {/* GASTOS POR CATEGORIA — o coração: barra + % + delta + drill-down (recolhível) */}
+      <ExtraSec {...extra("categorias")} icon={Tag} titulo="Gastos por categoria"
+                desc={`Bancos + cartões · total ${mask(f.despesasGeral)} — toque numa categoria pra abrir os lançamentos.`}>
         {pais.length === 0 ? (
           <div style={{ color: T.muted, fontStyle: "italic", fontSize: 12.5, padding: "12px 0" }}>Sem gastos neste mês.</div>
         ) : pais.map(p => {
@@ -385,7 +379,7 @@ export default function AnalisesFinancas(props) {
             </div>
           );
         })}
-      </div>
+      </ExtraSec>
 
       {/* EXTRAS — recolhidos por padrão, pra tela não virar feira */}
       <ExtraSec {...extra("projecao")} icon={BarChart3} titulo="Projeção & matriz por categoria"
