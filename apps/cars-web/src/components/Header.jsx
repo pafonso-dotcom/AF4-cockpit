@@ -39,6 +39,16 @@ export const AGENDA_TABS = [
   { id: "treino",     label: "Treino",       icon: Dumbbell },
   { id: "metas",      label: "Metas",        icon: Target },
 ];
+
+// Ordem das abas por módulo — usada pelo SWIPE do celular (App.jsx).
+// Espelha os SUBTABS abaixo; se mudar lá, mude aqui.
+export const SUBTAB_IDS = {
+  financas: ["dashboard", "contas", "cartoes", "emprestimos", "planejamento", "relatorios-f", "transacoes", "categorias", "perguntar"],
+  invest: ["investimentos", "carteira", "monte-carteira", "analises", "proventos", "simulador", "construtor-mercado", "relatorios-i"],
+  agenda: AGENDA_TABS.map(t => t.id),
+  config: ["cfg-aparencia", "cfg-apis", "cfg-modulos", "cfg-backup"],
+};
+
 const AGENDA_TAB_IDS = new Set(AGENDA_TABS.map(t => t.id));
 
 /* ===== Ordem das abas (arrastar pra reordenar) — persistida por grupo em localStorage ===== */
@@ -380,6 +390,7 @@ function HeaderHorizontal({
         <div data-subnav style={{
           maxWidth: 1280, margin: "0 auto",
           display: "flex", gap: 6, overflowX: "auto", padding: "8px 0",
+          WebkitMaskImage: "linear-gradient(90deg, #000 90%, transparent)", maskImage: "linear-gradient(90deg, #000 90%, transparent)",
         }}>
           {MODULOS.map(m => {
             const Icon = m.icon;
@@ -486,6 +497,7 @@ function HeaderHorizontal({
           <div style={{
             maxWidth: 1280, margin: "0 auto",
             display: "flex", gap: 4, overflowX: "auto", padding: "6px 0", alignItems: "center",
+            WebkitMaskImage: "linear-gradient(90deg, #000 90%, transparent)", maskImage: "linear-gradient(90deg, #000 90%, transparent)",
           }}>
             <span style={{ fontSize: 10.5, color: NAV_FAINT, letterSpacing: ".2em", textTransform: "uppercase", whiteSpace: "nowrap", paddingRight: 4 }}>
               Agenda ·
