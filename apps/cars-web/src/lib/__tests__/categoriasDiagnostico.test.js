@@ -67,3 +67,39 @@ describe("aplicarUnificacao", () => {
     expect(r.categorias.find(c => c.id === "f").parentId).toBe("a");
   });
 });
+
+describe("fundirCategorias (De → Para, manual)", () => {
+  const cats = [
+    { id: "ali", nome: "Alimentação", tipo: "despesa", subcategorias: [{ id: "s1", nome: "Feira" }] },
+    { id: "pad", nome: "Padaria", tipo: "despesa" },
+    { id: "fil", nome: "Doces", tipo: "despesa", parentId: "pad" },
+  ];
+  const dados = {
+    categorias: cats,
+    transacoes: [
+      { id: "t1", tipo: "despesa", categoria: "Padaria", valor: 30, data: "2026-09-01" },
+      { id: "t2", tipo: "despesa", categoria: "Padaria", valor: 20, data: "2026-09-02", subcategoria: "Pão" },
+      { id: "t3", tipo: "despesa", categoria: "Alimentação", valor: 50, data: "2026-09-03" },
+    ],
+    fixas: [{ id: "f1", categoria: "Padaria", valor: 10 }],
+    parcelamentos: [{ id: "p1", categoria: "Padaria", valorTotal: 100 }],
+    dividas: [{ id: "d1", categoria: "Outra", valor: 5 }],
+  };
+  const origem = cats[1], destino = cats[0];
+  const { fundirCategorias } = require("../categoriasDiagnostico.js");
+  const r = fundirCategorias(origem, destino, dados);
+
+  it("re-aponta transações, fixas e parcelamentos; guarda o rastro na subcategoria", () => {
+    expect(r.transacoes.find(t => t.id === "t1")).toMatchObject({ categoria: "Alimentação", subcategoria: "Padaria" });
+    expect(r.transacoes.find(t => t.id === "t2")).toMatchObject({ categoria: "Alimentação", subcategoria: "Pão" }); // sub existente fica
+    expect(r.fixas[0]).toMatchObject({ categoria: "Alimentação", subcategoria: "Padaria" });
+    expect(r.parcelamentos[0]).toMatchObject({ categoria: "Alimentação" });
+    expect(r.dividas[0].categoria).toBe("Outra"); // não relacionada: intacta
+  });
+  it("origem some da lista e vira subcategoria da destino; filha migra", () => {
+    expect(r.categorias.find(c => c.id === "pad")).toBeUndefined();
+    const dest = r.categorias.find(c => c.id === "ali");
+    expect(dest.subcategorias.map(s => s.nome)).toEqual(expect.arrayContaining(["Feira", "Padaria"]));
+    expect(r.categorias.find(c => c.id === "fil").parentId).toBe("ali");
+  });
+});

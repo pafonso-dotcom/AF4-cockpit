@@ -8,7 +8,7 @@ import { confirm } from "../../lib/confirm.js";
 import { PACOTES } from "../../lib/categoriasPacotes.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
-import { diagnosticoCategorias, aplicarUnificacao } from "../../lib/categoriasDiagnostico.js";
+import { diagnosticoCategorias, aplicarUnificacao, fundirCategorias } from "../../lib/categoriasDiagnostico.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
@@ -16,7 +16,8 @@ import Modal from "../ui/Modal.jsx";
 
 export default function Categorias({
   categorias, setCategorias, transacoes, setTransacoes, hidden, escopoAtivo = "tudo",
-  fixas = [], fixaOcorrencias = [], parcelamentos = [], cartoes = [],
+  fixas = [], setFixas, fixaOcorrencias = [], parcelamentos = [], setParcelamentos,
+  dividas = [], setDividas, cartoes = [],
 }) {
   const [form, setForm] = useState(null);
   const [pacoteAberto, setPacoteAberto] = useState(null); // null | "list" | pacoteId
@@ -137,7 +138,10 @@ export default function Categorias({
 
       {/* Diagnóstico da taxonomia — só aparece quando há algo a arrumar */}
       <DiagnosticoCategorias categorias={categorias} setCategorias={setCategorias}
-                             transacoes={transacoes} setTransacoes={setTransacoes} />
+                             transacoes={transacoes} setTransacoes={setTransacoes}
+                             fixas={fixas} setFixas={setFixas}
+                             parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
+                             dividas={dividas} setDividas={setDividas} />
 
       {/* Toggle Receitas | Despesas + Expandir/Recolher tudo */}
       <div className="flex items-center justify-between flex-wrap gap-2" style={{ marginBottom: 12 }}>
@@ -636,14 +640,40 @@ function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, tra
    Diagnóstico de categorias — varredura + correções de 1 clique.
    Só renderiza quando existe algo a arrumar (senão, silêncio).
    ============================================================ */
-function DiagnosticoCategorias({ categorias = [], setCategorias, transacoes = [], setTransacoes }) {
+function DiagnosticoCategorias({
+  categorias = [], setCategorias, transacoes = [], setTransacoes,
+  fixas = [], setFixas, parcelamentos = [], setParcelamentos, dividas = [], setDividas,
+}) {
   const [aberto, setAberto] = useState(false);
+  // Fusão manual De → Para (juntar "Padaria" em "Alimentação", por ex.)
+  const [fundirDe, setFundirDe] = useState("");
+  const [fundirPara, setFundirPara] = useState("");
   const diag = useMemo(
     () => diagnosticoCategorias({ categorias, transacoes }),
     [categorias, transacoes]
   );
   const nAcao = diag.totalProblemas;
-  if (nAcao === 0 && diag.semUso.length === 0) return null;
+
+  const fundir = async () => {
+    const origem = categorias.find(c => c.id === fundirDe);
+    const destino = categorias.find(c => c.id === fundirPara);
+    if (!origem || !destino || origem.id === destino.id) { toast.error("Escolha duas categorias diferentes."); return; }
+    const usos = (transacoes || []).filter(t => (t?.categoria || "").trim() === origem.nome).length;
+    const ok = await confirm({
+      title: `Unificar "${origem.nome}" em "${destino.nome}"?`,
+      body: `Tudo que está em "${origem.nome}" (${usos} transação(ões), mais fixas/parcelamentos/dívidas) passa pra "${destino.nome}". "${origem.nome}" vira SUBCATEGORIA de ${destino.nome} — você não perde o detalhe, e a soma aparece unificada em todas as telas.`,
+      confirmLabel: "Unificar",
+    });
+    if (!ok) return;
+    const r = fundirCategorias(origem, destino, { categorias, transacoes, fixas, parcelamentos, dividas });
+    setCategorias(r.categorias);
+    setTransacoes?.(r.transacoes);
+    setFixas?.(r.fixas);
+    setParcelamentos?.(r.parcelamentos);
+    setDividas?.(r.dividas);
+    setFundirDe(""); setFundirPara("");
+    toast.success(`"${origem.nome}" agora é subcategoria de ${destino.nome} — somas unificadas.`);
+  };
 
   const criarCategoria = (item) => {
     setCategorias([...categorias, {
@@ -699,11 +729,11 @@ function DiagnosticoCategorias({ categorias = [], setCategorias, transacoes = []
                        display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left" }}>
         <span style={{ fontSize: 14 }}>🩺</span>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: T.ink, flex: 1 }}>
-          Diagnóstico das categorias
+          Diagnóstico &amp; unificação de categorias
           <span style={{ color: nAcao > 0 ? T.gold : T.muted, fontWeight: 600, marginLeft: 8, fontSize: 11.5 }}>
             {nAcao > 0
               ? `${nAcao} ajuste${nAcao === 1 ? "" : "s"} sugerido${nAcao === 1 ? "" : "s"}`
-              : `${diag.semUso.length} sem uso`}
+              : diag.semUso.length > 0 ? `${diag.semUso.length} sem uso` : "✓ tudo certo"}
           </span>
         </span>
         <span style={{ color: T.muted, fontSize: 11 }}>{aberto ? "▾ fechar" : "▸ ver"}</span>
@@ -711,6 +741,38 @@ function DiagnosticoCategorias({ categorias = [], setCategorias, transacoes = []
 
       {aberto && (
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* UNIFICAÇÃO MANUAL — juntar uma categoria na outra (De → Para) */}
+          <div style={{ background: T.bgSoft, border: `1px solid ${T.gold}44`, borderRadius: 12, padding: "10px 12px" }}>
+            <div className="label-eyebrow" style={{ color: T.gold, marginBottom: 6 }}>
+              Unificar categorias — junte "Padaria" em "Alimentação", por exemplo
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <select value={fundirDe} onChange={e => setFundirDe(e.target.value)}
+                      style={{ flex: "1 1 150px", padding: "7px 10px", fontSize: 12 }}>
+                <option value="">Juntar esta…</option>
+                {ordenarPorNome(categorias.filter(c => c.id !== fundirPara)).map(c => (
+                  <option key={c.id} value={c.id}>{c.nome}{c.tipo === "receita" ? " (receita)" : ""}</option>
+                ))}
+              </select>
+              <span style={{ color: T.muted, fontSize: 13, flexShrink: 0 }}>→ dentro de</span>
+              <select value={fundirPara} onChange={e => setFundirPara(e.target.value)}
+                      style={{ flex: "1 1 150px", padding: "7px 10px", fontSize: 12 }}>
+                <option value="">…nesta</option>
+                {ordenarPorNome(categorias.filter(c => c.id !== fundirDe)).map(c => (
+                  <option key={c.id} value={c.id}>{c.nome}{c.tipo === "receita" ? " (receita)" : ""}</option>
+                ))}
+              </select>
+              <button className="btn-gold" style={{ fontSize: 11, padding: "7px 14px" }}
+                      disabled={!fundirDe || !fundirPara} onClick={fundir}>
+                Unificar
+              </button>
+            </div>
+            <div style={{ fontSize: 10.5, color: T.faint, marginTop: 6 }}>
+              Tudo da primeira passa pra segunda (transações, fixas, parcelamentos, dívidas) e ela vira uma
+              subcategoria — o detalhe não se perde e a soma fica unificada em todas as telas.
+            </div>
+          </div>
+
           {diag.foraDoCadastro.length > 0 && (
             <div>
               <div className="label-eyebrow" style={{ color: T.red, marginBottom: 6 }}>
