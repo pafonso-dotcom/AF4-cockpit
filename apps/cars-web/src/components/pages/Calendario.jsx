@@ -344,7 +344,7 @@ export default function Calendario({
             <ChevronRight size={16} />
           </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Toggle de vista */}
           <div style={{ display: "inline-flex", gap: 0, background: T.bgSoft, padding: 3, borderRadius: 16, border: `1px solid ${T.border}` }}>
             {[{ id: "mes", l: "Mês" }, { id: "semana", l: "Semana" }, { id: "dia", l: "Dia" }].map(o => {
