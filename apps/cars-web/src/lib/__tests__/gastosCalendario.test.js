@@ -14,6 +14,8 @@ const transacoes = [
   { id: "t5", tipo: "receita", data: "2026-09-20", valor: 999, categoria: "Salário" }, // fora
   { id: "t6", tipo: "despesa", data: "2026-09-12", valor: 80, categoria: "Alimentação", transferenciaId: "x" }, // transferência: fora
   { id: "t7", tipo: "despesa", data: "2026-08-30", valor: 70, categoria: "Mercado" }, // outro mês
+  { id: "t8", tipo: "despesa", data: "2026-09-10", valor: 900, categoria: "Cartão", origem: "fatura-pagamento" }, // baixa de fatura: fora
+  { id: "t9", tipo: "despesa", data: "2026-09-11", valor: 800, categoria: "Cartão", descricao: "Pagamento fatura XP" }, // idem, pela descrição
 ];
 
 describe("mapaGastosMes", () => {
@@ -23,6 +25,8 @@ describe("mapaGastosMes", () => {
     expect(m.porDia[5].total).toBe(150);
     expect(m.porDia[20].total).toBe(410);
     expect(m.porDia[12]).toBeUndefined();
+    expect(m.porDia[10]).toBeUndefined(); // pagamento de fatura não vira pico falso
+    expect(m.porDia[11]).toBeUndefined();
     expect(m.max).toBe(410);
     expect(m.diaMax).toBe(20);
     expect(m.porDia[20].top[0]).toEqual({ nome: "Mercado", valor: 400 });

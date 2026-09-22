@@ -9,9 +9,15 @@
    O que NÃO conta como gasto:
    - transferência entre contas (transferenciaId) — dinheiro só mudou
      de bolso;
+   - PAGAMENTO DE FATURA de cartão — as compras já entram uma a uma
+     nos dias em que aconteceram; somar a baixa da fatura criaria um
+     pico falso no dia do pagamento (mesma regra do Relatório Mensal);
    - receitas, obviamente.
    Aceita o tipo legado "saida" além de "despesa".
    ============================================================ */
+
+const ehPagFatura = (t) =>
+  !!t && (t.origem === "fatura-pagamento" || /pagamento\s+(de\s+)?fatura/i.test(t.descricao || ""));
 
 export function mapaGastosMes({ transacoes = [], categorias = [], ym, categoriaFiltro = "" } = {}) {
   // Filtro por categoria: a raiz escolhida + as filhas dela (parentId).
@@ -28,6 +34,7 @@ export function mapaGastosMes({ transacoes = [], categorias = [], ym, categoriaF
     if (!t || (t.tipo !== "despesa" && t.tipo !== "saida")) continue;
     if (!String(t.data || "").startsWith(ym)) continue;
     if (t.transferenciaId) continue;
+    if (ehPagFatura(t)) continue;
     const cat = t.categoria || "Sem categoria";
     if (nomesFiltro && !nomesFiltro.has(cat)) continue;
     const dia = parseInt(String(t.data).slice(8, 10), 10);
