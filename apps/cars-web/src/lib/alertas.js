@@ -40,6 +40,9 @@ export function computarAlertas({
   cartoes = [],
   categorias = [],
   transacoes = [],
+  agenda = [],
+  lembretes = [],
+  tarefas = [],
 } = {}) {
   const alertas = [];
   const mesAtual = (hoje || "").slice(0, 7);
@@ -159,6 +162,35 @@ export function computarAlertas({
     const ds = (ordemSev[a.severidade] ?? 9) - (ordemSev[b.severidade] ?? 9);
     if (ds !== 0) return ds;
     return (a.data || "").localeCompare(b.data || "");
+  });
+
+
+  // 6) Agenda de HOJE — compromissos, lembretes e tarefas do dia (info).
+  (agenda || []).forEach(e => {
+    if (!e || e.data !== hoje || e.status === "feito") return;
+    alertas.push({
+      id: `ag:${e.id}`, tipo: "agenda", severidade: "info",
+      titulo: e.titulo || "Compromisso",
+      sub: `Hoje${e.horario ? " · " + e.horario : ""}`,
+      data: hoje, modulo: "agenda", tab: "calendario",
+    });
+  });
+  (lembretes || []).forEach(l => {
+    if (!l || l.concluido || l.data !== hoje) return;
+    alertas.push({
+      id: `lem:${l.id}`, tipo: "lembrete", severidade: "info",
+      titulo: l.titulo || "Lembrete",
+      sub: `Hoje${l.horario ? " · " + l.horario : ""}`,
+      data: hoje, modulo: "agenda", tab: "lembretes",
+    });
+  });
+  (tarefas || []).forEach(t => {
+    if (!t || t.concluida || t.prazo !== hoje) return;
+    alertas.push({
+      id: `tar:${t.id}`, tipo: "tarefa", severidade: "info",
+      titulo: t.titulo || "Tarefa",
+      sub: "Prazo hoje", data: hoje, modulo: "agenda", tab: "tarefas",
+    });
   });
 
   return alertas;
