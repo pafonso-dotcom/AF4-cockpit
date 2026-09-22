@@ -91,6 +91,9 @@ export function aplicarDadosCarregados(data, S) {
   S.setTradeAnalisesIdV(data.tradeAnalisesIdV || []);
   S.setTradeOnboardingVisto(!!data.tradeOnboardingVisto);
   if (data.themeId && THEMES[data.themeId]) S.setThemeId(data.themeId);
+  // Lápides de itens apagados (lib/tumbas.js) — restaurar um backup antigo
+  // sem `tumbas` zera as lápides de propósito (o backup manda no estado).
+  if (S.setTumbas) S.setTumbas(data.tumbas || {});
   // Migração one-shot: marca contas/categorias antigas com escopo detectado
   setTimeout(() => {
     migrarEscoposAuto(
@@ -102,6 +105,7 @@ export function aplicarDadosCarregados(data, S) {
 
 // Primeiro uso (sem nada salvo): popula com seeds.
 export function aplicarSeeds(S) {
+  if (S.setTumbas) S.setTumbas({});
   S.setContas(seedContas);
   S.setCategorias(seedCategorias);
   S.setTransacoes(seedTransacoes);
