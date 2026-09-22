@@ -13,6 +13,8 @@ import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
 import { getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
+import { mapaGastosMes, corHeat, CORES_HEAT, insightFimDeSemana } from "../../lib/gastosCalendario.js";
+import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import { EVENTO_TIPO } from "../../lib/coresUI.js";
 import CalendarioSemanaDia from "./CalendarioSemanaDia.jsx";
 
@@ -50,6 +52,10 @@ export default function Calendario({
   const [vista, setVista] = useState("mes"); // mes | semana | dia
   // Data de referência para as vistas Semana/Dia (default hoje).
   const [refDate, setRefDate] = useState(new Date());
+  // Modo "💸 Gastos": pinta os dias pela intensidade do gasto REAL
+  // (transações de despesa), com filtro opcional por categoria.
+  const [modoGastos, setModoGastos] = useState(false);
+  const [catGasto, setCatGasto] = useState(""); // "" = todas
 
   const months = MESES_LONGO;
 
@@ -180,6 +186,31 @@ export default function Calendario({
 
   const dayFinanceiros = selectedDay ? (itensByDay[selectedDay] || []) : [];
   const dayEventos = selectedDay ? (agendaByDay[selectedDay] || []) : [];
+
+  /* ============ MODO GASTOS (heatmap) ============ */
+  const monthStrGastos = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const mapaGastos = useMemo(() => {
+    if (!modoGastos) return null;
+    return mapaGastosMes({ transacoes, categorias, ym: monthStrGastos, categoriaFiltro: catGasto });
+  }, [modoGastos, transacoes, categorias, monthStrGastos, catGasto]);
+  // Categorias-raiz de despesa pro filtro (filhas contam junto com a mãe).
+  const catsGastoOpcoes = useMemo(() =>
+    ordenarPorNome((categorias || []).filter(c => c && !c.parentId && c.tipo !== "receita")),
+    [categorias]);
+  // Transações de gasto do dia selecionado (lista do painel no modo gastos).
+  const dayGastos = useMemo(() => {
+    if (!modoGastos || !selectedDay) return [];
+    const diaISO = dataDia(year, month, selectedDay);
+    let nomesFiltro = null;
+    if (catGasto) {
+      const raiz = (categorias || []).find(c => c.nome === catGasto);
+      nomesFiltro = new Set([catGasto, ...(raiz ? categorias.filter(c => c.parentId === raiz.id).map(c => c.nome) : [])]);
+    }
+    return (transacoes || [])
+      .filter(t => t && (t.tipo === "despesa" || t.tipo === "saida") && t.data === diaISO && !t.transferenciaId
+        && (!nomesFiltro || nomesFiltro.has(t.categoria || "Sem categoria")))
+      .sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0));
+  }, [modoGastos, selectedDay, transacoes, categorias, catGasto, year, month]);
 
   /* ============ AGENDA: criar/editar/salvar/excluir ============ */
   const novoEvento = (day) => {
@@ -329,9 +360,65 @@ export default function Calendario({
               );
             })}
           </div>
+          <button onClick={() => { setModoGastos(v => !v); setVista("mes"); }}
+                  title="Pinta os dias pela intensidade do gasto real — quanto mais escuro, mais saiu dinheiro"
+                  style={{
+                    padding: "5px 12px", fontSize: 11, fontWeight: modoGastos ? 700 : 500,
+                    background: modoGastos ? `${T.red}22` : T.bgSoft,
+                    color: modoGastos ? T.red : T.muted,
+                    border: `1px solid ${modoGastos ? `${T.red}66` : T.border}`,
+                    borderRadius: 16, cursor: "pointer",
+                  }}>
+            💸 Gastos
+          </button>
           <button onClick={irHoje} className="btn-ghost">Hoje</button>
         </div>
       </div>
+
+      {/* Barra do modo Gastos: filtro por categoria + resumo do mês */}
+      {modoGastos && vista === "mes" && mapaGastos && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+          background: T.card, border: `1px solid ${T.red}44`, borderLeft: `3px solid ${T.red}`,
+          borderRadius: 12, padding: "8px 12px", marginBottom: 12,
+        }}>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.red }}>
+            Mapa de gastos
+          </span>
+          <select value={catGasto} onChange={e => setCatGasto(e.target.value)}
+                  style={{ width: "auto", padding: "5px 9px", fontSize: 12 }}>
+            <option value="">Todas as categorias</option>
+            {catsGastoOpcoes.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+          </select>
+          <span className="num" style={{ fontSize: 12, color: T.muted }}>
+            Mês: <strong style={{ color: T.ink }}>{hidden ? "•••" : fmt(mapaGastos.total)}</strong>
+            {mapaGastos.diaMax && (
+              <> · pico dia <strong style={{ color: T.red }}>{mapaGastos.diaMax}</strong> ({hidden ? "•••" : fmt(mapaGastos.max)})</>
+            )}
+          </span>
+          {(() => {
+            const ins = insightFimDeSemana(mapaGastos.porDia, monthStrGastos);
+            return ins ? (
+              <span style={{
+                fontSize: 11, fontWeight: 700, color: CORES_HEAT[3],
+                border: `1px solid ${CORES_HEAT[3]}66`, background: `${CORES_HEAT[3]}14`,
+                borderRadius: 100, padding: "3px 10px", whiteSpace: "nowrap",
+              }}>
+                {ins.tipo === "fds"
+                  ? `🔥 fins de semana: ${String(ins.ratio).replace(".", ",")}× mais caros`
+                  : `🔥 dias úteis: ${String(ins.ratio).replace(".", ",")}× mais caros`}
+              </span>
+            ) : null;
+          })()}
+          <span style={{ fontSize: 10.5, color: T.faint, marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            menos
+            {CORES_HEAT.map(c => (
+              <span key={c} style={{ width: 12, height: 12, borderRadius: "50%", background: c }} />
+            ))}
+            mais
+          </span>
+        </div>
+      )}
 
       {/* Vista Semana/Dia (grade de horários) */}
       {vista !== "mes" && (
@@ -373,10 +460,18 @@ export default function Calendario({
             const isHoje = isToday(d);
             const isSelected = d === selectedDay;
             const cor = info.atrasado ? T.red : (info.net > 0 ? T.green : info.net < 0 ? T.red : T.muted);
+            // Modo Gastos: escala de fogo (marrom → laranja → rosa) pelo gasto do dia.
+            const gastoDia = modoGastos ? mapaGastos?.porDia?.[d] : null;
+            const heat = modoGastos && gastoDia ? corHeat(gastoDia.total, mapaGastos?.max || 0) : null;
             return (
               <button key={idx} className="cal-cell" onClick={() => setSelectedDay(isSelected ? null : d)}
                 style={{
-                  background: isSelected ? T.cardHi : (isHoje ? `${T.gold}11` : T.bgSoft),
+                  background: modoGastos
+                    ? (heat || T.bgSoft)
+                    : (isSelected ? T.cardHi : (isHoje ? `${T.gold}11` : T.bgSoft)),
+                  outline: modoGastos && isSelected ? "2px solid #fff" : "none",
+                  outlineOffset: modoGastos && isSelected ? -2 : 0,
+                  borderRadius: modoGastos && heat ? 10 : 0,
                   minHeight: 82, padding: 6, textAlign: "left", cursor: "pointer",
                   border: isHoje ? `2px solid ${T.gold}` : "none",
                   position: "relative", overflow: "hidden",
@@ -384,12 +479,25 @@ export default function Calendario({
                   display: "flex", flexDirection: "column",
                 }}>
                 <div className="num" style={{
-                  color: isHoje ? T.gold : T.ink, fontSize: 13, fontWeight: isHoje ? 700 : 500,
+                  color: modoGastos && heat ? "#fff" : (isHoje ? T.gold : T.ink),
+                  fontSize: 13, fontWeight: isHoje || (modoGastos && heat) ? 700 : 500,
                   marginBottom: 2,
                 }}>
                   {d}
                 </div>
-                {info.net != null && (
+                {modoGastos ? (
+                  gastoDia && (
+                    <div style={{ textAlign: "left", marginTop: "auto" }}
+                         title={`${fmt(gastoDia.total)} em ${gastoDia.itens} lançamento(s)${gastoDia.top?.[0] ? ` · maior: ${gastoDia.top[0].nome}` : ""}`}>
+                      <div className="num cal-net" style={{ fontSize: 12.5, fontWeight: 700, color: "#fff", lineHeight: 1.1 }}>
+                        {hidden ? "•••" : (gastoDia.total >= 1000 ? `${(gastoDia.total / 1000).toFixed(1).replace(".", ",")}k` : Math.round(gastoDia.total))}
+                      </div>
+                      <div className="cal-fin" style={{ fontSize: 9, color: "rgba(255,255,255,.75)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {gastoDia.top?.[0]?.nome || ""}
+                      </div>
+                    </div>
+                  )
+                ) : info.net != null && (
                   <div style={{ textAlign: "center", marginTop: 6 }}>
                     <div className="num cal-net" style={{
                       fontSize: 11, fontWeight: 600, color: cor, lineHeight: 1.1,
@@ -438,8 +546,42 @@ export default function Calendario({
             </div>
           </div>
 
+          {/* Modo Gastos: o que saiu de dinheiro NESTE dia (transações reais) */}
+          {modoGastos && (
+            dayGastos.length === 0 ? (
+              <div style={{ color: T.muted, fontStyle: "italic", marginBottom: dayEventos.length || dayFinanceiros.length ? 16 : 0 }}>
+                Nenhum gasto registrado neste dia{catGasto ? ` em ${catGasto}` : ""}.
+              </div>
+            ) : (
+              <div style={{ marginBottom: dayEventos.length || dayFinanceiros.length ? 20 : 0 }}>
+                <div className="label-eyebrow" style={{ marginBottom: 8, color: T.red }}>
+                  💸 Gastos do dia{catGasto ? ` · ${catGasto}` : ""} — {hidden ? "•••" : fmt(dayGastos.reduce((s, t) => s + (Number(t.valor) || 0), 0))}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {dayGastos.map(t => (
+                    <div key={t.id} style={{
+                      display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                      padding: "8px 12px", background: T.bgSoft, borderRadius: 12,
+                      borderLeft: `3px solid ${T.red}`,
+                    }}>
+                      <div style={{ flex: 1, minWidth: 140 }}>
+                        <div style={{ fontSize: 13, color: T.ink, fontWeight: 600 }}>{t.descricao}</div>
+                        <div style={{ fontSize: 10.5, color: T.muted }}>
+                          {t.categoria || "Sem categoria"}{t.subcategoria ? ` · ${t.subcategoria}` : ""}{t.conta ? ` · ${t.conta}` : ""}
+                        </div>
+                      </div>
+                      <div className="num" style={{ color: T.red, fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap" }}>
+                        {hidden ? "•••" : fmt(t.valor)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          )}
+
           {dayEventos.length === 0 && dayFinanceiros.length === 0 ? (
-            <div style={{ color: T.muted, fontStyle: "italic" }}>Nada agendado para este dia.</div>
+            !modoGastos && <div style={{ color: T.muted, fontStyle: "italic" }}>Nada agendado para este dia.</div>
           ) : (
             <>
               {/* Eventos pessoais primeiro */}

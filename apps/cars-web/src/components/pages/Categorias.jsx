@@ -8,13 +8,14 @@ import { confirm } from "../../lib/confirm.js";
 import { PACOTES } from "../../lib/categoriasPacotes.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
+import { diagnosticoCategorias, aplicarUnificacao } from "../../lib/categoriasDiagnostico.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
 import Modal from "../ui/Modal.jsx";
 
 export default function Categorias({
-  categorias, setCategorias, transacoes, hidden, escopoAtivo = "tudo",
+  categorias, setCategorias, transacoes, setTransacoes, hidden, escopoAtivo = "tudo",
   fixas = [], fixaOcorrencias = [], parcelamentos = [], cartoes = [],
 }) {
   const [form, setForm] = useState(null);
@@ -131,6 +132,10 @@ export default function Categorias({
           )}
         </div>
       )}
+
+      {/* Diagnóstico da taxonomia — só aparece quando há algo a arrumar */}
+      <DiagnosticoCategorias categorias={categorias} setCategorias={setCategorias}
+                             transacoes={transacoes} setTransacoes={setTransacoes} />
 
       {/* Toggle Receitas | Despesas + Expandir/Recolher tudo */}
       <div className="flex items-center justify-between flex-wrap gap-2" style={{ marginBottom: 12 }}>
@@ -624,3 +629,146 @@ function CategoriaItem({ c, filhas = [], categorias, setCategorias, setForm, tra
   );
 }
 
+
+/* ============================================================
+   Diagnóstico de categorias — varredura + correções de 1 clique.
+   Só renderiza quando existe algo a arrumar (senão, silêncio).
+   ============================================================ */
+function DiagnosticoCategorias({ categorias = [], setCategorias, transacoes = [], setTransacoes }) {
+  const [aberto, setAberto] = useState(false);
+  const diag = useMemo(
+    () => diagnosticoCategorias({ categorias, transacoes }),
+    [categorias, transacoes]
+  );
+  const nAcao = diag.totalProblemas;
+  if (nAcao === 0 && diag.semUso.length === 0) return null;
+
+  const criarCategoria = (item) => {
+    setCategorias([...categorias, {
+      id: uid(), nome: item.nome, tipo: item.tipoSugerido,
+      escopo: "pessoal", cor: T.gold, limite: null,
+    }]);
+    toast.success(`Categoria "${item.nome}" criada (${item.tipoSugerido}). As ${item.usos} transações já contam nela.`);
+  };
+
+  const unificar = async (grupo) => {
+    const nomes = grupo.remover.map(c => `"${c.nome}"`).join(", ");
+    const ok = await confirm({
+      title: `Unificar em "${grupo.manter.nome}"?`,
+      body: `${nomes} ${grupo.remover.length === 1 ? "será unificada" : "serão unificadas"} em "${grupo.manter.nome}": as transações passam a apontar pra ela, filhas e subcategorias são herdadas, e ${grupo.remover.length === 1 ? "a duplicada some" : "as duplicadas somem"} da lista.`,
+      confirmLabel: "Unificar",
+    });
+    if (!ok) return;
+    const r = aplicarUnificacao(grupo, { categorias, transacoes });
+    setCategorias(r.categorias);
+    setTransacoes?.(r.transacoes);
+    toast.success(`Unificado em "${grupo.manter.nome}".`);
+  };
+
+  const adotarSub = (item) => {
+    setCategorias(categorias.map(c => c.id === item.categoria.id
+      ? { ...c, subcategorias: [...(c.subcategorias || []), { id: uid(), nome: item.subcategoria }] }
+      : c));
+    toast.success(`"${item.subcategoria}" agora é subcategoria de ${item.categoria.nome}.`);
+  };
+
+  const Linha = ({ children, acao, onAcao }) => (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+      padding: "7px 10px", background: T.bgSoft, borderRadius: 10, fontSize: 12,
+    }}>
+      <span style={{ flex: 1, minWidth: 160, color: T.ink }}>{children}</span>
+      {acao && (
+        <button onClick={onAcao} className="btn-gold" style={{ fontSize: 10.5, padding: "4px 10px" }}>
+          {acao}
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <div style={{
+      background: T.card, border: `1px solid ${nAcao > 0 ? `${T.gold}66` : T.border}`,
+      borderLeft: `3px solid ${nAcao > 0 ? T.gold : T.border}`,
+      borderRadius: 12, padding: "10px 14px", marginBottom: 12,
+    }}>
+      <button onClick={() => setAberto(v => !v)}
+              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0,
+                       display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left" }}>
+        <span style={{ fontSize: 14 }}>🩺</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: T.ink, flex: 1 }}>
+          Diagnóstico das categorias
+          <span style={{ color: nAcao > 0 ? T.gold : T.muted, fontWeight: 600, marginLeft: 8, fontSize: 11.5 }}>
+            {nAcao > 0
+              ? `${nAcao} ajuste${nAcao === 1 ? "" : "s"} sugerido${nAcao === 1 ? "" : "s"}`
+              : `${diag.semUso.length} sem uso`}
+          </span>
+        </span>
+        <span style={{ color: T.muted, fontSize: 11 }}>{aberto ? "▾ fechar" : "▸ ver"}</span>
+      </button>
+
+      {aberto && (
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
+          {diag.foraDoCadastro.length > 0 && (
+            <div>
+              <div className="label-eyebrow" style={{ color: T.red, marginBottom: 6 }}>
+                Usadas nas transações mas FORA do cadastro — não entram em orçamento nem relatórios direito
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                {diag.foraDoCadastro.map(f => (
+                  <Linha key={f.nome} acao="+ Criar" onAcao={() => criarCategoria(f)}>
+                    <strong>{f.nome}</strong>
+                    <span style={{ color: T.muted }}> · {f.usos} transação(ões) · vira {f.tipoSugerido}</span>
+                  </Linha>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {diag.duplicadas.length > 0 && (
+            <div>
+              <div className="label-eyebrow" style={{ color: T.gold, marginBottom: 6 }}>
+                Duplicadas (mesmo nome com maiúscula/acento diferente) — dividem o gasto em duas
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                {diag.duplicadas.map((g, i) => (
+                  <Linha key={i} acao="Unificar" onAcao={() => unificar(g)}>
+                    Manter <strong>{g.manter.nome}</strong>
+                    <span style={{ color: T.muted }}> · remover {g.remover.map(c => `"${c.nome}"`).join(", ")}</span>
+                  </Linha>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {diag.subOrfas.length > 0 && (
+            <div>
+              <div className="label-eyebrow" style={{ color: T.gold, marginBottom: 6 }}>
+                Subcategorias usadas mas não cadastradas na categoria
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                {diag.subOrfas.map((s, i) => (
+                  <Linha key={i} acao="+ Adicionar" onAcao={() => adotarSub(s)}>
+                    <strong>{s.subcategoria}</strong>
+                    <span style={{ color: T.muted }}> em {s.categoria.nome} · {s.usos} transação(ões)</span>
+                  </Linha>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {diag.semUso.length > 0 && (
+            <div>
+              <div className="label-eyebrow" style={{ marginBottom: 6 }}>
+                Sem nenhuma transação ({diag.semUso.length}) — candidatas a excluir pelo 🗑 da lista
+              </div>
+              <div style={{ fontSize: 11.5, color: T.muted, lineHeight: 1.6 }}>
+                {diag.semUso.map(c => c.nome).join(" · ")}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
