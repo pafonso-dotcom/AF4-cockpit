@@ -15,6 +15,7 @@ import {
   fetchAurumState, saveAurumState as supabaseSaveState,
   fetchAurumKeys, saveAurumKeys as supabaseSaveKeys,
 } from "./supabase.js";
+import { unirTumbas } from "./tumbas.js";
 
 export const STORE_KEY  = "financas:dados:v1";
 export const MARKET_KEY = "financas:mercado:v1";
@@ -66,29 +67,40 @@ export function preservarNaoVazio(remote, localCache) {
 //    (mesma proteção do preservarNaoVazio);
 //  - `proventosRecebidos` (objeto chaveado): união de chaves, vencedor manda;
 //  - escalares/objetos: vencedor.
-// Trade-off consciente: item DELETADO num aparelho pode "voltar" se o outro
-// ainda o tinha — preferível a perder lançamentos novos. A tela Contas detecta
-// dessincronia de saldo e o Reconciliar corrige.
+// Itens APAGADOS não voltam mais: cada exclusão registra uma lápide em
+// `tumbas` ({colecao: {id: ts}}, ver lib/tumbas.js). A fusão une as lápides
+// dos dois lados e FILTRA os mortos — antes o item deletado ressuscitava se
+// o outro blob ainda o tivesse (bug do "lançamento que volta", 2026-09-22).
+// Coleções sem lápide mantêm o trade-off antigo (união preserva tudo).
 export function fundirEstados(vencedor, perdedor) {
   if (!vencedor || typeof vencedor !== "object") return vencedor;
   if (!perdedor || typeof perdedor !== "object") return vencedor;
   const out = { ...vencedor };
+  const tumbas = unirTumbas(vencedor.tumbas, perdedor.tumbas);
+  if (Object.keys(tumbas).length) out.tumbas = tumbas;
+  else delete out.tumbas;
   const chaves = new Set([...Object.keys(vencedor), ...Object.keys(perdedor)]);
   for (const k of chaves) {
-    if (k.startsWith("_")) continue;
+    if (k.startsWith("_") || k === "tumbas") continue;
     const a = vencedor[k];
     const b = perdedor[k];
+    const mortas = tumbas[k];
+    const viva = (x) => !(mortas && x && x.id != null && mortas[x.id]);
     if (Array.isArray(b)) {
       if (!Array.isArray(a) || a.length === 0) {
-        if (b.length > 0 && (!Array.isArray(a) || a.length === 0)) out[k] = b; // proteção "vazio não apaga cheio"
+        if (b.length > 0 && (!Array.isArray(a) || a.length === 0)) {
+          const bViva = mortas ? b.filter(viva) : b;
+          if (bViva.length > 0) out[k] = bViva; // proteção "vazio não apaga cheio"
+        }
         continue;
       }
-      if (b.length === 0) continue;
       const comId = (x) => x && typeof x === "object" && x.id != null;
-      if (a.every(comId) && b.every(comId)) {
+      if (a.every(comId) && (b.length === 0 || b.every(comId))) {
         const ids = new Set(a.map((x) => x.id));
         const extras = b.filter((x) => !ids.has(x.id));
-        if (extras.length) out[k] = [...a, ...extras];
+        let unida = extras.length ? [...a, ...extras] : a;
+        if (mortas) unida = unida.filter(viva);
+        if (unida !== a && (unida.length !== a.length || extras.length)) out[k] = unida;
       }
       // arrays sem id e ambos cheios: fica o vencedor (sem como casar itens)
     } else if (k === "proventosRecebidos" && a && b && typeof a === "object" && typeof b === "object") {

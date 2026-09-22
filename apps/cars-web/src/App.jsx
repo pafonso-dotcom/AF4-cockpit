@@ -5,6 +5,7 @@ import { uid } from "./lib/format.js";
 import { somaContasBRL } from "./lib/cambio.js";
 import { MESES_LONGO } from "./lib/meses.js";
 import { loadAll, saveAll, loadKeys, saveKeys, flushSave } from "./lib/storage.js";
+import { comTumbas, idsRemovidos } from "./lib/tumbas.js";
 import { API, COIN_MAP } from "./lib/api.js";
 import { generateRecurringForCurrentMonth } from "./lib/recorrencia.js";
 import { lerEscopo, salvarEscopo } from "./lib/escopo.js";
@@ -177,7 +178,27 @@ export default function App() {
 
   const [contas, setContas] = useState([]);
   const [categorias, setCategorias] = useState([]);
-  const [transacoes, setTransacoes] = useState([]);
+  const [transacoes, setTransacoesBase] = useState([]);
+  // Lápides de itens apagados (lib/tumbas.js) — viajam no estado sincronizado
+  // pra fusão do sync não ressuscitar o que foi deletado.
+  const [tumbas, setTumbas] = useState({});
+  // setTransacoes rastreado: toda exclusão (id que some da lista) vira lápide
+  // automaticamente — cobre os 16+ pontos de exclusão sem tocar em cada um.
+  // O flush fica FORA do updater (updaters devem ser puros).
+  const tumbasPendentesRef = useRef([]);
+  const setTransacoes = useCallback((next) => {
+    setTransacoesBase(prev => {
+      const nova = typeof next === "function" ? next(prev) : next;
+      const removidos = idsRemovidos(prev, nova);
+      if (removidos.length) tumbasPendentesRef.current.push(...removidos);
+      return nova;
+    });
+    queueMicrotask(() => {
+      if (tumbasPendentesRef.current.length === 0) return;
+      const ids = tumbasPendentesRef.current.splice(0);
+      setTumbas(t => comTumbas(t, "transacoes", ids));
+    });
+  }, []);
   const [ativos, setAtivos] = useState([]);
   const [metas, setMetas] = useState([]);
   const [notas, setNotas] = useState([]);
@@ -297,7 +318,10 @@ export default function App() {
 
   // Setters usados no load e na restauração de backup (fonte única).
   const SETTERS = {
-    setContas, setCategorias, setTransacoes, setAtivos, setMetas, setNotas,
+    // setTransacoes cru de propósito: hidratação/restauração troca a lista
+    // inteira e NÃO deve gerar lápides (só exclusões do usuário geram).
+    setContas, setCategorias, setTransacoes: setTransacoesBase, setAtivos, setMetas, setNotas,
+    setTumbas,
     setCartoes, setParcelamentos, setDevedores, setDividas, setCheques,
     setFixas, setFixaOcorrencias, setAgenda, setHabitos, setDiario, setCompras,
     setIdeias, setTarefas, setSugestoes, setLembretes, setConversaHistorico,
@@ -328,6 +352,7 @@ export default function App() {
     tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
     lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
     themeId,
+    tumbas,
   });
 
   // Backup automático diário na nuvem (GitHub Gist): 1x por dia, na abertura,
@@ -414,7 +439,7 @@ export default function App() {
       negocioLojas, negocioLojaAtiva, negocioRecebimentos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
-      themeId, loading]);
+      themeId, tumbas, loading]);
 
   useEffect(() => {
     if (loading) return;
