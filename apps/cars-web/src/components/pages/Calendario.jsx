@@ -13,7 +13,7 @@ import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
 import { getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
-import { mapaGastosMes, corHeat, CORES_HEAT, insightFimDeSemana } from "../../lib/gastosCalendario.js";
+import { mapaGastosDeItens, corHeat, CORES_HEAT, insightFimDeSemana } from "../../lib/gastosCalendario.js";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import { EVENTO_TIPO } from "../../lib/coresUI.js";
 import CalendarioSemanaDia from "./CalendarioSemanaDia.jsx";
@@ -188,16 +188,26 @@ export default function Calendario({
   const dayEventos = selectedDay ? (agendaByDay[selectedDay] || []) : [];
 
   /* ============ MODO GASTOS (heatmap) ============ */
+  // MESMA base dos números que o calendário já mostra (getDespesasDoMes:
+  // fixas + parcelas de cartão + dívidas + avulsas), incluindo as PAGAS —
+  // gasto é gasto, pago ou pendente. Transações avulsas sozinhas pintavam
+  // quase nada (a vida financeira real mora nas fixas/parcelas).
   const monthStrGastos = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const despesasDoMesTodas = useMemo(() => {
+    if (!modoGastos) return [];
+    const state = { transacoes, contas, categorias, fixaOcorrencias, fixas, parcelamentos, dividas, devedores, cheques, cartoes };
+    try { return getDespesasDoMes(monthStrGastos, state, escopoAtivo) || []; } catch { return []; }
+  }, [modoGastos, transacoes, contas, categorias, fixaOcorrencias, fixas, parcelamentos, dividas, devedores, cheques, cartoes, monthStrGastos, escopoAtivo]);
   const mapaGastos = useMemo(() => {
     if (!modoGastos) return null;
-    return mapaGastosMes({ transacoes, categorias, ym: monthStrGastos, categoriaFiltro: catGasto });
-  }, [modoGastos, transacoes, categorias, monthStrGastos, catGasto]);
+    return mapaGastosDeItens(despesasDoMesTodas, { categorias, ym: monthStrGastos, categoriaFiltro: catGasto });
+  }, [modoGastos, despesasDoMesTodas, categorias, monthStrGastos, catGasto]);
   // Categorias-raiz de despesa pro filtro (filhas contam junto com a mãe).
   const catsGastoOpcoes = useMemo(() =>
     ordenarPorNome((categorias || []).filter(c => c && !c.parentId && c.tipo !== "receita")),
     [categorias]);
-  // Transações de gasto do dia selecionado (lista do painel no modo gastos).
+  // Gastos do dia selecionado (lista do painel no modo gastos) — mesma base
+  // agregada do mapa, filtrada pro dia.
   const dayGastos = useMemo(() => {
     if (!modoGastos || !selectedDay) return [];
     const diaISO = dataDia(year, month, selectedDay);
@@ -206,11 +216,12 @@ export default function Calendario({
       const raiz = (categorias || []).find(c => c.nome === catGasto);
       nomesFiltro = new Set([catGasto, ...(raiz ? categorias.filter(c => c.parentId === raiz.id).map(c => c.nome) : [])]);
     }
-    return (transacoes || [])
-      .filter(t => t && (t.tipo === "despesa" || t.tipo === "saida") && t.data === diaISO && !t.transferenciaId
+    return (despesasDoMesTodas || [])
+      .filter(t => t && String(t.data || "") === diaISO && !t.transferenciaId
+        && !/transf/i.test(t.categoria || "")
         && (!nomesFiltro || nomesFiltro.has(t.categoria || "Sem categoria")))
       .sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0));
-  }, [modoGastos, selectedDay, transacoes, categorias, catGasto, year, month]);
+  }, [modoGastos, selectedDay, despesasDoMesTodas, categorias, catGasto, year, month]);
 
   /* ============ AGENDA: criar/editar/salvar/excluir ============ */
   const novoEvento = (day) => {
@@ -568,6 +579,7 @@ export default function Calendario({
                         <div style={{ fontSize: 13, color: T.ink, fontWeight: 600 }}>{t.descricao}</div>
                         <div style={{ fontSize: 10.5, color: T.muted }}>
                           {t.categoria || "Sem categoria"}{t.subcategoria ? ` · ${t.subcategoria}` : ""}{t.conta ? ` · ${t.conta}` : ""}
+                          {t.status === "paga" ? <span style={{ color: T.green }}> · ✓ paga</span> : t.status ? <span style={{ color: T.gold }}> · pendente</span> : ""}
                         </div>
                       </div>
                       <div className="num" style={{ color: T.red, fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap" }}>

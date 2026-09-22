@@ -7,7 +7,8 @@ import { T } from "../../lib/theme.js";
 import { fmt, fmtN } from "../../lib/format.js";
 import { MESES_LONGO } from "../../lib/meses.js";
 import { relatorioMensal, posicaoConsolidada, leituraConsultor } from "../../lib/relatorioMensal.js";
-import { mapaGastosMes, insightFimDeSemana } from "../../lib/gastosCalendario.js";
+import { mapaGastosDeItens, insightFimDeSemana } from "../../lib/gastosCalendario.js";
+import { getDespesasDoMes } from "../../lib/agregador.js";
 import { saldoContaBRL } from "../../lib/cambio.js";
 import { printHTML } from "../../lib/importExport.js";
 
@@ -64,7 +65,10 @@ export default function RelatorioMensal({
     const sinal = (v) => (v >= 0 ? "+" : "−") + fmt(Math.abs(v));
 
     // Leitura do consultor — frases automáticas com os números do mês.
-    const mapaG = mapaGastosMes({ transacoes, categorias, ym: mesISO });
+    // Mesma base agregada do calendário (fixas + parcelas + dívidas + avulsas).
+    let despesasAgg = [];
+    try { despesasAgg = getDespesasDoMes(mesISO, state, escopoAtivo) || []; } catch { despesasAgg = []; }
+    const mapaG = mapaGastosDeItens(despesasAgg, { categorias, ym: mesISO });
     const frases = leituraConsultor({
       financas: f, mesISO, mapaGastos: mapaG,
       insightFds: insightFimDeSemana(mapaG.porDia, mesISO), fmt,

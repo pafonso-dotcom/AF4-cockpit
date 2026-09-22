@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mapaGastosMes, intensidadeGasto, corHeat, CORES_HEAT, insightFimDeSemana } from "../gastosCalendario.js";
+import { mapaGastosMes, mapaGastosDeItens, intensidadeGasto, corHeat, CORES_HEAT, insightFimDeSemana } from "../gastosCalendario.js";
 
 const categorias = [
   { id: "c1", nome: "Alimentação", tipo: "despesa" },
@@ -42,6 +42,23 @@ describe("mapaGastosMes", () => {
   it("filtro por categoria sem filhas pega só ela", () => {
     const m = mapaGastosMes({ transacoes, categorias, ym: "2026-09", categoriaFiltro: "Transporte" });
     expect(m.total).toBe(60);
+  });
+});
+
+describe("mapaGastosDeItens (base agregada do calendário)", () => {
+  it("aceita itens do agregador (fixas/parcelas/dívidas) sem campo tipo", () => {
+    const itens = [
+      { id: "f1", data: "2026-09-05", valor: 1200, categoria: "Moradia", descricao: "Aluguel", status: "paga" },
+      { id: "p1", data: "2026-09-05", valor: 300, categoria: "Mercado", descricao: "Parcela geladeira", status: "pendente" },
+      { id: "x1", data: "2026-09-06", valor: 500, categoria: "Transf entre bancos" }, // fora
+      { id: "x2", data: "2026-09-07", valor: 900, categoria: "Cartão", descricao: "Pagamento fatura XP" }, // fora
+    ];
+    const m = mapaGastosDeItens(itens, { ym: "2026-09" });
+    expect(m.total).toBe(1500);
+    expect(m.porDia[5].total).toBe(1500);
+    expect(m.porDia[6]).toBeUndefined();
+    expect(m.porDia[7]).toBeUndefined();
+    expect(m.porDia[5].top[0].nome).toBe("Moradia");
   });
 });
 
