@@ -85,6 +85,40 @@ function nextMonthsISO(n = 6) {
   return out;
 }
 
+// Colapsável SÓ NO CELULAR (pedido 2026-09-22): no desktop renderiza os
+// filhos direto; no mobile vira um cabeçalho que abre/fecha (fechado por
+// padrão, escolha salva) — o Painel abre leve, sem rolagem infinita.
+function MobileColapsavel({ id, titulo, isMobile, children }) {
+  const KEY = "af4:dash-mob-abertos:v1";
+  const [aberto, setAberto] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(KEY) || "{}")[id] === true; } catch { return false; }
+  });
+  if (!isMobile) return children;
+  const toggle = () => setAberto(v => {
+    const nv = !v;
+    try {
+      const m = JSON.parse(localStorage.getItem(KEY) || "{}");
+      m[id] = nv;
+      localStorage.setItem(KEY, JSON.stringify(m));
+    } catch {}
+    return nv;
+  });
+  return (
+    <div>
+      <button onClick={toggle}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                gap: 10, padding: "13px 16px", background: T.card, border: `1px solid ${T.border}`,
+                borderRadius: 16, cursor: "pointer", color: T.ink, textAlign: "left",
+              }}>
+        <span style={{ fontSize: 13.5, fontWeight: 700 }}>{titulo}</span>
+        <span style={{ color: aberto ? T.gold : T.muted, fontSize: 13, transform: aberto ? "rotate(180deg)" : "none", transition: "transform .18s" }}>▼</span>
+      </button>
+      {aberto && <div style={{ marginTop: 10 }}>{children}</div>}
+    </div>
+  );
+}
+
 export default function Dashboard({
   hidden, contas: contasRaw, ativos = [], transacoes: transacoesRaw,
   categorias, metas, cartoes = [], parcelamentos = [], devedores = [], dividas = [], cheques = [],
@@ -631,7 +665,9 @@ export default function Dashboard({
       <section className="dash-bot-grid" style={{
         display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
+        <MobileColapsavel id="calendario" titulo="📅 Calendário do mês" isMobile={isMobile}>
+          <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
+        </MobileColapsavel>
         <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} aPagarPorAno={aPagarPorAno} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesTile={cartoesTile} sparks={sparks} hidden={hidden}
           consolidado={{ contas: totalContas, proventos: provSaldo, investBR: totalInvest, investUSD: totalInvestUSD,
                          cartoes: cartoesTotal, liquido: totalContas + provSaldo + totalInvest - cartoesTotal }}
@@ -641,7 +677,9 @@ export default function Dashboard({
 
       {/* Projeção · 6 meses — acima de Alocação/Gastos (pedido do usuário) */}
       <section style={{ marginBottom: 16 }}>
-        <ProjecaoMesesCard projecao={projecao} hidden={hidden} />
+        <MobileColapsavel id="projecao" titulo="📈 Projeção · 6 meses" isMobile={isMobile}>
+          <ProjecaoMesesCard projecao={projecao} hidden={hidden} />
+        </MobileColapsavel>
       </section>
 
       {/* Orçamentos · compras futuras — acima da Alocação (pedido do usuário) */}
@@ -655,7 +693,9 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <div className="dash-aloc" style={{ minWidth: 0 }}>
-          <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
+          <MobileColapsavel id="alocacao" titulo="📊 Alocação atual" isMobile={isMobile}>
+            <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
+          </MobileColapsavel>
         </div>
         <div className="dash-gastos" style={{ minWidth: 0 }}>
           <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />

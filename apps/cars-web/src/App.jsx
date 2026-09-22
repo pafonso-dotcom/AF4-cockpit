@@ -167,6 +167,8 @@ export default function App() {
   const [cartaoAberto, setCartaoAberto] = useState(null);
   const [contaAberta, setContaAberta] = useState(null);
   const [comprasFotoOpen, setComprasFotoOpen] = useState(false);
+  // Menu do botão flutuante (＋): foto, nova transação, calculadora.
+  const [fabOpen, setFabOpen] = useState(false);
   const [calcJurosGlobalOpen, setCalcJurosGlobalOpen] = useState(false);
   const [calcBasicaOpen, setCalcBasicaOpen] = useState(false);
 
@@ -1188,25 +1190,54 @@ export default function App() {
       {["analise-carteira", "trade-ativo"].includes(tab) && !tradeOnboardingVisto && (
         <OnboardingTradeModal onClose={() => setTradeOnboardingVisto(true)} />
       )}
-      {/* FAB destacado: registrar compras do cartão POR FOTO (print do
-          banco/Wallet ou cupom) — mantém as contas em dia sem esperar a
-          fatura fechar. Substituiu o antigo botão de "Conversa rápida". */}
+      {/* FAB de AÇÕES RÁPIDAS (pedido 2026-09-22): um toque abre o menu com
+          compra por foto, nova transação e calculadora — e o conteúdo das
+          telas ganha respiro no rodapé pra nada ficar escondido atrás dele. */}
+      <style>{`@media (max-width: 768px) { main { padding-bottom: 150px !important; } }`}</style>
       {modulo === "financas" && (
-        <button
-          onClick={() => setComprasFotoOpen(true)}
-          style={{
-            position: "fixed", bottom: 80, right: 20, zIndex: 200,
-            width: 54, height: 54, borderRadius: "50%",
-            background: T.gold, color: T.bg, border: "none",
-            boxShadow: "0 4px 16px rgba(0,0,0,.35)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", fontSize: 24,
-          }}
-          title="Compra no cartão por foto"
-          aria-label="Registrar compra no cartão por foto"
-        >
-          📷
-        </button>
+        <>
+          {fabOpen && (
+            <div onClick={() => setFabOpen(false)}
+                 style={{ position: "fixed", inset: 0, zIndex: 199, background: "rgba(0,0,0,.28)" }} />
+          )}
+          {fabOpen && (
+            <div style={{ position: "fixed", right: 20, bottom: 148, zIndex: 201,
+                          display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
+              {[
+                { icone: "📷", rotulo: "Compra no cartão por foto", acao: () => setComprasFotoOpen(true) },
+                { icone: "➕", rotulo: "Nova transação", acao: () => handleQuickAction("transacao") },
+                { icone: "🧮", rotulo: "Calculadora de juros", acao: () => setCalcJurosGlobalOpen(true) },
+              ].map(b => (
+                <button key={b.rotulo} onClick={() => { setFabOpen(false); b.acao(); }}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 10,
+                          background: T.card, color: T.ink, border: `1px solid ${T.border}`,
+                          borderRadius: 100, padding: "11px 18px", fontSize: 13.5, fontWeight: 700,
+                          boxShadow: "0 6px 20px rgba(0,0,0,.3)", cursor: "pointer", whiteSpace: "nowrap",
+                        }}>
+                  <span style={{ fontSize: 17 }}>{b.icone}</span> {b.rotulo}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => setFabOpen(v => !v)}
+            style={{
+              position: "fixed", bottom: 80, right: 20, zIndex: 201,
+              width: 54, height: 54, borderRadius: "50%",
+              background: T.gold, color: T.bg, border: "none",
+              boxShadow: "0 4px 16px rgba(0,0,0,.35)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", fontSize: 26, lineHeight: 1,
+              transform: fabOpen ? "rotate(45deg)" : "none", transition: "transform .18s",
+            }}
+            title="Ações rápidas: foto, nova transação, calculadora"
+            aria-label="Abrir ações rápidas"
+            aria-expanded={fabOpen}
+          >
+            ＋
+          </button>
+        </>
       )}
     </div>
   );
