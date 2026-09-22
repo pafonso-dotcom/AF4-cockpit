@@ -92,7 +92,7 @@ export default function Dashboard({
   carteiraProventos = { saldo: 0 },
   proventosRecebidos = {}, proventosIgnorados = {}, proventosManuais = [],
   fixas = [], fixaOcorrencias = [],
-  agenda = [],
+  agenda = [], lembretes = [], tarefas = [],
   patrimonioHistorico = [],
   escopoAtivo = "tudo",
   onTabChange, onContaClick, onQuickAction,
@@ -549,10 +549,20 @@ export default function Dashboard({
       }),
       backupAtraso: backupNuvemAtraso(),
       cambioDefasado: contasCambioDefasado(contasRaw).length,
+      agendaHoje: (() => {
+        const h = new Date();
+        const hojeISO = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, "0")}-${String(h.getDate()).padStart(2, "0")}`;
+        return {
+          eventos: (agenda || []).filter(e => e && e.data === hojeISO && e.status !== "feito").length,
+          lembretes: (lembretes || []).filter(l => l && !l.concluido && l.data === hojeISO).length,
+          tarefas: (tarefas || []).filter(t => t && !t.concluida && t.prazo === hojeISO).length,
+        };
+      })(),
       fmt: (v) => (hidden ? "•••" : fmt(v)),
     });
   }, [mesISO, stateAgg, escopoAtivo, cartoes, categorias, gastosCat, hidden,
-      ativos, proventosRecebidos, proventosIgnorados, proventosManuais]);
+      ativos, proventosRecebidos, proventosIgnorados, proventosManuais,
+      contasRaw, agenda, lembretes, tarefas]);
 
   // ===== Insights =====
   const insights = useMemo(() => {
