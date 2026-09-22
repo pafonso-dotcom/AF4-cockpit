@@ -14,12 +14,12 @@ const SOM_KEY = "af4:jarbas-som";
  * Texto: Anthropic (se houver chave) com fallback Gemini.
  * Fala: lib/tts.js (Gemini TTS → nativo).
  */
-export default function JarbasModal({ dados = {}, apiKeys = {}, userName = "", onClose }) {
+export default function JarbasModal({ dados = {}, apiKeys = {}, userName = "", inicialChamada = false, onClose }) {
   const [msgs, setMsgs] = useState([]); // {role: "user"|"jarbas", texto}
   const [texto, setTexto] = useState("");
   const [pensando, setPensando] = useState(false);
   const [gravando, setGravando] = useState(false);
-  const [chamada, setChamada] = useState(false); // Modo Conversa contínua
+  const [chamada, setChamada] = useState(!!inicialChamada); // Modo Conversa contínua (bolha abre direto)
   const [som, setSom] = useState(() => { try { return localStorage.getItem(SOM_KEY) !== "0"; } catch { return true; } });
 
   const mediaRef = useRef(null);
