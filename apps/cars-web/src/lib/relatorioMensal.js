@@ -82,16 +82,64 @@ function financasDoMes(mesISO, state, escopo) {
   const categorias = agruparCategoria(gastosBancos);
   const despesasBancos = gastosBancos.reduce((s, d) => s + (Number(d.valor) || 0), 0);
   const despesasCartoes = gastos.filter(ehDeCartao).reduce((s, d) => s + (Number(d.valor) || 0), 0);
+  // ===== CONSUMO por categoria: fatura importada ABERTA entra pelos ITENS =====
+  // O agregador representa a fatura em aberto como UM compromisso ("Cartão ·
+  // fatura") e esconde as compras/parcelas dela — certo pra "a pagar", errado
+  // pro ranking por categoria (Alimentação ficava sem a parte do cartão).
+  // Aqui o lump é trocado pelos itens reais: compras à vista da fatura
+  // (transações origem "fatura-*" pendentes) e parcelas do mês dos cartões
+  // com fatura aberta (puladas no agregador).
+  const cartoesFaturaAberta = new Set(
+    (state.cartoes || [])
+      .filter(c => c?.faturaImportada && !c.faturaImportada.paga && c.faturaImportada.competencia === mesISO)
+      .map(c => c.id)
+  );
+  let gastosConsumo = gastos;
+  if (cartoesFaturaAberta.size) {
+    gastosConsumo = gastos.filter(g => g.categoria !== "Cartão · fatura");
+    (state.transacoes || []).forEach(t => {
+      if (!t || t.tipo !== "despesa" || !cartoesFaturaAberta.has(t.cartaoId)) return;
+      if (!(typeof t.origem === "string" && t.origem.startsWith("fatura-")) || t.compensado) return;
+      if (t.origem === "fatura-pagamento") return;
+      if (foraIds.has(t.id) || ehCategoriaTransfer(t.categoria) || naoEhGasto(t.categoria)) return;
+      gastosConsumo.push({
+        id: t.id, data: t.data, descricao: t.descricao || "Compra no cartão",
+        valor: Number(t.valor) || 0, status: "pendente",
+        categoria: t.categoria || "Outros", subcategoria: t.subcategoria || "",
+      });
+    });
+    (state.parcelamentos || []).forEach(p => {
+      if (!p || !cartoesFaturaAberta.has(p.cartaoId) || !p.dataPrimeira || !p.totalParcelas) return;
+      if (naoEhGasto(p.categoria)) return;
+      const base = new Date(p.dataPrimeira);
+      const by = base.getFullYear(), bm = base.getMonth(), bd = base.getDate();
+      for (let i = 1; i <= p.totalParcelas; i++) {
+        const d = new Date(by, bm + (i - 1), 1);
+        d.setDate(Math.min(bd, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+        const iso = d.toISOString().slice(0, 10);
+        if (!iso.startsWith(mesISO)) continue;
+        if ((p.parcelasPagas || []).includes(i)) continue; // pagas já vêm do agregador
+        gastosConsumo.push({
+          id: `${p.id}::${i}`, data: iso, descricao: `${p.descricao} ${i}/${p.totalParcelas}`,
+          valor: Number(p.valorParcela) || (Number(p.valorTotal) / p.totalParcelas) || 0,
+          status: "pendente",
+          categoria: p.categoria || "Cartão · parcelamento", subcategoria: "",
+        });
+      }
+    });
+  }
+
   // Resumo geral: bancos + cartões juntos (o gasto real do mês), agrupado por
   // categoria PAI (ordem alfabética) com as subcategorias (FILHO) embaixo.
-  const categoriasGeral = agruparHierarquia(gastos);
-  const despesasGeral = gastos.reduce((s, d) => s + (Number(d.valor) || 0), 0); // = soma das categorias
+  const categoriasGeral = agruparHierarquia(gastosConsumo);
+  const despesasGeral = gastosConsumo.reduce((s, d) => s + (Number(d.valor) || 0), 0); // = soma das categorias
+  const itensConsumo = gastosConsumo; // itens por trás do ranking (drill-down da tela)
   // Receitas agrupadas por categoria (resumo, não item a item).
   const receitasCategorias = agruparCategoria(gan);
 
   return {
     receitas, despesas, sobra: receitas - despesas, pagas, aPagar,
-    categorias, categoriasGeral, despesasGeral, receitasCategorias,
+    categorias, categoriasGeral, despesasGeral, itensConsumo, receitasCategorias,
     despesasBancos, despesasCartoes, pagamentosCartao, totalPagamentosCartao,
   };
 }

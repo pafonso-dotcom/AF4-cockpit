@@ -312,8 +312,10 @@ export default function AnalisesFinancas(props) {
           const corBarra = pctLimite == null ? T.gold : pctLimite >= 100 ? T.red : pctLimite >= 80 ? T.gold : T.green;
           const ant = gastoAntPorPai[p.nome];
           const deltaCat = ant > 0 ? ((p.valor - ant) / ant) * 100 : null;
+          // Drill nos MESMOS itens do ranking (f.itensConsumo inclui o que está
+          // dentro da fatura importada) — assim a lista bate com o total da barra.
           const itensDaCat = aberto
-            ? despesasAgg.filter(t => (String(t.categoria || "").trim() || "Outros") === p.nome)
+            ? (f.itensConsumo || despesasAgg).filter(t => (String(t.categoria || "").trim() || "Outros") === p.nome)
                 .sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0))
             : [];
           return (
