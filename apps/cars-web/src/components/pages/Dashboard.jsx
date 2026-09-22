@@ -770,7 +770,7 @@ export default function Dashboard({
         </MobileColapsavel>
         <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} aPagarPorAno={aPagarPorAno} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesTile={cartoesTile} sparks={sparks} hidden={hidden}
           consolidado={{ contas: totalContas, proventos: provSaldo, investBR: totalInvest, investUSD: totalInvestUSD,
-                         cartoes: cartoesTotal, liquido: totalContas + provSaldo + totalInvest - cartoesTotal }}
+                         aReceber, cartoes: cartoesTotal, liquido: totalContas + provSaldo + totalInvest - cartoesTotal }}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
       </section>
@@ -1549,6 +1549,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
               { r: "🏦 Contas", v: consolidado.contas, s: "+" },
               ...(consolidado.proventos > 0 ? [{ r: "💰 Carteira de proventos", v: consolidado.proventos, s: "+" }] : []),
               { r: "📈 Investimentos (Brasil)", v: consolidado.investBR, s: "+" },
+              ...(consolidado.aReceber > 0 ? [{ r: "🤝 A receber", v: consolidado.aReceber, s: "+" }] : []),
               { r: "💳 Cartões em aberto", v: consolidado.cartoes, s: "−" },
             ].map(l => (
               <div key={l.r} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: T.muted }}>
