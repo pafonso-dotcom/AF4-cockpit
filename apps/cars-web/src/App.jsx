@@ -107,6 +107,7 @@ const Configuracoes = lz(() => import("./components/pages/Configuracoes.jsx"));
 const Lembretes = lz(() => import("./components/pages/Lembretes.jsx"));
 const Treino = lz(() => import("./components/pages/Treino.jsx"));
 const Voos = lz(() => import("./components/pages/Voos.jsx"));
+const JarbasModal = lz(() => import("./components/JarbasModal.jsx"));
 import { EXERCICIOS_BASE } from "./lib/exerciciosBase.js";
 import { dispararLembretes } from "./lib/lembretes.js";
 
@@ -171,6 +172,7 @@ export default function App() {
   const [comprasFotoOpen, setComprasFotoOpen] = useState(false);
   // Menu do botão flutuante (＋): foto, nova transação, calculadora.
   const [fabOpen, setFabOpen] = useState(false);
+  const [jarbasOpen, setJarbasOpen] = useState(false); // assistente Jarbas (global)
   const swipeRef = useRef(null); // swipe entre abas (mobile)
   const [calcJurosGlobalOpen, setCalcJurosGlobalOpen] = useState(false);
   const [calcBasicaOpen, setCalcBasicaOpen] = useState(false);
@@ -781,6 +783,8 @@ export default function App() {
                    escopoAtivo={escopoAtivo}
                    onTabChange={irParaTab}
                    onQuickAction={handleQuickAction}
+                   apiKeys={apiKeys}
+                   onAbrirJarbas={() => setJarbasOpen(true)}
                    onContaClick={(c) => { setTab("contas"); setContaAberta(c); }} />
       )}
       {tab === "contas" && !contaAberta && (
@@ -1142,6 +1146,7 @@ export default function App() {
         escopoAtivo={escopoAtivo}
         onEscopoChange={(novo) => { setEscopoAtivo(novo); salvarEscopo(novo); }}
         onOpenPalette={() => setPaletaAberta(true)}
+        onAbrirJarbas={() => setJarbasOpen(true)}
         onRefresh={refreshMarket} refreshing={refreshing}
         onOpenSettings={(kind, value) => {
           if (kind === "paleta" && value) {
@@ -1210,6 +1215,15 @@ export default function App() {
       )}
       {pickerOpen && (
         <ThemePicker themeId={themeId} setThemeId={setThemeId} onClose={() => setPickerOpen(false)} />
+      )}
+      {jarbasOpen && (
+        <Suspense fallback={null}>
+          <JarbasModal
+            dados={{ contas, cartoes, transacoes, ativos, devedores, dividas, cheques,
+                     fixas, fixaOcorrencias, parcelamentos, agenda, lembretes, tarefas }}
+            apiKeys={apiKeys}
+            onClose={() => setJarbasOpen(false)} />
+        </Suspense>
       )}
 
       {settingsOpen && (
@@ -1303,6 +1317,7 @@ export default function App() {
             <div style={{ position: "fixed", right: 20, bottom: 148, zIndex: 201,
                           display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
               {[
+                { icone: "🤖", rotulo: "Falar com o Jarbas", acao: () => setJarbasOpen(true) },
                 { icone: "📷", rotulo: "Compra no cartão por foto", acao: () => setComprasFotoOpen(true) },
                 { icone: "➕", rotulo: "Nova transação", acao: () => handleQuickAction("transacao") },
                 { icone: "🧮", rotulo: "Calculadora de juros", acao: () => setCalcJurosGlobalOpen(true) },
