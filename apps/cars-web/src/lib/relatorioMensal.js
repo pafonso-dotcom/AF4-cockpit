@@ -159,8 +159,14 @@ function financasDoMes(mesISO, state, escopo) {
   const gastosConsumo = itensConsumoDoMes(mesISO, state, escopo);
 
   // Resumo geral: bancos + cartões juntos (o gasto real do mês), agrupado por
-  // categoria PAI (ordem alfabética) com as subcategorias (FILHO) embaixo.
-  const categoriasGeral = agruparHierarquia(gastosConsumo);
+  // categoria PAI (ordem alfabética) com as subcategorias E FILHAS embaixo.
+  const catPorId = {};
+  (state.categorias || []).forEach(c => { if (c?.id) catPorId[c.id] = c; });
+  const paiDe = {};
+  (state.categorias || []).forEach(c => {
+    if (c?.parentId && catPorId[c.parentId]) paiDe[(c.nome || "").trim()] = (catPorId[c.parentId].nome || "").trim();
+  });
+  const categoriasGeral = agruparHierarquia(gastosConsumo, paiDe);
   const despesasGeral = gastosConsumo.reduce((s, d) => s + (Number(d.valor) || 0), 0); // = soma das categorias
   const itensConsumo = gastosConsumo; // itens por trás do ranking (drill-down da tela)
   // Receitas agrupadas por categoria (resumo, não item a item).
@@ -175,14 +181,17 @@ function financasDoMes(mesISO, state, escopo) {
 
 // Agrupa por categoria PAI (com subcategorias FILHO), em ordem alfabética.
 // Cada pai: { nome, valor, pct (do total), filhos: [{ nome, valor, pct (do pai) }] }.
-function agruparHierarquia(itens) {
+function agruparHierarquia(itens, paiDe = {}) {
   const pais = {};
   itens.forEach(x => {
-    const p = String(x.categoria || "").trim() || "Outros";
+    const catNome = String(x.categoria || "").trim() || "Outros";
+    // Categoria FILHA (parentId) soma dentro da mãe, aparecendo como filho —
+    // igual à página Categorias (gastoDe) e ao filtro do Calendário.
+    const p = paiDe[catNome] || catNome;
     if (!pais[p]) pais[p] = { nome: p, valor: 0, filhos: {} };
     const v = Number(x.valor) || 0;
     pais[p].valor += v;
-    const f = String(x.subcategoria || "").trim();
+    const f = paiDe[catNome] ? catNome : String(x.subcategoria || "").trim();
     if (f) pais[p].filhos[f] = (pais[p].filhos[f] || 0) + v;
   });
   const tot = Object.values(pais).reduce((s, p) => s + p.valor, 0) || 1;

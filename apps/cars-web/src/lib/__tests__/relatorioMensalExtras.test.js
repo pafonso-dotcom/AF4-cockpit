@@ -138,3 +138,28 @@ describe("consumo · fatura do MÊS SEGUINTE (compra em set, fatura de out)", ()
     expect(itens.filter(i => i.categoria === "Cartão · fatura")).toHaveLength(0);
   });
 });
+
+describe("categoriasGeral · filha (parentId) soma dentro da mãe", () => {
+  const state = {
+    contas: [], fixas: [], fixaOcorrencias: [], dividas: [], devedores: [], cheques: [], cartoes: [], parcelamentos: [],
+    categorias: [
+      { id: "ci", nome: "Compras Internet", tipo: "despesa" },
+      { id: "ali2", nome: "AliExpress", tipo: "despesa", parentId: "ci" },
+      { id: "ml", nome: "MercadoLivre", tipo: "despesa", parentId: "ci" },
+    ],
+    transacoes: [
+      { id: "a", tipo: "despesa", data: "2026-09-05", valor: 100, categoria: "AliExpress", compensado: true },
+      { id: "b", tipo: "despesa", data: "2026-09-06", valor: 50, categoria: "MercadoLivre", compensado: true },
+      { id: "c", tipo: "despesa", data: "2026-09-07", valor: 30, categoria: "Compras Internet", compensado: true },
+    ],
+  };
+  const { relatorioMensal } = require("../relatorioMensal.js");
+  const rel = relatorioMensal("2026-09", state, "tudo", []);
+
+  it("a mãe soma as filhas e elas aparecem como filhos", () => {
+    const ci = rel.financas.categoriasGeral.find(p => p.nome === "Compras Internet");
+    expect(ci.valor).toBe(180);
+    expect(ci.filhos.map(f => f.nome).sort()).toEqual(["AliExpress", "MercadoLivre"]);
+    expect(rel.financas.categoriasGeral.find(p => p.nome === "AliExpress")).toBeUndefined();
+  });
+});

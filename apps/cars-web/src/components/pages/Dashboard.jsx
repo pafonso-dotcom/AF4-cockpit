@@ -414,13 +414,18 @@ export default function Dashboard({
     // fatura importada aberta pelos itens — mesmos números da Análise do mês.
     let desp = [];
     try { desp = itensConsumoDoMes(mesISO, stateAgg, escopoAtivo) || []; } catch {}
+    // Filha (parentId) soma dentro da mãe — mesmo roll-up da Análise do mês.
+    const catPorId = {};
+    (categorias || []).forEach(c => { if (c?.id) catPorId[c.id] = c; });
+    const paiDe = {};
+    (categorias || []).forEach(c => { if (c?.parentId && catPorId[c.parentId]) paiDe[c.nome] = catPorId[c.parentId].nome; });
     const m = {};
-    desp.forEach(d => { const k = d.categoria || "Outros"; m[k] = (m[k] || 0) + (Number(d.valor) || 0); });
+    desp.forEach(d => { const k0 = d.categoria || "Outros"; const k = paiDe[k0] || k0; m[k] = (m[k] || 0) + (Number(d.valor) || 0); });
     const tot = Object.values(m).reduce((s,v) => s+v, 0) || 1;
     return Object.entries(m).sort((a,b) => b[1]-a[1]).map(([k,v], i) => ({
       nome: k, valor: v, pct: (v/tot)*100, cor: CORES_CAT[i % CORES_CAT.length],
     }));
-  }, [stateAgg, mesISO, escopoAtivo]);
+  }, [stateAgg, mesISO, escopoAtivo, categorias]);
 
   // Orçamento do mês = soma dos limites definidos nas categorias de despesa.
   const orcamentoMes = useMemo(() =>
