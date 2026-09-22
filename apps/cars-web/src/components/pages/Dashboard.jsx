@@ -578,7 +578,10 @@ export default function Dashboard({
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
 
-      {/* Calculadora de juros — botão do Painel (pedido 2026-09-19) */}
+      {/* Calculadora de juros — botão do Painel (pedido 2026-09-19).
+          No CELULAR ele sai (pedido 2026-09-22): ocupava o topo da tela;
+          a calculadora continua acessível pelo menu lateral/módulos. */}
+      {!isMobile && (
       <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
         <button onClick={() => setCalcJurosOpen(true)}
                 title="Juros simples ou compostos, com aporte mensal — calcula ao vivo"
@@ -589,6 +592,7 @@ export default function Dashboard({
           🧮 Calculadora de juros
         </button>
       </div>
+      )}
       {calcJurosOpen && <CalculadoraJurosModal onClose={() => setCalcJurosOpen(false)} />}
 
       {/* RESUMO DO DIA — uma olhada e o dia está decidido */}
