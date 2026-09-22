@@ -196,14 +196,14 @@ function ExImagem({ exercicio, setExerciciosDB, size = 38 }) {
   };
   return (
     <>
-      <button onClick={(e) => { e.stopPropagation(); setOpen(true); }} title="Imagem de execução"
+      <button onClick={(e) => { e.stopPropagation(); setOpen(true); }} title="Foto/imagem de execução — toca pra adicionar"
         style={{
           width: size, height: size, borderRadius: 16, flexShrink: 0, padding: 0, overflow: "hidden",
-          border: `1px ${img ? "solid" : "dashed"} ${T.border}`, background: T.bg, cursor: "pointer",
+          border: `1px ${img ? `solid ${T.border}` : `dashed ${T.gold}88`}`, background: T.bg, cursor: "pointer",
           display: "grid", placeItems: "center",
         }}>
         {img ? <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-             : <ImageIcon size={16} style={{ color: T.muted }} />}
+             : <Camera size={15} style={{ color: T.gold }} />}
       </button>
       {open && (
         <Modal title={`Imagem · ${exercicio.nome || "exercício"}`} onClose={() => setOpen(false)}>
@@ -614,6 +614,25 @@ function SessaoCard({ sessao, exerciciosDB, ativa, onToggleAtiva, onAtualizar, o
     onAtualizar({ exerciciosFeitos: [...sessao.exerciciosFeitos, novo] });
   };
 
+  // Retirar exercício do treino em andamento (pedido 2026-09-22).
+  // Só pede confirmação se já tiver série marcada como feita (dado registrado).
+  const retirarExercicio = async (exIdx) => {
+    const ef = sessao.exerciciosFeitos[exIdx];
+    const temFeita = sessao.modalidade === "musculacao"
+      ? (ef?.series || []).some(s => s.feita)
+      : !!ef?.concluido;
+    if (temFeita) {
+      const ex = exerciciosDB.find(e => e.id === ef.exercicioId);
+      const ok = await confirm({
+        title: `Retirar "${ex?.nome || "exercício"}" deste treino?`,
+        body: "Ele já tem série feita — o registro dessa sessão será perdido.",
+        confirmLabel: "Retirar", danger: true,
+      });
+      if (!ok) return;
+    }
+    onAtualizar({ exerciciosFeitos: sessao.exerciciosFeitos.filter((_, i) => i !== exIdx) });
+  };
+
   const exerciciosFiltrados = exerciciosDB.filter(e => e.modalidade === sessao.modalidade);
 
   return (
@@ -658,9 +677,13 @@ function SessaoCard({ sessao, exerciciosDB, ativa, onToggleAtiva, onAtualizar, o
               <div key={ei} style={{ marginBottom: 14, padding: "10px 12px", background: T.bgSoft, borderRadius: 16, border: `1px solid ${T.border}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                   {ex && <ExImagem exercicio={ex} setExerciciosDB={setExerciciosDB} />}
-                  <div style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>
+                  <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: T.ink }}>
                     {ex?.nome || ef.exercicioId}
                   </div>
+                  <button onClick={() => retirarExercicio(ei)} title="Retirar este exercício do treino"
+                    style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", padding: 6, flexShrink: 0 }}>
+                    <X size={15} />
+                  </button>
                 </div>
                 {sessao.modalidade === "musculacao" ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
