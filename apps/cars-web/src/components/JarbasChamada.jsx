@@ -1,10 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, MicOff, Keyboard, PhoneOff } from "lucide-react";
-import { T } from "../lib/theme.js";
 import { toast } from "../lib/toast.js";
 import { montarPromptAudio } from "../lib/jarbas.js";
 import { falar, pararFala } from "../lib/tts.js";
 import { criarMonitorFala } from "../lib/vad.js";
+import JarbasOrbe from "./JarbasOrbe.jsx";
+
+// Paleta CINEMATOGRÁFICA fixa da chamada (independe do tema do app):
+// fundo blueprint azul-marinho + ciano de HUD.
+const HUD = {
+  fundo: "#04141c",
+  grade: "rgba(77,208,225,.06)",
+  ciano: "#4dd0e1",
+  texto: "#d7f4fa",
+  sub: "#7fa8b5",
+  card: "rgba(10,42,54,.72)",
+  borda: "rgba(77,208,225,.35)",
+  vermelho: "#ff5c72",
+};
 
 /**
  * JARBAS · MODO CONVERSA — chamada de voz contínua, sem apertar botão.
@@ -140,49 +153,48 @@ export default function JarbasChamada({ contexto, geminiKey, msgs, setMsgs, onVo
     }
   };
 
-  // ----- visual -----
-  const corFase = fase === "ouvindo" ? T.gold : fase === "falando" ? T.green : fase === "mudo" ? T.red : T.muted;
+  // ----- visual (HUD cinematográfico, paleta própria) -----
   const rotulo = {
-    iniciando: "Conectando o microfone…",
+    iniciando: "Inicializando sistemas…",
     ouvindo: "Pode falar — eu envio quando você pausar",
-    pensando: "Pensando…",
+    pensando: "Processando…",
     falando: "Jarbas falando — pode interromper",
     mudo: "Microfone mudo",
     erro: "Sem microfone",
   }[fase];
-  const escala = fase === "ouvindo" ? 1 + Math.min(nivel * 3.2, 0.55) : 1;
+  const faseOrbe = fase === "processar" ? "pensando" : fase === "iniciando" || fase === "erro" ? "idle" : fase;
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 600, background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", padding: "56px 24px 34px" }}>
-      <div style={{ fontSize: 13, color: T.muted, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>Jarbas · conversa</div>
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 600,
+      background: `
+        linear-gradient(${HUD.grade} 1px, transparent 1px),
+        linear-gradient(90deg, ${HUD.grade} 1px, transparent 1px),
+        radial-gradient(circle at 50% 32%, #0a2e3c 0%, ${HUD.fundo} 62%)`,
+      backgroundSize: "34px 34px, 34px 34px, cover",
+      display: "flex", flexDirection: "column", alignItems: "center", padding: "56px 24px 34px",
+    }}>
+      <div style={{ fontSize: 12, color: HUD.sub, fontWeight: 700, letterSpacing: ".28em", textTransform: "uppercase" }}>
+        J·A·R·B·A·S
+      </div>
 
-      {/* Orbe */}
+      {/* Orbe HUD */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 26, width: "100%" }}>
-        <div style={{
-          width: 148, height: 148, borderRadius: "50%",
-          background: `radial-gradient(circle at 34% 30%, ${corFase}66, ${corFase}22 60%, transparent 75%)`,
-          border: `2px solid ${corFase}`,
-          boxShadow: `0 0 ${18 + nivel * 220}px ${corFase}55`,
-          transform: `scale(${escala})`,
-          transition: fase === "ouvindo" ? "transform .09s linear" : "transform .5s ease",
-          animation: fase === "pensando" ? "jarbas-respira 1.6s ease-in-out infinite"
-                   : fase === "falando" ? "jarbas-ondula 1.1s ease-in-out infinite" : "none",
-          display: "grid", placeItems: "center",
-        }}>
-          <span style={{ fontSize: 46 }} aria-hidden>🤖</span>
+        <JarbasOrbe size={200} nivel={fase === "ouvindo" ? nivel : 0} fase={faseOrbe} />
+        <div style={{ fontSize: 15, fontWeight: 700, color: HUD.texto, textAlign: "center", textShadow: `0 0 12px ${HUD.ciano}44` }}>
+          {rotulo}
         </div>
-        <div style={{ fontSize: 15.5, fontWeight: 700, color: T.ink, textAlign: "center" }}>{rotulo}</div>
 
         {/* Última troca */}
         {ultima && (
           <div style={{ width: "100%", maxWidth: 440, display: "flex", flexDirection: "column", gap: 6 }}>
             {ultima.pergunta && (
-              <div style={{ alignSelf: "flex-end", maxWidth: "88%", fontSize: 12.5, color: T.muted, background: `${T.gold}12`, border: `1px solid ${T.gold}44`, borderRadius: 14, padding: "7px 12px" }}>
+              <div style={{ alignSelf: "flex-end", maxWidth: "88%", fontSize: 12.5, color: HUD.sub, background: "rgba(255,209,102,.08)", border: "1px solid rgba(255,209,102,.3)", borderRadius: 14, padding: "7px 12px" }}>
                 {ultima.pergunta}
               </div>
             )}
             {ultima.resposta && (
-              <div style={{ alignSelf: "flex-start", maxWidth: "88%", fontSize: 13, color: T.ink, background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "8px 12px" }}>
+              <div style={{ alignSelf: "flex-start", maxWidth: "88%", fontSize: 13, color: HUD.texto, background: HUD.card, border: `1px solid ${HUD.borda}`, borderRadius: 14, padding: "8px 12px" }}>
                 {ultima.resposta}
               </div>
             )}
@@ -193,23 +205,18 @@ export default function JarbasChamada({ contexto, geminiKey, msgs, setMsgs, onVo
       {/* Controles */}
       <div style={{ display: "flex", gap: 22, alignItems: "center" }}>
         <button onClick={toggleMudo} title={fase === "mudo" ? "Reativar microfone" : "Mutar"}
-          style={{ width: 56, height: 56, borderRadius: "50%", background: fase === "mudo" ? `${T.red}22` : T.card, border: `1px solid ${fase === "mudo" ? T.red : T.border}`, color: fase === "mudo" ? T.red : T.ink, cursor: "pointer", display: "grid", placeItems: "center" }}>
+          style={{ width: 56, height: 56, borderRadius: "50%", background: fase === "mudo" ? "rgba(255,92,114,.16)" : HUD.card, border: `1px solid ${fase === "mudo" ? HUD.vermelho : HUD.borda}`, color: fase === "mudo" ? HUD.vermelho : HUD.texto, cursor: "pointer", display: "grid", placeItems: "center" }}>
           {fase === "mudo" ? <MicOff size={21} /> : <Mic size={21} />}
         </button>
         <button onClick={() => { onEncerrar(); }} title="Encerrar conversa"
-          style={{ width: 68, height: 68, borderRadius: "50%", background: T.red, border: "none", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center", boxShadow: `0 6px 22px ${T.red}66` }}>
+          style={{ width: 68, height: 68, borderRadius: "50%", background: HUD.vermelho, border: "none", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center", boxShadow: `0 6px 26px ${HUD.vermelho}66` }}>
           <PhoneOff size={26} />
         </button>
         <button onClick={() => { onVoltarChat(); }} title="Voltar pro chat de texto"
-          style={{ width: 56, height: 56, borderRadius: "50%", background: T.card, border: `1px solid ${T.border}`, color: T.ink, cursor: "pointer", display: "grid", placeItems: "center" }}>
+          style={{ width: 56, height: 56, borderRadius: "50%", background: HUD.card, border: `1px solid ${HUD.borda}`, color: HUD.texto, cursor: "pointer", display: "grid", placeItems: "center" }}>
           <Keyboard size={21} />
         </button>
       </div>
-
-      <style>{`
-        @keyframes jarbas-respira { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
-        @keyframes jarbas-ondula { 0%,100% { transform: scale(1); } 25% { transform: scale(1.05); } 60% { transform: scale(0.98); } }
-      `}</style>
     </div>
   );
 }
