@@ -9,6 +9,7 @@ import { PACOTES } from "../../lib/categoriasPacotes.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import { diagnosticoCategorias, aplicarUnificacao, fundirCategorias, fundirTodasFilhas } from "../../lib/categoriasDiagnostico.js";
+import { sugerirOrcamentos } from "../../lib/sugerirOrcamentos.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import ColorPicker from "../ui/ColorPicker.jsx";
@@ -73,6 +74,30 @@ export default function Categorias({
     setParcelamentos?.(r.parcelamentos);
     setDividas?.(r.dividas);
     toast.success(`${r.n} filhas unificadas em ${mae.nome}.`);
+  };
+
+  // Sugerir orçamentos com as MÉDIAS reais (últimos 3 meses, base unificada).
+  // null = fechado; array = linhas { id, nome, media, atual, valor, marcado }.
+  const [orcSugestao, setOrcSugestao] = useState(null);
+  const abrirSugestaoOrcamentos = () => {
+    const state = { transacoes, fixas, fixaOcorrencias, parcelamentos, cartoes, categorias };
+    const hoje = new Date();
+    const mesesItens = [0, 1, 2].map(i => {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      try { return itensConsumoDoMes(iso, state, escopoAtivo) || []; } catch { return []; }
+    });
+    const sugestoes = sugerirOrcamentos({ categorias, mesesItens });
+    if (!sugestoes.length) { toast.info("Ainda não há gastos suficientes pra sugerir orçamentos."); return; }
+    setOrcSugestao(sugestoes.map(s => ({ ...s, valor: String(s.sugestao), marcado: true })));
+  };
+  const aplicarOrcamentos = () => {
+    const marcadas = (orcSugestao || []).filter(l => l.marcado && Number(l.valor) > 0);
+    if (!marcadas.length) { toast.error("Marque pelo menos uma categoria."); return; }
+    const porId = Object.fromEntries(marcadas.map(l => [l.id, Number(l.valor)]));
+    setCategorias(categorias.map(c => porId[c.id] != null ? { ...c, limite: porId[c.id] } : c));
+    setOrcSugestao(null);
+    toast.success(`Orçamento definido em ${marcadas.length} categoria${marcadas.length === 1 ? "" : "s"} — acompanhe as barras aqui e no Painel.`);
   };
 
   const [formErrors, setFormErrors] = useState({});
@@ -179,7 +204,59 @@ export default function Categorias({
               💡 Defina um <b style={{ color: T.ink }}>orçamento mensal</b> nas categorias (lápis ✎) e acompanhe aqui o gasto vs limite — as barras aparecem em cada categoria e no Dashboard.
             </div>
           )}
+          <div style={{ marginTop: 10 }}>
+            <button className="btn-gold" style={{ fontSize: 11, padding: "6px 14px" }} onClick={abrirSugestaoOrcamentos}>
+              🎯 Sugerir orçamentos pelas minhas médias
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* MODAL: sugestão de orçamentos (médias reais dos últimos 3 meses) */}
+      {orcSugestao && (
+        <Modal title="🎯 Orçamentos sugeridos" onClose={() => setOrcSugestao(null)}>
+          <div style={{ fontSize: 12, color: T.muted, marginBottom: 12 }}>
+            Sugestão = a <strong style={{ color: T.ink }}>média dos seus gastos</strong> nos últimos 3 meses
+            (bancos + cartões, filhas somadas na mãe), arredondada pra cima. Ajuste os valores se quiser,
+            desmarque o que não quer orçar e aplique.
+          </div>
+          <div style={{ maxHeight: 340, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+            {orcSugestao.map((l, i) => (
+              <div key={l.id} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "8px 10px", background: T.bgSoft, borderRadius: 12,
+                opacity: l.marcado ? 1 : 0.55,
+              }}>
+                <input type="checkbox" checked={l.marcado}
+                       onChange={e => setOrcSugestao(prev => prev.map((x, j) => j === i ? { ...x, marcado: e.target.checked } : x))}
+                       style={{ width: 16, height: 16, accentColor: T.gold, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.nome}</div>
+                  <div className="num" style={{ fontSize: 10.5, color: T.faint }}>
+                    média {fmt(l.media)} · {l.meses} {l.meses === 1 ? "mês" : "meses"}{l.atual ? ` · atual ${fmt(l.atual)}` : ""}
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, color: T.muted }}>R$</span>
+                  <input type="number" min="0" step="10" value={l.valor}
+                         onChange={e => setOrcSugestao(prev => prev.map((x, j) => j === i ? { ...x, valor: e.target.value } : x))}
+                         style={{ width: 90, padding: "6px 8px", fontSize: 12.5, textAlign: "right" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10.5, color: T.faint, marginTop: 8 }}>
+            Total orçado: <strong className="num" style={{ color: T.ink }}>
+              {fmt(orcSugestao.filter(l => l.marcado).reduce((s, l) => s + (Number(l.valor) || 0), 0))}
+            </strong> / mês nas {orcSugestao.filter(l => l.marcado).length} marcadas
+          </div>
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => setOrcSugestao(null)}>Cancelar</button>
+            <button className="btn-gold" onClick={aplicarOrcamentos}>
+              <Check size={13} className="inline mr-1" /> Aplicar orçamentos
+            </button>
+          </div>
+        </Modal>
       )}
 
       {/* Diagnóstico da taxonomia — só aparece quando há algo a arrumar */}
