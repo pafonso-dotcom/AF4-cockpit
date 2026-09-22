@@ -68,6 +68,7 @@ export default function AnalisesFinancas(props) {
                desc="Fechamento de um mês: receitas, despesas por categoria, sobra e pagas × a pagar + aportes, vendas, proventos e variação do patrimônio. Com botão Salvar PDF.">
           <RelatorioMensal
             transacoes={props.transacoes} contas={props.contas} categorias={props.categorias}
+            ativos={props.ativos} carteiraProventos={props.carteiraProventos}
             fixas={props.fixas} fixaOcorrencias={props.fixaOcorrencias}
             parcelamentos={props.parcelamentos} dividas={props.dividas} devedores={props.devedores}
             cheques={props.cheques} cartoes={props.cartoes}
