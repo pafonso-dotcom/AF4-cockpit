@@ -131,3 +131,45 @@ export function aplicarUnificacao({ manter, remover }, { categorias = [], transa
 
   return { categorias: categoriasNovas, transacoes: transacoesNovas };
 }
+
+/** Fusão MANUAL de categorias (De → Para), escolhida pelo usuário no
+ *  Diagnóstico — pra juntar categorias-estabelecimento ("Padaria",
+ *  "MercadoLivre") na categoria real ("Alimentação"). Puro:
+ *  - transações/fixas/parcelamentos/dívidas com a categoria ORIGEM passam
+ *    pra DESTINO; o nome antigo vira subcategoria do lançamento (rastro);
+ *  - a origem vira SUBCATEGORIA cadastrada da destino (e some da lista);
+ *  - filhas (parentId) e subcategorias da origem migram pra destino. */
+export function fundirCategorias(origem, destino, dados = {}) {
+  const { categorias = [], transacoes = [], fixas = [], parcelamentos = [], dividas = [] } = dados;
+  const nomeOrig = String(origem?.nome || "").trim();
+
+  const troca = (obj) => {
+    if (!obj || String(obj.categoria || "").trim() !== nomeOrig) return obj;
+    return { ...obj, categoria: destino.nome, subcategoria: obj.subcategoria || nomeOrig };
+  };
+
+  // Subcategorias da destino: herda as da origem + a PRÓPRIA origem vira sub.
+  const subs = [...(destino.subcategorias || [])];
+  const nomesSubs = new Set(subs.map(s => normNomeCat(s?.nome)));
+  for (const s of origem.subcategorias || []) {
+    if (!nomesSubs.has(normNomeCat(s?.nome))) { subs.push(s); nomesSubs.add(normNomeCat(s?.nome)); }
+  }
+  if (nomeOrig && !nomesSubs.has(normNomeCat(nomeOrig))) subs.push({ id: `sub-${origem.id}`, nome: nomeOrig });
+
+  const categoriasNovas = categorias
+    .filter(c => c.id !== origem.id)
+    .map(c => {
+      let novo = c;
+      if (c.parentId === origem.id) novo = { ...novo, parentId: destino.id };
+      if (c.id === destino.id) novo = { ...novo, subcategorias: subs };
+      return novo;
+    });
+
+  return {
+    categorias: categoriasNovas,
+    transacoes: transacoes.map(troca),
+    fixas: fixas.map(troca),
+    parcelamentos: parcelamentos.map(troca),
+    dividas: dividas.map(troca),
+  };
+}

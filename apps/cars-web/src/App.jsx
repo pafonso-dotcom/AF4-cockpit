@@ -839,8 +839,9 @@ export default function App() {
       )}
       {tab === "categorias" && (
         <Categorias categorias={categorias} setCategorias={setCategorias} transacoes={transacoes} setTransacoes={setTransacoes}
-                    fixas={fixas} fixaOcorrencias={fixaOcorrencias}
-                    parcelamentos={parcelamentos} cartoes={cartoes}
+                    fixas={fixas} setFixas={setFixas} fixaOcorrencias={fixaOcorrencias}
+                    parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
+                    dividas={dividas} setDividas={setDividas} cartoes={cartoes}
                     escopoAtivo={escopoAtivo} hidden={hidden} />
       )}
       {tab === "emprestimos" && (
