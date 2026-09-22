@@ -106,6 +106,7 @@ const Configuracoes = lz(() => import("./components/pages/Configuracoes.jsx"));
 // dia voltar, é só restaurar as páginas (histórico do git) e religar aqui.
 const Lembretes = lz(() => import("./components/pages/Lembretes.jsx"));
 const Treino = lz(() => import("./components/pages/Treino.jsx"));
+const Voos = lz(() => import("./components/pages/Voos.jsx"));
 import { EXERCICIOS_BASE } from "./lib/exerciciosBase.js";
 import { dispararLembretes } from "./lib/lembretes.js";
 
@@ -185,6 +186,8 @@ export default function App() {
   // Notas rápidas (Contas/Cartões) — { contas: "...", cartoes: "..." }.
   // No estado sincronizado pra aparecer em todos os aparelhos (pedido 2026-09-22).
   const [notasRapidas, setNotasRapidas] = useState({});
+  // Módulo Voos — { monitores: [...] } (monitores de preço-alvo, sincronizados).
+  const [voosDados, setVoosDados] = useState({ monitores: [] });
   // setTransacoes rastreado: toda exclusão (id que some da lista) vira lápide
   // automaticamente — cobre os 16+ pontos de exclusão sem tocar em cada um.
   // O flush fica FORA do updater (updaters devem ser puros).
@@ -324,7 +327,7 @@ export default function App() {
     // setTransacoes cru de propósito: hidratação/restauração troca a lista
     // inteira e NÃO deve gerar lápides (só exclusões do usuário geram).
     setContas, setCategorias, setTransacoes: setTransacoesBase, setAtivos, setMetas, setNotas,
-    setTumbas, setNotasRapidas,
+    setTumbas, setNotasRapidas, setVoos: setVoosDados,
     setCartoes, setParcelamentos, setDevedores, setDividas, setCheques,
     setFixas, setFixaOcorrencias, setAgenda, setHabitos, setDiario, setCompras,
     setIdeias, setTarefas, setSugestoes, setLembretes, setConversaHistorico,
@@ -355,7 +358,7 @@ export default function App() {
     tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
     lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
     themeId,
-    tumbas, notasRapidas,
+    tumbas, notasRapidas, voos: voosDados,
   });
 
   // Backup automático diário na nuvem (GitHub Gist): 1x por dia, na abertura,
@@ -375,6 +378,38 @@ export default function App() {
       else if (r.motivo === "erro") toast.error("☁️ Backup automático FALHOU — confira o token em Configurações → Backup.");
     }, 4000);
     return () => clearTimeout(timer);
+  }, [loading]);
+
+  // Checagem automática dos MONITORES DE VOO nos horários configurados
+  // (módulo Voos, 2026-09-22): roda uns segundos após abrir o app e a cada
+  // 30min com ele aberto. PWA não roda fechado — o padrão é "abriu depois do
+  // horário, checa". Refs evitam closure velha sem re-armar o timer.
+  const voosRef = useRef(null); voosRef.current = voosDados;
+  const apiKeysRef = useRef(null); apiKeysRef.current = apiKeys;
+  useEffect(() => {
+    if (loading) return;
+    const rodar = async () => {
+      const lista = voosRef.current?.monitores || [];
+      const creds = { key: apiKeysRef.current?.amadeusKey, secret: apiKeysRef.current?.amadeusSecret };
+      if (!creds.key || !creds.secret || !lista.length) return;
+      try {
+        const { deveChecarAgora, registrarChecagem, simplificarOfertas } = await import("./lib/voos.js");
+        const { buscarVoos } = await import("./lib/amadeus.js");
+        for (const m of lista.filter(x => deveChecarAgora(x))) {
+          try {
+            const json = await buscarVoos({ origem: m.origem, destino: m.destino, dataIda: m.dataIda, dataVolta: m.dataVolta, adultos: m.adultos, semEscala: m.semEscala, max: 5 }, creds);
+            const melhor = simplificarOfertas(json)[0];
+            if (!melhor) continue;
+            const { monitor, atingiuAlvo } = registrarChecagem(m, melhor.preco);
+            setVoosDados(prev => ({ ...(prev || {}), monitores: (prev?.monitores || []).map(x => x.id === m.id ? monitor : x) }));
+            if (atingiuAlvo) toast.success(`🎯 Voo ${m.origem}→${m.destino} bateu o alvo: R$ ${Math.round(melhor.preco).toLocaleString("pt-BR")}!`);
+          } catch { /* monitor individual falhou: tenta no próximo ciclo */ }
+        }
+      } catch { /* libs não carregaram (offline): tenta no próximo ciclo */ }
+    };
+    const t = setTimeout(rodar, 6000);
+    const iv = setInterval(rodar, 30 * 60 * 1000);
+    return () => { clearTimeout(t); clearInterval(iv); };
   }, [loading]);
 
   // Restaura um ponto de restauração (aplica o blob + salva + backup de segurança).
@@ -442,7 +477,7 @@ export default function App() {
       negocioLojas, negocioLojaAtiva, negocioRecebimentos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
-      themeId, tumbas, notasRapidas, loading]);
+      themeId, tumbas, notasRapidas, voosDados, loading]);
 
   useEffect(() => {
     if (loading) return;
@@ -938,6 +973,9 @@ export default function App() {
       {tab === "lembretes" && (
         <Lembretes lembretes={lembretes} setLembretes={setLembretes} />
       )}
+      {tab === "voos" && (
+        <Voos voos={voosDados} setVoos={setVoosDados} apiKeys={apiKeys} />
+      )}
       {tab === "treino" && (
         <Treino
           treinos={treinos} setTreinos={setTreinos}
@@ -1129,7 +1167,7 @@ export default function App() {
         }}
         onQuickAction={handleQuickAction}
         pendingCounts={pendingCounts}
-        alertData={{ dividas, devedores, fixas, fixaOcorrencias, parcelamentos, cartoes, categorias, transacoes, agenda, lembretes, tarefas }}
+        alertData={{ dividas, devedores, fixas, fixaOcorrencias, parcelamentos, cartoes, categorias, transacoes, agenda, lembretes, tarefas, voos: voosDados }}
         onNavegar={(mod, t) => { setModulo(mod); irParaTab(t); }}
         sidebarColapsada={sidebarColapsada} onToggleSidebar={toggleSidebar}
       />

@@ -22,7 +22,7 @@ const lerVistos = () => {
 
 export default function AlertCenter({
   dividas, devedores, fixas, fixaOcorrencias, parcelamentos,
-  cartoes, categorias, transacoes, agenda, lembretes, tarefas,
+  cartoes, categorias, transacoes, agenda, lembretes, tarefas, voos,
   onNavegar, btnStyle, iconSize = 18,
 }) {
   const [aberto, setAberto] = useState(false);
@@ -32,8 +32,8 @@ export default function AlertCenter({
   const alertas = useMemo(() => computarAlertas({
     hoje: todayISO(),
     dividas, devedores, fixas, fixaOcorrencias, parcelamentos,
-    cartoes, categorias, transacoes, agenda, lembretes, tarefas,
-  }), [dividas, devedores, fixas, fixaOcorrencias, parcelamentos, cartoes, categorias, transacoes, agenda, lembretes, tarefas]);
+    cartoes, categorias, transacoes, agenda, lembretes, tarefas, voos,
+  }), [dividas, devedores, fixas, fixaOcorrencias, parcelamentos, cartoes, categorias, transacoes, agenda, lembretes, tarefas, voos]);
 
   const naoVistos = alertas.filter(a => !vistos.has(a.id));
   const qtd = naoVistos.length;
