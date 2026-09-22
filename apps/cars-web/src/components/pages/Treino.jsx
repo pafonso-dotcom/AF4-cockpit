@@ -8,6 +8,7 @@ import { T } from "../../lib/theme.js";
 import { uid, todayISO } from "../../lib/format.js";
 import { carregarCatalogo, equipamentoPT } from "../../lib/exercicioCatalogo.js";
 import { PROMPT_FICHA, montarImportacaoFicha } from "../../lib/fichaTreino.js";
+import { FICHA_ABC } from "../../lib/fichaABC.js";
 import { toast } from "../../lib/toast.js";
 import { confirm } from "../../lib/confirm.js";
 import PageHeader from "../ui/PageHeader.jsx";
@@ -1064,6 +1065,19 @@ function ImportarFichaModal({ exerciciosDB, apiKeys, onImportar, onClose }) {
           <p style={{ fontSize: 13, color: T.muted, marginBottom: 12 }}>
             Tira foto da ficha (pode mais de uma — páginas ou fichas A/B/C) ou manda o PDF que o personal enviou.
           </p>
+          {/* Ficha já lida pelo Claude (PDFs enviados no chat) — 1 toque, sem IA */}
+          <button onClick={() => setPreview(montarImportacaoFicha(FICHA_ABC.dados, exerciciosDB))}
+            style={{
+              width: "100%", marginBottom: 12, padding: "14px 12px", textAlign: "left",
+              background: `${T.gold}14`, border: `1px solid ${T.gold}`, borderRadius: 16,
+              color: T.ink, cursor: "pointer",
+            }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: T.gold }}>⚡ {FICHA_ABC.titulo} — ficha já lida</div>
+            <div style={{ fontSize: 11.5, color: T.muted, marginTop: 3 }}>
+              Lida pelo Claude em {FICHA_ABC.lidaEm.split("-").reverse().join("/")} · {FICHA_ABC.dados.fichas.length} fichas ·{" "}
+              {FICHA_ABC.dados.fichas.reduce((s, f) => s + f.exercicios.length, 0)} exercícios — toca pra revisar e salvar
+            </div>
+          </button>
           <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
             <button style={btnGrande} onClick={() => fotoRef.current?.click()}>
               <Camera size={26} /> Foto / câmera

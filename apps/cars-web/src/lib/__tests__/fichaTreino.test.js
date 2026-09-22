@@ -47,6 +47,19 @@ describe("montarImportacaoFicha — JSON da IA vira templates", () => {
     expect(templates[0].importadoDe).toBe("ficha");
   });
 
+  it("FICHA_ABC embutida monta 3 templates com 22 exercícios", async () => {
+    const { FICHA_ABC } = await import("../fichaABC.js");
+    const { templates, novosExercicios } = montarImportacaoFicha(FICHA_ABC.dados, []);
+    expect(templates.map(t => t.nome)).toEqual([
+      "Treino ABC · A (peito/ombro/tríceps)",
+      "Treino ABC · B (costas/bíceps)",
+      "Treino ABC · C (pernas)",
+    ]);
+    expect(templates.reduce((s, t) => s + t.exercicios.length, 0)).toBe(22);
+    expect(novosExercicios.length).toBe(22); // banco vazio → todos criados
+    expect(templates.every(t => t.modalidade === "musculacao")).toBe(true);
+  });
+
   it("ficha vazia/asneira da IA não quebra", () => {
     expect(montarImportacaoFicha(null, DB).templates).toEqual([]);
     expect(montarImportacaoFicha({ fichas: [{ nome: "X", exercicios: [] }] }, DB).templates).toEqual([]);
