@@ -6,6 +6,8 @@ import { somaContasBRL } from "./lib/cambio.js";
 import { MESES_LONGO } from "./lib/meses.js";
 import { loadAll, saveAll, loadKeys, saveKeys, flushSave } from "./lib/storage.js";
 import { comTumbas, idsRemovidos } from "./lib/tumbas.js";
+import Modal from "./components/ui/Modal.jsx";
+import NotasRapidasCard from "./components/ui/NotasRapidasCard.jsx";
 import { API, COIN_MAP } from "./lib/api.js";
 import { generateRecurringForCurrentMonth } from "./lib/recorrencia.js";
 import { lerEscopo, salvarEscopo } from "./lib/escopo.js";
@@ -171,6 +173,7 @@ export default function App() {
   const [comprasFotoOpen, setComprasFotoOpen] = useState(false);
   // Menu do botão flutuante (＋): foto, nova transação, calculadora.
   const [fabOpen, setFabOpen] = useState(false);
+  const [notasAtalhoOpen, setNotasAtalhoOpen] = useState(false); // bloco de notas do atalho 🗒️
   const swipeRef = useRef(null); // swipe entre abas (mobile)
   const [calcJurosGlobalOpen, setCalcJurosGlobalOpen] = useState(false);
   const [calcBasicaOpen, setCalcBasicaOpen] = useState(false);
@@ -1142,6 +1145,7 @@ export default function App() {
         escopoAtivo={escopoAtivo}
         onEscopoChange={(novo) => { setEscopoAtivo(novo); salvarEscopo(novo); }}
         onOpenPalette={() => setPaletaAberta(true)}
+        onAbrirNotas={() => setNotasAtalhoOpen(true)}
         onRefresh={refreshMarket} refreshing={refreshing}
         onOpenSettings={(kind, value) => {
           if (kind === "paleta" && value) {
@@ -1210,6 +1214,18 @@ export default function App() {
       )}
       {pickerOpen && (
         <ThemePicker themeId={themeId} setThemeId={setThemeId} onClose={() => setPickerOpen(false)} />
+      )}
+      {/* BLOCO DE NOTAS do atalho 🗒️ (2026-09-23) — nota "geral" própria,
+          sincronizada na conta (mesmo mecanismo das notas de Contas/Cartões). */}
+      {notasAtalhoOpen && (
+        <Modal title="🗒️ Bloco de notas" onClose={() => setNotasAtalhoOpen(false)}>
+          <NotasRapidasCard
+            storageKey="af4:notas-rapidas:geral:v1"
+            valor={notasRapidas.geral}
+            linhas={12}
+            onSalvar={(t) => setNotasRapidas(p => ({ ...p, geral: t }))}
+            style={{ boxShadow: "none", border: "none", padding: 0, background: "transparent" }} />
+        </Modal>
       )}
       {/* Jarbas: PROJETO PAUSADO (2026-09-23) — código dormente em components/
           Jarbas*.jsx e lib/{jarbas,tts,vad}.js; spec e prompt de retomada em
