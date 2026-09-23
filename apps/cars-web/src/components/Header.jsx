@@ -1038,23 +1038,8 @@ function HeaderVertical({
           </div>
         )}
 
-        {/* Card de atalho rápido — muda conforme a pasta ativa. */}
-        {!sidebarColapsada && modulo !== "config" && (
-          <button
-            onClick={() => {
-              if (modulo === "financas") onQuickAction?.("transacao");
-              else if (modulo === "invest") onQuickAction?.("aporte");
-            }}
-            style={{
-              background: `linear-gradient(135deg, ${T.gold}26, ${T.gold}10)`,
-              border: `1px solid ${T.gold}44`, borderRadius: 16, padding: "11px 12px",
-              color: NAV_INK, cursor: "pointer", textAlign: "left",
-              display: "flex", alignItems: "center", gap: 9, fontSize: 12.5, fontWeight: 600,
-            }}>
-            <span style={{ width: 26, height: 26, borderRadius: 12, background: T.gold, color: T.bg, display: "grid", placeItems: "center", flexShrink: 0, fontSize: 17, fontWeight: 700, lineHeight: 1 }}>+</span>
-            {modulo === "financas" ? "Nova transação" : modulo === "invest" ? "Novo aporte" : "Recebimento"}
-          </button>
-        )}
+        {/* Card "+ Nova transação" da sidebar removido (pedido 2026-09-23) —
+            o atalho segue no teclado (N) e no ＋ flutuante do celular. */}
 
         {!sidebarColapsada && (
         <button

@@ -6,6 +6,7 @@ import { todayISO, uid } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import MoneyInput from "../ui/MoneyInput.jsx";
+import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
 // Impacto da transação no saldo da conta (0 se pendente).
 function signed(t) {
@@ -160,12 +161,10 @@ export default function NovaTransacaoModal({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
           <div>
             <div style={lbl}>Categoria</div>
-            <select value={form.categoria}
-                    onChange={e => setForm(f => ({ ...f, categoria: e.target.value, subcategoria: "" }))}
-                    style={inp}>
-              <option value="">— selecione —</option>
-              {catsDoTipo.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-            </select>
+            <CategoriaSelect categorias={categorias} tipo={form.tipo}
+              value={form.categoria}
+              onChange={(nome) => setForm(f => ({ ...f, categoria: nome, subcategoria: "" }))}
+              rotuloVazio="— selecione —" style={inp} />
           </div>
           <div>
             <div style={lbl}>Conta</div>

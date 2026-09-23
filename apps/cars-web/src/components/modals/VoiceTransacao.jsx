@@ -9,6 +9,7 @@ import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
 import MoneyInput from "../ui/MoneyInput.jsx";
+import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
 /**
  * Modal de transação por voz.
@@ -260,14 +261,9 @@ export default function VoiceTransacao({ contas, categorias, transacoes, setTran
               </select>
             </Field>
             <Field label="Categoria">
-              <select value={forma.categoria} onChange={e => setForma({ ...forma, categoria: e.target.value })}>
-                {ordenarPorNome(categorias.filter(c => c.tipo === forma.tipo)).map(c => (
-                  <option key={c.id} value={c.nome}>{c.nome}</option>
-                ))}
-                {!categorias.some(c => c.nome === forma.categoria) && (
-                  <option value={forma.categoria}>{forma.categoria} (sugerida)</option>
-                )}
-              </select>
+              <CategoriaSelect categorias={categorias} tipo={forma.tipo}
+                value={forma.categoria}
+                onChange={(nome) => setForma({ ...forma, categoria: nome })} />
             </Field>
             <Field label="Conta">
               <select value={forma.conta} onChange={e => setForma({ ...forma, conta: e.target.value })}>

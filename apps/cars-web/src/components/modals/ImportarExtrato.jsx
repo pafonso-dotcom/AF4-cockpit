@@ -10,6 +10,7 @@ import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import { categoriaAuto } from "../../lib/autoCategorizar.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
+import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
 // Extrai transações de um extrato em PDF usando o Gemini.
 // Devolve o mesmo formato de parseExtrato: { banco, transacoes, erro }.
@@ -329,16 +330,12 @@ export default function ImportarExtrato({
                 <input type="text" value={edits.descricao ?? t.descricao}
                        onChange={e => updateLinha(t._id, "descricao", e.target.value)}
                        style={{ width: "100%", background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12.5, padding: "4px 6px", outline: "none", minHeight: 26, WebkitAppearance: "none" }} />
-                <select value={cat}
-                        onChange={e => updateLinha(t._id, "categoria", e.target.value)}
-                        style={{ width: "100%", marginTop: 3, background: T.bgSoft, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11, padding: "3px 6px", cursor: "pointer", outline: "none" }}>
-                  {ordenarPorNome(categorias.filter(c => c.tipo === t.tipo)).map(c => (
-                    <option key={c.id} value={c.nome}>{c.nome}</option>
-                  ))}
-                  {!categorias.some(c => c.nome === cat) && (
-                    <option value={cat}>{cat} (auto)</option>
-                  )}
-                </select>
+                <CategoriaSelect compacto categorias={categorias} tipo={t.tipo}
+                  value={cat}
+                  onChange={(nome) => updateLinha(t._id, "categoria", nome)}
+                  style={{ width: "100%", maxWidth: "none", marginTop: 3, background: T.bgSoft,
+                           color: T.muted, border: `1px solid ${T.border}`, borderRadius: 8,
+                           fontSize: 11, padding: "3px 6px" }} />
               </div>
               <div className="num" style={{
                 color: t.tipo === "receita" ? T.green : T.red,

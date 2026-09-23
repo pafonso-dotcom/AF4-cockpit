@@ -18,6 +18,7 @@ import OCRComprovante from "../modals/OCRComprovante.jsx";
 import VoiceTransacao from "../modals/VoiceTransacao.jsx";
 import AutoCategorizarModal from "../modals/AutoCategorizarModal.jsx";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
+import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
 export default function Transacoes({ transacoes, setTransacoes, categorias, contas, setContas, ativos, totais, hidden, pendingTransacao, clearPendingTransacao, parcelamentos, cartoes, apiKey, escopoAtivo = "tudo" }) {
   const [form, setForm] = useState(null);
@@ -617,11 +618,10 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
             {selectedIds.size} selecionada{selectedIds.size !== 1 ? "s" : ""}
           </span>
           <span style={{ color: T.muted, fontSize: 12 }}>·</span>
-          <select onChange={e => bulkCategorizar(e.target.value)} value=""
-                  style={{ width: "auto", padding: "4px 8px", fontSize: 12 }}>
-            <option value="">Recategorizar para…</option>
-            {ordenarPorNome(categorias).map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-          </select>
+          <CategoriaSelect categorias={categorias} value=""
+                           placeholder="Recategorizar para…"
+                           onChange={(nome) => { if (nome) bulkCategorizar(nome); }}
+                           style={{ width: "auto", padding: "4px 8px", fontSize: 12 }} />
           <select onChange={e => bulkAlterarBanco(e.target.value)} value=""
                   style={{ width: "auto", padding: "4px 8px", fontSize: 12 }}>
             <option value="">Mover para conta…</option>
@@ -763,21 +763,13 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                   <div style={{ fontSize: 10, color: T.muted, marginTop: 1, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} onClick={e => e.stopPropagation()}>
                       <span style={{ width: 5, height: 5, background: cat ? cat.cor : T.red, borderRadius: "50%", flexShrink: 0 }} />
-                      <select
-                        value={cat ? cat.nome : ""}
-                        onChange={e => mudarCategoria(t.id, e.target.value)}
-                        title="Trocar a categoria"
-                        style={{
-                          appearance: "none", WebkitAppearance: "none",
-                          background: "transparent", border: "none", padding: "0 2px",
-                          fontSize: 10, color: cat ? T.muted : T.red, fontWeight: cat ? 400 : 600,
-                          cursor: "pointer", maxWidth: 150, textOverflow: "ellipsis",
-                        }}>
-                        {!cat && <option value="">⚠ {t.categoria ? `${t.categoria} (fora do cadastro)` : "Sem categoria"}</option>}
-                        {ordenarPorNome(categorias.filter(c => !c.tipo || c.tipo === t.tipo)).map(c => (
-                          <option key={c.id} value={c.nome}>{c.nome}</option>
-                        ))}
-                      </select>
+                      <CategoriaSelect compacto
+                        categorias={categorias} tipo={t.tipo}
+                        value={cat ? cat.nome : (t.categoria || "")}
+                        onChange={(nome) => mudarCategoria(t.id, nome)}
+                        placeholder="Sem categoria"
+                        style={{ border: "none", padding: "0 2px", fontSize: 10, maxWidth: 150,
+                                 color: cat ? T.muted : T.red, fontWeight: cat ? 400 : 600 }} />
                     </span>
                     <span style={{ color: T.faint }}>· {t.conta}</span>
                     <span style={{ color: T.faint }}>· {t.data}</span>
@@ -850,12 +842,10 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
           {/* Categoria + Cartão lado a lado (Cartão é condicional → Categoria ocupa a linha toda quando não houver) */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
             <Field label="Categoria (opcional)" hint="Em branco = Outros.">
-              <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value, subcategoria: "" })}>
-                <option value="">Sem categoria (Outros)</option>
-                {ordenarPorNome(categorias.filter(c => c.tipo === form.tipo)).map(c => (
-                  <option key={c.id} value={c.nome}>{c.nome}</option>
-                ))}
-              </select>
+              <CategoriaSelect categorias={categorias} tipo={form.tipo}
+                value={form.categoria}
+                onChange={(nome) => setForm({ ...form, categoria: nome, subcategoria: "" })}
+                rotuloVazio="Sem categoria (Outros)" />
             </Field>
             {form.tipo === "despesa" && cartoes && cartoes.length > 0 && (
               <Field label="Cartão (opcional)" hint="Útil para gerar fatura detalhada por categoria/cartão">
