@@ -16,6 +16,7 @@ import NotasRapidasCard from "../ui/NotasRapidasCard.jsx";
 import AnaliseFatura from "./AnaliseFatura.jsx";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import { avulsasPendentesNoMes, competenciaDaCompra } from "../../lib/cartaoFatura.js";
+import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
 // ===== Helpers compartilhados de parcelas =====
 // Mantidos no nível do módulo pra que o cálculo do "valor a pagar" do cartão
@@ -1406,12 +1407,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
             </select>
           </Field>
           <Field label="Categoria" required error={parcErrors.categoria} hint="Como você quer ver essa parcela nos relatórios (ex.: Mercado)">
-            <select value={parcForm.categoria || ""} onChange={e => setParcForm({ ...parcForm, categoria: e.target.value })}>
-              <option value="">Selecione…</option>
-              {ordenarPorNome((categorias || []).filter(c => c.tipo !== "receita")).map(c => (
-                <option key={c.id} value={c.nome}>{c.nome}</option>
-              ))}
-            </select>
+            <CategoriaSelect categorias={categorias} tipo="despesa"
+              value={parcForm.categoria || ""}
+              onChange={(nome) => setParcForm({ ...parcForm, categoria: nome })}
+              placeholder="Selecione…" />
           </Field>
           <Field label="Escopo" hint="Pessoal ou Negócio — separa nas estatísticas">
             <select value={parcForm.escopo || "pessoal"} onChange={e => setParcForm({ ...parcForm, escopo: e.target.value })}>
@@ -1476,11 +1475,13 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         {cartao?.nome || "—"} · {p.totalParcelas}× de {fmt(valorDaParcela(p))}
                       </div>
                     </div>
-                    <select value={catBulk[p.id] || ""} onChange={e => setCatBulk({ ...catBulk, [p.id]: e.target.value })}
-                      style={{ minWidth: 150, background: T.bgSoft, border: `1px solid ${catBulk[p.id] ? T.gold : T.border}`, borderRadius: 12, padding: "7px 10px", color: T.ink, fontSize: 12.5, fontFamily: "inherit" }}>
-                      <option value="">Selecione…</option>
-                      {opcoes.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-                    </select>
+                    <CategoriaSelect categorias={categorias} tipo="despesa"
+                      value={catBulk[p.id] || ""}
+                      onChange={(nome) => setCatBulk({ ...catBulk, [p.id]: nome })}
+                      placeholder="Selecione…"
+                      style={{ width: "auto", minWidth: 150, background: T.bgSoft,
+                               border: `1px solid ${catBulk[p.id] ? T.gold : T.border}`,
+                               padding: "7px 10px", fontSize: 12.5 }} />
                   </div>
                 );
               })}

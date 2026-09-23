@@ -6,6 +6,7 @@ import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
 import { parcelasPendentesNoMes, avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
+import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
 // Calcula qual parcela de um parcelamento cai em um mês específico (mesISO = "2026-05")
 function parcelaNoMes(parc, mesISO) {
@@ -418,23 +419,13 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
                       {t.descricao}{t.fixa && " 🔁"}
                     </td>
                     <td>
-                      <select
+                      <CategoriaSelect compacto
+                        categorias={categorias} tipo="despesa"
                         value={t.categoria || ""}
-                        onChange={(e) => mudarCategoria(t, e.target.value)}
-                        title="Alterar categoria"
-                        style={{
-                          background: T.bgSoft, color: T.ink,
-                          border: `1px solid ${T.border}`, borderRadius: 12,
-                          padding: "4px 8px", fontSize: 11, cursor: "pointer", maxWidth: 180,
-                        }}
-                      >
-                        {t.categoria && !categoriasDespesa.includes(t.categoria) && (
-                          <option value={t.categoria}>{t.categoria}</option>
-                        )}
-                        {categoriasDespesa.map(c => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
+                        onChange={(nome) => mudarCategoria(t, nome)}
+                        placeholder="— categoria —"
+                        style={{ background: T.bgSoft, color: T.ink, border: `1px solid ${T.border}`,
+                                 borderRadius: 12, padding: "4px 8px", fontSize: 11, maxWidth: 180 }} />
                     </td>
                     <td style={{ textAlign: "right" }} className="num neg">
                       {hidden ? "•••" : `− ${fmt(Math.abs(Number(t.valor || 0)))}`}

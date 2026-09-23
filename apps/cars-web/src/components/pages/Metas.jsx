@@ -11,6 +11,7 @@ import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
 import Modal from "../ui/Modal.jsx";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
+import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
 // Calcula meses entre hoje e uma data alvo (YYYY-MM-DD ou YYYY-MM)
 function mesesAteData(dataAlvoISO) {
@@ -738,13 +739,9 @@ export default function Metas({
 
             {isUsar ? (
               <Field label="Categoria da despesa">
-                <select value={resgate.categoria}
-                        onChange={e => setResgate({ ...resgate, categoria: e.target.value })}>
-                  {ordenarPorNome(categorias.filter(c => c.tipo === "despesa")).map(c => (
-                    <option key={c.id} value={c.nome}>{c.nome}</option>
-                  ))}
-                  <option value="Outros">Outros</option>
-                </select>
+                <CategoriaSelect categorias={categorias} tipo="despesa"
+                  value={resgate.categoria}
+                  onChange={(nome) => setResgate({ ...resgate, categoria: nome })} />
               </Field>
             ) : (
               <Field label="Devolver para qual conta?" required>

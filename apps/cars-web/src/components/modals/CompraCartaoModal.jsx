@@ -8,6 +8,7 @@ import { categoriaAuto } from "../../lib/autoCategorizar.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
 import MoneyInput from "../ui/MoneyInput.jsx";
+import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
 const KEY_ULTIMO_CARTAO = "af4:compra-cartao:ultimo";
 
@@ -133,10 +134,8 @@ export default function CompraCartaoModal({
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Categoria (opcional)">
-          <select value={categoria} onChange={e => setCategoria(e.target.value)}>
-            <option value="">— Outros —</option>
-            {despCats.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-          </select>
+          <CategoriaSelect categorias={categorias} tipo="despesa"
+            value={categoria} onChange={setCategoria} rotuloVazio="— Outros —" />
         </Field>
         <Field label="Data da compra">
           <input type="date" value={data} onChange={e => setData(e.target.value)} />

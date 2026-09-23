@@ -19,6 +19,7 @@ import ParcelarBlock from "./AReceber/ParcelarBlock.jsx";
 import CompromissoTabela from "./AReceber/CompromissoTabela.jsx";
 import { DevedorCard } from "./AReceber/DevedorCard.jsx";
 import { VisaoCard, AlertCard } from "./AReceber/cards.jsx";
+import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
 /**
  * Aba dedicada: A Receber (devedores) + Dívidas (a pagar).
@@ -1750,13 +1751,12 @@ export default function AReceberEDividas({
               </div>
             ) : (
               <div style={{ display: "flex", gap: 6 }}>
-                <select value={form.categoria} style={{ flex: 1 }}
-                        onChange={e => setForm({ ...form, categoria: e.target.value, subcategoria: "" })}>
-                  {ordenarPorNome(categorias.filter(c => c.tipo === (form.tipo === "receber" ? "receita" : "despesa"))).map(c => (
-                    <option key={c.id} value={c.nome}>{c.nome}</option>
-                  ))}
-                  <option value="Outros">Outros</option>
-                </select>
+                <div style={{ flex: 1 }}>
+                  <CategoriaSelect categorias={categorias}
+                    tipo={form.tipo === "receber" ? "receita" : "despesa"}
+                    value={form.categoria}
+                    onChange={(nome) => setForm({ ...form, categoria: nome, subcategoria: "" })} />
+                </div>
                 <button type="button" className="btn-ghost" style={{ padding: "0 10px", fontSize: 12, whiteSpace: "nowrap" }}
                         onClick={() => setForm({ ...form, _criarCat: true, _catNome: "" })}>+ nova</button>
               </div>
@@ -2092,13 +2092,10 @@ export default function AReceberEDividas({
                        onChange={e => setBaixaForm({ ...baixaForm, dataBaixa: e.target.value })} />
               </Field>
               <Field label="Categoria">
-                <select value={baixaForm.categoria}
-                        onChange={e => setBaixaForm({ ...baixaForm, categoria: e.target.value })}>
-                  {ordenarPorNome(categorias.filter(c => c.tipo === (isReceber ? "receita" : "despesa"))).map(c => (
-                    <option key={c.id} value={c.nome}>{c.nome}</option>
-                  ))}
-                  <option value="Outros">Outros</option>
-                </select>
+                <CategoriaSelect categorias={categorias}
+                  tipo={isReceber ? "receita" : "despesa"}
+                  value={baixaForm.categoria}
+                  onChange={(nome) => setBaixaForm({ ...baixaForm, categoria: nome })} />
               </Field>
             </div>
 

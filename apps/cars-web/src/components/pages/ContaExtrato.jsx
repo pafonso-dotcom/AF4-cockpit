@@ -9,6 +9,7 @@ import BankIcon from "../ui/BankIcon.jsx";
 import { CARD_SHADOW } from "../../lib/styles.js";
 import NovaTransacaoModal from "../modals/NovaTransacaoModal.jsx";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
+import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
 /**
  * Extrato detalhado de uma conta bancária.
@@ -529,20 +530,13 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 1, flexWrap: "wrap" }}>
                           {/* Chip de categoria (clicável pra editar) */}
                           {editCatId === t.id ? (
-                            <select
-                              autoFocus
+                            <CategoriaSelect compacto
+                              categorias={categorias} tipo={t.tipo}
                               value={t.categoria || ""}
-                              onChange={e => trocarCategoria(t, e.target.value)}
-                              onBlur={() => setEditCatId(null)}
-                              style={{
-                                background: T.bgSoft, border: `1px solid ${T.gold}`,
-                                color: T.ink, fontSize: 11, padding: "3px 7px", borderRadius: 8, maxWidth: 180,
-                              }}>
-                              <option value="">— sem categoria —</option>
-                              {ordenarPorNome(categorias.filter(c => c.tipo === t.tipo)).map(c => (
-                                <option key={c.id} value={c.nome}>{c.nome}</option>
-                              ))}
-                            </select>
+                              onChange={(nome) => { trocarCategoria(t, nome); setEditCatId(null); }}
+                              rotuloVazio="— sem categoria —"
+                              style={{ background: T.bgSoft, border: `1px solid ${T.gold}`,
+                                       color: T.ink, fontSize: 11, padding: "3px 7px", maxWidth: 180 }} />
                           ) : (
                             <button
                               onClick={() => setEditCatId(t.id)}

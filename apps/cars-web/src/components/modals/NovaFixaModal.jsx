@@ -9,6 +9,7 @@ import Field from "../ui/Field.jsx";
 import MoneyInput from "../ui/MoneyInput.jsx";
 import { MESES_LONGO as MES_NOMES, MESES_CURTO } from "../../lib/meses.js";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
+import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
 /**
  * Modal próprio de cadastro/edição de Despesa Fixa.
@@ -206,12 +207,10 @@ export default function NovaFixaModal({ editing, ocorrencias = [], categorias = 
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Categoria" required error={errs.categoria}>
-          <select value={form.categoria}
-                  onChange={e => setForm({ ...form, categoria: e.target.value })}>
-            <option value="">— Selecione —</option>
-            {despCats.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-            <option value="Outros">Outros</option>
-          </select>
+          <CategoriaSelect categorias={categorias} tipo="despesa"
+            value={form.categoria}
+            onChange={(nome) => setForm({ ...form, categoria: nome })}
+            placeholder="— Selecione —" />
         </Field>
         <Field label="Escopo" hint="Pessoal ou Negócio — separa nas estatísticas">
           <select value={form.escopo || "pessoal"}

@@ -7,6 +7,7 @@ import { printHTML } from "../../lib/importExport.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import PreviewImportarFaturaModal from "../modals/PreviewImportarFaturaModal.jsx";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
+import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
 export default function AnaliseFatura({
   categorias, setCategorias,
@@ -542,11 +543,10 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                             style={{ width: 110, padding: "7px 9px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, color: T.ink, fontSize: 12, textAlign: "right" }} />
                         </td>
                         <td style={{ padding: "8px 6px" }}>
-                          <select value={r.categoria_sugerida}
-                            onChange={e => updateManualRow(r.id, { categoria_sugerida: e.target.value })}
-                            style={{ width: "100%", padding: "7px 9px", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, color: T.ink, fontSize: 12 }}>
-                            {categoriasDespesa.map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
+                          <CategoriaSelect categorias={categorias} tipo="despesa"
+                            value={r.categoria_sugerida}
+                            onChange={(nome) => updateManualRow(r.id, { categoria_sugerida: nome })}
+                            style={{ padding: "7px 9px", background: T.bgSoft, fontSize: 12 }} />
                         </td>
                         <td style={{ padding: "8px 6px", textAlign: "center" }}>
                           <input type="checkbox" checked={r.fixa}
@@ -787,10 +787,9 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                            style={{ background: "transparent", padding: "4px 0", fontSize: 14, color: T.ink, border: "none" }} />
                     <div className="num text-xs mt-0.5" style={{ color: T.faint }}>{t.data}</div>
                   </div>
-                  <select value={t.categoria} onChange={(e) => updateTx(t.id, { categoria: e.target.value })}
-                          style={{ fontSize: 12, padding: "4px 6px" }}>
-                    {categoriasDespesa.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <CategoriaSelect compacto categorias={categorias} tipo="despesa"
+                    value={t.categoria} onChange={(nome) => updateTx(t.id, { categoria: nome })}
+                    style={{ fontSize: 12, padding: "4px 6px", border: `1px solid ${T.border}`, background: T.bgSoft }} />
                   <button onClick={() => updateTx(t.id, { fixa: !t.fixa })}
                           style={{
                             background: t.fixa ? `${T.blue}22` : "transparent",

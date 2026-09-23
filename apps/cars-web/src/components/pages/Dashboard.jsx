@@ -20,7 +20,6 @@ import { useLayout } from "../../lib/useLayout.js";
 import { OLHADA_KEY, hojeISOLocal, deveMostrarOlhada, dataPorExtenso } from "../../lib/olhadaRapida.js";
 import { supabase } from "../../lib/supabase.js";
 import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
-import CalculadoraJurosModal from "../modals/CalculadoraJurosModal.jsx";
 import { uid } from "../../lib/format.js";
 import { calcOrcamentoCompra, resumoOrcamentos } from "../../lib/orcamentosFuturos.js";
 import Card, { SoftCardContext } from "../ui/Card.jsx";
@@ -660,7 +659,6 @@ export default function Dashboard({
     });
   }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques, escopoAtivo]);
 
-  const [calcJurosOpen, setCalcJurosOpen] = useState(false);
 
   // Resumo do dia: vence hoje · cartão fechando · orçamento apertado · alerta
   // de preço — tudo calculado localmente com dados que o Painel já tem.
@@ -712,22 +710,6 @@ export default function Dashboard({
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
 
-      {/* Calculadora de juros — botão do Painel (pedido 2026-09-19).
-          No CELULAR ele sai (pedido 2026-09-22): ocupava o topo da tela;
-          a calculadora continua acessível pelo menu lateral/módulos. */}
-      {!isMobile && (
-      <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
-        <button onClick={() => setCalcJurosOpen(true)}
-                title="Juros simples ou compostos, com aporte mensal — calcula ao vivo"
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
-                         background: T.card, border: `1px solid ${T.border}`, borderRadius: 100,
-                         color: T.gold, fontSize: 11.5, fontWeight: 700, letterSpacing: ".04em",
-                         cursor: "pointer" }}>
-          🧮 Calculadora de juros
-        </button>
-      </div>
-      )}
-      {calcJurosOpen && <CalculadoraJurosModal onClose={() => setCalcJurosOpen(false)} />}
 
       {/* RESUMO DO DIA — uma olhada e o dia está decidido */}
       {resumoDia.length > 0 && (
