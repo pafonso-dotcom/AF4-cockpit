@@ -115,6 +115,7 @@ function HeaderHorizontal({
   onOpenSettings,
   onOpenPalette,
   onAbrirNotas,
+  temNotas = false,
   onQuickAction,
   pendingCounts = {},
   contas = [], cartoes = [],
@@ -295,9 +296,10 @@ function HeaderHorizontal({
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={utilBtn} iconSize={18} />
           {/* Bloco de notas no atalho (pedido 2026-09-23) */}
           <button onClick={() => onAbrirNotas?.()}
-                  title="Bloco de notas" aria-label="Bloco de notas"
-                  className="hdr-util" style={{ ...utilBtn, background: NAV_SOFT, color: NAV_MUTED }}>
+                  title={temNotas ? "Bloco de notas — tem anotação!" : "Bloco de notas"} aria-label="Bloco de notas"
+                  className="hdr-util" style={{ ...utilBtn, background: NAV_SOFT, color: NAV_MUTED, position: "relative" }}>
             <StickyNote size={16} />
+            {temNotas && <span style={{ position: "absolute", top: 5, right: 5, width: 7, height: 7, borderRadius: "50%", background: T.gold, boxShadow: `0 0 5px ${T.gold}` }} />}
           </button>
           {/* Atalho do Treino no lugar da lupa (pedido 2026-09-22).
               A busca continua no ⌘K/Ctrl+K e no menu "Mais ações". */}
@@ -656,6 +658,7 @@ function HeaderVertical({
   onOpenSettings,
   onOpenPalette,
   onAbrirNotas,
+  temNotas = false,
   onQuickAction,
   pendingCounts = {},
   contas = [], cartoes = [],
@@ -1108,9 +1111,10 @@ function HeaderVertical({
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={vertUtilBtn} iconSize={16} />
           {/* Bloco de notas no atalho (pedido 2026-09-23) */}
           <button onClick={() => onAbrirNotas?.()}
-            title="Bloco de notas"
-            style={vertUtilBtn}>
+            title={temNotas ? "Bloco de notas — tem anotação!" : "Bloco de notas"}
+            style={{ ...vertUtilBtn, position: "relative" }}>
             <StickyNote size={16} />
+            {temNotas && <span style={{ position: "absolute", top: 4, right: 4, width: 7, height: 7, borderRadius: "50%", background: T.gold, boxShadow: `0 0 5px ${T.gold}` }} />}
           </button>
           {/* Atalho do Treino no lugar da lupa (pedido 2026-09-22). */}
           <button onClick={() => { setModulo("agenda"); setTab("treino"); }}

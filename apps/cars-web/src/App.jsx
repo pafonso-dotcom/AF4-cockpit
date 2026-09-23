@@ -1146,6 +1146,7 @@ export default function App() {
         onEscopoChange={(novo) => { setEscopoAtivo(novo); salvarEscopo(novo); }}
         onOpenPalette={() => setPaletaAberta(true)}
         onAbrirNotas={() => setNotasAtalhoOpen(true)}
+        temNotas={!!(notasRapidas.geral || "").trim()}
         onRefresh={refreshMarket} refreshing={refreshing}
         onOpenSettings={(kind, value) => {
           if (kind === "paleta" && value) {
