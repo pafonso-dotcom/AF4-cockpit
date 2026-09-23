@@ -56,3 +56,5 @@ O que mais economiza não é a arquitetura, e sim o escopo de cada pedido:
 
 - `docs/superpowers/specs/2026-06-09-apps-independentes-decisao.md` — decisão de
   manter os dois apps independentes (substitui a ideia de `packages/core`).
+- `docs/jarbas/JARBAS-PROMPT.md` — projeto Jarbas (assistente de voz) PAUSADO em
+  2026-09-23: fora da UI, código dormente no repo, spec + prompt de retomada lá.

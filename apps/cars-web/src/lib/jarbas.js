@@ -1,3 +1,5 @@
+// ⏸️ PROJETO JARBAS PAUSADO (2026-09-23) — fora da UI; spec e prompt de
+// retomada em docs/jarbas/JARBAS-PROMPT.md. Não apagar: repluga depois.
 /**
  * Jarbas — o assistente pessoal do Afinanças (estilo Jarvis).
  * Lógica pura: bom-dia falável, contexto completo dos dados e prompts.

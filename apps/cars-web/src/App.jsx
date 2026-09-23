@@ -107,8 +107,6 @@ const Configuracoes = lz(() => import("./components/pages/Configuracoes.jsx"));
 const Lembretes = lz(() => import("./components/pages/Lembretes.jsx"));
 const Treino = lz(() => import("./components/pages/Treino.jsx"));
 const Voos = lz(() => import("./components/pages/Voos.jsx"));
-const JarbasChamada = lz(() => import("./components/JarbasChamada.jsx"));
-const JarbasBolha = lz(() => import("./components/JarbasBolha.jsx"));
 import { EXERCICIOS_BASE } from "./lib/exerciciosBase.js";
 import { dispararLembretes } from "./lib/lembretes.js";
 
@@ -173,12 +171,6 @@ export default function App() {
   const [comprasFotoOpen, setComprasFotoOpen] = useState(false);
   // Menu do botão flutuante (＋): foto, nova transação, calculadora.
   const [fabOpen, setFabOpen] = useState(false);
-  // Jarbas (global): toda entrada abre DIRETO a tela de conversa (HUD).
-  // O histórico vive aqui pra sobreviver a abrir/fechar na sessão.
-  const [jarbasOpen, setJarbasOpen] = useState(false);
-  const [jarbasMsgs, setJarbasMsgs] = useState([]);
-  // Memória PERMANENTE do Jarbas ("lembra que...") — sincronizada na conta.
-  const [jarbasMemoria, setJarbasMemoria] = useState([]);
   const swipeRef = useRef(null); // swipe entre abas (mobile)
   const [calcJurosGlobalOpen, setCalcJurosGlobalOpen] = useState(false);
   const [calcBasicaOpen, setCalcBasicaOpen] = useState(false);
@@ -335,7 +327,7 @@ export default function App() {
     // setTransacoes cru de propósito: hidratação/restauração troca a lista
     // inteira e NÃO deve gerar lápides (só exclusões do usuário geram).
     setContas, setCategorias, setTransacoes: setTransacoesBase, setAtivos, setMetas, setNotas,
-    setTumbas, setNotasRapidas, setVoos: setVoosDados, setJarbasMemoria,
+    setTumbas, setNotasRapidas, setVoos: setVoosDados,
     setCartoes, setParcelamentos, setDevedores, setDividas, setCheques,
     setFixas, setFixaOcorrencias, setAgenda, setHabitos, setDiario, setCompras,
     setIdeias, setTarefas, setSugestoes, setLembretes, setConversaHistorico,
@@ -366,7 +358,7 @@ export default function App() {
     tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
     lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
     themeId,
-    tumbas, notasRapidas, voos: voosDados, jarbasMemoria,
+    tumbas, notasRapidas, voos: voosDados,
   });
 
   // Backup automático diário na nuvem (GitHub Gist): 1x por dia, na abertura,
@@ -485,7 +477,7 @@ export default function App() {
       negocioLojas, negocioLojaAtiva, negocioRecebimentos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
-      themeId, tumbas, notasRapidas, voosDados, jarbasMemoria, loading]);
+      themeId, tumbas, notasRapidas, voosDados, loading]);
 
   useEffect(() => {
     if (loading) return;
@@ -789,8 +781,6 @@ export default function App() {
                    escopoAtivo={escopoAtivo}
                    onTabChange={irParaTab}
                    onQuickAction={handleQuickAction}
-                   apiKeys={apiKeys}
-                   onAbrirJarbas={() => setJarbasOpen(true)}
                    onContaClick={(c) => { setTab("contas"); setContaAberta(c); }} />
       )}
       {tab === "contas" && !contaAberta && (
@@ -1152,7 +1142,6 @@ export default function App() {
         escopoAtivo={escopoAtivo}
         onEscopoChange={(novo) => { setEscopoAtivo(novo); salvarEscopo(novo); }}
         onOpenPalette={() => setPaletaAberta(true)}
-        onAbrirJarbas={() => setJarbasOpen(true)}
         onRefresh={refreshMarket} refreshing={refreshing}
         onOpenSettings={(kind, value) => {
           if (kind === "paleta" && value) {
@@ -1222,29 +1211,9 @@ export default function App() {
       {pickerOpen && (
         <ThemePicker themeId={themeId} setThemeId={setThemeId} onClose={() => setPickerOpen(false)} />
       )}
-      {jarbasOpen && (
-        <Suspense fallback={null}>
-          <JarbasChamada
-            dados={{ contas, cartoes, transacoes, ativos, devedores, dividas, cheques,
-                     fixas, fixaOcorrencias, parcelamentos, agenda, lembretes, tarefas,
-                     memorias: jarbasMemoria }}
-            apiKeys={apiKeys}
-            msgs={jarbasMsgs} setMsgs={setJarbasMsgs}
-            onMemorizar={(texto) => setJarbasMemoria(prev => [...prev, { id: uid(), texto, criadoEm: new Date().toISOString() }])}
-            onEsquecer={(id) => {
-              setJarbasMemoria(prev => prev.filter(m => m.id !== id));
-              // lápide: a fusão do sync não ressuscita a memória apagada
-              setTumbas(t => comTumbas(t, "jarbasMemoria", [id]));
-            }}
-            onEncerrar={() => setJarbasOpen(false)} />
-        </Suspense>
-      )}
-      {/* BOLHA flutuante do Jarbas — app inteiro, some com ele aberto */}
-      {!loading && !jarbasOpen && (
-        <Suspense fallback={null}>
-          <JarbasBolha onAbrir={() => setJarbasOpen(true)} />
-        </Suspense>
-      )}
+      {/* Jarbas: PROJETO PAUSADO (2026-09-23) — código dormente em components/
+          Jarbas*.jsx e lib/{jarbas,tts,vad}.js; spec e prompt de retomada em
+          docs/jarbas/JARBAS-PROMPT.md. */}
 
       {settingsOpen && (
         <SettingsModal apiKeys={apiKeys} setApiKeys={setApiKeys} onClose={() => setSettingsOpen(false)} />
@@ -1337,7 +1306,6 @@ export default function App() {
             <div style={{ position: "fixed", right: 20, bottom: 148, zIndex: 201,
                           display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
               {[
-                { icone: "🤖", rotulo: "Falar com o Jarbas", acao: () => setJarbasOpen(true) },
                 { icone: "📷", rotulo: "Compra no cartão por foto", acao: () => setComprasFotoOpen(true) },
                 { icone: "➕", rotulo: "Nova transação", acao: () => handleQuickAction("transacao") },
                 { icone: "🧮", rotulo: "Calculadora de juros", acao: () => setCalcJurosGlobalOpen(true) },
