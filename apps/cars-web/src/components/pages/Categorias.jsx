@@ -4,6 +4,7 @@ import { T } from "../../lib/theme.js";
 import { uid, fmt } from "../../lib/format.js";
 import { itensConsumoDoMes } from "../../lib/relatorioMensal.js";
 import { toast } from "../../lib/toast.js";
+import { sugerirAgrupamento, aplicarAgrupamento } from "../../lib/agruparCategorias.js";
 import { confirm } from "../../lib/confirm.js";
 import { PACOTES } from "../../lib/categoriasPacotes.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
@@ -79,6 +80,25 @@ export default function Categorias({
   // Sugerir orçamentos com as MÉDIAS reais (últimos 3 meses, base unificada).
   // null = fechado; array = linhas { id, nome, media, atual, valor, marcado }.
   const [orcSugestao, setOrcSugestao] = useState(null);
+
+  // 🪄 Agrupamento sugerido (pais → filhas por dicionário de nomes).
+  const [agrupSugestao, setAgrupSugestao] = useState(null); // {grupos:[{...,marcado}], soltas}
+  const abrirAgrupamento = () => {
+    const { grupos, soltas } = sugerirAgrupamento(categorias);
+    if (!grupos.length) {
+      toast.info("Nada pra agrupar — as categorias já estão organizadas (ou sem padrões que eu conheça).");
+      return;
+    }
+    setAgrupSugestao({ grupos: grupos.map(g => ({ ...g, marcado: true })), soltas });
+  };
+  const aplicarAgrup = () => {
+    const aceitos = (agrupSugestao?.grupos || []).filter(g => g.marcado && g.filhas.length);
+    if (!aceitos.length) { setAgrupSugestao(null); return; }
+    const r = aplicarAgrupamento(aceitos, categorias, uid);
+    setCategorias(r.categorias);
+    toast.success(`🪄 ${r.paisCriados} pai(s) criado(s) · ${r.filhasAgrupadas} categoria(s) viraram filhas.`);
+    setAgrupSugestao(null);
+  };
   const abrirSugestaoOrcamentos = () => {
     const state = { transacoes, fixas, fixaOcorrencias, parcelamentos, cartoes, categorias };
     const hoje = new Date();
@@ -204,9 +224,13 @@ export default function Categorias({
               💡 Defina um <b style={{ color: T.ink }}>orçamento mensal</b> nas categorias (lápis ✎) e acompanhe aqui o gasto vs limite — as barras aparecem em cada categoria e no Dashboard.
             </div>
           )}
-          <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button className="btn-gold" style={{ fontSize: 11, padding: "6px 14px" }} onClick={abrirSugestaoOrcamentos}>
               🎯 Sugerir orçamentos pelas minhas médias
+            </button>
+            <button className="btn-ghost" style={{ fontSize: 11, padding: "6px 14px" }} onClick={abrirAgrupamento}
+                    title="Sugere pais (Casa, Transporte, Tarifas...) e agrupa as categorias soltas como filhas — sem mexer em nenhuma transação">
+              🪄 Agrupar automaticamente
             </button>
           </div>
         </div>
@@ -254,6 +278,67 @@ export default function Categorias({
             <button className="btn-ghost" onClick={() => setOrcSugestao(null)}>Cancelar</button>
             <button className="btn-gold" onClick={aplicarOrcamentos}>
               <Check size={13} className="inline mr-1" /> Aplicar orçamentos
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* MODAL: 🪄 agrupamento sugerido (pais → filhas), com revisão */}
+      {agrupSugestao && (
+        <Modal title="🪄 Agrupamento sugerido" onClose={() => setAgrupSugestao(null)}>
+          <div style={{ fontSize: 12, color: T.muted, marginBottom: 12 }}>
+            Sugestão de <strong style={{ color: T.ink }}>pais e filhas</strong> pelos nomes das suas categorias.
+            Nada muda nas transações — só a organização (o seletor passa a mostrar os pais primeiro).
+            Desmarque um grupo ou toque no ✕ pra tirar uma categoria dele.
+          </div>
+          <div style={{ maxHeight: 360, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+            {agrupSugestao.grupos.map((g, gi) => (
+              <div key={g.paiNome} style={{
+                padding: "10px 12px", background: T.bgSoft, borderRadius: 14,
+                border: `1px solid ${g.marcado ? T.gold + "55" : T.border}`,
+                opacity: g.marcado ? 1 : 0.55,
+              }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 6 }}>
+                  <input type="checkbox" checked={g.marcado}
+                         onChange={e => setAgrupSugestao(prev => ({ ...prev,
+                           grupos: prev.grupos.map((x, j) => j === gi ? { ...x, marcado: e.target.checked } : x) }))}
+                         style={{ width: 16, height: 16, accentColor: T.gold, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>
+                    {g.paiNome}
+                    {!g.paiExistente && <span style={{ fontSize: 10, color: T.gold, marginLeft: 6 }}>novo pai</span>}
+                  </span>
+                  <span style={{ fontSize: 10.5, color: T.faint, marginLeft: "auto" }}>{g.filhas.length} filha{g.filhas.length === 1 ? "" : "s"}</span>
+                </label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, paddingLeft: 24 }}>
+                  {g.filhas.map(f => (
+                    <span key={f.id} style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      fontSize: 11, color: T.ink, background: T.bg, border: `1px solid ${T.border}`,
+                      borderRadius: 100, padding: "2px 8px",
+                    }}>
+                      {f.nome}
+                      <button onClick={() => setAgrupSugestao(prev => ({ ...prev,
+                                grupos: prev.grupos.map((x, j) => j === gi
+                                  ? { ...x, filhas: x.filhas.filter(y => y.id !== f.id) } : x) }))}
+                              title="Tirar deste grupo"
+                              style={{ background: "none", border: "none", color: T.red, cursor: "pointer", padding: 0, fontSize: 11, lineHeight: 1 }}>
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          {agrupSugestao.soltas.length > 0 && (
+            <div style={{ fontSize: 10.5, color: T.faint, marginTop: 8 }}>
+              Ficam soltas (sem padrão conhecido): {agrupSugestao.soltas.map(c => c.nome).join(", ")}
+            </div>
+          )}
+          <div className="flex gap-3 justify-end mt-6">
+            <button className="btn-ghost" onClick={() => setAgrupSugestao(null)}>Cancelar</button>
+            <button className="btn-gold" onClick={aplicarAgrup}>
+              <Check size={13} className="inline mr-1" /> Aplicar ({agrupSugestao.grupos.filter(g => g.marcado && g.filhas.length).length} grupos)
             </button>
           </div>
         </Modal>
