@@ -114,6 +114,7 @@ function HeaderHorizontal({
   onRefresh, refreshing,
   onOpenSettings,
   onOpenPalette,
+  onAbrirNotas,
   onQuickAction,
   pendingCounts = {},
   contas = [], cartoes = [],
@@ -292,6 +293,12 @@ function HeaderHorizontal({
         <div className="util-cluster" style={{ display: "inline-flex", gap: 8, alignItems: "center", position: "relative" }}>
           {/* Sino de alertas em primeiro */}
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={utilBtn} iconSize={18} />
+          {/* Bloco de notas no atalho (pedido 2026-09-23) */}
+          <button onClick={() => onAbrirNotas?.()}
+                  title="Bloco de notas" aria-label="Bloco de notas"
+                  className="hdr-util" style={{ ...utilBtn, background: NAV_SOFT, color: NAV_MUTED }}>
+            <StickyNote size={16} />
+          </button>
           {/* Atalho do Treino no lugar da lupa (pedido 2026-09-22).
               A busca continua no ⌘K/Ctrl+K e no menu "Mais ações". */}
           <button onClick={() => { setModulo("agenda"); setTab("treino"); }}
@@ -648,6 +655,7 @@ function HeaderVertical({
   onRefresh, refreshing,
   onOpenSettings,
   onOpenPalette,
+  onAbrirNotas,
   onQuickAction,
   pendingCounts = {},
   contas = [], cartoes = [],
@@ -1098,6 +1106,12 @@ function HeaderVertical({
         </div>
         <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={vertUtilBtn} iconSize={16} />
+          {/* Bloco de notas no atalho (pedido 2026-09-23) */}
+          <button onClick={() => onAbrirNotas?.()}
+            title="Bloco de notas"
+            style={vertUtilBtn}>
+            <StickyNote size={16} />
+          </button>
           {/* Atalho do Treino no lugar da lupa (pedido 2026-09-22). */}
           <button onClick={() => { setModulo("agenda"); setTab("treino"); }}
             title="Treino"

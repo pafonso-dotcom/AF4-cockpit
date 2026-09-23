@@ -13,7 +13,7 @@ import { CARD_SHADOW } from "../../lib/styles.js";
 //  - LOCAL (legado): sem `onSalvar`, continua só no localStorage deste aparelho.
 const NOTAS_KEY = "af4:notas-rapidas:v1";
 
-export default function NotasRapidasCard({ style, storageKey = NOTAS_KEY, valor, onSalvar }) {
+export default function NotasRapidasCard({ style, storageKey = NOTAS_KEY, valor, onSalvar, linhas = 5 }) {
   const sincronizado = typeof onSalvar === "function";
   const lerLocal = () => { try { return localStorage.getItem(storageKey) || ""; } catch { return ""; } };
   const [txt, setTxt] = useState(() => {
@@ -62,8 +62,8 @@ export default function NotasRapidasCard({ style, storageKey = NOTAS_KEY, valor,
         onFocus={() => { emFoco.current = true; }}
         onBlur={() => { emFoco.current = false; }}
         placeholder="Anote lembretes, ideias, números… fica salvo automaticamente."
-        rows={5}
-        style={{ width: "100%", boxSizing: "border-box", resize: "vertical", minHeight: 96, background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "9px 11px", color: T.ink, fontFamily: "inherit", fontSize: 17, lineHeight: 1.5, outline: "none" }} />
+        rows={linhas}
+        style={{ width: "100%", boxSizing: "border-box", resize: "vertical", minHeight: Math.max(96, linhas * 24), background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "9px 11px", color: T.ink, fontFamily: "inherit", fontSize: 17, lineHeight: 1.5, outline: "none" }} />
     </div>
   );
 }
