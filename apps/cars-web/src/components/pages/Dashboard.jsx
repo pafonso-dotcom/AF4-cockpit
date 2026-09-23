@@ -18,8 +18,6 @@ import { backupNuvemAtraso } from "../../lib/gistSync.js";
 import { itensConsumoDoMes } from "../../lib/relatorioMensal.js";
 import { useLayout } from "../../lib/useLayout.js";
 import { OLHADA_KEY, hojeISOLocal, deveMostrarOlhada, dataPorExtenso } from "../../lib/olhadaRapida.js";
-import { montarBomDia } from "../../lib/jarbas.js";
-import { falar, pararFala } from "../../lib/tts.js";
 import { supabase } from "../../lib/supabase.js";
 import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
 import CalculadoraJurosModal from "../modals/CalculadoraJurosModal.jsx";
@@ -125,29 +123,13 @@ function MobileColapsavel({ id, titulo, isMobile, children }) {
 // Modo "olhada rápida" (item 5 do estudo mobile · 2026-09-22): tela cheia na
 // PRIMEIRA abertura do dia no celular — saudação, saldo em contas e o Resumo
 // do dia em letras grandes. Desliza pra cima (ou toca no botão) pra entrar.
-function OlhadaRapida({ resumoDia, totalContas, hidden, userName, onFechar, apiKeys = {}, onAbrirJarbas }) {
+function OlhadaRapida({ resumoDia, totalContas, hidden, userName, onFechar }) {
   const [saindo, setSaindo] = useState(false);
-  const [falando, setFalando] = useState(false);
   const touchRef = React.useRef(null);
   const fechar = () => {
     if (saindo) return;
-    pararFala();
     setSaindo(true);
     setTimeout(onFechar, 280);
-  };
-  // Bom-dia do JARBAS: texto montado localmente (sem API) e falado via
-  // Gemini TTS (chave grátis) com fallback pra voz nativa. Precisa do toque
-  // do usuário — navegador bloqueia áudio sem gesto.
-  const ouvirJarbas = async () => {
-    if (falando) { pararFala(); setFalando(false); return; }
-    setFalando(true);
-    try {
-      await falar(
-        // modo oculto: não fala o saldo em voz alta (totalContas null pula a frase)
-        montarBomDia({ userName, totalContas: hidden ? null : totalContas, resumoDia, fmt }),
-        { geminiKey: apiKeys.gemini },
-      );
-    } finally { setFalando(false); }
   };
   return (
     <div
@@ -169,26 +151,6 @@ function OlhadaRapida({ resumoDia, totalContas, hidden, userName, onFechar, apiK
       </div>
       <div style={{ fontSize: 13, color: T.muted, marginTop: 4, textTransform: "capitalize" }}>
         {dataPorExtenso()}
-      </div>
-
-      {/* JARBAS — ouvir o bom-dia (voz) e abrir o assistente */}
-      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-        <button onClick={ouvirJarbas} style={{
-          flex: 1.4, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-          padding: "12px 10px", background: falando ? `${T.red}18` : `${T.gold}18`,
-          border: `1px solid ${falando ? T.red : T.gold}`, borderRadius: 14,
-          color: falando ? T.red : T.gold, fontSize: 13, fontWeight: 700, cursor: "pointer",
-        }}>
-          {falando ? "⏹ Parar" : "▶ Ouvir o bom-dia"}
-        </button>
-        {onAbrirJarbas && (
-          <button onClick={() => { fechar(); onAbrirJarbas(); }} style={{
-            flex: 1, padding: "12px 10px", background: T.card, border: `1px solid ${T.border}`,
-            borderRadius: 14, color: T.ink, fontSize: 13, fontWeight: 700, cursor: "pointer",
-          }}>
-            🤖 Perguntar
-          </button>
-        )}
       </div>
 
       <div style={{
@@ -249,7 +211,6 @@ export default function Dashboard({
   patrimonioHistorico = [],
   escopoAtivo = "tudo",
   onTabChange, onContaClick, onQuickAction,
-  apiKeys = {}, onAbrirJarbas,
 }) {
   const { isMobile } = useLayout();
 
@@ -745,8 +706,7 @@ export default function Dashboard({
 
       {olhadaAberta && (
         <OlhadaRapida resumoDia={resumoDia} totalContas={totalContas} hidden={hidden}
-                      userName={userName} onFechar={fecharOlhada}
-                      apiKeys={apiKeys} onAbrirJarbas={onAbrirJarbas} />
+                      userName={userName} onFechar={fecharOlhada} />
       )}
 
       {/* Top 3 do dia */}

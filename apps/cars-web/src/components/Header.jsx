@@ -13,7 +13,7 @@ import {
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
   BookOpen, Repeat, MoreHorizontal, RotateCw, LogOut,
-  Bell, Dumbbell, Brain, HandCoins, FileText, Landmark, Plane, Bot,
+  Bell, Dumbbell, Brain, HandCoins, FileText, Landmark, Plane,
 } from "lucide-react";
 
 /**
@@ -114,7 +114,6 @@ function HeaderHorizontal({
   onRefresh, refreshing,
   onOpenSettings,
   onOpenPalette,
-  onAbrirJarbas,
   onQuickAction,
   pendingCounts = {},
   contas = [], cartoes = [],
@@ -293,12 +292,6 @@ function HeaderHorizontal({
         <div className="util-cluster" style={{ display: "inline-flex", gap: 8, alignItems: "center", position: "relative" }}>
           {/* Sino de alertas em primeiro */}
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={utilBtn} iconSize={18} />
-          {/* Jarbas — assistente de voz (2026-09-22) */}
-          <button onClick={() => onAbrirJarbas?.()}
-                  title="Jarbas — assistente" aria-label="Jarbas"
-                  className="hdr-util" style={{ ...utilBtn, background: NAV_SOFT, color: NAV_MUTED }}>
-            <Bot size={16} />
-          </button>
           {/* Atalho do Treino no lugar da lupa (pedido 2026-09-22).
               A busca continua no ⌘K/Ctrl+K e no menu "Mais ações". */}
           <button onClick={() => { setModulo("agenda"); setTab("treino"); }}
@@ -655,7 +648,6 @@ function HeaderVertical({
   onRefresh, refreshing,
   onOpenSettings,
   onOpenPalette,
-  onAbrirJarbas,
   onQuickAction,
   pendingCounts = {},
   contas = [], cartoes = [],
@@ -1121,12 +1113,6 @@ function HeaderVertical({
         </div>
         <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={vertUtilBtn} iconSize={16} />
-          {/* Jarbas — assistente de voz (2026-09-22) */}
-          <button onClick={() => onAbrirJarbas?.()}
-            title="Jarbas — assistente"
-            style={vertUtilBtn}>
-            <Bot size={16} />
-          </button>
           {/* Atalho do Treino no lugar da lupa (pedido 2026-09-22). */}
           <button onClick={() => { setModulo("agenda"); setTab("treino"); }}
             title="Treino"

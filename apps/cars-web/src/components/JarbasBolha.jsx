@@ -1,3 +1,5 @@
+// ⏸️ PROJETO JARBAS PAUSADO (2026-09-23) — fora da UI; spec e prompt de
+// retomada em docs/jarbas/JARBAS-PROMPT.md. Não apagar: repluga depois.
 import React, { useState, useRef } from "react";
 import JarbasOrbe from "./JarbasOrbe.jsx";
 

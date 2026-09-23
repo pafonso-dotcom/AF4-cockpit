@@ -1,3 +1,5 @@
+// ⏸️ PROJETO JARBAS PAUSADO (2026-09-23) — fora da UI; spec e prompt de
+// retomada em docs/jarbas/JARBAS-PROMPT.md. Não apagar: repluga depois.
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Mic, MicOff, Keyboard, PhoneOff, Send, Brain, X, Trash2 } from "lucide-react";
 import { toast } from "../lib/toast.js";
