@@ -46,29 +46,44 @@ export default function SincronizarBancoModal({
 
   const semPin = !getPluggyPin();
 
-  // `forcar` pede à Pluggy uma re-sincronização do item (PATCH) — necessário
-  // quando um banco foi conectado no Meu Pluggy DEPOIS de o item existir.
-  // NUNCA durante um UPDATING em andamento: o PATCH reiniciaria a sync e o
-  // status ficaria preso em "sincronizando" a cada clique.
-  const carregarContas = async (itemId, forcar = false) => {
+  // Cada banco autorizado no widget da Pluggy vira um ITEM próprio (Itaú e
+  // XP = dois IDs). Unimos itens novos (pluggy.itens) com o itemId legado.
+  const idsConexoes = (p = pluggy) => {
+    const ids = [...(p.itens || [])];
+    if (p.itemId && !ids.includes(p.itemId)) ids.push(p.itemId);
+    return ids;
+  };
+
+  // `forcar` pede à Pluggy uma re-sincronização (PATCH) — nunca durante um
+  // UPDATING em andamento: o PATCH reiniciaria a sync a cada clique.
+  // Carrega e SOMA as contas de todas as conexões.
+  const carregarContas = async (ids = idsConexoes(), forcar = false) => {
+    if (!ids.length) return;
     setCarregando(true); setErro("");
-    try {
-      let st = await statusItem(itemId);
-      if (forcar && st.status !== "UPDATING") st = await statusItem(itemId, true);
-      setStatusInfo(st);
-      // WAITING_USER_INPUT no conector Meu Pluggy = falta AUTORIZAR o app
-      // dentro do meu.pluggy.ai (não é consentimento de banco expirado).
-      setReconectar(STATUS_RECONECTAR.has(st.status) && !ehAguardandoAutorizacao(st));
-      setSincronizando(st.status === "UPDATING");
-      const r = await contasPluggy(itemId);
-      setListaBanco(r.contas || []);
-      setPasso("contas");
-    } catch (e) { setErro(e.message); }
-    finally { setCarregando(false); }
+    let contasTodas = [], pior = null, algumUpdating = false, erros = [];
+    for (const id of ids) {
+      try {
+        let st = await statusItem(id);
+        if (forcar && st.status !== "UPDATING") st = await statusItem(id, true);
+        // WAITING_USER_INPUT no conector Meu Pluggy = falta AUTORIZAR o app
+        // dentro do meu.pluggy.ai (não é consentimento de banco expirado).
+        if (!pior || STATUS_RECONECTAR.has(st.status)) pior = st;
+        if (st.status === "UPDATING") algumUpdating = true;
+        const r = await contasPluggy(id);
+        contasTodas = contasTodas.concat(r.contas || []);
+      } catch (e) { erros.push(e.message); }
+    }
+    setStatusInfo(pior);
+    setReconectar(Boolean(pior && STATUS_RECONECTAR.has(pior.status) && !ehAguardandoAutorizacao(pior)));
+    setSincronizando(algumUpdating);
+    if (erros.length === ids.length && erros.length) setErro(erros[0]);
+    setListaBanco(contasTodas.filter((c, i, arr) => arr.findIndex(x => x.id === c.id) === i));
+    setPasso("contas");
+    setCarregando(false);
   };
 
   useEffect(() => {
-    if (pluggy.itemId && !semPin) carregarContas(pluggy.itemId);
+    if (idsConexoes().length && !semPin) carregarContas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -76,12 +91,12 @@ export default function SincronizarBancoModal({
   // sozinho a cada 6s (sem forçar PATCH), até ~2 min — o usuário só espera.
   const pollsRef = useRef(0);
   useEffect(() => {
-    if (!(sincronizando && passo === "contas" && (listaBanco || []).length === 0 && pluggy.itemId)) {
+    if (!(sincronizando && passo === "contas" && (listaBanco || []).length === 0 && idsConexoes().length)) {
       pollsRef.current = 0;
       return;
     }
     if (pollsRef.current >= 20) return;
-    const t = setTimeout(() => { pollsRef.current += 1; carregarContas(pluggy.itemId); }, 6000);
+    const t = setTimeout(() => { pollsRef.current += 1; carregarContas(); }, 6000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sincronizando, passo, listaBanco, carregando]);
@@ -94,7 +109,7 @@ export default function SincronizarBancoModal({
       setSenha("");
       setPluggy(prev => ({ ...(prev || {}), itemId: r.itemId }));
       toast.success("🏦 Conectado ao Meu Pluggy!");
-      await carregarContas(r.itemId);
+      await carregarContas(idsConexoes({ ...pluggy, itemId: r.itemId }));
     } catch (e) { setErro(e.message); setCarregando(false); }
   };
 
@@ -108,9 +123,11 @@ export default function SincronizarBancoModal({
     setCarregando(true); setErro("");
     try {
       await statusItem(id); // valida que o item existe e pertence à aplicação
-      setPluggy(prev => ({ ...(prev || {}), itemId: id }));
-      toast.success("🏦 Conexão vinculada!");
-      await carregarContas(id);
+      const itens = [...new Set([...(pluggy.itens || []), id])];
+      setPluggy(prev => ({ ...(prev || {}), itens: [...new Set([...(prev?.itens || []), id])] }));
+      setItemManual("");
+      toast.success("🏦 Conexão adicionada!");
+      await carregarContas(idsConexoes({ ...pluggy, itens }));
     } catch (e) { setErro(e.message); setCarregando(false); }
   };
 
@@ -185,7 +202,7 @@ export default function SincronizarBancoModal({
         <div style={{ background: `${T.red}10`, border: `1px solid ${T.red}44`, borderRadius: 12, padding: "9px 13px", marginBottom: 12, fontSize: 12.5, color: T.ink }}>
           ⚠️ O consentimento do Open Finance expirou ou precisa de atenção — abre o app <strong>Meu Pluggy</strong> e reconecta o banco; depois volta aqui.
           <button className="btn-ghost" style={{ marginLeft: 10, fontSize: 11, padding: "3px 10px" }}
-                  onClick={() => carregarContas(pluggy.itemId)}>↻ Tentar de novo</button>
+                  onClick={() => carregarContas()}>↻ Tentar de novo</button>
         </div>
       )}
 
@@ -214,8 +231,9 @@ export default function SincronizarBancoModal({
           <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 18, paddingTop: 14 }}>
             <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 8 }}>
               <strong style={{ color: T.ink }}>Conectou pelo painel da Pluggy?</strong> (caminho
-              recomendado pelo guia do Meu Pluggy: dashboard.pluggy.ai → "Conecte um item demo" →
-              conector Meu Pluggy). Cola aqui o <strong>ID do item</strong> criado lá:
+              recomendado pelo guia do Meu Pluggy: dashboard.pluggy.ai → "Conecte um item demo").
+              Cada banco autorizado gera um <strong>ID próprio</strong> — cola um por vez aqui
+              (pode adicionar vários):
             </p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <input value={itemManual} onChange={e => setItemManual(e.target.value)}
@@ -277,8 +295,8 @@ export default function SincronizarBancoModal({
           ))}
           <div className="flex gap-3 justify-end mt-4">
             <button className="btn-gold" disabled={carregando}
-                    onClick={() => carregarContas(pluggy.itemId, true)}>↻ Atualizar</button>
-            <button className="btn-ghost" onClick={() => { setPasso("conectar"); setListaBanco(null); }}>Reconectar Meu Pluggy</button>
+                    onClick={() => carregarContas(idsConexoes(), true)}>↻ Atualizar</button>
+            <button className="btn-ghost" onClick={() => { setPasso("conectar"); setListaBanco(null); }}>＋ Adicionar conexão</button>
             <button className="btn-ghost" onClick={onClose}>Fechar</button>
           </div>
         </>
