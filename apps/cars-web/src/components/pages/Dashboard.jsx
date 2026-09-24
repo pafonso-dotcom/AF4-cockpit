@@ -130,10 +130,11 @@ function OlhadaRapida({ resumoDia, userName, onFechar }) {
   const fechar = () => {
     if (saindo) return;
     setSaindo(true);
-    setTimeout(onFechar, 280);
+    setTimeout(onFechar, 140); // saída curta — a tela some "na hora"
   };
   return (
     <div
+      onClick={fechar} // tocar em QUALQUER lugar fecha (a tela é só leitura)
       onTouchStart={(e) => { const t = e.touches?.[0]; if (t) touchRef.current = t.clientY; }}
       onTouchEnd={(e) => {
         const y0 = touchRef.current; touchRef.current = null;
@@ -145,7 +146,7 @@ function OlhadaRapida({ resumoDia, userName, onFechar }) {
         display: "flex", flexDirection: "column", padding: "56px 22px 26px",
         overflowY: "auto", WebkitOverflowScrolling: "touch",
         transform: saindo ? "translateY(-100%)" : "translateY(0)",
-        opacity: saindo ? 0 : 1, transition: "transform .28s ease, opacity .28s ease",
+        opacity: saindo ? 0 : 1, transition: "transform .14s ease, opacity .14s ease",
       }}>
       <div style={{ fontSize: 26, fontWeight: 800, color: T.ink, lineHeight: 1.2 }}>
         {greetingForTime()}{userName ? `, ${userName}` : ""} 👋
