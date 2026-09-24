@@ -37,6 +37,7 @@ export default function SincronizarBancoModal({
   // conectar
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
+  const [itemManual, setItemManual] = useState(""); // ID de item criado no widget do dashboard
   // contas
   const [listaBanco, setListaBanco] = useState(null); // contas vindas da Pluggy
   const [vinculos, setVinculos] = useState(pluggy.vinculos || {});
@@ -94,6 +95,22 @@ export default function SincronizarBancoModal({
       setPluggy(prev => ({ ...(prev || {}), itemId: r.itemId }));
       toast.success("🏦 Conectado ao Meu Pluggy!");
       await carregarContas(r.itemId);
+    } catch (e) { setErro(e.message); setCarregando(false); }
+  };
+
+  // Caminho oficial do guia do Meu Pluggy: conectar o item pelo widget de
+  // demonstração do dashboard.pluggy.ai e colar aqui o ID do item criado lá
+  // (o item do widget nasce autorizado; o criado via API fica preso em
+  // WAITING_USER_INPUT porque o conector é OAuth).
+  const usarItemExistente = async () => {
+    const id = itemManual.trim();
+    if (!id) { setErro("Cola o ID do item (código da conexão criada no painel da Pluggy)."); return; }
+    setCarregando(true); setErro("");
+    try {
+      await statusItem(id); // valida que o item existe e pertence à aplicação
+      setPluggy(prev => ({ ...(prev || {}), itemId: id }));
+      toast.success("🏦 Conexão vinculada!");
+      await carregarContas(id);
     } catch (e) { setErro(e.message); setCarregando(false); }
   };
 
@@ -193,6 +210,22 @@ export default function SincronizarBancoModal({
               {carregando ? "Conectando…" : "Conectar"}
             </button>
           </div>
+
+          <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 18, paddingTop: 14 }}>
+            <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 8 }}>
+              <strong style={{ color: T.ink }}>Conectou pelo painel da Pluggy?</strong> (caminho
+              recomendado pelo guia do Meu Pluggy: dashboard.pluggy.ai → "Conecte um item demo" →
+              conector Meu Pluggy). Cola aqui o <strong>ID do item</strong> criado lá:
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <input value={itemManual} onChange={e => setItemManual(e.target.value)}
+                     placeholder="ex.: 3a7b12f0-…" className="num"
+                     style={{ flex: 1, minWidth: 200 }} autoComplete="off" />
+              <button className="btn-ghost" onClick={usarItemExistente} disabled={carregando || semPin}>
+                Usar esse item
+              </button>
+            </div>
+          </div>
         </>
       )}
 
@@ -202,10 +235,11 @@ export default function SincronizarBancoModal({
           {carregando && <p style={{ fontSize: 12.5, color: T.muted }}>Buscando contas no banco…</p>}
           {!carregando && ehAguardandoAutorizacao(statusInfo) && (
             <div style={{ background: `${T.gold}12`, border: `1px solid ${T.gold}66`, borderRadius: 12, padding: "10px 14px", marginBottom: 10, fontSize: 12.5, color: T.ink }}>
-              🔐 O Meu Pluggy está <strong>esperando você autorizar o acesso deste aplicativo</strong>:
-              entra em <strong>meu.pluggy.ai</strong>, procura a solicitação de autorização
-              (seção de aplicativos/API ou aviso pendente), <strong>aprova</strong>, e volta aqui
-              clicando em ↻ Atualizar.
+              🔐 Essa conexão está <strong>aguardando autorização</strong> e não vai concluir por aqui.
+              Caminho certo (guia do Meu Pluggy): em <strong>dashboard.pluggy.ai</strong> usa o
+              <strong> "Conecte um item demo"</strong> escolhendo o conector <strong>Meu Pluggy</strong>,
+              copia o <strong>ID do item</strong> criado, e cola em "Reconectar Meu Pluggy" → campo
+              "Conectou pelo painel da Pluggy?".
             </div>
           )}
           {!carregando && listaBanco && listaBanco.length === 0 && (
