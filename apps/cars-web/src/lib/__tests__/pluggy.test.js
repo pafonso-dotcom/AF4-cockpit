@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { prepararImportPluggy, detectarDuplicatasCartao } from "../pluggy.js";
+import { prepararImportPluggy, detectarDuplicatasCartao, pareceParcela } from "../pluggy.js";
 import { handlePluggy, _resetAuthPluggy } from "../../../../../worker/pluggy.js";
 
 /* ===================== lib (pura) ===================== */
@@ -43,6 +43,39 @@ describe("prepararImportPluggy — conversão + dedup idempotente", () => {
       descricao: "iFood", tipo: "despesa", conta: "", cartaoId: "card1",
       valor: 89.9, compensado: false, origem: "pluggy", pluggyId: "c1",
     });
+  });
+});
+
+describe("pareceParcela — extrato do cartão × parcelamentos lançados", () => {
+  const PARC = { id: "pc1", cartaoId: "c1", descricao: "Magazine Luiza Geladeira", valorParcela: 250, totalParcelas: 10, categoria: "Casa" };
+
+  it("casa pelo padrão N/total + valor da parcela", () => {
+    expect(pareceParcela({ cartaoId: "c1", descricao: "MAGALU 03/10", valor: 250 }, [PARC])).toBe(PARC);
+  });
+  it("casa por descrição similar mesmo sem o N/total", () => {
+    expect(pareceParcela({ cartaoId: "c1", descricao: "MAGAZINE LUIZA", valor: 250 }, [PARC])).toBe(PARC);
+  });
+  it("não casa com valor diferente, cartão diferente ou total divergente", () => {
+    expect(pareceParcela({ cartaoId: "c1", descricao: "MAGALU 03/10", valor: 300 }, [PARC])).toBe(null);
+    expect(pareceParcela({ cartaoId: "c2", descricao: "MAGALU 03/10", valor: 250 }, [PARC])).toBe(null);
+    expect(pareceParcela({ cartaoId: "c1", descricao: "LOJA X 03/12", valor: 250 }, [PARC])).toBe(null);
+  });
+
+  it("prepararImportPluggy (cartão) marca a parcela como duplicada com o motivo", () => {
+    const { novas } = prepararImportPluggy(
+      [{ pluggyId: "p1", data: "2026-09-10", valor: 250, tipo: "despesa", descricao: "MAGALU 03/10" }],
+      [], "", { id: "c1", nome: "Itaú" }, [PARC]);
+    expect(novas[0]._duplicada).toBe(true);
+    expect(novas[0]._dupParcela).toBe("Magazine Luiza Geladeira");
+  });
+
+  it("detectarDuplicatasCartao acha parcelas importadas: 1 por mês por parcelamento", () => {
+    const tx = (id, data, desc = "MAGALU 04/10") =>
+      ({ id, origem: "pluggy", cartaoId: "c1", tipo: "despesa", valor: 250, data, descricao: desc });
+    const pares = detectarDuplicatasCartao(
+      [tx("s1", "2026-08-10"), tx("s2", "2026-09-10"), tx("s3", "2026-09-12")], 45, [PARC]);
+    expect(pares.length).toBe(2); // ago + set (a 3ª do mesmo mês não conta)
+    expect(pares[0].manter.descricao).toContain("Parcelamento: Magazine Luiza Geladeira");
   });
 });
 
