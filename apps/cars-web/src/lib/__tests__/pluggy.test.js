@@ -81,22 +81,32 @@ describe("worker /api/pluggy — rotas", () => {
     expect(auths).toBe(1);
   });
 
-  it("transacoes: agrega páginas e converte sinal em tipo", async () => {
+  it("transacoes: usa /v2 com cursor (next literal) e converte type/sinal em tipo", async () => {
+    const urls = [];
     const fake = (url) => {
+      urls.push(url);
       if (url.endsWith("/auth")) return resposta({ apiKey: "k" });
-      if (url.includes("page=1")) return resposta({ totalPages: 2, results: Array.from({ length: 100 }, (_, i) =>
-        ({ id: `t${i}`, date: "2026-09-20T10:00:00Z", description: "Mercado", amount: -50 })) });
-      if (url.includes("page=2")) return resposta({ totalPages: 2, results: [
-        { id: "rec", date: "2026-09-21T10:00:00Z", description: "Salário", amount: 5000 },
-      ] });
+      // cursor base64 com caracteres encodados — tem que ser colado como veio
+      if (url.includes("after=abc%3D%3D")) return resposta({ results: [
+        { id: "rec", date: "2026-09-21T10:00:00Z", description: "Salário", amount: 5000, type: "CREDIT" },
+      ], next: null });
+      if (url.includes("/v2/transactions")) return resposta({ results: [
+        { id: "t0", date: "2026-09-20T10:00:00Z", description: "Mercado", amount: -50, type: "DEBIT" },
+        { id: "t1", date: "2026-09-20T11:00:00Z", description: "Pix", amount: 30 }, // sem type → sinal
+      ], next: "?accountId=a1&after=abc%3D%3D" });
       throw new Error("url inesperada: " + url);
     };
     const r = await handlePluggy(req("transacoes?accountId=a1&from=2026-09-01"), ENV_OK, fake);
     const data = await r.json();
     expect(data.ok).toBe(true);
-    expect(data.transacoes.length).toBe(101);
+    expect(data.truncado).toBe(false);
+    expect(data.transacoes.length).toBe(3);
     expect(data.transacoes[0]).toMatchObject({ pluggyId: "t0", data: "2026-09-20", tipo: "despesa", valor: 50 });
-    expect(data.transacoes[100]).toMatchObject({ pluggyId: "rec", tipo: "receita", valor: 5000 });
+    expect(data.transacoes[1]).toMatchObject({ pluggyId: "t1", tipo: "receita", valor: 30 });
+    expect(data.transacoes[2]).toMatchObject({ pluggyId: "rec", tipo: "receita", valor: 5000 });
+    // 1ª página usa dateFrom (v2), e a 2ª cola o next SEM re-encodar
+    expect(urls.some(u => u.includes("/v2/transactions?accountId=a1&dateFrom=2026-09-01"))).toBe(true);
+    expect(urls.some(u => u.endsWith("/v2/transactions?accountId=a1&after=abc%3D%3D"))).toBe(true);
   });
 
   it("conectar: POST cria item no conector 200 e devolve itemId", async () => {

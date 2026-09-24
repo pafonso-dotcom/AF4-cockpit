@@ -128,30 +128,39 @@ export async function handlePluggy(request, env, fetchImpl = fetch) {
       return json({ ok: true, contas });
     }
 
-    // ---- transacoes: agrega páginas (teto de segurança) ----
+    // ---- transacoes: GET /v2/transactions com paginação por CURSOR ----
+    // (o /transactions v1 foi descontinuado pela Pluggy — respondia
+    // "This endpoint is deprecated"). No v2: dateFrom/dateTo, página fixa
+    // de 500, e a resposta traz `next` — a query string PRONTA da próxima
+    // página (colar como vem; re-encodar quebra o cursor base64).
     if (rota === "transacoes") {
       const accountId = url.searchParams.get("accountId");
       if (!accountId) return json({ ok: false, error: "Informe accountId." }, 400);
       const from = url.searchParams.get("from") || "";
       const to = url.searchParams.get("to") || "";
-      const qsBase = `accountId=${encodeURIComponent(accountId)}${from ? `&from=${from}` : ""}${to ? `&to=${to}` : ""}&pageSize=100`;
-      let pagina = 1, total = [];
-      while (pagina <= 5) { // teto: 500 transações por sync
-        const data = await pluggyGet(`/transactions?${qsBase}&page=${pagina}`, env, fetchImpl);
-        const lote = data.results || [];
-        total = total.concat(lote);
-        if (lote.length < 100 || pagina >= (data.totalPages || 1)) break;
-        pagina++;
+      let caminho = `/v2/transactions?accountId=${encodeURIComponent(accountId)}${from ? `&dateFrom=${from}` : ""}${to ? `&dateTo=${to}` : ""}`;
+      let total = [], paginas = 0;
+      while (caminho && paginas < 5) { // teto: 5 páginas x 500 = 2.500 por sync
+        const data = await pluggyGet(caminho, env, fetchImpl);
+        total = total.concat(data.results || []);
+        paginas++;
+        const next = data.next || null;
+        caminho = !next ? null
+          : next.startsWith("http") ? next.replace(PLUGGY, "")
+          : next.startsWith("?") ? `/v2/transactions${next}`
+          : next;
       }
       const transacoes = total.map(t => ({
         pluggyId: t.id,
         data: (t.date || "").slice(0, 10),
         descricao: t.description || t.descriptionRaw || "Transação",
         valor: Math.abs(Number(t.amount) || 0),
-        tipo: (Number(t.amount) || 0) < 0 ? "despesa" : "receita",
+        tipo: t.type === "CREDIT" ? "receita"
+          : t.type === "DEBIT" ? "despesa"
+          : (Number(t.amount) || 0) < 0 ? "despesa" : "receita",
         categoriaPluggy: t.category || "",
       })).filter(t => t.data && t.valor > 0);
-      return json({ ok: true, transacoes, truncado: pagina >= 5 });
+      return json({ ok: true, transacoes, truncado: Boolean(caminho) });
     }
 
     return json({ ok: false, error: "Rota Pluggy desconhecida." }, 404);
