@@ -120,7 +120,7 @@ export async function handlePluggy(request, env, fetchImpl = fetch) {
         .map(a => ({
           id: a.id,
           nome: [a.name, a.marketingName].filter(Boolean)[0] || "Conta",
-          banco: a.institution?.name || a.owner || "",
+          banco: a.institution?.name || "", // (owner era o NOME DA PESSOA — poluía a lista)
           numero: a.number || "",
           saldo: Number(a.balance) || 0,
           moeda: a.currencyCode || "BRL",
