@@ -24,7 +24,7 @@ const ehAguardandoAutorizacao = (st) =>
 
 export default function SincronizarBancoModal({
   contas = [], setContas, categorias = [], transacoes = [], setTransacoes,
-  pluggy = {}, setPluggy, onClose,
+  cartoes = [], pluggy = {}, setPluggy, onClose,
 }) {
   const [passo, setPasso] = useState(pluggy.itemId ? "contas" : "conectar");
   const [carregando, setCarregando] = useState(false);
@@ -133,17 +133,22 @@ export default function SincronizarBancoModal({
   };
 
   const abrirPrevia = async (contaPluggy) => {
-    const contaNome = vinculos[contaPluggy.id];
-    if (!contaNome) { toast.error("Vincula essa conta do banco a uma conta do app primeiro."); return; }
+    const vin = vinculos[contaPluggy.id];
+    if (!vin) { toast.error("Vincula primeiro a uma conta (ou cartão) do app."); return; }
+    // Vínculo de cartão é salvo como "cartao:<id>" (contas ficam pelo nome).
+    const cartao = vin.startsWith("cartao:")
+      ? (cartoes || []).find(c => c.id === vin.slice(7))
+      : null;
+    if (vin.startsWith("cartao:") && !cartao) { toast.error("Esse cartão não existe mais — refaz o vínculo."); return; }
     setCarregando(true); setErro("");
     try {
       const from = pluggy.ultimaSync?.[contaPluggy.id]
         || new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
       const r = await transacoesPluggy(contaPluggy.id, from);
-      const prep = prepararImportPluggy(r.transacoes, transacoes, contaNome);
+      const prep = prepararImportPluggy(r.transacoes, transacoes, cartao ? "" : vin, cartao);
       // pré-seleção: tudo que não é duplicado
       prep.novas.forEach(t => { t._marcada = !t._duplicada; });
-      setPrevia({ contaPluggy, contaNome, ...prep, truncado: r.truncado });
+      setPrevia({ contaPluggy, contaNome: cartao ? cartao.nome : vin, ehCartao: Boolean(cartao), ...prep, truncado: r.truncado });
       setPasso("previa");
     } catch (e) { setErro(e.message); }
     finally { setCarregando(false); }
@@ -163,7 +168,8 @@ export default function SincronizarBancoModal({
     // saldoBanco − soma das compensadas (regra do save() de Contas — mexer só
     // em `saldo` seria desfeito pelo auto-reconcile de lib/saldoConta.js).
     // Só pra contas em BRL (moeda estrangeira mantém o fluxo atual de câmbio).
-    const contaApp = contas.find(c => c.nome === previa.contaNome);
+    // Cartão não mexe em saldo de conta (compras ficam pendentes na fatura).
+    const contaApp = previa.ehCartao ? null : contas.find(c => c.nome === previa.contaNome);
     if (contaApp && setContas && (contaApp.moeda || "BRL") === "BRL") {
       const todas = [...aceitas, ...transacoes];
       const soma = todas
@@ -279,19 +285,30 @@ export default function SincronizarBancoModal({
           {!carregando && (listaBanco || []).map(cb => (
             <div key={cb.id} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 12px", marginBottom: 8 }}>
               <div style={{ flex: 1, minWidth: 160 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{cb.banco || cb.nome}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>
+                  {cb.tipoConta === "cartao" ? "💳 " : ""}{cb.banco || cb.nome}
+                </div>
                 <div className="num" style={{ fontSize: 11.5, color: T.muted }}>
-                  {cb.nome}{cb.numero ? ` · ${cb.numero}` : ""} · saldo {fmt(cb.saldo)}
+                  {cb.nome}{cb.numero ? ` · ${cb.numero}` : ""} · {cb.tipoConta === "cartao" ? "fatura" : "saldo"} {fmt(cb.saldo)}
                 </div>
               </div>
               <select value={vinculos[cb.id] || ""} onChange={e => setVinculos(v => ({ ...v, [cb.id]: e.target.value }))} style={selSty}>
-                <option value="">Vincular à conta…</option>
-                {contas.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+                {cb.tipoConta === "cartao" ? (
+                  <>
+                    <option value="">Vincular ao cartão…</option>
+                    {(cartoes || []).map(c => <option key={c.id} value={`cartao:${c.id}`}>💳 {c.nome}</option>)}
+                  </>
+                ) : (
+                  <>
+                    <option value="">Vincular à conta…</option>
+                    {contas.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+                  </>
+                )}
               </select>
               <button className="btn-gold" style={{ fontSize: 11.5, padding: "6px 14px" }}
                       disabled={!vinculos[cb.id] || carregando}
                       onClick={() => abrirPrevia(cb)}>
-                ⬇ Puxar extrato
+                {cb.tipoConta === "cartao" ? "⬇ Puxar compras" : "⬇ Puxar extrato"}
               </button>
             </div>
           ))}
@@ -310,7 +327,7 @@ export default function SincronizarBancoModal({
           <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 10 }}>
             <strong style={{ color: T.ink }}>{previa.novas.length}</strong> transação(ões) novas de{" "}
             <strong style={{ color: T.ink }}>{previa.contaPluggy.banco || previa.contaPluggy.nome}</strong> →{" "}
-            conta <strong style={{ color: T.gold }}>{previa.contaNome}</strong>
+            {previa.ehCartao ? "cartão" : "conta"} <strong style={{ color: T.gold }}>{previa.ehCartao ? "💳 " : ""}{previa.contaNome}</strong>
             {previa.jaImportadas > 0 && <> · {previa.jaImportadas} já importadas antes (puladas automaticamente)</>}
             {previa.truncado && <> · ⚠️ lote grande, o resto vem na próxima sync</>}
             . Possíveis duplicadas de lançamentos manuais vêm <strong>desmarcadas</strong>.

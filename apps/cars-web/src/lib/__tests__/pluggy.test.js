@@ -31,6 +31,19 @@ describe("prepararImportPluggy — conversão + dedup idempotente", () => {
     expect(novas.length).toBe(1);
     expect(novas[0]._duplicada).toBe(true);
   });
+
+  it("cartão: vira compra avulsa (cartaoId, sem conta, pendente) e descarta receitas", () => {
+    const cartao = { id: "card1", nome: "Itaú Platinum" };
+    const { novas } = prepararImportPluggy([
+      tx("c1", "2026-09-20", 89.9, "despesa", "iFood"),
+      tx("c2", "2026-09-21", 5000, "receita", "Pagamento fatura"), // pagamento/estorno: fora
+    ], [], "", cartao);
+    expect(novas.length).toBe(1);
+    expect(novas[0]).toMatchObject({
+      descricao: "iFood", tipo: "despesa", conta: "", cartaoId: "card1",
+      valor: 89.9, compensado: false, origem: "pluggy", pluggyId: "c1",
+    });
+  });
 });
 
 /* ===================== worker (fetchImpl fake) ===================== */
@@ -62,20 +75,24 @@ describe("worker /api/pluggy — proteção", () => {
 });
 
 describe("worker /api/pluggy — rotas", () => {
-  it("contas: autentica, cacheia o apiKey e filtra só type BANK", async () => {
+  it("contas: autentica, cacheia o apiKey e devolve BANK + CREDIT (com tipoConta)", async () => {
     let auths = 0;
     const fake = (url) => {
       if (url.endsWith("/auth")) { auths++; return resposta({ apiKey: "k" }); }
       if (url.includes("/accounts")) return resposta({ results: [
         { id: "a1", type: "BANK", name: "Conta Corrente", balance: 1234.56, currencyCode: "BRL", institution: { name: "Itaú" } },
-        { id: "c1", type: "CREDIT", name: "Cartão", balance: -500 },
+        { id: "c1", type: "CREDIT", name: "Cartão Visa", balance: -500 },
+        { id: "x1", type: "INVESTMENT", name: "CDB", balance: 10 }, // fora do escopo
       ] });
       throw new Error("url inesperada: " + url);
     };
     const r = await handlePluggy(req("contas?itemId=item1"), ENV_OK, fake);
     const data = await r.json();
     expect(data.ok).toBe(true);
-    expect(data.contas).toEqual([{ id: "a1", nome: "Conta Corrente", banco: "Itaú", numero: "", saldo: 1234.56, moeda: "BRL" }]);
+    expect(data.contas).toEqual([
+      { id: "a1", nome: "Conta Corrente", banco: "Itaú", numero: "", saldo: 1234.56, moeda: "BRL", tipoConta: "banco" },
+      { id: "c1", nome: "Cartão Visa", banco: "", numero: "", saldo: -500, moeda: "BRL", tipoConta: "cartao" },
+    ]);
     // 2ª chamada usa o apiKey cacheado (auth só 1x)
     await handlePluggy(req("contas?itemId=item1"), ENV_OK, fake);
     expect(auths).toBe(1);

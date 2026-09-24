@@ -799,6 +799,7 @@ export default function App() {
                   onContaClick={setContaAberta}
                   notaRapida={notasRapidas.contas}
                   onSalvarNota={(t) => setNotasRapidas(p => ({ ...p, contas: t }))}
+                  cartoes={cartoes}
                   pluggy={pluggyDados} setPluggy={setPluggyDados} />
         </div>
       )}
