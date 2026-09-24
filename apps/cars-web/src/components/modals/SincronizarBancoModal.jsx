@@ -282,36 +282,46 @@ export default function SincronizarBancoModal({
               diagnóstico: status {statusInfo.status || "?"}{statusInfo.executionStatus ? ` · execução ${statusInfo.executionStatus}` : ""}
             </p>
           )}
-          {!carregando && (listaBanco || []).map(cb => (
-            <div key={cb.id} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 12px", marginBottom: 8 }}>
-              <div style={{ flex: 1, minWidth: 160 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>
-                  {cb.tipoConta === "cartao" ? "💳 " : ""}{cb.banco || cb.nome}
+          {/* Grade compacta: contas primeiro, cartões depois, lado a lado. */}
+          {!carregando && (listaBanco || []).length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 8 }}>
+              {[...listaBanco]
+                .sort((a, b) => ((a.tipoConta === "cartao") - (b.tipoConta === "cartao"))
+                  || (a.banco || a.nome || "").localeCompare(b.banco || b.nome || "")
+                  || (a.nome || "").localeCompare(b.nome || ""))
+                .map(cb => (
+                <div key={cb.id} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+                  <div title={cb.nome} style={{ fontSize: 12.5, fontWeight: 700, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {cb.tipoConta === "cartao" ? "💳" : "🏦"} {cb.nome}
+                  </div>
+                  <div className="num" style={{ fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {[cb.banco, cb.numero].filter(Boolean).join(" · ")}
+                    {(cb.banco || cb.numero) ? " · " : ""}
+                    {cb.tipoConta === "cartao" ? "fatura" : "saldo"} <strong style={{ color: T.ink }}>{fmt(cb.saldo)}</strong>
+                  </div>
+                  <select value={vinculos[cb.id] || ""} onChange={e => setVinculos(v => ({ ...v, [cb.id]: e.target.value }))}
+                          style={{ ...selSty, width: "100%" }}>
+                    {cb.tipoConta === "cartao" ? (
+                      <>
+                        <option value="">Vincular ao cartão…</option>
+                        {(cartoes || []).map(c => <option key={c.id} value={`cartao:${c.id}`}>💳 {c.nome}</option>)}
+                      </>
+                    ) : (
+                      <>
+                        <option value="">Vincular à conta…</option>
+                        {contas.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+                      </>
+                    )}
+                  </select>
+                  <button className="btn-gold" style={{ fontSize: 11, padding: "6px 10px", width: "100%" }}
+                          disabled={!vinculos[cb.id] || carregando}
+                          onClick={() => abrirPrevia(cb)}>
+                    {cb.tipoConta === "cartao" ? "⬇ Puxar compras" : "⬇ Puxar extrato"}
+                  </button>
                 </div>
-                <div className="num" style={{ fontSize: 11.5, color: T.muted }}>
-                  {cb.nome}{cb.numero ? ` · ${cb.numero}` : ""} · {cb.tipoConta === "cartao" ? "fatura" : "saldo"} {fmt(cb.saldo)}
-                </div>
-              </div>
-              <select value={vinculos[cb.id] || ""} onChange={e => setVinculos(v => ({ ...v, [cb.id]: e.target.value }))} style={selSty}>
-                {cb.tipoConta === "cartao" ? (
-                  <>
-                    <option value="">Vincular ao cartão…</option>
-                    {(cartoes || []).map(c => <option key={c.id} value={`cartao:${c.id}`}>💳 {c.nome}</option>)}
-                  </>
-                ) : (
-                  <>
-                    <option value="">Vincular à conta…</option>
-                    {contas.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-                  </>
-                )}
-              </select>
-              <button className="btn-gold" style={{ fontSize: 11.5, padding: "6px 14px" }}
-                      disabled={!vinculos[cb.id] || carregando}
-                      onClick={() => abrirPrevia(cb)}>
-                {cb.tipoConta === "cartao" ? "⬇ Puxar compras" : "⬇ Puxar extrato"}
-              </button>
+              ))}
             </div>
-          ))}
+          )}
           <div className="flex gap-3 justify-end mt-4">
             <button className="btn-gold" disabled={carregando}
                     onClick={() => carregarContas(idsConexoes(), true)}>↻ Atualizar</button>
