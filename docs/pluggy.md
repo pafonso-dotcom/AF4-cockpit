@@ -26,13 +26,17 @@ revogável a qualquer momento no app do banco.
 5. No app: Configurações → APIs → "🏦 Conexão bancária" → colar o PIN → 🧪 Testar;
 6. **Conectar o item pelo WIDGET do dashboard** (caminho oficial do
    meu.pluggy.ai/api-guide): dashboard.pluggy.ai → "Conecte um item demo" →
-   conector **Meu Pluggy** → login → concluir. Copiar o **item ID** (uuid;
-   aparece no api-guide logado ou em Dados Financeiros → Execuções);
+   autorizar **um banco por vez** (cada banco vira um ITEM com ID próprio).
+   Copiar o **item ID COMPLETO** (uuid de 36 caracteres — em Dados
+   Financeiros → Execuções, clicando na conexão; o código de 8 caracteres
+   do widget dá "item not found");
    ⚠️ conectar via `POST /items` direto NÃO funciona: o conector é OAuth e
    o item fica preso em WAITING_USER_INPUT com /accounts vazio.
-7. Contas → **🏦 Sincronizar banco** → "Conectou pelo painel da Pluggy?" →
-   colar o item ID → **Usar esse item** → vincular contas → puxar extrato.
+7. Contas → **🏦 Sincronizar banco** → colar o item ID → **Usar esse item**;
+   repetir pra cada banco ("＋ Adicionar conexão"). As conexões ficam salvas
+   em `pluggy.itens` (sincronizado). Vincular contas → puxar extrato.
    O Meu Pluggy re-sincroniza com os bancos ~1x/dia (PATCH não força).
+   Transações: `GET /v2/transactions` (cursor `next` colado como veio).
 
 ## Arquitetura
 - `worker/pluggy.js` — proxy server-side (rotas `/api/pluggy/*` em
