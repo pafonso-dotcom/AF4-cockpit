@@ -7,7 +7,7 @@ import Field from "../ui/Field.jsx";
 import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 import { categoriaAuto } from "../../lib/autoCategorizar.js";
 import {
-  getPluggyPin, conectarMeuPluggy, statusItem, contasPluggy,
+  getPluggyPin, getPluggyUsuario, setPluggyUsuario, conectarMeuPluggy, statusItem, contasPluggy,
   transacoesPluggy, prepararImportPluggy, STATUS_RECONECTAR,
 } from "../../lib/pluggy.js";
 
@@ -35,7 +35,7 @@ export default function SincronizarBancoModal({
   const [statusInfo, setStatusInfo] = useState(null); // {status, executionStatus} p/ diagnóstico
 
   // conectar
-  const [usuario, setUsuario] = useState("");
+  const [usuario, setUsuario] = useState(getPluggyUsuario());
   const [senha, setSenha] = useState("");
   const [itemManual, setItemManual] = useState(""); // ID de item criado no widget do dashboard
   // contas
@@ -106,6 +106,7 @@ export default function SincronizarBancoModal({
     setCarregando(true); setErro("");
     try {
       const r = await conectarMeuPluggy(usuario.trim(), senha);
+      setPluggyUsuario(usuario);
       setSenha("");
       setPluggy(prev => ({ ...(prev || {}), itemId: r.itemId }));
       toast.success("🏦 Conectado ao Meu Pluggy!");
@@ -209,38 +210,39 @@ export default function SincronizarBancoModal({
       {/* PASSO: conectar */}
       {passo === "conectar" && (
         <>
-          <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 12 }}>
-            Conecte sua conta do <strong>Meu Pluggy</strong> (meu.pluggy.ai — onde seus bancos já estão
-            autorizados via Open Finance, padrão do Banco Central, <strong>somente leitura</strong>).
-            As credenciais abaixo <strong>não ficam salvas</strong>: vão criptografadas pro nosso servidor
-            e direto pra Pluggy, uma única vez.
+          <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 8 }}>
+            <strong style={{ color: T.ink }}>Caminho recomendado</strong> (guia do Meu Pluggy):
+            em <strong>dashboard.pluggy.ai</strong> → "Conecte um item demo" → autoriza o banco →
+            copia o <strong>ID do item</strong> (código COMPLETO, formato{" "}
+            <span className="num">xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</span> — aparece em
+            Dados Financeiros → Execuções, clicando na conexão). Cada banco tem o seu; cola um por
+            vez — a conexão <strong>fica salva</strong>, não precisa repetir:
           </p>
-          <Field label="Usuário/e-mail do Meu Pluggy">
-            <input value={usuario} onChange={e => setUsuario(e.target.value)} autoComplete="off" placeholder="voce@email.com" />
-          </Field>
-          <Field label="Senha do Meu Pluggy">
-            <input type="password" value={senha} onChange={e => setSenha(e.target.value)} autoComplete="new-password" />
-          </Field>
-          <div className="flex gap-3 justify-end mt-4">
-            <button className="btn-ghost" onClick={onClose}>Cancelar</button>
-            <button className="btn-gold" onClick={conectar} disabled={carregando || semPin}>
-              {carregando ? "Conectando…" : "Conectar"}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+            <input value={itemManual} onChange={e => setItemManual(e.target.value)}
+                   placeholder="ex.: 3a7b12f0-…" className="num"
+                   style={{ flex: 1, minWidth: 200 }} autoComplete="off" />
+            <button className="btn-gold" onClick={usarItemExistente} disabled={carregando || semPin}>
+              {carregando ? "Validando…" : "Usar esse item"}
             </button>
           </div>
 
-          <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 18, paddingTop: 14 }}>
-            <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 8 }}>
-              <strong style={{ color: T.ink }}>Conectou pelo painel da Pluggy?</strong> (caminho
-              recomendado pelo guia do Meu Pluggy: dashboard.pluggy.ai → "Conecte um item demo").
-              Cada banco autorizado gera um <strong>ID próprio</strong> — cola um por vez aqui
-              (pode adicionar vários):
+          <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 16, paddingTop: 12 }}>
+            <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 10 }}>
+              Ou conexão direta com usuário/senha do <strong>Meu Pluggy</strong> (somente leitura;
+              a <strong>senha nunca fica salva</strong> — só transita criptografada; o e-mail fica
+              lembrado neste aparelho):
             </p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <input value={itemManual} onChange={e => setItemManual(e.target.value)}
-                     placeholder="ex.: 3a7b12f0-…" className="num"
-                     style={{ flex: 1, minWidth: 200 }} autoComplete="off" />
-              <button className="btn-ghost" onClick={usarItemExistente} disabled={carregando || semPin}>
-                Usar esse item
+            <Field label="Usuário/e-mail do Meu Pluggy">
+              <input value={usuario} onChange={e => setUsuario(e.target.value)} autoComplete="off" placeholder="voce@email.com" />
+            </Field>
+            <Field label="Senha do Meu Pluggy">
+              <input type="password" value={senha} onChange={e => setSenha(e.target.value)} autoComplete="new-password" />
+            </Field>
+            <div className="flex gap-3 justify-end mt-4">
+              <button className="btn-ghost" onClick={onClose}>Cancelar</button>
+              <button className="btn-ghost" onClick={conectar} disabled={carregando || semPin}>
+                {carregando ? "Conectando…" : "Conectar"}
               </button>
             </div>
           </div>

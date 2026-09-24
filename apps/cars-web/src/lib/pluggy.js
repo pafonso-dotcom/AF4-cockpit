@@ -9,12 +9,21 @@ import { uid } from "./format.js";
 import { chaveTransacao } from "./extratoParser.js";
 
 const PIN_KEY = "af4:pluggy-pin";
+const USUARIO_KEY = "af4:pluggy-usuario";
 
 export function getPluggyPin() {
   try { return localStorage.getItem(PIN_KEY) || ""; } catch { return ""; }
 }
 export function setPluggyPin(v) {
   try { localStorage.setItem(PIN_KEY, (v || "").trim()); } catch {}
+}
+
+// Só o e-mail/usuário fica lembrado (a senha NUNCA é salva — só transita).
+export function getPluggyUsuario() {
+  try { return localStorage.getItem(USUARIO_KEY) || ""; } catch { return ""; }
+}
+export function setPluggyUsuario(v) {
+  try { localStorage.setItem(USUARIO_KEY, (v || "").trim()); } catch {}
 }
 
 async function chamar(caminho, opts = {}) {
