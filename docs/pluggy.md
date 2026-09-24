@@ -6,21 +6,33 @@ Sem licença BCB, sem contrato, sem mensalidade. Pluggy é regulada pelo
 Banco Central. Acesso **somente leitura** (não move dinheiro), consentimento
 revogável a qualquer momento no app do banco.
 
-## Setup
+## Setup (fluxo VALIDADO em 2026-09-24)
 1. Criar conta no **Meu Pluggy** (meu.pluggy.ai) e conectar os bancos
    (concluir a autorização no app do banco até voltar);
 2. Criar conta em **dashboard.pluggy.ai** (mesmo e-mail) — ignorar o aviso
    de trial de 15 dias (não afeta uso pessoal);
 3. Criar 1 aplicação → `client_id` / `client_secret`;
-4. Configurar os secrets no Worker (na pasta raiz do repo):
+4. Secrets no Worker — pelo painel da Cloudflare (worker `af4cockpit` →
+   Configurações → **Variáveis e segredos de RUNTIME**, tipo **Segredo** —
+   NÃO a "Variáveis e segredos" dentro da caixa Compilação, que é só do
+   build) + Implantar; ou por terminal:
    ```bash
    wrangler secret put PLUGGY_CLIENT_ID
    wrangler secret put PLUGGY_CLIENT_SECRET
    wrangler secret put PLUGGY_PIN      # PIN que você escolhe; vai também em Configurações → APIs
    ```
+   (`keep_vars: true` no wrangler.jsonc impede os deploys automáticos de
+   apagarem variáveis criadas no painel — já aconteceu.)
 5. No app: Configurações → APIs → "🏦 Conexão bancária" → colar o PIN → 🧪 Testar;
-6. Contas → **🏦 Sincronizar banco** → conectar o Meu Pluggy (1ª vez) →
-   vincular contas → puxar extrato.
+6. **Conectar o item pelo WIDGET do dashboard** (caminho oficial do
+   meu.pluggy.ai/api-guide): dashboard.pluggy.ai → "Conecte um item demo" →
+   conector **Meu Pluggy** → login → concluir. Copiar o **item ID** (uuid;
+   aparece no api-guide logado ou em Dados Financeiros → Execuções);
+   ⚠️ conectar via `POST /items` direto NÃO funciona: o conector é OAuth e
+   o item fica preso em WAITING_USER_INPUT com /accounts vazio.
+7. Contas → **🏦 Sincronizar banco** → "Conectou pelo painel da Pluggy?" →
+   colar o item ID → **Usar esse item** → vincular contas → puxar extrato.
+   O Meu Pluggy re-sincroniza com os bancos ~1x/dia (PATCH não força).
 
 ## Arquitetura
 - `worker/pluggy.js` — proxy server-side (rotas `/api/pluggy/*` em
