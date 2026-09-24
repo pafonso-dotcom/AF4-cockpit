@@ -23,6 +23,30 @@ describe("montarResumoDia", () => {
     expect(varios[0].texto).toContain("R$150");
   });
 
+  it("avisa o que tem A RECEBER hoje (devedores do dia, valor em aberto)", () => {
+    const um = montarResumoDia({
+      devedores: [
+        { nome: "Jorge", valor: 500, valorRecebido: 100, vencimento: "2026-09-21" },
+        { nome: "amanhã", valor: 900, vencimento: "2026-09-22" },            // fora
+        { nome: "recebido", valor: 300, recebido: true, vencimento: "2026-09-21" }, // fora
+        { nome: "quitado", valor: 200, valorRecebido: 200, vencimento: "2026-09-21" }, // fora
+      ],
+      hoje: HOJE, fmt: v => `R$${v}`,
+    });
+    expect(um[0].cor).toBe("green");
+    expect(um[0].texto).toContain("A receber hoje: Jorge");
+    expect(um[0].texto).toContain("R$400");
+    const varios = montarResumoDia({
+      devedores: [
+        { nome: "A", valor: 100, vencimento: "2026-09-21" },
+        { nome: "B", valor: 50, vencimento: "2026-09-21" },
+      ],
+      hoje: HOJE, fmt: v => `R$${v}`,
+    });
+    expect(varios[0].texto).toContain("2 depósitos");
+    expect(varios[0].texto).toContain("R$150");
+  });
+
   it("avisa cartão fechando em até 2 dias (hoje/amanhã), ignora os distantes", () => {
     const r = montarResumoDia({
       cartoes: [

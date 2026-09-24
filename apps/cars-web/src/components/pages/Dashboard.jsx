@@ -122,7 +122,9 @@ function MobileColapsavel({ id, titulo, isMobile, children }) {
 // Modo "olhada rápida" (item 5 do estudo mobile · 2026-09-22): tela cheia na
 // PRIMEIRA abertura do dia no celular — saudação, saldo em contas e o Resumo
 // do dia em letras grandes. Desliza pra cima (ou toca no botão) pra entrar.
-function OlhadaRapida({ resumoDia, totalContas, hidden, userName, onFechar }) {
+// Sem saldo de propósito (pedido 2026-09-24): a olhada é só os AVISOS do
+// dia — contas a pagar e recebimentos; o saldo fica dentro do app.
+function OlhadaRapida({ resumoDia, userName, onFechar }) {
   const [saindo, setSaindo] = useState(false);
   const touchRef = React.useRef(null);
   const fechar = () => {
@@ -150,18 +152,6 @@ function OlhadaRapida({ resumoDia, totalContas, hidden, userName, onFechar }) {
       </div>
       <div style={{ fontSize: 13, color: T.muted, marginTop: 4, textTransform: "capitalize" }}>
         {dataPorExtenso()}
-      </div>
-
-      <div style={{
-        marginTop: 16, background: T.card, border: `1px solid ${T.border}`,
-        borderRadius: 18, padding: "16px 18px",
-      }}>
-        <div style={{ fontSize: 11, color: T.muted, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase" }}>
-          Saldo em contas
-        </div>
-        <div style={{ fontSize: 28, fontWeight: 800, color: T.ink, marginTop: 4 }}>
-          {hidden ? "•••••" : fmt(totalContas)}
-        </div>
       </div>
 
       <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
@@ -667,6 +657,7 @@ export default function Dashboard({
     try { despesasMes = getDespesasDoMes(mesISO, stateAgg, escopoAtivo); } catch {}
     return montarResumoDia({
       despesasMes,
+      devedores,
       cartoes,
       orcamentos: calcOrcamentoComGastos(categorias, gastosCat),
       alertasHoje: alertasDisparadosHoje(),
@@ -703,8 +694,7 @@ export default function Dashboard({
     <div className="fade-up" style={{ paddingTop: 12 }}>
 
       {olhadaAberta && (
-        <OlhadaRapida resumoDia={resumoDia} totalContas={totalContas} hidden={hidden}
-                      userName={userName} onFechar={fecharOlhada} />
+        <OlhadaRapida resumoDia={resumoDia} userName={userName} onFechar={fecharOlhada} />
       )}
 
       {/* Top 3 do dia */}

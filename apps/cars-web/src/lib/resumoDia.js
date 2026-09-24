@@ -17,6 +17,7 @@ const diaLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
 
 export function montarResumoDia({
   despesasMes = [],        // itens de getDespesasDoMes (mês corrente)
+  devedores = [],          // a receber — pro aviso "A receber hoje"
   cartoes = [],
   orcamentos = [],         // saída de calcOrcamentoComGastos
   alertasHoje = [],        // tickers que dispararam hoje
@@ -40,6 +41,20 @@ export function montarResumoDia({
       texto: vencemHoje.length === 1
         ? `Vence hoje: ${nome} (${fmt(total)})`
         : `Vencem hoje: ${vencemHoje.length} contas (${fmt(total)})`,
+    });
+  }
+
+  // 1¼) A receber hoje — devedores com vencimento no dia (valor em aberto).
+  const recebemHoje = (devedores || []).filter(d =>
+    d && !d.recebido && String(d.vencimento || "").slice(0, 10) === hojeISO
+    && ((Number(d.valor) || 0) - (Number(d.valorRecebido) || 0)) > 0);
+  if (recebemHoje.length) {
+    const total = recebemHoje.reduce((s, d) => s + ((Number(d.valor) || 0) - (Number(d.valorRecebido) || 0)), 0);
+    avisos.push({
+      icone: "💰", cor: "green",
+      texto: recebemHoje.length === 1
+        ? `A receber hoje: ${recebemHoje[0]?.nome || "depósito"} (${fmt(total)})`
+        : `A receber hoje: ${recebemHoje.length} depósitos (${fmt(total)})`,
     });
   }
 
