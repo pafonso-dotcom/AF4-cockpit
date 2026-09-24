@@ -63,6 +63,41 @@ export const STATUS_RECONECTAR = new Set(["LOGIN_ERROR", "OUTDATED", "WAITING_US
  *     chave data|valor|tipo (mesma regra do importador de extrato) — o
  *     usuário decide na prévia.
  */
+/**
+ * PURA: acha compras de cartão DUPLICADAS entre o que veio da Pluggy e o que
+ * já existia por outra via (fatura PDF/foto, compra manual). O detector da
+ * prévia compara data exata, mas a fatura importada usa a data de VENCIMENTO
+ * enquanto o banco manda o dia da COMPRA — mesmas compras, datas diferentes.
+ * Regra: mesmo cartaoId + mesmo valor + datas até `janelaDias` de distância;
+ * pareia cada tx pluggy com no máximo UMA existente (a de data mais próxima).
+ * Devolve pares {remover: txPluggy, manter: txOutra} — só a cópia da Pluggy
+ * é candidata a remoção (a outra pode ter categoria/ajustes do usuário).
+ */
+export function detectarDuplicatasCartao(transacoes = [], janelaDias = 45) {
+  const round2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
+  const dias = (a, b) => Math.abs(new Date(a) - new Date(b)) / 86400000;
+  const doPluggy = [], outras = [];
+  for (const t of transacoes || []) {
+    if (!t || !t.cartaoId || t.tipo !== "despesa") continue;
+    if (t.origem === "pluggy") doPluggy.push(t);
+    else if (t.origem !== "fatura-pagamento") outras.push(t);
+  }
+  const usadas = new Set();
+  const pares = [];
+  for (const p of doPluggy) {
+    let melhor = null, melhorDist = Infinity;
+    for (const o of outras) {
+      if (usadas.has(o.id)) continue;
+      if (o.cartaoId !== p.cartaoId) continue;
+      if (round2(o.valor) !== round2(p.valor)) continue;
+      const d = dias(o.data, p.data);
+      if (d <= janelaDias && d < melhorDist) { melhor = o; melhorDist = d; }
+    }
+    if (melhor) { usadas.add(melhor.id); pares.push({ remover: p, manter: melhor }); }
+  }
+  return pares;
+}
+
 export function prepararImportPluggy(txsPluggy = [], existentes = [], contaNome = "", cartao = null) {
   const idsExistentes = new Set((existentes || []).map(t => t.pluggyId).filter(Boolean));
   const chavesExistentes = new Set((existentes || []).map(chaveTransacao));

@@ -7,7 +7,8 @@ import Field from "../ui/Field.jsx";
 import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 import { categoriaAuto } from "../../lib/autoCategorizar.js";
 import {
-  getPluggyPin, getPluggyUsuario, setPluggyUsuario, conectarMeuPluggy, statusItem, contasPluggy,
+  getPluggyPin, getPluggyUsuario, setPluggyUsuario, detectarDuplicatasCartao,
+  conectarMeuPluggy, statusItem, contasPluggy,
   transacoesPluggy, prepararImportPluggy, STATUS_RECONECTAR,
 } from "../../lib/pluggy.js";
 
@@ -43,6 +44,23 @@ export default function SincronizarBancoModal({
   const [vinculos, setVinculos] = useState(pluggy.vinculos || {});
   // prévia
   const [previa, setPrevia] = useState(null); // {contaPluggy, contaNome, novas, jaImportadas}
+  // limpeza de duplicadas de cartão (pluggy × fatura/manual)
+  const [dups, setDups] = useState(null); // [{remover, manter, _marcada}]
+
+  const abrirDuplicadas = () => {
+    const pares = detectarDuplicatasCartao(transacoes).map(p => ({ ...p, _marcada: true }));
+    if (!pares.length) { toast.success("Nenhuma compra duplicada de cartão encontrada. 👌"); return; }
+    setDups(pares);
+    setPasso("duplicadas");
+  };
+
+  const apagarDuplicadas = () => {
+    const ids = new Set((dups || []).filter(p => p._marcada).map(p => p.remover.id));
+    if (ids.size) setTransacoes(prev => prev.filter(t => !ids.has(t.id)));
+    toast.success(`🧹 ${ids.size} compra(s) duplicada(s) removida(s).`);
+    setDups(null);
+    setPasso("contas");
+  };
 
   const semPin = !getPluggyPin();
 
@@ -325,8 +343,46 @@ export default function SincronizarBancoModal({
           <div className="flex gap-3 justify-end mt-4">
             <button className="btn-gold" disabled={carregando}
                     onClick={() => carregarContas(idsConexoes(), true)}>↻ Atualizar</button>
+            <button className="btn-ghost" title="Acha compras de cartão repetidas entre a sincronização e a fatura importada/lançamentos manuais (mesmo valor, datas próximas)"
+                    onClick={abrirDuplicadas}>🧹 Duplicadas</button>
             <button className="btn-ghost" onClick={() => { setPasso("conectar"); setListaBanco(null); }}>＋ Adicionar conexão</button>
             <button className="btn-ghost" onClick={onClose}>Fechar</button>
+          </div>
+        </>
+      )}
+
+      {/* PASSO: limpar compras de cartão duplicadas (pluggy × fatura/manual) */}
+      {passo === "duplicadas" && dups && (
+        <>
+          <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 10 }}>
+            <strong style={{ color: T.ink }}>{dups.length}</strong> compra(s) de cartão parecem
+            duplicadas: a versão do <strong>banco</strong> (que será removida) casa com uma já
+            lançada por <strong>fatura/manual</strong> (mesmo valor, data próxima — a fatura usa a
+            data de vencimento, o banco usa o dia da compra). Desmarca o que NÃO for duplicado.
+          </p>
+          <div style={{ maxHeight: 320, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
+            {dups.map((p, i) => (
+              <label key={p.remover.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: "8px 12px", cursor: "pointer" }}>
+                <input type="checkbox" checked={p._marcada}
+                       onChange={e => setDups(d => d.map((x, j) => j === i ? { ...x, _marcada: e.target.checked } : x))}
+                       style={{ marginTop: 3 }} />
+                <div style={{ minWidth: 0, fontSize: 12 }}>
+                  <div style={{ color: T.red, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    🗑 {p.remover.descricao} · <span className="num">{fmt(p.remover.valor)}</span> · <span className="num">{p.remover.data}</span> <span style={{ color: T.muted }}>(banco)</span>
+                  </div>
+                  <div style={{ color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    ✔ fica: {p.manter.descricao} · <span className="num">{p.manter.data}</span>{p.manter.categoria ? ` · ${p.manter.categoria}` : ""}
+                  </div>
+                </div>
+              </label>
+            ))}
+          </div>
+          <div className="flex gap-3 justify-end mt-4">
+            <button className="btn-ghost" onClick={() => { setDups(null); setPasso("contas"); }}>Cancelar</button>
+            <button className="btn-gold" onClick={apagarDuplicadas}
+                    disabled={!dups.some(p => p._marcada)}>
+              🧹 Apagar {dups.filter(p => p._marcada).length} duplicada(s)
+            </button>
           </div>
         </>
       )}
