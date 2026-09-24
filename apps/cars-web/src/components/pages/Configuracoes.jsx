@@ -299,6 +299,24 @@ function APIs({ apiKeys, setApiKeys }) {
     }
   };
 
+  // PIN da conexão bancária Pluggy (Worker /api/pluggy/*). Vive em localStorage.
+  const [pluggyPinDraft, setPluggyPinDraft] = useState(() => {
+    try { return localStorage.getItem("af4:pluggy-pin") || ""; } catch { return ""; }
+  });
+  const [statusPluggy, setStatusPluggy] = useState(null);
+  const salvarPluggyPin = () => {
+    try { localStorage.setItem("af4:pluggy-pin", (pluggyPinDraft || "").trim()); toast.success("PIN da conexão bancária salvo."); } catch {}
+  };
+  const testarPluggy = async () => {
+    setStatusPluggy({ ok: null, msg: "Testando…" });
+    try {
+      const r = await fetch("/api/pluggy/item?itemId=teste", { headers: { "x-pluggy-pin": (pluggyPinDraft || "").trim() } });
+      if (r.status === 401) setStatusPluggy({ ok: false, msg: "PIN não confere com o do servidor." });
+      else if (r.status === 501) setStatusPluggy({ ok: false, msg: "Servidor sem os secrets da Pluggy (ver docs/pluggy.md)." });
+      else setStatusPluggy({ ok: true, msg: "Servidor configurado e PIN aceito ✓" });
+    } catch { setStatusPluggy({ ok: false, msg: "Servidor não respondeu." }); }
+  };
+
   // PIN do scanner de recibo (Worker /api/recibo). Vive em localStorage.
   const [reciboPinDraft, setReciboPinDraft] = useState(() => {
     try { return localStorage.getItem("af4:recibo-pin") || ""; } catch { return ""; }
@@ -438,6 +456,32 @@ function APIs({ apiKeys, setApiKeys }) {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="fb">
+        <h4>🏦 Conexão bancária (Pluggy · Open Finance)</h4>
+        <p style={{ fontSize: 11.5, color: T.muted, marginTop: -4, marginBottom: 10 }}>
+          Puxa saldos e extratos direto do banco (somente leitura, padrão Banco Central) —
+          <strong> fonte opcional</strong>: o app funciona 100% sem isso. Setup completo em{" "}
+          <strong>docs/pluggy.md</strong> (conta no Meu Pluggy + secrets no servidor). Aqui vai só o PIN
+          que libera o endpoint.
+        </p>
+        <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+          <input type="password" value={pluggyPinDraft} onChange={e => setPluggyPinDraft(e.target.value)}
+                 placeholder="PIN da conexão bancária" style={{ flex: 1 }} />
+          <button onClick={salvarPluggyPin} className="btn-gold" style={{ padding: "0 14px", fontSize: 11, whiteSpace: "nowrap" }}>Salvar</button>
+          <button onClick={testarPluggy} className="btn-ghost" style={{ padding: "0 14px", fontSize: 11, whiteSpace: "nowrap" }}>🧪 Testar</button>
+        </div>
+        {statusPluggy && (
+          <div style={{
+            marginTop: 10, padding: "8px 12px", borderRadius: 12, fontSize: 11.5,
+            background: statusPluggy.ok ? `${T.green}15` : `${T.red}15`,
+            color: statusPluggy.ok ? T.green : T.red,
+            border: `1px solid ${statusPluggy.ok ? T.green : T.red}55`,
+          }}>
+            {statusPluggy.msg}
+          </div>
+        )}
       </div>
 
       <div className="fb">

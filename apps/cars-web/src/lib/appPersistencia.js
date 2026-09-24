@@ -98,6 +98,8 @@ export function aplicarDadosCarregados(data, S) {
   if (S.setNotasRapidas) S.setNotasRapidas(data.notasRapidas || {});
   // Módulo Voos (monitores de preço).
   if (S.setVoos) S.setVoos(data.voos || { monitores: [] });
+  // Integração bancária Pluggy.
+  if (S.setPluggy) S.setPluggy(data.pluggy || { itemId: "", vinculos: {}, ultimaSync: {} });
   // Migração one-shot: marca contas/categorias antigas com escopo detectado
   setTimeout(() => {
     migrarEscoposAuto(
@@ -112,6 +114,7 @@ export function aplicarSeeds(S) {
   if (S.setTumbas) S.setTumbas({});
   if (S.setNotasRapidas) S.setNotasRapidas({});
   if (S.setVoos) S.setVoos({ monitores: [] });
+  if (S.setPluggy) S.setPluggy({ itemId: "", vinculos: {}, ultimaSync: {} });
   S.setContas(seedContas);
   S.setCategorias(seedCategorias);
   S.setTransacoes(seedTransacoes);
