@@ -11,6 +11,10 @@
   // "afinancas-pessoal" exige reconfigurar o projeto no Cloudflare — fazer
   // depois, com calma, pra não quebrar o deploy.
   "name": "af4cockpit",
+  // Deploys automáticos (Workers Builds a cada merge) não podem apagar as
+  // variáveis criadas no painel da Cloudflare (ex.: PLUGGY_* se criadas como
+  // "Texto" em vez de "Segredo") — sem isso, wrangler deploy as remove.
+  "keep_vars": true,
   "compatibility_date": "2026-05-22",
   "main": "./worker/index.js",
   "assets": {
