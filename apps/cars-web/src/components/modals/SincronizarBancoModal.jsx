@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid } from "../../lib/format.js";
 import { toast } from "../../lib/toast.js";
@@ -41,10 +41,13 @@ export default function SincronizarBancoModal({
 
   // `forcar` pede à Pluggy uma re-sincronização do item (PATCH) — necessário
   // quando um banco foi conectado no Meu Pluggy DEPOIS de o item existir.
+  // NUNCA durante um UPDATING em andamento: o PATCH reiniciaria a sync e o
+  // status ficaria preso em "sincronizando" a cada clique.
   const carregarContas = async (itemId, forcar = false) => {
     setCarregando(true); setErro("");
     try {
-      const st = await statusItem(itemId, forcar);
+      let st = await statusItem(itemId);
+      if (forcar && st.status !== "UPDATING") st = await statusItem(itemId, true);
       setReconectar(STATUS_RECONECTAR.has(st.status));
       setSincronizando(st.status === "UPDATING");
       const r = await contasPluggy(itemId);
@@ -58,6 +61,20 @@ export default function SincronizarBancoModal({
     if (pluggy.itemId && !semPin) carregarContas(pluggy.itemId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-poll: enquanto a Pluggy sincroniza e a lista está vazia, re-consulta
+  // sozinho a cada 6s (sem forçar PATCH), até ~2 min — o usuário só espera.
+  const pollsRef = useRef(0);
+  useEffect(() => {
+    if (!(sincronizando && passo === "contas" && (listaBanco || []).length === 0 && pluggy.itemId)) {
+      pollsRef.current = 0;
+      return;
+    }
+    if (pollsRef.current >= 20) return;
+    const t = setTimeout(() => { pollsRef.current += 1; carregarContas(pluggy.itemId); }, 6000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sincronizando, passo, listaBanco, carregando]);
 
   const conectar = async () => {
     if (!usuario.trim() || !senha) { setErro("Informe usuário e senha do Meu Pluggy."); return; }
@@ -177,7 +194,7 @@ export default function SincronizarBancoModal({
           {!carregando && listaBanco && listaBanco.length === 0 && (
             <p style={{ fontSize: 12.5, color: T.muted }}>
               {sincronizando
-                ? <>⏳ O Meu Pluggy ainda está <strong>sincronizando com os bancos</strong> — a primeira conexão leva 1–2 minutos. Espera um pouco e clica em ↻ Atualizar.</>
+                ? <>⏳ O Meu Pluggy está <strong>sincronizando com os bancos</strong> — a primeira vez pode levar alguns minutos. Pode deixar essa tela aberta: eu <strong>atualizo sozinho</strong> a cada poucos segundos.</>
                 : <>Nenhuma conta bancária encontrada — confere no app <strong>Meu Pluggy</strong> (meu.pluggy.ai) se os bancos estão conectados (a autorização Open Finance precisa ser concluída dentro do app de cada banco).</>}
             </p>
           )}
