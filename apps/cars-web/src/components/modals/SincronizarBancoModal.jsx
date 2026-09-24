@@ -25,7 +25,7 @@ const ehAguardandoAutorizacao = (st) =>
 
 export default function SincronizarBancoModal({
   contas = [], setContas, categorias = [], transacoes = [], setTransacoes,
-  cartoes = [], pluggy = {}, setPluggy, onClose,
+  cartoes = [], parcelamentos = [], pluggy = {}, setPluggy, onClose,
 }) {
   const [passo, setPasso] = useState(pluggy.itemId ? "contas" : "conectar");
   const [carregando, setCarregando] = useState(false);
@@ -48,7 +48,7 @@ export default function SincronizarBancoModal({
   const [dups, setDups] = useState(null); // [{remover, manter, _marcada}]
 
   const abrirDuplicadas = () => {
-    const pares = detectarDuplicatasCartao(transacoes).map(p => ({ ...p, _marcada: true }));
+    const pares = detectarDuplicatasCartao(transacoes, 45, parcelamentos).map(p => ({ ...p, _marcada: true }));
     if (!pares.length) { toast.success("Nenhuma compra duplicada de cartão encontrada. 👌"); return; }
     setDups(pares);
     setPasso("duplicadas");
@@ -163,7 +163,7 @@ export default function SincronizarBancoModal({
       const from = pluggy.ultimaSync?.[contaPluggy.id]
         || new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
       const r = await transacoesPluggy(contaPluggy.id, from);
-      const prep = prepararImportPluggy(r.transacoes, transacoes, cartao ? "" : vin, cartao);
+      const prep = prepararImportPluggy(r.transacoes, transacoes, cartao ? "" : vin, cartao, parcelamentos);
       // pré-seleção: tudo que não é duplicado
       prep.novas.forEach(t => { t._marcada = !t._duplicada; });
       setPrevia({ contaPluggy, contaNome: cartao ? cartao.nome : vin, ehCartao: Boolean(cartao), ...prep, truncado: r.truncado });
@@ -308,9 +308,23 @@ export default function SincronizarBancoModal({
                   || (a.banco || a.nome || "").localeCompare(b.banco || b.nome || "")
                   || (a.nome || "").localeCompare(b.nome || ""))
                 .map(cb => (
-                <div key={cb.id} style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-                  <div title={cb.nome} style={{ fontSize: 12.5, fontWeight: 700, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {cb.tipoConta === "cartao" ? "💳" : "🏦"} {cb.nome}
+                <div key={cb.id} style={{
+                  background: cb.tipoConta === "cartao" ? `${T.gold}0e` : T.bgSoft,
+                  border: `1px solid ${cb.tipoConta === "cartao" ? `${T.gold}55` : T.border}`,
+                  borderLeft: `4px solid ${cb.tipoConta === "cartao" ? T.gold : T.green}`,
+                  borderRadius: 14, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6, minWidth: 0,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                    <span style={{
+                      fontSize: 8.5, fontWeight: 800, letterSpacing: 0.8, padding: "2px 6px", borderRadius: 6, flexShrink: 0,
+                      background: cb.tipoConta === "cartao" ? `${T.gold}22` : `${T.green}22`,
+                      color: cb.tipoConta === "cartao" ? T.gold : T.green,
+                    }}>
+                      {cb.tipoConta === "cartao" ? "💳 CARTÃO" : "🏦 CONTA"}
+                    </span>
+                    <span title={cb.nome} style={{ fontSize: 12.5, fontWeight: 700, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {cb.nome}
+                    </span>
                   </div>
                   <div className="num" style={{ fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {[cb.banco, cb.numero].filter(Boolean).join(" · ")}
@@ -371,7 +385,7 @@ export default function SincronizarBancoModal({
                     🗑 {p.remover.descricao} · <span className="num">{fmt(p.remover.valor)}</span> · <span className="num">{p.remover.data}</span> <span style={{ color: T.muted }}>(banco)</span>
                   </div>
                   <div style={{ color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    ✔ fica: {p.manter.descricao} · <span className="num">{p.manter.data}</span>{p.manter.categoria ? ` · ${p.manter.categoria}` : ""}
+                    ✔ fica: {p.manter.descricao}{p.manter.data ? <> · <span className="num">{p.manter.data}</span></> : null}{p.manter.categoria ? ` · ${p.manter.categoria}` : ""}
                   </div>
                 </div>
               </label>
@@ -406,7 +420,7 @@ export default function SincronizarBancoModal({
                        style={{ width: 15, height: 15, accentColor: T.gold, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {t.descricao} {t._duplicada && <span style={{ fontSize: 10, color: T.red }}>· possível duplicada</span>}
+                    {t.descricao} {t._duplicada && <span style={{ fontSize: 10, color: T.red }}>· {t._dupParcela ? `parcela já lançada: ${t._dupParcela}` : "possível duplicada"}</span>}
                   </div>
                   <div style={{ fontSize: 10.5, color: T.faint }}>{t.data}</div>
                 </div>
