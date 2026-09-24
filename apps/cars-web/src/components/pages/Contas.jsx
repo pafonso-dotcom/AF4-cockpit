@@ -19,7 +19,7 @@ import TransferenciaModal from "../modals/TransferenciaModal.jsx";
 import ImportarExtrato from "../modals/ImportarExtrato.jsx";
 import SincronizarBancoModal from "../modals/SincronizarBancoModal.jsx";
 
-export default function Contas({ contas, setContas, hidden, onCreateTransacao, onContaClick, contaAtiva, transacoes, setTransacoes, categorias, escopoAtivo = "tudo", notaRapida, onSalvarNota, pluggy = {}, setPluggy }) {
+export default function Contas({ contas, setContas, hidden, onCreateTransacao, onContaClick, contaAtiva, transacoes, setTransacoes, categorias, cartoes = [], escopoAtivo = "tudo", notaRapida, onSalvarNota, pluggy = {}, setPluggy }) {
   const { isMobile } = useLayout();
   const [form, setForm] = useState(null);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -773,6 +773,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           contas={contas} setContas={setContas}
           categorias={categorias}
           transacoes={transacoes} setTransacoes={setTransacoes}
+          cartoes={cartoes}
           pluggy={pluggy} setPluggy={setPluggy}
           onClose={() => setSincBancoOpen(false)} />
       )}

@@ -110,13 +110,13 @@ export async function handlePluggy(request, env, fetchImpl = fetch) {
       return json({ ok: true, itemId: item.id, status: item.status, executionStatus: item.executionStatus, atualizadoEm: item.updatedAt });
     }
 
-    // ---- contas: só type BANK no MVP (cartões = fase 2) ----
+    // ---- contas: BANK (conta corrente) e CREDIT (cartão de crédito) ----
     if (rota === "contas") {
       const itemId = url.searchParams.get("itemId");
       if (!itemId) return json({ ok: false, error: "Informe itemId." }, 400);
       const data = await pluggyGet(`/accounts?itemId=${encodeURIComponent(itemId)}`, env, fetchImpl);
       const contas = (data.results || [])
-        .filter(a => a.type === "BANK")
+        .filter(a => a.type === "BANK" || a.type === "CREDIT")
         .map(a => ({
           id: a.id,
           nome: [a.name, a.marketingName].filter(Boolean)[0] || "Conta",
@@ -124,6 +124,7 @@ export async function handlePluggy(request, env, fetchImpl = fetch) {
           numero: a.number || "",
           saldo: Number(a.balance) || 0,
           moeda: a.currencyCode || "BRL",
+          tipoConta: a.type === "CREDIT" ? "cartao" : "banco",
         }));
       return json({ ok: true, contas });
     }

@@ -63,7 +63,7 @@ export const STATUS_RECONECTAR = new Set(["LOGIN_ERROR", "OUTDATED", "WAITING_US
  *     chave data|valor|tipo (mesma regra do importador de extrato) — o
  *     usuário decide na prévia.
  */
-export function prepararImportPluggy(txsPluggy = [], existentes = [], contaNome = "") {
+export function prepararImportPluggy(txsPluggy = [], existentes = [], contaNome = "", cartao = null) {
   const idsExistentes = new Set((existentes || []).map(t => t.pluggyId).filter(Boolean));
   const chavesExistentes = new Set((existentes || []).map(chaveTransacao));
 
@@ -71,7 +71,27 @@ export function prepararImportPluggy(txsPluggy = [], existentes = [], contaNome 
   let jaImportadas = 0;
   for (const t of txsPluggy || []) {
     if (t.pluggyId && idsExistentes.has(t.pluggyId)) { jaImportadas++; continue; }
-    const tx = {
+    // Cartão: compra avulsa do modelo do app — cartaoId, sem conta e
+    // compensado:false (pendente até o pagamento da fatura, que cobre as
+    // avulsas). Só despesas entram (pagamento de fatura/estorno vêm como
+    // "receita" no extrato do cartão e duplicariam o fatura-pagamento).
+    if (cartao && t.tipo === "receita") continue;
+    const tx = cartao ? {
+      id: uid(),
+      descricao: t.descricao || "Compra",
+      categoria: "",
+      subcategoria: "",
+      tipo: "despesa",
+      conta: "",
+      cartaoId: cartao.id,
+      data: t.data,
+      valor: Math.abs(Number(t.valor) || 0),
+      compensado: false,
+      fixa: false,
+      obs: "Importado do cartão (Open Finance)",
+      origem: "pluggy",
+      pluggyId: t.pluggyId,
+    } : {
       id: uid(),
       descricao: t.descricao || "Transação",
       categoria: "",

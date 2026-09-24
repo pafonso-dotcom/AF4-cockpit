@@ -65,8 +65,15 @@ revogável a qualquer momento no app do banco.
 - Tier gratuito pode acabar sem aviso → por ser opcional, nada quebra;
 - Lote grande: worker corta em 500 transações por sync (o resto vem na próxima).
 
+## Cartões (feito em 2026-09-24)
+- Accounts type CREDIT aparecem no modal com 💳; vínculo vai pra um cartão
+  do app (`vinculos[id] = "cartao:<id>"`); as compras entram como avulsas
+  (`cartaoId`, sem conta, `compensado:false`) e caem na fatura do módulo
+  Cartões; "receitas" do extrato do cartão (pagamento de fatura/estorno)
+  são descartadas pra não duplicar o `fatura-pagamento`; saldo de conta
+  não é mexido.
+
 ## Fase 2 (futuro)
-- Cartões de crédito (accounts type CREDIT → lançamentos de fatura);
 - Sincronização automática ao abrir o app;
 - Referência de UX (Optio): detecção de recorrentes/assinaturas, gestão de
   parcelas, projeção 3/6/12m, regras de categorização — o app já tem fixas,
