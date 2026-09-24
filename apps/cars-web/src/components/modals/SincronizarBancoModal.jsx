@@ -39,10 +39,12 @@ export default function SincronizarBancoModal({
 
   const semPin = !getPluggyPin();
 
-  const carregarContas = async (itemId) => {
+  // `forcar` pede à Pluggy uma re-sincronização do item (PATCH) — necessário
+  // quando um banco foi conectado no Meu Pluggy DEPOIS de o item existir.
+  const carregarContas = async (itemId, forcar = false) => {
     setCarregando(true); setErro("");
     try {
-      const st = await statusItem(itemId);
+      const st = await statusItem(itemId, forcar);
       setReconectar(STATUS_RECONECTAR.has(st.status));
       setSincronizando(st.status === "UPDATING");
       const r = await contasPluggy(itemId);
@@ -200,7 +202,7 @@ export default function SincronizarBancoModal({
           ))}
           <div className="flex gap-3 justify-end mt-4">
             <button className="btn-gold" disabled={carregando}
-                    onClick={() => carregarContas(pluggy.itemId)}>↻ Atualizar</button>
+                    onClick={() => carregarContas(pluggy.itemId, true)}>↻ Atualizar</button>
             <button className="btn-ghost" onClick={() => { setPasso("conectar"); setListaBanco(null); }}>Reconectar Meu Pluggy</button>
             <button className="btn-ghost" onClick={onClose}>Fechar</button>
           </div>
