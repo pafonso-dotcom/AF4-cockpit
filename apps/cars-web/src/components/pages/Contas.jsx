@@ -25,6 +25,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
   const [transferOpen, setTransferOpen] = useState(false);
   const [importExtratoOpen, setImportExtratoOpen] = useState(false);
   const [sincBancoOpen, setSincBancoOpen] = useState(false); // Pluggy (Open Finance)
+  const [acoesOpen, setAcoesOpen] = useState(false); // menu em cascata do cabeçalho
   const tipos = [
     { v: "corrente", l: "Conta Corrente" },
     { v: "poupanca", l: "Poupança" },
@@ -268,55 +269,79 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             Cada conta é uma página do seu balanço.
           </div>
         </div>
-        {/* Ações disponíveis também no MOBILE (pedido 2026-09-18): transferir
-            e lançar direto do celular. Botões ficam compactos via CSS abaixo. */}
-        <div className="contas-acoes" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end" }}>
-          {contas.length >= 2 && (
-            <button onClick={() => setTransferOpen(true)}
-                    style={{ ...btnSec, color: T.gold, borderColor: T.gold }}>
-              <ArrowRightLeft size={12} /> Transferir
-            </button>
-          )}
-          <button onClick={reconciliar}
-                  title="Recalcula o saldo de cada conta a partir do saldoInicial + transações"
-                  style={btnSec}>
-            <RefreshCw size={12} /> Reconciliar
-          </button>
-          <button onClick={marcarNegocioAuto}
-                  title="Detecta contas com nome de empresa (Loja, AF4, CNPJ…) e marca como Negócio"
-                  style={btnSec}>
-            <Building2 size={12} /> Detectar negócio
-          </button>
-          <button onClick={() => setImportExtratoOpen(true)} title="Importar extrato OFX/CSV do banco"
-                  style={{ ...btnSec, color: T.green, borderColor: `${T.green}88` }}>
-            <Upload size={12} /> Extrato banco
-          </button>
-          <button onClick={() => setSincBancoOpen(true)} title="Puxar saldos e extratos direto do banco via Open Finance (Pluggy) — fonte opcional"
+        {/* Ações agrupadas num menu em CASCATA (pedido 2026-09-24) — o
+            cabeçalho tinha 7 botões e estourava; ficam ⚙ Ações + Nova Conta. */}
+        <div className="contas-acoes" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end", position: "relative" }}>
+          <button onClick={() => setAcoesOpen(o => !o)}
                   style={{ ...btnSec, color: T.gold, borderColor: `${T.gold}88` }}>
-            🏦 Sincronizar banco
-          </button>
-          <button style={{ ...btnSec }}
-                  title="Conta avulsa, sem banco — pra registrar recebíveis / pagamentos futuros à mão"
-                  onClick={() => setForm({ id: null, carteira: true, nome: "", instituicao: "", tipo: "carteira", moeda: "BRL", cotacao: "", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.blue || "#60a5fa", appUrl: "", foraPatrimonio: true })}>
-            👛 Carteira
+            ⚙ Ações {acoesOpen ? "▴" : "▾"}
           </button>
           <button className="btn-gold" style={{ padding: "7px 12px", fontSize: 11 }}
                   onClick={() => setForm({ id: null, nome: "", instituicao: "", tipo: "corrente", moeda: "BRL", cotacao: "", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.gold, appUrl: "", foraPatrimonio: false })}>
             <Plus size={13} className="inline mr-1.5" />Nova Conta
           </button>
+
+          {acoesOpen && (
+            <>
+              {/* backdrop transparente: clicar fora fecha */}
+              <div onClick={() => setAcoesOpen(false)}
+                   style={{ position: "fixed", inset: 0, zIndex: 60 }} />
+              <div style={{
+                position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 61,
+                minWidth: 220, background: T.bg, border: `1px solid ${T.border}`,
+                borderRadius: 14, boxShadow: "0 12px 32px rgba(0,0,0,.18)", padding: 6,
+                display: "flex", flexDirection: "column", gap: 2,
+              }}>
+                {[
+                  contas.length >= 2 && {
+                    rotulo: <><ArrowRightLeft size={13} /> Transferir</>, cor: T.gold,
+                    title: "Transferir entre contas",
+                    acao: () => setTransferOpen(true),
+                  },
+                  {
+                    rotulo: <><RefreshCw size={13} /> Reconciliar</>,
+                    title: "Recalcula o saldo de cada conta a partir do saldoInicial + transações",
+                    acao: reconciliar,
+                  },
+                  {
+                    rotulo: <><Building2 size={13} /> Detectar negócio</>,
+                    title: "Detecta contas com nome de empresa (Loja, AF4, CNPJ…) e marca como Negócio",
+                    acao: marcarNegocioAuto,
+                  },
+                  {
+                    rotulo: <><Upload size={13} /> Extrato banco</>, cor: T.green,
+                    title: "Importar extrato OFX/CSV do banco",
+                    acao: () => setImportExtratoOpen(true),
+                  },
+                  {
+                    rotulo: <>🏦 Sincronizar banco</>, cor: T.gold,
+                    title: "Puxar saldos e extratos direto do banco via Open Finance (Pluggy) — fonte opcional",
+                    acao: () => setSincBancoOpen(true),
+                  },
+                  {
+                    rotulo: <>👛 Carteira</>,
+                    title: "Conta avulsa, sem banco — pra registrar recebíveis / pagamentos futuros à mão",
+                    acao: () => setForm({ id: null, carteira: true, nome: "", instituicao: "", tipo: "carteira", moeda: "BRL", cotacao: "", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.blue || "#60a5fa", appUrl: "", foraPatrimonio: true }),
+                  },
+                ].filter(Boolean).map((item, i) => (
+                  <button key={i} title={item.title}
+                          onClick={() => { setAcoesOpen(false); item.acao(); }}
+                          onMouseEnter={e => { e.currentTarget.style.background = T.bgSoft; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 8, width: "100%",
+                            padding: "9px 12px", borderRadius: 10, border: "none",
+                            background: "transparent", cursor: "pointer", textAlign: "left",
+                            fontSize: 12.5, color: item.cor || T.ink,
+                          }}>
+                    {item.rotulo}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
-
-      {/* Botões compactos no celular (senão estouram a largura) */}
-      <style>{`
-        @media (max-width: 768px) {
-          .contas-acoes button {
-            padding: 6px 9px !important;
-            font-size: 9.5px !important;
-            min-height: 34px !important;
-          }
-        }
-      `}</style>
 
       {/* Aviso de contas dessincronizadas */}
       {dessincronizadas.length > 0 && (
