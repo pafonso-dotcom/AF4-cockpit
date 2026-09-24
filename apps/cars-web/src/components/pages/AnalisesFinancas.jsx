@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Search, Printer, BarChart3, Brain, Sparkles, TrendingUp, Tag } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Search, Printer, BarChart3, Brain, Sparkles, TrendingUp, Tag, Scale } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN } from "../../lib/format.js";
 import { MESES_LONGO } from "../../lib/meses.js";
@@ -15,6 +15,8 @@ import Modal from "../ui/Modal.jsx";
 import PesquisasFinancas from "./PesquisasFinancas.jsx";
 import RelatoriosFinancas from "./RelatoriosFinancas.jsx";
 import Inteligencia from "./Inteligencia.jsx";
+import DreVisual from "./Relatorios/DreVisual.jsx";
+import { montarDRE } from "../../lib/dre.js";
 
 const mesAtualISO = () => {
   const d = new Date();
@@ -92,6 +94,14 @@ export default function AnalisesFinancas(props) {
     [mesISO, state, escopoAtivo]
   );
   const f = rel.financas;
+
+  // DRE visual (cascata) — mês atual + anterior pro comparativo.
+  const dre = useMemo(() => {
+    try { return montarDRE(mesISO, state, escopoAtivo, { carteiraProventos }); } catch { return null; }
+  }, [mesISO, state, escopoAtivo, carteiraProventos]);
+  const dreAnt = useMemo(() => {
+    try { return montarDRE(mesAnteriorISO(mesISO), state, escopoAtivo, { carteiraProventos }); } catch { return null; }
+  }, [mesISO, state, escopoAtivo, carteiraProventos]);
 
   // Itens agregados do mês (fixas + parcelas + avulsas) pro drill-down.
   const despesasAgg = useMemo(() => {
@@ -297,6 +307,14 @@ export default function AnalisesFinancas(props) {
               );
             })}
           </div>
+        </ExtraSec>
+      )}
+
+      {/* DRE VISUAL — cascata do bruto ao que sobrou (aprovado por mockup 2026-09-24) */}
+      {dre && (
+        <ExtraSec {...extra("dre")} icon={Scale} titulo="DRE visual"
+                  desc={`Do bruto ao que sobrou · resultado ${mask(dre.resultado)} — toque numa linha pra ver os maiores itens.`}>
+          <DreVisual dre={dre} dreAnt={dreAnt} hidden={hidden} />
         </ExtraSec>
       )}
 
