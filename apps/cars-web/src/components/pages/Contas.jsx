@@ -17,12 +17,14 @@ import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
 import { useLayout } from "../../lib/useLayout.js";
 import TransferenciaModal from "../modals/TransferenciaModal.jsx";
 import ImportarExtrato from "../modals/ImportarExtrato.jsx";
+import SincronizarBancoModal from "../modals/SincronizarBancoModal.jsx";
 
-export default function Contas({ contas, setContas, hidden, onCreateTransacao, onContaClick, contaAtiva, transacoes, setTransacoes, categorias, escopoAtivo = "tudo", notaRapida, onSalvarNota }) {
+export default function Contas({ contas, setContas, hidden, onCreateTransacao, onContaClick, contaAtiva, transacoes, setTransacoes, categorias, escopoAtivo = "tudo", notaRapida, onSalvarNota, pluggy = {}, setPluggy }) {
   const { isMobile } = useLayout();
   const [form, setForm] = useState(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [importExtratoOpen, setImportExtratoOpen] = useState(false);
+  const [sincBancoOpen, setSincBancoOpen] = useState(false); // Pluggy (Open Finance)
   const tipos = [
     { v: "corrente", l: "Conta Corrente" },
     { v: "poupanca", l: "Poupança" },
@@ -288,6 +290,10 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           <button onClick={() => setImportExtratoOpen(true)} title="Importar extrato OFX/CSV do banco"
                   style={{ ...btnSec, color: T.green, borderColor: `${T.green}88` }}>
             <Upload size={12} /> Extrato banco
+          </button>
+          <button onClick={() => setSincBancoOpen(true)} title="Puxar saldos e extratos direto do banco via Open Finance (Pluggy) — fonte opcional"
+                  style={{ ...btnSec, color: T.gold, borderColor: `${T.gold}88` }}>
+            🏦 Sincronizar banco
           </button>
           <button style={{ ...btnSec }}
                   title="Conta avulsa, sem banco — pra registrar recebíveis / pagamentos futuros à mão"
@@ -735,6 +741,15 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           transacoes={transacoes} setTransacoes={setTransacoes}
           onClose={() => setImportExtratoOpen(false)}
         />
+      )}
+
+      {sincBancoOpen && (
+        <SincronizarBancoModal
+          contas={contas} setContas={setContas}
+          categorias={categorias}
+          transacoes={transacoes} setTransacoes={setTransacoes}
+          pluggy={pluggy} setPluggy={setPluggy}
+          onClose={() => setSincBancoOpen(false)} />
       )}
     </div>
   );

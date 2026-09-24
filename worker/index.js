@@ -15,6 +15,7 @@
  */
 
 import { handleRecibo } from "./recibo.js";
+import { handlePluggy } from "./pluggy.js";
 
 const VERSION = "2026-05-24-2";
 
@@ -102,6 +103,12 @@ export default {
       } catch (e) {
         return json({ ok: false, error: String(e && e.message || e) }, 502);
       }
+    }
+
+    // Integração bancária Pluggy (Meu Pluggy · Open Finance) — secrets no
+    // Worker, PIN obrigatório. Ver worker/pluggy.js e docs/pluggy.md.
+    if (url.pathname.startsWith("/api/pluggy/")) {
+      return handlePluggy(request, env);
     }
 
     // Endpoints /api/* antigos (state/keys) foram removidos — sync agora
