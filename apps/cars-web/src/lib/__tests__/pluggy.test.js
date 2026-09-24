@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { prepararImportPluggy } from "../pluggy.js";
+import { prepararImportPluggy, detectarDuplicatasCartao } from "../pluggy.js";
 import { handlePluggy, _resetAuthPluggy } from "../../../../../worker/pluggy.js";
 
 /* ===================== lib (pura) ===================== */
@@ -43,6 +43,42 @@ describe("prepararImportPluggy — conversão + dedup idempotente", () => {
       descricao: "iFood", tipo: "despesa", conta: "", cartaoId: "card1",
       valor: 89.9, compensado: false, origem: "pluggy", pluggyId: "c1",
     });
+  });
+});
+
+describe("detectarDuplicatasCartao — pluggy × fatura/manual", () => {
+  const t = (id, origem, cartaoId, valor, data, extra = {}) =>
+    ({ id, origem, cartaoId, valor, data, tipo: "despesa", descricao: id, ...extra });
+
+  it("casa mesmo valor com datas próximas (fatura usa vencimento) e remove só a cópia da Pluggy", () => {
+    const pares = detectarDuplicatasCartao([
+      t("plg1", "pluggy", "c1", 89.9, "2026-09-02"),
+      t("fat1", "fatura-itau", "c1", 89.9, "2026-09-28"), // mesma compra, data do vencimento
+      t("plg2", "pluggy", "c1", 40, "2026-09-05"),        // sem par → fica
+      t("man1", "compra-manual", "c2", 89.9, "2026-09-02"), // outro cartão → não casa
+      t("pgto", "fatura-pagamento", "c1", 89.9, "2026-09-02"), // pagamento nunca conta
+    ]);
+    expect(pares.length).toBe(1);
+    expect(pares[0].remover.id).toBe("plg1");
+    expect(pares[0].manter.id).toBe("fat1");
+  });
+
+  it("cada existente pareia com no máximo UMA da Pluggy (a de data mais próxima)", () => {
+    const pares = detectarDuplicatasCartao([
+      t("plgA", "pluggy", "c1", 50, "2026-09-10"),
+      t("plgB", "pluggy", "c1", 50, "2026-09-11"),
+      t("fatX", "fatura-itau", "c1", 50, "2026-09-10"),
+    ]);
+    expect(pares.length).toBe(1);
+    expect(pares[0].remover.id).toBe("plgA");
+  });
+
+  it("fora da janela de dias não casa", () => {
+    const pares = detectarDuplicatasCartao([
+      t("plg1", "pluggy", "c1", 30, "2026-01-01"),
+      t("fat1", "fatura-itau", "c1", 30, "2026-06-01"),
+    ]);
+    expect(pares).toEqual([]);
   });
 });
 
