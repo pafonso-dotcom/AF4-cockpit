@@ -17,6 +17,11 @@ import {
  * confirmar (grava transações origem=pluggy, ajusta saldoInicial, ultimaSync).
  * Fonte OPCIONAL: tudo continua funcionando sem isso.
  */
+// O item do conector Meu Pluggy nasce e cai em WAITING_USER_INPUT até o
+// usuário aprovar o acesso do aplicativo dentro do meu.pluggy.ai.
+const ehAguardandoAutorizacao = (st) =>
+  st && (st.status === "WAITING_USER_INPUT" || st.status === "USER_INPUT_TIMEOUT");
+
 export default function SincronizarBancoModal({
   contas = [], setContas, categorias = [], transacoes = [], setTransacoes,
   pluggy = {}, setPluggy, onClose,
@@ -27,6 +32,7 @@ export default function SincronizarBancoModal({
   const [reconectar, setReconectar] = useState(false);
   // Na 1ª conexão o item fica "UPDATING" por ~1-2 min e /accounts vem vazio.
   const [sincronizando, setSincronizando] = useState(false);
+  const [statusInfo, setStatusInfo] = useState(null); // {status, executionStatus} p/ diagnóstico
 
   // conectar
   const [usuario, setUsuario] = useState("");
@@ -48,7 +54,10 @@ export default function SincronizarBancoModal({
     try {
       let st = await statusItem(itemId);
       if (forcar && st.status !== "UPDATING") st = await statusItem(itemId, true);
-      setReconectar(STATUS_RECONECTAR.has(st.status));
+      setStatusInfo(st);
+      // WAITING_USER_INPUT no conector Meu Pluggy = falta AUTORIZAR o app
+      // dentro do meu.pluggy.ai (não é consentimento de banco expirado).
+      setReconectar(STATUS_RECONECTAR.has(st.status) && !ehAguardandoAutorizacao(st));
       setSincronizando(st.status === "UPDATING");
       const r = await contasPluggy(itemId);
       setListaBanco(r.contas || []);
@@ -191,11 +200,26 @@ export default function SincronizarBancoModal({
       {passo === "contas" && (
         <>
           {carregando && <p style={{ fontSize: 12.5, color: T.muted }}>Buscando contas no banco…</p>}
+          {!carregando && ehAguardandoAutorizacao(statusInfo) && (
+            <div style={{ background: `${T.gold}12`, border: `1px solid ${T.gold}66`, borderRadius: 12, padding: "10px 14px", marginBottom: 10, fontSize: 12.5, color: T.ink }}>
+              🔐 O Meu Pluggy está <strong>esperando você autorizar o acesso deste aplicativo</strong>:
+              entra em <strong>meu.pluggy.ai</strong>, procura a solicitação de autorização
+              (seção de aplicativos/API ou aviso pendente), <strong>aprova</strong>, e volta aqui
+              clicando em ↻ Atualizar.
+            </div>
+          )}
           {!carregando && listaBanco && listaBanco.length === 0 && (
             <p style={{ fontSize: 12.5, color: T.muted }}>
               {sincronizando
                 ? <>⏳ O Meu Pluggy está <strong>sincronizando com os bancos</strong> — a primeira vez pode levar alguns minutos. Pode deixar essa tela aberta: eu <strong>atualizo sozinho</strong> a cada poucos segundos.</>
-                : <>Nenhuma conta bancária encontrada — confere no app <strong>Meu Pluggy</strong> (meu.pluggy.ai) se os bancos estão conectados (a autorização Open Finance precisa ser concluída dentro do app de cada banco).</>}
+                : ehAguardandoAutorizacao(statusInfo)
+                  ? <>Assim que você autorizar lá, as contas aparecem aqui.</>
+                  : <>Nenhuma conta bancária encontrada — confere no app <strong>Meu Pluggy</strong> (meu.pluggy.ai) se os bancos estão conectados (a autorização Open Finance precisa ser concluída dentro do app de cada banco).</>}
+            </p>
+          )}
+          {!carregando && statusInfo && listaBanco && listaBanco.length === 0 && (
+            <p className="num" style={{ fontSize: 10.5, color: T.muted, opacity: 0.75 }}>
+              diagnóstico: status {statusInfo.status || "?"}{statusInfo.executionStatus ? ` · execução ${statusInfo.executionStatus}` : ""}
             </p>
           )}
           {!carregando && (listaBanco || []).map(cb => (
