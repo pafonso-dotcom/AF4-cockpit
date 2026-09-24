@@ -25,6 +25,8 @@ export default function SincronizarBancoModal({
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
   const [reconectar, setReconectar] = useState(false);
+  // Na 1ª conexão o item fica "UPDATING" por ~1-2 min e /accounts vem vazio.
+  const [sincronizando, setSincronizando] = useState(false);
 
   // conectar
   const [usuario, setUsuario] = useState("");
@@ -42,6 +44,7 @@ export default function SincronizarBancoModal({
     try {
       const st = await statusItem(itemId);
       setReconectar(STATUS_RECONECTAR.has(st.status));
+      setSincronizando(st.status === "UPDATING");
       const r = await contasPluggy(itemId);
       setListaBanco(r.contas || []);
       setPasso("contas");
@@ -170,7 +173,11 @@ export default function SincronizarBancoModal({
         <>
           {carregando && <p style={{ fontSize: 12.5, color: T.muted }}>Buscando contas no banco…</p>}
           {!carregando && listaBanco && listaBanco.length === 0 && (
-            <p style={{ fontSize: 12.5, color: T.muted }}>Nenhuma conta bancária encontrada — confere se os bancos estão conectados no app Meu Pluggy.</p>
+            <p style={{ fontSize: 12.5, color: T.muted }}>
+              {sincronizando
+                ? <>⏳ O Meu Pluggy ainda está <strong>sincronizando com os bancos</strong> — a primeira conexão leva 1–2 minutos. Espera um pouco e clica em ↻ Atualizar.</>
+                : <>Nenhuma conta bancária encontrada — confere no app <strong>Meu Pluggy</strong> (meu.pluggy.ai) se os bancos estão conectados (a autorização Open Finance precisa ser concluída dentro do app de cada banco).</>}
+            </p>
           )}
           {!carregando && (listaBanco || []).map(cb => (
             <div key={cb.id} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 14, padding: "10px 12px", marginBottom: 8 }}>
@@ -192,6 +199,8 @@ export default function SincronizarBancoModal({
             </div>
           ))}
           <div className="flex gap-3 justify-end mt-4">
+            <button className="btn-gold" disabled={carregando}
+                    onClick={() => carregarContas(pluggy.itemId)}>↻ Atualizar</button>
             <button className="btn-ghost" onClick={() => { setPasso("conectar"); setListaBanco(null); }}>Reconectar Meu Pluggy</button>
             <button className="btn-ghost" onClick={onClose}>Fechar</button>
           </div>
