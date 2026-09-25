@@ -10,8 +10,11 @@ import { confirm } from "../../lib/confirm.js";
  * Props:
  * - title, children, onClose, wide
  * - isDirty (opcional): se true, pede confirmação antes de fechar
+ * - avisarSair (opcional, default true): false = fecha sem perguntar,
+ *   pra conteúdo que AUTOSSALVA (ex.: bloco de notas) — o aviso seria
+ *   um alarme falso.
  */
-export default function Modal({ title, children, onClose, wide, isDirty = false }) {
+export default function Modal({ title, children, onClose, wide, isDirty = false, avisarSair = true }) {
   const ref = useRef();
   const isDirtyRef = useRef(isDirty);
   isDirtyRef.current = isDirty;
@@ -23,7 +26,9 @@ export default function Modal({ title, children, onClose, wide, isDirty = false 
   // texto dentro do modal e solta o clique em cima do overlay (drag-select).
   const mouseDownOnOverlayRef = useRef(false);
 
-  const precisaConfirmar = () => isDirtyRef.current || touchedRef.current;
+  const avisarSairRef = useRef(avisarSair);
+  avisarSairRef.current = avisarSair;
+  const precisaConfirmar = () => avisarSairRef.current && (isDirtyRef.current || touchedRef.current);
 
   // Wrapper que pergunta antes de fechar se houver mudanças
   const safeClose = async () => {

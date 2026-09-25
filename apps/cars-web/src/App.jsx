@@ -1223,7 +1223,7 @@ export default function App() {
       {/* BLOCO DE NOTAS do atalho 🗒️ (2026-09-23) — nota "geral" própria,
           sincronizada na conta (mesmo mecanismo das notas de Contas/Cartões). */}
       {notasAtalhoOpen && (
-        <Modal title="🗒️ Bloco de notas" onClose={() => setNotasAtalhoOpen(false)}>
+        <Modal title="🗒️ Bloco de notas" avisarSair={false} onClose={() => setNotasAtalhoOpen(false)}>
           <NotasRapidasCard
             storageKey="af4:notas-rapidas:geral:v1"
             valor={notasRapidas.geral}
