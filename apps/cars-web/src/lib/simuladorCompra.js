@@ -12,25 +12,40 @@ const somaMes = (mesISO, delta) => {
 };
 
 /**
+ * Aplica VÁRIAS compras de uma vez (parcelas somadas mês a mês).
  * @param proj saída de getProjecaoSaldo: { saldoInicial, meses:[{mesISO,label,liquido,saldoFim,...}] }
- * @param compra { valorTotal, parcelas = 1, mesInicioISO } — mesInicioISO "YYYY-MM"
- * @returns { meses:[{...m, parcela, saldoFimCom}], piorSaldo, piorMesLabel, mesesNegativos }
+ * @param compras [{ valorTotal, parcelas = 1, mesInicioISO, descricao? }]
+ * @returns { meses:[{...m, parcela, porCompra:[{descricao,valor}], saldoFimCom}],
+ *            piorSaldo, piorMesLabel, mesesNegativos, valorParcela (da 1ª compra) }
  */
-export function aplicarCompraNaProjecao(proj, { valorTotal = 0, parcelas = 1, mesInicioISO } = {}) {
-  const total = Number(valorTotal) || 0;
-  const n = Math.max(1, Math.round(Number(parcelas) || 1));
-  const valorParcela = total / n;
-  const janela = new Set(Array.from({ length: n }, (_, i) => somaMes(mesInicioISO, i)));
+export function aplicarComprasNaProjecao(proj, compras = []) {
+  // Pré-calcula, por compra, a janela de meses e o valor da parcela.
+  const planos = (compras || [])
+    .map(c => ({ ...c, total: Number(c?.valorTotal) || 0, n: Math.max(1, Math.round(Number(c?.parcelas) || 1)) }))
+    .filter(c => c.total > 0 && c.mesInicioISO)
+    .map(c => ({
+      descricao: c.descricao || "Compra",
+      valorParcela: c.total / c.n,
+      janela: new Set(Array.from({ length: c.n }, (_, i) => somaMes(c.mesInicioISO, i))),
+    }));
 
   let saldo = Number(proj?.saldoInicial) || 0;
   let piorSaldo = Infinity, piorMesLabel = "", mesesNegativos = 0;
   const meses = (proj?.meses || []).map(m => {
-    const parcela = janela.has(m.mesISO) ? valorParcela : 0;
+    const porCompra = planos
+      .filter(p => p.janela.has(m.mesISO))
+      .map(p => ({ descricao: p.descricao, valor: p.valorParcela }));
+    const parcela = porCompra.reduce((s, x) => s + x.valor, 0);
     saldo += (Number(m.liquido) || 0) - parcela;
     if (saldo < piorSaldo) { piorSaldo = saldo; piorMesLabel = m.label || m.mesISO; }
     if (saldo < 0) mesesNegativos++;
-    return { ...m, parcela, saldoFimCom: saldo };
+    return { ...m, parcela, porCompra, saldoFimCom: saldo };
   });
   if (!meses.length) { piorSaldo = saldo; }
-  return { meses, valorParcela, piorSaldo, piorMesLabel, mesesNegativos };
+  return { meses, valorParcela: planos[0]?.valorParcela || 0, piorSaldo, piorMesLabel, mesesNegativos };
+}
+
+/** Uma compra só — atalho sobre aplicarComprasNaProjecao. */
+export function aplicarCompraNaProjecao(proj, compra = {}) {
+  return aplicarComprasNaProjecao(proj, [compra]);
 }
