@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { aplicarCompraNaProjecao } from "../simuladorCompra.js";
+import { aplicarCompraNaProjecao, aplicarComprasNaProjecao } from "../simuladorCompra.js";
 
 // Projeção fake no formato de getProjecaoSaldo: saldo 1.000, líquido +500/mês.
 const proj = {
@@ -28,6 +28,29 @@ describe("aplicarCompraNaProjecao — compra hipotética sem tocar nos dados", (
     const r = aplicarCompraNaProjecao(proj, { valorTotal: 600, parcelas: 2, mesInicioISO: "2026-11" });
     expect(r.meses.map(m => m.parcela)).toEqual([0, 0, 300, 300, 0]);
     expect(r.meses[1].saldoFimCom).toBe(2000); // igual ao sem-compra até começar
+  });
+
+  it("VÁRIAS compras somam as parcelas mês a mês (geladeira 4x + sofá 2x)", () => {
+    const r = aplicarComprasNaProjecao(proj, [
+      { descricao: "Geladeira", valorTotal: 2000, parcelas: 4, mesInicioISO: "2026-09" },
+      { descricao: "Sofá", valorTotal: 600, parcelas: 2, mesInicioISO: "2026-10" },
+    ]);
+    expect(r.meses.map(m => m.parcela)).toEqual([500, 800, 800, 500, 0]);
+    expect(r.meses[1].porCompra).toEqual([
+      { descricao: "Geladeira", valor: 500 },
+      { descricao: "Sofá", valor: 300 },
+    ]);
+    // set: 1000+500−500=1000 · out: 1000+500−800=700 · nov: 400 · dez: 400 · jan: 900
+    expect(r.meses.map(m => m.saldoFimCom)).toEqual([1000, 700, 400, 400, 900]);
+    expect(r.piorSaldo).toBe(400);
+  });
+
+  it("compra sem valor ou sem mês é ignorada", () => {
+    const r = aplicarComprasNaProjecao(proj, [
+      { valorTotal: 0, parcelas: 3, mesInicioISO: "2026-09" },
+      { valorTotal: 100, parcelas: 1 }, // sem mês
+    ]);
+    expect(r.meses.map(m => m.parcela)).toEqual([0, 0, 0, 0, 0]);
   });
 
   it("à vista (1x) desconta tudo num mês só", () => {
