@@ -6,6 +6,7 @@ import AReceberEDividas from "../AReceberEDividas.jsx";
 import DespesasFixas from "../DespesasFixas.jsx";
 import Cheques from "../Cheques.jsx";
 import ReservaEmergenciaView from "./ReservaEmergenciaView.jsx";
+import SimuladorCompra from "./SimuladorCompra.jsx";
 import { somaContasBRL } from "../../../lib/cambio.js";
 
 /**
@@ -247,6 +248,17 @@ export default function Planejamento(props) {
             <span style={{ color: T.gold, fontSize: 13, flexShrink: 0 }}>abrir →</span>
           </button>
         )}
+
+        {/* 🛒 Simulador de compra — "E se eu comprar X em 4x?" (2026-09-25).
+            SÓ VISUAL: projeta o saldo com/sem a compra, nada é lançado. */}
+        <Secao on={aberto === "simulador"} onToggle={() => toggle("simulador")} titulo="🛒 Simulador de compra">
+          <SimuladorCompra
+            transacoes={props.transacoes} contas={props.contas}
+            fixas={props.fixas} fixaOcorrencias={props.fixaOcorrencias}
+            parcelamentos={props.parcelamentos} dividas={props.dividas}
+            devedores={props.devedores} cartoes={props.cartoes} cheques={props.cheques}
+            escopoAtivo={props.escopoAtivo} hidden={props.hidden} />
+        </Secao>
 
         {/* Reserva de emergência — tela completa que existia órfã no código
             (auditoria 2026-09-18) e voltou como 5ª seção do Centro. */}
