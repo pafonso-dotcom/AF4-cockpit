@@ -706,7 +706,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
             const isPend = !t.compensado;
             const isSelected = selectedIds.has(t.id);
             return (
-              <div key={t.id} className="flex items-center gap-2.5 px-4 py-2 hover:bg-black/30"
+              <div key={t.id} className="tx-row flex items-center gap-2.5 px-4 py-2 hover:bg-black/30"
                    style={{
                      borderBottom: `1px solid ${T.border}`, transition: "background 0.2s",
                      opacity: isPend ? 0.85 : 1,
@@ -722,7 +722,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                   {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
                 </button>
                 {/* Ícone compacto 24px */}
-                <div style={{
+                <div className="tx-icon" style={{
                   width: 24, height: 24, borderRadius: "50%",
                   background: t.tipo === "receita" ? `${T.green}22` : `${T.red}22`,
                   color: t.tipo === "receita" ? T.green : T.red,
@@ -732,8 +732,8 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                   {t.tipo === "receita" ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                 </div>
                 {/* Conteúdo principal */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="tx-conteudo flex-1 min-w-0">
+                  <div className="tx-desc flex items-center gap-2 flex-wrap">
                     <div style={{ color: T.ink, fontSize: 13, fontWeight: 500 }} className="truncate">{t.descricao}</div>
                     {t.fixa && (
                       <span style={{ background: `${T.blue}22`, color: T.blue, padding: "1px 6px", fontSize: 10, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 100, display: "inline-flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
@@ -760,7 +760,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                       </button>
                     )}
                   </div>
-                  <div style={{ fontSize: 10, color: T.muted, marginTop: 1, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <div className="tx-meta" style={{ fontSize: 10, color: T.muted, marginTop: 1, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }} onClick={e => e.stopPropagation()}>
                       <span style={{ width: 5, height: 5, background: cat ? cat.cor : T.red, borderRadius: "50%", flexShrink: 0 }} />
                       <CategoriaSelect compacto
@@ -778,11 +778,11 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                   </div>
                 </div>
                 {/* Valor */}
-                <div className="num text-right" style={{ color: t.tipo === "receita" ? T.green : T.red, fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>
+                <div className="tx-valor num text-right" style={{ color: t.tipo === "receita" ? T.green : T.red, fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>
                   {t.tipo === "receita" ? "+" : "−"} {hidden ? "•••" : fmt(t.valor)}
                 </div>
                 {/* Ações compactas */}
-                <div className="flex items-center gap-0.5 flex-shrink-0">
+                <div className="tx-acoes flex items-center gap-0.5 flex-shrink-0">
                   <button onClick={() => toggleCompensacao(t)}
                           title={t.compensado ? "Marcar como pendente" : "Marcar como compensada"}
                           aria-label="Alternar compensação"
