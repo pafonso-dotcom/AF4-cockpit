@@ -29,9 +29,9 @@ const rotuloMes = (mesISO) => {
 };
 // Seção recolhível do rodapé — DEFINIDA FORA do componente pra não remontar
 // os filhos (Relatórios/Inteligência têm estado próprio) a cada render.
-function ExtraSec({ on, onToggle, icon: Icon, titulo, desc, children, anchorId }) {
+function ExtraSec({ on, onToggle, icon: Icon, titulo, desc, children }) {
   return (
-    <div id={anchorId} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, marginBottom: 10, overflow: "hidden" }}>
       <button onClick={onToggle}
         style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
                  padding: "12px 14px", background: on ? T.bgSoft : "transparent", border: "none", cursor: "pointer", textAlign: "left", color: T.ink }}>
@@ -68,7 +68,6 @@ export default function AnalisesFinancas(props) {
     fixas = [], fixaOcorrencias = [], parcelamentos = [], dividas = [], devedores = [],
     cheques = [], cartoes = [], metas = [], proventosManuais = [],
     patrimonioHistorico = [], escopoAtivo = "tudo", hidden, onTabChange,
-    secaoInicial = null, // atalho do menu: abre e rola até esta seção
   } = props;
 
   const [mesISO, setMesISO] = useState(mesAtualISO);
@@ -206,22 +205,6 @@ export default function AnalisesFinancas(props) {
   });
   const extra = (id) => ({ on: abertos.has(id), onToggle: () => toggle(id) });
 
-  // Atalho do menu (💵/📈/⚖️): garante a seção ABERTA e rola até ela.
-  React.useEffect(() => {
-    if (!secaoInicial) return;
-    setAbertos(prev => {
-      if (prev.has(secaoInicial)) return prev;
-      const n = new Set(prev); n.add(secaoInicial);
-      try { localStorage.setItem(KEY, JSON.stringify([...n])); } catch {}
-      return n;
-    });
-    const t = setTimeout(() => {
-      try { document.getElementById(`sec-${secaoInicial}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); } catch {}
-    }, 120);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [secaoInicial]);
-
   return (
     <div className="fade-up py-6 px-6 analises-hub">
       <style>{`
@@ -329,7 +312,7 @@ export default function AnalisesFinancas(props) {
 
       {/* DRE VISUAL — cascata do bruto ao que sobrou (aprovado por mockup 2026-09-24) */}
       {dre && (
-        <ExtraSec {...extra("dre")} anchorId="sec-dre" icon={Scale} titulo="DRE visual"
+        <ExtraSec {...extra("dre")} icon={Scale} titulo="DRE visual"
                   desc={`Do bruto ao que sobrou · resultado ${mask(dre.resultado)} — toque numa linha pra ver os maiores itens.`}>
           <DreVisual dre={dre} dreAnt={dreAnt} hidden={hidden} />
         </ExtraSec>
@@ -424,7 +407,7 @@ export default function AnalisesFinancas(props) {
       </ExtraSec>
 
       {/* EXTRAS — recolhidos por padrão, pra tela não virar feira */}
-      <ExtraSec {...extra("projecao")} anchorId="sec-projecao" icon={BarChart3} titulo="Projeção & matriz por categoria"
+      <ExtraSec {...extra("projecao")} icon={BarChart3} titulo="Projeção & matriz por categoria"
                 desc="Meses a vencer por categoria (matriz), receita × despesa e evolução do patrimônio.">
         <RelatoriosFinancas
           transacoes={transacoes} contas={contas} categorias={categorias}
