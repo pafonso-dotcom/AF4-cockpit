@@ -76,7 +76,7 @@ export default function PageHeader({ eyebrow, title, sub, action }) {
         @media (max-width: 768px) {
           .page-header { margin-bottom: 8px; padding-bottom: 5px; }
           .page-header-main { gap: 7px; }
-          .page-header-eyebrow { font-size: 8.5px; padding: 1.5px 6px; }
+          .page-header-eyebrow { font-size: 10px; padding: 1.5px 6px; }
           .page-header-title { font-size: 17px; }
           .page-header-sub {
             display: none; /* esconde sub em mobile pra maximizar conteúdo */

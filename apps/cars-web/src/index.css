@@ -530,20 +530,19 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 @media (max-width: 640px) {
   main { padding-left: 12px !important; padding-right: 12px !important; }
 
-  /* Override agressivo: QUALQUER inline grid de 2-4 colunas vira single
-     col ou 2 cols em mobile. Os grids inline (gridTemplateColumns:
-     "repeat(N, 1fr)") usados em várias páginas viram inacessíveis
-     sem isso. */
-  [style*="grid-template-columns:repeat(4"],
-  [style*="grid-template-columns: repeat(4"] {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-  [style*="grid-template-columns:repeat(3"],
-  [style*="grid-template-columns: repeat(3"] {
-    grid-template-columns: 1fr !important;
-  }
+  /* Override agressivo (bloco ÚNICO — não duplicar): QUALQUER grid inline
+     de 2-5 colunas empilha em 1 coluna no mobile. Era feito em dois blocos
+     que brigavam entre si (um mandava repeat(4)→2 col, o outro →1 col);
+     o efeito final sempre foi 1 coluna — agora está explícito num lugar só.
+     Grid que NÃO deve empilhar: usar classe própria + media query local. */
   [style*="grid-template-columns:repeat(2"],
-  [style*="grid-template-columns: repeat(2"] {
+  [style*="grid-template-columns: repeat(2"],
+  [style*="grid-template-columns:repeat(3"],
+  [style*="grid-template-columns: repeat(3"],
+  [style*="grid-template-columns:repeat(4"],
+  [style*="grid-template-columns: repeat(4"],
+  [style*="grid-template-columns:repeat(5"],
+  [style*="grid-template-columns: repeat(5"] {
     grid-template-columns: 1fr !important;
   }
 
@@ -731,19 +730,7 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   }
 }
 
-/* Grids inline com gridTemplateColumns: repeat(N, 1fr) — qualquer N>2 vira 1col */
-@media (max-width: 640px) {
-  div[style*="grid-template-columns:repeat(3"],
-  div[style*="grid-template-columns: repeat(3"],
-  div[style*="gridTemplateColumns: \"repeat(3"],
-  div[style*="grid-template-columns:repeat(4"],
-  div[style*="grid-template-columns: repeat(4"],
-  div[style*="grid-template-columns:repeat(5"],
-  div[style*="grid-template-columns: repeat(5"] {
-    grid-template-columns: 1fr !important;
-  }
-  /* 2 cols continua 2 cols pra KPIs ficarem grid 2x2 */
-}
+/* (bloco de grids inline consolidado lá em cima, no media 640 principal) */
 
 /* PageHeader actions: empilha no mobile */
 @media (max-width: 640px) {
@@ -809,9 +796,9 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
     min-height: 40px;
     padding: 9px 11px;
   }
-  button {
-    min-height: 36px;
-  }
+  /* min-height de botão é definido UMA vez, no GlobalStyles (44px no
+     mobile, padrão iOS) — a regra de 36px daqui era código morto que
+     só confundia (o GlobalStyles sempre vencia por vir depois no DOM). */
 }
 
 /* Notch / status bar do iPhone — cabeçalho sticky alinhado */
@@ -822,13 +809,6 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 }
 
 /* Filtros do extrato — em mobile vira coluna */
-@media (max-width: 640px) {
-  .extrato-filtros {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-/* Filtros do extrato: vira coluna no mobile */
 @media (max-width: 640px) {
   .extrato-filtros {
     grid-template-columns: 1fr !important;

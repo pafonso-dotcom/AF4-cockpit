@@ -151,15 +151,10 @@ export default function GlobalStyles() {
         button, .btn-gold, .btn-ghost { min-height: 44px; }
         input, select, textarea { font-size: 16px; padding: 12px 13px; } /* 16px evita zoom auto no iOS */
 
-        /* Dashboard: KPIs ficam tininhos em 5 colunas no celular → 2 cols (hero ocupa 2). */
-        .dash-kpi-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
-        .dash-kpi-grid > :first-child { grid-column: 1 / -1; }  /* Patrimônio (hero) span 2 */
-        .dash-mid-grid, .dash-bot-grid, .dash-metas-grid {
-          grid-template-columns: 1fr !important;
-          gap: 10px !important;
-        }
-        /* Tipografia ligeiramente maior em valores numéricos do Dashboard */
-        .dash-kpi-grid .num { font-size: 17px !important; }
+        /* Grades do Dashboard: as regras vivem no <style> do próprio
+           Dashboard.jsx (dash-kpi-grid etc.) — antes havia uma cópia aqui
+           com valores DIFERENTES e quem vencia dependia da ordem de
+           montagem. Uma página, um dono. */
 
         /* Cartão hero (CartaoExtrato): valores numéricos quebram linha pra não cortar */
         .cartao-hero { padding: 18px !important; gap: 12px !important; }
