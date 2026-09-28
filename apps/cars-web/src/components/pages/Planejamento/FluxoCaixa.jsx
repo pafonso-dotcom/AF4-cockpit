@@ -94,7 +94,7 @@ export default function FluxoCaixa({
           ["realista", "😐 Realista", "tudo como está previsto"],
           ["pessimista", "😟 Pessimista", "a receber e cheques contam 70% + dia a dia 20% mais caro"]].map(([c, r, hint]) => (
           <button key={c} onClick={() => mudarCenario(c)} title={hint}
-                  style={{ padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                  style={{ padding: "6px 11px", borderRadius: 100, fontSize: 12, fontWeight: 700, cursor: "pointer",
                            border: `1px solid ${cenario === c ? T.blue : T.border}`,
                            background: cenario === c ? `${T.blue}18` : "transparent",
                            color: cenario === c ? T.blue : T.muted }}>{r}</button>
