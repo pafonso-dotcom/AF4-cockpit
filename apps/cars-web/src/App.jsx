@@ -7,7 +7,7 @@ import { MESES_LONGO } from "./lib/meses.js";
 import { loadAll, saveAll, loadKeys, saveKeys, flushSave } from "./lib/storage.js";
 import { comTumbas, idsRemovidos } from "./lib/tumbas.js";
 import Modal from "./components/ui/Modal.jsx";
-import NotasRapidasCard from "./components/ui/NotasRapidasCard.jsx";
+import BlocoNotasPaginado from "./components/ui/BlocoNotasPaginado.jsx";
 import { API, COIN_MAP } from "./lib/api.js";
 import { generateRecurringForCurrentMonth } from "./lib/recorrencia.js";
 import { lerEscopo, salvarEscopo } from "./lib/escopo.js";
@@ -1150,7 +1150,8 @@ export default function App() {
         onEscopoChange={(novo) => { setEscopoAtivo(novo); salvarEscopo(novo); }}
         onOpenPalette={() => setPaletaAberta(true)}
         onAbrirNotas={() => setNotasAtalhoOpen(true)}
-        temNotas={!!(notasRapidas.geral || "").trim()}
+        temNotas={Object.entries(notasRapidas).some(([k, v]) =>
+          (k === "geral" || k.startsWith("pg:")) && String(v || "").trim())}
         onRefresh={refreshMarket} refreshing={refreshing}
         onOpenSettings={(kind, value) => {
           if (kind === "paleta" && value) {
@@ -1220,16 +1221,11 @@ export default function App() {
       {pickerOpen && (
         <ThemePicker themeId={themeId} setThemeId={setThemeId} onClose={() => setPickerOpen(false)} />
       )}
-      {/* BLOCO DE NOTAS do atalho 🗒️ (2026-09-23) — nota "geral" própria,
-          sincronizada na conta (mesmo mecanismo das notas de Contas/Cartões). */}
+      {/* BLOCO DE NOTAS do atalho 🗒️ (2026-09-23; páginas em 2026-09-28) —
+          "Geral" é a nota antiga, as demais páginas sincronizam igual. */}
       {notasAtalhoOpen && (
         <Modal title="🗒️ Bloco de notas" avisarSair={false} onClose={() => setNotasAtalhoOpen(false)}>
-          <NotasRapidasCard
-            storageKey="af4:notas-rapidas:geral:v1"
-            valor={notasRapidas.geral}
-            linhas={12}
-            onSalvar={(t) => setNotasRapidas(p => ({ ...p, geral: t }))}
-            style={{ boxShadow: "none", border: "none", padding: 0, background: "transparent" }} />
+          <BlocoNotasPaginado notasRapidas={notasRapidas} setNotasRapidas={setNotasRapidas} />
         </Modal>
       )}
       {settingsOpen && (
