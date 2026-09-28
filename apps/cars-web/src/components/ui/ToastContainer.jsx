@@ -26,7 +26,7 @@ export default function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div style={{
+    <div className="toast-stack" style={{
       position: "fixed",
       bottom: 20,
       right: 20,

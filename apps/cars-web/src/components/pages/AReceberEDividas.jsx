@@ -1636,6 +1636,9 @@ export default function AReceberEDividas({
               Nada pago neste mês ainda.
             </div>
           ) : (
+            // overflow-x aqui: o card pai tem overflow hidden e a .tbl tem
+            // min-width no mobile — sem isso a tabela era cortada sem scroll
+            <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
             <table className="tbl">
               <thead>
                 <tr>
@@ -1666,6 +1669,7 @@ export default function AReceberEDividas({
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
         )}

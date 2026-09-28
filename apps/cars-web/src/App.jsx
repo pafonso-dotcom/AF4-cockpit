@@ -1320,7 +1320,7 @@ export default function App() {
                  style={{ position: "fixed", inset: 0, zIndex: 199, background: "rgba(0,0,0,.28)" }} />
           )}
           {fabOpen && (
-            <div style={{ position: "fixed", right: 20, bottom: 148, zIndex: 201,
+            <div style={{ position: "fixed", right: 20, bottom: "calc(148px + env(safe-area-inset-bottom, 0px))", zIndex: 201,
                           display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
               {[
                 { icone: "📷", rotulo: "Compra no cartão por foto", acao: () => setComprasFotoOpen(true) },
@@ -1342,7 +1342,7 @@ export default function App() {
           <button
             onClick={() => setFabOpen(v => !v)}
             style={{
-              position: "fixed", bottom: 80, right: 20, zIndex: 201,
+              position: "fixed", bottom: "calc(80px + env(safe-area-inset-bottom, 0px))", right: 20, zIndex: 201,
               width: 54, height: 54, borderRadius: "50%",
               background: T.gold, color: T.bg, border: "none",
               boxShadow: "0 4px 16px rgba(0,0,0,.35)",

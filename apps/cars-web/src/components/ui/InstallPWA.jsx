@@ -70,7 +70,7 @@ export default function InstallPWA() {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
   return (
-    <div className="no-print"
+    <div className="no-print pwa-banner"
          style={{
            position: "fixed", bottom: 16, right: 16, left: 16,
            maxWidth: 380, marginLeft: "auto",

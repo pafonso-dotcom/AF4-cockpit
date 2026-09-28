@@ -819,6 +819,12 @@ export default function Dashboard({
           .dash-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
           .dash-proj-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
+        @media (max-width: 640px) {
+          /* Planejar compra: 4 campos lado a lado não cabem — nome na
+             linha inteira e os demais em 2 colunas. */
+          .dash-planejar-form { grid-template-columns: 1fr 1fr !important; }
+          .dash-planejar-form > input:first-child { grid-column: 1 / -1; }
+        }
       `}</style>
 
       <ModoFoco patrimonio={patrimonio} receitasMes={receitasMes}
@@ -1722,7 +1728,7 @@ function OrcamentosFuturosCard({ itens = [], setItens, hidden }) {
       {/* CALCULADORA (novo/editar) */}
       {form && (
         <div style={{ background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: 12, padding: 12, marginBottom: 10 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1fr", gap: 8 }} className="no-mobile-stack">
+          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1fr", gap: 8 }} className="no-mobile-stack dash-planejar-form">
             <input style={inp} placeholder="O que? (ex: Moto, Reforma…)" value={form.nome}
                    onChange={e => setForm({ ...form, nome: e.target.value })} autoFocus />
             <input style={inp} type="number" step="0.01" min="0" placeholder="Valor R$" value={form.valor}
