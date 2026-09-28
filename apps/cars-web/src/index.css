@@ -857,9 +857,6 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .pwa-banner {
     bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
   }
-  /* Setas ◀▶ de reordenar aba: só fazem sentido com mouse — no toque
-     roubam espaço e geram toques acidentais. */
-  .hdr-setas { display: none !important; }
 }
 
 /* ============================================================
