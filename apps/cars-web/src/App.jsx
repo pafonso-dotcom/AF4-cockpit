@@ -1232,10 +1232,6 @@ export default function App() {
             style={{ boxShadow: "none", border: "none", padding: 0, background: "transparent" }} />
         </Modal>
       )}
-      {/* Jarbas: PROJETO PAUSADO (2026-09-23) — código dormente em components/
-          Jarbas*.jsx e lib/{jarbas,tts,vad}.js; spec e prompt de retomada em
-          docs/jarbas/JARBAS-PROMPT.md. */}
-
       {settingsOpen && (
         <SettingsModal apiKeys={apiKeys} setApiKeys={setApiKeys} onClose={() => setSettingsOpen(false)} />
       )}
