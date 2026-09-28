@@ -818,6 +818,9 @@ export default function Dashboard({
           .dash-prox { display: none !important; }
           .dash-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
           .dash-proj-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          /* Valores numéricos um passo maiores no celular (regra que
+             morava no GlobalStyles; agora o Dashboard é o único dono). */
+          .dash-kpi-grid .num { font-size: 17px !important; }
         }
         @media (max-width: 640px) {
           /* Planejar compra: 4 campos lado a lado não cabem — nome na

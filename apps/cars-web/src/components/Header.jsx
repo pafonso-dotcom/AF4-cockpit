@@ -627,7 +627,7 @@ function HeaderHorizontal({
           .hdr-subtabs-row > div { padding: 0 !important; }
           .hdr-subtabs-row button {
             padding: 8px 12px !important;
-            font-size: 11px !important;
+            font-size: 12px !important;
           }
         }
       `}</style>

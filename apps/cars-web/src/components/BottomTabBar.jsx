@@ -69,7 +69,7 @@ export default function BottomTabBar({ modulo, setModulo, setTab }) {
             color: #a8a8b0;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center; gap: 2px;
-            font-size: 10px; letter-spacing: .04em; font-weight: 600;
+            font-size: 11px; letter-spacing: .04em; font-weight: 600;
             cursor: pointer; padding: 8px 4px 6px;
             font-family: ${T.sans};
             transition: color .15s ease, transform .15s ease;
