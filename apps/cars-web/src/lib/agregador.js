@@ -20,7 +20,7 @@ export function mesAtual(date = new Date()) {
  * Itens sem `escopo` são tratados como "pessoal" (legado).
  * Se escopo for "tudo" ou ausente, devolve o state intacto.
  */
-function aplicarEscopo(state, escopo) {
+export function aplicarEscopo(state, escopo) {
   if (!escopo || escopo === "tudo") return state;
   const noEscopo = (x) => (x?.escopo || "pessoal") === escopo;
   const contasFiltradas = (state.contas || []).filter(noEscopo);
