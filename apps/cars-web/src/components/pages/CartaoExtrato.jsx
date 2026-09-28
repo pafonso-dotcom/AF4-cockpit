@@ -311,7 +311,7 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
         <>
           <div className="st"><h2>Parcelamentos Ativos</h2><div className="mt">{parcCartao.length}</div></div>
           <div className="pn">
-            <table className="tbl">
+            <table className="tbl tbl-parc">
               <thead>
                 <tr>
                   <th>Compra</th>
@@ -378,7 +378,7 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
                 </div>
               </div>
             )}
-            <table className="tbl">
+            <table className="tbl tbl-fatura">
               <thead>
                 <tr>
                   <th style={{ width: 28 }}>

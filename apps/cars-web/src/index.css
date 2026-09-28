@@ -883,3 +883,37 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
      roubam espaço e geram toques acidentais. */
   .hdr-setas { display: none !important; }
 }
+
+/* ============================================================
+   MOBILE · lista de Transações compacta (2 linhas por lançamento)
+   No desktop a linha é um flex único; no celular ela virava um
+   "blocão" de 4+ linhas com muito vazio (cabiam só 3 por tela).
+   Grade: check | descrição/meta | valor/ações.
+   ============================================================ */
+@media (max-width: 640px) {
+  .tx-row {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "check desc valor"
+      "check meta acoes";
+    column-gap: 8px;
+    row-gap: 2px;
+    padding: 8px 12px !important;
+    align-items: center;
+  }
+  .tx-row > button:first-child { grid-area: check; min-height: 34px !important; padding: 8px 4px !important; }
+  .tx-icon { display: none !important; } /* o sinal +/− e a cor do valor já dizem o tipo */
+  .tx-conteudo { display: contents; }    /* promove desc e meta a itens da grade */
+  .tx-desc { grid-area: desc; min-width: 0; }
+  .tx-desc > div:first-child { font-size: 13.5px !important; }
+  .tx-meta { grid-area: meta; font-size: 11px !important; min-width: 0; }
+  .tx-meta select, .tx-meta [role="button"] { font-size: 11px !important; }
+  .tx-valor { grid-area: valor; align-self: center; font-size: 14px !important; }
+  .tx-acoes { grid-area: acoes; justify-self: end; gap: 2px !important; }
+  .tx-acoes button {
+    min-height: 34px !important; min-width: 32px;
+    padding: 6px !important;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+}

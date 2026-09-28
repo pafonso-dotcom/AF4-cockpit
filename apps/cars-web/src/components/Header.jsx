@@ -270,7 +270,7 @@ function HeaderHorizontal({
       borderBottom: `1px solid ${NAV_BORDER}`,
     }}>
       {/* ============== LINHA 1 · brand · ações · utility ============== */}
-      <div style={{
+      <div className="hdr-row1" style={{
         maxWidth: 1280, margin: "0 auto",
         padding: "14px 16px",
         display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
@@ -278,7 +278,7 @@ function HeaderHorizontal({
         {/* BRAND · marca NUMVI */}
         <div style={{ display: "flex", alignItems: "center", marginRight: "auto", flexShrink: 0 }}>
           {/* Mobile: só o nome (sem símbolo). Desktop: lockup completo. */}
-          <span className="hide-desktop" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em" }}>
+          <span className="hide-desktop hdr-brand-mobile" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em" }}>
             <span style={{ color: "#6f93a6" }}>A</span><span style={{ color: "#7fa8c4" }}>finanças</span>
           </span>
           <span className="header-brand-text"><Logo size={24} sufixo="·finanças" /></span>
@@ -613,6 +613,16 @@ function HeaderHorizontal({
           /* No celular a linha de módulos vai pro BottomTabBar — escondida aqui pra
              ganhar espaço vertical no topo. */
           .hdr-modules-row { display: none !important; }
+          /* Linha 1 compacta: marca menor + botões 34px pra caber TUDO numa
+             linha só em 390px — antes quebrava em duas e o topo fixo comia
+             ~1/5 da tela. */
+          .hdr-row1 { padding: 8px 12px !important; }
+          .hdr-brand-mobile { font-size: 17px !important; }
+          .util-cluster { gap: 6px !important; }
+          .hdr-util {
+            width: 34px !important; height: 34px !important;
+            min-height: 34px !important; border-radius: 12px !important;
+          }
           .hdr-subtabs-row { padding: 0 10px !important; }
           .hdr-subtabs-row > div { padding: 0 !important; }
           .hdr-subtabs-row button {

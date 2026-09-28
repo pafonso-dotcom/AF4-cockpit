@@ -205,6 +205,62 @@ export default function GlobalStyles() {
         /* Botões de ação e categoria compactos no card (override global mín-44) */
         .tbl-extrato td button { min-height: 26px !important; padding: 3px 5px !important; }
 
+        /* Fatura do cartão (CartaoExtrato) vira lista no celular — mesma ideia
+           do extrato de conta; antes era tabela de 560px com arrasto lateral.
+           Colunas: check · data · descrição · categoria · valor · excluir. */
+        .tbl-fatura { min-width: 0 !important; display: block !important; }
+        .tbl-fatura thead { display: none !important; }
+        .tbl-fatura tbody { display: block !important; }
+        .tbl-fatura tr {
+          display: grid !important;
+          grid-template-columns: auto 1fr auto;
+          grid-template-areas:
+            "check desc valor"
+            "check data acao"
+            "check cat  acao";
+          column-gap: 10px;
+          row-gap: 3px;
+          padding: 9px 4px !important;
+          border-bottom: 1px solid ${T.border};
+          align-items: center;
+        }
+        .tbl-fatura td { display: block !important; padding: 0 !important; border: none !important; }
+        .tbl-fatura td:nth-child(1) { grid-area: check; }
+        .tbl-fatura td:nth-child(2) { grid-area: data; font-size: 10.5px; color: ${T.faint}; }
+        .tbl-fatura td:nth-child(3) { grid-area: desc; font-size: 13.5px; line-height: 1.3; }
+        .tbl-fatura td:nth-child(4) { grid-area: cat; }
+        .tbl-fatura td:nth-child(5) { grid-area: valor; text-align: right !important; font-size: 14px !important; font-weight: 700 !important; }
+        .tbl-fatura td:nth-child(6) { grid-area: acao; text-align: right !important; }
+        .tbl-fatura td button { min-height: 32px !important; min-width: 32px; }
+        .tbl-fatura input[type="checkbox"] { width: 18px; height: 18px; }
+
+        /* Parcelamentos ativos do cartão: 5 colunas viram card de 3 linhas,
+           com rótulos injetados já que o cabeçalho some. */
+        .tbl-parc { min-width: 0 !important; display: block !important; }
+        .tbl-parc thead { display: none !important; }
+        .tbl-parc tbody { display: block !important; }
+        .tbl-parc tr {
+          display: grid !important;
+          grid-template-columns: 1fr auto;
+          grid-template-areas:
+            "desc    parcela"
+            "inicio  permes"
+            "inicio  rest";
+          column-gap: 12px;
+          row-gap: 2px;
+          padding: 9px 4px !important;
+          border-bottom: 1px solid ${T.border};
+        }
+        .tbl-parc td { display: block !important; padding: 0 !important; border: none !important; }
+        .tbl-parc td:nth-child(1) { grid-area: desc; font-size: 13.5px; }
+        .tbl-parc td:nth-child(2) { grid-area: inicio; font-size: 10.5px; color: ${T.faint}; }
+        .tbl-parc td:nth-child(3) { grid-area: parcela; text-align: right !important; font-size: 12px !important; }
+        .tbl-parc td:nth-child(3)::before { content: "parcela "; font-size: 10px; color: ${T.faint}; }
+        .tbl-parc td:nth-child(4) { grid-area: permes; text-align: right !important; font-size: 12px !important; }
+        .tbl-parc td:nth-child(4)::before { content: "por mês "; font-size: 10px; color: ${T.faint}; }
+        .tbl-parc td:nth-child(5) { grid-area: rest; text-align: right !important; font-size: 12px !important; font-weight: 700; }
+        .tbl-parc td:nth-child(5)::before { content: "restam "; font-size: 10px; color: ${T.faint}; font-weight: 400; }
+
         /* Header / SUBTABS rolam horizontalmente sem scrollbar visível */
         .subnav, [data-subnav] {
           overflow-x: auto;
