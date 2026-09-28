@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O.JARVIS</title>
+<style>
+  :root{
+    --bg:#04070a; --panel:#070d12; --line:#12232e; --line2:#1b3547;
+    --txt:#b8d4c9; --dim:#5d7a70; --dimmer:#33463f;
+    --green:#7dff8a; --cyan:#5fd7ff; --amber:#ffc857; --red:#ff6b6b;
+    --glow:0 0 12px rgba(125,255,138,.25);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--txt);
+    font:12px/1.5 ui-monospace,"SF Mono",Menlo,monospace;
+    overflow:hidden; padding:10px; display:flex; flex-direction:column; gap:10px;
+  }
+  body::after{ /* scanlines */
+    content:""; position:fixed; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.14) 2px 4px);
+  }
+  header{display:flex;align-items:center;gap:14px;border:1px solid var(--line);
+    background:var(--panel);padding:8px 14px;border-radius:6px}
+  .logo{color:var(--green);font-weight:700;letter-spacing:.35em;text-shadow:var(--glow)}
+  .pills{display:flex;gap:8px;margin-left:auto}
+  .pill{border:1px solid var(--line2);border-radius:3px;padding:1px 8px;color:var(--dim);font-size:10px;letter-spacing:.1em}
+  .pill.on{color:var(--green);border-color:#2b5e37}
+  .pill.err{color:var(--red);border-color:#5e2b2b}
+  #clock{color:var(--cyan);font-size:16px;font-weight:600;min-width:86px;text-align:right}
+  #date{color:var(--dim);font-size:10px;text-align:right}
+
+  main{flex:1;display:grid;grid-template-columns:240px 1fr 260px;gap:10px;min-height:0}
+  .col{display:flex;flex-direction:column;gap:10px;min-height:0}
+  .panel{border:1px solid var(--line);background:var(--panel);border-radius:6px;
+    padding:10px 12px;display:flex;flex-direction:column;min-height:0}
+  .panel h2{font-size:10px;letter-spacing:.25em;color:var(--dim);margin-bottom:8px;
+    border-bottom:1px solid var(--line);padding-bottom:6px;font-weight:600}
+  .panel h2 em{color:var(--dimmer);font-style:normal;float:right}
+  .scroll{overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+
+  .metric{display:flex;justify-content:space-between;gap:8px;padding:3px 0}
+  .metric b{color:var(--cyan);font-weight:600;white-space:nowrap}
+  .task{padding:2px 0;color:var(--txt)}
+  .task.done{color:var(--dimmer);text-decoration:line-through}
+  .task .box{color:var(--amber);margin-right:6px}
+  .task.done .box{color:var(--dimmer)}
+  .prio{padding:4px 0;border-bottom:1px dashed var(--line);color:var(--txt)}
+  .prio .n{color:var(--green);margin-right:8px;font-weight:700}
+  .mdline{padding:1px 0;color:var(--txt)} .mdline.dim{color:var(--dim)}
+  .mdh{color:var(--amber);letter-spacing:.1em;margin-top:6px;font-size:11px}
+
+  #center{position:relative}
+  #orb{width:100%;height:180px;flex:none}
+  #log{flex:1}
+  .msg{margin-bottom:8px}
+  .msg .who{font-size:9px;letter-spacing:.2em;color:var(--dim)}
+  .msg.user .who{color:var(--cyan)} .msg.jarvis .who{color:var(--green)} .msg.error .who{color:var(--red)}
+  .msg .body{white-space:pre-wrap}
+  .msg.error .body{color:var(--red)}
+
+  #inputrow{display:flex;gap:8px;margin-top:8px}
+  #cmd{flex:1;background:#030608;border:1px solid var(--line2);border-radius:4px;
+    color:var(--green);font:inherit;padding:8px 10px;outline:none}
+  #cmd:focus{border-color:#2b5e37;box-shadow:var(--glow)}
+  button{background:#0a1a10;border:1px solid #2b5e37;border-radius:4px;color:var(--green);
+    font:inherit;padding:8px 14px;cursor:pointer;letter-spacing:.1em}
+  button:hover{background:#0f2818}
+  #mic.rec{background:#3a0d0d;border-color:var(--red);color:var(--red);animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.5}}
+
+  footer{border:1px solid var(--line);background:var(--panel);border-radius:6px;
+    padding:6px 14px;display:flex;gap:20px;color:var(--dim);font-size:10px;letter-spacing:.15em}
+  footer b{color:var(--amber);font-weight:600}
+  #sysmsg{margin-left:auto;color:var(--dimmer)}
+
+  /* -------- modo orbe (só o globo) -------- */
+  #caption,#focus-hint{display:none}
+  body.focus header,body.focus footer,body.focus .col:not(#center),body.focus #log-panel{display:none}
+  body.focus{padding:0}
+  body.focus main{display:block}
+  body.focus #center{height:100%}
+  body.focus #orb{height:100%;width:100%}
+  body.focus #caption{display:block;position:fixed;left:50%;bottom:46px;transform:translateX(-50%);
+    max-width:72%;text-align:center;color:var(--dim);font-size:13px;line-height:1.6;
+    text-shadow:0 0 8px rgba(0,0,0,.8)}
+  body.focus #focus-hint{display:block;position:fixed;top:14px;right:18px;color:var(--dimmer);
+    font-size:10px;letter-spacing:.2em}
+</style>
+</head>
+<body>
+  <header>
+    <span class="logo">O.J.A.R.V.I.S</span>
+    <div class="pills">
+      <span class="pill" id="p-claude">CLAUDE</span>
+      <span class="pill" id="p-stt">STT</span>
+      <span class="pill" id="p-tts">TTS</span>
+    </div>
+    <div><div id="clock">--:--:--</div><div id="date"></div></div>
+  </header>
+
+  <main>
+    <div class="col">
+      <section class="panel" style="flex:1">
+        <h2>MÉTRICAS <em>vault/Metricas.md</em></h2>
+        <div class="scroll" id="metricas"></div>
+      </section>
+      <section class="panel" style="flex:1">
+        <h2>TAREFAS <em>vault/Tarefas.md</em></h2>
+        <div class="scroll" id="tarefas"></div>
+      </section>
+    </div>
+
+    <div class="col" id="center">
+      <canvas id="orb"></canvas>
+      <section class="panel" id="log-panel" style="flex:1">
+        <h2>CONSOLE <em id="busyflag"></em></h2>
+        <div class="scroll" id="log"></div>
+        <div id="inputrow">
+          <button id="mic" title="segure para falar (ou segure ESPAÇO)">● REC</button>
+          <input id="cmd" placeholder="fale (segure espaço) ou digite um comando…" autocomplete="off">
+          <button id="send">ENVIAR</button>
+          <button id="stoptts" title="parar fala">■</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel">
+        <h2>HOJE · TOP 3 <em>vault/Hoje.md</em></h2>
+        <div id="hoje"></div>
+      </section>
+      <section class="panel" style="flex:1">
+        <h2>MEMÓRIA <em>vault/Memoria.md</em></h2>
+        <div class="scroll" id="memoria"></div>
+      </section>
+      <section class="panel" style="flex:1">
+        <h2>DIÁRIO <em id="diario-nome"></em></h2>
+        <div class="scroll" id="diario"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <span>SEGURE <b>[ESPAÇO]</b> PARA FALAR</span>
+    <span><b>[ENTER]</b> ENVIA</span>
+    <span>FALE. DIRECIONE. LEMBRE. REPITA.</span>
+    <span>CLIQUE NO GLOBO: MODO ORBE</span>
+    <span id="sysmsg"></span>
+  </footer>
+  <div id="caption"></div>
+  <div id="focus-hint">ESC VOLTA · SEGURE ESPAÇO E FALE</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+let state = null, orbMode = "idle";
+
+/* ---------------- relógio ---------------- */
+setInterval(() => {
+  const d = new Date();
+  $("clock").textContent = d.toLocaleTimeString("pt-BR");
+  $("date").textContent = d.toLocaleDateString("pt-BR", {weekday:"short", day:"2-digit", month:"short"});
+}, 250);
+
+/* ---------------- markdown mínimo ---------------- */
+function esc(s){const t=document.createElement("span");t.textContent=s;return t.innerHTML;}
+function renderMd(md, el, opts={}){
+  if(md==null){el.innerHTML='<div class="mdline dim">— arquivo não encontrado —</div>';return;}
+  const out=[];
+  for(const raw of md.split("\n")){
+    const l=raw.trimEnd();
+    if(!l.trim()) continue;
+    if(/^#\s/.test(l)) continue;                       // título do arquivo
+    if(/^>/.test(l)) continue;                          // citações/instruções
+    if(/^<!--/.test(l)) continue;
+    if(/^##\s/.test(l)){out.push(`<div class="mdh">${esc(l.replace(/^##\s*/,"").toUpperCase())}</div>`);continue;}
+    const task=l.match(/^-\s*\[([ xX])\]\s*(.*)/);
+    if(task){
+      const done=task[1]!==" ";
+      out.push(`<div class="task${done?" done":""}"><span class="box">[${done?"x":" "}]</span>${esc(task[2])}</div>`);
+      continue;
+    }
+    const kv=l.match(/^-\s*([^:]{1,40}):\s*(.+)/);
+    if(kv && opts.metrics){out.push(`<div class="metric"><span>${esc(kv[1])}</span><b>${esc(kv[2])}</b></div>`);continue;}
+    if(/^\|/.test(l)) continue;                         // tabelas ficam fora do HUD
+    out.push(`<div class="mdline">${esc(l.replace(/^-\s*/,"· "))}</div>`);
+  }
+  el.innerHTML=out.join("")||'<div class="mdline dim">— vazio —</div>';
+}
+function renderHoje(md){
+  const el=$("hoje");
+  if(md==null){el.innerHTML='<div class="mdline dim">—</div>';return;}
+  const prios=[...md.matchAll(/^-\s*\[[ xX]\]\s*(.*)$/gm)].map(m=>m[1]).slice(0,3);
+  el.innerHTML=prios.map((p,i)=>`<div class="prio"><span class="n">0${i+1}</span>${esc(p)}</div>`).join("")
+    ||'<div class="mdline dim">defina com: "planeje o dia"</div>';
+}
+
+/* ---------------- estado ---------------- */
+let lastHistKey="";
+async function poll(){
+  try{
+    const r=await fetch("/api/state"); state=await r.json();
+    const st=state.status;
+    setPill("p-claude",st.claude); setPill("p-stt",st.stt); setPill("p-tts",st.tts);
+    $("p-tts").textContent="TTS·"+st.voice.toUpperCase();
+    $("busyflag").textContent=st.busy?"PROCESSANDO…":"";
+    orbMode=st.busy?"busy":(st.speaking?"speak":"idle");
+    renderMd(state.vault.metricas,$("metricas"),{metrics:true});
+    renderMd(state.vault.tarefas,$("tarefas"));
+    renderMd(state.vault.memoria,$("memoria"));
+    renderMd(state.vault.diario,$("diario"));
+    $("diario-nome").textContent="vault/Diario/"+state.vault.diarioNome;
+    renderHoje(state.vault.hoje);
+    const key=state.history.length+"|"+(state.history[state.history.length-1]?.ts||"");
+    if(key!==lastHistKey){renderLog(state.history);lastHistKey=key;}
+    $("sysmsg").textContent="";
+  }catch{ $("sysmsg").textContent="SERVIDOR OFFLINE"; }
+}
+function setPill(id,on){const p=$(id);p.classList.toggle("on",!!on);p.classList.toggle("err",!on);}
+let lastReply="";
+function renderLog(hist){
+  for(let i=hist.length-1;i>=0;i--){ if(hist[i].role==="jarvis"){lastReply=hist[i].text;break;} }
+  const el=$("log");
+  const who={user:"VOCÊ",jarvis:"JARVIS",error:"ERRO"};
+  el.innerHTML=hist.map(h=>{
+    const t=new Date(h.ts).toLocaleTimeString("pt-BR").slice(0,5);
+    return `<div class="msg ${h.role}"><div class="who">${t} · ${who[h.role]||h.role}</div><div class="body">${esc(h.text)}</div></div>`;
+  }).join("")||'<div class="mdline dim">Console vazio. Diga "resumo da manhã" para começar.</div>';
+  el.scrollTop=el.scrollHeight;
+}
+poll(); setInterval(poll,4000);
+
+/* ---------------- enviar comando ---------------- */
+/* fire-and-forget: o servidor responde na hora, processa em background,
+   fala a resposta em voz alta e ela chega aqui pelo polling do histórico. */
+async function send(text){
+  text=(text||"").trim(); if(!text) return;
+  $("cmd").value=""; orbMode="busy"; $("busyflag").textContent="PROCESSANDO…";
+  appendLocal("user",text);
+  try{
+    const r=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
+    const j=await r.json();
+    if(j.error) appendLocal("error",j.error);
+  }catch(e){ appendLocal("error",String(e)); }
+  poll();
+}
+function appendLocal(role,text){
+  const el=$("log");
+  const who={user:"VOCÊ",jarvis:"JARVIS",error:"ERRO"};
+  const t=new Date().toLocaleTimeString("pt-BR").slice(0,5);
+  el.insertAdjacentHTML("beforeend",`<div class="msg ${role}"><div class="who">${t} · ${who[role]}</div><div class="body">${esc(text)}</div></div>`);
+  el.scrollTop=el.scrollHeight;
+}
+$("send").onclick=()=>send($("cmd").value);
+$("cmd").addEventListener("keydown",e=>{if(e.key==="Enter")send($("cmd").value);});
+$("stoptts").onclick=()=>fetch("/api/tts/stop",{method:"POST"});
+
+/* ---------------- gravação (push-to-talk) -> WAV 16k ---------------- */
+let audioCtx=null, mediaStream=null, procNode=null, recBuf=[], recording=false;
+async function startRec(){
+  if(recording) return;
+  try{
+    mediaStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+  }catch{ $("sysmsg").textContent="MICROFONE NEGADO"; return; }
+  audioCtx=new AudioContext();
+  const src=audioCtx.createMediaStreamSource(mediaStream);
+  procNode=audioCtx.createScriptProcessor(4096,1,1);
+  recBuf=[];
+  procNode.onaudioprocess=e=>recBuf.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+  src.connect(procNode); procNode.connect(audioCtx.destination);
+  recording=true; $("mic").classList.add("rec"); orbMode="listen";
+}
+async function stopRec(){
+  if(!recording) return; recording=false;
+  $("mic").classList.remove("rec"); orbMode="idle";
+  const rate=audioCtx.sampleRate;
+  try{procNode.disconnect();}catch{}
+  mediaStream.getTracks().forEach(t=>t.stop());
+  audioCtx.close();
+  const total=recBuf.reduce((a,b)=>a+b.length,0);
+  if(total<rate/4) return; // < 0,25s: ignora
+  const mono=new Float32Array(total); let off=0;
+  for(const b of recBuf){mono.set(b,off);off+=b.length;}
+  const wav=encodeWav16k(mono,rate);
+  $("sysmsg").textContent="TRANSCREVENDO…";
+  try{
+    const r=await fetch("/api/stt",{method:"POST",headers:{"Content-Type":"audio/wav"},body:wav});
+    const j=await r.json();
+    $("sysmsg").textContent="";
+    if(j.error){appendLocal("error",j.error);return;}
+    if(j.text){$("cmd").value=j.text;send(j.text);}
+  }catch(e){$("sysmsg").textContent="";appendLocal("error",String(e));}
+}
+function encodeWav16k(f32,srcRate){
+  const ratio=srcRate/16000, n=Math.floor(f32.length/ratio);
+  const ds=new Int16Array(n);
+  for(let i=0;i<n;i++){
+    let s=f32[Math.floor(i*ratio)];
+    s=Math.max(-1,Math.min(1,s));
+    ds[i]=s<0?s*0x8000:s*0x7FFF;
+  }
+  const buf=new ArrayBuffer(44+ds.length*2), v=new DataView(buf);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,"RIFF"); v.setUint32(4,36+ds.length*2,true); ws(8,"WAVE"); ws(12,"fmt ");
+  v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,16000,true); v.setUint32(28,32000,true); v.setUint16(32,2,true); v.setUint16(34,16,true);
+  ws(36,"data"); v.setUint32(40,ds.length*2,true);
+  new Int16Array(buf,44).set(ds);
+  return buf;
+}
+/* ---------------- modo orbe ---------------- */
+function setFocus(on){
+  document.body.classList.toggle("focus",on);
+  try{localStorage.setItem("jarvis-focus",on?"1":"");}catch{}
+}
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape") setFocus(!document.body.classList.contains("focus"));
+});
+try{ if(localStorage.getItem("jarvis-focus")==="1") setFocus(true); }catch{}
+setInterval(()=>{
+  if(!document.body.classList.contains("focus")) return;
+  const c=$("caption");
+  if(recording) c.textContent="● OUVINDO…";
+  else if(orbMode==="busy") c.textContent="PROCESSANDO…";
+  else if($("sysmsg").textContent) c.textContent=$("sysmsg").textContent;
+  else c.textContent=lastReply.length>280?lastReply.slice(0,280)+"…":lastReply;
+},400);
+
+$("mic").addEventListener("mousedown",startRec);
+$("mic").addEventListener("mouseup",stopRec);
+$("mic").addEventListener("mouseleave",()=>{if(recording)stopRec();});
+document.addEventListener("keydown",e=>{
+  if(e.code==="Space"&&document.activeElement!==$("cmd")&&!e.repeat){e.preventDefault();startRec();}
+});
+document.addEventListener("keyup",e=>{
+  if(e.code==="Space"&&document.activeElement!==$("cmd")){e.preventDefault();stopRec();}
+});
+
+/* ---------------- orbe de partículas ---------------- */
+const canvas=$("orb"),ctx2=canvas.getContext("2d");
+const N=420,pts=[];
+for(let i=0;i<N;i++){
+  const t=Math.acos(1-2*(i+0.5)/N),p=Math.PI*(1+Math.sqrt(5))*i;
+  pts.push({x:Math.sin(t)*Math.cos(p),y:Math.cos(t),z:Math.sin(t)*Math.sin(p),j:Math.random()*6.28});
+}
+let ang=0;
+function drawOrb(){
+  const w=canvas.clientWidth,h=canvas.clientHeight;
+  if(canvas.width!==w*2||canvas.height!==h*2){canvas.width=w*2;canvas.height=h*2;}
+  ctx2.clearRect(0,0,canvas.width,canvas.height);
+  const cx=canvas.width/2,cy=canvas.height/2;
+  const R=Math.min(cx,cy)*0.72;
+  const speed=orbMode==="busy"?0.035:orbMode==="listen"?0.02:orbMode==="speak"?0.025:0.008;
+  ang+=speed;
+  const col=orbMode==="busy"?"255,200,87":orbMode==="listen"?"255,107,107":orbMode==="speak"?"95,215,255":"125,255,138";
+  const now=performance.now()/1000;
+  for(const p of pts){
+    const x1=p.x*Math.cos(ang)-p.z*Math.sin(ang), z1=p.x*Math.sin(ang)+p.z*Math.cos(ang);
+    const wob=1+(orbMode!=="idle"?0.06*Math.sin(now*6+p.j):0.015*Math.sin(now*2+p.j));
+    const sx=cx+x1*R*wob, sy=cy+p.y*R*0.86*wob;
+    const depth=(z1+1)/2, a=(0.12+depth*0.75).toFixed(2), s=1+depth*2.4;
+    ctx2.fillStyle=`rgba(${col},${a})`;
+    ctx2.fillRect(sx,sy,s,s);
+  }
+  requestAnimationFrame(drawOrb);
+}
+canvas.addEventListener("click",()=>setFocus(!document.body.classList.contains("focus")));
+drawOrb();
+</script>
+</body>
+</html>

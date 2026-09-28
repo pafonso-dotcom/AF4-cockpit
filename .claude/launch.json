@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cars-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@repo/cars-web", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "jarvis",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["jarvis/server/server.js"],
+      "port": 4780
+    }
+  ]
+}
