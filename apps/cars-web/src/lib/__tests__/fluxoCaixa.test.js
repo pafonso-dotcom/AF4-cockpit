@@ -84,6 +84,30 @@ describe("montarFluxoCaixa — projeção diária do caixa", () => {
     expect(sem.eventos.filter(e => e.estimado)).toEqual([]);
   });
 
+  it("cenários: pessimista corta a receber pra 70% e infla o dia a dia; otimista alivia", () => {
+    const state = {
+      contas: [CONTA],
+      devedores: [{ id: "d1", nome: "Jorge", valor: 1000, vencimento: "2026-10-05", escopo: "pessoal" }],
+      transacoes: [
+        { id: "t1", tipo: "despesa", descricao: "Mercado", valor: 3000, conta: "ITAU", data: "2026-08-10", compensado: true },
+      ], // média variáveis 1000/mês
+    };
+    const pes = montarFluxoCaixa(state, "tudo", 30, HOJE, { cenario: "pessimista" });
+    const jorge = pes.eventos.find(e => e.descricao.includes("Jorge"));
+    expect(jorge.valor).toBe(700);
+    expect(jorge.ajustado).toBe(true);
+    const estPes = pes.eventos.find(e => e.estimado);
+    expect(Math.round(estPes.valor)).toBe(Math.round((1000 * 1.2 * 7) / 30));
+
+    const oti = montarFluxoCaixa(state, "tudo", 30, HOJE, { cenario: "otimista" });
+    expect(oti.eventos.find(e => e.descricao.includes("Jorge")).valor).toBe(1000);
+    expect(Math.round(oti.eventos.find(e => e.estimado).valor)).toBe(Math.round((1000 * 0.8 * 7) / 30));
+
+    const rea = montarFluxoCaixa(state, "tudo", 30, HOJE, {});
+    expect(rea.eventos.find(e => e.descricao.includes("Jorge")).valor).toBe(1000);
+    expect(rea.eventos.find(e => e.descricao.includes("Jorge")).ajustado).toBe(false);
+  });
+
   it("respeita o escopo", () => {
     const state = {
       contas: [CONTA, { id: "c2", nome: "LOJA", saldo: 9000, moeda: "BRL", escopo: "negocio" }],

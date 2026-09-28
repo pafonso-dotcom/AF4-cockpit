@@ -34,11 +34,14 @@ export function mediaMensalDespesas(state = {}, escopo = "tudo", hoje = new Date
 }
 
 /**
- * @param opts {{ estimarVariaveis?: boolean, saldoMinimo?: number }}
+ * @param opts {{ estimarVariaveis?: boolean, saldoMinimo?: number, cenario?: string }}
  *  - estimarVariaveis (default true): injeta o gasto do dia a dia (média 3m
  *    das variáveis) como eventos SEMANAIS estimados — sem isso a projeção
  *    fica otimista, só com o que está agendado;
- *  - saldoMinimo: colchão de segurança — detecta o 1º dia abaixo dele.
+ *  - saldoMinimo: colchão de segurança — detecta o 1º dia abaixo dele;
+ *  - cenario: "realista" (default) | "pessimista" (a receber/cheques contam
+ *    70% — inadimplência/atraso — e o dia a dia estimado sobe 20%) |
+ *    "otimista" (dia a dia estimado desce 20%).
  * @returns {{
  *  saldoInicial, saldoFinal, eventos, porDia,
  *  piorDia: {dataISO, saldo}|null, primeiroNegativo: string|null,
@@ -49,10 +52,13 @@ export function mediaMensalDespesas(state = {}, escopo = "tudo", hoje = new Date
  *  porDia  = [{ dataISO, entradas, saidas, saldoFim }]
  */
 export function montarFluxoCaixa(state = {}, escopo = "tudo", dias = 60, hoje = new Date(),
-                                 { estimarVariaveis = true, saldoMinimo = 0 } = {}) {
+                                 { estimarVariaveis = true, saldoMinimo = 0, cenario = "realista" } = {}) {
   const st = aplicarEscopo(state, escopo);
   const saldoInicial = somaContasBRL(st.contas || []);
   const { media: mediaMensal, mediaVariaveis } = mediaMensalDespesas(state, escopo, hoje);
+  // 🎭 Cenários: fatores explícitos e explicáveis.
+  const fatorEntradaIncerta = cenario === "pessimista" ? 0.7 : 1; // devedores/cheques
+  const fatorVariaveis = cenario === "pessimista" ? 1.2 : cenario === "otimista" ? 0.8 : 1;
 
   const hojeISO = diaISO(hoje);
   const fim = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + dias);
@@ -85,13 +91,18 @@ export function montarFluxoCaixa(state = {}, escopo = "tudo", dias = 60, hoje = 
     .map(x => {
       const d10 = String(x.data || "").slice(0, 10);
       const atrasado = Boolean(d10 && d10 < hojeISO);
+      // Pessimista: entradas INCERTAS (a receber de terceiros e cheques)
+      // contam 70% — inadimplência/atraso; o resto fica intacto.
+      const incerta = x._tipo === "entrada" && (x.fonte === "devedor" || x.fonte === "cheque");
+      const fator = incerta ? fatorEntradaIncerta : 1;
       return {
         data: atrasado ? hojeISO : d10,
         descricao: x.descricao || x.categoria || "—",
         tipo: x._tipo,
-        valor: Number(x.valor) || 0,
+        valor: (Number(x.valor) || 0) * fator,
         fonte: x.fonte || "",
         atrasado,
+        ajustado: fator !== 1,
       };
     })
     .filter(e => e.data && e.valor > 0 && e.data >= hojeISO && e.data <= fimISO);
@@ -100,7 +111,7 @@ export function montarFluxoCaixa(state = {}, escopo = "tudo", dias = 60, hoje = 
   // não estão agendadas no futuro — sem elas a projeção sai otimista. Média
   // mensal dos últimos 3 meses vira uma saída SEMANAL estimada.
   if (estimarVariaveis && mediaVariaveis > 0) {
-    const semanal = (mediaVariaveis * 7) / 30;
+    const semanal = (mediaVariaveis * fatorVariaveis * 7) / 30;
     for (let off = 7; off <= dias; off += 7) {
       const d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + off);
       eventosBase.push({
