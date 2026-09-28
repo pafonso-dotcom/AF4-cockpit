@@ -12,16 +12,47 @@ import { somaContasBRL } from "./cambio.js";
 const diaISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /**
+ * Média mensal de despesas dos últimos N meses COMPLETOS (pura).
+ * - `media`: TODAS as despesas do mês (fixas + variáveis + cartão) — base do
+ *   indicador "dias de caixa";
+ * - `mediaVariaveis`: só transações variáveis (fonte "transacao", tipo
+ *   "variavel") — o gasto do dia a dia que NÃO aparece agendado no futuro
+ *   (mercado, gasolina...) e por isso vira estimativa na projeção.
+ */
+export function mediaMensalDespesas(state = {}, escopo = "tudo", hoje = new Date(), meses = 3) {
+  let total = 0, totalVar = 0;
+  for (let i = 1; i <= meses; i++) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    const mesISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    for (const x of getDespesasDoMes(mesISO, state, escopo)) {
+      const v = Number(x.valor) || 0;
+      total += v;
+      if (x.fonte === "transacao" && x.tipo === "variavel") totalVar += v;
+    }
+  }
+  return { media: total / meses, mediaVariaveis: totalVar / meses };
+}
+
+/**
+ * @param opts {{ estimarVariaveis?: boolean, saldoMinimo?: number }}
+ *  - estimarVariaveis (default true): injeta o gasto do dia a dia (média 3m
+ *    das variáveis) como eventos SEMANAIS estimados — sem isso a projeção
+ *    fica otimista, só com o que está agendado;
+ *  - saldoMinimo: colchão de segurança — detecta o 1º dia abaixo dele.
  * @returns {{
  *  saldoInicial, saldoFinal, eventos, porDia,
- *  piorDia: {dataISO, saldo}|null, primeiroNegativo: string|null
+ *  piorDia: {dataISO, saldo}|null, primeiroNegativo: string|null,
+ *  primeiroAbaixoMinimo: string|null, diasDeCaixa: number|null,
+ *  mediaMensalDespesas, mediaMensalVariaveis
  * }}
- *  eventos = [{ data, descricao, tipo:"entrada"|"saida", valor, saldoApos, fonte, atrasado }]
+ *  eventos = [{ data, descricao, tipo:"entrada"|"saida", valor, saldoApos, fonte, atrasado, estimado? }]
  *  porDia  = [{ dataISO, entradas, saidas, saldoFim }]
  */
-export function montarFluxoCaixa(state = {}, escopo = "tudo", dias = 60, hoje = new Date()) {
+export function montarFluxoCaixa(state = {}, escopo = "tudo", dias = 60, hoje = new Date(),
+                                 { estimarVariaveis = true, saldoMinimo = 0 } = {}) {
   const st = aplicarEscopo(state, escopo);
   const saldoInicial = somaContasBRL(st.contas || []);
+  const { media: mediaMensal, mediaVariaveis } = mediaMensalDespesas(state, escopo, hoje);
 
   const hojeISO = diaISO(hoje);
   const fim = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + dias);
@@ -63,12 +94,31 @@ export function montarFluxoCaixa(state = {}, escopo = "tudo", dias = 60, hoje = 
         atrasado,
       };
     })
-    .filter(e => e.data && e.valor > 0 && e.data >= hojeISO && e.data <= fimISO)
-    .sort((a, b) => a.data.localeCompare(b.data) || (a.tipo === "entrada" ? -1 : 1));
+    .filter(e => e.data && e.valor > 0 && e.data >= hojeISO && e.data <= fimISO);
+
+  // 💡 Estimativa do gasto do dia a dia: as variáveis (mercado, gasolina...)
+  // não estão agendadas no futuro — sem elas a projeção sai otimista. Média
+  // mensal dos últimos 3 meses vira uma saída SEMANAL estimada.
+  if (estimarVariaveis && mediaVariaveis > 0) {
+    const semanal = (mediaVariaveis * 7) / 30;
+    for (let off = 7; off <= dias; off += 7) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + off);
+      eventosBase.push({
+        data: diaISO(d),
+        descricao: "Gastos do dia a dia (estimativa · média 3m)",
+        tipo: "saida",
+        valor: semanal,
+        fonte: "estimativa",
+        atrasado: false,
+        estimado: true,
+      });
+    }
+  }
+  eventosBase.sort((a, b) => a.data.localeCompare(b.data) || (a.tipo === "entrada" ? -1 : 1));
 
   // Acumula saldo evento a evento e agrega por dia.
   let saldo = saldoInicial;
-  let piorDia = null, primeiroNegativo = null;
+  let piorDia = null, primeiroNegativo = null, primeiroAbaixoMinimo = null;
   const porDiaMap = new Map();
   const eventos = eventosBase.map(e => {
     saldo += e.tipo === "entrada" ? e.valor : -e.valor;
@@ -81,7 +131,13 @@ export function montarFluxoCaixa(state = {}, escopo = "tudo", dias = 60, hoje = 
   for (const dia of porDiaMap.values()) {
     if (!piorDia || dia.saldoFim < piorDia.saldo) piorDia = { dataISO: dia.dataISO, saldo: dia.saldoFim };
     if (dia.saldoFim < 0 && !primeiroNegativo) primeiroNegativo = dia.dataISO;
+    if (saldoMinimo > 0 && dia.saldoFim < saldoMinimo && !primeiroAbaixoMinimo) primeiroAbaixoMinimo = dia.dataISO;
   }
+
+  // 🛟 Dias de caixa: quantos dias a despesa MÉDIA (tudo incluso) o saldo
+  // atual aguenta, se nada entrar.
+  const mediaDiaria = mediaMensal / 30;
+  const diasDeCaixa = mediaDiaria > 0 ? Math.max(0, Math.floor(saldoInicial / mediaDiaria + 1e-9)) : null;
 
   return {
     saldoInicial,
@@ -90,5 +146,9 @@ export function montarFluxoCaixa(state = {}, escopo = "tudo", dias = 60, hoje = 
     porDia: [...porDiaMap.values()],
     piorDia,
     primeiroNegativo,
+    primeiroAbaixoMinimo,
+    diasDeCaixa,
+    mediaMensalDespesas: mediaMensal,
+    mediaMensalVariaveis: mediaVariaveis,
   };
 }

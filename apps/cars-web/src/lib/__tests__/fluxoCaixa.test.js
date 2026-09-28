@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { montarFluxoCaixa } from "../fluxoCaixa.js";
+import { montarFluxoCaixa, mediaMensalDespesas } from "../fluxoCaixa.js";
 
 const HOJE = new Date(2026, 8, 28); // 28/09/2026
 const CONTA = { id: "c1", nome: "ITAU", saldo: 1000, moeda: "BRL", escopo: "pessoal" };
@@ -48,6 +48,40 @@ describe("montarFluxoCaixa — projeção diária do caixa", () => {
     expect(f.primeiroNegativo).toBe("2026-10-03"); // 100 − 400 = −300
     expect(f.piorDia).toEqual({ dataISO: "2026-10-10", saldo: -500 });
     expect(f.saldoFinal).toBe(300);
+  });
+
+  it("mediaMensalDespesas: média 3m completa e só-variáveis (transações)", () => {
+    const state = {
+      contas: [CONTA],
+      transacoes: [
+        // jun/jul/ago: 300 de mercado por mês (variável) — média 300
+        { id: "t1", tipo: "despesa", descricao: "Mercado", valor: 300, conta: "ITAU", data: "2026-06-10", compensado: true },
+        { id: "t2", tipo: "despesa", descricao: "Mercado", valor: 300, conta: "ITAU", data: "2026-07-10", compensado: true },
+        { id: "t3", tipo: "despesa", descricao: "Mercado", valor: 300, conta: "ITAU", data: "2026-08-10", compensado: true },
+      ],
+      dividas: [{ id: "d1", nome: "Parcela", valor: 600, vencimento: "2026-07-05", escopo: "pessoal" }],
+    };
+    const r = mediaMensalDespesas(state, "tudo", HOJE);
+    expect(r.mediaVariaveis).toBe(300);          // só as transações variáveis
+    expect(r.media).toBe((900 + 600) / 3);        // tudo (inclui a dívida de julho)
+  });
+
+  it("estimativa de variáveis vira saída SEMANAL e o colchão é vigiado", () => {
+    const state = {
+      contas: [{ ...CONTA, saldo: 1000 }],
+      transacoes: [
+        { id: "t1", tipo: "despesa", descricao: "Mercado", valor: 3000, conta: "ITAU", data: "2026-08-10", compensado: true },
+      ], // média variáveis = 1000/mês → ~233/semana
+    };
+    const f = montarFluxoCaixa(state, "tudo", 30, HOJE, { estimarVariaveis: true, saldoMinimo: 800 });
+    const estimados = f.eventos.filter(e => e.estimado);
+    expect(estimados.length).toBe(4); // semanas 7/14/21/28
+    expect(Math.round(estimados[0].valor)).toBe(Math.round((1000 * 7) / 30));
+    expect(f.primeiroAbaixoMinimo).toBe(estimados[0].data); // 1000−233 < 800 já na 1ª semana
+    expect(f.diasDeCaixa).toBe(30); // média TOTAL 3m = 1000/mês → 33,3/dia → 30 dias
+    // desligada, não injeta nada
+    const sem = montarFluxoCaixa(state, "tudo", 30, HOJE, { estimarVariaveis: false });
+    expect(sem.eventos.filter(e => e.estimado)).toEqual([]);
   });
 
   it("respeita o escopo", () => {
