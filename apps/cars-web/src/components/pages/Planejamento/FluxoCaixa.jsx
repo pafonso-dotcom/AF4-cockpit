@@ -28,6 +28,10 @@ export default function FluxoCaixa({
     try { return localStorage.getItem("af4:fluxo-saldo-minimo") || ""; } catch { return ""; }
   });
   const mudarEstimar = (v) => { setEstimar(v); try { localStorage.setItem("af4:fluxo-estimativa", v ? "1" : "0"); } catch {} };
+  const [cenario, setCenario] = useState(() => {
+    try { return localStorage.getItem("af4:fluxo-cenario") || "realista"; } catch { return "realista"; }
+  });
+  const mudarCenario = (c) => { setCenario(c); try { localStorage.setItem("af4:fluxo-cenario", c); } catch {} };
   const mudarMinimo = (v) => { setSaldoMinimo(v); try { localStorage.setItem("af4:fluxo-saldo-minimo", v); } catch {} };
   const minimoNum = Number(String(saldoMinimo).replace(/\./g, "").replace(",", ".")) || 0;
   const m = (v) => (hidden ? "•••" : fmt(v));
@@ -37,9 +41,18 @@ export default function FluxoCaixa({
     [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, cheques]
   );
   const fluxo = useMemo(() => {
-    try { return montarFluxoCaixa(state, escopoAtivo, dias, new Date(), { estimarVariaveis: estimar, saldoMinimo: minimoNum }); }
+    try { return montarFluxoCaixa(state, escopoAtivo, dias, new Date(), { estimarVariaveis: estimar, saldoMinimo: minimoNum, cenario }); }
     catch { return null; }
-  }, [state, escopoAtivo, dias, estimar, minimoNum]);
+  }, [state, escopoAtivo, dias, estimar, minimoNum, cenario]);
+
+  // Faixa comparativa: o saldo final dos TRÊS cenários lado a lado.
+  const finais = useMemo(() => {
+    try {
+      const f = (c) => montarFluxoCaixa(state, escopoAtivo, dias, new Date(),
+        { estimarVariaveis: estimar, cenario: c }).saldoFinal;
+      return { otimista: f("otimista"), realista: f("realista"), pessimista: f("pessimista") };
+    } catch { return null; }
+  }, [state, escopoAtivo, dias, estimar]);
 
   if (!fluxo) return null;
   const { saldoInicial, saldoFinal, eventos, porDia, piorDia, primeiroNegativo,
@@ -66,8 +79,8 @@ export default function FluxoCaixa({
 
   return (
     <div style={{ paddingTop: 4 }}>
-      {/* horizonte */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+      {/* horizonte + cenário */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
         {[30, 60, 90].map(d => (
           <button key={d} onClick={() => setDias(d)}
                   style={{ padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700, cursor: "pointer",
@@ -76,6 +89,25 @@ export default function FluxoCaixa({
                            color: dias === d ? T.gold : T.muted }}>{d} dias</button>
         ))}
       </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        {[["otimista", "😃 Otimista", "gastos do dia a dia 20% mais leves"],
+          ["realista", "😐 Realista", "tudo como está previsto"],
+          ["pessimista", "😟 Pessimista", "a receber e cheques contam 70% + dia a dia 20% mais caro"]].map(([c, r, hint]) => (
+          <button key={c} onClick={() => mudarCenario(c)} title={hint}
+                  style={{ padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                           border: `1px solid ${cenario === c ? T.blue : T.border}`,
+                           background: cenario === c ? `${T.blue}18` : "transparent",
+                           color: cenario === c ? T.blue : T.muted }}>{r}</button>
+        ))}
+      </div>
+      {finais && !hidden && (
+        <div style={{ display: "flex", gap: 12, marginBottom: 12, fontSize: 11.5, color: T.muted, flexWrap: "wrap" }}>
+          <span>😃 {fmt(finais.otimista)}</span>
+          <span>😐 {fmt(finais.realista)}</span>
+          <span>😟 <b style={{ color: finais.pessimista < 0 ? T.red : T.ink }}>{fmt(finais.pessimista)}</b></span>
+          <span style={{ color: T.faint }}>← saldo daqui a {dias} dias em cada cenário</span>
+        </div>
+      )}
 
       {/* herói + veredito */}
       <div style={{ marginBottom: 10 }}>
@@ -163,6 +195,7 @@ export default function FluxoCaixa({
                              color: e.estimado ? T.faint : T.ink, fontStyle: e.estimado ? "italic" : "normal" }}>
                 {e.descricao}
                 {e.atrasado && <span style={{ color: T.red, fontSize: 10, fontWeight: 700 }}> · atrasado</span>}
+                {e.ajustado && <span style={{ color: T.blue, fontSize: 10, fontWeight: 700 }}> · 70% (cenário)</span>}
                 {!e.estimado && FONTES[e.fonte] && <span style={{ color: T.faint, fontSize: 10 }}> · {FONTES[e.fonte]}</span>}
               </span>
               <span className="num" style={{ fontWeight: 700, color: e.tipo === "entrada" ? T.green : T.red, flexShrink: 0 }}>
