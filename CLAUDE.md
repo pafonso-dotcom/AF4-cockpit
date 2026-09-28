@@ -56,7 +56,7 @@ O que mais economiza não é a arquitetura, e sim o escopo de cada pedido:
 
 - `docs/superpowers/specs/2026-06-09-apps-independentes-decisao.md` — decisão de
   manter os dois apps independentes (substitui a ideia de `packages/core`).
-- `docs/jarbas/JARBAS-PROMPT.md` — projeto Jarbas (assistente de voz) PAUSADO em
-  2026-09-23: fora da UI, código dormente no repo, spec + prompt de retomada lá.
+- Jarbas (assistente de voz) — projeto ENCERRADO e removido do repo em
+  2026-09-28 (código dormente, docs e repo externo deletados a pedido).
 - `docs/pluggy.md` — integração bancária via Meu Pluggy/Open Finance (2026-09-24):
   secrets no Worker, PIN obrigatório, fonte opcional, dedup por pluggyId.
