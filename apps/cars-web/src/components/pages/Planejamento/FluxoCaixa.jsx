@@ -89,12 +89,12 @@ export default function FluxoCaixa({
                            color: dias === d ? T.gold : T.muted }}>{d} dias</button>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
         {[["otimista", "😃 Otimista", "gastos do dia a dia 20% mais leves"],
           ["realista", "😐 Realista", "tudo como está previsto"],
           ["pessimista", "😟 Pessimista", "a receber e cheques contam 70% + dia a dia 20% mais caro"]].map(([c, r, hint]) => (
           <button key={c} onClick={() => mudarCenario(c)} title={hint}
-                  style={{ padding: "6px 11px", borderRadius: 100, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                  style={{ padding: "4px 8px", borderRadius: 100, fontSize: 11, fontWeight: 700, cursor: "pointer",
                            border: `1px solid ${cenario === c ? T.blue : T.border}`,
                            background: cenario === c ? `${T.blue}18` : "transparent",
                            color: cenario === c ? T.blue : T.muted }}>{r}</button>
@@ -166,14 +166,25 @@ export default function FluxoCaixa({
           {minimoNum > 0 && minimoNum < maxV && (
             <line x1={PAD} x2={W - PAD} y1={y(minimoNum)} y2={y(minimoNum)} stroke={T.yellow} strokeWidth="1" opacity="0.6" />
           )}
-          <polyline points={linha} fill="none" stroke={T.gold} strokeWidth="2"
+          <polyline points={linha} fill="none" stroke={T.gold} strokeWidth="2.5"
                     strokeLinejoin="round" strokeLinecap="round" />
+          {/* marcador do PIOR DIA — a informação mais importante do gráfico */}
+          {piorDia && (() => {
+            const idx = pontos.findIndex(p => p.dataISO === piorDia.dataISO);
+            if (idx < 0) return null;
+            return <circle cx={x(idx)} cy={y(piorDia.saldo)} r="4.5"
+                           fill={piorDia.saldo < 0 ? T.red : T.yellow} stroke={T.card} strokeWidth="2">
+              <title>Pior dia: {rotuloDia(piorDia.dataISO)}</title>
+            </circle>;
+          })()}
           <circle cx={x(pontos.length - 1)} cy={y(saldoFinal)} r="4" fill={T.gold} stroke={T.card} strokeWidth="2" />
         </svg>
       )}
       {porDia.length > 0 && (
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: T.faint, marginBottom: 14 }}>
-          <span>hoje</span><span>{rotuloDia(porDia[porDia.length - 1].dataISO)}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: T.faint, marginBottom: 14 }}>
+          <span>hoje</span>
+          {piorDia && <span style={{ color: piorDia.saldo < 0 ? T.red : T.yellow }}>● pior dia: {rotuloDia(piorDia.dataISO)}</span>}
+          <span>{rotuloDia(porDia[porDia.length - 1].dataISO)}</span>
         </div>
       )}
 

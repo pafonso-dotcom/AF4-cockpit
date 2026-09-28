@@ -31,7 +31,16 @@ export default function DreVisual({ dre, dreAnt, hidden }) {
   delta("Proventos", dre.proventos, "up");
   passos.push({ nome: "Resultado", tipo: "total", de: 0, para: dre.resultado, marco: true, final: true });
 
-  const vals = passos.flatMap(p => [p.de, p.para]);
+  // No celular sobrava pouco espaço e ainda apareciam barras de "+0"/"−0":
+  // etapas com delta ~zero saem da cascata (a tabela abaixo segue completa);
+  // se Proventos zerou, "Sobra oper." e "Resultado" seriam colunas idênticas —
+  // fica só o Resultado.
+  let visiveis = passos.filter(p => p.marco || Math.abs(p.para - p.de) >= 0.5);
+  if (!visiveis.some(p => p.nome === "Proventos")) {
+    visiveis = visiveis.filter(p => p.nome !== "Sobra oper.");
+  }
+
+  const vals = visiveis.flatMap(p => [p.de, p.para]);
   const topo = Math.max(...vals, 1), piso = Math.min(...vals, 0);
   const y = (v) => ((v - piso) / (topo - piso)) * H;
 
@@ -69,7 +78,7 @@ export default function DreVisual({ dre, dreAnt, hidden }) {
 
       {/* cascata */}
       <div style={{ position: "relative", height: H + 26, display: "flex", alignItems: "flex-end", gap: 2, marginTop: 14 }}>
-        {passos.map((p, i) => {
+        {visiveis.map((p, i) => {
           const a = y(p.de), b = y(p.para);
           const base = Math.min(a, b), alt = Math.max(Math.abs(a - b), 3);
           const sobe = p.para >= p.de;
@@ -87,11 +96,11 @@ export default function DreVisual({ dre, dreAnt, hidden }) {
                    style={{ position: "absolute", bottom: base + 26, left: "50%", transform: "translateX(-50%)",
                             width: 22, maxWidth: "70%", height: alt, background: cor, borderRadius: raio }} />
               <div className="num" style={{ position: "absolute", bottom: Math.max(a, b) + 32, left: "50%", transform: "translateX(-50%)",
-                            fontSize: 10, fontWeight: p.final ? 800 : 700, color: p.tipo === "down" ? T.muted : T.ink, whiteSpace: "nowrap" }}>
+                            fontSize: 11, fontWeight: p.final ? 800 : 700, color: p.tipo === "down" ? T.muted : T.ink, whiteSpace: "nowrap" }}>
                 {rotuloV}
               </div>
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, textAlign: "center",
-                            fontSize: 9.5, color: T.muted, lineHeight: 1.1, borderTop: `1px solid ${T.border}`, paddingTop: 5 }}>
+                            fontSize: 11, color: T.muted, lineHeight: 1.1, borderTop: `1px solid ${T.border}`, paddingTop: 5 }}>
                 {p.nome}
               </div>
             </div>
