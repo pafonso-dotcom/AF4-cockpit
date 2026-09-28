@@ -307,11 +307,11 @@ export default function AnalisesFinancas(props) {
                 <div key={t.iso} title={`${t.label}: receitas ${fmt(t.receitas)} · despesas ${fmt(t.despesas)} · ${t.sobra >= 0 ? "sobrou" : "faltou"} ${fmt(Math.abs(t.sobra))}`}
                      style={{ textAlign: "center", opacity: atual ? 1 : 0.85 }}>
                   <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 3, height: 72 }}>
-                    <div style={{ width: 12, borderRadius: "4px 4px 0 0", background: T.green, height: `${Math.max(2, (t.receitas / maxTend) * 100)}%` }} />
-                    <div style={{ width: 12, borderRadius: "4px 4px 0 0", background: T.red, height: `${Math.max(2, (t.despesas / maxTend) * 100)}%` }} />
+                    <div style={{ width: 14, borderRadius: "4px 4px 0 0", background: T.green, height: `${Math.max(2, (t.receitas / maxTend) * 100)}%` }} />
+                    <div style={{ width: 14, borderRadius: "4px 4px 0 0", background: T.red, height: `${Math.max(2, (t.despesas / maxTend) * 100)}%` }} />
                   </div>
-                  <div style={{ fontSize: 10, color: atual ? T.gold : T.muted, fontWeight: atual ? 700 : 500, marginTop: 4, textTransform: "capitalize" }}>{t.label}</div>
-                  <div className="num" style={{ fontSize: 9.5, fontWeight: 700, color: t.sobra >= 0 ? T.green : T.red }}>
+                  <div style={{ fontSize: 11, color: atual ? T.gold : T.muted, fontWeight: atual ? 700 : 500, marginTop: 4, textTransform: "capitalize" }}>{t.label}</div>
+                  <div className="num" style={{ fontSize: 10.5, fontWeight: 700, color: t.sobra >= 0 ? T.green : T.red }}>
                     {hidden ? "•••" : `${t.sobra >= 0 ? "+" : "−"}${Math.round(Math.abs(t.sobra)).toLocaleString("pt-BR")}`}
                   </div>
                 </div>
