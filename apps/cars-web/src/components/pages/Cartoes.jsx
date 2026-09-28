@@ -845,7 +845,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   </button>
                 </div>
                 <div style={{ flex: 1, minHeight: 10 }} />
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
                 {/* DESTAQUE = fatura em aberto (do mês, ou a importada de
                     competência futura). Total das parcelas vai pra linha
                     discreta embaixo (pedido do usuário). */}
@@ -854,24 +854,24 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   const mesFat = aPagar > 0 ? mesAtualKey() : (c.faturaImportada?.competencia || proxKey);
                   return (
                     <>
-                      <div className="num" style={{ fontVariantNumeric: "tabular-nums", fontSize: 18, fontWeight: 400, letterSpacing: "-.01em", marginTop: 2, color: T.ink, whiteSpace: "nowrap" }}
+                      <div className="num" style={{ fontVariantNumeric: "tabular-nums", fontSize: 21, fontWeight: 600, letterSpacing: "-.01em", marginTop: 2, color: T.ink, whiteSpace: "nowrap" }}
                            title="Fatura em aberto (valor a pagar)">
                         {hidden ? "•••" : fmt(faturaAberta || 0)}
                       </div>
                       <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                         {fiPaga
-                          ? <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.green}18`, color: T.green, whiteSpace: "nowrap" }}>Fatura paga</span>
+                          ? <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.green}18`, color: T.green, whiteSpace: "nowrap" }}>Fatura paga</span>
                           : faturaAberta > 0
-                            ? <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.gold}18`, color: T.gold, whiteSpace: "nowrap" }}>A pagar · {nomeMesCurto(mesFat)}</span>
-                            : <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>Sem fatura</span>}
+                            ? <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.gold}18`, color: T.gold, whiteSpace: "nowrap" }}>A pagar · {nomeMesCurto(mesFat)}</span>
+                            : <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>Sem fatura</span>}
                       </div>
                       {/* Mês seguinte: só quando acrescenta informação ao destaque. */}
                       {aPagar > 0 && fiProx > 0 ? (
-                        <div style={{ marginTop: 4, fontSize: 12, color: T.muted }} title={`Fatura importada com competência ${nomeMesCurto(proxKey)}`}>
+                        <div style={{ marginTop: 4, fontSize: 13, color: T.muted }} title={`Fatura importada com competência ${nomeMesCurto(proxKey)}`}>
                           Mês seguinte (<span style={{ textTransform: "capitalize" }}>{nomeMesCurto(proxKey)}</span>): <span className="num" style={{ color: T.gold, fontWeight: 700 }}>{hidden ? "•••" : fmt(fiProx)}</span> <span style={{ color: T.faint }}>· fatura importada</span>
                         </div>
                       ) : fiProx > 0 ? null : (proxMes.valor + avProx) > 0 && (
-                        <div style={{ marginTop: 4, fontSize: 12, color: T.muted }} title={`Já comprometido pra fatura de ${nomeMesCurto(proxKey)}: parcelas + compras lançadas (manual/foto) ainda não cobradas`}>
+                        <div style={{ marginTop: 4, fontSize: 13, color: T.muted }} title={`Já comprometido pra fatura de ${nomeMesCurto(proxKey)}: parcelas + compras lançadas (manual/foto) ainda não cobradas`}>
                           Mês seguinte (<span style={{ textTransform: "capitalize" }}>{nomeMesCurto(proxKey)}</span>): <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(proxMes.valor + avProx)}</span>{" "}
                           <span style={{ color: T.faint }}>
                             · {proxMes.count} parcela{proxMes.count === 1 ? "" : "s"}
@@ -880,7 +880,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         </div>
                       )}
                       {usado > 0 && (
-                        <div className="num" style={{ marginTop: 6, fontSize: 12, color: T.muted, whiteSpace: "nowrap" }}
+                        <div className="num" style={{ marginTop: 6, fontSize: 13, color: T.muted, whiteSpace: "nowrap" }}
                              title="Todas as parcelas em aberto deste cartão (todos os meses)">
                           Parcelas em aberto: <span style={{ fontWeight: 600, color: T.ink }}>{hidden ? "•••" : fmt(usado)}</span>
                         </div>
@@ -900,7 +900,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         const compHoje = fech ? competenciaDaCompra(todayISO(), fech) : null;
                         const melhorDia = fech ? (fech >= 31 ? 1 : fech + 1) : null;
                         return (
-                          <div style={{ marginTop: 6, fontSize: 11.5, color: T.muted, lineHeight: 1.55 }}>
+                          <div style={{ marginTop: 6, fontSize: 12.5, color: T.muted, lineHeight: 1.6 }}>
                             <div>
                               {fech ? `Fecha dia ${fech}` : ""}{fech && venc ? " · " : ""}{venc ? `vence dia ${venc}` : ""}
                               {diasVenc != null && aPagar > 0 && (
@@ -924,7 +924,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         const corBarra = pct >= 85 ? T.red : pct >= 60 ? T.gold : T.green;
                         return (
                           <div style={{ marginTop: 6 }} title="Parcelas restantes + compras pendentes sobre o limite do cartão">
-                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: T.muted, marginBottom: 2 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: T.muted, marginBottom: 2 }}>
                               <span>Limite usado {pct.toFixed(0)}%</span>
                               <span className="num">{hidden ? "•••" : `${fmt(usadoLimite)} / ${fmt(Number(c.limite))}`}</span>
                             </div>
