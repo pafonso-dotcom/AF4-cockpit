@@ -27,7 +27,11 @@ export default function SincronizarBancoModal({
   contas = [], setContas, categorias = [], transacoes = [], setTransacoes,
   cartoes = [], parcelamentos = [], pluggy = {}, setPluggy, onClose,
 }) {
-  const [passo, setPasso] = useState(pluggy.itemId ? "contas" : "conectar");
+  // Abre DIRETO nas contas quando já existe qualquer conexão salva (itens[]
+  // novos ou itemId legado) — a tela de login é só pra quem nunca conectou.
+  const [passo, setPasso] = useState(
+    (pluggy.itemId || (pluggy.itens || []).length) ? "contas" : "conectar"
+  );
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
   const [reconectar, setReconectar] = useState(false);
@@ -78,7 +82,7 @@ export default function SincronizarBancoModal({
   const carregarContas = async (ids = idsConexoes(), forcar = false) => {
     if (!ids.length) return;
     setCarregando(true); setErro("");
-    let contasTodas = [], pior = null, algumUpdating = false, erros = [];
+    let contasTodas = [], pior = null, algumUpdating = false, erros = [], mortos = [];
     for (const id of ids) {
       try {
         let st = await statusItem(id);
@@ -89,12 +93,25 @@ export default function SincronizarBancoModal({
         if (st.status === "UPDATING") algumUpdating = true;
         const r = await contasPluggy(id);
         contasTodas = contasTodas.concat(r.contas || []);
-      } catch (e) { erros.push(e.message); }
+      } catch (e) {
+        // Self-heal: conexão MORTA (item apagado na Pluggy — sobra das
+        // primeiras tentativas) sai da lista de vez, sem incomodar de novo.
+        if (/not found|não encontrad/i.test(e.message || "")) mortos.push(id);
+        else erros.push(e.message);
+      }
+    }
+    if (mortos.length && setPluggy) {
+      setPluggy(prev => ({
+        ...(prev || {}),
+        itemId: mortos.includes(prev?.itemId) ? "" : (prev?.itemId || ""),
+        itens: (prev?.itens || []).filter(id => !mortos.includes(id)),
+      }));
+      toast.success(`🧹 ${mortos.length} conexão(ões) antiga(s) inválida(s) removida(s).`);
     }
     setStatusInfo(pior);
     setReconectar(Boolean(pior && STATUS_RECONECTAR.has(pior.status) && !ehAguardandoAutorizacao(pior)));
     setSincronizando(algumUpdating);
-    if (erros.length === ids.length && erros.length) setErro(erros[0]);
+    if (erros.length && erros.length + mortos.length === ids.length) setErro(erros[0]);
     setListaBanco(contasTodas.filter((c, i, arr) => arr.findIndex(x => x.id === c.id) === i));
     setPasso("contas");
     setCarregando(false);
