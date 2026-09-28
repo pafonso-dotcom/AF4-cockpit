@@ -13,7 +13,7 @@ import {
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
   BookOpen, Repeat, MoreHorizontal, RotateCw, LogOut,
-  Bell, Dumbbell, Brain, HandCoins, FileText, Landmark, Plane, Scale, Banknote,
+  Bell, Dumbbell, Brain, HandCoins, FileText, Landmark, Plane,
 } from "lucide-react";
 
 /**
@@ -44,7 +44,7 @@ export const AGENDA_TABS = [
 // Ordem das abas por módulo — usada pelo SWIPE do celular (App.jsx).
 // Espelha os SUBTABS abaixo; se mudar lá, mude aqui.
 export const SUBTAB_IDS = {
-  financas: ["dashboard", "contas", "cartoes", "emprestimos", "planejamento", "relatorios-f", "fluxocaixa", "projecao-f", "dre", "transacoes", "categorias", "perguntar"],
+  financas: ["dashboard", "contas", "cartoes", "emprestimos", "planejamento", "relatorios-f", "transacoes", "categorias", "perguntar"],
   invest: ["investimentos", "carteira", "monte-carteira", "analises", "proventos", "simulador", "construtor-mercado", "relatorios-i"],
   agenda: AGENDA_TABS.map(t => t.id),
   config: ["cfg-aparencia", "cfg-apis", "cfg-modulos", "cfg-backup"],
@@ -149,10 +149,6 @@ function HeaderHorizontal({
       { id: "emprestimos",  label: "Empréstimos",  icon: HandCoins },
       { id: "planejamento", label: "Planejamento", icon: Target },
       { id: "relatorios-f", label: "Análises & Relatórios", icon: BarChart3 },
-      // Atalhos diretos (pedido 2026-09-28): caem na seção certa já aberta.
-      { id: "fluxocaixa",   label: "Fluxo de caixa",   icon: Banknote },
-      { id: "projecao-f",   label: "Projeção · meses", icon: LineIcon },
-      { id: "dre",          label: "DRE visual",       icon: Scale },
       // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
       // que ficam escondidas até clicar aqui.
       // O resto:
@@ -691,10 +687,6 @@ function HeaderVertical({
       { id: "emprestimos",  label: "Empréstimos",  icon: HandCoins },
       { id: "planejamento", label: "Planejamento", icon: Target },
       { id: "relatorios-f", label: "Análises & Relatórios", icon: BarChart3 },
-      // Atalhos diretos (pedido 2026-09-28): caem na seção certa já aberta.
-      { id: "fluxocaixa",   label: "Fluxo de caixa",   icon: Banknote },
-      { id: "projecao-f",   label: "Projeção · meses", icon: LineIcon },
-      { id: "dre",          label: "DRE visual",       icon: Scale },
       // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
       // que ficam escondidas até clicar aqui.
       // O resto:
