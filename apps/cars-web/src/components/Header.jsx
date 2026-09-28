@@ -216,7 +216,7 @@ function HeaderHorizontal({
       </span>
     );
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 1, marginLeft: 4 }}>
+      <span className="hdr-setas" style={{ display: "inline-flex", alignItems: "center", gap: 1, marginLeft: 4 }}>
         {seta(-1, "◀", "Mover para a esquerda", idx <= 0)}
         {seta(+1, "▶", "Mover para a direita", idx >= itens.length - 1)}
       </span>
@@ -331,6 +331,10 @@ function HeaderHorizontal({
                 {[
                   { lbl: "Busca rápida", icon: Search, on: () => { onOpenPalette?.(); setMenuUtilAberto(false); } },
                   { lbl: "Compra no cartão", icon: CreditCard, on: () => { setMenuUtilAberto(false); window.dispatchEvent(new CustomEvent("af4:compra-cartao")); } },
+                  // No mobile a linha de módulos (onde vivem Juros/Calc) fica
+                  // oculta — este menu é o único acesso às calculadoras lá.
+                  ...(onCalculadoraJuros ? [{ lbl: "Calculadora de juros", icon: Calculator, on: () => { setMenuUtilAberto(false); onCalculadoraJuros(); } }] : []),
+                  ...(onCalculadoraBasica ? [{ lbl: "Calculadora básica", icon: Calculator, on: () => { setMenuUtilAberto(false); onCalculadoraBasica(); } }] : []),
                   { lbl: hidden ? "Mostrar valores" : "Ocultar valores", icon: hidden ? EyeOff : Eye, on: () => { setHidden(!hidden); setMenuUtilAberto(false); } },
                   { lbl: T.dark ? "Tema claro" : "Tema escuro", icon: T.dark ? Sun : Moon, on: () => { onOpenSettings?.("toggle-tema"); setMenuUtilAberto(false); } },
                   { lbl: refreshing ? "Atualizando…" : "Atualizar cotações", icon: RefreshCw, on: () => { onRefresh?.(); setMenuUtilAberto(false); } },
@@ -459,6 +463,8 @@ function HeaderHorizontal({
         <div data-subnav style={{
           maxWidth: 1280, margin: "0 auto",
           display: "flex", gap: 2, overflowX: "auto", alignItems: "center",
+          // Mesmo fade da linha de módulos: dica de que tem mais abas pra lá.
+          WebkitMaskImage: "linear-gradient(90deg, #000 92%, transparent)", maskImage: "linear-gradient(90deg, #000 92%, transparent)",
         }}>
           {subtabs.map(st => {
             const Icon = st.icon;

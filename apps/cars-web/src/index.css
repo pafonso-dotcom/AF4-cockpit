@@ -772,6 +772,9 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 4px;
+    /* Dica visual de "tem mais pra lá": borda direita esmaecida */
+    -webkit-mask-image: linear-gradient(90deg, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, #000 92%, transparent);
   }
   /* Mas: se o flex-wrap está sendo usado em modal/cards de seleção de pacote, mantém quebra */
   .modal-content .flex.flex-wrap { flex-wrap: wrap !important; overflow: visible !important; }
@@ -862,4 +865,21 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 }
 @media (max-width: 520px) {
   .vg-grupos > div > div:last-child { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+/* ============================================================
+   MOBILE · flutuantes acima da barra inferior de abas
+   No celular a BottomTabBar ocupa o rodapé (56px + safe area);
+   toasts e o banner de instalação sobem pra não ficar por baixo.
+   ============================================================ */
+@media (max-width: 768px) {
+  .toast-stack {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .pwa-banner {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  /* Setas ◀▶ de reordenar aba: só fazem sentido com mouse — no toque
+     roubam espaço e geram toques acidentais. */
+  .hdr-setas { display: none !important; }
 }

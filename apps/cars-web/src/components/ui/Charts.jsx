@@ -151,7 +151,9 @@ export function ReportGrid({ children }) {
   return (
     <div style={{
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+      // min(360px, 100%): em telas < 360px de área útil a coluna encolhe
+      // junto em vez de estourar a largura e ser cortada.
+      gridTemplateColumns: "repeat(auto-fit, minmax(min(360px, 100%), 1fr))",
       gap: 16,
       marginTop: 18,
     }}>
