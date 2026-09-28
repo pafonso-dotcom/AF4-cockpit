@@ -16,7 +16,9 @@ const DARK_BASE = {
   // mantendo a hierarquia de profundidade (bg < bgSoft < card < cardHi).
   bg: "#23272E", bgSoft: "#282c34", card: "#2d323b", cardHi: "#333945",
   border: "#343a44", borderHi: "#3f4550",
-  ink: "#f5f5f7", muted: "#b4b9c4", faint: "#868d9a",
+  // Textos clareados em 2026-09-29 (pedido: "letras muito apagadas") —
+  // hierarquia preservada: ink > muted > faint.
+  ink: "#ffffff", muted: "#ccd3dd", faint: "#9aa3b1",
   green: "#4ade80", red: "#f87171", blue: "#ed9355", yellow: "#fbbf24",
 };
 
