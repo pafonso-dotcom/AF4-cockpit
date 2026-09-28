@@ -7,6 +7,7 @@ import DespesasFixas from "../DespesasFixas.jsx";
 import Cheques from "../Cheques.jsx";
 import ReservaEmergenciaView from "./ReservaEmergenciaView.jsx";
 import SimuladorCompra from "./SimuladorCompra.jsx";
+import FluxoCaixa from "./FluxoCaixa.jsx";
 import { somaContasBRL } from "../../../lib/cambio.js";
 
 /**
@@ -248,6 +249,17 @@ export default function Planejamento(props) {
             <span style={{ color: T.gold, fontSize: 13, flexShrink: 0 }}>abrir →</span>
           </button>
         )}
+
+        {/* 💵 Fluxo de caixa — projeção DIÁRIA do caixa (2026-09-28):
+            linha do saldo + extrato do futuro, com aviso de caixa furando. */}
+        <Secao on={aberto === "fluxocaixa"} onToggle={() => toggle("fluxocaixa")} titulo="💵 Fluxo de caixa">
+          <FluxoCaixa
+            transacoes={props.transacoes} contas={props.contas}
+            fixas={props.fixas} fixaOcorrencias={props.fixaOcorrencias}
+            parcelamentos={props.parcelamentos} dividas={props.dividas}
+            devedores={props.devedores} cartoes={props.cartoes} cheques={props.cheques}
+            escopoAtivo={props.escopoAtivo} hidden={props.hidden} />
+        </Secao>
 
         {/* 🛒 Simulador de compra — "E se eu comprar X em 4x?" (2026-09-25).
             SÓ VISUAL: projeta o saldo com/sem a compra, nada é lançado. */}
