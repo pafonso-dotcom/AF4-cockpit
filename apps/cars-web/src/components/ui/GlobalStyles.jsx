@@ -26,6 +26,11 @@ export default function GlobalStyles() {
         font-family: ${T.sans}; font-size: 10px; letter-spacing: 0.25em;
         text-transform: uppercase; color: ${T.muted}; font-weight: 500;
       }
+      /* Rótulos legíveis no celular: 10px CAPS espaçado some na tela pequena. */
+      @media (max-width: 640px) {
+        .label-eyebrow { font-size: 11.5px; letter-spacing: 0.14em; }
+        .kl { font-size: 11px !important; letter-spacing: .1em !important; }
+      }
       .ornament {
         display: flex; align-items: center; gap: 12px; color: ${T.gold};
         font-family: ${T.serif}; font-style: italic;

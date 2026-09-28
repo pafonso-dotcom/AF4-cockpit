@@ -154,10 +154,8 @@ body::before {
   max-width: 720px; line-height: 1.55;
 }
 
-.label-eyebrow {
-  font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
-  color: var(--td); font-weight: 500;
-}
+/* .label-eyebrow vive só no GlobalStyles (cópia daqui removida em
+   2026-09-28 — eram duas definições com valores diferentes). */
 
 .num { font-variant-numeric: tabular-nums; }
 

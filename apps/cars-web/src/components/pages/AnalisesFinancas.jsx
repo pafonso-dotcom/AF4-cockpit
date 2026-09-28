@@ -211,7 +211,18 @@ export default function AnalisesFinancas(props) {
         @media (max-width: 768px) {
           .analises-hub { padding-left: 8px !important; padding-right: 8px !important; }
           .analises-hub .analises-sec-body { padding-left: 4px !important; padding-right: 4px !important; }
-          .an-kpis { grid-template-columns: 1fr !important; }
+          /* KPIs no celular: "Sobrou" vira o herói em cima (linha inteira,
+             número grande) e Receitas + Despesas ficam lado a lado embaixo —
+             mesma informação na metade da altura de 3 cartões empilhados. */
+          .an-kpis { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+          .an-kpis > div:nth-child(3) { grid-column: 1 / -1; order: -1; }
+          .an-kpis > div:nth-child(3) div.num { font-size: 30px !important; }
+          .an-kpis > div:nth-child(1) div.num,
+          .an-kpis > div:nth-child(2) div.num { font-size: 19px !important; }
+          /* Ações do topo (⭐ · Pesquisar · PDF) quebram linha em vez de
+             virar scroll escondido — o botão do PDF era cortado na borda. */
+          .an-actions { flex-wrap: wrap !important; overflow-x: visible !important;
+                        -webkit-mask-image: none !important; mask-image: none !important; }
         }
       `}</style>
       <PageHeader
@@ -219,7 +230,7 @@ export default function AnalisesFinancas(props) {
         title={<>Análise do <em>mês.</em></>}
         sub="Pra onde foi o dinheiro, em uma tela: resumo, leitura do consultor e categorias com detalhe. O PDF completo sai num botão."
         action={
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="an-actions flex items-center gap-2 flex-wrap">
             {score && (
               <span title={`Score financeiro: ${score.total}/1000 (${score.nivel}) — detalhes em Mais análises`}
                     className="num"
