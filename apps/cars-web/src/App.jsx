@@ -814,7 +814,7 @@ export default function App() {
                         onVoltar={() => setContaAberta(null)} />
         </div>
       )}
-      {(tab === "areceber" || tab === "fixas" || tab === "relatorios-anual" || tab === "planejamento" || tab === "cheques") && (
+      {(tab === "areceber" || tab === "fixas" || tab === "relatorios-anual" || tab === "planejamento" || tab === "cheques" || tab === "fluxocaixa") && (
         <Planejamento
           transacoes={transacoes} setTransacoes={setTransacoes}
           contas={contas} setContas={setContas}
@@ -830,7 +830,7 @@ export default function App() {
           apiKey={apiKeys.anthropic}
           escopoAtivo={escopoAtivo}
           tab={tab}
-          secaoInicial={tab === "cheques" ? "cheques" : tab === "fixas" ? "fixas" : tab === "areceber" ? "areceber" : tab === "relatorios-anual" ? "anual" : null}
+          secaoInicial={tab === "cheques" ? "cheques" : tab === "fixas" ? "fixas" : tab === "areceber" ? "areceber" : tab === "relatorios-anual" ? "anual" : tab === "fluxocaixa" ? "fluxocaixa" : null}
           onVerCategoria={verCategoriaTransacoes}
           onTabChange={setTab}
           hidden={hidden}
@@ -889,7 +889,7 @@ export default function App() {
                          hidden={hidden} />
         </div>
       )}
-      {(tab === "relatorios-f" || tab === "inteligencia" || tab === "revisor-ganhos" || tab === "audit") && (
+      {(tab === "relatorios-f" || tab === "inteligencia" || tab === "revisor-ganhos" || tab === "audit" || tab === "dre" || tab === "projecao-f") && (
         <AnalisesFinancas
           transacoes={transacoes} contas={contas} ativos={ativos}
           categorias={categorias}
@@ -900,6 +900,7 @@ export default function App() {
           patrimonioHistorico={patrimonioHistorico}
           apiKey={apiKeys.anthropic}
           escopoAtivo={escopoAtivo}
+          secaoInicial={tab === "dre" ? "dre" : tab === "projecao-f" ? "projecao" : null}
           hidden={hidden} onTabChange={setTab} />
       )}
       {/* Cheques agora é seção do Centro de controle (render acima, junto de A Receber) */}
