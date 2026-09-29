@@ -79,6 +79,40 @@ export function rendimentoMesRF(ativo, taxas = {}) {
   return valorBaseRF(ativo) * (tm / 100);
 }
 
+// ── Atualização do preço da renda fixa (liberada em 2026-09-29) ─────────────
+// Capitaliza o PREÇO ATUAL pela taxa contratada, pro-rata por dia corrido
+// (mês ≈ 30 dias), desde o marco `rfAtualizadoEm`. Regras:
+//   - 1ª vez (sem marco, ou marco no futuro): só CARIMBA hoje como marco,
+//     sem mexer no preço — nada de salto retroativo sobre um valor que o
+//     usuário vinha mantendo na mão;
+//   - depois disso, cada atualização compõe (1+tm)^(dias/30) sobre o preço;
+//   - se a variação ainda não dá 1 centavo, devolve null e o marco NÃO
+//     avança (os dias continuam acumulando até render centavo).
+// Devolve { preco, rfAtualizadoEm, dias } ou null (nada a aplicar).
+export function acumularPrecoRF(ativo, taxas = {}, hoje = new Date()) {
+  if (!temTaxaRF(ativo)) return null;
+  const tm = taxaMensalRF(ativo, taxas);
+  if (tm == null || !Number.isFinite(tm)) return null;
+  const pad = (n) => String(n).padStart(2, "0");
+  const hojeISO = typeof hoje === "string"
+    ? hoje.slice(0, 10)
+    : `${hoje.getFullYear()}-${pad(hoje.getMonth() + 1)}-${pad(hoje.getDate())}`;
+  const preco0 = Number(ativo?.preco) || Number(ativo?.pm) || 0;
+  if (preco0 <= 0) return null;
+  const marco = String(ativo?.rfAtualizadoEm || "").slice(0, 10);
+  const dias = marco
+    ? Math.round((Date.parse(hojeISO) - Date.parse(marco)) / 86_400_000)
+    : NaN;
+  if (!Number.isFinite(dias) || dias < 0) {
+    // sem marco (ou marco inválido/futuro): começa a contar a partir de hoje
+    return { preco: preco0, rfAtualizadoEm: hojeISO, dias: 0 };
+  }
+  if (dias === 0) return null; // mesmo dia — nada a compor
+  const novo = +(preco0 * Math.pow(1 + tm / 100, dias / 30)).toFixed(2);
+  if (novo === +preco0.toFixed(2)) return null; // < 1 centavo: segura o marco
+  return { preco: novo, rfAtualizadoEm: hojeISO, dias };
+}
+
 // Resumo de TODOS os ativos de renda fixa (CDB/Tesouro/RF): lista + total do
 // mês. Ativos sem indexador+taxa entram com temTaxa=false (aparecem na tela com
 // aviso "definir taxa"), mas não somam no total.
