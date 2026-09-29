@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart, Calculator, Printer, History } from "lucide-react";
+import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart, Calculator, Printer, History, Sparkles } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, fmtP, fmtUSD, uid, generateHistory, todayISO } from "../../lib/format.js";
@@ -19,6 +19,7 @@ import { proventosPorCota12m } from "../../lib/mapaDividendos.js";
 import { proventosRecebidosPorTicker } from "../../lib/invest-utils.js";
 import { linhaTempoAtivo } from "../../lib/movimentacoesInvest.js";
 import StatusCotacoes from "../ui/StatusCotacoes.jsx";
+import AnaliseAtivoIAModal from "../modals/AnaliseAtivoIAModal.jsx";
 
 // Segmentos/setores sugeridos por tipo de ativo (B3 + padrões de mercado).
 // "Outros" libera input livre de texto.
@@ -79,6 +80,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
   const [pdfAtivoId, setPdfAtivoId] = useState(null);
   // Linha do tempo de operações do ativo (modal) — guarda o ativo alvo.
   const [timelineAtivo, setTimelineAtivo] = useState(null);
+  // ✨ Análise com IA (notícias + rentabilidade 12m + analistas) — ativo alvo.
+  const [iaAtivo, setIaAtivo] = useState(null);
 
   // Tick a cada 15s pra recalcular o indicador "ao vivo" sem depender
   // de re-render externo. Ativo é considerado "ao vivo" se recebeu
@@ -730,6 +733,13 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     <Calculator size={13} />
                   </button>
                 )}
+                {TIPOS_ANALISAVEIS.includes(a.tipo) && (
+                  <button onClick={() => setIaAtivo(a)} aria-label={`Analisar ${a.ticker} com IA`}
+                          title="Análise com IA: rentabilidade 12m, notícias e o que dizem os analistas"
+                          style={{ color: T.gold, padding: "5px 8px", background: "transparent", border: `1px solid ${T.gold}55`, borderRadius: 8, cursor: "pointer" }}>
+                    <Sparkles size={13} />
+                  </button>
+                )}
                 <button onClick={() => setTimelineAtivo(a)} aria-label={`Linha do tempo de ${a.ticker}`} title="Linha do tempo: compras, vendas e proventos deste ativo"
                         style={{ color: T.gold, padding: "5px 8px", background: "transparent", border: `1px solid ${T.gold}55`, borderRadius: 8, cursor: "pointer" }}>
                   <History size={13} />
@@ -936,6 +946,11 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                           <button onClick={e => { e.stopPropagation(); onProjetar(a); }} aria-label={`Projetar ${a.ticker}`} title="Projetar evolução deste ativo"
                                   style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Calculator size={13} /></button>
                         )}
+                        {TIPOS_ANALISAVEIS.includes(a.tipo) && (
+                          <button onClick={e => { e.stopPropagation(); setIaAtivo(a); }} aria-label={`Analisar ${a.ticker} com IA`}
+                                  title="Análise com IA: rentabilidade 12m, notícias e o que dizem os analistas"
+                                  style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Sparkles size={13} /></button>
+                        )}
                         <button onClick={e => { e.stopPropagation(); setTimelineAtivo(a); }} aria-label={`Linha do tempo de ${a.ticker}`} title="Linha do tempo: compras, vendas e proventos deste ativo"
                                 style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><History size={13} /></button>
                         <button onClick={e => { e.stopPropagation(); setPdfAtivoId(a.id); }} aria-label={`Imprimir PDF de ${a.ticker}`} title="Imprimir PDF deste ativo"
@@ -974,6 +989,13 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       </div>
 
       {selected && <DetalheAtivo ativo={selected} onClose={() => setSelected(null)} />}
+
+      {/* MODAL: análise com IA (rentabilidade 12m + notícias + analistas) */}
+      {iaAtivo && (
+        <AnaliseAtivoIAModal
+          ativo={{ symbol: iaAtivo.ticker, name: iaAtivo.nome || iaAtivo.ticker, price: iaAtivo.preco }}
+          onClose={() => setIaAtivo(null)} />
+      )}
 
       {/* MODAL: linha do tempo do ativo (compras, vendas, proventos) */}
       {timelineAtivo && (() => {
