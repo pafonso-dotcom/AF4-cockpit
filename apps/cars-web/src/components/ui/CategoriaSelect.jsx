@@ -70,6 +70,18 @@ export default function CategoriaSelect({
     setAberto(false);
   };
 
+  // "+ Criar categoria" sem sair do formulário (pedido 2026-09-29): o App
+  // escuta este evento e cadastra (tipo do contexto, cor padrão); aqui só
+  // dispara e já seleciona o nome. Nome igual a um existente vira seleção.
+  const criarECategorizar = (nome) => {
+    const nm = String(nome || "").trim();
+    if (!nm) return;
+    window.dispatchEvent(new CustomEvent("af4:categoria-criar", { detail: { nome: nm, tipo } }));
+    escolher(nm);
+  };
+  const buscaLimpa = busca.trim();
+  const jaExiste = !!buscaLimpa && [...nomes].some(n => norm(n) === norm(buscaLimpa));
+
   useEffect(() => {
     if (!aberto) return;
     const esc = (e) => { if (e.key === "Escape") setAberto(false); };
@@ -120,12 +132,12 @@ export default function CategoriaSelect({
             boxShadow: "0 12px 34px rgba(0,0,0,.28)", overflow: "hidden",
             display: "flex", flexDirection: "column", maxHeight: 360,
           }}>
-            {arvore.length > 12 && (
-              <input autoFocus={window.innerWidth > 768} value={busca} onChange={e => setBusca(e.target.value)}
-                placeholder="Buscar categoria…"
-                style={{ margin: 8, padding: "7px 10px", fontSize: 12.5, borderRadius: 10,
-                         border: `1px solid ${T.border}`, background: T.bg, color: T.ink, outline: "none" }} />
-            )}
+            {/* Sempre visível: serve pra buscar E pra digitar o nome de uma
+                categoria nova (a linha "+ Criar" aparece embaixo). */}
+            <input autoFocus={window.innerWidth > 768} value={busca} onChange={e => setBusca(e.target.value)}
+              placeholder="Buscar ou criar categoria…"
+              style={{ margin: 8, padding: "7px 10px", fontSize: 12.5, borderRadius: 10,
+                       border: `1px solid ${T.border}`, background: T.bg, color: T.ink, outline: "none" }} />
             <div style={{ overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
               {foraDoCadastro && (
                 <button type="button" onClick={() => escolher(value)} style={{ ...linhaSty(), color: T.gold }}>
@@ -183,10 +195,16 @@ export default function CategoriaSelect({
                   </React.Fragment>
                 );
               })}
-              {filtrada.length === 0 && (
+              {filtrada.length === 0 && !buscaLimpa && (
                 <div style={{ padding: 16, textAlign: "center", fontSize: 12.5, color: T.muted }}>
                   Nada encontrado.
                 </div>
+              )}
+              {buscaLimpa && !jaExiste && (
+                <button type="button" onClick={() => criarECategorizar(buscaLimpa)}
+                  style={{ ...linhaSty(), color: T.gold, fontWeight: 600 }}>
+                  ＋ Criar categoria “{buscaLimpa}”
+                </button>
               )}
             </div>
           </div>

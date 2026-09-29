@@ -746,6 +746,26 @@ export default function App() {
     setModulo("financas"); setTab("transacoes");
   }, []);
 
+  // "+ Criar categoria" direto do seletor (pedido 2026-09-29): o CategoriaSelect
+  // dispara este evento de qualquer formulário do app — cria aqui (dono do
+  // estado) sem prop-drilling pelos 16 pontos de uso. Nome repetido só seleciona.
+  useEffect(() => {
+    const criar = (e) => {
+      const nome = String(e.detail?.nome || "").trim();
+      if (!nome) return;
+      if ((categorias || []).some(c => String(c.nome).toLowerCase() === nome.toLowerCase())) return;
+      const tipoNovo = e.detail?.tipo === "receita" ? "receita" : "despesa";
+      setCategorias([...(categorias || []), {
+        id: uid(), nome, tipo: tipoNovo,
+        escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal",
+        cor: T.gold, limite: null,
+      }]);
+      toast.success(`Categoria "${nome}" criada — cor e orçamento em Finanças → Categorias.`);
+    };
+    window.addEventListener("af4:categoria-criar", criar);
+    return () => window.removeEventListener("af4:categoria-criar", criar);
+  }, [categorias, escopoAtivo]);
+
   const handleOpenPicker = useCallback(() => setPickerOpen(true), []);
   const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
 
@@ -1051,6 +1071,7 @@ export default function App() {
                    apiKeys={apiKeys} setApiKeys={setApiKeys}
                    onVerificarDuplicidades={() => setVarreduraOpen(true)}
                    onAbrirBackups={() => setBackupsOpen(true)}
+                   onIrCategorias={() => { setModulo("financas"); irParaTab("categorias"); }}
                    modulesEnabled={modulesEnabled} setModulesEnabled={setModulesEnabled}
                    onClearModule={async (id) => {
                      // Ponto de restauração ANTES de limpar (segurança).
