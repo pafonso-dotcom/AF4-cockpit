@@ -138,7 +138,7 @@ export default function AnaliseCarteira({ ativos = [], hidden, onAnalisar, embed
       {/* Embutido num hub, o cabeçalho é o do hub (fim dos títulos duplicados — faxina 2026-09-29). */}
       {!embed && (
         <PageHeader
-          eyebrow="AF4 Trade · Carteira"
+          eyebrow="Investimentos · Análises"
           title={<>Análise <em style={{ color: T.gold }}>da Carteira.</em></>}
           sub="Varredura técnica de todos os ativos da sua carteira — RSI, MACD, tendência e sinal."
         action={

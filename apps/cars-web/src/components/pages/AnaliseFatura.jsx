@@ -393,7 +393,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
   return (
     <div className="fade-up py-8">
       <PageHeader
-        eyebrow="Capítulo IV · Inteligência"
+        eyebrow="Finanças · Análise da fatura"
         title="Análise de Fatura com IA"
         sub="Envie o PDF da fatura. O Gemini lê, classifica em à vista ou parcela, detecta match com parcelamentos existentes, e importa direto para o Planejamento. Assinaturas recorrentes você cadastra manualmente em Despesas Fixas."
       />

@@ -179,7 +179,7 @@ export default function Categorias({
   return (
     <div className="fade-up py-8">
       <PageHeader
-        eyebrow="Capítulo VI"
+        eyebrow="Finanças · Categorias"
         title="Categorias"
         sub="A taxonomia do dinheiro. Categorias, subcategorias e orçamento mensal de cada uma."
         action={

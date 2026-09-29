@@ -730,7 +730,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
   return (
     <div className="fade-up py-8">
       <PageHeader
-        eyebrow="Capítulo III"
+        eyebrow="Finanças · Cartões"
         title="Cartões"
         sub="Limites, fechamentos e parcelamentos sob controle."
         action={

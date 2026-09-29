@@ -129,7 +129,7 @@ export default function InvestPainel({
           Investimentos · Painel
         </div>
         <h1 style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: T.ink, margin: "2px 0 0 0" }}>
-          Sua carteira, <em style={{ color: T.gold }}>com clareza.</em>
+          Painel do <em style={{ color: T.gold }}>Invest.</em>
         </h1>
       </div>
 

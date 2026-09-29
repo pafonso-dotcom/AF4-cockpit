@@ -411,7 +411,7 @@ export default function Metas({
     <div className={embed ? "" : "fade-up py-8"}>
       {!embed ? (
         <PageHeader
-          eyebrow="Capítulo VII"
+          eyebrow="Finanças · Metas"
           title="Metas"
           sub="Promessas que viram patrimônio. Calcule, projete, persiga."
           action={<button className="btn-gold" onClick={() => setForm({ id: null, nome: "", alvo: "", atual: 0, prazo: 12, aporte: 500, taxa: 0.85, dataAlvo: "" })}>

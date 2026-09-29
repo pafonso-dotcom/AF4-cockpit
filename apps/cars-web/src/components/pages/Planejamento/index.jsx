@@ -148,7 +148,7 @@ export default function Planejamento(props) {
           Finanças
         </div>
         <h1 style={{ fontFamily: T.serif, fontSize: 30, fontWeight: 300, letterSpacing: "-.02em", marginTop: 6 }}>
-          Centro de <em style={{ color: T.gold, fontStyle: "italic" }}>controle.</em>
+          Planejamento<em style={{ color: T.gold, fontStyle: "italic" }}>.</em>
         </h1>
         <p style={{ fontSize: 12, color: T.muted, marginTop: 6, fontStyle: "italic" }}>
           Toque numa seção para abrir os detalhes.

@@ -304,7 +304,7 @@ export default function Calendario({
   return (
     <div className="fade-up py-8">
       <PageHeader
-        eyebrow="Capítulo V"
+        eyebrow="Agenda · Calendário"
         title="Agenda"
         sub="Vencimentos e compromissos pessoais num lugar só."
         action={

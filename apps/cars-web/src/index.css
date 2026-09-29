@@ -238,22 +238,8 @@ body::before {
 .btn.bd { background: var(--bc); color: var(--dn); border-color: var(--bd2); }
 .btn.bd:hover { border-color: var(--dn); }
 
-.btn-gold {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px; border-radius: 10px;
-  background: var(--ac); color: var(--bg); border: 1px solid var(--ac);
-  font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; font-weight: 500;
-  cursor: pointer; transition: all .2s; font-family: inherit;
-}
-.btn-gold:hover { background: var(--ac2); }
-.btn-ghost {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px; border-radius: 10px;
-  background: transparent; color: var(--tx); border: 1px solid var(--bd2);
-  font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; font-weight: 500;
-  cursor: pointer; transition: all .2s; font-family: inherit;
-}
-.btn-ghost:hover { border-color: var(--ac); color: var(--ac); }
+/* .btn-gold/.btn-ghost: definição ÚNICA no GlobalStyles (DNA 2026-09-29) —
+   a cópia daqui tinha padding/fonte/raio diferentes e confundia. */
 
 /* ===== BADGES ===== */
 .bg-c {
