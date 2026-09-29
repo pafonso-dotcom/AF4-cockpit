@@ -37,11 +37,12 @@ export default function CategoriaSelect({
     const q = norm(busca.trim());
     if (!q) return arvore;
     return arvore
-      .map(({ pai, filhas }) => {
+      .map(({ pai, filhas, subs }) => {
         const paiCasa = norm(pai.nome).includes(q);
         const filhasCasam = filhas.filter(f => norm(f.nome).includes(q));
-        if (!paiCasa && !filhasCasam.length) return null;
-        return { pai, filhas: paiCasa ? filhas : filhasCasam };
+        const subsCasam = (subs || []).filter(s => norm(s.nome).includes(q));
+        if (!paiCasa && !filhasCasam.length && !subsCasam.length) return null;
+        return { pai, filhas: paiCasa ? filhas : filhasCasam, subs: paiCasa ? subs : subsCasam };
       })
       .filter(Boolean);
   }, [arvore, busca]);
@@ -65,8 +66,10 @@ export default function CategoriaSelect({
     setAberto(true);
   };
 
-  const escolher = (nome) => {
-    onChange?.(nome);
+  const escolher = (nome, sub = "") => {
+    // 2º argumento: SUBCATEGORIA embutida escolhida junto (formulários que
+    // têm o campo subcategoria aproveitam; os demais ignoram sem quebrar).
+    onChange?.(nome, sub);
     setAberto(false);
   };
 
@@ -149,8 +152,8 @@ export default function CategoriaSelect({
                   {rotuloVazio}
                 </button>
               )}
-              {filtrada.map(({ pai, filhas }) => {
-                const temFilhas = filhas.length > 0;
+              {filtrada.map(({ pai, filhas, subs = [] }) => {
+                const temFilhas = filhas.length > 0 || subs.length > 0;
                 const abertoAqui = expandido === pai.id || (!!busca.trim() && temFilhas);
                 return (
                   <React.Fragment key={pai.id}>
@@ -168,7 +171,7 @@ export default function CategoriaSelect({
                       </span>
                       {temFilhas && (
                         <span style={{ fontSize: 11, color: T.muted, flexShrink: 0 }}>
-                          {abertoAqui ? "▾" : "▸"} {filhas.length}
+                          {abertoAqui ? "▾" : "▸"} {filhas.length + subs.length}
                         </span>
                       )}
                     </button>
@@ -187,6 +190,20 @@ export default function CategoriaSelect({
                             <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                               {f.cor && <span style={{ width: 7, height: 7, borderRadius: "50%", background: f.cor, flexShrink: 0 }} />}
                               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.nome}</span>
+                            </span>
+                          </button>
+                        ))}
+                        {/* Subcategorias EMBUTIDAS do pai: escolher = categoria
+                            do pai + subcategoria preenchida (2º arg do onChange). */}
+                        {subs.map(s => (
+                          <button type="button" key={s.id || s.nome} onClick={() => escolher(pai.nome, s.nome)}
+                            style={{ ...linhaSty(true), fontWeight: 400, color: T.ink,
+                                     background: `${T.bgSoft || T.bg}` }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                              <span style={{ width: 7, height: 7, borderRadius: "50%", border: `1.5px solid ${pai.cor || T.muted}`, flexShrink: 0 }} />
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {s.nome} <span style={{ fontSize: 10, color: T.faint }}>· sub</span>
+                              </span>
                             </span>
                           </button>
                         ))}

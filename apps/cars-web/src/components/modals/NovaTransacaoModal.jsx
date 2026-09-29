@@ -163,7 +163,7 @@ export default function NovaTransacaoModal({
             <div style={lbl}>Categoria</div>
             <CategoriaSelect categorias={categorias} tipo={form.tipo}
               value={form.categoria}
-              onChange={(nome) => setForm(f => ({ ...f, categoria: nome, subcategoria: "" }))}
+              onChange={(nome, sub) => setForm(f => ({ ...f, categoria: nome, subcategoria: sub || "" }))}
               rotuloVazio="— selecione —" style={inp} />
           </div>
           <div>

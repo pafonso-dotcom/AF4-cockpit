@@ -55,4 +55,18 @@ describe("arvoreCategorias — seletor hierárquico (pais → filhas)", () => {
   it("sem tipo, entram todas as raízes", () => {
     expect(arvoreCategorias(cats).map(x => x.pai.nome)).toEqual(["Alimentação", "Lazer", "Órfã", "Salário"]);
   });
+
+  it("subcategorias EMBUTIDAS aparecem em `subs` (bug 'Despesa de Casa' 2026-09-29)", () => {
+    const comSubs = [
+      ...cats,
+      { id: "casa", nome: "Despesa de Casa", tipo: "despesa",
+        subcategorias: [{ id: "s2", nome: "Luz" }, { id: "s1", nome: "Água" }, { nome: "" }, null] },
+    ];
+    const arv = arvoreCategorias(comSubs, "despesa");
+    const casa = arv.find(x => x.pai.nome === "Despesa de Casa");
+    expect(casa.subs.map(s => s.nome)).toEqual(["Água", "Luz"]); // ordenadas, sem lixo
+    expect(casa.filhas).toEqual([]);
+    // quem não tem subcategorias vem com subs vazio (não undefined)
+    expect(arv.find(x => x.pai.nome === "Lazer").subs).toEqual([]);
+  });
 });

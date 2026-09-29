@@ -847,7 +847,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
             <Field label="Categoria (opcional)" hint="Em branco = Outros.">
               <CategoriaSelect categorias={categorias} tipo={form.tipo}
                 value={form.categoria}
-                onChange={(nome) => setForm({ ...form, categoria: nome, subcategoria: "" })}
+                onChange={(nome, sub) => setForm({ ...form, categoria: nome, subcategoria: sub || "" })}
                 rotuloVazio="Sem categoria (Outros)" />
             </Field>
             {form.tipo === "despesa" && cartoes && cartoes.length > 0 && (
