@@ -15,7 +15,7 @@ const ler = () => { try { return new Set(JSON.parse(localStorage.getItem(KEY) ||
  *   • Calculadora de Renda (fase de VIVER da renda — capital pronto → renda/mês)
  * São complementares: um forma o patrimônio, o outro mostra quanto ele rende.
  */
-export default function Simuladores() {
+export default function Simuladores({ embed = false }) {
   const [abertos, setAbertos] = useState(ler);
 
   const toggle = (id) => setAbertos((prev) => {
@@ -47,12 +47,14 @@ export default function Simuladores() {
   };
 
   return (
-    <div className="fade-up py-6 px-6">
-      <PageHeader
-        eyebrow="Investimentos"
-        title={<>Simuladores.</>}
-        sub="Duas contas de investimento num lugar só: quanto você forma aportando todo mês (FIIs × Renda Fixa) e quanto um capital pronto rende por mês. Abra a seção que precisar."
-      />
+    <div className={embed ? "" : "fade-up py-6 px-6"}>
+      {!embed && (
+        <PageHeader
+          eyebrow="Investimentos"
+          title={<>Simuladores.</>}
+          sub="Duas contas de investimento num lugar só: quanto você forma aportando todo mês (FIIs × Renda Fixa) e quanto um capital pronto rende por mês. Abra a seção que precisar."
+        />
+      )}
       <div style={{ marginTop: 8 }}>
         <Secao id="fii-rf" icon={TrendingUp} titulo="FIIs × Renda Fixa · aporte mensal"
                desc="Você aporta todo mês por N anos. Compara o patrimônio formado em FIIs vs Renda Fixa, a renda mensal no fim e o efeito da inflação.">

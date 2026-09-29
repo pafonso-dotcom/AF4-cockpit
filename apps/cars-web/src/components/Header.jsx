@@ -69,14 +69,13 @@ const SUBTABS = {
       { id: "transacoes",   label: "Transações",   icon: Receipt },
     ],
     invest: [
+      // Reorganização 2026-09-29 (8→5): Mercado, Screener e Simuladores
+      // viraram views do hub Planejar; Relatórios virou view de Análises.
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
       { id: "carteira",       label: "Carteira",            icon: Briefcase },
       { id: "monte-carteira", label: "Planejar",            icon: Package },
       { id: "analises",       label: "Análises",            icon: Radar },
       { id: "proventos",      label: "Proventos & Renda",  icon: DollarSign },
-      { id: "simulador",      label: "Simuladores",         icon: Calculator },
-      { id: "construtor-mercado",  label: "Mercado",           icon: HandCoins },
-      { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
     ],
     agenda: AGENDA_TABS,
     config: [

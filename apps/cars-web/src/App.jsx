@@ -84,8 +84,6 @@ const Tarefas = lz(() => import("./components/pages/Tarefas.jsx"));
 const AgendaInicio = lz(() => import("./components/pages/AgendaInicio.jsx"));
 const Planejamento = lz(() => import("./components/pages/Planejamento/index.jsx"));
 const Investimentos = lz(() => import("./components/pages/Investimentos.jsx"));
-const MercadoHub = lz(() => import("./components/pages/Invest/MercadoHub.jsx"));
-const Simuladores = lz(() => import("./components/pages/Invest/Simuladores.jsx"));
 const AnalisesUnificada = lz(() => import("./components/pages/Invest/Analises.jsx"));
 const PlanejarCarteira = lz(() => import("./components/pages/Invest/PlanejarCarteira.jsx"));
 
@@ -93,7 +91,6 @@ const InvestPainel = lz(() => import("./components/pages/Invest/InvestPainel.jsx
 const ProventosHub = lz(() => import("./components/pages/Invest/ProventosHub.jsx"));
 const MapaDividendos = lz(() => import("./components/pages/Invest/MapaDividendos.jsx"));
 
-const RelatoriosInvest = lz(() => import("./components/pages/Invest/RelatoriosInvest.jsx"));
 const AnalisesFinancas = lz(() => import("./components/pages/AnalisesFinancas.jsx"));
 
 const CartaoExtrato = lz(() => import("./components/pages/CartaoExtrato.jsx"));
@@ -979,14 +976,16 @@ export default function App() {
                       onAbrirAnaliseIdv={() => { setAnaliseViewInicial("idv"); setTab("analises"); }}
                       onAnalisar={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }} />
       )}
-      {tab === "analises" && (
+      {(tab === "analises" || tab === "relatorios-i") && (
         <div className="px-6 md:px-10">
           <AnalisesUnificada
             ativos={ativos} hidden={hidden}
             tradeAnalisesIdV={tradeAnalisesIdV} setTradeAnalisesIdV={setTradeAnalisesIdV}
             onAnalisarAtivo={(ativo) => { setAnaliseAlvo(ativo); setTab("trade-ativo"); }}
             apiKeys={apiKeys}
-            viewInicial={analiseViewInicial}
+            viewInicial={tab === "relatorios-i" ? "relatorios" : analiseViewInicial}
+            transacoes={transacoes} patrimonioHistorico={patrimonioHistorico}
+            snapshotsCarteira={snapshotsCarteira} setSnapshotsCarteira={setSnapshotsCarteira}
             onConsumirViewInicial={() => setAnaliseViewInicial(null)}
           />
         </div>
@@ -1007,7 +1006,7 @@ export default function App() {
       )}
       {/* Hub único de planejamento — abas antigas "objetivos", "modelo" e
           "planejador" continuam válidas como atalhos pra view interna certa. */}
-      {(tab === "monte-carteira" || tab === "objetivos" || tab === "modelo" || tab === "planejador") && (
+      {(tab === "monte-carteira" || tab === "objetivos" || tab === "modelo" || tab === "planejador" || tab === "construtor-mercado" || tab === "pesquisador-mercado" || tab === "mercado" || tab === "screener" || tab === "simulador" || tab === "calc-renda") && (
         <div className="px-6 md:px-10">
           <PlanejarCarteira
             ativos={ativos}
@@ -1020,7 +1019,7 @@ export default function App() {
             modeloAtivoId={modeloAtivoId}
             setModeloAtivoId={setModeloAtivoId}
             transacoes={transacoes}
-            viewInicial={tab === "objetivos" ? "objetivos" : tab === "modelo" ? "modelo" : tab === "planejador" ? "planejador" : "monte"}
+            viewInicial={tab === "objetivos" ? "objetivos" : tab === "modelo" ? "modelo" : tab === "planejador" ? "planejador" : (tab === "construtor-mercado" || tab === "pesquisador-mercado" || tab === "mercado") ? "mercado" : tab === "screener" ? "screener" : (tab === "simulador" || tab === "calc-renda") ? "simuladores" : "monte"}
           />
         </div>
       )}
@@ -1044,21 +1043,8 @@ export default function App() {
           }}
         />
       )}
-      {tab === "relatorios-i" && <RelatoriosInvest ativos={ativos} transacoes={transacoes} patrimonioHistorico={patrimonioHistorico} proventos={[]} operacoes={[]} hidden={hidden} snapshotsCarteira={snapshotsCarteira} setSnapshotsCarteira={setSnapshotsCarteira} />}
       {/* Hub Mercado — funde Construtor de mercado + Screener; "screener",
           "pesquisador-mercado" e a antiga "mercado" viram atalhos. */}
-      {(tab === "construtor-mercado" || tab === "pesquisador-mercado" || tab === "mercado" || tab === "screener") && (
-        <MercadoHub
-          viewInicial={tab === "screener" ? "screener" : "construtor"}
-          hidden={hidden}
-          onIrMonteCarteira={() => { setModulo("invest"); irParaTab("monte-carteira"); }}
-        />
-      )}
-      {(tab === "simulador" || tab === "calc-renda") && (
-        <div className="px-6 md:px-10">
-          <Simuladores />
-        </div>
-      )}
       {/* calc-renda agora abre o hub "Simuladores" (FIIs × Renda Fixa + Calculadora de Renda) */}
       {/* "planejador" virou view do hub Planejar; "projecao"/"mapa-dividendos"
           viraram views do hub Proventos & Renda (renders acima) */}

@@ -38,7 +38,7 @@ const ehProvento = (tx) =>
 /**
  * Relatórios de Investimentos.
  */
-export default function RelatoriosInvest({ ativos = [], transacoes = [], patrimonioHistorico = [], proventos: proventosProp = [], operacoes = [], hidden, snapshotsCarteira = [], setSnapshotsCarteira }) {
+export default function RelatoriosInvest({ ativos = [], transacoes = [], patrimonioHistorico = [], proventos: proventosProp = [], operacoes = [], hidden, snapshotsCarteira = [], setSnapshotsCarteira , embed = false }) {
   const [pdfAberto, setPdfAberto] = useState(false);
   // Patrimônio atual — separado por moeda (Brasil R$ vs EUA US$).
   const valorBR = ativos.filter(a => !ehUS(a)).reduce((s, a) => s + Number(a.qtd || 0) * Number(a.preco || 0), 0);
@@ -115,8 +115,10 @@ export default function RelatoriosInvest({ ativos = [], transacoes = [], patrimo
 
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
+      {!embed && (<>
       <div className="eb">Investimentos · Relatórios</div>
-      <h1 className="h1">Análises da <em>carteira.</em></h1>
+      <h1 className="h1">Relatórios da <em>carteira.</em></h1>
+      </>)}
       <p className="hs">Movimentações do mês · evolução patrimônio · top posições · proventos · IR.</p>
 
       <MovInvestMes transacoes={transacoes} hidden={hidden} />
