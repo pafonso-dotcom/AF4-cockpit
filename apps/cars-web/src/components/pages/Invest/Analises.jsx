@@ -9,6 +9,7 @@ import AnaliseCarteira from "./AnaliseCarteira.jsx";
 import FundamentosIA from "./FundamentosIA.jsx";
 import DiagnosticoIA from "./DiagnosticoIA.jsx";
 import RadarRisco from "./RadarRisco.jsx";
+import RelatoriosInvest from "./RelatoriosInvest.jsx";
 
 const VIEWS = [
   { id: "diagnostico",      label: "Diagnóstico IA",       icon: Stethoscope },
@@ -17,10 +18,13 @@ const VIEWS = [
   { id: "fundamentos",      label: "Fundamentos (IA)",     icon: Award },
   { id: "idv",              label: "Análise IdV",          icon: Sparkles },
   { id: "carteira-analise", label: "Análise da Carteira",  icon: Radar },
+  // Reorganização 2026-09-29: a aba Relatórios do Invest virou view daqui.
+  { id: "relatorios",       label: "Relatórios",           icon: TrendingUp },
 ];
 
 export default function AnalisesUnificada({
   ativos, hidden,
+  transacoes = [], patrimonioHistorico = [], snapshotsCarteira, setSnapshotsCarteira,
   tradeAnalisesIdV, setTradeAnalisesIdV,
   onAnalisarAtivo,
   apiKeys = {},
@@ -79,6 +83,11 @@ export default function AnalisesUnificada({
         {view === "fundamentos"      && <div className="py-8"><FundamentosIA ativos={ativos} /></div>}
         {view === "idv"              && <AnaliseIdV analises={tradeAnalisesIdV} setAnalises={setTradeAnalisesIdV} ativos={ativos} />}
         {view === "carteira-analise" && <AnaliseCarteira embed ativos={ativos} hidden={hidden} onAnalisar={onAnalisarAtivo} />}
+        {view === "relatorios" && (
+          <div className="py-8"><RelatoriosInvest embed ativos={ativos} transacoes={transacoes}
+            patrimonioHistorico={patrimonioHistorico} proventos={[]} operacoes={[]} hidden={hidden}
+            snapshotsCarteira={snapshotsCarteira} setSnapshotsCarteira={setSnapshotsCarteira} /></div>
+        )}
       </div>
     </div>
   );

@@ -7,12 +7,20 @@ import MonteSuaCarteira from "./MonteSuaCarteira.jsx";
 import ObjetivosCarteira from "./ObjetivosCarteira.jsx";
 import CarteiraModelo from "./CarteiraModelo.jsx";
 import Planejador from "./Planejador.jsx";
+import ConstrutorMercado from "../ConstrutorMercado.jsx";
+import Screener from "./Screener.jsx";
+import Simuladores from "./Simuladores.jsx";
 
+// Reorganização 2026-09-29 (Invest 8→5): Mercado, Screener e Simuladores
+// entraram aqui — são todos ferramentas de PLANEJAR a carteira.
 const VIEWS = [
-  { id: "monte",      label: "Monte (mix)",         icon: Package },
-  { id: "objetivos",  label: "Objetivos (árvore)",  icon: Target },
-  { id: "modelo",     label: "Carteira Modelo",     icon: ClipboardList },
-  { id: "planejador", label: "Planejador (aportes)", icon: Calculator },
+  { id: "monte",       label: "Monte (mix)",          icon: Package },
+  { id: "objetivos",   label: "Objetivos (árvore)",   icon: Target },
+  { id: "modelo",      label: "Carteira Modelo",      icon: ClipboardList },
+  { id: "planejador",  label: "Planejador (aportes)", icon: Calculator },
+  { id: "mercado",     label: "Mercado",              icon: Package },
+  { id: "screener",    label: "Screener",             icon: Target },
+  { id: "simuladores", label: "Simuladores",          icon: Calculator },
 ];
 
 /**
@@ -23,7 +31,7 @@ const VIEWS = [
  * então links/busca existentes continuam funcionando.
  */
 export default function PlanejarCarteira({
-  ativos = [], hidden, apiKeys = {},
+  ativos = [], hidden, apiKeys = {}, onIrMonteCarteira,
   objetivosCarteira, setObjetivosCarteira,
   carteirasModeloCustom, setCarteirasModeloCustom,
   modeloAtivoId, setModeloAtivoId,
@@ -94,6 +102,9 @@ export default function PlanejarCarteira({
           />
         )}
         {view === "planejador" && <Planejador embed transacoes={transacoes} hidden={hidden} />}
+        {view === "mercado" && <ConstrutorMercado onIrMonteCarteira={() => setView("monte")} />}
+        {view === "screener" && <div className="py-8 px-6"><Screener hidden={hidden} /></div>}
+        {view === "simuladores" && <Simuladores embed />}
       </div>
     </div>
   );
