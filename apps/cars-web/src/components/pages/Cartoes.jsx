@@ -850,8 +850,18 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                     competência futura). Total das parcelas vai pra linha
                     discreta embaixo (pedido do usuário). */}
                 {(() => {
-                  const faturaAberta = aPagar > 0 ? aPagar : fiProx;
-                  const mesFat = aPagar > 0 ? mesAtualKey() : (c.faturaImportada?.competencia || proxKey);
+                  // Fatura importada EM ABERTO é o número REAL do banco — ela
+                  // manda no destaque mesmo quando a competência é o mês
+                  // seguinte (bug 2026-09-29: importou a fatura da XP de Out
+                  // e o card estampava só o resíduo antigo de Set em cima).
+                  const fiAberta = c.faturaImportada && !c.faturaImportada.paga
+                    ? Number(c.faturaImportada.valorTotal) || 0 : 0;
+                  const fiComp = c.faturaImportada?.competencia || mesAtualKey();
+                  const faturaAberta = fiAberta > 0 ? fiAberta : aPagar;
+                  const mesFat = fiAberta > 0 ? fiComp : mesAtualKey();
+                  // Resíduo do mês corrente quando o destaque virou a importada
+                  // do mês seguinte (parcelas/compras de Set ainda em aberto).
+                  const residuoMesAtual = fiAberta > 0 && fiComp === proxKey && aPagar > 0 ? aPagar : 0;
                   return (
                     <>
                       <div className="num" style={{ fontVariantNumeric: "tabular-nums", fontSize: 21, fontWeight: 600, letterSpacing: "-.01em", marginTop: 2, color: T.ink, whiteSpace: "nowrap" }}
@@ -865,10 +875,12 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                             ? <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.gold}18`, color: T.gold, whiteSpace: "nowrap" }}>A pagar · {nomeMesCurto(mesFat)}</span>
                             : <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>Sem fatura</span>}
                       </div>
-                      {/* Mês seguinte: só quando acrescenta informação ao destaque. */}
-                      {aPagar > 0 && fiProx > 0 ? (
-                        <div style={{ marginTop: 4, fontSize: 13, color: T.muted }} title={`Fatura importada com competência ${nomeMesCurto(proxKey)}`}>
-                          Mês seguinte (<span style={{ textTransform: "capitalize" }}>{nomeMesCurto(proxKey)}</span>): <span className="num" style={{ color: T.gold, fontWeight: 700 }}>{hidden ? "•••" : fmt(fiProx)}</span> <span style={{ color: T.faint }}>· fatura importada</span>
+                      {/* Linha secundária: resíduo do mês corrente (quando o
+                          destaque é a fatura importada do mês seguinte) ou o
+                          já comprometido pro próximo mês. */}
+                      {residuoMesAtual > 0 ? (
+                        <div style={{ marginTop: 4, fontSize: 13, color: T.muted }} title={`Parcelas e compras com competência ${nomeMesCurto(mesAtualKey())} ainda em aberto no app (fora da fatura importada)`}>
+                          Pendências de <span style={{ textTransform: "capitalize" }}>{nomeMesCurto(mesAtualKey())}</span>: <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(residuoMesAtual)}</span>
                         </div>
                       ) : fiProx > 0 ? null : (proxMes.valor + avProx) > 0 && (
                         <div style={{ marginTop: 4, fontSize: 13, color: T.muted }} title={`Já comprometido pra fatura de ${nomeMesCurto(proxKey)}: parcelas + compras lançadas (manual/foto) ainda não cobradas`}>
