@@ -172,7 +172,7 @@ export default function Projecao({ ativos = [], hidden, apiKeys = {}, alvoInicia
     <div className={embed ? "" : "fade-up py-8"}>
       {!embed ? (
         <PageHeader
-          eyebrow="Capítulo VIII"
+          eyebrow="Investimentos · Projeção"
           title="Projeção"
           sub="Simule a evolução de um ativo (da sua carteira ou personalizado) com aporte regular."
           action={acoesProj}

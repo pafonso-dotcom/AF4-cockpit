@@ -261,7 +261,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
       <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${T.border}`,
                     display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flexShrink: 0 }}>
-          <div className="label-eyebrow">Capítulo I</div>
+          <div className="label-eyebrow">Finanças · Contas</div>
           <h2 style={{ fontFamily: T.serif, fontSize: 26, color: T.ink, marginTop: 4, lineHeight: 1.05, letterSpacing: "-0.02em" }}>
             Contas
           </h2>

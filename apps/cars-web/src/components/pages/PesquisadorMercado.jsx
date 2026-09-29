@@ -151,7 +151,7 @@ export default function PesquisadorMercado({ onIrConstrutor, embutido = false, w
     <div className={embutido ? "" : "fade-up py-8 px-6"}>
       {!embutido && (
       <PageHeader
-        eyebrow="Finanças · Pesquisador de mercado"
+        eyebrow="Investimentos · Pesquisador"
         title={<>Pesquisador de <em>mercado.</em></>}
         sub="Consulte um papel: cotação, faixa de 52 semanas e mini-gráfico. Acompanhe pra montar carteira."
         action={

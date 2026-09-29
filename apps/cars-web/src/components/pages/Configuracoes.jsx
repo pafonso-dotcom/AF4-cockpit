@@ -59,7 +59,7 @@ export default function Configuracoes({
         }
       `}</style>
       <div className="eb">Sistema · Configurações</div>
-      <h1 className="h1">Painel de <em>controle.</em></h1>
+      <h1 className="h1">Configurações<em>.</em></h1>
       <p className="hs">Tema, integrações de API, módulos ativos e backup de dados.</p>
 
       {subtab === "cfg-aparencia" && (

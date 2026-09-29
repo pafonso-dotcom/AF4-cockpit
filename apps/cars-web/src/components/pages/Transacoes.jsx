@@ -487,7 +487,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
   return (
     <div className="fade-up py-8">
       <PageHeader
-        eyebrow="Capítulo II"
+        eyebrow="Finanças · Transações"
         title="Transações"
         sub="O fluxo cotidiano. Receitas e despesas registradas com método."
         action={

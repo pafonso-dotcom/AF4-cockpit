@@ -577,7 +577,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
   return (
     <div className="fade-up py-8">
       <PageHeader
-        eyebrow="Capítulo IV"
+        eyebrow="Investimentos · Carteira"
         title="Investimentos"
         sub="Sua carteira como tese viva. Atualize, acompanhe, repondere."
         action={

@@ -58,7 +58,7 @@ export default function ConstrutorMercado({ onIrMonteCarteira }) {
   return (
     <div className="fade-up py-8 px-6">
       <PageHeader
-        eyebrow="Finanças · Construtor de mercado"
+        eyebrow="Investimentos · Mercado"
         title={<>Construtor de <em>mercado.</em></>}
         sub="Defina os pesos-alvo dos papéis que você acompanha e monte sua carteira ideal."
         action={

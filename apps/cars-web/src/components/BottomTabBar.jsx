@@ -52,7 +52,7 @@ export default function BottomTabBar({ modulo, setModulo, setTab }) {
           .bottom-tab-bar {
             display: block;
             position: fixed; left: 0; right: 0; bottom: 0;
-            background: rgba(10,10,12,.97);
+            background: rgba(45,50,59,.97); /* grafite do nav */
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-top: 1px solid rgba(255,255,255,0.08);
@@ -66,7 +66,7 @@ export default function BottomTabBar({ modulo, setModulo, setTab }) {
           .btb-item {
             flex: 1; min-height: 56px;
             background: transparent; border: none;
-            color: #a8a8b0;
+            color: #a8a8b0; /* NAV_MUTED do header */
             display: flex; flex-direction: column;
             align-items: center; justify-content: center; gap: 2px;
             font-size: 11px; letter-spacing: .04em; font-weight: 600;
@@ -76,13 +76,13 @@ export default function BottomTabBar({ modulo, setModulo, setTab }) {
             position: relative;
           }
           .btb-item:active { transform: scale(0.94); }
-          .btb-item.active { color: ${T.gold}; }
+          .btb-item.active { color: var(--ac); }
           .btb-item.active::before {
             content: "";
             position: absolute; top: 0; left: 50%;
             transform: translateX(-50%);
             width: 28px; height: 2.5px;
-            background: ${T.gold}; border-radius: 0 0 2px 2px;
+            background: var(--ac); border-radius: 0 0 2px 2px;
           }
         }
       `}</style>
