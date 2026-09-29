@@ -54,20 +54,19 @@ const TODOS_MODULOS = [
 ];
 const SUBTABS = {
     financas: [
-      // Ordem fixada pelo usuário: Painel, Contas, Cartões, Planejamento,
-      // Cheques, Relatórios, Agenda — e depois o resto.
+      // Reorganização 2026-09-29 (9→6 abas): Empréstimos virou seção do
+      // Planejamento; Categorias vive no menu Ações de Transações;
+      // Pergunte ao Claude fica no menu ⋯ (e na busca ⌘K). As rotas
+      // antigas seguem funcionando por alias.
       { id: "dashboard",    label: "Painel",       icon: Activity },
       { id: "contas",       label: "Contas",       icon: Wallet },
       { id: "cartoes",      label: "Cartões",      icon: CreditCard },
-      { id: "emprestimos",  label: "Empréstimos",  icon: HandCoins },
       { id: "planejamento", label: "Planejamento", icon: Target },
       { id: "relatorios-f", label: "Análises & Relatórios", icon: BarChart3 },
       // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
       // que ficam escondidas até clicar aqui.
       // O resto:
       { id: "transacoes",   label: "Transações",   icon: Receipt },
-      { id: "categorias",   label: "Categorias",   icon: Tag },
-      { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
     ],
     invest: [
       { id: "investimentos",  label: "Painel",              icon: BarChart3 },
@@ -314,6 +313,7 @@ function HeaderHorizontal({
                   // oculta — este menu é o único acesso às calculadoras lá.
                   ...(onCalculadoraJuros ? [{ lbl: "Calculadora de juros", icon: Calculator, on: () => { setMenuUtilAberto(false); onCalculadoraJuros(); } }] : []),
                   ...(onCalculadoraBasica ? [{ lbl: "Calculadora básica", icon: Calculator, on: () => { setMenuUtilAberto(false); onCalculadoraBasica(); } }] : []),
+                  { lbl: "Pergunte ao Claude", icon: Sparkles, on: () => { setMenuUtilAberto(false); setModulo("financas"); setTab("perguntar"); } },
                   { lbl: hidden ? "Mostrar valores" : "Ocultar valores", icon: hidden ? EyeOff : Eye, on: () => { setHidden(!hidden); setMenuUtilAberto(false); } },
                   { lbl: T.dark ? "Tema claro" : "Tema escuro", icon: T.dark ? Sun : Moon, on: () => { onOpenSettings?.("toggle-tema"); setMenuUtilAberto(false); } },
                   { lbl: refreshing ? "Atualizando…" : "Atualizar cotações", icon: RefreshCw, on: () => { onRefresh?.(); setMenuUtilAberto(false); } },
