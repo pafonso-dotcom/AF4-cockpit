@@ -1759,7 +1759,7 @@ export default function AReceberEDividas({
                   <CategoriaSelect categorias={categorias}
                     tipo={form.tipo === "receber" ? "receita" : "despesa"}
                     value={form.categoria}
-                    onChange={(nome) => setForm({ ...form, categoria: nome, subcategoria: "" })} />
+                    onChange={(nome, sub) => setForm({ ...form, categoria: nome, subcategoria: sub || "" })} />
                 </div>
                 <button type="button" className="btn-ghost" style={{ padding: "0 10px", fontSize: 12, whiteSpace: "nowrap" }}
                         onClick={() => setForm({ ...form, _criarCat: true, _catNome: "" })}>+ nova</button>

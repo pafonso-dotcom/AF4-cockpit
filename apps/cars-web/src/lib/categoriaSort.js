@@ -13,12 +13,17 @@ export function ordenarPorNome(lista = []) {
 
 /**
  * Árvore de categorias pro seletor hierárquico (pais primeiro, filhas ao
- * tocar — pedido 2026-09-23): retorna [{ pai, filhas: [...] }] ordenados.
+ * tocar — pedido 2026-09-23): retorna [{ pai, filhas: [...], subs: [...] }]
+ * ordenados.
  *
  * - Raízes = categorias SEM parentId (filha órfã de pai apagado vira raiz);
  * - `tipo` opcional filtra com a regra flexível dos selects do app
  *   (`!c.tipo || c.tipo === tipo`); sem tipo, entram todas;
- * - filhas herdam o filtro do pai (aparecem junto dele, qualquer tipo).
+ * - filhas herdam o filtro do pai (aparecem junto dele, qualquer tipo);
+ * - `subs` = SUBCATEGORIAS EMBUTIDAS do pai ({id,nome}, criadas pelo
+ *   "+ Nova subcategoria" e pelo unificar filhas 🪄). Antes o seletor as
+ *   ignorava e o pai parecia "sem filhos" (bug relatado 2026-09-29 —
+ *   "Despesa de Casa"). Escolher uma sub = categoria do pai + subcategoria.
  */
 export function arvoreCategorias(categorias = [], tipo = null) {
   const lista = (categorias || []).filter(Boolean);
@@ -28,5 +33,9 @@ export function arvoreCategorias(categorias = [], tipo = null) {
   const raizes = lista.filter(c => (!c.parentId || !ids.has(c.parentId)) && passaTipo(c));
   const filhasDe = (paiId) => ordenarPorNome(lista.filter(c => c.parentId === paiId));
 
-  return ordenarPorNome(raizes).map(pai => ({ pai, filhas: filhasDe(pai.id) }));
+  return ordenarPorNome(raizes).map(pai => ({
+    pai,
+    filhas: filhasDe(pai.id),
+    subs: ordenarPorNome((pai.subcategorias || []).filter(s => s && s.nome)),
+  }));
 }
