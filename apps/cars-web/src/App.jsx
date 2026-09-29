@@ -173,7 +173,6 @@ export default function App() {
   const [comprasFotoOpen, setComprasFotoOpen] = useState(false);
   // Menu do botão flutuante (＋): foto, nova transação, calculadora.
   const [notasAtalhoOpen, setNotasAtalhoOpen] = useState(false); // bloco de notas do atalho 🗒️
-  const swipeRef = useRef(null); // swipe entre abas (mobile)
   const [calcJurosGlobalOpen, setCalcJurosGlobalOpen] = useState(false);
   const [calcBasicaOpen, setCalcBasicaOpen] = useState(false);
 
@@ -1235,31 +1234,12 @@ export default function App() {
         <PerfisModal onClose={() => setPerfisOpen(false)} />
       )}
 
+      {/* SWIPE entre abas REMOVIDO a pedido (2026-09-29): entrava em
+          conflito com rolagem e arrasto de gráficos. Navegação fica pelas
+          abas do topo e pela barra inferior. */}
       <main
         className={isVertical ? "pb-24" : ((tab === "planejamento" || tab === "areceber" || tab === "fixas" || tab === "relatorios-anual") ? "pb-24" : "max-w-7xl mx-auto pb-24")}
         style={isVertical ? { marginLeft: sidebarColapsada ? 78 : 220, maxWidth: "none", transition: "margin-left .2s" } : undefined}
-        onTouchStart={(e) => {
-          const t0 = e.touches?.[0];
-          swipeRef.current = t0 ? { x: t0.clientX, y: t0.clientY } : null;
-        }}
-        onTouchEnd={(e) => {
-          // SWIPE troca de aba no celular (pedido 2026-09-22): arrasto bem
-          // horizontal (≥70px, pouco vertical), fora de campos de formulário.
-          const ini = swipeRef.current; swipeRef.current = null;
-          const t1 = e.changedTouches?.[0];
-          if (!ini || !t1 || window.innerWidth > 768) return;
-          const alvoTag = (e.target?.tagName || "").toLowerCase();
-          if (["input", "select", "textarea"].includes(alvoTag)) return;
-          const dx = t1.clientX - ini.x, dy = t1.clientY - ini.y;
-          if (Math.abs(dx) < 70 || Math.abs(dy) > 50) return;
-          const lista = SUBTAB_IDS[modulo] || [];
-          const idx = lista.indexOf(tab);
-          if (idx < 0) return; // subtela (extrato etc.): não interfere
-          const prox = idx + (dx < 0 ? 1 : -1);
-          if (prox < 0 || prox >= lista.length) return;
-          setCartaoAberto(null); setContaAberta(null);
-          setTab(lista[prox]);
-        }}
       >
         <ErrorBoundary key={modulo + ":" + tab}>
         <Suspense fallback={<PageFallback />}>
