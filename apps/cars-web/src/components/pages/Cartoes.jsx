@@ -80,6 +80,35 @@ function valorAPagarMes(cartao, parcelamentos = [], transacoes = [], monthKey = 
   return faturaMensalDoCartao(cartao, parcelamentos, monthKey)
        + avulsasPendentesNoMes(cartao, transacoes, monthKey);
 }
+// Itens que COMPÕEM as pendências de um mês (mesma regra do valorAPagarMes
+// sem fatura importada): parcelas em aberto do mês + compras avulsas
+// pendentes com competência no mês. Pro usuário conferir de onde vem o valor.
+function itensPendentesDoMes(cartao, parcelamentos = [], transacoes = [], monthKey = mesAtualKey()) {
+  const itens = [];
+  parcelasAtivasDoCartao(cartao, parcelamentos).forEach((p) => {
+    const pagas = new Set(p.parcelasPagas || []);
+    for (let n = 1; n <= (p.totalParcelas || 0); n++) {
+      if (pagas.has(n)) continue;
+      const dt = dataDaParcela(p, n);
+      if (!dt) continue;
+      if (`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}` === monthKey) {
+        itens.push({
+          tipo: "Parcela",
+          descricao: `${p.descricao || "Parcelamento"} (${n}/${p.totalParcelas})`,
+          dataISO: `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`,
+          valor: valorDaParcela(p),
+        });
+      }
+    }
+  });
+  (transacoes || []).forEach((t) => {
+    if (!t || t.cartaoId !== cartao.id || t.tipo !== "despesa" || t.compensado) return;
+    if (String(t.origem || "").startsWith("fatura-")) return;
+    if (competenciaDaCompra(t.data, cartao.fechamento) !== monthKey) return;
+    itens.push({ tipo: "Compra", descricao: t.descricao || "—", dataISO: String(t.data || "").slice(0, 10), valor: Number(t.valor) || 0 });
+  });
+  return itens.sort((a, b) => (a.dataISO || "").localeCompare(b.dataISO || ""));
+}
 // Próximo mês no formato YYYY-MM.
 const proximoMesKey = () => { const [y, m] = mesAtualKey().split("-").map(Number); const d = new Date(y, m, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
 const nomeMesCurto = (mk) => { const [, m] = mk.split("-").map(Number); return ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][(m || 1) - 1]; };
@@ -105,6 +134,8 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
   const [pagFatura, setPagFatura] = useState(null); // { cartaoId, valor, contaNome, data }
   const [pagErrors, setPagErrors] = useState({});
   const [expandedCart, setExpandedCart] = useState(() => new Set());
+  // Modal "de onde vem esse valor?" das pendências do mês: { cartao, monthKey }
+  const [pendenciasDe, setPendenciasDe] = useState(null);
   const toggleExpandedCart = (id) => {
     setExpandedCart(prev => {
       const n = new Set(prev);
@@ -879,9 +910,11 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                           destaque é a fatura importada do mês seguinte) ou o
                           já comprometido pro próximo mês. */}
                       {residuoMesAtual > 0 ? (
-                        <div style={{ marginTop: 4, fontSize: 13, color: T.muted }} title={`Parcelas e compras com competência ${nomeMesCurto(mesAtualKey())} ainda em aberto no app (fora da fatura importada)`}>
-                          Pendências de <span style={{ textTransform: "capitalize" }}>{nomeMesCurto(mesAtualKey())}</span>: <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(residuoMesAtual)}</span>
-                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); setPendenciasDe({ cartao: c, monthKey: mesAtualKey() }); }}
+                                title={`Parcelas e compras com competência ${nomeMesCurto(mesAtualKey())} ainda em aberto no app (fora da fatura importada) — toque pra ver a lista`}
+                                style={{ marginTop: 4, fontSize: 13, color: T.muted, background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left", textDecoration: "underline dotted", textUnderlineOffset: 3 }}>
+                          Pendências de <span style={{ textTransform: "capitalize" }}>{nomeMesCurto(mesAtualKey())}</span>: <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(residuoMesAtual)}</span> <span style={{ color: T.faint }}>· ver</span>
+                        </button>
                       ) : fiProx > 0 ? null : (proxMes.valor + avProx) > 0 && (
                         <div style={{ marginTop: 4, fontSize: 13, color: T.muted }} title={`Já comprometido pra fatura de ${nomeMesCurto(proxKey)}: parcelas + compras lançadas (manual/foto) ainda não cobradas`}>
                           Mês seguinte (<span style={{ textTransform: "capitalize" }}>{nomeMesCurto(proxKey)}</span>): <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(proxMes.valor + avProx)}</span>{" "}
@@ -1283,6 +1316,34 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
       </div>
 
       {/* Card form modal */}
+      {pendenciasDe && (() => {
+        const itens = itensPendentesDoMes(pendenciasDe.cartao, parcelamentos, transacoes, pendenciasDe.monthKey);
+        const total = itens.reduce((s2, i) => s2 + i.valor, 0);
+        return (
+          <Modal title={`Pendências de ${nomeMesCurto(pendenciasDe.monthKey)} · ${pendenciasDe.cartao.nome}`} avisarSair={false} onClose={() => setPendenciasDe(null)}>
+            <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 12, lineHeight: 1.5 }}>
+              O que está somando nesse valor (parcelas e compras lançadas no app, fora da fatura importada).
+              Se algum item já foi pago no banco, marca como pago aqui pra zerar.
+            </div>
+            {itens.length === 0 ? (
+              <div style={{ fontSize: 13, color: T.faint, fontStyle: "italic" }}>Nada em aberto neste mês.</div>
+            ) : itens.map((i, idx) => (
+              <div key={idx} style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "9px 2px", borderBottom: `1px solid ${T.border}` }}>
+                <span style={{ fontSize: 10.5, color: T.faint, letterSpacing: ".06em", textTransform: "uppercase", flexShrink: 0, width: 58 }}>{i.tipo}</span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.descricao}</span>
+                <span style={{ fontSize: 12, color: T.faint, flexShrink: 0 }}>{(i.dataISO || "").slice(8, 10)}/{(i.dataISO || "").slice(5, 7)}</span>
+                <span className="num" style={{ fontSize: 14, fontWeight: 700, color: T.ink, flexShrink: 0 }}>{hidden ? "•••" : fmt(i.valor)}</span>
+              </div>
+            ))}
+            {itens.length > 0 && (
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 12, fontSize: 14, fontWeight: 800, color: T.ink }}>
+                Total: <span className="num">{hidden ? "•••" : fmt(total)}</span>
+              </div>
+            )}
+          </Modal>
+        );
+      })()}
+
       {form && (
         <Modal title={form.id ? "Editar Cartão" : "Novo Cartão"} onClose={() => setForm(null)}>
           <Field label="Nome do cartão" required error={formErrors.nome}>
