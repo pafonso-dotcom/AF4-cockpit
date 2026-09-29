@@ -51,8 +51,8 @@ export const NAV_ITEMS = [
   { modulo: "agenda", tab: "voos",       label: "Voos",         grupo: "Agenda" },
   { modulo: "agenda", tab: "lembretes",  label: "Lembretes",    grupo: "Agenda" },
   { modulo: "agenda", tab: "treino",     label: "Treino",       grupo: "Agenda" },
-  { modulo: "agenda", tab: "metas",      label: "Metas",        grupo: "Agenda" },
-  { modulo: "agenda", tab: "inicio",     label: "Agenda · Início", grupo: "Agenda" },
+  { modulo: "financas", tab: "metas",    label: "Metas",        grupo: "Finanças" },
+  { modulo: "agenda", tab: "calendario", label: "Agenda (calendário)", grupo: "Agenda" },
 ];
 
 // Normaliza pra busca (sem acento, minúsculo)

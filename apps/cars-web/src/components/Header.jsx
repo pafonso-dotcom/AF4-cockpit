@@ -30,15 +30,15 @@ export default function Header(props) {
 
 // Filhas da "matriz" Agenda — ficam ESCONDIDAS; só aparecem ao clicar na Agenda.
 // O id da matriz na lista de subtabs é "inicio" (a aba Início da Agenda).
+// Reorganização 2026-09-29 (8→4): Início saiu (o Bom dia mora no Painel
+// de Finanças), Compromissos e Lembretes viraram views do Calendário, e
+// Metas — que é financeira — virou seção do Planejamento. Rotas antigas
+// seguem como alias.
 export const AGENDA_TABS = [
-  { id: "inicio",     label: "Início",       icon: Home },
   { id: "calendario", label: "Calendário",   icon: Calendar },
-  { id: "notas",      label: "Compromissos", icon: StickyNote },
   { id: "tarefas",    label: "Tarefas",      icon: CheckSquare },
-  { id: "lembretes",  label: "Lembretes",    icon: Bell },
   { id: "treino",     label: "Treino",       icon: Dumbbell },
   { id: "voos",       label: "Voos",         icon: Plane },
-  { id: "metas",      label: "Metas",        icon: Target },
 ];
 
 const AGENDA_TAB_IDS = new Set(AGENDA_TABS.map(t => t.id));

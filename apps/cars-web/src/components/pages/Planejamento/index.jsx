@@ -5,6 +5,7 @@ import { fmt } from "../../../lib/format.js";
 import AReceberEDividas from "../AReceberEDividas.jsx";
 import DespesasFixas from "../DespesasFixas.jsx";
 import Emprestimos from "../Emprestimos.jsx";
+import Metas from "../Metas.jsx";
 import Cheques from "../Cheques.jsx";
 import ReservaEmergenciaView from "./ReservaEmergenciaView.jsx";
 import SimuladorCompra from "./SimuladorCompra.jsx";
@@ -282,6 +283,17 @@ export default function Planejamento(props) {
 
         {/* Reserva de emergência — tela completa que existia órfã no código
             (auditoria 2026-09-18) e voltou como 5ª seção do Centro. */}
+        {/* Metas MUDOU DE CASA (reorganização 2026-09-29): morava na Agenda,
+            mas é 100% financeira — vive junto do planejamento. */}
+        <Secao on={aberto === "metas"} onToggle={() => toggle("metas")} titulo="🎯 Metas">
+          <Metas embed metas={props.metas} setMetas={props.setMetas} hidden={props.hidden}
+                 fixas={props.fixas} setFixas={props.setFixas}
+                 fixaOcorrencias={props.fixaOcorrencias} setFixaOcorrencias={props.setFixaOcorrencias}
+                 categorias={props.categorias} contas={props.contas} setContas={props.setContas}
+                 transacoes={props.transacoes} setTransacoes={props.setTransacoes}
+                 ativos={props.ativos} setAtivos={props.setAtivos} />
+        </Secao>
+
         <Secao on={aberto === "reserva"} onToggle={() => toggle("reserva")} titulo="Reserva de emergência">
           <ReservaEmergenciaView
             transacoes={props.transacoes} contas={props.contas}
