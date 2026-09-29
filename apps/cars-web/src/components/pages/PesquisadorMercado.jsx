@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Search, Star, TrendingUp, TrendingDown, Loader2, ArrowUpRight } from "lucide-react";
+import { Search, Star, TrendingUp, TrendingDown, Loader2, ArrowUpRight, Sparkles } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtP } from "../../lib/format.js";
 import PageHeader from "../ui/PageHeader.jsx";
-import { getQuotes, getHistorico, buscarSimbolos } from "../../lib/brapi.js";
+import { getQuotes, getHistorico, getDividendos, buscarSimbolos } from "../../lib/brapi.js";
 import { carregarWatchlist, salvarWatchlist, adicionarPapel } from "../../lib/mercadoWatchlist.js";
+import { rentabilidade12m, montarPromptAnaliseAtivo } from "../../lib/analiseAtivo.js";
+import { gerarTextoGeminiComBusca } from "../../lib/gemini.js";
 
 const CARD = { background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16 };
 
@@ -61,6 +63,10 @@ export default function PesquisadorMercado({ onIrConstrutor, embutido = false, w
   const [sugestoes, setSugestoes] = useState([]);
   const [quote, setQuote] = useState(null);
   const [hist, setHist] = useState([]);
+  const [rent, setRent] = useState(null);      // rentabilidade 12m (preço+proventos)
+  const [ia, setIa] = useState(null);          // { texto, fontes } da análise IA
+  const [iaLoading, setIaLoading] = useState(false);
+  const [iaErro, setIaErro] = useState(null);
   const [watch, setWatch] = useState(() => carregarWatchlist());
 
   // Embutido: quem persiste é o pai (senão o estado local, defasado, poderia
@@ -85,10 +91,13 @@ export default function PesquisadorMercado({ onIrConstrutor, embutido = false, w
     const tk = (tkForcado || ticker).trim().toUpperCase();
     if (!tk) return;
     setLoading(true); setErro(null); setQuote(null); setHist([]); setSugestoes([]);
+    setRent(null); setIa(null); setIaErro(null);
     try {
-      const [qs, h] = await Promise.all([
+      const [qs, h, h1a, divs] = await Promise.all([
         getQuotes([tk]),
         getHistorico(tk, "6mo", "1d").catch(() => []),
+        getHistorico(tk, "1y", "1mo").catch(() => []),
+        getDividendos(tk).catch(() => []),
       ]);
       if (!qs || qs.length === 0) {
         setErro(`Nada encontrado para "${tk}". Confira o ticker (ex.: PETR4, ITUB4, HGLG11).`);
@@ -96,12 +105,36 @@ export default function PesquisadorMercado({ onIrConstrutor, embutido = false, w
       } else {
         setQuote(qs[0]);
         setHist(h);
+        setRent(rentabilidade12m(h1a, divs));
       }
     } catch (err) {
       setErro(err?.message || "Falha ao consultar a BRAPI.");
       if (err?.status === 404) await sugerirParecidos(tk);
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Notícias + leitura de analistas via Gemini com busca no Google. A parte
+  // numérica (rentabilidade) NÃO vem da IA — é calculada da brapi acima.
+  async function analisarComIA() {
+    if (!quote || iaLoading) return;
+    setIaLoading(true); setIaErro(null);
+    try {
+      const r = await gerarTextoGeminiComBusca(
+        montarPromptAnaliseAtivo(quote, rent),
+        { temperature: 0.3, maxOutputTokens: 1000 },
+      );
+      if (!r.texto) throw new Error("A IA voltou vazia — tenta de novo em instantes.");
+      setIa(r);
+    } catch (err) {
+      setIaErro(
+        /não configurada/i.test(err?.message || "")
+          ? "Chave do Gemini não configurada — adiciona em ⚙ Configurações → APIs e tenta de novo."
+          : (err?.message || "Falha na análise com IA."),
+      );
+    } finally {
+      setIaLoading(false);
     }
   }
 
@@ -199,12 +232,66 @@ export default function PesquisadorMercado({ onIrConstrutor, embutido = false, w
             {leituraRapida(quote)}
           </div>
 
+          {/* Rentabilidade 12 meses — preço + proventos (dados brapi, sem IA) */}
+          {rent && (
+            <div style={{ marginTop: 10, padding: "10px 12px", background: T.bgSoft, borderRadius: 12, fontSize: 13, color: T.ink,
+                          display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11, color: T.muted, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase" }}>
+                📈 12 meses
+              </span>
+              <span className="num" style={{ fontWeight: 800, fontSize: 15, color: rent.pctTotal >= 0 ? T.green : T.red }}>
+                {rent.pctTotal >= 0 ? "+" : ""}{rent.pctTotal.toFixed(1)}%
+              </span>
+              <span className="num" style={{ fontSize: 11.5, color: T.muted }}>
+                preço {rent.pctPreco >= 0 ? "+" : ""}{rent.pctPreco.toFixed(1)}% · proventos +{rent.pctProventos.toFixed(1)}%
+                {rent.somaProventos > 0 ? ` (${fmt(rent.somaProventos)}/cota)` : ""}
+              </span>
+            </div>
+          )}
+
+          {/* Análise IA — notícias + leitura de analistas via Gemini com busca */}
+          {ia && (
+            <div style={{ marginTop: 10, padding: "12px 14px", background: `${T.gold}0d`, border: `1px solid ${T.gold}44`, borderRadius: 12 }}>
+              <div style={{ fontSize: 13, color: T.ink, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{ia.texto}</div>
+              {ia.fontes?.length > 0 && (
+                <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {ia.fontes.map((f, i) => (
+                    <a key={i} href={f.url} target="_blank" rel="noreferrer"
+                       style={{ fontSize: 11, color: T.gold, border: `1px solid ${T.gold}55`, borderRadius: 100,
+                                padding: "3px 10px", textDecoration: "none", maxWidth: 220, overflow: "hidden",
+                                textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      🔗 {f.titulo}
+                    </a>
+                  ))}
+                </div>
+              )}
+              <div style={{ marginTop: 8, fontSize: 10.5, color: T.faint }}>
+                Gerado por IA com busca no Google — informativo, não é recomendação de investimento.
+              </div>
+            </div>
+          )}
+          {iaErro && (
+            <div style={{ marginTop: 10, padding: "10px 12px", background: `${T.red}12`, border: `1px solid ${T.red}44`, borderRadius: 12, fontSize: 12.5, color: T.ink }}>
+              {iaErro}
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
             <button
               onClick={acompanhar}
               disabled={naWatchlist}
               style={{ display: "flex", alignItems: "center", gap: 6, background: naWatchlist ? "transparent" : T.gold, color: naWatchlist ? T.muted : "#fff", border: naWatchlist ? `1px solid ${T.border}` : "none", borderRadius: 12, padding: "9px 14px", fontSize: 13.5, fontWeight: 700, cursor: naWatchlist ? "default" : "pointer" }}>
               <Star size={15} fill={naWatchlist ? T.gold : "none"} /> {naWatchlist ? "Acompanhando" : "Acompanhar"}
+            </button>
+            <button
+              onClick={analisarComIA}
+              disabled={iaLoading}
+              title="Notícias recentes e o que dizem os analistas (Gemini com busca no Google)"
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", color: T.gold,
+                       border: `1px solid ${T.gold}66`, borderRadius: 12, padding: "9px 14px", fontSize: 13.5,
+                       fontWeight: 700, cursor: iaLoading ? "default" : "pointer", opacity: iaLoading ? 0.7 : 1 }}>
+              {iaLoading ? <Loader2 size={15} className="spin" /> : <Sparkles size={15} />}
+              {iaLoading ? "Analisando…" : ia ? "Analisar de novo" : "Analisar com IA"}
             </button>
             {!embutido && watchAtual.length > 0 && (
               <button onClick={onIrConstrutor} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", color: T.gold, border: `1px solid ${T.border}`, borderRadius: 12, padding: "9px 14px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
