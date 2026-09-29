@@ -13,6 +13,8 @@
 import { useEffect, useRef, useState } from "react";
 import { atualizarCarteira } from "../cotacoes.js";
 import { alertasDisparados, filtrarNovos, marcarNotificados } from "../alertasPreco.js";
+import { ehRendaFixa, temTaxaRF, acumularPrecoRF } from "../rendaFixa.js";
+import { buscarTaxasMensais } from "../bcb.js";
 import { toast } from "../toast.js";
 
 export function useMercado({ ativos, setAtivos, apiKeys, loading, setRefreshing }) {
@@ -21,17 +23,36 @@ export function useMercado({ ativos, setAtivos, apiKeys, loading, setRefreshing 
   const refreshMarket = async () => {
     setRefreshing(true);
 
-    // Renda fixa (CDB/Tesouro) fica FIXA no valor que o usuário colocou — não
-    // recebe tick simulado nem cotação de mercado. A rentabilidade contratada
-    // (ex.: 104,5% CDI, Selic + 0,07%) é projetada em Proventos, não muda o
-    // preço aqui. (CDB de meta capitaliza a CDI por conta própria.)
-    const rendaFixaFixa = (a) =>
-      a._cdbMeta || ["cdb", "tesouro", "rf"].includes(String(a.tipo || "").toLowerCase());
+    // Renda fixa (CDB/Tesouro/RF) não tem cotação de mercado — mas, desde
+    // 2026-09-29, quem tem TAXA CONTRATADA cadastrada (ex.: 104,5% CDI) tem o
+    // preço capitalizado pro-rata por dia com as taxas do BCB (acumularPrecoRF).
+    // Sem taxa cadastrada (ou CDB de meta, que rende sozinho) segue fixa no
+    // valor que o usuário colocou — preço nunca é inventado.
+    const rendaFixaFixa = (a) => a._cdbMeta || ehRendaFixa(a);
+
+    // Taxas mensais do BCB (CDI/Selic/IPCA) — só busca se houver renda fixa
+    // com taxa; cache de 12h no bcb.js. Se o BCB falhar, taxas ficam vazias e
+    // o indexado simplesmente não anda neste refresh (prefixado anda mesmo assim).
+    let taxasRF = {};
+    if (ativos.some((a) => !a._cdbMeta && temTaxaRF(a))) {
+      try { taxasRF = await buscarTaxasMensais(); } catch (e) { console.warn("[rf-taxas]", e); }
+    }
+    const agora = new Date();
+    const aplicarRF = (a) => {
+      if (a._cdbMeta || !temTaxaRF(a)) return a;
+      const up = acumularPrecoRF(a, taxasRF, agora);
+      if (!up) return a;
+      return { ...a, preco: up.preco, rfAtualizadoEm: up.rfAtualizadoEm, ultimaAtt: agora.toISOString() };
+    };
 
     // Mercado real desligado: NÃO inventa variação — os preços ficam
     // exatamente como estão. (Antes aplicava um tick aleatório que fazia os
     // valores derivarem do mercado de verdade e não baterem com a corretora.)
+    // A renda fixa com taxa contratada ainda anda: não depende de API de
+    // mercado, só do BCB.
     if (!apiKeys.useRealMarket) {
+      const comRF = ativos.map(aplicarRF);
+      if (comRF.some((a, i) => a !== ativos[i])) setAtivos(comRF);
       setMarketStatus({ at: new Date(), mode: "off", okCount: 0, total: ativos.length });
       setRefreshing(false);
       return;
@@ -54,8 +75,8 @@ export function useMercado({ ativos, setAtivos, apiKeys, loading, setRefreshing 
 
       let okCount = 0;
       const aplicarCotacoes = (lista) => lista.map(a => {
-        // Renda fixa fica fixa no valor informado — sem cotação nem tick.
-        if (rendaFixaFixa(a)) return a;
+        // Renda fixa: capitaliza pela taxa contratada (ou fica como está).
+        if (rendaFixaFixa(a)) return aplicarRF(a);
         const sym = a.tipo === "cripto" && !/USDT$/i.test(a.ticker)
           ? `${a.ticker.toUpperCase()}USDT`
           : a.ticker;

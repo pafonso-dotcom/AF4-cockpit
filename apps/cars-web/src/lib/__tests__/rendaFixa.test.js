@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   ehRendaFixa, temTaxaRF, rotuloTaxaRF, taxaMensalRF, valorBaseRF,
-  rendimentoMesRF, resumoRendaFixa,
+  rendimentoMesRF, resumoRendaFixa, acumularPrecoRF,
 } from "../rendaFixa.js";
 
 // CDI ~10,5% a.a. → ~0,8355% a.m. Uso um cdiMes fixo pra testes determinísticos.
@@ -79,5 +79,57 @@ describe("rendaFixa", () => {
       rendimentoMesRF(ativos[0], TAXAS) + rendimentoMesRF(ativos[1], TAXAS), 4);
     // ordenado por rendimento desc → CDB configurado (maior) primeiro
     expect(r.itens[0].id).toBe("a");
+  });
+});
+
+describe("acumularPrecoRF (atualização do preço da renda fixa)", () => {
+  const CDB = { tipo: "cdb", rfIndexador: "cdi", rfTaxa: "104,5", qtd: 1, preco: 1000, pm: 1000 };
+  const CDI_1 = { cdiMes: 1 }; // 1% a.m. → tm = 1,045%
+
+  it("1ª vez (sem marco): só carimba hoje, preço intacto", () => {
+    const r = acumularPrecoRF(CDB, CDI_1, new Date(2026, 8, 29));
+    expect(r).toEqual({ preco: 1000, rfAtualizadoEm: "2026-09-29", dias: 0 });
+  });
+
+  it("30 dias depois: compõe a taxa mensal cheia e avança o marco", () => {
+    const r = acumularPrecoRF({ ...CDB, rfAtualizadoEm: "2026-08-30" }, CDI_1, new Date(2026, 8, 29));
+    expect(r.dias).toBe(30);
+    expect(r.preco).toBeCloseTo(1000 * 1.01045, 2); // 1010,45
+    expect(r.rfAtualizadoEm).toBe("2026-09-29");
+  });
+
+  it("pro-rata: 1 dia compõe (1+tm)^(1/30)", () => {
+    const r = acumularPrecoRF({ ...CDB, rfAtualizadoEm: "2026-09-28" }, CDI_1, new Date(2026, 8, 29));
+    expect(r.preco).toBeCloseTo(+(1000 * Math.pow(1.01045, 1 / 30)).toFixed(2), 6); // ~1000,35
+  });
+
+  it("mesmo dia: nada a fazer (null)", () => {
+    expect(acumularPrecoRF({ ...CDB, rfAtualizadoEm: "2026-09-29" }, CDI_1, new Date(2026, 8, 29))).toBeNull();
+  });
+
+  it("marco no futuro (relógio bagunçado): recarimba hoje sem mexer no preço", () => {
+    const r = acumularPrecoRF({ ...CDB, rfAtualizadoEm: "2026-12-01" }, CDI_1, new Date(2026, 8, 29));
+    expect(r).toEqual({ preco: 1000, rfAtualizadoEm: "2026-09-29", dias: 0 });
+  });
+
+  it("variação < 1 centavo: null e o marco NÃO avança (dias seguem acumulando)", () => {
+    const pequeno = { ...CDB, preco: 1, pm: 1, rfAtualizadoEm: "2026-09-28" };
+    expect(acumularPrecoRF(pequeno, CDI_1, new Date(2026, 8, 29))).toBeNull();
+  });
+
+  it("sem taxa cadastrada ou sem preço: null", () => {
+    expect(acumularPrecoRF({ tipo: "cdb", qtd: 1, preco: 1000 }, CDI_1, new Date())).toBeNull();
+    expect(acumularPrecoRF({ ...CDB, preco: 0, pm: 0 }, CDI_1, new Date())).toBeNull();
+  });
+
+  it("prefixado anda mesmo sem taxas do BCB", () => {
+    const pre = { tipo: "rf", rfIndexador: "pre", rfTaxa: 12, qtd: 1, preco: 1000, rfAtualizadoEm: "2026-08-30" };
+    const tm = (Math.pow(1.12, 1 / 12) - 1) * 100;
+    const r = acumularPrecoRF(pre, {}, new Date(2026, 8, 29));
+    expect(r.preco).toBeCloseTo(+(1000 * (1 + tm / 100)).toFixed(2), 6);
+  });
+
+  it("indexado sem taxa do BCB (cdiMes null → tm 0): não anda nem avança o marco", () => {
+    expect(acumularPrecoRF({ ...CDB, rfAtualizadoEm: "2026-08-30" }, { cdiMes: null }, new Date(2026, 8, 29))).toBeNull();
   });
 });
