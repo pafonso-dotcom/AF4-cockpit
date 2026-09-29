@@ -93,7 +93,15 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
     e.stopPropagation();
     if (menuAcoes?.ativo?.id === a.id) { setMenuAcoes(null); return; }
     const r = e.currentTarget.getBoundingClientRect();
-    setMenuAcoes({ ativo: a, top: r.bottom + 4, right: Math.max(8, window.innerWidth - r.right) });
+    // Sem espaço embaixo (fim da lista no celular), o menu abre PRA CIMA.
+    const abaixo = window.innerHeight - r.bottom;
+    setMenuAcoes({
+      ativo: a,
+      right: Math.max(8, window.innerWidth - r.right),
+      ...(abaixo < 360
+        ? { bottom: Math.max(8, window.innerHeight - r.top + 4) }
+        : { top: r.bottom + 4 }),
+    });
   };
 
   const excluirAtivo = async (a) => {
@@ -128,7 +136,9 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
     <>
       <div onClick={e => { e.stopPropagation(); setMenuAcoes(null); }} style={{ position: "fixed", inset: 0, zIndex: 240 }} />
       <div onClick={e => e.stopPropagation()}
-           style={{ position: "fixed", right: menuAcoes.right, top: menuAcoes.top, zIndex: 241,
+           style={{ position: "fixed", right: menuAcoes.right,
+                    ...(menuAcoes.bottom != null ? { bottom: menuAcoes.bottom } : { top: menuAcoes.top }),
+                    maxHeight: "min(70vh, 420px)", overflowY: "auto", zIndex: 241,
                     background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
                     padding: 4, minWidth: 195, boxShadow: "0 12px 28px rgba(0,0,0,.35)",
                     display: "flex", flexDirection: "column", gap: 1 }}>
@@ -703,7 +713,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                       }}>{a.segmento}</span>
                     )}
                   </div>
-                  <div style={{ color: T.muted, fontSize: 10.5, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div style={{ color: T.muted, fontSize: 12.5, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {a.nome} · {String(a.tipo).toUpperCase()} · {fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)} un.
                     {a.tipo !== "capitalSocial" && valorPorTipo[a.tipo] > 0 && ` · ${pesoNaCategoria(a).toFixed(0)}% da categoria`}
                     {a.criadoEm && (() => { const t = tempoDeCarteira(a.criadoEm); return t ? ` · ${t}` : ""; })()}
@@ -714,10 +724,10 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     <div className="num" style={{ color: T.muted, fontSize: 12, fontStyle: "italic" }}>manual</div>
                   ) : (
                     <>
-                      <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap" }}>
+                      <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 15, fontWeight: 700, whiteSpace: "nowrap" }}>
                         {hidden ? "•••" : fmtMoedaAtivo(a, ganho)}
                       </div>
-                      <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 10.5 }}>
+                      <div className="num" style={{ color: ganho >= 0 ? T.green : T.red, fontSize: 12 }}>
                         {fmtP(pct)}
                       </div>
                     </>
@@ -728,25 +738,25 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
               {/* Linha 2: PM · Preço · Valor — TUDO numa linha corrida (rótulo e
                   número juntos), separados por espaço. Uma linha só de verdade. */}
               <div style={{
-                display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10,
+                display: "flex", justifyContent: "space-between", alignItems: "baseline",
+                columnGap: 10, rowGap: 4, flexWrap: "wrap",
                 marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.border}`,
-                whiteSpace: "nowrap", overflowX: "auto",
               }}>
-                <span style={{ fontSize: 12 }}>
-                  <span style={{ color: T.faint, fontSize: 10, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>PM</span>
+                <span style={{ fontSize: 13, whiteSpace: "nowrap" }}>
+                  <span style={{ color: T.faint, fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>PM</span>
                   <span className="num" style={{ color: T.muted }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.pm)}</span>
                 </span>
-                <span style={{ fontSize: 12 }}>
-                  <span style={{ color: T.faint, fontSize: 10, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Preço</span>
+                <span style={{ fontSize: 13, whiteSpace: "nowrap" }}>
+                  <span style={{ color: T.faint, fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Preço</span>
                   <span className="num" style={{ color: T.gold }}>{hidden ? "•••" : fmtMoedaAtivo(a, a.preco)}</span>
                   {Number.isFinite(Number(a.variacao24h)) && (
-                    <span className="num" style={{ fontSize: 10.5, marginLeft: 3, color: Number(a.variacao24h) >= 0 ? T.green : T.red }}>
+                    <span className="num" style={{ fontSize: 11.5, marginLeft: 3, color: Number(a.variacao24h) >= 0 ? T.green : T.red }}>
                       {Number(a.variacao24h) >= 0 ? "+" : ""}{Number(a.variacao24h).toFixed(1)}%
                     </span>
                   )}
                 </span>
-                <span style={{ fontSize: 12 }}>
-                  <span style={{ color: T.faint, fontSize: 10, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Valor</span>
+                <span style={{ fontSize: 13, whiteSpace: "nowrap" }}>
+                  <span style={{ color: T.faint, fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Valor</span>
                   <span className="num" style={{ color: T.ink, fontWeight: 700 }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</span>
                 </span>
               </div>
@@ -759,7 +769,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                 if (yoc == null && !(prov > 0)) return null;
                 const pctComProv = prov > 0 && investido > 0 ? ((ganho + prov) / investido) * 100 : null;
                 return (
-                  <div className="num" style={{ marginTop: 5, fontSize: 10.5, color: T.green, whiteSpace: "nowrap", overflowX: "auto" }}
+                  <div className="num" style={{ marginTop: 5, fontSize: 12, color: T.green, whiteSpace: "nowrap", overflowX: "auto" }}
                        title="YoC: proventos 12m ÷ seu preço médio · DY: proventos 12m ÷ preço atual · prov: recebidos de verdade (baixados em Proventos)">
                     {yoc != null && <>YoC {yoc.toFixed(1)}%{dy != null && <> · DY {dy.toFixed(1)}%</>}</>}
                     {prov > 0 && (
@@ -776,12 +786,12 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                    style={{ display: "flex", gap: 6, marginTop: 9, alignItems: "stretch", flexWrap: "wrap" }}>
                 <button onClick={() => setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" })}
                         aria-label={`Aportar em ${a.ticker}`}
-                        style={{ flex: "1 1 70px", background: "transparent", color: T.ink, padding: "5px 6px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, borderRadius: 8, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
+                        style={{ flex: "1 1 70px", background: "transparent", color: T.ink, padding: "5px 6px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, borderRadius: 8, fontSize: 11.5, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
                   Aporte
                 </button>
                 <button onClick={() => setVendaForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" })}
                         aria-label={`Vender ${a.ticker}`}
-                        style={{ flex: "1 1 70px", background: "transparent", color: T.ink, padding: "5px 6px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, borderRadius: 8, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
+                        style={{ flex: "1 1 70px", background: "transparent", color: T.ink, padding: "5px 6px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, borderRadius: 8, fontSize: 11.5, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
                   Venda
                 </button>
                 {/* Demais ações no menu ⋯ (pedido 2026-09-29: fileira de
@@ -881,28 +891,28 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     {/* Esquerda: selo + identificação */}
                     <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: "1 1 320px" }}>
                       <div style={{
-                        width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                        width: 34, height: 34, borderRadius: 8, flexShrink: 0,
                         background: `${T.gold}1a`, color: T.gold,
-                        display: "grid", placeItems: "center", fontSize: 10, fontWeight: 700,
+                        display: "grid", placeItems: "center", fontSize: 11.5, fontWeight: 700,
                       }}>
                         {(a.ticker || "??").slice(0, 2).toUpperCase()}
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-                          <span style={{ fontFamily: T.serif, fontSize: 15, color: T.ink, fontWeight: 600 }}>{a.ticker}</span>
+                          <span style={{ fontFamily: T.serif, fontSize: 17, color: T.ink, fontWeight: 600 }}>{a.ticker}</span>
                           {isLive(a) && <span className="af4-live-dot" title="Cotação ao vivo (atualizada nos últimos 60s)" />}
                     {(Number(a.alertaAcima) > 0 || Number(a.alertaAbaixo) > 0) && (
                       <span title={`Alerta de preço: ${Number(a.alertaAcima) > 0 ? `≥ R$ ${Number(a.alertaAcima).toFixed(2)}` : ""}${Number(a.alertaAcima) > 0 && Number(a.alertaAbaixo) > 0 ? " · " : ""}${Number(a.alertaAbaixo) > 0 ? `≤ R$ ${Number(a.alertaAbaixo).toFixed(2)}` : ""}`} style={{ fontSize: 10, opacity: .8 }}>🔔</span>
                     )}
-                          <span style={{ color: T.muted, fontSize: 11 }}>
+                          <span style={{ color: T.muted, fontSize: 13 }}>
                             {a.nome && <span className="italic">{a.nome} · </span>}
-                            <span style={{ fontFamily: T.sans, letterSpacing: "0.03em", textTransform: "uppercase", fontSize: 10.5 }}>{a.tipo}</span>
+                            <span style={{ fontFamily: T.sans, letterSpacing: "0.03em", textTransform: "uppercase", fontSize: 12 }}>{a.tipo}</span>
                             {a.tipo !== "capitalSocial" && valorPorTipo[a.tipo] > 0 && (
                               <span style={{ color: T.gold, fontWeight: 600 }}> · {pesoNaCategoria(a).toFixed(0)}%</span>
                             )}
                           </span>
                         </div>
-                        <div style={{ color: T.faint, fontSize: 10.5, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                        <div style={{ color: T.muted, fontSize: 13, marginTop: 3, fontVariantNumeric: "tabular-nums" }}>
                           {a.segmento && <>{a.segmento} · </>}
                           {fmtN(a.qtd, a.tipo === "cripto" ? 8 : 0)} un · PM {hidden ? "•••" : fmtMoedaAtivo(a, a.pm)} → {hidden ? "•••" : fmtMoedaAtivo(a, a.preco)}
                           {Number.isFinite(Number(a.variacao24h)) && (
@@ -922,13 +932,13 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                           })()}
                         </div>
                         {Number(a.rendimentoMes) > 0 && (
-                          <div style={{ color: T.green, fontSize: 10.5, marginTop: 2, fontWeight: 600 }} title="Rendimento mensal informado manualmente (e % ao mês sobre o investido)">
+                          <div style={{ color: T.green, fontSize: 12.5, marginTop: 2, fontWeight: 600 }} title="Rendimento mensal informado manualmente (e % ao mês sobre o investido)">
                             rende {hidden ? "•••" : fmt(Number(a.rendimentoMes))}/mês
                             {investido > 0 && <> · {fmtP((Number(a.rendimentoMes) / investido) * 100)} a.m.</>}
                           </div>
                         )}
                         {a.criadoEm && (
-                          <div style={{ color: T.faint, fontSize: 10, marginTop: 2 }} title="Data de criação/compra do ativo">
+                          <div style={{ color: T.faint, fontSize: 12, marginTop: 2 }} title="Data de criação/compra do ativo">
                             desde {String(a.criadoEm).slice(0, 10).split("-").reverse().join("/")}
                             {(() => { const t = tempoDeCarteira(a.criadoEm); return t ? ` · ${t}` : ""; })()}
                           </div>
@@ -939,8 +949,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                     {/* Direita: valor + resultado + ações */}
                     <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
                       <div style={{ textAlign: "right" }}>
-                        <div className="num" style={{ fontSize: 15, fontWeight: 650, color: T.ink }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</div>
-                        <div className="num" style={{ fontSize: 11, marginTop: 1, color: a.tipo === "capitalSocial" ? T.muted : (ganho >= 0 ? T.green : T.red) }}>
+                        <div className="num" style={{ fontSize: 17, fontWeight: 650, color: T.ink }}>{hidden ? "•••" : fmtMoedaAtivo(a, valor)}</div>
+                        <div className="num" style={{ fontSize: 13, marginTop: 1, color: a.tipo === "capitalSocial" ? T.muted : (ganho >= 0 ? T.green : T.red) }}>
                           {a.tipo === "capitalSocial" ? <span style={{ fontStyle: "italic" }}>manual</span> : (
                             <>{hidden ? "•••" : fmtMoedaAtivo(a, ganho)} · {fmtP(pct)}</>
                           )}
@@ -953,7 +963,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                           const pctComProv = ((ganho + prov) / investido) * 100;
                           return (
                             <div className="num" title="Proventos recebidos (baixados em Proventos) · rentabilidade com proventos = (resultado + proventos) ÷ investido"
-                                 style={{ fontSize: 10, marginTop: 1, color: T.gold }}>
+                                 style={{ fontSize: 12, marginTop: 1, color: T.gold }}>
                               prov {hidden ? "•••" : fmtMoedaAtivo(a, prov)} · c/ prov {fmtP(pctComProv)}
                             </div>
                           );
