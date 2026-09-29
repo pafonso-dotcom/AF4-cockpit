@@ -78,7 +78,7 @@ export default function AnalisesUnificada({
         {view === "performance"      && <Performance ativos={ativos} hidden={hidden} />}
         {view === "fundamentos"      && <div className="py-8"><FundamentosIA ativos={ativos} /></div>}
         {view === "idv"              && <AnaliseIdV analises={tradeAnalisesIdV} setAnalises={setTradeAnalisesIdV} ativos={ativos} />}
-        {view === "carteira-analise" && <AnaliseCarteira ativos={ativos} hidden={hidden} onAnalisar={onAnalisarAtivo} />}
+        {view === "carteira-analise" && <AnaliseCarteira embed ativos={ativos} hidden={hidden} onAnalisar={onAnalisarAtivo} />}
       </div>
     </div>
   );

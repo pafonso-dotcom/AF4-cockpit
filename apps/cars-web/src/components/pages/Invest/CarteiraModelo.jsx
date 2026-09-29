@@ -46,6 +46,7 @@ const COR_CLASSE = {
 };
 
 export default function CarteiraModelo({
+  embed = false,
   ativos: ativosProp = [],
   carteirasModeloCustom,
   setCarteirasModeloCustom,
@@ -172,23 +173,26 @@ export default function CarteiraModelo({
 
   return (
     <div className="fade-up py-8">
-      <PageHeader
-        eyebrow="Investimentos"
-        title="Carteira Modelo"
-        sub="Tickers e % alvo por classe — saiba exatamente onde colocar o próximo R$."
-        action={
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <button className="btn-ghost" onClick={duplicarModelo}>
-              <Copy size={13} className="inline mr-1.5" /> Duplicar
-            </button>
-            {!modelo?.builtin && (
-              <button className="btn-ghost" onClick={excluirModelo} style={{ color: T.red, borderColor: `${T.red}55` }}>
-                <Trash2 size={13} className="inline mr-1.5" /> Excluir
+      {/* Embutido num hub, o cabeçalho é o do hub (fim dos títulos duplicados — faxina 2026-09-29). */}
+      {!embed && (
+        <PageHeader
+          eyebrow="Investimentos"
+          title="Carteira Modelo"
+          sub="Tickers e % alvo por classe — saiba exatamente onde colocar o próximo R$."
+          action={
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <button className="btn-ghost" onClick={duplicarModelo}>
+                <Copy size={13} className="inline mr-1.5" /> Duplicar
               </button>
-            )}
-          </div>
-        }
-      />
+              {!modelo?.builtin && (
+                <button className="btn-ghost" onClick={excluirModelo} style={{ color: T.red, borderColor: `${T.red}55` }}>
+                  <Trash2 size={13} className="inline mr-1.5" /> Excluir
+                </button>
+              )}
+            </div>
+          }
+        />
+      )}
 
       {/* Seletor de modelo + descrição */}
       <div style={{

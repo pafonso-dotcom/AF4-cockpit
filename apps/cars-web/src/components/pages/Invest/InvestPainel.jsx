@@ -334,14 +334,17 @@ function MoedaCard({ valorBR = 0, valorUSA = 0, usdRate, hidden, fmtUSD, fill = 
           </div>
           <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{fmtN(pctBR, 0)}%</span>
         </div>
+        {/* Linha EUA só quando há ativo em dólar — "US$ 0.00 · —" era ruído. */}
+        {temUSA && (
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 17, opacity: temUSA ? 1 : 0.4 }} aria-hidden="true">🇺🇸</span>
+          <span style={{ fontSize: 17 }} aria-hidden="true">🇺🇸</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.8)" }}>EUA · US$</div>
-            <div className="num" style={{ fontSize: 14, fontWeight: 700, color: temUSA ? "#fff" : "rgba(255,255,255,0.55)" }}>{hidden ? "•••••" : fmtUSD(valorUSA)}</div>
+            <div className="num" style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{hidden ? "•••••" : fmtUSD(valorUSA)}</div>
           </div>
-          <span style={{ fontSize: 12, fontWeight: 700, color: temUSA ? "#fff" : "rgba(255,255,255,0.6)" }}>{temUSA ? `${fmtN(pctUSA, 0)}%` : "—"}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{fmtN(pctUSA, 0)}%</span>
         </div>
+        )}
         {/* Barra dividida */}
         <div style={{ display: "flex", height: 10, borderRadius: 999, overflow: "hidden", background: "rgba(255,255,255,0.22)", marginTop: 2 }}>
           <div style={{ width: `${pctBR}%`, background: "#f5e6c8" }} />
