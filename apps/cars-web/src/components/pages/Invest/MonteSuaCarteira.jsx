@@ -56,7 +56,7 @@ const HINT_OBJETIVO = {
   reserva:     "Tesouro · CDB · liquidez",
 };
 
-export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = null }) {
+export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = null, embed = false }) {
   const ativos = semCapitalSocial(ativosProp); // Capital Social fora do rebalanceamento
   const [valor, setValor] = useState(DEFAULT_VALOR);
   const [mix, setMix]     = useState(DEFAULT_MIX);
@@ -130,11 +130,14 @@ export default function MonteSuaCarteira({ ativos: ativosProp = [], apiKey = nul
 
   return (
     <div className="fade-up py-6 px-6 mc-root">
-      <PageHeader
-        eyebrow="Investimentos · Montagem"
-        title="Monte sua Carteira"
-        sub="Defina quanto investir, distribua entre seus objetivos e veja a alocação resultante por classe de ativo."
-      />
+      {/* Embutido num hub, o cabeçalho é o do hub (fim dos títulos duplicados — faxina 2026-09-29). */}
+      {!embed && (
+        <PageHeader
+          eyebrow="Investimentos · Montagem"
+          title="Monte sua Carteira"
+          sub="Defina quanto investir, distribua entre seus objetivos e veja a alocação resultante por classe de ativo."
+        />
+      )}
 
       {/* ============ SEÇÃO 1 · QUANTO INVESTIR ============ */}
       <section className="mc-card" style={{

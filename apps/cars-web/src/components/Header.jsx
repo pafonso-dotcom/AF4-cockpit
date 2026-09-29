@@ -41,16 +41,56 @@ export const AGENDA_TABS = [
   { id: "metas",      label: "Metas",        icon: Target },
 ];
 
-// Ordem das abas por módulo — usada pelo SWIPE do celular (App.jsx).
-// Espelha os SUBTABS abaixo; se mudar lá, mude aqui.
-export const SUBTAB_IDS = {
-  financas: ["dashboard", "contas", "cartoes", "emprestimos", "planejamento", "relatorios-f", "transacoes", "categorias", "perguntar"],
-  invest: ["investimentos", "carteira", "monte-carteira", "analises", "proventos", "simulador", "construtor-mercado", "relatorios-i"],
-  agenda: AGENDA_TABS.map(t => t.id),
-  config: ["cfg-aparencia", "cfg-apis", "cfg-modulos", "cfg-backup"],
-};
-
 const AGENDA_TAB_IDS = new Set(AGENDA_TABS.map(t => t.id));
+
+/* ===== FONTE ÚNICA da navegação (faxina 2026-09-29) =====
+   Antes havia DUAS cópias de MODULOS/SUBTABS (uma por layout) mais o
+   SUBTAB_IDS mantido à mão — e elas já tinham divergido. Agora é um
+   objeto só; SUBTAB_IDS é derivado. */
+const TODOS_MODULOS = [
+  { id: "financas", label: "Finanças",      icon: Wallet,    desc: "Pessoal" },
+  { id: "invest",   label: "Investimentos", icon: Briefcase, desc: "Carteira" },
+  { id: "agenda",   label: "Agenda",        icon: Calendar,  desc: "Vida" },
+];
+const SUBTABS = {
+    financas: [
+      // Ordem fixada pelo usuário: Painel, Contas, Cartões, Planejamento,
+      // Cheques, Relatórios, Agenda — e depois o resto.
+      { id: "dashboard",    label: "Painel",       icon: Activity },
+      { id: "contas",       label: "Contas",       icon: Wallet },
+      { id: "cartoes",      label: "Cartões",      icon: CreditCard },
+      { id: "emprestimos",  label: "Empréstimos",  icon: HandCoins },
+      { id: "planejamento", label: "Planejamento", icon: Target },
+      { id: "relatorios-f", label: "Análises & Relatórios", icon: BarChart3 },
+      // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
+      // que ficam escondidas até clicar aqui.
+      // O resto:
+      { id: "transacoes",   label: "Transações",   icon: Receipt },
+      { id: "categorias",   label: "Categorias",   icon: Tag },
+      { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
+    ],
+    invest: [
+      { id: "investimentos",  label: "Painel",              icon: BarChart3 },
+      { id: "carteira",       label: "Carteira",            icon: Briefcase },
+      { id: "monte-carteira", label: "Planejar",            icon: Package },
+      { id: "analises",       label: "Análises",            icon: Radar },
+      { id: "proventos",      label: "Proventos & Renda",  icon: DollarSign },
+      { id: "simulador",      label: "Simuladores",         icon: Calculator },
+      { id: "construtor-mercado",  label: "Mercado",           icon: HandCoins },
+      { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
+    ],
+    agenda: AGENDA_TABS,
+    config: [
+      { id: "cfg-aparencia", label: "Aparência",    icon: Sparkles },
+      { id: "cfg-apis",      label: "APIs",         icon: Settings },
+      { id: "cfg-modulos",   label: "Módulos",      icon: Package },
+      { id: "cfg-backup",    label: "Backup",       icon: RefreshCw },
+    ],
+};
+// Derivado da fonte única (App.jsx usa pra achar o módulo de uma aba).
+export const SUBTAB_IDS = Object.fromEntries(
+  Object.entries(SUBTABS).map(([m, itens]) => [m, itens.map(t => t.id)]),
+);
 
 /* ===== Ordem das abas — persistida por grupo em localStorage (a ordem
    salva é aplicada; a UI de mudar pela tela foi removida em 2026-09-28) ===== */
@@ -133,48 +173,7 @@ function HeaderHorizontal({
   // Menu "⋯" agrupa os utilitários (busca/ocultar/tema/atualizar) no topo.
   const [menuUtilAberto, setMenuUtilAberto] = useState(false);
 
-  const TODOS_MODULOS = [
-    { id: "financas", label: "Finanças",      icon: Wallet,    desc: "Pessoal" },
-    { id: "invest",   label: "Investimentos", icon: Briefcase, desc: "Carteira" },
-    { id: "agenda",   label: "Agenda",        icon: Calendar,  desc: "Vida" },
-  ];
   const MODULOS = TODOS_MODULOS.filter(m => perms[m.id] !== false);
-
-  const SUBTABS = {
-    financas: [
-      // Ordem fixada pelo usuário: Painel, Contas, Cartões, Planejamento,
-      // Cheques, Relatórios, Agenda — e depois o resto.
-      { id: "dashboard",    label: "Painel",       icon: Activity },
-      { id: "contas",       label: "Contas",       icon: Wallet },
-      { id: "cartoes",      label: "Cartões",      icon: CreditCard },
-      { id: "emprestimos",  label: "Empréstimos",  icon: HandCoins },
-      { id: "planejamento", label: "Planejamento", icon: Target },
-      { id: "relatorios-f", label: "Análises & Relatórios", icon: BarChart3 },
-      // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
-      // que ficam escondidas até clicar aqui.
-      // O resto:
-      { id: "transacoes",   label: "Transações",   icon: Receipt },
-      { id: "categorias",   label: "Categorias",   icon: Tag },
-      { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
-    ],
-    invest: [
-      { id: "investimentos",  label: "Painel",              icon: BarChart3 },
-      { id: "carteira",       label: "Carteira",            icon: Briefcase },
-      { id: "monte-carteira", label: "Planejar",            icon: Package },
-      { id: "analises",       label: "Análises",            icon: Radar },
-      { id: "proventos",      label: "Proventos & Renda",  icon: DollarSign },
-      { id: "simulador",      label: "Simuladores",         icon: Calculator },
-      { id: "construtor-mercado",  label: "Mercado",           icon: HandCoins },
-      { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
-    ],
-    agenda: AGENDA_TABS,
-    config: [
-      { id: "cfg-aparencia", label: "Aparência",    icon: Sparkles },
-      { id: "cfg-apis",      label: "APIs",         icon: Settings },
-      { id: "cfg-modulos",   label: "Módulos",      icon: Package },
-      { id: "cfg-backup",    label: "Backup",       icon: RefreshCw },
-    ],
-  };
 
   // Ordem das abas (af4.taborder.v1). As SETINHAS de reordenar voltaram a
   // pedido em 2026-09-29 (só o arrastar ficou removido).
@@ -663,48 +662,8 @@ function HeaderVertical({
   const perfilAtivo = getPerfilAtivo();
   const perms = perfilAtivo?.permissoes || { financas: true, invest: true, trade: true, config: true };
 
-  const TODOS_MODULOS = [
-    { id: "financas", label: "Finanças",      icon: Wallet },
-    { id: "invest",   label: "Investimentos", icon: Briefcase },
-    { id: "agenda",   label: "Agenda",        icon: Calendar },
-  ];
   const MODULOS = TODOS_MODULOS.filter(m => perms[m.id] !== false);
 
-  const SUBTABS = {
-    financas: [
-      // Ordem fixada pelo usuário: Painel, Contas, Cartões, Planejamento,
-      // Cheques, Relatórios, Agenda — e depois o resto.
-      { id: "dashboard",    label: "Painel",       icon: Activity },
-      { id: "contas",       label: "Contas",       icon: Wallet },
-      { id: "cartoes",      label: "Cartões",      icon: CreditCard },
-      { id: "emprestimos",  label: "Empréstimos",  icon: HandCoins },
-      { id: "planejamento", label: "Planejamento", icon: Target },
-      { id: "relatorios-f", label: "Análises & Relatórios", icon: BarChart3 },
-      // "Agenda" é uma matriz: agrupa as abas de vida (filhas em AGENDA_TABS),
-      // que ficam escondidas até clicar aqui.
-      // O resto:
-      { id: "transacoes",   label: "Transações",   icon: Receipt },
-      { id: "categorias",   label: "Categorias",   icon: Tag },
-      { id: "perguntar",    label: "Pergunte ao Claude", icon: Sparkles },
-    ],
-    invest: [
-      { id: "investimentos",  label: "Painel",              icon: BarChart3 },
-      { id: "carteira",       label: "Carteira",            icon: Briefcase },
-      { id: "monte-carteira", label: "Planejar",            icon: Package },
-      { id: "analises",       label: "Análises",            icon: Radar },
-      { id: "proventos",      label: "Proventos & Renda",  icon: DollarSign },
-      { id: "simulador",      label: "Simuladores",         icon: Calculator },
-      { id: "construtor-mercado",  label: "Mercado",           icon: HandCoins },
-      { id: "relatorios-i",   label: "Relatórios",          icon: BarChart3 },
-    ],
-    agenda: AGENDA_TABS,
-    config: [
-      { id: "cfg-aparencia", label: "Aparência", icon: Sparkles },
-      { id: "cfg-apis",      label: "APIs",      icon: Settings },
-      { id: "cfg-modulos",   label: "Módulos",   icon: Package },
-      { id: "cfg-backup",    label: "Backup",    icon: RefreshCw },
-    ],
-  };
 
   // Ordem salva das pastas (af4.taborder.v1); setinhas ▲▼ de reordenar
   // voltaram a pedido em 2026-09-29 (mesma chave do layout horizontal).

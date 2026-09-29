@@ -82,9 +82,7 @@ const Metas = lz(() => import("./components/pages/Metas.jsx"));
 const Notas = lz(() => import("./components/pages/Notas.jsx"));
 const Tarefas = lz(() => import("./components/pages/Tarefas.jsx"));
 const AgendaInicio = lz(() => import("./components/pages/AgendaInicio.jsx"));
-const Despesas = lz(() => import("./components/pages/Despesas.jsx"));
 const Planejamento = lz(() => import("./components/pages/Planejamento/index.jsx"));
-const AnaliseFatura = lz(() => import("./components/pages/AnaliseFatura.jsx"));
 const Investimentos = lz(() => import("./components/pages/Investimentos.jsx"));
 const MercadoHub = lz(() => import("./components/pages/Invest/MercadoHub.jsx"));
 const Simuladores = lz(() => import("./components/pages/Invest/Simuladores.jsx"));
@@ -828,22 +826,11 @@ export default function App() {
           apiKey={apiKeys.anthropic}
           escopoAtivo={escopoAtivo}
           tab={tab}
-          secaoInicial={tab === "cheques" ? "cheques" : tab === "fixas" ? "fixas" : tab === "areceber" ? "areceber" : tab === "relatorios-anual" ? "anual" : null}
+          // "relatorios-anual" apontava pra seção "anual", que não existe mais
+          // (faxina 2026-09-29) — cai na visão geral (A Receber & Dívidas).
+          secaoInicial={tab === "cheques" ? "cheques" : tab === "fixas" ? "fixas" : (tab === "areceber" || tab === "relatorios-anual") ? "areceber" : null}
           onVerCategoria={verCategoriaTransacoes}
           onTabChange={setTab}
-          hidden={hidden}
-        />
-      )}
-      {tab === "despesas" && (
-        <Despesas
-          transacoes={transacoes} setTransacoes={setTransacoes}
-          fixas={fixas} setFixas={setFixas}
-          fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
-          parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
-          dividas={dividas} setDividas={setDividas}
-          contas={contas} setContas={setContas}
-          categorias={categorias}
-          cartoes={cartoes}
           hidden={hidden}
         />
       )}
@@ -924,18 +911,6 @@ export default function App() {
       )}
       {/* Relatórios, Inteligência, Revisor de ganhos e Histórico consolidados em Análises & Relatórios — ver bloco unificado acima */}
       {/* Rotas antigas (fixas, relatorios-anual, areceber) consolidadas em Planejamento — ver bloco unificado acima */}
-      {tab === "analiseia" && (
-        <AnaliseFatura
-          categorias={categorias} setCategorias={setCategorias}
-          transacoes={transacoes} setTransacoes={setTransacoes}
-          contas={contas} setContas={setContas}
-          cartoes={cartoes} setCartoes={setCartoes}
-          fixas={fixas} setFixas={setFixas}
-          fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
-          parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
-          apiKeys={apiKeys} hidden={hidden}
-        />
-      )}
     </div>
   );
 
@@ -1268,7 +1243,9 @@ export default function App() {
         modulo={modulo} setModulo={setModulo}
         setTab={irParaTab}
       />
-      <PomodoroFloat />
+      {/* Pomodoro só no módulo Agenda (faxina 2026-09-29): flutuando em
+          TODAS as telas ele cobria valores e botões das listas. */}
+      {modulo === "agenda" && <PomodoroFloat />}
       <ToastContainer />
       <InstallPWA />
       <ConfirmDialog />

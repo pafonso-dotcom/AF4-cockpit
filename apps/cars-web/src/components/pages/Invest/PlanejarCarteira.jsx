@@ -70,9 +70,10 @@ export default function PlanejarCarteira({
       </div>
 
       <div style={{ marginTop: -16 /* compensa o py-8 das páginas internas */ }}>
-        {view === "monte" && <MonteSuaCarteira ativos={ativos} apiKey={apiKeys.anthropic} />}
+        {view === "monte" && <MonteSuaCarteira embed ativos={ativos} apiKey={apiKeys.anthropic} />}
         {view === "objetivos" && (
           <ObjetivosCarteira
+            embed
             ativos={ativos}
             objetivosCarteira={objetivosCarteira}
             setObjetivosCarteira={setObjetivosCarteira}
@@ -82,6 +83,7 @@ export default function PlanejarCarteira({
         )}
         {view === "modelo" && (
           <CarteiraModelo
+            embed
             ativos={ativos}
             carteirasModeloCustom={carteirasModeloCustom}
             setCarteirasModeloCustom={setCarteirasModeloCustom}
@@ -91,7 +93,7 @@ export default function PlanejarCarteira({
             apiKeys={apiKeys}
           />
         )}
-        {view === "planejador" && <Planejador transacoes={transacoes} hidden={hidden} />}
+        {view === "planejador" && <Planejador embed transacoes={transacoes} hidden={hidden} />}
       </div>
     </div>
   );

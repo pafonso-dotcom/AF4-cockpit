@@ -18,7 +18,6 @@ export const NAV_ITEMS = [
   { modulo: "financas", tab: "planejamento", label: "Planejamento",       grupo: "Finanças" },
   { modulo: "financas", tab: "categorias",   label: "Categorias",         grupo: "Finanças" },
   { modulo: "financas", tab: "perguntar",    label: "Pergunte ao Claude", grupo: "Finanças" },
-  { modulo: "financas", tab: "revisor-ganhos",      label: "Revisor de ganhos",     grupo: "Finanças" },
   { modulo: "financas", tab: "relatorios-f", label: "Relatórios",         grupo: "Finanças" },
   { modulo: "financas", tab: "relatorios-f", label: "Pesquisas (relatórios diversos)", grupo: "Finanças" },
   // Histórico (auditoria) mudou pra Configurações → Backup (2026-09-22).
@@ -45,13 +44,13 @@ export const NAV_ITEMS = [
   { modulo: "invest", tab: "pesquisador-mercado", label: "Pesquisador de mercado (no Construtor)", grupo: "Investimentos" },
   { modulo: "invest", tab: "relatorios-i",   label: "Relatórios",          grupo: "Investimentos" },
 
-  // Negócio
-
-  // Agenda — agora incorporada ao módulo Finanças.
+  // Agenda (módulo próprio)
   { modulo: "agenda", tab: "calendario", label: "Calendário",   grupo: "Agenda" },
   { modulo: "agenda", tab: "notas",      label: "Compromissos", grupo: "Agenda" },
   { modulo: "agenda", tab: "tarefas",    label: "Tarefas",      grupo: "Agenda" },
   { modulo: "agenda", tab: "voos",       label: "Voos",         grupo: "Agenda" },
+  { modulo: "agenda", tab: "lembretes",  label: "Lembretes",    grupo: "Agenda" },
+  { modulo: "agenda", tab: "treino",     label: "Treino",       grupo: "Agenda" },
   { modulo: "agenda", tab: "metas",      label: "Metas",        grupo: "Agenda" },
   { modulo: "agenda", tab: "inicio",     label: "Agenda · Início", grupo: "Agenda" },
 ];

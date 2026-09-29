@@ -48,7 +48,7 @@ const Campo = ({ label, value, onChange, sufixo, w = 120 }) => (
  * o que fazer com ela (reserva / bens duráveis / riqueza), com PMT por meta e
  * projeção de riqueza. Educacional — não é recomendação de investimento.
  */
-export default function Planejador({ transacoes = [], hidden = false }) {
+export default function Planejador({ transacoes = [], hidden = false, embed = false }) {
   const medias = useMemo(() => mediasMensais(transacoes), [transacoes]);
   const [cfg, setCfg] = useState(() => ler() || {
     sobra: Math.max(0, Math.round(medias.receita - medias.despesa)),
@@ -84,16 +84,19 @@ export default function Planejador({ transacoes = [], hidden = false }) {
 
   return (
     <div className="fade-up py-8 px-6">
-      <PageHeader
-        eyebrow="Investimentos · Planejador"
-        title={<>Planejador de <em>Paz Financeira.</em></>}
-        sub="Sua sobra do mês dividida em 3 baldes — reserva, bens duráveis e riqueza — com projeção e metas."
+      {/* Embutido num hub, o cabeçalho é o do hub (fim dos títulos duplicados — faxina 2026-09-29). */}
+      {!embed && (
+        <PageHeader
+          eyebrow="Investimentos · Planejador"
+          title={<>Planejador de <em>Paz Financeira.</em></>}
+          sub="Sua sobra do mês dividida em 3 baldes — reserva, bens duráveis e riqueza — com projeção e metas."
         action={
           <button onClick={() => setVerAvancado((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${T.border}`, color: T.muted, borderRadius: 12, padding: "6px 10px", fontSize: 12.5, cursor: "pointer" }}>
-            <Settings2 size={13} /> Editar dados
-          </button>
-        }
-      />
+              <Settings2 size={13} /> Editar dados
+            </button>
+          }
+        />
+      )}
 
       {/* Entradas */}
       {verAvancado && (

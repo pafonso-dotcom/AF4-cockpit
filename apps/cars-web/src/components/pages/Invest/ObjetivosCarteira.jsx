@@ -62,6 +62,7 @@ const CLASSES_DISPONIVEIS = [
 ];
 
 export default function ObjetivosCarteira({
+  embed = false,
   ativos: ativosProp = [],
   objetivosCarteira,
   setObjetivosCarteira,
@@ -264,23 +265,26 @@ export default function ObjetivosCarteira({
 
   return (
     <div className="fade-up py-8">
-      <PageHeader
-        eyebrow="Investimentos"
-        title="Objetivos"
-        sub="Defina a alocação ideal da sua carteira. O sistema mostra quanto falta e onde aportar."
-        action={
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <button className="btn-ghost" onClick={resetarPadrao}>
-              Restaurar padrão
+      {/* Embutido num hub, o cabeçalho é o do hub (fim dos títulos duplicados — faxina 2026-09-29). */}
+      {!embed && (
+        <PageHeader
+          eyebrow="Investimentos"
+          title="Objetivos"
+          sub="Defina a alocação ideal da sua carteira. O sistema mostra quanto falta e onde aportar."
+          action={
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <button className="btn-ghost" onClick={resetarPadrao}>
+                Restaurar padrão
+              </button>
+              <button className="btn-gold" onClick={() => setEditando({
+                id: null, parentId: null, label: "", percent: 0, classeMatch: null,
+              })}>
+                <Plus size={13} className="inline mr-1.5" /> Adicionar nó
             </button>
-            <button className="btn-gold" onClick={() => setEditando({
-              id: null, parentId: null, label: "", percent: 0, classeMatch: null,
-            })}>
-              <Plus size={13} className="inline mr-1.5" /> Adicionar nó
-            </button>
-          </div>
-        }
-      />
+            </div>
+          }
+        />
+      )}
 
       {/* Resumo da carteira + aporte mensal */}
       <div style={{

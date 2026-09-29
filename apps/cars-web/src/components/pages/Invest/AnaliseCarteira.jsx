@@ -59,7 +59,7 @@ async function analisarAtivo(asset, intervaloUI) {
   return { rsi, macd, trend, score, direcao, confianca, ema20, ema50, preco, variacao24h };
 }
 
-export default function AnaliseCarteira({ ativos = [], hidden, onAnalisar }) {
+export default function AnaliseCarteira({ ativos = [], hidden, onAnalisar, embed = false }) {
   const ativosAnalisaveis = useMemo(
     () => (ativos || []).filter(a => a?.ticker && TIPOS_ANALISAVEIS.includes(a.tipo)),
     [ativos]
@@ -135,10 +135,12 @@ export default function AnaliseCarteira({ ativos = [], hidden, onAnalisar }) {
 
   return (
     <div className="fade-up py-8 px-6">
-      <PageHeader
-        eyebrow="AF4 Trade · Carteira"
-        title={<>Análise <em style={{ color: T.gold }}>da Carteira.</em></>}
-        sub="Varredura técnica de todos os ativos da sua carteira — RSI, MACD, tendência e sinal."
+      {/* Embutido num hub, o cabeçalho é o do hub (fim dos títulos duplicados — faxina 2026-09-29). */}
+      {!embed && (
+        <PageHeader
+          eyebrow="AF4 Trade · Carteira"
+          title={<>Análise <em style={{ color: T.gold }}>da Carteira.</em></>}
+          sub="Varredura técnica de todos os ativos da sua carteira — RSI, MACD, tendência e sinal."
         action={
           <button onClick={scan} disabled={scanning} className="btn-ghost"
                   style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -149,6 +151,7 @@ export default function AnaliseCarteira({ ativos = [], hidden, onAnalisar }) {
           </button>
         }
       />
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
