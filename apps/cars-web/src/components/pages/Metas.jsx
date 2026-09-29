@@ -27,6 +27,7 @@ export default function Metas({
   categorias = [], contas = [], setContas,
   transacoes = [], setTransacoes,
   ativos = [], setAtivos,
+  embed = false,
 }) {
   const [form, setForm] = useState(null);
   const [resgate, setResgate] = useState(null); // { meta, valor, conta } — modal de uso/resgate
@@ -407,15 +408,23 @@ export default function Metas({
   };
 
   return (
-    <div className="fade-up py-8">
-      <PageHeader
-        eyebrow="Capítulo VII"
-        title="Metas"
-        sub="Promessas que viram patrimônio. Calcule, projete, persiga."
-        action={<button className="btn-gold" onClick={() => setForm({ id: null, nome: "", alvo: "", atual: 0, prazo: 12, aporte: 500, taxa: 0.85, dataAlvo: "" })}>
-          <Plus size={14} className="inline mr-2" />Nova Meta
-        </button>}
-      />
+    <div className={embed ? "" : "fade-up py-8"}>
+      {!embed ? (
+        <PageHeader
+          eyebrow="Capítulo VII"
+          title="Metas"
+          sub="Promessas que viram patrimônio. Calcule, projete, persiga."
+          action={<button className="btn-gold" onClick={() => setForm({ id: null, nome: "", alvo: "", atual: 0, prazo: 12, aporte: 500, taxa: 0.85, dataAlvo: "" })}>
+            <Plus size={14} className="inline mr-2" />Nova Meta
+          </button>}
+        />
+      ) : (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+          <button className="btn-gold" onClick={() => setForm({ id: null, nome: "", alvo: "", atual: 0, prazo: 12, aporte: 500, taxa: 0.85, dataAlvo: "" })}>
+            <Plus size={14} className="inline mr-2" />Nova Meta
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {metas.length === 0 && (

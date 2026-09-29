@@ -76,12 +76,12 @@ const Dashboard = lz(() => import("./components/pages/Dashboard.jsx"));
 const Contas = lz(() => import("./components/pages/Contas.jsx"));
 const Cartoes = lz(() => import("./components/pages/Cartoes.jsx"));
 const Transacoes = lz(() => import("./components/pages/Transacoes.jsx"));
+const AgendaCalendarioHub = lz(() => import("./components/pages/AgendaCalendarioHub.jsx"));
 const Calendario = lz(() => import("./components/pages/Calendario.jsx"));
 const Categorias = lz(() => import("./components/pages/Categorias.jsx"));
 const Metas = lz(() => import("./components/pages/Metas.jsx"));
 const Notas = lz(() => import("./components/pages/Notas.jsx"));
 const Tarefas = lz(() => import("./components/pages/Tarefas.jsx"));
-const AgendaInicio = lz(() => import("./components/pages/AgendaInicio.jsx"));
 const Planejamento = lz(() => import("./components/pages/Planejamento/index.jsx"));
 const Investimentos = lz(() => import("./components/pages/Investimentos.jsx"));
 const AnalisesUnificada = lz(() => import("./components/pages/Invest/Analises.jsx"));
@@ -706,7 +706,10 @@ export default function App() {
     // Troca também o módulo quando a aba pertence a outro (ex.: card do
     // Painel → "calendario", que vive na Agenda). Sem isso a tela ficava
     // em branco (bug 2026-09-22). Aba fora do mapa: mantém o módulo atual.
-    const mod = Object.keys(SUBTAB_IDS).find(m => SUBTAB_IDS[m].includes(t));
+    // Aliases de módulo pós-reorganização (2026-09-29): abas que mudaram
+    // de casa mas continuam alcançáveis por links/⌘K antigos.
+    const LEGADO = { metas: "financas", inicio: "agenda", notas: "agenda", lembretes: "agenda" };
+    const mod = LEGADO[t] || Object.keys(SUBTAB_IDS).find(m => SUBTAB_IDS[m].includes(t));
     if (mod) setModulo(mod);
     setTab(t);
   }, []);
@@ -806,7 +809,7 @@ export default function App() {
                         onVoltar={() => setContaAberta(null)} />
         </div>
       )}
-      {(tab === "areceber" || tab === "fixas" || tab === "relatorios-anual" || tab === "planejamento" || tab === "cheques" || tab === "emprestimos") && (
+      {(tab === "areceber" || tab === "fixas" || tab === "relatorios-anual" || tab === "planejamento" || tab === "cheques" || tab === "emprestimos" || tab === "metas") && (
         <Planejamento
           transacoes={transacoes} setTransacoes={setTransacoes}
           contas={contas} setContas={setContas}
@@ -819,12 +822,13 @@ export default function App() {
           parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
           cartoes={cartoes} setCartoes={setCartoes}
           metas={metas} setMetas={setMetas}
+          ativos={ativos} setAtivos={setAtivos}
           apiKey={apiKeys.anthropic}
           escopoAtivo={escopoAtivo}
           tab={tab}
           // "relatorios-anual" apontava pra seção "anual", que não existe mais
           // (faxina 2026-09-29) — cai na visão geral (A Receber & Dívidas).
-          secaoInicial={tab === "cheques" ? "cheques" : tab === "fixas" ? "fixas" : tab === "emprestimos" ? "emprestimos" : (tab === "areceber" || tab === "relatorios-anual") ? "areceber" : null}
+          secaoInicial={tab === "cheques" ? "cheques" : tab === "fixas" ? "fixas" : tab === "emprestimos" ? "emprestimos" : tab === "metas" ? "metas" : (tab === "areceber" || tab === "relatorios-anual") ? "areceber" : null}
           onVerCategoria={verCategoriaTransacoes}
           onTabChange={setTab}
           hidden={hidden}
@@ -910,39 +914,22 @@ export default function App() {
 
   const renderAgenda = () => (
     <div className="px-6 md:px-10">
-      {tab === "inicio" && (
-        <AgendaInicio
-          agenda={agenda} tarefas={tarefas} ideias={ideias}
-          compras={compras} metas={metas}
-          setTab={setTab}
-          lembretes={lembretes}
-          treinos={treinos}
-        />
-      )}
-      {tab === "notas" && (
-        <Notas agenda={agenda} setAgenda={setAgenda}
-               notasLegacy={notas} setNotasLegacy={setNotas} />
-      )}
-      {tab === "calendario" && (
-        <Calendario transacoes={transacoes} setTransacoes={setTransacoes}
-                    contas={contas} setContas={setContas}
-                    categorias={categorias} hidden={hidden}
-                    fixas={fixas} fixaOcorrencias={fixaOcorrencias}
-                    parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
-                    cheques={cheques} cartoes={cartoes}
-                    agenda={agenda} setAgenda={setAgenda}
-                    escopoAtivo={escopoAtivo} />
+      {(tab === "inicio" || tab === "calendario" || tab === "notas" || tab === "lembretes") && (
+        <AgendaCalendarioHub
+          viewInicial={tab === "notas" ? "compromissos" : tab === "lembretes" ? "lembretes" : "calendario"}
+          transacoes={transacoes} setTransacoes={setTransacoes}
+          contas={contas} setContas={setContas}
+          categorias={categorias} hidden={hidden}
+          fixas={fixas} fixaOcorrencias={fixaOcorrencias}
+          parcelamentos={parcelamentos} dividas={dividas} devedores={devedores}
+          cheques={cheques} cartoes={cartoes}
+          agenda={agenda} setAgenda={setAgenda}
+          notasLegacy={notas} setNotasLegacy={setNotas}
+          lembretes={lembretes} setLembretes={setLembretes}
+          escopoAtivo={escopoAtivo} />
       )}
       {tab === "tarefas" && (
         <Tarefas tarefas={tarefas} setTarefas={setTarefas} />
-      )}
-      {tab === "metas" && (
-        <Metas metas={metas} setMetas={setMetas} hidden={hidden}
-               fixas={fixas} setFixas={setFixas}
-               fixaOcorrencias={fixaOcorrencias} setFixaOcorrencias={setFixaOcorrencias}
-               categorias={categorias} contas={contas} setContas={setContas}
-               transacoes={transacoes} setTransacoes={setTransacoes}
-               ativos={ativos} setAtivos={setAtivos} />
       )}
       {tab === "lembretes" && (
         <Lembretes lembretes={lembretes} setLembretes={setLembretes} />
