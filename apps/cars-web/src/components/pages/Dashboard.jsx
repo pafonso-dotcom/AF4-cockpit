@@ -13,6 +13,8 @@ import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { getKPIsMes, getDespesasDoMes, getGanhosDoMes } from "../../lib/agregador.js";
 import { calcOrcamentoComGastos } from "../../lib/orcamentos.js";
 import { montarResumoDia, alertasDisparadosHoje } from "../../lib/resumoDia.js";
+import { detectarAnomalias } from "../../lib/anomalias.js";
+import { calcularPossoGastar } from "../../lib/possoGastar.js";
 import { proventosPendentesDoMes, lerProvReaisCache } from "../../lib/proventosPrevistos.js";
 import { backupNuvemAtraso } from "../../lib/gistSync.js";
 import { itensConsumoDoMes } from "../../lib/relatorioMensal.js";
@@ -656,7 +658,10 @@ export default function Dashboard({
   const resumoDia = useMemo(() => {
     let despesasMes = [];
     try { despesasMes = getDespesasDoMes(mesISO, stateAgg, escopoAtivo); } catch {}
-    return montarResumoDia({
+    // 🚨 Gastos fora do normal (tendência 2026): heurística local, sem IA.
+    let anomalias = [];
+    try { anomalias = detectarAnomalias({ transacoes, hoje: new Date(), fmt: (v) => (hidden ? "•••" : fmt(v)) }); } catch {}
+    return [...anomalias, ...montarResumoDia({
       despesasMes,
       devedores,
       cartoes,
@@ -678,10 +683,16 @@ export default function Dashboard({
         };
       })(),
       fmt: (v) => (hidden ? "•••" : fmt(v)),
-    });
-  }, [mesISO, stateAgg, escopoAtivo, cartoes, categorias, gastosCat, hidden,
+    })];
+  }, [mesISO, stateAgg, escopoAtivo, cartoes, categorias, gastosCat, hidden, transacoes,
       ativos, proventosRecebidos, proventosIgnorados, proventosManuais,
       contasRaw, agenda, lembretes, tarefas]);
+
+  // 💸 "Posso gastar hoje?" (Safe-to-Spend, tendência 2026): sobra do mês
+  // projetada só com o agendado ÷ dias restantes.
+  const possoGastar = useMemo(() => {
+    try { return calcularPossoGastar(stateAgg, escopoAtivo); } catch { return null; }
+  }, [stateAgg, escopoAtivo]);
 
   // ===== Insights =====
   const insights = useMemo(() => {
@@ -723,13 +734,42 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* No celular o Calendário do mês vem ANTES das Contas (pedido
-          2026-09-29); no desktop ele segue na linha de baixo. */}
-      {isMobile && (
-        <section style={{ marginBottom: 16 }}>
-          <MobileColapsavel id="calendario" titulo="📅 Calendário do mês" isMobile={isMobile}>
-            <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
-          </MobileColapsavel>
+      {/* 💸 Posso gastar hoje — número único do dia (Safe-to-Spend) */}
+      {possoGastar && (
+        <section className="no-print" style={{ marginBottom: 12 }}>
+          <div title={possoGastar.fura
+                 ? "O caixa projetado fica negativo antes do fim do mês só com o que já está agendado — qualquer gasto piora o buraco."
+                 : `Sobra projetada do mês (${hidden ? "•••" : fmt(possoGastar.sobraMes)}, já descontando fixas, parcelas e dívidas agendadas e somando o que há a receber) dividida pelos ${possoGastar.diasRestantes} dias que faltam. Gastos do dia a dia é você quem dita — este número é o teto saudável.`}
+               style={{
+                 display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap",
+                 background: possoGastar.fura ? `${T.red}12` : `${T.green}10`,
+                 border: `1px solid ${possoGastar.fura ? T.red : T.green}44`,
+                 borderLeft: `4px solid ${possoGastar.fura ? T.red : T.green}`,
+                 borderRadius: 14, padding: "12px 16px",
+               }}>
+            {possoGastar.fura ? (
+              <>
+                <span style={{ fontSize: 14.5, fontWeight: 800, color: T.ink }}>
+                  🚫 Segura o gasto — o caixa fura {possoGastar.primeiroNegativo ? `dia ${possoGastar.primeiroNegativo.slice(8, 10)}/${possoGastar.primeiroNegativo.slice(5, 7)}` : "este mês"}
+                </span>
+                <span className="num" style={{ fontSize: 12.5, color: T.muted }}>
+                  sobra prevista no fim do mês: <b style={{ color: possoGastar.sobraMes < 0 ? T.red : T.ink }}>{hidden ? "•••" : fmt(possoGastar.sobraMes)}</b>
+                </span>
+              </>
+            ) : (
+              <>
+                <span style={{ fontSize: 13, fontWeight: 700, color: T.muted, letterSpacing: ".04em", textTransform: "uppercase" }}>
+                  💸 Pode gastar hoje
+                </span>
+                <span className="num" style={{ fontSize: 22, fontWeight: 800, color: T.green }}>
+                  {hidden ? "•••" : fmt(possoGastar.porDia)}
+                </span>
+                <span className="num" style={{ fontSize: 12.5, color: T.muted }}>
+                  · {hidden ? "•••" : fmt(possoGastar.semana)} na semana · sobra do mês {hidden ? "•••" : fmt(possoGastar.sobraMes)} após o agendado
+                </span>
+              </>
+            )}
+          </div>
         </section>
       )}
 
@@ -738,6 +778,13 @@ export default function Dashboard({
         display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 12, marginBottom: 16,
       }}>
         <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao} />
+        {/* No celular o Calendário vem logo ABAIXO do Patrimônio (pedido
+            2026-09-29); no desktop ele segue na linha de baixo. */}
+        {isMobile && (
+          <MobileColapsavel id="calendario" titulo="📅 Calendário do mês" isMobile={isMobile}>
+            <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
+          </MobileColapsavel>
+        )}
         <span className="dash-prox">
           <ProximosVencimentosCard devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} />
         </span>
