@@ -688,6 +688,26 @@ export default function Dashboard({
       ativos, proventosRecebidos, proventosIgnorados, proventosManuais,
       contasRaw, agenda, lembretes, tarefas]);
 
+  // Avisos do dia DISPENSÁVEIS (pedido 2026-09-29): o ✕ esconde o aviso
+  // pelo resto do dia; amanhã o resumo recomeça limpo.
+  const DISP_KEY = "af4:avisos-dispensados:v1";
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  const [dispensados, setDispensados] = useState(() => {
+    try {
+      const d = JSON.parse(localStorage.getItem(DISP_KEY) || "null");
+      return d && d.dia === hojeStr ? new Set(d.chaves || []) : new Set();
+    } catch { return new Set(); }
+  });
+  const dispensarAviso = (chave) => setDispensados(prev => {
+    const n = new Set(prev); n.add(chave);
+    try { localStorage.setItem(DISP_KEY, JSON.stringify({ dia: hojeStr, chaves: [...n] })); } catch {}
+    return n;
+  });
+  const avisosVisiveis = useMemo(
+    () => resumoDia.filter(a => !dispensados.has(a.texto)),
+    [resumoDia, dispensados]
+  );
+
   // 💸 "Posso gastar hoje?" (Safe-to-Spend, tendência 2026): sobra do mês
   // projetada só com o agendado ÷ dias restantes.
   const possoGastar = useMemo(() => {
@@ -706,7 +726,7 @@ export default function Dashboard({
     <div className="fade-up" style={{ paddingTop: 12 }}>
 
       {olhadaAberta && (
-        <OlhadaRapida resumoDia={resumoDia} userName={userName} onFechar={fecharOlhada} />
+        <OlhadaRapida resumoDia={avisosVisiveis} userName={userName} onFechar={fecharOlhada} />
       )}
 
       {/* Top 3 do dia */}
@@ -714,20 +734,27 @@ export default function Dashboard({
 
 
       {/* RESUMO DO DIA — uma olhada e o dia está decidido */}
-      {resumoDia.length > 0 && (
+      {avisosVisiveis.length > 0 && (
         <div className="no-print" style={{
           display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12,
         }}>
-          {resumoDia.map((a, i) => {
+          {avisosVisiveis.map((a, i) => {
             const cor = a.cor === "red" ? T.red : a.cor === "green" ? T.green : T.gold;
             return (
               <span key={i} style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 background: `${cor}12`, border: `1px solid ${cor}44`,
-                borderRadius: 100, padding: "6px 12px",
+                borderRadius: 100, padding: "6px 8px 6px 12px",
                 fontSize: 12, color: T.ink, fontWeight: 600,
               }}>
                 <span aria-hidden>{a.icone}</span> {a.texto}
+                <button onClick={() => dispensarAviso(a.texto)}
+                        aria-label="Dispensar este aviso por hoje" title="Visto — some até amanhã"
+                        style={{ background: "transparent", border: "none", color: T.faint, cursor: "pointer",
+                                 padding: "6px 8px", margin: "-6px -4px -6px 0", minHeight: 0,
+                                 lineHeight: 1, fontSize: 14, borderRadius: 10 }}>
+                  ✕
+                </button>
               </span>
             );
           })}
