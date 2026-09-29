@@ -16,6 +16,7 @@ import StatCard from "../ui/StatCard.jsx";
 import Modal from "../ui/Modal.jsx";
 import PdfCarteira from "./Invest/PdfCarteira.jsx";
 import CarteiraSaude from "./Invest/CarteiraSaude.jsx";
+import InfoCvmCard from "./Invest/InfoCvmCard.jsx";
 import { proventosPorCota12m } from "../../lib/mapaDividendos.js";
 import { proventosRecebidosPorTicker } from "../../lib/invest-utils.js";
 import { linhaTempoAtivo } from "../../lib/movimentacoesInvest.js";
@@ -992,6 +993,14 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       </div>
 
       {selected && <DetalheAtivo ativo={selected} onClose={() => setSelected(null)} />}
+
+      {/* Informações & Relatórios CVM — morava no Painel; movido pra cá a
+          pedido (2026-09-29): é na Carteira que se olha ativo por ativo. */}
+      {ativos.length > 0 && (
+        <div style={{ marginTop: 16 }} className="no-print">
+          <InfoCvmCard ativos={ativos} />
+        </div>
+      )}
 
       {renderMenuAcoes()}
 
