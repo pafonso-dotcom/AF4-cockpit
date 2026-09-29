@@ -47,6 +47,7 @@ export default function Configuracoes({
   onClearModule,
   onVerificarDuplicidades,
   onAbrirBackups,
+  onIrCategorias,
 }) {
   return (
     <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
@@ -70,6 +71,20 @@ export default function Configuracoes({
       )}
       {subtab === "cfg-modulos" && (
         <>
+          {onIrCategorias && (
+            <>
+              <div className="st"><h2>Finanças · Categorias</h2><div className="mt">A taxonomia do dinheiro</div></div>
+              <div className="fb">
+                <h4>🏷️ Categorias</h4>
+                <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 14 }}>
+                  Cadastre, edite e organize as categorias e subcategorias (com cor e orçamento mensal).
+                  Dica: dá pra criar uma categoria nova na hora, direto do seletor de qualquer formulário —
+                  digite o nome e toque em <strong>＋ Criar</strong>.
+                </p>
+                <button className="btn-gold" onClick={onIrCategorias}>🏷️ Gerenciar categorias</button>
+              </div>
+            </>
+          )}
           <Modulos modulesEnabled={modulesEnabled} setModulesEnabled={setModulesEnabled}
                    onClearModule={onClearModule} />
           <LembretesCfg />
