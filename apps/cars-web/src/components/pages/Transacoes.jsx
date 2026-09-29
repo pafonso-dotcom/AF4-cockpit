@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Activity, Plus, Trash2, Edit3, Copy, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText, Mic, Sparkles, EyeOff } from "lucide-react";
+import { Activity, Plus, Trash2, Edit3, Copy, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText, Mic, Sparkles, EyeOff , Tag } from "lucide-react";
 import EmptyState from "../ui/EmptyState.jsx";
 import { StatTile } from "../ui/widget.jsx";
 import { T } from "../../lib/theme.js";
@@ -20,7 +20,7 @@ import AutoCategorizarModal from "../modals/AutoCategorizarModal.jsx";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
 import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
-export default function Transacoes({ transacoes, setTransacoes, categorias, contas, setContas, ativos, totais, hidden, pendingTransacao, clearPendingTransacao, parcelamentos, cartoes, apiKey, escopoAtivo = "tudo" }) {
+export default function Transacoes({ transacoes, setTransacoes, categorias, contas, setContas, ativos, totais, hidden, pendingTransacao, clearPendingTransacao, parcelamentos, cartoes, apiKey, escopoAtivo = "tudo", onIrCategorias }) {
   const [form, setForm] = useState(null);
   const [ieOpen, setIeOpen] = useState(false);
   const [ocrOpen, setOcrOpen] = useState(false);
@@ -496,6 +496,9 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
               <Plus size={14} className="inline mr-2" />Nova Transação
             </button>
             <ActionMenu itens={[
+              // Categorias saiu do menu de abas (reorganização 2026-09-29) —
+              // o gerenciamento vive aqui, junto de quem usa.
+              ...(onIrCategorias ? [{ label: "Gerenciar categorias", icon: Tag, onClick: onIrCategorias }] : []),
               { label: "Auto-categorizar (Outros)", icon: Sparkles, onClick: () => setAutoCatOpen(true) },
               { label: "Registrar por voz", icon: Mic, onClick: () => setVoiceOpen(true) },
               { label: "Foto do comprovante (OCR)", icon: Camera, onClick: () => setOcrOpen(true) },

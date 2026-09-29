@@ -18,16 +18,18 @@ const fmtData = (iso) => {
  * quanto já rendeu de juros (com as datas) e o que ainda falta receber.
  * Leitura; o cadastro/baixa continua em "A Receber & Dívidas".
  */
-export default function Emprestimos({ devedores = [], hidden, onTabChange }) {
+export default function Emprestimos({ devedores = [], hidden, onTabChange, embed = false }) {
   const r = useMemo(() => resumoEmprestimos(devedores), [devedores]);
 
   return (
-    <div className="fade-up py-8 px-6" style={{ maxWidth: 1100, margin: "0 auto" }}>
-      <PageHeader
-        eyebrow="Finanças · Recebíveis"
-        title={<>Empréstimos<em> em controle.</em></>}
-        sub="Quanto você emprestou, quanto já rendeu de juros e o que ainda falta — com as datas de cada recebimento."
-      />
+    <div className={embed ? "" : "fade-up py-8 px-6"} style={embed ? undefined : { maxWidth: 1100, margin: "0 auto" }}>
+      {!embed && (
+        <PageHeader
+          eyebrow="Finanças · Recebíveis"
+          title={<>Empréstimos<em> em controle.</em></>}
+          sub="Quanto você emprestou, quanto já rendeu de juros e o que ainda falta — com as datas de cada recebimento."
+        />
+      )}
 
       {/* Totais */}
       <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 8, marginBottom: 24 }}>

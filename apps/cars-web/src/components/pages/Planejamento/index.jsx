@@ -4,6 +4,7 @@ import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
 import AReceberEDividas from "../AReceberEDividas.jsx";
 import DespesasFixas from "../DespesasFixas.jsx";
+import Emprestimos from "../Emprestimos.jsx";
 import Cheques from "../Cheques.jsx";
 import ReservaEmergenciaView from "./ReservaEmergenciaView.jsx";
 import SimuladorCompra from "./SimuladorCompra.jsx";
@@ -219,6 +220,13 @@ export default function Planejamento(props) {
           }
         >
           <DespesasFixas {...props} embed />
+        </Secao>
+
+        {/* Empréstimos MUDOU DE CASA (reorganização 2026-09-29): era aba
+            própria de Finanças, mas é leitura dos mesmos devedores daqui. */}
+        <Secao on={aberto === "emprestimos"} onToggle={() => toggle("emprestimos")} titulo="🤝 Empréstimos">
+          <Emprestimos devedores={props.devedores} hidden={props.hidden}
+                       onTabChange={props.onTabChange} embed />
         </Secao>
 
         <Secao on={aberto === "cheques"} onToggle={() => toggle("cheques")} titulo="Cheques">

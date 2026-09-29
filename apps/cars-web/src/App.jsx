@@ -90,7 +90,6 @@ const AnalisesUnificada = lz(() => import("./components/pages/Invest/Analises.js
 const PlanejarCarteira = lz(() => import("./components/pages/Invest/PlanejarCarteira.jsx"));
 
 const InvestPainel = lz(() => import("./components/pages/Invest/InvestPainel.jsx"));
-const Emprestimos = lz(() => import("./components/pages/Emprestimos.jsx"));
 const ProventosHub = lz(() => import("./components/pages/Invest/ProventosHub.jsx"));
 const MapaDividendos = lz(() => import("./components/pages/Invest/MapaDividendos.jsx"));
 
@@ -810,7 +809,7 @@ export default function App() {
                         onVoltar={() => setContaAberta(null)} />
         </div>
       )}
-      {(tab === "areceber" || tab === "fixas" || tab === "relatorios-anual" || tab === "planejamento" || tab === "cheques") && (
+      {(tab === "areceber" || tab === "fixas" || tab === "relatorios-anual" || tab === "planejamento" || tab === "cheques" || tab === "emprestimos") && (
         <Planejamento
           transacoes={transacoes} setTransacoes={setTransacoes}
           contas={contas} setContas={setContas}
@@ -828,7 +827,7 @@ export default function App() {
           tab={tab}
           // "relatorios-anual" apontava pra seção "anual", que não existe mais
           // (faxina 2026-09-29) — cai na visão geral (A Receber & Dívidas).
-          secaoInicial={tab === "cheques" ? "cheques" : tab === "fixas" ? "fixas" : (tab === "areceber" || tab === "relatorios-anual") ? "areceber" : null}
+          secaoInicial={tab === "cheques" ? "cheques" : tab === "fixas" ? "fixas" : tab === "emprestimos" ? "emprestimos" : (tab === "areceber" || tab === "relatorios-anual") ? "areceber" : null}
           onVerCategoria={verCategoriaTransacoes}
           onTabChange={setTab}
           hidden={hidden}
@@ -889,7 +888,8 @@ export default function App() {
       )}
       {/* Cheques agora é seção do Centro de controle (render acima, junto de A Receber) */}
       {tab === "transacoes" && (
-        <Transacoes transacoes={transacoes} setTransacoes={setTransacoes}
+        <Transacoes
+          onIrCategorias={() => irParaTab("categorias")} transacoes={transacoes} setTransacoes={setTransacoes}
                     categorias={categorias} contas={contas} setContas={setContas}
                     ativos={ativos} totais={totais}
                     parcelamentos={parcelamentos} cartoes={cartoes}
@@ -905,9 +905,6 @@ export default function App() {
                     parcelamentos={parcelamentos} setParcelamentos={setParcelamentos}
                     dividas={dividas} setDividas={setDividas} cartoes={cartoes}
                     escopoAtivo={escopoAtivo} hidden={hidden} />
-      )}
-      {tab === "emprestimos" && (
-        <Emprestimos devedores={devedores} hidden={hidden} onTabChange={irParaTab} />
       )}
       {/* Relatórios, Inteligência, Revisor de ganhos e Histórico consolidados em Análises & Relatórios — ver bloco unificado acima */}
       {/* Rotas antigas (fixas, relatorios-anual, areceber) consolidadas em Planejamento — ver bloco unificado acima */}
