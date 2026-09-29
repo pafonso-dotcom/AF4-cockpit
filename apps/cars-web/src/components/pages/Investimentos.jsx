@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart, Calculator, Printer, History, Sparkles } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Activity, Briefcase, RefreshCw, Plus, Trash2, Edit3, DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, LineChart, Calculator, Printer, History, Sparkles, MoreHorizontal } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN, fmtP, fmtUSD, uid, generateHistory, todayISO } from "../../lib/format.js";
@@ -82,6 +83,67 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
   const [timelineAtivo, setTimelineAtivo] = useState(null);
   // ✨ Análise com IA (notícias + rentabilidade 12m + analistas) — ativo alvo.
   const [iaAtivo, setIaAtivo] = useState(null);
+  // Menu "⋯" de ações do ativo — pedido 2026-09-29: a fileira de 9 ícones
+  // por linha ocupava a linha toda. Guarda {id, top, right} do botão que
+  // abriu; o dropdown usa position:fixed pra nunca ser cortado pelo
+  // overflow dos cards de grupo.
+  const [menuAcoes, setMenuAcoes] = useState(null);
+  const abrirMenuAcoes = (e, a) => {
+    e.stopPropagation();
+    if (menuAcoes?.ativo?.id === a.id) { setMenuAcoes(null); return; }
+    const r = e.currentTarget.getBoundingClientRect();
+    setMenuAcoes({ ativo: a, top: r.bottom + 4, right: Math.max(8, window.innerWidth - r.right) });
+  };
+
+  const excluirAtivo = async (a) => {
+    const ok = await confirm({
+      title: `Excluir ${a.ticker}?`,
+      body: `Posição de ${a.qtd} ${a.ticker} (${fmt(a.qtd * a.preco)}) será removida da carteira.`,
+      danger: true, confirmLabel: "Excluir",
+    });
+    if (!ok) return;
+    const backup = ativos;
+    setAtivos(ativos.filter(x => x.id !== a.id));
+    toast.success(`${a.ticker} removido da carteira.`, {
+      action: { label: "Desfazer", onClick: () => setAtivos(backup) },
+    });
+  };
+
+  // Itens do menu ⋯ — as ações que antes eram uma fileira de ícones na linha.
+  const menuAcoesItens = (a) => [
+    ...(onAnalisar && TIPOS_ANALISAVEIS.includes(a.tipo) ? [{ lbl: "Análise técnica", Icon: LineChart, on: () => onAnalisar(a) }] : []),
+    ...(TIPOS_ANALISAVEIS.includes(a.tipo) ? [{ lbl: "Analisar com IA", Icon: Sparkles, on: () => setIaAtivo(a) }] : []),
+    ...(onProjetar ? [{ lbl: "Projetar evolução", Icon: Calculator, on: () => onProjetar(a) }] : []),
+    { lbl: "Linha do tempo", Icon: History, on: () => setTimelineAtivo(a) },
+    { lbl: "Imprimir PDF", Icon: Printer, on: () => setPdfAtivoId(a.id) },
+    { lbl: "Editar", Icon: Edit3, on: () => setForm(a) },
+    { lbl: "Excluir", Icon: Trash2, danger: true, on: () => excluirAtivo(a) },
+  ];
+
+  // Renderizado UMA vez (na raiz da página) via portal no <body>: dentro
+  // das linhas, position:fixed era capturado por ancestrais com transform
+  // e o menu duplicava (a linha existe nas duas visões, desktop e mobile).
+  const renderMenuAcoes = () => menuAcoes && createPortal((
+    <>
+      <div onClick={e => { e.stopPropagation(); setMenuAcoes(null); }} style={{ position: "fixed", inset: 0, zIndex: 240 }} />
+      <div onClick={e => e.stopPropagation()}
+           style={{ position: "fixed", right: menuAcoes.right, top: menuAcoes.top, zIndex: 241,
+                    background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
+                    padding: 4, minWidth: 195, boxShadow: "0 12px 28px rgba(0,0,0,.35)",
+                    display: "flex", flexDirection: "column", gap: 1 }}>
+        {menuAcoesItens(menuAcoes.ativo).map(it => (
+          <button key={it.lbl}
+                  onClick={e => { e.stopPropagation(); setMenuAcoes(null); it.on(); }}
+                  style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px",
+                           background: "transparent", border: "none", borderRadius: 8, cursor: "pointer",
+                           color: it.danger ? T.red : T.ink, fontSize: 12.5, textAlign: "left", width: "100%",
+                           borderTop: it.danger ? `1px solid ${T.border}` : "none", marginTop: it.danger ? 2 : 0 }}>
+            <it.Icon size={14} style={{ color: it.danger ? T.red : T.gold, flexShrink: 0 }} /> {it.lbl}
+          </button>
+        ))}
+      </div>
+    </>
+  ), document.body);
 
   // Tick a cada 15s pra recalcular o indicador "ao vivo" sem depender
   // de re-render externo. Ativo é considerado "ao vivo" se recebeu
@@ -721,54 +783,19 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                         style={{ flex: "1 1 70px", background: "transparent", color: T.ink, padding: "5px 6px", border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.gold}`, borderRadius: 8, fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", cursor: "pointer" }}>
                   Venda
                 </button>
-                {onAnalisar && TIPOS_ANALISAVEIS.includes(a.tipo) && (
-                  <button onClick={() => onAnalisar(a)} aria-label={`Analisar ${a.ticker}`} title="Análise técnica"
-                          style={{ color: T.gold, padding: "5px 8px", background: "transparent", border: `1px solid ${T.gold}55`, borderRadius: 8, cursor: "pointer" }}>
-                    <LineChart size={13} />
+                {/* Demais ações no menu ⋯ (pedido 2026-09-29: fileira de
+                    ícones ocupava a linha toda) */}
+                <div style={{ position: "relative" }}>
+                  <button onClick={e => abrirMenuAcoes(e, a)}
+                          aria-label={`Mais ações de ${a.ticker}`} title="Mais ações"
+                          aria-expanded={menuAcoes?.ativo?.id === a.id}
+                          style={{ color: menuAcoes?.ativo?.id === a.id ? T.gold : T.muted, padding: "5px 10px",
+                                   background: menuAcoes?.ativo?.id === a.id ? `${T.gold}18` : "transparent",
+                                   border: `1px solid ${menuAcoes?.ativo?.id === a.id ? T.gold : T.border}`,
+                                   borderRadius: 8, cursor: "pointer", height: "100%" }}>
+                    <MoreHorizontal size={15} />
                   </button>
-                )}
-                {onProjetar && (
-                  <button onClick={() => onProjetar(a)} aria-label={`Projetar ${a.ticker}`} title="Projetar evolução deste ativo"
-                          style={{ color: T.gold, padding: "5px 8px", background: "transparent", border: `1px solid ${T.gold}55`, borderRadius: 8, cursor: "pointer" }}>
-                    <Calculator size={13} />
-                  </button>
-                )}
-                {TIPOS_ANALISAVEIS.includes(a.tipo) && (
-                  <button onClick={() => setIaAtivo(a)} aria-label={`Analisar ${a.ticker} com IA`}
-                          title="Análise com IA: rentabilidade 12m, notícias e o que dizem os analistas"
-                          style={{ color: T.gold, padding: "5px 8px", background: "transparent", border: `1px solid ${T.gold}55`, borderRadius: 8, cursor: "pointer" }}>
-                    <Sparkles size={13} />
-                  </button>
-                )}
-                <button onClick={() => setTimelineAtivo(a)} aria-label={`Linha do tempo de ${a.ticker}`} title="Linha do tempo: compras, vendas e proventos deste ativo"
-                        style={{ color: T.gold, padding: "5px 8px", background: "transparent", border: `1px solid ${T.gold}55`, borderRadius: 8, cursor: "pointer" }}>
-                  <History size={13} />
-                </button>
-                <button onClick={() => setPdfAtivoId(a.id)} aria-label={`Imprimir PDF de ${a.ticker}`} title="Imprimir PDF deste ativo"
-                        style={{ color: T.gold, padding: "5px 8px", background: "transparent", border: `1px solid ${T.gold}55`, borderRadius: 8, cursor: "pointer" }}>
-                  <Printer size={13} />
-                </button>
-                <button onClick={() => setForm(a)} aria-label={`Editar ${a.ticker}`}
-                        style={{ color: T.muted, padding: "5px 8px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 8, cursor: "pointer" }}>
-                  <Edit3 size={13} />
-                </button>
-                <button onClick={async () => {
-                          const ok = await confirm({
-                            title: `Excluir ${a.ticker}?`,
-                            body: `Posição de ${a.qtd} ${a.ticker} (${fmt(a.qtd * a.preco)}) será removida.`,
-                            danger: true, confirmLabel: "Excluir",
-                          });
-                          if (!ok) return;
-                          const backup = ativos;
-                          setAtivos(ativos.filter(x => x.id !== a.id));
-                          toast.success(`${a.ticker} removido.`, {
-                            action: { label: "Desfazer", onClick: () => setAtivos(backup) },
-                          });
-                        }}
-                        aria-label={`Excluir ${a.ticker}`}
-                        style={{ color: T.red, padding: "5px 8px", background: "transparent", border: `1px solid ${T.red}55`, borderRadius: 8, cursor: "pointer" }}>
-                  <Trash2 size={13} />
-                </button>
+                </div>
               </div>
             </div>
           );
@@ -931,48 +958,24 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
                           );
                         })()}
                       </div>
-                      <div className="no-print" style={{ display: "flex", gap: 2 }}>
+                      {/* Ações enxutas: Aporte + Venda inline, o resto no ⋯ */}
+                      <div className="no-print" style={{ display: "flex", gap: 2, alignItems: "center" }}>
                         <button onClick={e => { e.stopPropagation(); setAporteForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" }); }}
                                 aria-label={`Novo aporte em ${a.ticker}`} title="Novo Aporte"
                                 style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><ArrowDownRight size={13} /></button>
                         <button onClick={e => { e.stopPropagation(); setVendaForm({ ativoId: a.id, qtd: "", preco: a.preco.toString(), conta: contas?.[0]?.nome || "" }); }}
                                 aria-label={`Venda de ${a.ticker}`} title="Venda"
                                 style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><ArrowUpRight size={13} /></button>
-                        {onAnalisar && TIPOS_ANALISAVEIS.includes(a.tipo) && (
-                          <button onClick={e => { e.stopPropagation(); onAnalisar(a); }} aria-label={`Analisar ${a.ticker}`} title="Análise técnica"
-                                  style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><LineChart size={13} /></button>
-                        )}
-                        {onProjetar && (
-                          <button onClick={e => { e.stopPropagation(); onProjetar(a); }} aria-label={`Projetar ${a.ticker}`} title="Projetar evolução deste ativo"
-                                  style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Calculator size={13} /></button>
-                        )}
-                        {TIPOS_ANALISAVEIS.includes(a.tipo) && (
-                          <button onClick={e => { e.stopPropagation(); setIaAtivo(a); }} aria-label={`Analisar ${a.ticker} com IA`}
-                                  title="Análise com IA: rentabilidade 12m, notícias e o que dizem os analistas"
-                                  style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Sparkles size={13} /></button>
-                        )}
-                        <button onClick={e => { e.stopPropagation(); setTimelineAtivo(a); }} aria-label={`Linha do tempo de ${a.ticker}`} title="Linha do tempo: compras, vendas e proventos deste ativo"
-                                style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><History size={13} /></button>
-                        <button onClick={e => { e.stopPropagation(); setPdfAtivoId(a.id); }} aria-label={`Imprimir PDF de ${a.ticker}`} title="Imprimir PDF deste ativo"
-                                style={{ color: T.gold, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Printer size={13} /></button>
-                        <button onClick={e => { e.stopPropagation(); setForm(a); }} aria-label={`Editar ${a.ticker}`} title="Editar"
-                                style={{ color: T.muted, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Edit3 size={13} /></button>
-                        <button onClick={async e => {
-                                  e.stopPropagation();
-                                  const ok = await confirm({
-                                    title: `Excluir ${a.ticker}?`,
-                                    body: `Posição de ${a.qtd} ${a.ticker} (${fmt(a.qtd * a.preco)}) será removida da carteira.`,
-                                    danger: true, confirmLabel: "Excluir",
-                                  });
-                                  if (!ok) return;
-                                  const backup = ativos;
-                                  setAtivos(ativos.filter(x => x.id !== a.id));
-                                  toast.success(`${a.ticker} removido da carteira.`, {
-                                    action: { label: "Desfazer", onClick: () => setAtivos(backup) },
-                                  });
-                                }}
-                                aria-label={`Excluir ${a.ticker}`} title="Excluir"
-                                style={{ color: T.red, padding: 5, background: "transparent", border: "none", cursor: "pointer" }}><Trash2 size={13} /></button>
+                        <div style={{ position: "relative" }}>
+                          <button onClick={e => abrirMenuAcoes(e, a)}
+                                  aria-label={`Mais ações de ${a.ticker}`} title="Mais ações"
+                                  aria-expanded={menuAcoes?.ativo?.id === a.id}
+                                  style={{ color: menuAcoes?.ativo?.id === a.id ? T.gold : T.muted, padding: 5,
+                                           background: menuAcoes?.ativo?.id === a.id ? `${T.gold}18` : "transparent",
+                                           border: "none", borderRadius: 8, cursor: "pointer" }}>
+                            <MoreHorizontal size={15} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -989,6 +992,8 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
       </div>
 
       {selected && <DetalheAtivo ativo={selected} onClose={() => setSelected(null)} />}
+
+      {renderMenuAcoes()}
 
       {/* MODAL: análise com IA (rentabilidade 12m + notícias + analistas) */}
       {iaAtivo && (
