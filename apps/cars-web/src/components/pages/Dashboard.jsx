@@ -723,6 +723,16 @@ export default function Dashboard({
         </div>
       )}
 
+      {/* No celular o Calendário do mês vem ANTES das Contas (pedido
+          2026-09-29); no desktop ele segue na linha de baixo. */}
+      {isMobile && (
+        <section style={{ marginBottom: 16 }}>
+          <MobileColapsavel id="calendario" titulo="📅 Calendário do mês" isMobile={isMobile}>
+            <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
+          </MobileColapsavel>
+        </section>
+      )}
+
       {/* Linha 1: Patrimônio · Próximo compromisso · Contas */}
       <section className="dash-kpi-grid" style={{
         display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 12, marginBottom: 16,
@@ -736,11 +746,11 @@ export default function Dashboard({
 
       {/* Calendário do mês · Centro de Controle */}
       <section className="dash-bot-grid" style={{
-        display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 12, marginBottom: 16,
+        display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.15fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <MobileColapsavel id="calendario" titulo="📅 Calendário do mês" isMobile={isMobile}>
+        {!isMobile && (
           <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
-        </MobileColapsavel>
+        )}
         <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} aPagarPorAno={aPagarPorAno} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesTile={cartoesTile} sparks={sparks} hidden={hidden}
           consolidado={{ contas: totalContas, proventos: provSaldo, investBR: totalInvest, investUSD: totalInvestUSD,
                          aReceber, cartoes: cartoesTotal, liquido: totalContas + provSaldo + totalInvest - cartoesTotal }}
