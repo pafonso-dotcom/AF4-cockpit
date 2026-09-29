@@ -176,10 +176,41 @@ function HeaderHorizontal({
     ],
   };
 
-  // Ordem das abas: a ORDEM SALVA continua valendo (af4.taborder.v1),
-  // mas a UI de reordenar pela tela (arrastar + setas ◀▶/▲▼) foi
-  // removida a pedido em 2026-09-28.
-  const [tabOrders] = useState(loadTabOrders);
+  // Ordem das abas (af4.taborder.v1). As SETINHAS de reordenar voltaram a
+  // pedido em 2026-09-29 (só o arrastar ficou removido).
+  const [tabOrders, setTabOrders] = useState(loadTabOrders);
+  const salvarOrdens = (next) => {
+    setTabOrders(next);
+    try { localStorage.setItem(TAB_ORDER_KEY, JSON.stringify(next)); } catch {}
+  };
+  // Move uma aba uma posição pra esquerda (-1) ou direita (+1).
+  const moverAba = (grupo, itens, id, dir) => {
+    const ids = itens.map(i => i.id);
+    const idx = ids.indexOf(id);
+    const alvo = idx + dir;
+    if (idx < 0 || alvo < 0 || alvo >= ids.length) return;
+    [ids[idx], ids[alvo]] = [ids[alvo], ids[idx]];
+    salvarOrdens({ ...tabOrders, [grupo]: ids });
+  };
+  // Setas ◀▶ dentro da aba ativa (spans, não <button>, pra não aninhar
+  // botões). Para a propagação pra não re-navegar.
+  const renderSetas = (grupo, itens, id) => {
+    const idx = itens.findIndex(i => i.id === id);
+    const seta = (dir, char, label, off) => (
+      <span role="button" aria-label={label} title={label}
+        onClick={(e) => { e.stopPropagation(); moverAba(grupo, itens, id, dir); }}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{ cursor: "pointer", padding: "0 4px", fontSize: 11, lineHeight: 1, opacity: off ? 0.25 : 0.85, userSelect: "none" }}>
+        {char}
+      </span>
+    );
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 1, marginLeft: 4 }}>
+        {seta(-1, "◀", "Mover para a esquerda", idx <= 0)}
+        {seta(+1, "▶", "Mover para a direita", idx >= itens.length - 1)}
+      </span>
+    );
+  };
 
   const subtabs = aplicarOrdem(SUBTABS[modulo] || SUBTABS.financas, tabOrders[`mod:${modulo}`]);
   const agendaTabs = aplicarOrdem(AGENDA_TABS, tabOrders.agenda);
@@ -447,6 +478,7 @@ function HeaderHorizontal({
                     fontWeight: 700,
                   }}>{pending}</span>
                 )}
+                {active && renderSetas(`mod:${modulo}`, subtabs, st.id)}
               </button>
             );
           })}
@@ -674,9 +706,21 @@ function HeaderVertical({
     ],
   };
 
-  // Ordem salva das pastas (af4.taborder.v1) segue aplicada; a UI de
-  // reordenar pela tela foi removida a pedido em 2026-09-28.
-  const [tabOrders] = useState(loadTabOrders);
+  // Ordem salva das pastas (af4.taborder.v1); setinhas ▲▼ de reordenar
+  // voltaram a pedido em 2026-09-29 (mesma chave do layout horizontal).
+  const [tabOrders, setTabOrders] = useState(loadTabOrders);
+  const salvarOrdens = (next) => {
+    setTabOrders(next);
+    try { localStorage.setItem(TAB_ORDER_KEY, JSON.stringify(next)); } catch {}
+  };
+  const moverAba = (grupo, itens, id, dir) => {
+    const ids = itens.map(i => i.id);
+    const idx = ids.indexOf(id);
+    const alvo = idx + dir;
+    if (idx < 0 || alvo < 0 || alvo >= ids.length) return;
+    [ids[idx], ids[alvo]] = [ids[alvo], ids[idx]];
+    salvarOrdens({ ...tabOrders, [grupo]: ids });
+  };
 
   const subtabs = SUBTABS[modulo] || SUBTABS.financas;
   const moduloAtivo = TODOS_MODULOS.find(m => m.id === modulo) || { label: modulo };
@@ -866,6 +910,18 @@ function HeaderVertical({
                               }}>
                               {SIcon && <SIcon size={12} style={{ flexShrink: 0 }} />}
                               {s.label}
+                              {sAtivo && (
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 1, marginLeft: 2 }}>
+                                  <span role="button" aria-label="Mover pra cima" title="Mover pra cima"
+                                    onClick={(e) => { e.stopPropagation(); moverAba(`mod:${m.id}`, mSubtabs, s.id, -1); }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    style={{ cursor: "pointer", padding: "0 3px", fontSize: 10, opacity: 0.7, userSelect: "none" }}>▲</span>
+                                  <span role="button" aria-label="Mover pra baixo" title="Mover pra baixo"
+                                    onClick={(e) => { e.stopPropagation(); moverAba(`mod:${m.id}`, mSubtabs, s.id, +1); }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    style={{ cursor: "pointer", padding: "0 3px", fontSize: 10, opacity: 0.7, userSelect: "none" }}>▼</span>
+                                </span>
+                              )}
                               {pending > 0 && (
                                 <span style={{
                                   marginLeft: "auto",
