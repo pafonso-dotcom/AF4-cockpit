@@ -45,7 +45,8 @@ function LinhaItinerario({ it, rotulo }) {
   );
 }
 
-export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {} }) {
+export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {}, viagens = [], setViagens }) {
+  const [vForm, setVForm] = useState({ titulo: "", destino: "", inicio: "", fim: "" });
   const creds = { key: apiKeys.amadeusKey, secret: apiKeys.amadeusSecret };
   const temChaves = !!(creds.key && creds.secret);
 
@@ -371,6 +372,120 @@ export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {} }
           )}
         </Modal>
       )}
+
+      {/* ============================================================
+          🗓 VIAGENS & EXCURSÕES (2026-09-30): programa as viagens num
+          calendário visual (mês atual + próximo) + lista com contagem
+          regressiva. Coleção própria sincronizada (viagens[]).
+          ============================================================ */}
+      {setViagens && (() => {
+        const hojeISO = new Date().toISOString().slice(0, 10);
+        const ordenadas = [...(viagens || [])].sort((a, b) => String(a.inicio || "").localeCompare(String(b.inicio || "")));
+        const CORES = ["#5aa477", "#7aa0c4", "#c9a96b", "#b58fce", "#d96d7a", "#6fa8c9"];
+        const corDe = (id) => CORES[Math.abs(String(id).split("").reduce((h, c) => h * 31 + c.charCodeAt(0), 7)) % CORES.length];
+        const cobre = (v, iso) => v.inicio && iso >= v.inicio && iso <= (v.fim || v.inicio);
+        const Mes = ({ ano, mes /* 1-12 */ }) => {
+          const nome = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][mes - 1];
+          const primeiro = new Date(ano, mes - 1, 1);
+          const dias = new Date(ano, mes, 0).getDate();
+          const offset = primeiro.getDay();
+          const celulas = [];
+          for (let i = 0; i < offset; i++) celulas.push(null);
+          for (let d = 1; d <= dias; d++) celulas.push(d);
+          return (
+            <div style={{ flex: "1 1 260px", minWidth: 240, background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: T.ink, marginBottom: 8, textTransform: "capitalize" }}>{nome} {ano}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, fontSize: 10, color: T.faint, textAlign: "center", marginBottom: 4 }}>
+                {["D","S","T","Q","Q","S","S"].map((d, i) => <span key={i}>{d}</span>)}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3 }}>
+                {celulas.map((d, i) => {
+                  if (!d) return <span key={i} />;
+                  const iso = `${ano}-${String(mes).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                  const vs = ordenadas.filter(v => cobre(v, iso));
+                  const ehHoje = iso === hojeISO;
+                  const cor = vs.length ? corDe(vs[0].id) : null;
+                  return (
+                    <span key={i} title={vs.map(v => `✈️ ${v.titulo}${v.destino ? ` · ${v.destino}` : ""}`).join("\n")}
+                          style={{
+                            textAlign: "center", fontSize: 11, padding: "4px 0", borderRadius: 8,
+                            background: cor ? `${cor}33` : "transparent",
+                            border: ehHoje ? `1.5px solid ${T.gold}` : `1px solid transparent`,
+                            color: cor ? T.ink : T.muted, fontWeight: cor ? 700 : 400,
+                          }}>
+                      {d}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        };
+        const agora = new Date();
+        const prox = new Date(agora.getFullYear(), agora.getMonth() + 1, 1);
+        const addViagem = () => {
+          const t = (vForm.titulo || "").trim();
+          if (!t || !vForm.inicio) { toast.error("Preencha o nome e a data de início."); return; }
+          setViagens([...(viagens || []), {
+            id: Math.random().toString(36).slice(2, 10) + Date.now().toString(36),
+            titulo: t, destino: (vForm.destino || "").trim(),
+            inicio: vForm.inicio, fim: vForm.fim || vForm.inicio,
+          }]);
+          setVForm({ titulo: "", destino: "", inicio: "", fim: "" });
+          toast.success(`✈️ "${t}" programada!`);
+        };
+        return (
+          <div style={{ marginTop: 26 }}>
+            <div className="label-eyebrow" style={{ marginBottom: 10 }}>🗓 Viagens & excursões programadas</div>
+            {/* form */}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
+              <input value={vForm.titulo} onChange={e => setVForm(f => ({ ...f, titulo: e.target.value }))}
+                     placeholder="Viagem/Excursão (ex.: Lisboa em família)"
+                     style={{ flex: "2 1 180px", minWidth: 150, padding: "8px 11px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 12.5 }} />
+              <input value={vForm.destino} onChange={e => setVForm(f => ({ ...f, destino: e.target.value }))}
+                     placeholder="Destino (opcional)"
+                     style={{ flex: "1 1 110px", minWidth: 100, padding: "8px 11px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 12.5 }} />
+              <input type="date" value={vForm.inicio} onChange={e => setVForm(f => ({ ...f, inicio: e.target.value }))}
+                     title="Início" style={{ padding: "7px 9px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 12 }} />
+              <input type="date" value={vForm.fim} onChange={e => setVForm(f => ({ ...f, fim: e.target.value }))}
+                     title="Fim (opcional)" style={{ padding: "7px 9px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 12 }} />
+              <button onClick={addViagem} className="btn-gold" style={{ padding: "8px 14px", fontSize: 11 }}>+ Programar</button>
+            </div>
+            {/* calendários: mês atual + próximo */}
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+              <Mes ano={agora.getFullYear()} mes={agora.getMonth() + 1} />
+              <Mes ano={prox.getFullYear()} mes={prox.getMonth() + 1} />
+            </div>
+            {/* lista com contagem regressiva */}
+            {ordenadas.length === 0 ? (
+              <div style={{ padding: 18, textAlign: "center", color: T.muted, fontStyle: "italic", border: `1px dashed ${T.border}`, borderRadius: 12 }}>
+                Nenhuma viagem programada — adiciona a primeira acima. ✈️
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                {ordenadas.map(v => {
+                  const fim = v.fim || v.inicio;
+                  const dias = Math.ceil((new Date(v.inicio + "T00:00:00") - new Date(hojeISO + "T00:00:00")) / 86400000);
+                  const status = fim < hojeISO ? { t: "concluída", c: T.faint }
+                    : v.inicio <= hojeISO ? { t: "✈️ EM VIAGEM", c: T.green }
+                    : { t: `faltam ${dias} dia${dias === 1 ? "" : "s"}`, c: dias <= 7 ? T.gold : T.muted };
+                  const br = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+                  return (
+                    <div key={v.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: T.card, border: `1px solid ${T.border}`, borderLeft: `3px solid ${corDe(v.id)}`, borderRadius: 12, flexWrap: "wrap" }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: T.ink }}>{v.titulo}</span>
+                      {v.destino && <span style={{ fontSize: 11.5, color: T.muted }}>📍 {v.destino}</span>}
+                      <span className="num" style={{ fontSize: 11.5, color: T.muted }}>{br(v.inicio)}{fim !== v.inicio ? ` → ${br(fim)}` : ""}</span>
+                      <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: status.c }}>{status.t}</span>
+                      <button onClick={() => setViagens((viagens || []).filter(x => x.id !== v.id))} title="Excluir viagem"
+                              style={{ background: "transparent", border: "none", color: T.red, cursor: "pointer", padding: 4 }}>🗑</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
