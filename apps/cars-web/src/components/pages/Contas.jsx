@@ -510,10 +510,17 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             </div>
             <div style={{ flex: 1, minHeight: 10 }} />
             <div style={{ fontSize: 12.5, fontWeight: 600, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
-            <div className="num" style={{ fontVariantNumeric: "tabular-nums", fontSize: 18, fontWeight: 400, letterSpacing: "-.01em", marginTop: 2, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap" }}>
-              {!ehBRL(c) && <span style={{ fontSize: 12, marginRight: 3 }} aria-hidden="true">{bandeira(c.moeda)}</span>}
-              {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
-            </div>
+            {(() => {
+              const txt = hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL");
+              // número comprido encolhe em vez de cortar (arrumada 2026-09-30)
+              const fs = txt.length > 13 ? 15 : 18;
+              return (
+                <div className="num" style={{ fontVariantNumeric: "tabular-nums", fontSize: fs, fontWeight: 400, letterSpacing: "-.01em", marginTop: 2, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap" }}>
+                  {!ehBRL(c) && <span style={{ fontSize: 12, marginRight: 3 }} aria-hidden="true">{bandeira(c.moeda)}</span>}
+                  {txt}
+                </div>
+              );
+            })()}
             {/* 📋 Planilha livre: resultado + PRÉVIA DO FUTURO (saldo atual +
                 planilha) no card da conta (pedido 2026-09-30). Só informativo. */}
             {c.planilha && (() => {
@@ -522,7 +529,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               if (Math.abs(res) < 0.005) return null;
               const prev = (Number(c.saldo) || 0) + res;
               return (
-                <div className="num" style={{ fontSize: 11.5, marginTop: 1, color: T.muted, whiteSpace: "nowrap" }}
+                <div className="num" style={{ fontSize: 11, marginTop: 1, color: T.muted, lineHeight: 1.5 }}
                      title="Planilha livre desta conta: resultado das linhas e prévia do saldo (atual + planilha). Não altera o saldo real.">
                   📋 {hidden ? "•••" : `${res >= 0 ? "+" : "−"}${fmt(Math.abs(res))}`}
                   {" "}<span style={{ color: T.faint }}>· prev.</span>{" "}

@@ -780,7 +780,34 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {plLinhas.map(l => (
+              {(() => {
+                // Agrupa por mês (linhas já vêm ordenadas por data) e calcula o
+                // saldo de cada mês (entradas − saídas) — pedido 2026-09-30.
+                const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+                const porMes = new Map();
+                plLinhas.forEach(l => {
+                  const mk = String(l.data || "").slice(0, 7) || "sem data";
+                  if (!porMes.has(mk)) porMes.set(mk, []);
+                  porMes.get(mk).push(l);
+                });
+                return [...porMes.entries()].map(([mk, linhas]) => {
+                  const saldoMes = linhas.reduce((s2, l) => s2 + (l.tipo === "entrada" ? 1 : -1) * (Number(l.valor) || 0), 0);
+                  const rotulo = /^\d{4}-\d{2}$/.test(mk)
+                    ? `${MESES[Number(mk.slice(5, 7)) - 1]} '${mk.slice(2, 4)}`
+                    : "sem data";
+                  return (
+                    <React.Fragment key={mk}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                                    padding: "5px 6px", background: T.bgSoft, borderRadius: 8, marginTop: 6 }}>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted }}>
+                          {rotulo} <span style={{ color: T.faint, fontWeight: 500 }}>· {linhas.length}</span>
+                        </span>
+                        <span className="num" style={{ fontSize: 12, fontWeight: 700, color: saldoMes >= 0 ? T.green : T.red }}
+                              title="Saldo do mês na planilha (entradas − saídas)">
+                          {hidden ? "•••" : `${saldoMes >= 0 ? "+" : "−"}${fmt(Math.abs(saldoMes))}`}
+                        </span>
+                      </div>
+                      {linhas.map(l => (
                 <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 6px", borderBottom: `1px solid ${T.border}55` }}>
                   <span className="num" style={{ fontSize: 11, color: T.muted, fontFamily: T.mono, flexShrink: 0 }}>
                     {String(l.data || "").slice(8, 10)}/{String(l.data || "").slice(5, 7)}/{String(l.data || "").slice(2, 4)}
@@ -789,6 +816,12 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                   <span className="num" style={{ fontSize: 13.5, fontWeight: 700, color: l.tipo === "entrada" ? T.green : T.red, flexShrink: 0 }}>
                     {l.tipo === "entrada" ? "+ " : "− "}{hidden ? "•••" : fmt(l.valor)}
                   </span>
+                  <button onClick={() => { setPlForm({ data: l.data || new Date().toISOString().slice(0, 10), descricao: l.descricao, valor: String(l.valor), tipo: l.tipo }); toast.info("Linha copiada pro formulário — ajusta a DATA e toca em Adicionar."); try { document.querySelector('input[type="date"]')?.focus(); } catch {} }}
+                          title="Duplicar: copia pro formulário pra você só mudar a data e Adicionar"
+                          style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted,
+                                   cursor: "pointer", padding: "3px 6px", borderRadius: 8, flexShrink: 0, display: "inline-flex" }}>
+                    <Copy size={12} />
+                  </button>
                   <button onClick={() => plBaixar(l)}
                           title="Dar baixa: vira lançamento REAL na conta (mexe no saldo) e sai da planilha"
                           style={{ background: `${T.green}18`, border: `1px solid ${T.green}55`, color: T.green,
@@ -801,7 +834,11 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                     <Trash2 size={13} />
                   </button>
                 </div>
-              ))}
+                      ))}
+                    </React.Fragment>
+                  );
+                });
+              })()}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted }}>
                   Resultado da planilha
