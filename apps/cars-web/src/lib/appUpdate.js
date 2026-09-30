@@ -19,6 +19,13 @@ export async function forcarAtualizacaoApp() {
   } catch {
     // best-effort — segue para o reload de qualquer forma
   }
-  // 3. Recarrega já com os assets novos.
-  try { window.location.reload(); } catch {}
+  // 3. Recarrega com CACHE-BUSTER na URL (bug 2026-09-30: reload() da mesma
+  // URL vinha do cache HTTP do iOS — que o JS não consegue limpar — e o app
+  // "atualizava" pra própria versão velha). URL diferente = HTML fresco.
+  // O boot limpa o parâmetro da barra de endereço (index.html).
+  try {
+    window.location.replace(window.location.origin + window.location.pathname + "?atualizado=" + Date.now());
+  } catch {
+    try { window.location.reload(); } catch {}
+  }
 }

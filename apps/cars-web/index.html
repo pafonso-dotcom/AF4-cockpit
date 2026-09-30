@@ -35,6 +35,10 @@
       // antiga travada).
       (function () {
         var params = new URLSearchParams(location.search);
+        // Limpa o cache-buster do "Atualizar app" da barra de endereço.
+        if (params.has("atualizado") && window.history && history.replaceState) {
+          try { history.replaceState(null, "", location.pathname); } catch (e) {}
+        }
         if (params.has("nosw") && "serviceWorker" in navigator) {
           Promise.all([
             navigator.serviceWorker.getRegistrations().then(function (regs) {
