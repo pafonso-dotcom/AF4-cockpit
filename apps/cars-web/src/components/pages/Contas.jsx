@@ -19,7 +19,7 @@ import TransferenciaModal from "../modals/TransferenciaModal.jsx";
 import ImportarExtrato from "../modals/ImportarExtrato.jsx";
 import SincronizarBancoModal from "../modals/SincronizarBancoModal.jsx";
 
-export default function Contas({ contas, setContas, hidden, onCreateTransacao, onContaClick, contaAtiva, transacoes, setTransacoes, categorias, cartoes = [], parcelamentos = [], escopoAtivo = "tudo", notaRapida, onSalvarNota, pluggy = {}, setPluggy }) {
+export default function Contas({ contas, setContas, hidden, onCreateTransacao, onContaClick, contaAtiva, transacoes, setTransacoes, categorias, cartoes = [], parcelamentos = [], escopoAtivo = "tudo", notaRapida, onSalvarNota, pluggy = {}, setPluggy, planilhaLivre = [] }) {
   const { isMobile } = useLayout();
   const [form, setForm] = useState(null);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -514,6 +514,22 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               {!ehBRL(c) && <span style={{ fontSize: 12, marginRight: 3 }} aria-hidden="true">{bandeira(c.moeda)}</span>}
               {hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL")}
             </div>
+            {/* 📋 Planilha livre: resultado + PRÉVIA DO FUTURO (saldo atual +
+                planilha) no card da conta (pedido 2026-09-30). Só informativo. */}
+            {c.planilha && (() => {
+              const res = (planilhaLivre || []).filter(l => l && l.contaId === c.id)
+                .reduce((s2, l) => s2 + (l.tipo === "entrada" ? 1 : -1) * (Number(l.valor) || 0), 0);
+              if (Math.abs(res) < 0.005) return null;
+              const prev = (Number(c.saldo) || 0) + res;
+              return (
+                <div className="num" style={{ fontSize: 11.5, marginTop: 1, color: T.muted, whiteSpace: "nowrap" }}
+                     title="Planilha livre desta conta: resultado das linhas e prévia do saldo (atual + planilha). Não altera o saldo real.">
+                  📋 {hidden ? "•••" : `${res >= 0 ? "+" : "−"}${fmt(Math.abs(res))}`}
+                  {" "}<span style={{ color: T.faint }}>· prev.</span>{" "}
+                  <b style={{ color: prev < 0 ? T.red : T.green }}>{hidden ? "•••" : fmt(prev)}</b>
+                </div>
+              );
+            })()}
             {/* Conta em moeda estrangeira: conversão em R$ LOGO ABAIXO do saldo
                 (linha própria, legível — pedido do usuário 2026-09-08).
                 "· hoje" quando a cotação foi atualizada automaticamente hoje. */}

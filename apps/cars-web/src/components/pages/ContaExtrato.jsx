@@ -45,6 +45,32 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
     setPlForm(f => ({ ...f, descricao: "", valor: "" }));
   };
   const plDel = (id) => setPlanilhaLivre?.((planilhaLivre || []).filter(l => l.id !== id));
+  // ✓ Dar baixa: a linha vira TRANSAÇÃO REAL na conta (compensada — mexe no
+  // saldo de verdade) e sai da planilha (pedido 2026-09-30).
+  const plBaixar = async (l) => {
+    const v = Number(l.valor) || 0;
+    const entrada = l.tipo === "entrada";
+    const ok = await (async () => {
+      try {
+        const { confirm } = await import("../../lib/confirm.js");
+        return confirm({
+          title: `Dar baixa em "${l.descricao}"?`,
+          body: `Cria uma ${entrada ? "RECEITA" : "DESPESA"} real de ${fmt(v)} na conta ${conta.nome} (${entrada ? "soma" : "desconta"} no saldo) e remove a linha da planilha.`,
+          confirmLabel: "Dar baixa",
+        });
+      } catch { return window.confirm("Dar baixa desta linha na conta?"); }
+    })();
+    if (!ok) return;
+    setTransacoes?.(prev => [...(prev || []), {
+      id: uid(), tipo: entrada ? "receita" : "despesa", descricao: l.descricao,
+      valor: v, conta: conta.nome, data: l.data || new Date().toISOString().slice(0, 10),
+      categoria: "", compensado: true, obs: "Baixa da 📋 planilha livre",
+    }]);
+    setContas?.((contas || []).map(c => c.id === conta.id
+      ? { ...c, saldo: (Number(c.saldo) || 0) + (entrada ? v : -v) } : c));
+    setPlanilhaLivre?.((planilhaLivre || []).filter(x => x.id !== l.id));
+    toast.success(`Baixa feita: ${l.descricao} ${entrada ? "+" : "−"}${fmt(v)} na ${conta.nome}.`);
+  };
   const [txModal, setTxModal] = useState(null); // null | { modo: "novo" } | { modo: "editar", tx }
   const [conferir, setConferir] = useState(null); // null | { valor, data } — modal "Conferir com o banco"
   // Override manual do estado de cada dia. Padrão: só o ÚLTIMO dia de movimento
@@ -763,6 +789,13 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                   <span className="num" style={{ fontSize: 13.5, fontWeight: 700, color: l.tipo === "entrada" ? T.green : T.red, flexShrink: 0 }}>
                     {l.tipo === "entrada" ? "+ " : "− "}{hidden ? "•••" : fmt(l.valor)}
                   </span>
+                  <button onClick={() => plBaixar(l)}
+                          title="Dar baixa: vira lançamento REAL na conta (mexe no saldo) e sai da planilha"
+                          style={{ background: `${T.green}18`, border: `1px solid ${T.green}55`, color: T.green,
+                                   cursor: "pointer", padding: "3px 8px", borderRadius: 8, flexShrink: 0,
+                                   fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <Check size={12} /> baixa
+                  </button>
                   <button onClick={() => plDel(l.id)} title="Excluir linha"
                           style={{ background: "transparent", border: "none", color: T.red, cursor: "pointer", padding: 4, flexShrink: 0 }}>
                     <Trash2 size={13} />
@@ -775,6 +808,16 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                 </span>
                 <span className="num" style={{ fontSize: 17, fontWeight: 800, color: plTotal >= 0 ? T.green : T.red }}>
                   {hidden ? "•••" : fmt(plTotal)}
+                </span>
+              </div>
+              {/* 🔮 Prévia do futuro: saldo atual da conta + resultado da planilha */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 6, borderTop: `1px dashed ${T.border}` , marginTop: 6 }}
+                   title="Como o saldo da conta ficaria se tudo da planilha acontecesse. Só uma prévia — o saldo real não muda.">
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.gold }}>
+                  🔮 Saldo previsto (atual + planilha)
+                </span>
+                <span className="num" style={{ fontSize: 17, fontWeight: 800, color: (saldoExibido + plTotal) >= 0 ? T.green : T.red }}>
+                  {hidden ? "•••" : fmt(saldoExibido + plTotal)}
                 </span>
               </div>
             </div>
