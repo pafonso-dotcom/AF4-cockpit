@@ -689,6 +689,17 @@ export default function Dashboard({
   const possoGastar = useMemo(() => {
     try { return calcularPossoGastar(stateAgg, escopoAtivo); } catch { return null; }
   }, [stateAgg, escopoAtivo]);
+  // Ocultável (pedido 2026-09-30): o "–" recolhe o card num chip 💸 (toca pra
+  // voltar); escolha salva no aparelho. Quando o caixa FURA, o card volta a
+  // aparecer mesmo oculto — aviso de buraco não pode ficar escondido.
+  const PG_MIN_KEY = "af4:possogastar-min:v1";
+  const [pgMin, setPgMin] = useState(() => {
+    try { return localStorage.getItem(PG_MIN_KEY) === "1"; } catch { return false; }
+  });
+  const togglePgMin = (v) => {
+    setPgMin(v);
+    try { localStorage.setItem(PG_MIN_KEY, v ? "1" : "0"); } catch {}
+  };
 
   // ===== Insights =====
   const insights = useMemo(() => {
@@ -737,8 +748,23 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* 💸 Posso gastar hoje — número único do dia (Safe-to-Spend) */}
-      {possoGastar && (
+      {/* 💸 Posso gastar hoje — número único do dia (Safe-to-Spend).
+          Oculto (pgMin) vira um chip discreto; caixa furando ignora o oculto. */}
+      {possoGastar && pgMin && !possoGastar.fura && (
+        <div className="no-print" style={{ marginBottom: 12 }}>
+          <button onClick={() => togglePgMin(false)}
+                  title={`Pode gastar hoje: ${hidden ? "•••" : fmt(possoGastar.porDia)} — toque para expandir`}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    background: `${T.green}10`, border: `1px solid ${T.green}44`,
+                    borderRadius: 100, padding: "5px 12px", fontSize: 12,
+                    color: T.muted, fontWeight: 600, cursor: "pointer",
+                  }}>
+            💸 <span className="num" style={{ color: T.green, fontWeight: 700 }}>{hidden ? "•••" : fmt(possoGastar.porDia)}</span> ▸
+          </button>
+        </div>
+      )}
+      {possoGastar && (!pgMin || possoGastar.fura) && (
         <section className="no-print" style={{ marginBottom: 12 }}>
           <div title={possoGastar.fura
                  ? "O caixa projetado fica negativo antes do fim do mês só com o que já está agendado — qualquer gasto piora o buraco."
@@ -771,6 +797,16 @@ export default function Dashboard({
                   · {hidden ? "•••" : fmt(possoGastar.semana)} na semana · sobra do mês {hidden ? "•••" : fmt(possoGastar.sobraMes)} após o agendado
                 </span>
               </>
+            )}
+            {!possoGastar.fura && (
+              <button onClick={(e) => { e.stopPropagation(); togglePgMin(true); }}
+                      aria-label="Ocultar o card Pode gastar hoje"
+                      title="Ocultar — vira um chip 💸 (toque nele pra voltar)"
+                      style={{ marginLeft: "auto", background: "transparent", border: "none",
+                               color: T.faint, cursor: "pointer", fontSize: 15, lineHeight: 1,
+                               padding: "4px 6px", borderRadius: 8, alignSelf: "center" }}>
+                –
+              </button>
             )}
           </div>
         </section>
