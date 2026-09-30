@@ -295,7 +295,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
   return (
     <div className="fade-up py-8 px-6 conta-extrato-page">
       {/* Linha de topo: Voltar (esq.) + ações Nova transação · PDF · Conferir (dir.) */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+      <div className={vista === "planilha" ? "no-print" : ""} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
         <style>{`
           /* Topo compacto no celular: os 4 botões cabem em 2 linhas curtas em
              vez de empilhar um por linha (pedido 2026-09-30, tela do extrato). */
@@ -382,7 +382,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
       </div>
 
       {/* Banner estilo cartão: gradiente por banco + nome + saldo */}
-      <div className="conta-hero" style={{
+      <div className={`conta-hero${vista === "planilha" ? " no-print" : ""}`} style={{
         display: "flex", alignItems: "center", gap: 18, padding: 24,
         background: T.card, border: `1px solid ${T.border}`,
         borderLeft: `4px solid ${conta.cor || T.gold}`,
@@ -450,7 +450,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           .extrato-filtros.aberto { display: flex !important; }
         }
       `}</style>
-      <div style={{
+      <div className={vista === "planilha" ? "no-print" : ""} style={{
         display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center",
         marginBottom: 10, padding: "0 2px",
       }}>
@@ -765,18 +765,38 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           NÃO entra em saldo, patrimônio, a pagar, fluxo nem relatórios. */}
       {vista === "planilha" && (
         <div className="pl-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
+          <div className="pl-print-cab">
+            <div style={{ fontSize: 18, fontWeight: 700 }}>📋 Planilha de planejamento — {conta.nome}</div>
+            <div style={{ fontSize: 11, marginTop: 2 }}>
+              {conta.instituicao} · saldo atual {hidden ? "•••" : fmt(saldoExibido)} · emitido em {new Date().toLocaleDateString("pt-BR")} · {plLinhas.length} linha{plLinhas.length === 1 ? "" : "s"}
+            </div>
+            <div style={{ borderBottom: "2px solid #111", marginTop: 6, marginBottom: 8 }} />
+          </div>
           <style>{`
+            .pl-print-cab { display: none; }
+            @media print {
+              @page { size: A4 portrait; margin: 12mm; }
+              .pl-card { border: none !important; padding: 0 !important; background: #fff !important; border-radius: 0 !important; }
+              .pl-card, .pl-card * { color: #111 !important; }
+              .pl-print-cab { display: block !important; }
+              .pl-acoes { display: none !important; }
+              .pl-row { padding: 3px 2px !important; border-bottom: 1px solid #ccc !important; break-inside: avoid; flex-wrap: nowrap !important; }
+              .pl-row span { font-size: 11px !important; }
+              .pl-mes-head { background: #efefef !important; border: 1px solid #ccc !important; border-radius: 0 !important; padding: 3px 6px !important; margin-top: 8px !important; break-inside: avoid; break-after: avoid; }
+              .pl-mes-head span { font-size: 10.5px !important; }
+              .pl-rodape span { font-size: 12.5px !important; }
+            }
             @media (max-width: 560px) {
               .pl-acoes { display: none !important; }
               .pl-acoes.aberta { display: flex !important; width: 100%; justify-content: flex-end; padding-top: 4px; }
               .pl-row { cursor: pointer; }
             }
           `}</style>
-          <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 10 }}>
+          <div className="no-print" style={{ fontSize: 11.5, color: T.muted, marginBottom: 10 }}>
             📋 Rascunho livre desta conta — <b>não entra</b> em saldos, patrimônio nem relatórios. No celular, <b>toque numa linha</b> pra ver as ações (⧉ duplicar · ✓ baixa · 🗑).
           </div>
           {/* Adicionar linha */}
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
+          <div className="no-print" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
             <input type="date" value={plForm.data} onChange={e => setPlForm(f => ({ ...f, data: e.target.value }))}
                    style={{ padding: "7px 9px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.bg, color: T.ink, fontSize: 12 }} />
             <input value={plForm.descricao} onChange={e => setPlForm(f => ({ ...f, descricao: e.target.value }))}
@@ -820,7 +840,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                     : "sem data";
                   return (
                     <React.Fragment key={mk}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                      <div className="pl-mes-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
                                     padding: "5px 6px", background: T.bgSoft, borderRadius: 8, marginTop: 6 }}>
                         <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted }}>
                           {rotulo} <span style={{ color: T.faint, fontWeight: 500 }}>· {linhas.length}</span>
@@ -867,7 +887,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                   );
                 });
               })()}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10 }}>
+              <div className="pl-rodape" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted }}>
                   Resultado da planilha
                 </span>
@@ -876,7 +896,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                 </span>
               </div>
               {/* 🔮 Prévia do futuro: saldo atual da conta + resultado da planilha */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 6, borderTop: `1px dashed ${T.border}` , marginTop: 6 }}
+              <div className="pl-rodape" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 6, borderTop: `1px dashed ${T.border}` , marginTop: 6 }}
                    title="Como o saldo da conta ficaria se tudo da planilha acontecesse. Só uma prévia — o saldo real não muda.">
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.gold }}>
                   🔮 Saldo previsto (atual + planilha)
