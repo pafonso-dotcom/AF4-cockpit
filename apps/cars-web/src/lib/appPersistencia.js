@@ -101,6 +101,7 @@ export function aplicarDadosCarregados(data, S) {
   // Integração bancária Pluggy.
   if (S.setPluggy) S.setPluggy(data.pluggy || { itemId: "", vinculos: {}, ultimaSync: {} });
   if (S.setPlanilhaLivre) S.setPlanilhaLivre(data.planilhaLivre || []);
+  if (S.setViagens) S.setViagens(data.viagens || []);
   // Migração one-shot: marca contas/categorias antigas com escopo detectado
   setTimeout(() => {
     migrarEscoposAuto(
@@ -117,6 +118,7 @@ export function aplicarSeeds(S) {
   if (S.setVoos) S.setVoos({ monitores: [] });
   if (S.setPluggy) S.setPluggy({ itemId: "", vinculos: {}, ultimaSync: {} });
   if (S.setPlanilhaLivre) S.setPlanilhaLivre([]);
+  if (S.setViagens) S.setViagens([]);
   S.setContas(seedContas);
   S.setCategorias(seedCategorias);
   S.setTransacoes(seedTransacoes);

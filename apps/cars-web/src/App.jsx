@@ -267,6 +267,10 @@ export default function App() {
   const [planilhaLivre, setPlanilhaLivreBase] = useState([]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const setPlanilhaLivre = useCallback(criarSetterComTumbas("planilhaLivre", setPlanilhaLivreBase), []);
+  // 🗓 Viagens & excursões (2026-09-30): programadas na tela de Voos.
+  const [viagens, setViagensBase] = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setViagens = useCallback(criarSetterComTumbas("viagens", setViagensBase), []);
 
   // Lembretes de vencimento (notificação do sistema): checa na abertura
   // (com folga pros dados carregarem) e a cada 6h com o app aberto.
@@ -374,7 +378,7 @@ export default function App() {
     // setTransacoes cru de propósito: hidratação/restauração troca a lista
     // inteira e NÃO deve gerar lápides (só exclusões do usuário geram).
     setContas, setCategorias, setTransacoes: setTransacoesBase, setAtivos, setMetas, setNotas,
-    setTumbas, setNotasRapidas, setVoos: setVoosDados, setPluggy: setPluggyDados, setPlanilhaLivre,
+    setTumbas, setNotasRapidas, setVoos: setVoosDados, setPluggy: setPluggyDados, setPlanilhaLivre, setViagens,
     setCartoes, setParcelamentos, setDevedores, setDividas, setCheques,
     setFixas, setFixaOcorrencias, setAgenda, setHabitos, setDiario, setCompras,
     setIdeias, setTarefas, setSugestoes, setLembretes, setConversaHistorico,
@@ -405,7 +409,7 @@ export default function App() {
     tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
     lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
     themeId,
-    tumbas, notasRapidas, voos: voosDados, pluggy: pluggyDados, planilhaLivre,
+    tumbas, notasRapidas, voos: voosDados, pluggy: pluggyDados, planilhaLivre, viagens,
   });
 
   // Backup automático diário na nuvem (GitHub Gist): 1x por dia, na abertura,
@@ -524,7 +528,7 @@ export default function App() {
       negocioLojas, negocioLojaAtiva, negocioRecebimentos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
-      themeId, tumbas, notasRapidas, voosDados, pluggyDados, planilhaLivre, loading]);
+      themeId, tumbas, notasRapidas, voosDados, pluggyDados, planilhaLivre, viagens, loading]);
 
   useEffect(() => {
     if (loading) return;
@@ -1026,7 +1030,7 @@ export default function App() {
         <Lembretes lembretes={lembretes} setLembretes={setLembretes} />
       )}
       {tab === "voos" && (
-        <Voos voos={voosDados} setVoos={setVoosDados} apiKeys={apiKeys} />
+        <Voos voos={voosDados} setVoos={setVoosDados} apiKeys={apiKeys} viagens={viagens} setViagens={setViagens} />
       )}
       {tab === "treino" && (
         <Treino
