@@ -25,6 +25,7 @@ import { avulsasPendentesNoMes } from "../../lib/cartaoFatura.js";
 import { uid } from "../../lib/format.js";
 import { calcOrcamentoCompra, resumoOrcamentos } from "../../lib/orcamentosFuturos.js";
 import Card, { SoftCardContext } from "../ui/Card.jsx";
+import Modal from "../ui/Modal.jsx";
 import { Sparkline, RingIcon } from "../ui/widget.jsx";
 
 // Paleta moderna e harmônica (tons mais suaves, sem primários puros gritando).
@@ -452,7 +453,31 @@ export default function Dashboard({
   // Centro de Controle), não só o ano corrente. A receber/cheques já entram
   // completos.
   // + saldo da Carteira de Proventos (dinheiro real que ficava fora do total).
-  const patrimonioTotal = totalContas + provSaldo + totalInvest + aReceber + chequesAReceber - aPagarTotal;
+  //
+  // COMPOSIÇÃO AJUSTÁVEL (pedido 2026-09-30: "ver o que ele traz e ajustar"):
+  // o ⓘ do card abre o detalhamento e cada componente pode ser ligado/
+  // desligado do total (salvo neste aparelho em af4:patrimonio-comp:v1).
+  const COMP_KEY = "af4:patrimonio-comp:v1";
+  const [compCfg, setCompCfg] = useState(() => {
+    const padrao = { contas: true, proventos: true, invest: true, areceber: true, cheques: true, apagar: true };
+    try { return { ...padrao, ...JSON.parse(localStorage.getItem(COMP_KEY) || "{}") }; }
+    catch { return padrao; }
+  });
+  const [compAberta, setCompAberta] = useState(false);
+  const toggleComp = (k) => setCompCfg(cfg => {
+    const novo = { ...cfg, [k]: !cfg[k] };
+    try { localStorage.setItem(COMP_KEY, JSON.stringify(novo)); } catch {}
+    return novo;
+  });
+  const compPartes = [
+    { k: "contas",    icone: "🏦", label: "Contas (todas, incl. negócio)", valor: totalContas },
+    { k: "proventos", icone: "💰", label: "Carteira de proventos (saldo)", valor: provSaldo },
+    { k: "invest",    icone: "📈", label: "Investimentos Brasil (R$)",     valor: totalInvest },
+    { k: "areceber",  icone: "🤝", label: "A receber (devedores)",         valor: aReceber },
+    { k: "cheques",   icone: "🧾", label: "Cheques a receber",             valor: chequesAReceber },
+    { k: "apagar",    icone: "➖", label: "Tudo a pagar em aberto (desconta)", valor: -aPagarTotal },
+  ];
+  const patrimonioTotal = compPartes.reduce((s, p) => s + (compCfg[p.k] ? p.valor : 0), 0);
   const mesAnteriorISO = useMemo(() => {
     const [y, m] = mesISO.split("-").map(Number);
     const d = new Date(y, m - 2, 1);
@@ -804,7 +829,54 @@ export default function Dashboard({
       <section className="dash-kpi-grid" style={{
         display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 12, marginBottom: 16,
       }}>
-        <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao} />
+        <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
+                 onDetalhes={() => setCompAberta(true)} />
+        {compAberta && (
+          <Modal title="🧮 Patrimônio Total — de onde vem o número" onClose={() => setCompAberta(false)}>
+            <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 12 }}>
+              Cada linha soma (ou desconta) no card. Desmarque o que você não quer
+              contar — a escolha fica salva neste aparelho e o card recalcula na hora.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {compPartes.map(p => (
+                <label key={p.k} style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "9px 12px",
+                  background: T.bgSoft, borderRadius: 12, cursor: "pointer",
+                  border: `1px solid ${compCfg[p.k] ? T.border : "transparent"}`,
+                  opacity: compCfg[p.k] ? 1 : 0.45,
+                }}>
+                  <input type="checkbox" checked={!!compCfg[p.k]} onChange={() => toggleComp(p.k)}
+                         style={{ width: 16, height: 16, accentColor: T.gold, flexShrink: 0 }} />
+                  <span style={{ flex: 1, fontSize: 13, color: T.ink }}>{p.icone} {p.label}</span>
+                  <span className="num" style={{ fontSize: 13.5, fontWeight: 700, color: p.valor < 0 ? T.red : T.ink, whiteSpace: "nowrap" }}>
+                    {hidden ? "•••" : fmt(p.valor)}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {compCfg.apagar && aPagarPorAno.length > 0 && (
+              <div style={{ fontSize: 11.5, color: T.muted, marginTop: 8, paddingLeft: 4 }}>
+                O "tudo a pagar" desconta TODAS as pendências lançadas, de todos os anos:{" "}
+                {aPagarPorAno.map(a => `${a.ano}: ${hidden ? "•••" : fmt(a.valor)}`).join(" · ")}.
+                É por isso que o total costuma vir menor do que a soma das contas.
+              </div>
+            )}
+            {totalInvestUSD > 0 && (
+              <div style={{ fontSize: 11.5, color: T.muted, marginTop: 6, paddingLeft: 4 }}>
+                Fora do total (decisão sua): investimentos em dólar (Stocks/REITs) = US$ {hidden ? "•••" : fmtN(totalInvestUSD, 2)}.
+              </div>
+            )}
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.border}`,
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>Patrimônio Total</span>
+              <span className="num" style={{ fontSize: 19, fontWeight: 700, color: patrimonioTotal >= 0 ? T.green : T.red }}>
+                {hidden ? "•••••" : fmt(patrimonioTotal)}
+              </span>
+            </div>
+          </Modal>
+        )}
         {/* No celular o Calendário vem logo ABAIXO do Patrimônio (pedido
             2026-09-29); no desktop ele segue na linha de baixo. */}
         {isMobile && (
@@ -1013,7 +1085,7 @@ function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, m
   );
 }
 
-function KpiHero({ value, mom, hidden, evolucao }) {
+function KpiHero({ value, mom, hidden, evolucao, onDetalhes }) {
   // Sempre começa oculto; só revela quando o usuário clica no card. O modo
   // privado global (hidden) tem prioridade e mantém oculto.
   const [revelado, setRevelado] = useState(false);
@@ -1027,9 +1099,15 @@ function KpiHero({ value, mom, hidden, evolucao }) {
          style={{ background: bg, color: "#fff", borderRadius: 16, padding: "16px 17px 18px", position: "relative", overflow: "hidden", minHeight: 120, cursor: "pointer", userSelect: "none" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <RingIcon icon={Wallet} cor="rgba(255,255,255,0.55)" size={34} stroke="rgba(255,255,255,0.9)" />
-        <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", color: "#38504a" }}>
+        {/* Botão da COMPOSIÇÃO: de onde vem o número + ligar/desligar partes
+            (pedido 2026-09-30: "ver o que ele traz e ajustar"). */}
+        <button onClick={(e) => { e.stopPropagation(); onDetalhes?.(); }}
+                title="Ver a composição do Patrimônio Total (e ajustar o que entra)"
+                aria-label="Composição do Patrimônio Total"
+                style={{ width: 34, height: 34, borderRadius: "50%", background: "#fff", border: "none",
+                         display: "flex", alignItems: "center", justifyContent: "center", color: "#38504a", cursor: "pointer" }}>
           <ArrowUpRight size={16} strokeWidth={2} />
-        </div>
+        </button>
       </div>
       <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.92)", fontWeight: 500, marginTop: 18, letterSpacing: ".01em" }}>Patrimônio Total</div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 6 }}>
