@@ -878,3 +878,19 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
     display: inline-flex; align-items: center; justify-content: center;
   }
 }
+
+/* ============================================================
+   TELA INTEIRA no celular (pedido 2026-09-30, todos os módulos):
+   os wrappers de página usam .px-6 (24px por lado) e em várias telas
+   eles se empilham (App + página = 48px perdidos). No celular, todo
+   .px-6 vira 8px — o conteúdo pega a tela quase inteira com um
+   gutter fino e uniforme. Desktop/tablet seguem como estão.
+   ============================================================ */
+@media (max-width: 560px) {
+  /* Cadeia real (sondada no navegador): container .max-w-7xl com 12px +
+     wrappers .px-6 aninhados em até 2 níveis + regra antiga .py-8.px-6
+     (10px, especificidade 0,2,0) — por isso listamos as combinações
+     compostas aqui. Resultado: 0 no container + 6px por nível de wrapper. */
+  .max-w-7xl { padding-left: 0 !important; padding-right: 0 !important; }
+  .px-6, .py-8.px-6, .px-6.md\:px-10 { padding-left: 6px !important; padding-right: 6px !important; }
+}
