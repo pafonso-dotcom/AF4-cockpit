@@ -659,6 +659,19 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
             </div>
           </label>
 
+          {/* 📋 Planilha livre: rascunho estilo Excel no extrato DESTA conta
+              (pedido 2026-09-30: habilitar só onde o usuário quiser). */}
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer",
+            background: T.bgSoft, border: `1px solid ${form.planilha ? T.gold : T.border}`, borderRadius: 12, padding: 12, marginBottom: 12 }}>
+            <input type="checkbox" checked={!!form.planilha}
+                   onChange={e => setForm({ ...form, planilha: e.target.checked })}
+                   style={{ width: 18, height: 18, marginTop: 1, accentColor: T.gold, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>📋 Planilha livre nesta conta</div>
+              <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>Aba de rascunho estilo Excel no extrato (lançamentos futuros só visuais) — não entra em saldos, patrimônio nem relatórios.</div>
+            </div>
+          </label>
+
           <Field label="Nome" required error={formErrors.nome}>
             <input value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder={form.carteira ? "Ex.: Carteira, Dinheiro em casa, Previsão" : "Ex.: Conta Principal"} />
           </Field>
