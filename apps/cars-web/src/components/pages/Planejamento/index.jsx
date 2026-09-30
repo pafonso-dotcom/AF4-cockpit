@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { resumoAPagar } from "../../../lib/aPagar.js";
 import { ChevronDown } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt } from "../../../lib/format.js";
@@ -53,82 +54,15 @@ export default function Planejamento(props) {
     return { recebido, pendente: pendenteMes, atrasado, total: recebido + abertoTotal, aReceber: abertoTotal };
   }, [devedores]);
 
-  // A Pagar: espelha o "em aberto" da tela A Receber & Dívidas — dívidas +
-  // fixas pendentes + parcelas de cartão + despesas avulsas não compensadas.
-  // "do mês" = vence no mês corrente; "cartões" = só as parcelas de cartão.
-  const resumoPagar = useMemo(() => {
-    const hoje = new Date().toISOString().slice(0, 10);
-    const mes = hoje.slice(0, 7);
-    const ymOf = (v) => {
-      if (!v) return "";
-      if (typeof v === "string") return v.slice(0, 7);
-      try { return new Date(v).toISOString().slice(0, 7); } catch { return ""; }
-    };
-    // Cada item vira { valor, venc, cartao, desc }
-    const itens = [];
-    // 1) Dívidas tradicionais em aberto
-    dividas.filter(d => !d.pago).forEach(d => itens.push({ valor: Number(d.valor) || 0, venc: d.vencimento, cartao: false, desc: d.descricao || d.nome || "Dívida" }));
-    // 2) Ocorrências de despesas fixas pendentes (com fixa existente)
-    (fixaOcorrencias || []).filter(o => o.status === "pendente" && fixas.some(f => f.id === o.fixaId))
-      .forEach(o => itens.push({ valor: Number(o.valor) || 0, venc: o.dataVencimento, cartao: false, desc: fixas.find(f => f.id === o.fixaId)?.nome || "Fixa" }));
-    // 3) Parcelas de cartão ainda não pagas
-    (parcelamentos || []).forEach(p => {
-      const total = p.totalParcelas || 0;
-      if (total <= 0) return;
-      // valorParcela explícito quando existe (senão valorTotal/total) — MESMA
-      // fórmula de Cartões/Painel/Patrimônio; recalcular por divisão fazia o
-      // "Total a pagar" divergir entre as telas (bug 2026-09-30, R$ 25 mil).
-      const valorPorParcela = Number(p.valorParcela) || (p.valorTotal || 0) / total;
-      const pagas = new Set(p.parcelasPagas || []);
-      const base = p.dataPrimeira || p.dataCompra;
-      // Parcelamento SEM data: não dá pra distribuir por mês, mas a dívida
-      // existe — entra no total e nos cartões com venc indefinido (o Patrimônio
-      // conta; pular aqui deixava os totais diferentes — resíduo 2026-09-30).
-      if (!base) {
-        for (let n = 1; n <= total; n++) {
-          if (pagas.has(n)) continue;
-          itens.push({ valor: valorPorParcela, venc: null, cartao: true, desc: `${p.descricao || "Parcela"} ${n}/${total}` });
-        }
-        return;
-      }
-      const [bY, bM, bD] = base.split("-").map(Number);
-      const startMonth = p.dataPrimeira ? bM : bM + 1;
-      for (let n = 1; n <= total; n++) {
-        if (pagas.has(n)) continue;
-        const offset = n - 1;
-        const dt = new Date(bY, startMonth - 1 + offset, 1);
-        const ultDia = new Date(bY, startMonth + offset, 0).getDate();
-        dt.setDate(Math.min(bD, ultDia));
-        const vencISO = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-        itens.push({ valor: valorPorParcela, venc: vencISO, cartao: true, desc: `${p.descricao || "Parcela"} ${n}/${total}` });
-      }
-    });
-    // 4) Despesas avulsas (transações de despesa não compensadas, sem origem fixa/parcela)
-    (transacoes || []).filter(t => t.tipo === "despesa" && !t.compensado
-      && !t.origemFixaOcorrenciaId && !t.origemParcelamentoId)
-      .forEach(t => itens.push({ valor: Number(t.valor) || 0, venc: t.vencimento || t.data, cartao: false, desc: t.descricao || "Despesa" }));
-
-    let total = 0, pagarMes = 0, cartoes = 0;
-    itens.forEach(it => {
-      total += it.valor;
-      if (it.cartao) cartoes += it.valor;
-      // sem data cai no mês corrente (mesma regra da tela A Pagar)
-      if (!it.venc || ymOf(it.venc) === mes) pagarMes += it.valor;
-    });
-
-    // PRÓXIMOS 7 DIAS: tudo que vence de hoje a hoje+7 (data explícita).
-    const limite = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().slice(0, 10); })();
-    const semana = itens
-      .filter(it => it.venc && String(it.venc).slice(0, 10) >= hoje && String(it.venc).slice(0, 10) <= limite)
-      .sort((a, b) => String(a.venc).localeCompare(String(b.venc)));
-    const prox7 = {
-      total: semana.reduce((s, it) => s + it.valor, 0),
-      count: semana.length,
-      top: [...semana].sort((a, b) => b.valor - a.valor).slice(0, 3),
-    };
-
-    return { total, pagarMes, cartoes, prox7 };
-  }, [dividas, fixas, fixaOcorrencias, parcelamentos, transacoes]);
+  // A Pagar — FONTE ÚNICA (lib/aPagar.js): mesma conta do Patrimônio/Painel.
+  // (Unificação 2026-09-30: cada tela calculava do seu jeito e divergiam.)
+  const resumoPagar = useMemo(
+    () => {
+      const r = resumoAPagar({ dividas, fixas, fixaOcorrencias, parcelamentos, transacoes });
+      return { total: r.total, pagarMes: r.pagarMes, cartoes: r.cartoes, prox7: r.prox7 };
+    },
+    [dividas, fixas, fixaOcorrencias, parcelamentos, transacoes]
+  );
 
   // Cobertura do mês: saldo real das contas vs o que vence no mês.
   const cobertura = useMemo(() => {

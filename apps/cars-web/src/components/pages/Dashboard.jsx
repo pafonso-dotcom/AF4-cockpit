@@ -15,6 +15,7 @@ import { calcOrcamentoComGastos } from "../../lib/orcamentos.js";
 import { montarResumoDia, alertasDisparadosHoje } from "../../lib/resumoDia.js";
 import { detectarAnomalias } from "../../lib/anomalias.js";
 import { calcularPossoGastar } from "../../lib/possoGastar.js";
+import { resumoAPagar } from "../../lib/aPagar.js";
 import { proventosPendentesDoMes, lerProvReaisCache } from "../../lib/proventosPrevistos.js";
 import { backupNuvemAtraso } from "../../lib/gistSync.js";
 import { itensConsumoDoMes } from "../../lib/relatorioMensal.js";
@@ -286,19 +287,15 @@ export default function Dashboard({
     return (cheques || []).reduce((s, c) =>
       (c.status === "aguardando" && noEsc(c)) ? s + (Number(c.valor) || 0) : s, 0);
   }, [cheques, escopoAtivo]);
-  // Cartões: total das parcelas de cartão ainda EM ABERTO (não pagas),
-  // somando todos os meses — mesma base do "Cartões a pagar" do Planejamento.
-  const cartoesTotal = useMemo(() => {
-    return (parcelamentos || []).reduce((s, p) => {
-      const total = p.totalParcelas || 0;
-      if (total <= 0) return s;
-      // Mesma fórmula dos cards de Cartões: valorParcela explícito quando
-      // existe (senão valorTotal/total) — evita divergência por arredondamento.
-      const valorPorParcela = Number(p.valorParcela) || (p.valorTotal || 0) / total;
-      const pagas = (p.parcelasPagas || []).length;
-      return s + valorPorParcela * Math.max(0, total - pagas);
-    }, 0);
-  }, [parcelamentos]);
+  // FONTE ÚNICA do "a pagar" (lib/aPagar.js — mesma conta do Planejamento;
+  // unificação 2026-09-30, os totais divergiam entre as telas). Usa
+  // transacoesRaw (global): a despesa pendente existe mesmo se a conta foi
+  // renomeada/excluída ou está fora do escopo ativo.
+  const resumoPagarGlobal = useMemo(
+    () => resumoAPagar({ dividas, fixas, fixaOcorrencias, parcelamentos, transacoes: transacoesRaw }, hoje),
+    [dividas, fixas, fixaOcorrencias, parcelamentos, transacoesRaw] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const cartoesTotal = resumoPagarGlobal.cartoes;
   // Tile "Cartões": só o que está EM ABERTO. Prioriza o MÊS CORRENTE — fatura
   // importada paga = cartão quitado no mês (não conta); fatura em aberto entra
   // pelo valor real; sem fatura, contam as parcelas pendentes do mês. Se o mês
@@ -351,54 +348,8 @@ export default function Dashboard({
     if (mesAtual > 0.005) return { valor: mesAtual, label: `Cartões · a pagar (${nomeMes(mesISO)})` };
     return { valor: soma(proxKey, true), label: `Cartões · mês seguinte (${nomeMes(proxKey)})` };
   }, [mesISO, parcelamentos, cartoes, transacoes]);
-  // Total a pagar (tudo em aberto, todos os meses) — mesma base do "A Receber &
-  // Dívidas": dívidas + fixas pendentes + parcelas de cartão + avulsas.
-  const aPagarTotal = useMemo(() => {
-    let s = 0;
-    (dividas || []).filter(d => !d.pago).forEach(d => { s += Number(d.valor) || 0; });
-    (fixaOcorrencias || []).filter(o => o.status === "pendente" && (fixas || []).some(f => f.id === o.fixaId))
-      .forEach(o => { s += Number(o.valor) || 0; });
-    s += cartoesTotal; // parcelas de cartão em aberto
-    (transacoes || []).filter(t => t.tipo === "despesa" && !t.compensado
-      && !t.origemFixaOcorrenciaId && !t.origemParcelamentoId)
-      .forEach(t => { s += Number(t.valor) || 0; });
-    return s;
-  }, [dividas, fixaOcorrencias, fixas, cartoesTotal, transacoes]);
-  // Total a pagar quebrado POR ANO (2026, 2027, …) — mesmos itens do
-  // aPagarTotal, bucketados pelo vencimento/competência de cada um. Item sem
-  // data cai em "sem data" (aparece por último).
-  const aPagarPorAno = useMemo(() => {
-    const anos = {};
-    const add = (iso, v) => {
-      const ano = String(iso || "").slice(0, 4);
-      const key = /^\d{4}$/.test(ano) ? ano : "sem data";
-      anos[key] = (anos[key] || 0) + v;
-    };
-    (dividas || []).filter(d => !d.pago).forEach(d => add(d.vencimento, Number(d.valor) || 0));
-    (fixaOcorrencias || []).filter(o => o.status === "pendente" && (fixas || []).some(f => f.id === o.fixaId))
-      .forEach(o => add(o.mes, Number(o.valor) || 0));
-    (parcelamentos || []).forEach(p => {
-      const total = p.totalParcelas || 0;
-      if (total <= 0) return;
-      const vpp = Number(p.valorParcela) || (p.valorTotal || 0) / total;
-      const pagas = new Set(p.parcelasPagas || []);
-      const base = p.dataPrimeira || p.dataCompra;
-      if (!base) { add("", vpp * Math.max(0, total - pagas.size)); return; }
-      const [bY, bM] = base.split("-").map(Number);
-      const start = p.dataPrimeira ? bM : bM + 1; // sem dataPrimeira, 1ª parcela cai no mês seguinte à compra
-      for (let n = 1; n <= total; n++) {
-        if (pagas.has(n)) continue;
-        const dt = new Date(bY, start - 1 + (n - 1), 1);
-        add(String(dt.getFullYear()), vpp);
-      }
-    });
-    (transacoes || []).filter(t => t.tipo === "despesa" && !t.compensado
-      && !t.origemFixaOcorrenciaId && !t.origemParcelamentoId)
-      .forEach(t => add(t.data, Number(t.valor) || 0));
-    return Object.entries(anos)
-      .sort(([a], [b]) => a.localeCompare(b)) // anos crescentes; "sem data" por último
-      .map(([ano, valor]) => ({ ano, valor }));
-  }, [dividas, fixaOcorrencias, fixas, parcelamentos, transacoes]);
+  const aPagarTotal = resumoPagarGlobal.total;
+  const aPagarPorAno = resumoPagarGlobal.porAno;
   // patrimonioTotal é calculado mais abaixo, após `stateAgg`.
   const receitasMes = useMemo(() => transacoes.filter(t => t.tipo === "receita" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
   const despesasMes = useMemo(() => transacoes.filter(t => t.tipo === "despesa" && t.origem !== "fatura-pagamento" && ehMesAtual(t.data)).reduce((s,t) => s+Number(t.valor||0), 0), [transacoes, mesISO]);
