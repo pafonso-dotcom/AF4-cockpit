@@ -351,11 +351,20 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           .conta-hero-name { font-size: 23px; }
           .conta-hero-valor { font-size: 32px; }
           @media (max-width: 560px) {
-            .conta-hero { padding: 18px !important; gap: 14px !important; }
-            .conta-hero-icon { width: 46px !important; height: 46px !important; font-size: 22px !important; }
-            .conta-hero-name { font-size: 19px !important; }
-            .conta-hero-fatura { text-align: left !important; width: 100%; }
-            .conta-hero-valor { font-size: clamp(26px, 8vw, 32px) !important; }
+            /* Card compacto (pedido 2026-09-30): "SALDO ATUAL" e o valor na
+               MESMA linha (rótulo à esquerda, valor à direita) — card mais baixo. */
+            .conta-hero { padding: 13px 15px !important; gap: 10px !important; }
+            /* zoom encolhe o ícone INTEIRO (caixa + conteúdo) — forçar só o
+               width fazia o desenho de 56px vazar por cima do nome. */
+            .conta-hero-icon { zoom: 0.75; }
+            .conta-hero-name { font-size: 18px !important; }
+            .conta-hero-fatura {
+              text-align: left !important; width: 100%;
+              display: flex !important; align-items: baseline !important;
+              justify-content: space-between !important; gap: 10px !important;
+            }
+            .conta-hero-fatura > div:first-child { margin-bottom: 0 !important; }
+            .conta-hero-valor { font-size: clamp(20px, 6.5vw, 26px) !important; }
             .extrato-filtros { grid-template-columns: 1fr 1fr !important; }
             .extrato-filtros > div[style*="position: relative"] { grid-column: 1 / -1; }
             .extrato-filtros > button { grid-column: 1 / -1; }
