@@ -300,12 +300,12 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           /* Topo compacto no celular: os 4 botões cabem em 2 linhas curtas em
              vez de empilhar um por linha (pedido 2026-09-30, tela do extrato). */
           @media (max-width: 560px) {
-            /* TELA INTEIRA (pedido 2026-09-30): anula o px-6 da página + o
-               px-6 do wrapper do App (24+24px por lado) e dá um gutter fino
-               de 10px só onde precisa; lista, planilha e o card da conta vão
-               de borda a borda (cantos retos nas laterais). */
-            .conta-extrato-page { margin-left: -48px; margin-right: -48px; padding-left: 0 !important; padding-right: 0 !important; }
-            .conta-extrato-page > * { margin-left: 10px; margin-right: 10px; }
+            /* TELA INTEIRA (pedido 2026-09-30): com o .px-6 global valendo 8px
+               no celular (index.css), aqui só anulamos o 8px do wrapper do App
+               (a própria página já zera o dela); gutter fino de 8px nos
+               elementos e lista/planilha/card da conta de borda a borda. */
+            .py-8.px-6.conta-extrato-page { margin-left: -12px !important; margin-right: -12px !important; padding-left: 0 !important; padding-right: 0 !important; }
+            .conta-extrato-page > * { margin-left: 8px; margin-right: 8px; }
             .conta-extrato-page > .extrato-lista,
             .conta-extrato-page > .pl-card,
             .conta-extrato-page > .conta-hero {
