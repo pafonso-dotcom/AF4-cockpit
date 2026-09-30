@@ -331,8 +331,8 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         <div className="conta-hero-icon" style={{ flexShrink: 0 }}>
           <BankIcon c={conta} size={56} />
         </div>
-        <div style={{ flex: 1, minWidth: 180 }}>
-          <div style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
+        <div className="conta-hero-info" style={{ flex: 1, minWidth: 180 }}>
+          <div className="conta-hero-eyebrow" style={{ fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>
             Extrato · {conta.instituicao}{conta.tipo ? ` · ${conta.tipo}` : ""}
           </div>
           <div className="conta-hero-name" style={{ fontFamily: T.serif, fontWeight: 500, marginTop: 5, letterSpacing: "-0.02em", wordBreak: "break-word", color: T.ink }}>
@@ -358,12 +358,16 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                width fazia o desenho de 56px vazar por cima do nome. */
             .conta-hero-icon { zoom: 0.75; }
             .conta-hero-name { font-size: 18px !important; }
+            /* v2 (pedido): sem a linha "EXTRATO · banco"; "SALDO ATUAL" em
+               cima do valor, no lado direito, na MESMA linha do nome. */
+            .conta-hero-eyebrow { display: none !important; }
+            .conta-hero-info { min-width: 0 !important; }
+            .conta-hero-name { margin-top: 0 !important; }
             .conta-hero-fatura {
-              text-align: left !important; width: 100%;
-              display: flex !important; align-items: baseline !important;
-              justify-content: space-between !important; gap: 10px !important;
+              display: block !important; width: auto !important;
+              text-align: right !important; flex-shrink: 0;
             }
-            .conta-hero-fatura > div:first-child { margin-bottom: 0 !important; }
+            .conta-hero-fatura > div:first-child { margin-bottom: 2px !important; }
             .conta-hero-valor { font-size: clamp(20px, 6.5vw, 26px) !important; }
             .extrato-filtros { grid-template-columns: 1fr 1fr !important; }
             .extrato-filtros > div[style*="position: relative"] { grid-column: 1 / -1; }
@@ -402,8 +406,15 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
           const datas = filtradas.map(t => (t.data || "").slice(0, 10)).filter(Boolean).sort();
           const ini = datas[0], fim = datas[datas.length - 1];
           const br = (iso) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "—";
+          // Resumo do período filtrado: entradas e saídas (info nova na linha fina)
+          const entradas = filtradas.reduce((s2, t) => t.tipo === "receita" ? s2 + (Number(t.valor) || 0) : s2, 0);
+          const saidas = filtradas.reduce((s2, t) => t.tipo === "despesa" ? s2 + (Number(t.valor) || 0) : s2, 0);
           return (
-            <span style={{ marginLeft: "auto", fontSize: 11, color: T.muted }}>
+            <span style={{ marginLeft: "auto", fontSize: 11, color: T.muted, textAlign: "right" }}>
+              {entradas > 0 && <span className="num" style={{ color: T.green }}>↑ {hidden ? "•••" : fmt(entradas)}</span>}
+              {entradas > 0 && saidas > 0 && " · "}
+              {saidas > 0 && <span className="num" style={{ color: T.red }}>↓ {hidden ? "•••" : fmt(saidas)}</span>}
+              {(entradas > 0 || saidas > 0) && " · "}
               {!ini ? "sem lançamentos no período"
                 : ini === fim ? `dia ${br(ini)}`
                 : `${br(ini)} → ${br(fim)}`}
@@ -471,6 +482,10 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
       ) : (
         <div className="extrato-lista" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden", boxShadow: `0 1px 3px ${T.bg}55` }}>
           <style>{`
+            /* overflow: clip mantém os cantos arredondados SEM criar caixa de
+               rolagem — assim o position: sticky do cabeçalho do dia funciona. */
+            .extrato-lista { overflow: clip !important; }
+            .extrato-dia-head { position: sticky; top: 0; z-index: 2; }
             .extrato-row { transition: background .12s ease; }
             .extrato-row:hover { background: ${T.gold}10; }
             .extrato-row .acoes { opacity: 0; transition: opacity .12s ease; }
@@ -488,6 +503,9 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
               .extrato-row .acao-dup { display: none !important; }
               .extrato-row .extrato-valor { font-size: 14.5px !important; }
               .extrato-saldo-dia-footer { display: none !important; }
+              .extrato-dia-count { display: none !important; }
+              .extrato-cat-chip { padding: 1px 7px !important; font-size: 9.5px !important; }
+              .extrato-obs { display: -webkit-box !important; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
             }
             /* Números do extrato ~30% maiores no desktop; no mobile ficam como
                estão (a linha é apertada). zoom preserva as proporções. */
@@ -508,7 +526,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
               // nos temas claros, onde a borda padrão é invisível de propósito).
               <div key={grupo.dia} style={{ borderTop: gi === 0 ? "none" : `1px solid ${T.ink}0f` }}>
                 {/* Cabeçalho do dia (clicável: recolhe/expande os lançamentos) */}
-                <div onClick={() => toggleDia(grupo.dia, abertoPadrao)} style={{
+                <div onClick={() => toggleDia(grupo.dia, abertoPadrao)} className="extrato-dia-head" style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
                   gap: 8, flexWrap: "wrap",
                   padding: "5px 14px", background: T.bgSoft, borderBottom: `1px solid ${T.border}`,
@@ -519,7 +537,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                     <span className="num" style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{dl.dia}</span>
                     <span style={{ fontSize: 11, color: T.muted }}>{dl.mes} '{dl.ano}</span>
                     <span style={{ fontSize: 10.5, color: T.faint, textTransform: "capitalize" }}>· {dl.semana}</span>
-                    <span style={{ fontSize: 10.5, color: T.faint }}>· {grupo.itens.length} {grupo.itens.length === 1 ? "lançamento" : "lançamentos"}</span>
+                    <span className="extrato-dia-count" style={{ fontSize: 10.5, color: T.faint }}>· {grupo.itens.length} {grupo.itens.length === 1 ? "lançamento" : "lançamentos"}</span>
                   </span>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: "auto" }}>
                     <span className="num" style={{ fontSize: 11, fontWeight: 600, color: net >= 0 ? T.green : T.red }}>
@@ -592,6 +610,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                                        color: T.ink, fontSize: 11, padding: "3px 7px", maxWidth: 180 }} />
                           ) : (
                             <button
+                              className="extrato-cat-chip"
                               onClick={() => setEditCatId(t.id)}
                               title="Clique para mudar a categoria"
                               style={{
@@ -606,7 +625,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                             </button>
                           )}
                           {t.obs && (
-                            <span style={{ fontSize: 10.5, color: T.muted, fontStyle: "italic", wordBreak: "break-word" }}>
+                            <span className="extrato-obs" style={{ fontSize: 10.5, color: T.muted, fontStyle: "italic", wordBreak: "break-word" }}>
                               {t.obs}
                             </span>
                           )}
