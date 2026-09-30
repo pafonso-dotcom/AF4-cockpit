@@ -75,3 +75,28 @@ describe("aplicarAgrupamento", () => {
     expect(r.categorias.find(c => c.id === "i").parentId).toBe("t");
   });
 });
+
+describe("regras ampliadas 2026-09-30 (árvore bagunçada real)", () => {
+  const { grupoDoNome } = require("../agruparCategorias.js");
+  it("captura as categorias reais que ficavam soltas", () => {
+    expect(grupoDoNome("LUZ")).toBe("Casa");
+    expect(grupoDoNome("Despesa de Casa")).toBe("Casa");
+    expect(grupoDoNome("INTERNET")).toBe("Assinaturas & Telecom");
+    expect(grupoDoNome("IA")).toBe("Assinaturas & Telecom");
+    expect(grupoDoNome("UNIMED")).toBe("Saúde");
+    expect(grupoDoNome("Academia")).toBe("Saúde");
+    expect(grupoDoNome("Filhos")).toBe("Família & Pets");
+    expect(grupoDoNome("Educação Financeira")).toBe("Educação");
+    expect(grupoDoNome("Seguro de Vida")).toBe("Seguros");
+    expect(grupoDoNome("Dízimo")).toBe("Doações");
+  });
+  it("sigla exata não vaza como substring (IA ≠ farmácia/diária)", () => {
+    expect(grupoDoNome("Farmácia")).toBe("Saúde");
+    expect(grupoDoNome("Diária")).toBeNull();
+  });
+  it("gasolina continua no Transporte (gás é só igualdade exata)", () => {
+    expect(grupoDoNome("Gasolina")).toBe("Transporte");
+    expect(grupoDoNome("Gás")).toBe("Casa");
+    expect(grupoDoNome("Conta de Gás")).toBe("Casa");
+  });
+});

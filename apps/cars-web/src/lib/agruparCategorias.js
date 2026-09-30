@@ -7,21 +7,30 @@
  */
 import { normNomeCat } from "./categoriasDiagnostico.js";
 
-// Regras calibradas pela lista real do usuário (print de 2026-09-23).
-// `chaves` são substrings comparadas sobre o nome normalizado.
+// Regras calibradas pela lista real do usuário (print de 2026-09-23;
+// ampliadas em 2026-09-30 pra alinhar com a estrutura do pacote Completo —
+// pedido "arruma a minha árvore, está uma bagunça").
+// `chaves` são substrings comparadas sobre o nome normalizado; `exatas` são
+// nomes que só casam por igualdade (pra siglas curtas tipo "IA", que como
+// substring pegariam "farmácia"/"diária").
 export const GRUPOS_SUGERIDOS = [
-  { pai: "Casa", chaves: ["iptu", "obras", "reforma", "manutencao da casa", "manutenção da casa", "piscineiro", "jardineiro", "condominio", "aluguel"] },
-  { pai: "Assinaturas & Telecom", chaves: ["internet", "telefonia", "tik tok", "tiktok", "streaming", "spotify", "netflix", "assinatura"] },
-  { pai: "Transporte", chaves: ["transporte", "combustivel", "licenciamento", "ipva", "lavagem", "revisao", "estacionamento", "pedagio", "uber", "gasolina"] },
+  // "gas" é exata: como substring capturaria "gasolina" (que é do Transporte).
+  { pai: "Casa", chaves: ["iptu", "obras", "reforma", "manutencao da casa", "manutenção da casa", "piscineiro", "jardineiro", "condominio", "aluguel", "despesa de casa", "luz", "energia", "agua", "moradia", "conta de gas"], exatas: ["gas"] },
+  { pai: "Assinaturas & Telecom", chaves: ["internet", "telefonia", "celular", "tik tok", "tiktok", "streaming", "spotify", "netflix", "assinatura", "chatgpt", "openai", "claude", "software", "aplicativo"], exatas: ["ia", "apps"] },
+  { pai: "Transporte", chaves: ["transporte", "combustivel", "licenciamento", "ipva", "lavagem", "revisao", "estacionamento", "pedagio", "uber", "gasolina", "carro", "mecanica", "oficina"] },
   // Compras vem ANTES de Alimentação: "mercadolivre" precisa casar aqui,
   // senão a chave "mercado" da Alimentação o capturaria.
-  { pai: "Compras", chaves: ["mercadolivre", "mercado livre", "vestuario", "shopee", "amazon", "eletronico"] },
-  { pai: "Alimentação", chaves: ["alimentacao", "mercado", "padaria", "restaurante", "lanche", "ifood", "acougue", "hortifruti"] },
-  { pai: "Saúde", chaves: ["saude", "unimed", "medicamento", "farmacia", "suplemento", "suplimento", "dentista", "plano"] },
-  { pai: "Lazer & Viagens", chaves: ["lazer", "viagem", "viagens", "hotel", "loteria", "aposta", "cinema", "show"] },
+  { pai: "Compras", chaves: ["mercadolivre", "mercado livre", "vestuario", "shopee", "amazon", "eletronico", "roupa", "calcado", "cosmetico", "barbearia", "cabeleireiro", "salao"] },
+  { pai: "Alimentação", chaves: ["alimentacao", "mercado", "padaria", "restaurante", "lanche", "ifood", "acougue", "hortifruti", "delivery", "feira"] },
+  { pai: "Saúde", chaves: ["saude", "unimed", "medicamento", "farmacia", "suplemento", "suplimento", "dentista", "plano", "academia", "consulta", "exame", "terapia", "psicolog"] },
+  { pai: "Educação", chaves: ["educacao", "faculdade", "curso", "livro", "material escolar"] },
+  { pai: "Lazer & Viagens", chaves: ["lazer", "viagem", "viagens", "hotel", "loteria", "aposta", "cinema", "show", "hobby", "festa"] },
   { pai: "Tarifas, Juros & Impostos", chaves: ["iof", "juros", "tarifa", "taxa", "irrf", "imposto", "anuidade", "multa", "capitalizacao"] },
-  { pai: "Família & Pets", chaves: ["mesada", "pets", "escola", "presente"] },
-  { pai: "Investimentos & Capital", chaves: ["investimento", "capital social", "aporte"] },
+  { pai: "Família & Pets", chaves: ["mesada", "pets", "escola", "presente", "filho", "filhos", "brinquedo", "racao", "veterinario", "banho e tosa", "crianca"] },
+  { pai: "Seguros", chaves: ["seguro"] },
+  { pai: "Doações", chaves: ["doacao", "dizimo", "caridade"] },
+  { pai: "Dívidas & Empréstimos", chaves: ["emprestimo", "financiamento", "consorcio", "divida"] },
+  { pai: "Investimentos & Capital", chaves: ["investimento", "capital social", "aporte", "reserva de emergencia"] },
   { pai: "Movimentações", chaves: ["transferencia", "transf", "pag. diversos", "pag diversos", "pagamento fatura", "entre bancos"] },
 ];
 
@@ -34,6 +43,7 @@ export function grupoDoNome(nome) {
   for (const g of GRUPOS_SUGERIDOS) {
     // nome idêntico ao do grupo não é "filha" — é o próprio pai
     if (n === norm(g.pai)) return g.pai;
+    if ((g.exatas || []).some(ex => n === norm(ex))) return g.pai;
     if (g.chaves.some(ch => n.includes(norm(ch)))) return g.pai;
   }
   return null;
