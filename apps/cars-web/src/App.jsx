@@ -172,8 +172,8 @@ export default function App() {
 
   applyTheme(themeId);
 
-  const [contas, setContas] = useState([]);
-  const [categorias, setCategorias] = useState([]);
+  const [contas, setContasBase] = useState([]);
+  const [categorias, setCategoriasBase] = useState([]);
   const [transacoes, setTransacoesBase] = useState([]);
   // Lápides de itens apagados (lib/tumbas.js) — viajam no estado sincronizado
   // pra fusão do sync não ressuscitar o que foi deletado.
@@ -185,38 +185,66 @@ export default function App() {
   const [voosDados, setVoosDados] = useState({ monitores: [] });
   // Integração bancária Pluggy — { itemId, vinculos, ultimaSync } (sincronizado).
   const [pluggyDados, setPluggyDados] = useState({ itemId: "", vinculos: {}, ultimaSync: {} });
-  // setTransacoes rastreado: toda exclusão (id que some da lista) vira lápide
-  // automaticamente — cobre os 16+ pontos de exclusão sem tocar em cada um.
-  // O flush fica FORA do updater (updaters devem ser puros).
-  const tumbasPendentesRef = useRef([]);
-  const setTransacoes = useCallback((next) => {
-    setTransacoesBase(prev => {
+  // Setters rastreados: toda exclusão (id que some da lista) vira lápide
+  // automaticamente — cobre os pontos de exclusão sem tocar em cada um.
+  // Antes só transações tinham lápide (fix 2026-09-22); fixas/dívidas/etc.
+  // apagadas RESSUSCITAVAM na fusão do sync (bug relatado 2026-09-30: conta
+  // fixa de setembro excluída voltava ao atualizar). Agora TODAS as coleções
+  // financeiras com id são rastreadas. O flush fica FORA do updater
+  // (updaters devem ser puros).
+  const tumbasPendentesRef = useRef({}); // { colecao: [ids] }
+  const criarSetterComTumbas = (colecao, setBase) => (next) => {
+    setBase(prev => {
       const nova = typeof next === "function" ? next(prev) : next;
       const removidos = idsRemovidos(prev, nova);
-      if (removidos.length) tumbasPendentesRef.current.push(...removidos);
+      if (removidos.length) (tumbasPendentesRef.current[colecao] ||= []).push(...removidos);
       return nova;
     });
-    queueMicrotask(() => {
-      if (tumbasPendentesRef.current.length === 0) return;
-      const ids = tumbasPendentesRef.current.splice(0);
-      setTumbas(t => comTumbas(t, "transacoes", ids));
-    });
-  }, []);
-  const [ativos, setAtivos] = useState([]);
-  const [metas, setMetas] = useState([]);
+  };
+  // Dreno das lápides: roda após TODO commit (sem deps de propósito) — o
+  // updater empurra as pendências durante o render e este efeito as grava.
+  // (queueMicrotask era frágil: o React às vezes processa cada setState em
+  // flush separado e a pendência ficava órfã — pego no smoke de 30/09.)
+  useEffect(() => {
+    const pend = tumbasPendentesRef.current;
+    const lote = {};
+    for (const c of Object.keys(pend)) {
+      if (pend[c] && pend[c].length) lote[c] = pend[c].splice(0);
+    }
+    if (!Object.keys(lote).length) return;
+    setTumbas(t => Object.entries(lote).reduce((acc, [c, ids]) => comTumbas(acc, c, ids), t));
+  });
+  /* eslint-disable react-hooks/exhaustive-deps */
+  const setTransacoes = useCallback(criarSetterComTumbas("transacoes", setTransacoesBase), []);
+  const setContas = useCallback(criarSetterComTumbas("contas", setContasBase), []);
+  const setCategorias = useCallback(criarSetterComTumbas("categorias", setCategoriasBase), []);
+  /* eslint-enable react-hooks/exhaustive-deps */
+  const [ativos, setAtivosBase] = useState([]);
+  const [metas, setMetasBase] = useState([]);
   const [notas, setNotas] = useState([]);
-  const [cartoes, setCartoes] = useState([]);
-  const [parcelamentos, setParcelamentos] = useState([]);
-  const [devedores, setDevedores] = useState([]);
-  const [dividas, setDividas] = useState([]);
-  const [cheques, setCheques] = useState([]); // cheques a receber (aguardando/compensado/devolvido)
+  const [cartoes, setCartoesBase] = useState([]);
+  const [parcelamentos, setParcelamentosBase] = useState([]);
+  const [devedores, setDevedoresBase] = useState([]);
+  const [dividas, setDividasBase] = useState([]);
+  const [cheques, setChequesBase] = useState([]); // cheques a receber (aguardando/compensado/devolvido)
 
   // Escopo financeiro · Pessoal / Negócio / Tudo
   const [escopoAtivo, setEscopoAtivo] = useState(lerEscopo());
 
   // Despesas Fixas (módulo independente)
-  const [fixas, setFixas] = useState([]);
-  const [fixaOcorrencias, setFixaOcorrencias] = useState([]);
+  const [fixas, setFixasBase] = useState([]);
+  const [fixaOcorrencias, setFixaOcorrenciasBase] = useState([]);
+  /* eslint-disable react-hooks/exhaustive-deps */
+  const setAtivos = useCallback(criarSetterComTumbas("ativos", setAtivosBase), []);
+  const setMetas = useCallback(criarSetterComTumbas("metas", setMetasBase), []);
+  const setCartoes = useCallback(criarSetterComTumbas("cartoes", setCartoesBase), []);
+  const setParcelamentos = useCallback(criarSetterComTumbas("parcelamentos", setParcelamentosBase), []);
+  const setDevedores = useCallback(criarSetterComTumbas("devedores", setDevedoresBase), []);
+  const setDividas = useCallback(criarSetterComTumbas("dividas", setDividasBase), []);
+  const setCheques = useCallback(criarSetterComTumbas("cheques", setChequesBase), []);
+  const setFixas = useCallback(criarSetterComTumbas("fixas", setFixasBase), []);
+  const setFixaOcorrencias = useCallback(criarSetterComTumbas("fixaOcorrencias", setFixaOcorrenciasBase), []);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // Lembretes de vencimento (notificação do sistema): checa na abertura
   // (com folga pros dados carregarem) e a cada 6h com o app aberto.
