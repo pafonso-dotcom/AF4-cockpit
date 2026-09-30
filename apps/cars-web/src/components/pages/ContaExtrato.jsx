@@ -23,6 +23,8 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
   const [sortDir, setSortDir] = useState("desc"); // desc = mais novo primeiro (default)
   const [statusFilter, setStatusFilter] = useState("todas"); // todas | compensadas | pendentes
   const [editCatId, setEditCatId] = useState(null); // id da transação com select de categoria aberto
+  // Filtros recolhidos no celular atrás do botão ⚙ (remodelagem 2026-09-30).
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [txModal, setTxModal] = useState(null); // null | { modo: "novo" } | { modo: "editar", tx }
   const [conferir, setConferir] = useState(null); // null | { valor, data } — modal "Conferir com o banco"
   // Override manual do estado de cada dia. Padrão: só o ÚLTIMO dia de movimento
@@ -361,31 +363,48 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         `}</style>
       </div>
 
-      {/* Cabeçalho do extrato (período de visualização) */}
+      {/* Remodelagem 2026-09-30 (pedido): o rótulo "extrato conta" subiu pro
+          cartão da conta (que já diz EXTRATO · banco); aqui fica só o período
+          numa linha fina + o botão ⚙ Filtros, que no CELULAR guarda os
+          controles recolhidos (no desktop os filtros ficam sempre à mostra). */}
+      <style>{`
+        .extrato-filtros-toggle { display: none; }
+        @media (max-width: 560px) {
+          .extrato-filtros-toggle { display: inline-flex; }
+          .extrato-filtros { display: none !important; }
+          .extrato-filtros.aberto { display: flex !important; }
+        }
+      `}</style>
       <div style={{
-        display: "flex", gap: 18, flexWrap: "wrap", alignItems: "flex-end",
-        marginBottom: 16, padding: "0 2px",
+        display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center",
+        marginBottom: 10, padding: "0 2px",
       }}>
+        <button className="extrato-filtros-toggle"
+                onClick={() => setFiltrosAbertos(v => !v)}
+                style={{
+                  alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 100,
+                  background: filtrosAbertos ? `${T.gold}18` : T.bgSoft,
+                  border: `1px solid ${filtrosAbertos ? T.gold : T.border}`,
+                  color: filtrosAbertos ? T.gold : T.muted, fontSize: 11.5, fontWeight: 600, cursor: "pointer",
+                }}>
+          ⚙ Filtros {filtrosAbertos ? "▴" : "▾"}
+        </button>
         {(() => {
           const datas = filtradas.map(t => (t.data || "").slice(0, 10)).filter(Boolean).sort();
           const ini = datas[0], fim = datas[datas.length - 1];
           const br = (iso) => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "—";
           return (
-            <div style={{ marginLeft: "auto", textAlign: "right" }}>
-              <div style={{ fontSize: 13, color: T.ink, fontWeight: 600 }}>extrato conta / lançamentos</div>
-              <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
-                {/* um dia só → uma data (o "01/12 até 01/12" confundia no celular) */}
-                {!ini ? "sem lançamentos no período"
-                  : ini === fim ? `dia ${br(ini)}`
-                  : `período: ${br(ini)} até ${br(fim)}`}
-              </div>
-            </div>
+            <span style={{ marginLeft: "auto", fontSize: 11, color: T.muted }}>
+              {!ini ? "sem lançamentos no período"
+                : ini === fim ? `dia ${br(ini)}`
+                : `${br(ini)} → ${br(fim)}`}
+            </span>
           );
         })()}
       </div>
 
       {/* Filtros + ações numa linha só: Período · Tipo · Mais recentes · Expandir */}
-      <div className="extrato-filtros" style={{
+      <div className={`extrato-filtros${filtrosAbertos ? " aberto" : ""}`} style={{
         display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12, alignItems: "center",
       }}>
         <select value={periodo} onChange={e => setPeriodo(e.target.value)}
