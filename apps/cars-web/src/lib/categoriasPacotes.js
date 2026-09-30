@@ -1,7 +1,51 @@
 // Pacotes de categorias prontos para importação em lote.
-// Cada categoria: { nome, tipo: "receita" | "despesa", cor, limite? }
+// Cada categoria: { nome, tipo: "receita" | "despesa", cor, limite?,
+//                   subcategorias?: ["Nome", ...] } — a importação converte
+// cada nome em { id, nome } (formato do app).
 
 export const PACOTES = [
+  {
+    id: "completo",
+    nome: "Completo (recomendado)",
+    descricao: "Estrutura completa pra finanças pessoais: 6 receitas + 21 despesas, já com subcategorias prontas. Importe tudo ou só o que faltar (nomes repetidos são pulados).",
+    icone: "🗂️",
+    categorias: [
+      // ── RECEITAS ──────────────────────────────────────────────
+      { nome: "Salário",              tipo: "receita", cor: "#3FB57F", subcategorias: ["13º salário", "Férias", "Bônus / PLR"] },
+      { nome: "Renda Extra",          tipo: "receita", cor: "#69C895", subcategorias: ["Freelance", "Vendas", "Comissões"] },
+      { nome: "Investimentos",        tipo: "receita", cor: "#8FCBA8", subcategorias: ["Dividendos", "Juros / Renda Fixa", "Aluguel recebido"] },
+      { nome: "Benefícios",           tipo: "receita", cor: "#A8D9B8", subcategorias: ["Vale-refeição", "Vale-alimentação", "Auxílios"] },
+      { nome: "Reembolsos",           tipo: "receita", cor: "#98C9A3" },
+      { nome: "Outras Receitas",      tipo: "receita", cor: "#B5D6B2" },
+      // ── DESPESAS · casa ───────────────────────────────────────
+      { nome: "Moradia",              tipo: "despesa", cor: "#C9A574", subcategorias: ["Aluguel / Financiamento", "Condomínio", "IPTU", "Manutenção / Reforma", "Móveis / Decoração"] },
+      { nome: "Contas de Casa",       tipo: "despesa", cor: "#E8B04B", subcategorias: ["Luz", "Água", "Gás", "Internet", "Celular"] },
+      // ── alimentação ───────────────────────────────────────────
+      { nome: "Mercado",              tipo: "despesa", cor: "#E07A5F", subcategorias: ["Feira", "Padaria", "Açougue", "Limpeza / Higiene"] },
+      { nome: "Restaurantes & Delivery", tipo: "despesa", cor: "#D86F55", subcategorias: ["Restaurante", "Delivery / iFood", "Lanches / Café"] },
+      // ── transporte ────────────────────────────────────────────
+      { nome: "Transporte",           tipo: "despesa", cor: "#7AA0C4", subcategorias: ["Combustível", "Uber / Táxi", "Estacionamento", "Pedágio", "Transporte público"] },
+      { nome: "Carro",                tipo: "despesa", cor: "#6F94B8", subcategorias: ["Manutenção", "IPVA / Licenciamento", "Seguro", "Lavagem"] },
+      // ── saúde & pessoas ───────────────────────────────────────
+      { nome: "Saúde",                tipo: "despesa", cor: "#D96D7A", subcategorias: ["Plano de saúde", "Farmácia", "Consultas / Exames", "Dentista", "Terapia"] },
+      { nome: "Academia & Esporte",   tipo: "despesa", cor: "#C95F6E", subcategorias: ["Mensalidade", "Suplementos", "Equipamentos"] },
+      { nome: "Educação",             tipo: "despesa", cor: "#A07ED1", subcategorias: ["Faculdade / Escola", "Cursos", "Livros", "Material"] },
+      { nome: "Filhos",               tipo: "despesa", cor: "#9D8AC4", subcategorias: ["Escola", "Mesada", "Roupas", "Brinquedos", "Atividades"] },
+      { nome: "Pets",                 tipo: "despesa", cor: "#A98BC0", subcategorias: ["Ração", "Veterinário", "Banho & Tosa"] },
+      // ── estilo de vida ────────────────────────────────────────
+      { nome: "Lazer & Viagens",      tipo: "despesa", cor: "#F2B65A", subcategorias: ["Cinema / Shows", "Viagens", "Hobbies", "Festas"] },
+      { nome: "Vestuário & Beleza",   tipo: "despesa", cor: "#C79BD6", subcategorias: ["Roupas / Calçados", "Cabelo / Barba", "Cosméticos"] },
+      { nome: "Assinaturas & Apps",   tipo: "despesa", cor: "#6FA8C9", subcategorias: ["Streaming", "Música", "Apps / IA", "Software"] },
+      { nome: "Presentes & Doações",  tipo: "despesa", cor: "#9AA0A6", subcategorias: ["Presentes", "Doações / Dízimo"] },
+      // ── financeiro ────────────────────────────────────────────
+      { nome: "Impostos & Tarifas",   tipo: "despesa", cor: "#B85C4E", subcategorias: ["Imposto de Renda", "Tarifas bancárias", "Anuidade de cartão", "Multas"] },
+      { nome: "Seguros",              tipo: "despesa", cor: "#8E7AB5", subcategorias: ["Vida", "Residencial"] },
+      { nome: "Dívidas & Empréstimos", tipo: "despesa", cor: "#A88B5F", subcategorias: ["Parcelas", "Juros / Encargos"] },
+      { nome: "Investimentos & Reserva", tipo: "despesa", cor: "#7FA58C", subcategorias: ["Aportes", "Reserva de emergência"] },
+      { nome: "Imprevistos",          tipo: "despesa", cor: "#777E85" },
+      { nome: "Outros",               tipo: "despesa", cor: "#8A8A93" },
+    ],
+  },
   {
     id: "pf-essencial",
     nome: "Pessoa Física Essencial",

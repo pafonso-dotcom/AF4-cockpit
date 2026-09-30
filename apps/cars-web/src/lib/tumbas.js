@@ -41,6 +41,29 @@ export function comTumbas(tumbas, colecao, ids, agora = Date.now()) {
   return { ...base, [colecao]: col };
 }
 
+// Remove lápides de ids que VOLTARAM à vida (ex.: "Desfazer" de uma exclusão,
+// restauração de backup, item recriado). Sem isso, o item restaurado seria
+// morto pela própria lápide na próxima fusão de sync (pego em 2026-09-30).
+export function semTumbas(tumbas, colecao, ids) {
+  const col = tumbas?.[colecao];
+  if (!col || !ids || !ids.length) return tumbas || {};
+  const vivos = { ...col };
+  let mudou = false;
+  for (const id of ids) if (id != null && vivos[id] != null) { delete vivos[id]; mudou = true; }
+  if (!mudou) return tumbas;
+  const out = { ...tumbas };
+  if (Object.keys(vivos).length) out[colecao] = vivos;
+  else delete out[colecao];
+  return out;
+}
+
+// Ids presentes na lista nova e ausentes na anterior (= foram [re]criados).
+export function idsAdicionados(prev, nova) {
+  if (!Array.isArray(nova) || nova.length === 0) return [];
+  const antes = new Set((Array.isArray(prev) ? prev : []).map(x => x && x.id).filter(id => id != null));
+  return nova.map(x => x && x.id).filter(id => id != null && !antes.has(id));
+}
+
 // União das lápides de dois estados (fusão de sync) — carimbo mais novo vence.
 export function unirTumbas(a, b, agora = Date.now()) {
   const pa = podarTumbas(a, agora);

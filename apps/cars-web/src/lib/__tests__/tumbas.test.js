@@ -88,3 +88,24 @@ describe("fusão respeita lápides — o bug do 'lançamento que volta'", () => 
     expect(out.transacoes.map(t => t.id)).toEqual(["a", "b"]);
   });
 });
+
+describe("semTumbas / idsAdicionados — item que volta limpa a lápide (2026-09-30)", () => {
+  const { semTumbas, idsAdicionados } = require("../tumbas.js");
+
+  it("idsAdicionados detecta o que [re]apareceu", () => {
+    expect(idsAdicionados([{ id: "a" }], [{ id: "a" }, { id: "b" }])).toEqual(["b"]);
+    expect(idsAdicionados([], [{ id: "x" }])).toEqual(["x"]);
+    expect(idsAdicionados([{ id: "a" }], [{ id: "a" }])).toEqual([]);
+  });
+
+  it("semTumbas remove só as lápides dos ids que voltaram", () => {
+    const t = { transacoes: { a: 1, b: 2 }, fixas: { f: 3 } };
+    const r = semTumbas(t, "transacoes", ["a"]);
+    expect(r.transacoes).toEqual({ b: 2 });
+    expect(r.fixas).toEqual({ f: 3 });
+    // coleção que zera some do mapa
+    expect(semTumbas(r, "transacoes", ["b"]).transacoes).toBeUndefined();
+    // sem lápide correspondente = mesmo objeto (sem churn)
+    expect(semTumbas(t, "transacoes", ["zzz"])).toBe(t);
+  });
+});
