@@ -45,6 +45,9 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
     setPlForm(f => ({ ...f, descricao: "", valor: "" }));
   };
   const plDel = (id) => setPlanilhaLivre?.((planilhaLivre || []).filter(l => l.id !== id));
+  // Mobile: os botões da linha ficam ESCONDIDOS — tocar na linha revela as
+  // ações (pedido 2026-09-30 "corta os botões"; eles comiam a descrição).
+  const [plAcoesId, setPlAcoesId] = useState(null);
   // ✓ Dar baixa: a linha vira TRANSAÇÃO REAL na conta (compensada — mexe no
   // saldo de verdade) e sai da planilha (pedido 2026-09-30).
   const plBaixar = async (l) => {
@@ -290,13 +293,26 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
   const gradient = gradByName(conta.instituicao || conta.nome, conta.cor);
 
   return (
-    <div className="fade-up py-8 px-6">
+    <div className="fade-up py-8 px-6 conta-extrato-page">
       {/* Linha de topo: Voltar (esq.) + ações Nova transação · PDF · Conferir (dir.) */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
         <style>{`
           /* Topo compacto no celular: os 4 botões cabem em 2 linhas curtas em
              vez de empilhar um por linha (pedido 2026-09-30, tela do extrato). */
           @media (max-width: 560px) {
+            /* TELA INTEIRA (pedido 2026-09-30): anula o px-6 da página + o
+               px-6 do wrapper do App (24+24px por lado) e dá um gutter fino
+               de 10px só onde precisa; lista, planilha e o card da conta vão
+               de borda a borda (cantos retos nas laterais). */
+            .conta-extrato-page { margin-left: -48px; margin-right: -48px; padding-left: 0 !important; padding-right: 0 !important; }
+            .conta-extrato-page > * { margin-left: 10px; margin-right: 10px; }
+            .conta-extrato-page > .extrato-lista,
+            .conta-extrato-page > .pl-card,
+            .conta-extrato-page > .conta-hero {
+              margin-left: 0 !important; margin-right: 0 !important;
+              border-radius: 0 !important; border-left-width: 0; border-right-width: 0;
+            }
+            .conta-extrato-page > .conta-hero { border-left-width: 4px !important; }
             .extrato-topo-acoes button { padding: 7px 10px !important; font-size: 9.5px !important; letter-spacing: .06em !important; gap: 4px !important; }
             /* Pedido 2026-09-30: no celular, Nova transação e Conferir saem
                do topo (a linha fica só Voltar + PDF). No desktop continuam. */
@@ -748,9 +764,16 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
       {/* 📋 PLANILHA LIVRE — rascunho estilo Excel, por conta. Coleção própria:
           NÃO entra em saldo, patrimônio, a pagar, fluxo nem relatórios. */}
       {vista === "planilha" && (
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
+        <div className="pl-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
+          <style>{`
+            @media (max-width: 560px) {
+              .pl-acoes { display: none !important; }
+              .pl-acoes.aberta { display: flex !important; width: 100%; justify-content: flex-end; padding-top: 4px; }
+              .pl-row { cursor: pointer; }
+            }
+          `}</style>
           <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 10 }}>
-            📋 Rascunho livre desta conta — <b>não entra</b> em saldos, patrimônio nem relatórios. Use como planilha de planejamento.
+            📋 Rascunho livre desta conta — <b>não entra</b> em saldos, patrimônio nem relatórios. No celular, <b>toque numa linha</b> pra ver as ações (⧉ duplicar · ✓ baixa · 🗑).
           </div>
           {/* Adicionar linha */}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
@@ -808,7 +831,8 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                         </span>
                       </div>
                       {linhas.map(l => (
-                <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 6px", borderBottom: `1px solid ${T.border}55` }}>
+                <div key={l.id} className="pl-row" onClick={() => setPlAcoesId(a => a === l.id ? null : l.id)}
+                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 6px", borderBottom: `1px solid ${T.border}55`, flexWrap: "wrap" }}>
                   <span className="num" style={{ fontSize: 11, color: T.muted, fontFamily: T.mono, flexShrink: 0 }}>
                     {String(l.data || "").slice(8, 10)}/{String(l.data || "").slice(5, 7)}/{String(l.data || "").slice(2, 4)}
                   </span>
@@ -816,6 +840,9 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                   <span className="num" style={{ fontSize: 13.5, fontWeight: 700, color: l.tipo === "entrada" ? T.green : T.red, flexShrink: 0 }}>
                     {l.tipo === "entrada" ? "+ " : "− "}{hidden ? "•••" : fmt(l.valor)}
                   </span>
+                  <span className={`pl-acoes${plAcoesId === l.id ? " aberta" : ""}`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                   <button onClick={() => { setPlForm({ data: l.data || new Date().toISOString().slice(0, 10), descricao: l.descricao, valor: String(l.valor), tipo: l.tipo }); toast.info("Linha copiada pro formulário — ajusta a DATA e toca em Adicionar."); try { document.querySelector('input[type="date"]')?.focus(); } catch {} }}
                           title="Duplicar: copia pro formulário pra você só mudar a data e Adicionar"
                           style={{ background: "transparent", border: `1px solid ${T.border}`, color: T.muted,
@@ -833,6 +860,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                           style={{ background: "transparent", border: "none", color: T.red, cursor: "pointer", padding: 4, flexShrink: 0 }}>
                     <Trash2 size={13} />
                   </button>
+                  </span>
                 </div>
                       ))}
                     </React.Fragment>
