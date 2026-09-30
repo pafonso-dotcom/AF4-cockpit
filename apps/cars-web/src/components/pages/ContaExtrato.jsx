@@ -412,7 +412,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center",
         marginBottom: 10, padding: "0 2px",
       }}>
-        {setPlanilhaLivre && (
+        {setPlanilhaLivre && conta.planilha && (
           <button onClick={() => setVista(v => v === "planilha" ? "extrato" : "planilha")}
                   title="Planilha livre da conta — rascunho que NÃO entra em saldos nem relatórios"
                   style={{
