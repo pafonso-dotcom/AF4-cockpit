@@ -4,7 +4,7 @@
 // - /api/* e APIs externas → bypass total (sem cache, sem intercept)
 // Sempre que mudar a UI, bump a versão CACHE pra invalidar tudo do cliente.
 
-const CACHE = "numvi-icone-v1789507517";
+const CACHE = "af4-v1790780366";
 const PRECACHE = ["./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
@@ -43,7 +43,10 @@ self.addEventListener("fetch", (e) => {
   // Navegação: NETWORK-FIRST (HTML sempre fresco)
   if (isNavigation) {
     e.respondWith(
-      fetch(e.request)
+      // cache: "no-store" fura o CACHE HTTP do navegador (não só o Cache
+      // Storage) — sem isso o iOS devolvia o index velho e o "Atualizar app"
+      // voltava pra mesma versão (bug 2026-09-30).
+      fetch(e.request, { cache: "no-store" })
         .then((res) => {
           if (res && res.status === 200) {
             const clone = res.clone();
