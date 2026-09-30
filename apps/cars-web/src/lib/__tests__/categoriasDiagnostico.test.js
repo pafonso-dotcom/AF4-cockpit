@@ -136,3 +136,49 @@ describe("fundirTodasFilhas (unificar tudo de uma vez)", () => {
     expect(r.transacoes.find(t => t.id === "t3").categoria).toBe("Lazer");
   });
 });
+
+describe("renomearNosLancamentos — rename propaga (2026-09-30)", () => {
+  it("troca a categoria em transações, fixas, parcelamentos e dívidas", () => {
+    const { renomearNosLancamentos } = require("../categoriasDiagnostico.js");
+    const r = renomearNosLancamentos("Mercado", "Alimentação", {
+      transacoes: [{ id: "t1", categoria: "Mercado" }, { id: "t2", categoria: "Lazer" }],
+      fixas: [{ id: "f1", categoria: "Mercado " }],          // trim casa
+      parcelamentos: [{ id: "p1", categoria: "Mercado" }],
+      dividas: [{ id: "d1", categoria: "mercado" }],         // caixa diferente NÃO casa (exato)
+    });
+    expect(r.transacoes[0].categoria).toBe("Alimentação");
+    expect(r.transacoes[1].categoria).toBe("Lazer");
+    expect(r.fixas[0].categoria).toBe("Alimentação");
+    expect(r.parcelamentos[0].categoria).toBe("Alimentação");
+    expect(r.dividas[0].categoria).toBe("mercado");
+    expect(r.n).toBe(3);
+  });
+});
+
+describe("arrumacaoGeral — faxina de um clique (2026-09-30)", () => {
+  it("unifica duplicadas, adota subs órfãs, cria fora-do-cadastro e corrige grafias", () => {
+    const { arrumacaoGeral } = require("../categoriasDiagnostico.js");
+    const r = arrumacaoGeral(
+      { categorias, transacoes, fixas: [{ id: "f1", categoria: "mercado " }], parcelamentos: [], dividas: [] },
+      { novoId: (() => { let i = 0; return () => `novo-${++i}`; })() }
+    );
+    // duplicada "mercado " unificada na "Mercado"
+    expect(r.categorias.find(c => c.id === "c2")).toBeUndefined();
+    expect(r.resumo.unificadas).toBe(1);
+    expect(r.transacoes.find(t => t.id === "t3").categoria).toBe("Mercado");
+    expect(r.fixas[0].categoria).toBe("Mercado"); // fixa re-apontada também
+    // sub órfã "Padaria" adotada em Mercado
+    const mercado = r.categorias.find(c => c.id === "c1");
+    expect(mercado.subcategorias.map(s => s.nome)).toContain("Padaria");
+    expect(r.resumo.subs).toBe(1);
+    // fora do cadastro criadas com tipo sugerido
+    const nomes = r.categorias.map(c => c.nome);
+    expect(nomes).toContain("Farmácia");
+    expect(nomes).toContain("Freelas");
+    expect(r.categorias.find(c => c.nome === "Freelas").tipo).toBe("receita");
+    expect(r.resumo.criadas).toBe(2);
+    // nada de duplicata sobrando e "sem uso" preservada
+    expect(nomes).toContain("Assinaturas");
+    expect(diagnosticoCategorias({ categorias: r.categorias, transacoes: r.transacoes }).totalProblemas).toBe(0);
+  });
+});

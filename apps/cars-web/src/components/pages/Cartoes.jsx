@@ -1011,17 +1011,33 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                       )}
                   </div>
                   {/* Escolher o MÊS da fatura importada em aberto — conserta
-                      importação que caiu no mês errado (pedido 2026-09-30). */}
-                  {c.faturaImportada && !c.faturaImportada.paga && (
-                    <div onClick={(e) => e.stopPropagation()}
-                         style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: T.muted, flexWrap: "wrap" }}>
-                      <span>🧾 Fatura importada ({hidden ? "•••" : fmt(Number(c.faturaImportada.valorTotal) || 0)}) · mês:</span>
-                      <input type="month" value={c.faturaImportada.competencia || mesAtualKey()}
-                             onChange={(e) => moverFaturaMes(c, e.target.value)}
-                             title="Mês em que esta fatura vence (o card mostra 'A pagar · mês'). Mude aqui se a importação caiu no mês errado."
-                             style={{ fontSize: 11.5, padding: "3px 8px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.bg, color: T.ink }} />
-                    </div>
-                  )}
+                      importação que caiu no mês errado (pedido 2026-09-30).
+                      Selects de mês+ano em vez de input type="month": o Safari
+                      não suporta month e virava texto travado (bug relatado). */}
+                  {c.faturaImportada && !c.faturaImportada.paga && (() => {
+                    const comp = c.faturaImportada.competencia || mesAtualKey();
+                    const [anoC, mesC] = comp.split("-").map(Number);
+                    const anoAtual = new Date().getFullYear();
+                    const anos = [...new Set([anoC, anoAtual - 1, anoAtual, anoAtual + 1])]
+                      .filter(a => a >= 2000).sort();
+                    const selSty = { fontSize: 12, padding: "4px 8px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.bg, color: T.ink, cursor: "pointer" };
+                    const mudar = (ano, mes) => moverFaturaMes(c, `${ano}-${String(mes).padStart(2, "0")}`);
+                    return (
+                      <div onClick={(e) => e.stopPropagation()}
+                           style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: T.muted, flexWrap: "wrap" }}>
+                        <span title="Mês em que esta fatura vence — o card mostra 'A pagar · mês'. Mude se a importação caiu no mês errado.">
+                          🧾 Fatura importada ({hidden ? "•••" : fmt(Number(c.faturaImportada.valorTotal) || 0)}) · mês:
+                        </span>
+                        <select value={mesC || 1} onChange={(e) => mudar(anoC, e.target.value)} style={selSty}>
+                          {["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+                            .map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+                        </select>
+                        <select value={anoC} onChange={(e) => mudar(e.target.value, mesC || 1)} style={selSty}>
+                          {anos.map(a => <option key={a} value={a}>{a}</option>)}
+                        </select>
+                      </div>
+                    );
+                  })()}
                   <ParcelasDoCartao
                     cartao={c}
                     parcelamentos={parcelamentos}
