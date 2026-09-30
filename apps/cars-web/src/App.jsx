@@ -5,7 +5,7 @@ import { uid } from "./lib/format.js";
 import { somaContasBRL } from "./lib/cambio.js";
 import { MESES_LONGO } from "./lib/meses.js";
 import { loadAll, saveAll, loadKeys, saveKeys, flushSave } from "./lib/storage.js";
-import { comTumbas, idsRemovidos } from "./lib/tumbas.js";
+import { comTumbas, semTumbas, idsRemovidos, idsAdicionados } from "./lib/tumbas.js";
 import Modal from "./components/ui/Modal.jsx";
 import BlocoNotasPaginado from "./components/ui/BlocoNotasPaginado.jsx";
 import { API, COIN_MAP } from "./lib/api.js";
@@ -192,12 +192,16 @@ export default function App() {
   // fixa de setembro excluída voltava ao atualizar). Agora TODAS as coleções
   // financeiras com id são rastreadas. O flush fica FORA do updater
   // (updaters devem ser puros).
-  const tumbasPendentesRef = useRef({}); // { colecao: [ids] }
+  const tumbasPendentesRef = useRef({ mortos: {}, vivos: {} }); // { colecao: [ids] }
   const criarSetterComTumbas = (colecao, setBase) => (next) => {
     setBase(prev => {
       const nova = typeof next === "function" ? next(prev) : next;
       const removidos = idsRemovidos(prev, nova);
-      if (removidos.length) (tumbasPendentesRef.current[colecao] ||= []).push(...removidos);
+      if (removidos.length) (tumbasPendentesRef.current.mortos[colecao] ||= []).push(...removidos);
+      // Item que VOLTOU (Desfazer, restauração, recriação) limpa a própria
+      // lápide — senão a fusão do sync o mataria de novo (2026-09-30).
+      const voltaram = idsAdicionados(prev, nova);
+      if (voltaram.length) (tumbasPendentesRef.current.vivos[colecao] ||= []).push(...voltaram);
       return nova;
     });
   };
@@ -205,14 +209,24 @@ export default function App() {
   // updater empurra as pendências durante o render e este efeito as grava.
   // (queueMicrotask era frágil: o React às vezes processa cada setState em
   // flush separado e a pendência ficava órfã — pego no smoke de 30/09.)
+  // Ordem: primeiro grava as lápides dos mortos, depois limpa as dos vivos —
+  // um "excluir + desfazer" no mesmo lote termina vivo e sem lápide.
   useEffect(() => {
-    const pend = tumbasPendentesRef.current;
-    const lote = {};
-    for (const c of Object.keys(pend)) {
-      if (pend[c] && pend[c].length) lote[c] = pend[c].splice(0);
-    }
-    if (!Object.keys(lote).length) return;
-    setTumbas(t => Object.entries(lote).reduce((acc, [c, ids]) => comTumbas(acc, c, ids), t));
+    const drena = (mapa) => {
+      const lote = {};
+      for (const c of Object.keys(mapa)) {
+        if (mapa[c] && mapa[c].length) lote[c] = mapa[c].splice(0);
+      }
+      return lote;
+    };
+    const mortos = drena(tumbasPendentesRef.current.mortos);
+    const vivos = drena(tumbasPendentesRef.current.vivos);
+    if (!Object.keys(mortos).length && !Object.keys(vivos).length) return;
+    setTumbas(t => {
+      let out = Object.entries(mortos).reduce((acc, [c, ids]) => comTumbas(acc, c, ids), t);
+      out = Object.entries(vivos).reduce((acc, [c, ids]) => semTumbas(acc, c, ids), out);
+      return out;
+    });
   });
   /* eslint-disable react-hooks/exhaustive-deps */
   const setTransacoes = useCallback(criarSetterComTumbas("transacoes", setTransacoesBase), []);

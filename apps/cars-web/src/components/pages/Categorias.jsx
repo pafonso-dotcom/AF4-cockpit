@@ -540,7 +540,12 @@ export default function Categorias({
           pacote.categorias.forEach(c => {
             if (!selecionadas[`${pacote.id}:${c.nome}`]) return;
             if (categorias.some(x => x.nome.toLowerCase() === c.nome.toLowerCase())) return;
-            novas.push({ ...c, id: uid() });
+            // Subcategorias do pacote vêm como nomes ("Luz") — converte pro
+            // formato do app ({ id, nome }).
+            novas.push({
+              ...c, id: uid(),
+              subcategorias: (c.subcategorias || []).map(s => ({ id: uid(), nome: typeof s === "string" ? s : s.nome })),
+            });
           });
           if (novas.length === 0) {
             toast.error("Nenhuma categoria selecionada (ou todas já existem).");
