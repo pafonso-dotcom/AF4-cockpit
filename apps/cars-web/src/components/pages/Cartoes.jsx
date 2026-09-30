@@ -630,6 +630,21 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     });
   };
 
+  // Corrige o MÊS de uma fatura importada em aberto (pedido 2026-09-30: a do
+  // Mercado Livre entrou como Set, mas vence 04/10 → é Out). Move competência
+  // e vencimento juntos; os itens importados e as parcelas não mudam.
+  const moverFaturaMes = (cartao, novoMes) => {
+    if (!/^\d{4}-\d{2}$/.test(novoMes || "")) return;
+    const fi = cartao?.faturaImportada;
+    if (!fi || fi.paga) return;
+    const diaVenc = String(fi.vencimento || "").slice(8, 10)
+      || String(Number(cartao.vencimento) || 10).padStart(2, "0");
+    setCartoes(cartoes.map(x => x.id === cartao.id
+      ? { ...x, faturaImportada: { ...fi, competencia: novoMes, vencimento: `${novoMes}-${diaVenc}` } }
+      : x));
+    toast.success(`Fatura de ${cartao.nome} movida para ${nomeMesCurto(novoMes)}. O card agora mostra "A pagar · ${nomeMesCurto(novoMes)}".`);
+  };
+
   // Estorna o pagamento de uma fatura importada: devolve o valor à conta,
   // remove a baixa, volta os itens a pendentes, desmarca as parcelas do mês e
   // marca a fatura como NÃO paga. Os lançamentos importados são mantidos.
@@ -995,6 +1010,18 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                         <span>Fatura do mês <strong style={{ color: T.gold }} className="num">{hidden ? "•••" : fmt(aPagar)}</strong> · a pagar</span>
                       )}
                   </div>
+                  {/* Escolher o MÊS da fatura importada em aberto — conserta
+                      importação que caiu no mês errado (pedido 2026-09-30). */}
+                  {c.faturaImportada && !c.faturaImportada.paga && (
+                    <div onClick={(e) => e.stopPropagation()}
+                         style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: T.muted, flexWrap: "wrap" }}>
+                      <span>🧾 Fatura importada ({hidden ? "•••" : fmt(Number(c.faturaImportada.valorTotal) || 0)}) · mês:</span>
+                      <input type="month" value={c.faturaImportada.competencia || mesAtualKey()}
+                             onChange={(e) => moverFaturaMes(c, e.target.value)}
+                             title="Mês em que esta fatura vence (o card mostra 'A pagar · mês'). Mude aqui se a importação caiu no mês errado."
+                             style={{ fontSize: 11.5, padding: "3px 8px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.bg, color: T.ink }} />
+                    </div>
+                  )}
                   <ParcelasDoCartao
                     cartao={c}
                     parcelamentos={parcelamentos}

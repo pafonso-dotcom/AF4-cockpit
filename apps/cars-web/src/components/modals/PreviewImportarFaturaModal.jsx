@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Check, Repeat, Smartphone, ShoppingBag, Link2, AlertCircle } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, uid, todayISO } from "../../lib/format.js";
@@ -13,9 +13,12 @@ import {
   brDateToISO,
   brDateToMonthISO,
 } from "../../lib/importarFatura.js";
+import { competenciaFaturaEsperada } from "../../lib/cartaoFatura.js";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
 import MoneyInput from "../ui/MoneyInput.jsx";
+
+const nomeMesCurto = (mk) => { const [, m] = String(mk || "").split("-").map(Number); return ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][(m || 1) - 1]; };
 
 /**
  * Modal de preview após análise IA da fatura.
@@ -81,15 +84,39 @@ export default function PreviewImportarFaturaModal({
     };
   }));
 
+  // Competência esperada pelo CICLO do cartão selecionado: a fatura em
+  // aberto vence na próxima ocorrência do dia de vencimento → esse é o mês
+  // dela (bug 2026-09-30: ML fecha dia 29/vence dia 4, importada dia 30/09
+  // caía em Set em vez de Out).
+  const cartaoObj = (cartoes || []).find(c => c.id === cartaoSelecionado);
+  const compEsperada = competenciaFaturaEsperada(cartaoObj, todayISO());
+
   // Competência (mês/ano) da fatura — editável. A IA às vezes erra o ANO
   // (lê 2024 numa fatura atual); como você está importando agora, se o ano
   // lido for passado assumimos o ano corrente. Você pode ajustar no campo.
-  const [competencia, setCompetencia] = useState(() => {
-    const m = brDateToMonthISO(analise.vencimento) || todayISO().slice(0, 7);
+  const compLida = (() => {
+    const m = brDateToMonthISO(analise.vencimento);
+    if (!m) return null;
     const [yy, mm] = m.split("-");
     const curY = new Date().getFullYear();
     return Number(yy) < curY ? `${curY}-${mm}` : m;
+  })();
+  const [compEditada, setCompEditada] = useState(false); // usuário mexeu no campo?
+  const [competencia, setCompetencia] = useState(() => {
+    // Sem vencimento legível na fatura, o ciclo do cartão manda; a leitura
+    // da IA só vence quando aponta um mês IGUAL ou À FRENTE do esperado
+    // (mês atrás do esperado = quase sempre leitura errada, não fatura velha).
+    const esperadaIni = competenciaFaturaEsperada(
+      (cartoes || []).find(c => c.id === cartaoInicial), todayISO());
+    if (compLida && (!esperadaIni || compLida >= esperadaIni)) return compLida;
+    return esperadaIni || compLida || todayISO().slice(0, 7);
   });
+  // Trocou o cartão sem ter mexido no mês → segue o ciclo do novo cartão.
+  useEffect(() => {
+    if (compEditada || !compEsperada) return;
+    if (!compLida || compLida < compEsperada) setCompetencia(compEsperada);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartaoSelecionado]);
   const mesFatura = competencia;
   const dataPagto = (() => {
     const venc = brDateToISO(analise.vencimento);
@@ -466,10 +493,21 @@ export default function PreviewImportarFaturaModal({
           </select>
         </Field>
 
-        <Field label="Competência da fatura (mês/ano)"
-               hint="Mês a que esta fatura se refere. Ajuste se a leitura automática errou o ano.">
-          <input type="month" value={competencia}
-                 onChange={e => setCompetencia(e.target.value)} />
+        <Field label="Mês da fatura (competência)" required
+               hint="É o mês do VENCIMENTO desta fatura — o card do cartão mostra 'A pagar · mês'. Ajuste aqui se não bater.">
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            <input type="month" value={competencia}
+                   onChange={e => { setCompEditada(true); setCompetencia(e.target.value); }} />
+            {compEsperada && compEsperada !== competencia && (
+              <button type="button"
+                onClick={() => { setCompEditada(true); setCompetencia(compEsperada); }}
+                title={`Pelo ciclo do cartão (vence dia ${cartaoObj?.vencimento}), a fatura em aberto é a de ${nomeMesCurto(compEsperada)}`}
+                style={{ fontSize: 11.5, fontWeight: 700, padding: "5px 10px", borderRadius: 100,
+                         background: `${T.gold}18`, border: `1px solid ${T.gold}66`, color: T.gold, cursor: "pointer", whiteSpace: "nowrap" }}>
+                ⚠ usar {nomeMesCurto(compEsperada)}
+              </button>
+            )}
+          </div>
         </Field>
 
         <div style={{

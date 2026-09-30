@@ -20,6 +20,27 @@ export function competenciaDaCompra(dataISO, fechamento) {
 }
 
 /**
+ * Competência ESPERADA da fatura que está aberta pra pagamento hoje
+ * (bug 2026-09-30: fatura do Mercado Livre importada dia 30/09 caía em
+ * Set, mas fecha dia 29 e vence dia 4 → é a fatura de Out).
+ *
+ * Regra: a fatura em aberto vence na PRÓXIMA ocorrência do dia de
+ * vencimento a partir de hoje — a competência é o mês desse vencimento.
+ * Sem dia de vencimento cadastrado, devolve null (quem chama decide o
+ * fallback).
+ */
+export function competenciaFaturaEsperada(cartao, hojeISO) {
+  const venc = Number(cartao?.vencimento);
+  if (!(venc >= 1 && venc <= 31)) return null;
+  const hoje = /^\d{4}-\d{2}-\d{2}/.test(String(hojeISO || "")) ? String(hojeISO).slice(0, 10) : null;
+  if (!hoje) return null;
+  const [y, m, d] = hoje.split("-").map(Number);
+  // vira o mês quando o dia de vencimento deste mês já passou
+  const alvo = new Date(y, (m - 1) + (d > venc ? 1 : 0), 1);
+  return `${alvo.getFullYear()}-${String(alvo.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
  * Soma das PARCELAS em aberto de um cartão que vencem em monthKey.
  * Mesma regra da tela Cartões: parcela N cai em dataPrimeira + (N-1) meses
  * (ou dataCompra + N meses, sem dataPrimeira).
