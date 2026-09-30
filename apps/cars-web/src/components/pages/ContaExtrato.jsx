@@ -245,6 +245,13 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
     <div className="fade-up py-8 px-6">
       {/* Linha de topo: Voltar (esq.) + ações Nova transação · PDF · Conferir (dir.) */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+        <style>{`
+          /* Topo compacto no celular: os 4 botões cabem em 2 linhas curtas em
+             vez de empilhar um por linha (pedido 2026-09-30, tela do extrato). */
+          @media (max-width: 560px) {
+            .extrato-topo-acoes button { padding: 7px 10px !important; font-size: 9.5px !important; letter-spacing: .06em !important; gap: 4px !important; }
+          }
+        `}</style>
         {!embutido ? (
           <button onClick={onVoltar}
                   style={{
@@ -257,7 +264,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             <ArrowLeft size={13} /> Voltar para contas
           </button>
         ) : <span />}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div className="extrato-topo-acoes" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <button onClick={() => setTxModal({ modo: "novo" })}
                   style={{
                     background: `${conta.cor || T.gold}22`, color: conta.cor || T.gold,
@@ -362,7 +369,10 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             <div style={{ marginLeft: "auto", textAlign: "right" }}>
               <div style={{ fontSize: 13, color: T.ink, fontWeight: 600 }}>extrato conta / lançamentos</div>
               <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
-                período de visualização: {br(ini)} até {br(fim)}
+                {/* um dia só → uma data (o "01/12 até 01/12" confundia no celular) */}
+                {!ini ? "sem lançamentos no período"
+                  : ini === fim ? `dia ${br(ini)}`
+                  : `período: ${br(ini)} até ${br(fim)}`}
               </div>
             </div>
           );
@@ -435,7 +445,17 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             @media (hover: none) { .extrato-row .acoes { opacity: 1; } }
             /* No celular o saldo por linha some (é redundante com "Saldo do dia")
                e libera espaço pra descrição não quebrar em várias linhas. */
-            @media (max-width: 560px) { .extrato-saldo-linha { display: none !important; } }
+            @media (max-width: 560px) {
+              .extrato-saldo-linha { display: none !important; }
+              /* Linha mais densa (pedido 2026-09-30): ações menores, sem o
+                 botão Duplicar (raro no dedo), valor um tico maior. O rodapé
+                 "Saldo do dia" some — já está no cabeçalho do dia. */
+              .extrato-row { padding: 7px 10px !important; gap: 6px !important; }
+              .extrato-row .acoes button { padding: 5px !important; }
+              .extrato-row .acao-dup { display: none !important; }
+              .extrato-row .extrato-valor { font-size: 14.5px !important; }
+              .extrato-saldo-dia-footer { display: none !important; }
+            }
             /* Números do extrato ~30% maiores no desktop; no mobile ficam como
                estão (a linha é apertada). zoom preserva as proporções. */
             @media (min-width: 769px) { .extrato-lista .num { zoom: 1.3; } }
@@ -562,7 +582,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
 
                       {/* Valor · saldo (mesma linha; valor primeiro e saldo na ponta, igual ao banco) */}
                       <div style={{ textAlign: "right", flexShrink: 0, display: "inline-flex", alignItems: "baseline", gap: 8, whiteSpace: "nowrap" }}>
-                        <span className="num" style={{ color: corTipo, fontWeight: 700, fontSize: 13 }}>
+                        <span className="num extrato-valor" style={{ color: corTipo, fontWeight: 700, fontSize: 13 }}>
                           {t.tipo === "receita" ? "+ " : "− "}{hidden ? "•••" : fmt(t.valor)}
                         </span>
                         <span className="num extrato-saldo-linha" style={{ fontSize: 10.5, color: T.faint }}
@@ -577,6 +597,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                           <Edit3 size={14} />
                         </button>
                         <button onClick={() => setTxModal({ modo: "duplicar", tx: t })}
+                                className="acao-dup"
                                 title="Duplicar lançamento (abre pré-preenchido com a data de hoje)"
                                 style={{ ...iconBtn, color: T.gold }}>
                           <Copy size={14} />
@@ -589,9 +610,10 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
                   );
                 })}
 
-                {/* SALDO DO DIA — saldo de fechamento do dia, igual ao banco */}
+                {/* SALDO DO DIA — saldo de fechamento do dia, igual ao banco.
+                    No celular fica só no cabeçalho do dia (rodapé duplicava). */}
                 {!recolhido && saldoDoDiaMap.has(grupo.dia) && (
-                  <div style={{
+                  <div className="extrato-saldo-dia-footer" style={{
                     display: "flex", justifyContent: "space-between", alignItems: "center",
                     padding: "5px 14px", borderBottom: `1px solid ${T.border}`,
                     background: `${T.gold}0d`,
