@@ -49,3 +49,30 @@ describe("mesclarEstado — iPhone de manhã × PC à tarde não se engolem", ()
     expect(estado.contas[0].saldo).toBe(10);
   });
 });
+
+describe("fixa excluída não ressuscita (bug 2026-09-30)", () => {
+  it("lápides de fixas/fixaOcorrencias filtram o que a nuvem ainda tem", async () => {
+    const { fundirEstados } = await import("../storage.js");
+    const agora = Date.now();
+    const local = {
+      _savedAt: agora,
+      fixas: [],
+      fixaOcorrencias: [{ id: "occ-a-2026-10", fixaId: "a", mes: "2026-10" }],
+      tumbas: {
+        fixas: { "a": agora },
+        fixaOcorrencias: { "occ-a-2026-09": agora },
+      },
+    };
+    const nuvem = {
+      _savedAt: agora - 60_000,
+      fixas: [{ id: "a", nome: "UNIMED" }],
+      fixaOcorrencias: [
+        { id: "occ-a-2026-09", fixaId: "a", mes: "2026-09" },
+        { id: "occ-a-2026-10", fixaId: "a", mes: "2026-10" },
+      ],
+    };
+    const r = fundirEstados(local, nuvem);
+    expect(r.fixas).toEqual([]);                                // UNIMED não volta
+    expect(r.fixaOcorrencias.map(o => o.id)).toEqual(["occ-a-2026-10"]); // set/26 morta, out/26 fica
+  });
+});
