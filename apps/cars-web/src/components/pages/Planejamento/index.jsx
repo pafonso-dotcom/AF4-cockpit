@@ -75,7 +75,10 @@ export default function Planejamento(props) {
     (parcelamentos || []).forEach(p => {
       const total = p.totalParcelas || 0;
       if (total <= 0) return;
-      const valorPorParcela = (p.valorTotal || 0) / total;
+      // valorParcela explícito quando existe (senão valorTotal/total) — MESMA
+      // fórmula de Cartões/Painel/Patrimônio; recalcular por divisão fazia o
+      // "Total a pagar" divergir entre as telas (bug 2026-09-30, R$ 25 mil).
+      const valorPorParcela = Number(p.valorParcela) || (p.valorTotal || 0) / total;
       const pagas = new Set(p.parcelasPagas || []);
       const base = p.dataPrimeira || p.dataCompra;
       if (!base) return;
