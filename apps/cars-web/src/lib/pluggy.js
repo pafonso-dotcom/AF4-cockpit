@@ -30,6 +30,13 @@ async function chamar(caminho, opts = {}) {
   const headers = { "Content-Type": "application/json" };
   const pin = getPluggyPin();
   if (pin) headers["x-pluggy-pin"] = pin;
+  // O PIN fica salvo POR APARELHO/INSTALAÇÃO (localStorage, de propósito —
+  // segurança). O app instalado pela tela de início tem armazenamento
+  // SEPARADO do Safari, então uma instalação nova começa sem PIN — avisa
+  // certo em vez do genérico "PIN inválido" (susto de 2026-09-30).
+  if (!pin) {
+    throw new Error("O PIN da conexão bancária não está salvo NESTE aparelho/instalação (ele não sincroniza, por segurança). Vai em Configurações → APIs, digita o PIN e toca em Salvar.");
+  }
   let res;
   try {
     res = await fetch(`/api/pluggy/${caminho}`, { ...opts, headers });
@@ -37,7 +44,7 @@ async function chamar(caminho, opts = {}) {
     throw new Error("Sem conexão com o servidor — tenta de novo.");
   }
   const data = await res.json().catch(() => null);
-  if (res.status === 401) throw new Error("PIN da conexão bancária inválido — confere em Configurações → APIs.");
+  if (res.status === 401) throw new Error("PIN da conexão bancária não bate com o do servidor — confere em Configurações → APIs (cuidado com maiúscula automática do teclado) e, no Cloudflare, a variável PLUGGY_PIN do worker af4cockpit.");
   if (res.status === 501) throw new Error(data?.error || "Integração Pluggy não configurada no servidor.");
   if (!res.ok || data?.ok === false) throw new Error(data?.error || `Erro na conexão bancária (HTTP ${res.status}).`);
   return data;

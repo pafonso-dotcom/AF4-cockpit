@@ -66,9 +66,11 @@ export async function handlePluggy(request, env, fetchImpl = fetch) {
   if (!env.PLUGGY_CLIENT_ID || !env.PLUGGY_CLIENT_SECRET || !env.PLUGGY_PIN) {
     return json({ ok: false, error: "Integração Pluggy não configurada no servidor — defina os secrets PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET e PLUGGY_PIN no Worker (wrangler secret put)." }, 501);
   }
-  // PIN OBRIGATÓRIO (dados bancários)
-  const pin = request.headers.get("x-pluggy-pin") || "";
-  if (pin !== env.PLUGGY_PIN) {
+  // PIN OBRIGATÓRIO (dados bancários). Comparação com trim dos dois lados:
+  // espaço/quebra de linha colados junto no painel da Cloudflare (ou no
+  // campo do app) não podem derrubar a conexão (susto de 2026-09-30).
+  const pin = (request.headers.get("x-pluggy-pin") || "").trim();
+  if (pin !== String(env.PLUGGY_PIN).trim()) {
     return json({ ok: false, error: "PIN inválido ou ausente." }, 401);
   }
 
