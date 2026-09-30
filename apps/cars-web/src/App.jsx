@@ -875,7 +875,7 @@ export default function App() {
       )}
       {tab === "contas" && !contaAberta && (
         <div className="px-6 md:px-10">
-          <Contas contas={contas} setContas={setContas} hidden={hidden}
+          <Contas planilhaLivre={planilhaLivre} contas={contas} setContas={setContas} hidden={hidden}
                   transacoes={transacoes} setTransacoes={setTransacoes}
                   categorias={categorias}
                   escopoAtivo={escopoAtivo}
