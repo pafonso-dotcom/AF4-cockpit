@@ -496,8 +496,25 @@ export default function PreviewImportarFaturaModal({
         <Field label="Mês da fatura (competência)" required
                hint="É o mês do VENCIMENTO desta fatura — o card do cartão mostra 'A pagar · mês'. Ajuste aqui se não bater.">
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-            <input type="month" value={competencia}
-                   onChange={e => { setCompEditada(true); setCompetencia(e.target.value); }} />
+            {/* Selects de mês+ano (não input type="month": o Safari não
+                suporta e o campo virava texto travado). */}
+            {(() => {
+              const [anoC, mesC] = String(competencia || "").split("-").map(Number);
+              const anoAtual = new Date().getFullYear();
+              const anos = [...new Set([anoC, anoAtual - 1, anoAtual, anoAtual + 1])].filter(a => a >= 2000).sort();
+              const mudar = (ano, mes) => { setCompEditada(true); setCompetencia(`${ano}-${String(mes).padStart(2, "0")}`); };
+              return (
+                <>
+                  <select value={mesC || 1} onChange={e => mudar(anoC || anoAtual, e.target.value)} style={{ width: "auto" }}>
+                    {["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+                      .map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+                  </select>
+                  <select value={anoC || anoAtual} onChange={e => mudar(e.target.value, mesC || 1)} style={{ width: "auto" }}>
+                    {anos.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </>
+              );
+            })()}
             {compEsperada && compEsperada !== competencia && (
               <button type="button"
                 onClick={() => { setCompEditada(true); setCompetencia(compEsperada); }}

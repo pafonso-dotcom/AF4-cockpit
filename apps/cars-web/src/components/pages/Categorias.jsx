@@ -9,7 +9,7 @@ import { confirm } from "../../lib/confirm.js";
 import { PACOTES } from "../../lib/categoriasPacotes.js";
 import { filtrarPorEscopo } from "../../lib/escopo.js";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
-import { diagnosticoCategorias, aplicarUnificacao, fundirCategorias, fundirTodasFilhas } from "../../lib/categoriasDiagnostico.js";
+import { diagnosticoCategorias, aplicarUnificacao, fundirCategorias, fundirTodasFilhas, renomearNosLancamentos, arrumacaoGeral } from "../../lib/categoriasDiagnostico.js";
 import { sugerirOrcamentos } from "../../lib/sugerirOrcamentos.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
@@ -135,8 +135,24 @@ export default function Categorias({
     }
 
     if (form.id && categorias.find(c => c.id === form.id)) {
+      const antiga = categorias.find(c => c.id === form.id);
       setCategorias(categorias.map(c => c.id === form.id ? form : c));
-      toast.success("Categoria atualizada.");
+      // Renomeou? Propaga pra TUDO que já foi lançado com o nome antigo
+      // (pedido 2026-09-30) — transações, fixas, parcelamentos e dívidas.
+      const nomeAntigo = String(antiga?.nome || "").trim();
+      const nomeNovo = String(form.nome || "").trim();
+      if (nomeAntigo && nomeAntigo !== nomeNovo) {
+        const r = renomearNosLancamentos(nomeAntigo, nomeNovo, { transacoes, fixas, parcelamentos, dividas });
+        if (r.n > 0) {
+          setTransacoes?.(r.transacoes);
+          setFixas?.(r.fixas);
+          setParcelamentos?.(r.parcelamentos);
+          setDividas?.(r.dividas);
+        }
+        toast.success(`"${nomeAntigo}" agora é "${nomeNovo}" — ${r.n} lançamento(s) atualizados junto.`);
+      } else {
+        toast.success("Categoria atualizada.");
+      }
     } else {
       setCategorias([...categorias, { ...form, id: uid() }]);
       toast.success(`Categoria "${form.nome}" criada.`);
@@ -941,6 +957,29 @@ function DiagnosticoCategorias({
     toast.success(`"${item.subcategoria}" agora é subcategoria de ${item.categoria.nome}.`);
   };
 
+  // 🧹 Tudo de uma vez (pedido 2026-09-30: "organize ela pra mim"): aplica
+  // todas as correções seguras do diagnóstico num clique. Sem uso fica.
+  const arrumarTudo = async () => {
+    const partes = [];
+    if (diag.duplicadas.length) partes.push(`unificar ${diag.duplicadas.length} grupo(s) de duplicadas`);
+    if (diag.subOrfas.length) partes.push(`adotar ${diag.subOrfas.length} subcategoria(s) órfã(s)`);
+    if (diag.foraDoCadastro.length) partes.push(`criar ${diag.foraDoCadastro.length} categoria(s) fora do cadastro`);
+    const ok = await confirm({
+      title: "Arrumar tudo de uma vez?",
+      body: `Aplica todas as correções seguras: ${partes.join(", ")} e corrige grafias divergentes nos lançamentos ("mercado " → "Mercado"). Transações, fixas, parcelamentos e dívidas são atualizados juntos. Categorias sem uso NÃO são excluídas — excluir continua manual.`,
+      confirmLabel: "🧹 Arrumar tudo",
+    });
+    if (!ok) return;
+    const r = arrumacaoGeral({ categorias, transacoes, fixas, parcelamentos, dividas }, { cor: T.gold, novoId: uid });
+    setCategorias(r.categorias);
+    setTransacoes?.(r.transacoes);
+    setFixas?.(r.fixas);
+    setParcelamentos?.(r.parcelamentos);
+    setDividas?.(r.dividas);
+    const s = r.resumo;
+    toast.success(`Faxina feita ✅ ${s.unificadas} duplicada(s) unificada(s) · ${s.criadas} categoria(s) criada(s) · ${s.subs} subcategoria(s) adotada(s) · ${s.grafias} lançamento(s) com grafia corrigida.`, { duration: 9000 });
+  };
+
   const Linha = ({ children, acao, onAcao }) => (
     <div style={{
       display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
@@ -978,6 +1017,13 @@ function DiagnosticoCategorias({
 
       {aberto && (
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
+          {nAcao > 0 && (
+            <button onClick={arrumarTudo} className="btn-gold"
+                    title="Aplica todas as correções sugeridas abaixo de uma vez (sem excluir nada)"
+                    style={{ alignSelf: "flex-start", fontSize: 11.5, padding: "7px 14px" }}>
+              🧹 Arrumar tudo de uma vez ({nAcao})
+            </button>
+          )}
           {diag.foraDoCadastro.length > 0 && (
             <div>
               <div className="label-eyebrow" style={{ color: T.red, marginBottom: 6 }}>

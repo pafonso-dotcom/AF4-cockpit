@@ -132,6 +132,120 @@ export function aplicarUnificacao({ manter, remover }, { categorias = [], transa
   return { categorias: categoriasNovas, transacoes: transacoesNovas };
 }
 
+/** RENOMEAR categoria propagando pros lançamentos (pedido 2026-09-30:
+ *  "quando for alterado o nome da categoria que altere em tudo já lançado").
+ *  Puro: devolve as coleções com `categoria` trocada de nomeAntigo →
+ *  nomeNovo (comparação pelo nome exato, com trim) e o total trocado. */
+export function renomearNosLancamentos(nomeAntigo, nomeNovo, dados = {}) {
+  const { transacoes = [], fixas = [], parcelamentos = [], dividas = [] } = dados;
+  const antigo = String(nomeAntigo || "").trim();
+  const novo = String(nomeNovo || "").trim();
+  let n = 0;
+  const troca = (obj) => {
+    if (!obj || String(obj.categoria || "").trim() !== antigo) return obj;
+    n += 1;
+    return { ...obj, categoria: novo };
+  };
+  const r = {
+    transacoes: transacoes.map(troca),
+    fixas: fixas.map(troca),
+    parcelamentos: parcelamentos.map(troca),
+    dividas: dividas.map(troca),
+  };
+  return { ...r, n };
+}
+
+/** ARRUMAÇÃO GERAL — aplica de uma vez todas as correções seguras do
+ *  diagnóstico (pedido 2026-09-30: "organize ela pra mim"):
+ *   1. unifica TODAS as duplicadas (transações/fixas/parcelamentos/dívidas
+ *      re-apontadas pra que ficou);
+ *   2. adota as subcategorias órfãs na categoria certa;
+ *   3. cria as categorias usadas nos lançamentos mas fora do cadastro
+ *      (uma por nome — grafias diferentes do mesmo nome viram uma só);
+ *   4. corrige grafias divergentes nos lançamentos ("mercado " → "Mercado"
+ *      quando a cadastrada é "Mercado").
+ *  "Sem uso" NÃO é tocado (excluir é decisão do usuário). Puro. */
+export function arrumacaoGeral(dados = {}, { cor = "#c9a96b", novoId = () => `cat-${Math.random().toString(36).slice(2, 10)}` } = {}) {
+  let { categorias = [], transacoes = [], fixas = [], parcelamentos = [], dividas = [] } = dados;
+  const resumo = { unificadas: 0, subs: 0, criadas: 0, grafias: 0 };
+
+  const trocarNome = (deExato, para) => {
+    const t = (o) => o && String(o.categoria || "").trim() === deExato.trim() && o.categoria !== para
+      ? (resumo.grafias += 1, { ...o, categoria: para }) : o;
+    transacoes = transacoes.map(t); fixas = fixas.map(t);
+    parcelamentos = parcelamentos.map(t); dividas = dividas.map(t);
+  };
+
+  // 0. Nome cadastrado com espaço nas pontas → limpa e propaga.
+  for (const c of categorias) {
+    const limpo = String(c.nome || "").trim();
+    if (limpo && limpo !== c.nome) {
+      const sujo = c.nome;
+      categorias = categorias.map(x => x.id === c.id ? { ...x, nome: limpo } : x);
+      trocarNome(sujo, limpo);
+    }
+  }
+
+  // Uma correção por volta, recalculando o diagnóstico — assim a sub órfã de
+  // uma categoria recém-criada também entra (bug pego no smoke de 30/09).
+  for (let guard = 0; guard < 100; guard++) {
+    const d = diagnosticoCategorias({ categorias, transacoes });
+    if (d.totalProblemas === 0) break;
+
+    if (d.duplicadas.length) {
+      const g = d.duplicadas[0];
+      const r = aplicarUnificacao(g, { categorias, transacoes });
+      categorias = r.categorias; transacoes = r.transacoes;
+      // aplicarUnificacao só re-aponta transações — cobre aqui o resto.
+      const nomesRemover = new Set(g.remover.map(c => normNomeCat(c.nome)));
+      const troca = (o) => o && nomesRemover.has(normNomeCat(o.categoria || "")) && (o.categoria || "") !== g.manter.nome
+        ? { ...o, categoria: g.manter.nome } : o;
+      fixas = fixas.map(troca); parcelamentos = parcelamentos.map(troca); dividas = dividas.map(troca);
+      resumo.unificadas += g.remover.length;
+      continue;
+    }
+
+    if (d.foraDoCadastro.length) {
+      const grupos = {};
+      for (const f of d.foraDoCadastro) (grupos[normNomeCat(f.nome)] ||= []).push(f);
+      for (const g of Object.values(grupos)) {
+        const principal = [...g].sort((a, b) => b.usos - a.usos)[0];
+        categorias = [...categorias, {
+          id: novoId(), nome: principal.nome.trim(), tipo: principal.tipoSugerido,
+          escopo: "pessoal", cor, limite: null,
+        }];
+        resumo.criadas += 1;
+      }
+      continue;
+    }
+
+    // Só sobraram subcategorias órfãs: adota todas.
+    for (const s of d.subOrfas) {
+      categorias = categorias.map(c => c.id === s.categoria.id
+        ? { ...c, subcategorias: [...(c.subcategorias || []), { id: novoId(), nome: s.subcategoria }] }
+        : c);
+      resumo.subs += 1;
+    }
+  }
+
+  // 4. Grafias divergentes nos lançamentos → grafia do cadastro.
+  const catPorNorm = {};
+  for (const c of categorias) catPorNorm[normNomeCat(c.nome)] ??= c.nome;
+  const corrigir = (o) => {
+    if (!o || !o.categoria) return o;
+    const alvo = catPorNorm[normNomeCat(o.categoria)];
+    if (alvo && alvo !== o.categoria) { resumo.grafias += 1; return { ...o, categoria: alvo }; }
+    return o;
+  };
+  transacoes = transacoes.map(corrigir);
+  fixas = fixas.map(corrigir);
+  parcelamentos = parcelamentos.map(corrigir);
+  dividas = dividas.map(corrigir);
+
+  resumo.total = resumo.unificadas + resumo.subs + resumo.criadas + resumo.grafias;
+  return { categorias, transacoes, fixas, parcelamentos, dividas, resumo };
+}
+
 /** Fusão MANUAL de categorias (De → Para), escolhida pelo usuário no
  *  Diagnóstico — pra juntar categorias-estabelecimento ("Padaria",
  *  "MercadoLivre") na categoria real ("Alimentação"). Puro:
