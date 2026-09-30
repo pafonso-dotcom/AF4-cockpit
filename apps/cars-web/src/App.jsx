@@ -261,6 +261,13 @@ export default function App() {
   const setFixaOcorrencias = useCallback(criarSetterComTumbas("fixaOcorrencias", setFixaOcorrenciasBase), []);
   /* eslint-enable react-hooks/exhaustive-deps */
 
+  // 📋 Planilha livre (2026-09-30): linhas de rascunho POR CONTA, estilo
+  // Excel — coleção própria, de propósito fora de saldos/patrimônio/a pagar/
+  // relatórios (nada no sistema lê estes dados além da própria aba).
+  const [planilhaLivre, setPlanilhaLivreBase] = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setPlanilhaLivre = useCallback(criarSetterComTumbas("planilhaLivre", setPlanilhaLivreBase), []);
+
   // Lembretes de vencimento (notificação do sistema): checa na abertura
   // (com folga pros dados carregarem) e a cada 6h com o app aberto.
   // A opção liga/desliga fica em Configurações; sem permissão, é no-op.
@@ -367,7 +374,7 @@ export default function App() {
     // setTransacoes cru de propósito: hidratação/restauração troca a lista
     // inteira e NÃO deve gerar lápides (só exclusões do usuário geram).
     setContas, setCategorias, setTransacoes: setTransacoesBase, setAtivos, setMetas, setNotas,
-    setTumbas, setNotasRapidas, setVoos: setVoosDados, setPluggy: setPluggyDados,
+    setTumbas, setNotasRapidas, setVoos: setVoosDados, setPluggy: setPluggyDados, setPlanilhaLivre,
     setCartoes, setParcelamentos, setDevedores, setDividas, setCheques,
     setFixas, setFixaOcorrencias, setAgenda, setHabitos, setDiario, setCompras,
     setIdeias, setTarefas, setSugestoes, setLembretes, setConversaHistorico,
@@ -398,7 +405,7 @@ export default function App() {
     tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
     lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
     themeId,
-    tumbas, notasRapidas, voos: voosDados, pluggy: pluggyDados,
+    tumbas, notasRapidas, voos: voosDados, pluggy: pluggyDados, planilhaLivre,
   });
 
   // Backup automático diário na nuvem (GitHub Gist): 1x por dia, na abertura,
@@ -517,7 +524,7 @@ export default function App() {
       negocioLojas, negocioLojaAtiva, negocioRecebimentos,
       tradeWatchlist, tradeHistorico, tradeAnalisesIdV, tradeOnboardingVisto,
       lembretes, conversaHistorico, exerciciosDB, treinoTemplates, treinos,
-      themeId, tumbas, notasRapidas, voosDados, pluggyDados, loading]);
+      themeId, tumbas, notasRapidas, voosDados, pluggyDados, planilhaLivre, loading]);
 
   useEffect(() => {
     if (loading) return;
@@ -884,6 +891,7 @@ export default function App() {
       {tab === "contas" && contaAberta && (
         <div className="px-6 md:px-10">
           <ContaExtrato conta={contaAberta}
+                        planilhaLivre={planilhaLivre} setPlanilhaLivre={setPlanilhaLivre}
                         contas={contas} setContas={setContas}
                         transacoes={transacoes}
                         setTransacoes={setTransacoes}

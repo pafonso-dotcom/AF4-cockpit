@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, Plus, ArrowRightLeft, Search, Printer, ArrowUp, ArrowDown, Edit3, Trash2, Scale, Check, Copy } from "lucide-react";
 import { T } from "../../lib/theme.js";
-import { fmt } from "../../lib/format.js";
+import { fmt, uid } from "../../lib/format.js";
 import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
 import { reconciliarContas } from "../../lib/saldoConta.js";
@@ -16,7 +16,7 @@ import CategoriaSelect from "../ui/CategoriaSelect.jsx";
  * Tabela com colunas Data · Descrição · Obs · Categoria · Valor · Saldo · Ações.
  * Coluna Data é clicável e alterna entre desc (mais novo primeiro) e asc.
  */
-export default function ContaExtrato({ conta, contas = [], setContas, transacoes = [], setTransacoes, categorias = [], hidden, onVoltar, onTransferir, embutido = false }) {
+export default function ContaExtrato({ conta, contas = [], setContas, transacoes = [], setTransacoes, categorias = [], hidden, onVoltar, onTransferir, embutido = false, planilhaLivre = [], setPlanilhaLivre }) {
   const [periodo, setPeriodo] = useState("tudo"); // mes | 3meses | tudo — abre em "tudo" (pedido do usuário)
   const [tipo, setTipo] = useState("todos"); // todos | receita | despesa
   const [busca, setBusca] = useState("");
@@ -25,6 +25,26 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
   const [editCatId, setEditCatId] = useState(null); // id da transação com select de categoria aberto
   // Filtros recolhidos no celular atrás do botão ⚙ (remodelagem 2026-09-30).
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  // 📋 Planilha livre da conta (2026-09-30): rascunho estilo Excel, coleção
+  // própria — NÃO entra em saldo/patrimônio/a pagar/relatórios.
+  const [vista, setVista] = useState("extrato"); // "extrato" | "planilha"
+  const [plForm, setPlForm] = useState({ data: new Date().toISOString().slice(0, 10), descricao: "", valor: "", tipo: "saida" });
+  const plLinhas = useMemo(() =>
+    (planilhaLivre || []).filter(l => l && l.contaId === conta.id)
+      .sort((a, b) => String(a.data || "").localeCompare(String(b.data || ""))),
+    [planilhaLivre, conta.id]);
+  const plTotal = useMemo(() => plLinhas.reduce((s2, l) =>
+    s2 + (l.tipo === "entrada" ? 1 : -1) * (Number(l.valor) || 0), 0), [plLinhas]);
+  const plAdd = () => {
+    const v = parseFloat(String(plForm.valor).replace(",", "."));
+    if (!plForm.descricao.trim() || !Number.isFinite(v) || v <= 0) { toast.error("Preencha descrição e valor."); return; }
+    setPlanilhaLivre?.([...(planilhaLivre || []), {
+      id: uid(), contaId: conta.id, data: plForm.data, descricao: plForm.descricao.trim(),
+      valor: v, tipo: plForm.tipo, criadoEm: new Date().toISOString(),
+    }]);
+    setPlForm(f => ({ ...f, descricao: "", valor: "" }));
+  };
+  const plDel = (id) => setPlanilhaLivre?.((planilhaLivre || []).filter(l => l.id !== id));
   const [txModal, setTxModal] = useState(null); // null | { modo: "novo" } | { modo: "editar", tx }
   const [conferir, setConferir] = useState(null); // null | { valor, data } — modal "Conferir com o banco"
   // Override manual do estado de cada dia. Padrão: só o ÚLTIMO dia de movimento
@@ -392,6 +412,18 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center",
         marginBottom: 10, padding: "0 2px",
       }}>
+        {setPlanilhaLivre && (
+          <button onClick={() => setVista(v => v === "planilha" ? "extrato" : "planilha")}
+                  title="Planilha livre da conta — rascunho que NÃO entra em saldos nem relatórios"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 100,
+                    background: vista === "planilha" ? `${T.gold}18` : T.bgSoft,
+                    border: `1px solid ${vista === "planilha" ? T.gold : T.border}`,
+                    color: vista === "planilha" ? T.gold : T.muted, fontSize: 11.5, fontWeight: 600, cursor: "pointer",
+                  }}>
+            📋 Planilha{plLinhas.length > 0 ? ` (${plLinhas.length})` : ""}
+          </button>
+        )}
         <button className="extrato-filtros-toggle"
                 onClick={() => setFiltrosAbertos(v => !v)}
                 style={{
@@ -423,6 +455,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         })()}
       </div>
 
+      {vista === "extrato" && (<>
       {/* Filtros + ações numa linha só: Período · Tipo · Mais recentes · Expandir */}
       <div className={`extrato-filtros${filtrosAbertos ? " aberto" : ""}`} style={{
         display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12, alignItems: "center",
@@ -682,6 +715,70 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             );
             });
           })()}
+        </div>
+      )}
+      </>)}
+
+      {/* 📋 PLANILHA LIVRE — rascunho estilo Excel, por conta. Coleção própria:
+          NÃO entra em saldo, patrimônio, a pagar, fluxo nem relatórios. */}
+      {vista === "planilha" && (
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
+          <div style={{ fontSize: 11.5, color: T.muted, marginBottom: 10 }}>
+            📋 Rascunho livre desta conta — <b>não entra</b> em saldos, patrimônio nem relatórios. Use como planilha de planejamento.
+          </div>
+          {/* Adicionar linha */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
+            <input type="date" value={plForm.data} onChange={e => setPlForm(f => ({ ...f, data: e.target.value }))}
+                   style={{ padding: "7px 9px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.bg, color: T.ink, fontSize: 12 }} />
+            <input value={plForm.descricao} onChange={e => setPlForm(f => ({ ...f, descricao: e.target.value }))}
+                   onKeyDown={e => { if (e.key === "Enter") plAdd(); }}
+                   placeholder="Descrição (ex.: Venda prevista GOLF)"
+                   style={{ flex: "1 1 160px", minWidth: 140, padding: "7px 10px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.bg, color: T.ink, fontSize: 12.5 }} />
+            <input value={plForm.valor} onChange={e => setPlForm(f => ({ ...f, valor: e.target.value }))}
+                   onKeyDown={e => { if (e.key === "Enter") plAdd(); }}
+                   placeholder="Valor" inputMode="decimal"
+                   style={{ width: 100, padding: "7px 10px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.bg, color: T.ink, fontSize: 12.5, textAlign: "right" }} />
+            <button onClick={() => setPlForm(f => ({ ...f, tipo: f.tipo === "entrada" ? "saida" : "entrada" }))}
+                    title="Alternar entrada/saída"
+                    style={{ padding: "7px 10px", borderRadius: 10, border: `1px solid ${plForm.tipo === "entrada" ? T.green : T.red}66`,
+                             background: plForm.tipo === "entrada" ? `${T.green}14` : `${T.red}14`,
+                             color: plForm.tipo === "entrada" ? T.green : T.red, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+              {plForm.tipo === "entrada" ? "+ entrada" : "− saída"}
+            </button>
+            <button onClick={plAdd} className="btn-gold" style={{ padding: "7px 14px", fontSize: 11.5 }}>Adicionar</button>
+          </div>
+          {/* Linhas */}
+          {plLinhas.length === 0 ? (
+            <div style={{ padding: 28, textAlign: "center", color: T.muted, fontStyle: "italic", border: `1px dashed ${T.border}`, borderRadius: 12 }}>
+              Nenhuma linha ainda — adiciona a primeira acima. 📝
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {plLinhas.map(l => (
+                <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 6px", borderBottom: `1px solid ${T.border}55` }}>
+                  <span className="num" style={{ fontSize: 11, color: T.muted, fontFamily: T.mono, flexShrink: 0 }}>
+                    {String(l.data || "").slice(8, 10)}/{String(l.data || "").slice(5, 7)}/{String(l.data || "").slice(2, 4)}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.descricao}</span>
+                  <span className="num" style={{ fontSize: 13.5, fontWeight: 700, color: l.tipo === "entrada" ? T.green : T.red, flexShrink: 0 }}>
+                    {l.tipo === "entrada" ? "+ " : "− "}{hidden ? "•••" : fmt(l.valor)}
+                  </span>
+                  <button onClick={() => plDel(l.id)} title="Excluir linha"
+                          style={{ background: "transparent", border: "none", color: T.red, cursor: "pointer", padding: 4, flexShrink: 0 }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted }}>
+                  Resultado da planilha
+                </span>
+                <span className="num" style={{ fontSize: 17, fontWeight: 800, color: plTotal >= 0 ? T.green : T.red }}>
+                  {hidden ? "•••" : fmt(plTotal)}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
