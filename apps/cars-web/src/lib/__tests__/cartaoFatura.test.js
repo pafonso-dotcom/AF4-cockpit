@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { competenciaDaCompra, avulsasPendentesNoMes, parcelasPendentesNoMes } from "../cartaoFatura.js";
+import { competenciaDaCompra, avulsasPendentesNoMes, parcelasPendentesNoMes, competenciaFaturaEsperada } from "../cartaoFatura.js";
 
 describe("competenciaDaCompra", () => {
   it("compra até o dia do fechamento cai no mês da própria data", () => {
@@ -16,6 +16,28 @@ describe("competenciaDaCompra", () => {
     expect(competenciaDaCompra("2026-09-30", null)).toBe("2026-09");
     expect(competenciaDaCompra("2026-09-30", 0)).toBe("2026-09");
     expect(competenciaDaCompra("ontem", 28)).toBeNull();
+  });
+});
+
+describe("competenciaFaturaEsperada — mês da fatura em aberto pra pagamento", () => {
+  it("Mercado Livre (vence dia 4) importada dia 30/09 → fatura de OUT (bug 2026-09-30)", () => {
+    expect(competenciaFaturaEsperada({ vencimento: 4, fechamento: 29 }, "2026-09-30")).toBe("2026-10");
+  });
+
+  it("antes do dia de vencimento, a fatura ainda é deste mês", () => {
+    expect(competenciaFaturaEsperada({ vencimento: 15, fechamento: 8 }, "2026-09-10")).toBe("2026-09");
+    expect(competenciaFaturaEsperada({ vencimento: 15, fechamento: 8 }, "2026-09-15")).toBe("2026-09"); // no dia ainda vale
+  });
+
+  it("depois do vencimento vira o mês (e o ano em dezembro)", () => {
+    expect(competenciaFaturaEsperada({ vencimento: 15 }, "2026-09-30")).toBe("2026-10");
+    expect(competenciaFaturaEsperada({ vencimento: 5 }, "2026-12-20")).toBe("2027-01");
+  });
+
+  it("sem vencimento cadastrado ou data inválida → null", () => {
+    expect(competenciaFaturaEsperada({ fechamento: 29 }, "2026-09-30")).toBeNull();
+    expect(competenciaFaturaEsperada({ vencimento: 4 }, "hoje")).toBeNull();
+    expect(competenciaFaturaEsperada(null, "2026-09-30")).toBeNull();
   });
 });
 
