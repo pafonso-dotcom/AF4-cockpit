@@ -81,7 +81,16 @@ export default function Planejamento(props) {
       const valorPorParcela = Number(p.valorParcela) || (p.valorTotal || 0) / total;
       const pagas = new Set(p.parcelasPagas || []);
       const base = p.dataPrimeira || p.dataCompra;
-      if (!base) return;
+      // Parcelamento SEM data: não dá pra distribuir por mês, mas a dívida
+      // existe — entra no total e nos cartões com venc indefinido (o Patrimônio
+      // conta; pular aqui deixava os totais diferentes — resíduo 2026-09-30).
+      if (!base) {
+        for (let n = 1; n <= total; n++) {
+          if (pagas.has(n)) continue;
+          itens.push({ valor: valorPorParcela, venc: null, cartao: true, desc: `${p.descricao || "Parcela"} ${n}/${total}` });
+        }
+        return;
+      }
       const [bY, bM, bD] = base.split("-").map(Number);
       const startMonth = p.dataPrimeira ? bM : bM + 1;
       for (let n = 1; n <= total; n++) {
