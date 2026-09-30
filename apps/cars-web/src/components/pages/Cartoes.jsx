@@ -182,7 +182,9 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
     (parcelamentos || []).forEach(p => {
       const total = p.totalParcelas || 0;
       if (total <= 0) return;
-      const vpp = (p.valorTotal || 0) / total;
+      // valorParcela explícito primeiro — mesma fórmula do resto do app
+      // (unificação 2026-09-30, "Total a pagar" divergia entre telas).
+      const vpp = Number(p.valorParcela) || (p.valorTotal || 0) / total;
       const pagas = new Set(p.parcelasPagas || []);
       const base = p.dataPrimeira || p.dataCompra;
       if (!base) return;
