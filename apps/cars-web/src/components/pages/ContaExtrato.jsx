@@ -250,6 +250,9 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
              vez de empilhar um por linha (pedido 2026-09-30, tela do extrato). */
           @media (max-width: 560px) {
             .extrato-topo-acoes button { padding: 7px 10px !important; font-size: 9.5px !important; letter-spacing: .06em !important; gap: 4px !important; }
+            /* Pedido 2026-09-30: no celular, Nova transação e Conferir saem
+               do topo (a linha fica só Voltar + PDF). No desktop continuam. */
+            .extrato-btn-nova, .extrato-btn-conferir { display: none !important; }
           }
         `}</style>
         {!embutido ? (
@@ -266,6 +269,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
         ) : <span />}
         <div className="extrato-topo-acoes" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <button onClick={() => setTxModal({ modo: "novo" })}
+                  className="extrato-btn-nova"
                   style={{
                     background: `${conta.cor || T.gold}22`, color: conta.cor || T.gold,
                     border: `1px solid ${conta.cor || T.gold}`, padding: "8px 12px",
@@ -299,6 +303,7 @@ export default function ContaExtrato({ conta, contas = [], setContas, transacoes
             <Printer size={11} /> PDF
           </button>
           <button onClick={() => setConferir({ valor: "", data: hoje.toISOString().slice(0, 10) })}
+                  className="extrato-btn-conferir"
                   title="Comparar com o saldo do banco e ajustar pra bater"
                   style={{
                     background: `${T.green}18`, color: T.green,
