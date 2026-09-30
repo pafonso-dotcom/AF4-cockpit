@@ -107,11 +107,20 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
       return;
     }
 
+    // Renomeou a conta? Os lançamentos apontam pra ela pelo NOME — o App
+    // escuta este evento e atualiza transações/fixas/ativos junto (bug
+    // 2026-09-30: renomear deixava o extrato vazio com o saldo aparecendo).
+    const antiga = form.id ? contas.find(c => c.id === form.id) : null;
+    const nomeAntigo = String(antiga?.nome || "").trim();
+    const renomeou = !!antiga && nomeAntigo && nomeAntigo !== String(form.nome || "").trim();
+
     // O valor digitado é o SALDO ATUAL (o que aparece no app do banco).
     // O app deriva o saldoInicial pra trás: inicial = atual − soma das
     // transações compensadas. Assim o saldo bate exatamente com o banco e a
     // coluna "saldo após" de cada lançamento fica consistente.
-    const txsExistentes = (transacoes || []).filter(t => t.conta === form.nome && t.compensado);
+    // (No rename, a soma usa o nome ANTIGO — as transações ainda estão nele.)
+    const nomeRef = renomeou ? nomeAntigo : form.nome;
+    const txsExistentes = (transacoes || []).filter(t => t.conta === nomeRef && t.compensado);
     const somaTx = txsExistentes.reduce(
       (s, t) => s + (t.tipo === "receita" ? (Number(t.valor) || 0) : -(Number(t.valor) || 0)),
       0
@@ -127,6 +136,11 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
 
     if (form.id && contas.find(c => c.id === form.id)) {
       setContas(contas.map(c => c.id === form.id ? formNormalizado : c));
+      if (renomeou) {
+        window.dispatchEvent(new CustomEvent("af4:conta-renomeada", {
+          detail: { de: nomeAntigo, para: String(form.nome || "").trim() },
+        }));
+      }
       toast.success(`Conta atualizada · saldo atual ${fmt(saldoAtual)} (bate com o banco).`);
     } else {
       setContas([...contas, { ...formNormalizado, id: uid() }]);

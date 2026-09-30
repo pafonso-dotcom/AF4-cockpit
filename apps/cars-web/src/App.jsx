@@ -6,6 +6,7 @@ import { somaContasBRL } from "./lib/cambio.js";
 import { MESES_LONGO } from "./lib/meses.js";
 import { loadAll, saveAll, loadKeys, saveKeys, flushSave } from "./lib/storage.js";
 import { comTumbas, semTumbas, idsRemovidos, idsAdicionados } from "./lib/tumbas.js";
+import { renomearContaNosLancamentos } from "./lib/renomearConta.js";
 import Modal from "./components/ui/Modal.jsx";
 import BlocoNotasPaginado from "./components/ui/BlocoNotasPaginado.jsx";
 import { API, COIN_MAP } from "./lib/api.js";
@@ -807,6 +808,26 @@ export default function App() {
     window.addEventListener("af4:categoria-criar", criar);
     return () => window.removeEventListener("af4:categoria-criar", criar);
   }, [categorias, escopoAtivo]);
+
+  // Conta renomeada (Contas → Editar): os lançamentos apontam pela conta pelo
+  // NOME — propaga o novo nome pra transações, fixas e ativos (bug 2026-09-30:
+  // extrato vazio com saldo aparecendo depois de renomear).
+  useEffect(() => {
+    const h = (e) => {
+      const de = String(e.detail?.de || "").trim();
+      const para = String(e.detail?.para || "").trim();
+      if (!de || !para || de === para) return;
+      const r = renomearContaNosLancamentos(de, para, { transacoes, fixas, ativos });
+      if (r.n > 0) {
+        setTransacoes(r.transacoes);
+        setFixas(r.fixas);
+        setAtivos(r.ativos);
+        toast.success(`Conta "${de}" agora é "${para}" — ${r.n} lançamento(s) atualizados junto.`);
+      }
+    };
+    window.addEventListener("af4:conta-renomeada", h);
+    return () => window.removeEventListener("af4:conta-renomeada", h);
+  }, [transacoes, fixas, ativos]);
 
   const handleOpenPicker = useCallback(() => setPickerOpen(true), []);
   const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
