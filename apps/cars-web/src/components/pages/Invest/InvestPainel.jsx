@@ -1,17 +1,20 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { Briefcase, Wallet, TrendingUp, TrendingDown, ArrowRight, Sparkles, DollarSign, Award } from "lucide-react";
+import { TrendingUp, TrendingDown, ArrowRight, Sparkles, Award } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtN, fmtUSD } from "../../../lib/format.js";
 import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, ehUS } from "../../../lib/invest-constants.js";
-import { calcAlocacaoPorClasse, calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
+import { calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
 import { buscarCotacao } from "../../../lib/cambio.js";
 import { getHistorico } from "../../../lib/brapi.js";
 import { detectarFonte } from "../../../lib/cotacoes.js";
-import { CARD_SHADOW, AURORA_BG } from "../../../lib/styles.js";
+import { CARD_SHADOW } from "../../../lib/styles.js";
 import IndicesGlobais from "../IndicesGlobais.jsx";
 import EvolucaoPatrimonio from "./EvolucaoPatrimonio.jsx";
 import StatusCotacoes from "../../ui/StatusCotacoes.jsx";
 import Vazio from "../../ui/Vazio.jsx";
+import Card from "../../ui/Card.jsx";
+import { KpiMini } from "../PainelNovo.jsx";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 export default function InvestPainel({
   ativos = [], transacoes = [], categorias = [],
@@ -57,10 +60,6 @@ export default function InvestPainel({
     classes: new Set(ativos.map(a => a.tipo)).size,
   }), [ativos]);
 
-  // ===== Alocação por classe (donut) =====
-  // Alocação separada por moeda: Brasil (R$) e EUA (US$). Stocks/REITs = EUA.
-  const alocacaoBR = useMemo(() => calcAlocacaoPorClasse(ativos.filter(a => !["stock", "reit"].includes(a?.tipo))), [ativos]);
-  const alocacaoUSA = useMemo(() => calcAlocacaoPorClasse(ativos.filter(a => ["stock", "reit"].includes(a?.tipo))), [ativos]);
 
   // ===== Top 5 ativos por valor =====
   const topAtivos = useMemo(() => {
@@ -123,45 +122,28 @@ export default function InvestPainel({
   // o evento que a tela escuta. Sem ativos, ela abre o "Novo Ativo".
   return (
     <div className="fade-up" style={{ padding: "14px 14px 20px", maxWidth: 1280, margin: "0 auto" }}>
-      {/* Header — título à esquerda */}
-      <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 10.5, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, fontWeight: 500 }}>
-          Investimentos · Painel
+      {/* Header — título à esquerda; índices em selos pequenos à direita */}
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+        <div>
+          <div style={{ fontSize: 10.5, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, fontWeight: 500 }}>
+            Investimentos · Painel
+          </div>
+          <h1 style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: T.ink, margin: "2px 0 0 0" }}>
+            Painel do <em style={{ color: T.gold }}>Invest.</em>
+          </h1>
         </div>
-        <h1 style={{ fontFamily: T.serif, fontSize: 20, fontWeight: 600, color: T.ink, margin: "2px 0 0 0" }}>
-          Painel do <em style={{ color: T.gold }}>Invest.</em>
-        </h1>
+        <IndicesGlobais apiKeys={apiKeys} compacto />
       </div>
 
       <StatusCotacoes status={marketStatus} />
 
-      {/* Topo · 2 colunas: esquerda = Alocação por Moeda + ações; direita =
-          índices de mercado + KPIs. Alturas igualadas (alignItems stretch). */}
-      <section className="ip-top" style={{
-        display: "grid", gridTemplateColumns: "minmax(230px, 1fr) 3fr", gap: 10, marginBottom: 10, alignItems: "stretch",
-      }}>
-        {/* Esquerda */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
-          <div style={{ flex: 1, display: "flex" }}>
-            <MoedaCard valorBR={t.valorBR} valorUSA={t.valorUSA} usdRate={usdRate} hidden={hidden} fmtUSD={fmtUSD} fill />
-          </div>
-        </div>
-        {/* Direita */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
-          <IndicesGlobais apiKeys={apiKeys} />
-          <div className={"ip-kpi4" + (refreshing ? " skel-att" : "")} style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, flex: 1, alignItems: "stretch" }}>
-            <Kpi label="Patrimônio total" value={patrimonio.total} format={fmt} hidden={hidden}
-                 variation={patrimonio.pct} sub={`Investido ${hidden ? "•••" : fmt(patrimonio.investido)}`}
-                 icon={Wallet} cor={T.gold} />
-            <Kpi label="Lucro total" value={lucroTotal} format={fmt} hidden={hidden}
-                 cor={lucroTotal >= 0 ? T.green : T.red} icon={Award}
-                 sub={`Ganho de capital ${hidden ? "•••" : fmt(patrimonio.ganho)}`}
-                 extra={{ label: "Dividendos recebidos", valor: hidden ? "•••" : fmt(dividendos.total) }} />
-            <Kpi label="Proventos · 12M" value={dividendos.ult12} format={fmt} hidden={hidden}
-                 sub={`Total ${hidden ? "•••" : fmt(dividendos.total)}`} icon={DollarSign} cor={T.green} />
-            <Kpi label="Posições" value={posicoes.qtd} format={(n) => String(Math.round(n))} sub={`${posicoes.classes} classes`} icon={Briefcase} cor={T.gold} />
-          </div>
-        </div>
+      {/* Topo · 4 quadradinhos padrão (mesmo das outras telas) */}
+      <section className={"tela-kpis" + (refreshing ? " skel-att" : "")} style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 12 }}>
+        <KpiMini icone="💼" label="Patrimônio investido" valor={fmt(patrimonio.total)} oculto={hidden} cor={T.ink}
+          sub={`${patrimonio.pct >= 0 ? "+" : ""}${fmtN(patrimonio.pct, 1)}% sobre o investido`} />
+        <KpiMini icone="📈" label="Lucro total" valor={fmt(lucroTotal)} oculto={hidden} cor={lucroTotal >= 0 ? T.green : T.red} />
+        <KpiMini icone="💰" label="Proventos · 12 meses" valor={fmt(dividendos.ult12)} oculto={hidden} cor={T.green} />
+        <KpiMini icone="🧺" label="Posições" valor={String(posicoes.qtd)} cor={T.ink} onClick={() => onTabChange?.("carteira")} />
       </section>
 
       {/* Evolução da carteira — faixa logo abaixo dos KPIs (snapshots diários).
@@ -173,7 +155,7 @@ export default function InvestPainel({
       <section className="ip-mid-grid" style={{
         display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10,
       }}>
-        <AlocacaoCard dataBR={alocacaoBR} totalBR={t.valorBR} dataUSA={alocacaoUSA} totalUSA={t.valorUSA} hidden={hidden} fmtUSD={fmtUSD} />
+        <AlocacaoRoscaCard ativos={ativos} valorBR={t.valorBR} valorUSA={t.valorUSA} usdRate={usdRate} hidden={hidden} />
         <TopAtivosCard items={topAtivos} hidden={hidden} onAnalisar={onAnalisar} onSeeAll={() => onTabChange?.("carteira")} />
       </section>
 
@@ -242,16 +224,6 @@ export default function InvestPainel({
           .ip-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .ip-mid-grid, .ip-bot-grid, .ip-foot-grid, .ip-evo-grid { grid-template-columns: 1fr !important; }
         }
-        @media (max-width: 900px) {
-          .ip-top { grid-template-columns: 1fr !important; }
-        }
-        @media (max-width: 768px) {
-          .ip-kpi4 { grid-template-columns: repeat(2, 1fr) !important; }
-        }
-        @media (max-width: 480px) {
-          /* Celular: KPIs em 1 coluna (largura total), valores sem cortar. */
-          .ip-kpi4 { grid-template-columns: 1fr !important; }
-        }
         @media (max-width: 380px) {
           .ip-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
         }
@@ -268,170 +240,77 @@ export default function InvestPainel({
    Sub-componentes
    ============================================================ */
 
-// Respeita a preferência do sistema por menos movimento (acessibilidade).
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const h = (e) => setReduced(e.matches);
-    mq.addEventListener?.("change", h);
-    return () => mq.removeEventListener?.("change", h);
-  }, []);
-  return reduced;
-}
-
-// Número que "conta" suavemente até o valor (count-up). Anima do 0 ao montar
-// e entre mudanças de valor — dá a sensação de painel vivo/ágil. Quando
-// oculto (modo privacidade) ou com reduced-motion, mostra direto sem animar.
-function AnimatedNumber({ value, format = (n) => String(n), hidden, hiddenText = "•••••", duration = 650, className, style }) {
-  const reduced = usePrefersReducedMotion();
-  const [display, setDisplay] = useState(0);
-  const fromRef = useRef(0);
-  const rafRef = useRef(0);
-
-  useEffect(() => {
-    if (hidden) return; // não anima escondido; retoma do último valor ao reexibir
-    const from = fromRef.current;
-    const to = Number(value) || 0;
-    if (reduced || from === to) { setDisplay(to); fromRef.current = to; return; }
-    const start = performance.now();
-    cancelAnimationFrame(rafRef.current);
-    const tick = (now) => {
-      const p = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
-      setDisplay(from + (to - from) * eased);
-      if (p < 1) { rafRef.current = requestAnimationFrame(tick); }
-      else { fromRef.current = to; }
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [value, hidden, reduced, duration]);
-
-  if (hidden) return <span className={className} style={style}>{hiddenText}</span>;
-  return <span className={className} style={style}>{format(display)}</span>;
-}
-
-// Alocação por moeda (Brasil R$ vs EUA US$) com bandeiras. Converte o lado EUA
-// pra R$ (via dólar ao vivo) só para calcular a proporção da barra; os valores
-// continuam exibidos em cada moeda.
-function MoedaCard({ valorBR = 0, valorUSA = 0, usdRate, hidden, fmtUSD, fill = false }) {
-  const usaEmBRL = usdRate ? valorUSA * usdRate : 0;
-  const totalBRL = valorBR + usaEmBRL;
-  const pctBR = totalBRL > 0 ? (valorBR / totalBRL) * 100 : (valorUSA > 0 ? 0 : 100);
-  const pctUSA = totalBRL > 0 ? (usaEmBRL / totalBRL) * 100 : 0;
-  const temUSA = valorUSA > 0;
+// Alocação por classe em rosca (tons suaves). Lado EUA entra convertido pelo
+// dólar ao vivo; sem cotação ainda, a rosca mostra só o Brasil.
+const CORES_CLASSE = ["#4DD9C0", "#e0b45c", "#6f9bd1", "#d97a6c", "#9b8cd6", "#7fbf7f", "#c9a0a0", "#8fb8c9"];
+function AlocacaoRoscaCard({ ativos = [], valorBR = 0, valorUSA = 0, usdRate, hidden }) {
+  const fatias = useMemo(() => {
+    const acc = {};
+    for (const a of ativos) {
+      const v = Number(a?.qtd) * Number(a?.preco);
+      if (!(v > 0)) continue;
+      const brl = ehUS(a) ? (usdRate ? v * usdRate : 0) : v;
+      if (!brl) continue;
+      const tipo = a?.tipo || "outro";
+      acc[tipo] = (acc[tipo] || 0) + brl;
+    }
+    return Object.entries(acc)
+      .map(([tipo, valor]) => ({ tipo, nome: ASSET_CLASS_LABELS[tipo] || tipo, valor }))
+      .sort((x, y) => y.valor - x.valor);
+  }, [ativos, usdRate]);
+  const total = fatias.reduce((s, d) => s + d.valor, 0);
+  const usaBRL = usdRate ? valorUSA * usdRate : 0;
+  const totMoeda = valorBR + usaBRL;
+  const pctBR = totMoeda > 0 ? (valorBR / totMoeda) * 100 : 100;
   return (
-    <div className="ip-card" style={{ background: AURORA_BG, color: "#fff", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 12, padding: 10, boxShadow: CARD_SHADOW, width: "100%", height: fill ? "100%" : undefined, overflow: "hidden" }}>
-      <div style={{ fontFamily: T.serif, fontSize: 13.5, fontWeight: 600, marginBottom: 8, color: "#fff" }}>Alocação por Moeda</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 17 }} aria-hidden="true">🇧🇷</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.8)" }}>Brasil · R$</div>
-            <div className="num" style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{hidden ? "•••••" : fmt(valorBR)}</div>
-          </div>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{fmtN(pctBR, 0)}%</span>
-        </div>
-        {/* Linha EUA só quando há ativo em dólar — "US$ 0.00 · —" era ruído. */}
-        {temUSA && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 17 }} aria-hidden="true">🇺🇸</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.8)" }}>EUA · US$</div>
-            <div className="num" style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{hidden ? "•••••" : fmtUSD(valorUSA)}</div>
-          </div>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{fmtN(pctUSA, 0)}%</span>
-        </div>
-        )}
-        {/* Barra dividida */}
-        <div style={{ display: "flex", height: 10, borderRadius: 999, overflow: "hidden", background: "rgba(255,255,255,0.22)", marginTop: 2 }}>
-          <div style={{ width: `${pctBR}%`, background: "#f5e6c8" }} />
-          <div style={{ width: `${pctUSA}%`, background: "#bff3ec" }} />
-        </div>
-        <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.72)", fontStyle: "italic" }}>
-          {temUSA
-            ? (usdRate ? `Proporção convertida ao dólar ${fmt(usdRate)}.` : "Carregando dólar para a proporção…")
-            : "Sem ativos em dólar."}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Kpi({ label, value, format = (n) => String(n), hidden, sub, variation, icon: Icon, cor, extra }) {
-  const num = typeof variation === "number" ? variation : null;
-  const varStr = num != null ? (num >= 0 ? "↗ +" : "↘ ") + fmtN(num, 2) + "%" : null;
-  const positive = num != null && num >= 0;
-  return (
-    <div style={{ position: "relative", paddingTop: 7 }}>
-      {/* aba da pasta — branca/clara, no mesmo estilo dos folder cards */}
-      <div aria-hidden style={{ position: "absolute", top: 0, left: "32%", right: "9%", height: 11, borderRadius: "8px 8px 0 0", background: T.bgSoft, border: `1px solid ${T.border}`, borderBottom: "none", zIndex: 0 }} />
-      <div className="ip-card" style={{ position: "relative", zIndex: 1, background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 10, minHeight: 84, boxShadow: CARD_SHADOW }}>
-      <div style={{ fontSize: 11, color: T.muted }}>{label}</div>
-      <AnimatedNumber value={value} format={format} hidden={hidden}
-        className="num" style={{ display: "block", fontFamily: T.serif, fontSize: 17, fontWeight: 700, marginTop: 4, color: T.ink }} />
-      {varStr && <div style={{ fontSize: 11, color: positive ? T.green : T.red, marginTop: 4 }}>{varStr}</div>}
-      {sub && <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{sub}</div>}
-      {extra && (
-        <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
-          <div style={{ fontSize: 10.5, letterSpacing: ".04em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>{extra.label}</div>
-          <div className="num" style={{ fontFamily: T.serif, fontSize: 15, fontWeight: 700, color: T.ink, marginTop: 1 }}>{extra.valor}</div>
-          {extra.sub && <div style={{ fontSize: 10.5, color: T.muted, marginTop: 1 }}>{extra.sub}</div>}
-        </div>
-      )}
-      {Icon && (
-        <div style={{ position: "absolute", top: 10, right: 10, width: 26, height: 26, borderRadius: "50%", background: `${cor || T.gold}1f`, display: "grid", placeItems: "center" }}>
-          <Icon size={13} style={{ color: cor || T.gold }} />
-        </div>
-      )}
-      </div>
-    </div>
-  );
-}
-
-function DonutBloco({ titulo, data, total, fmtMoeda, hidden }) {
-  const max = Math.max(1, ...data.map(d => Number(d.valor) || 0));
-  return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-        <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 700 }}>{titulo}</div>
-        <div className="num" style={{ fontFamily: T.serif, fontSize: 12.5, fontWeight: 700, color: T.ink }}>{hidden ? "•••" : fmtMoeda(total)}</div>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {data.map((d,i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <span style={{ width: 88, flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.label}</span>
-            <div style={{ flex: 1, height: 8, borderRadius: 999, background: T.bgSoft, overflow: "hidden" }}>
-              <div style={{ width: `${(Number(d.valor) / max) * 100}%`, height: "100%", borderRadius: 999, background: d.cor }} />
-            </div>
-            <span style={{ width: 36, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.ink }}>{fmtN(d.pct, 0)}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function AlocacaoCard({ dataBR = [], totalBR = 0, dataUSA = [], totalUSA = 0, hidden, fmtUSD }) {
-  const semNada = dataBR.length === 0 && dataUSA.length === 0;
-  return (
-    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 10, boxShadow: CARD_SHADOW }}>
-      <div style={{ fontFamily: T.serif, fontSize: 13.5, fontWeight: 600, marginBottom: 8 }}>Alocação por Classe</div>
-      {semNada ? (
+    <Card>
+      <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.ink, marginBottom: 10 }}>Alocação por classe</div>
+      {fatias.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", color: T.muted, fontStyle: "italic", fontSize: 12 }}>Sem ativos cadastrados.</div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {dataBR.length > 0 && <DonutBloco titulo="🇧🇷 Brasil · R$" data={dataBR} total={totalBR} fmtMoeda={fmt} hidden={hidden} />}
-          {dataUSA.length > 0 && (
-            <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 12 }}>
-              <DonutBloco titulo="🇺🇸 EUA · US$" data={dataUSA} total={totalUSA} fmtMoeda={fmtUSD} hidden={hidden} />
+        <>
+          <div className="painel-rosca" style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ width: 150, height: 150, position: "relative", flexShrink: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={fatias} dataKey="valor" nameKey="nome" innerRadius={48} outerRadius={70} paddingAngle={2} stroke="none" isAnimationActive>
+                    {fatias.map((_, i) => <Cell key={i} fill={CORES_CLASSE[i % CORES_CLASSE.length]} />)}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center", pointerEvents: "none" }}>
+                <div>
+                  <div style={{ fontSize: 10, color: T.muted }}>classes</div>
+                  <div className="num" style={{ fontSize: 15, fontWeight: 700, color: T.ink }}>{fatias.length}</div>
+                </div>
+              </div>
+            </div>
+            <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 7 }}>
+              {fatias.map((d, i) => (
+                <div key={d.tipo} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 3, background: CORES_CLASSE[i % CORES_CLASSE.length], flexShrink: 0 }} />
+                  <span style={{ flex: 1, minWidth: 0, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.nome}</span>
+                  <span style={{ color: T.faint, fontSize: 11 }}>{fmtN((d.valor / total) * 100, 0)}%</span>
+                  <span className="num" style={{ color: T.muted, whiteSpace: "nowrap", minWidth: 72, textAlign: "right" }}>{hidden ? "•••" : fmt(d.valor)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {valorUSA > 0 && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.border}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: T.muted, marginBottom: 6 }}>
+                <span>🇧🇷 Brasil {fmtN(pctBR, 0)}%</span>
+                <span>🇺🇸 EUA {fmtN(100 - pctBR, 0)}%</span>
+              </div>
+              <div style={{ display: "flex", height: 8, borderRadius: 999, overflow: "hidden", background: T.bgSoft }}>
+                <div style={{ width: `${pctBR}%`, background: "#e0b45c" }} />
+                <div style={{ width: `${100 - pctBR}%`, background: "#6f9bd1" }} />
+              </div>
             </div>
           )}
-        </div>
+        </>
       )}
-    </div>
+    </Card>
   );
 }
 

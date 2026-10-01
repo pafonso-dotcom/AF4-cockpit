@@ -36,7 +36,7 @@ function Sparkline({ data, cor, w = 56, h = 22 }) {
   );
 }
 
-export default function IndicesGlobais({ apiKeys = {}, excluir = [] }) {
+export default function IndicesGlobais({ apiKeys = {}, excluir = [], compacto = false }) {
   const [itens, setItens] = useState(null);
 
   useEffect(() => {
@@ -102,6 +102,22 @@ export default function IndicesGlobais({ apiKeys = {}, excluir = [] }) {
     : i.moeda === "R$"
     ? `R$ ${i.valor.toFixed(2)}`
     : i.valor.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+
+  // Compacto: selos pequenos (nome · valor · variação) pra ficar ao lado do título.
+  if (compacto) return (
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+      {visiveis.map((i, idx) => {
+        const up = (i.var ?? 0) >= 0;
+        return (
+          <span key={idx} style={{ display: "inline-flex", alignItems: "baseline", gap: 5, fontSize: 11, padding: "4px 10px", borderRadius: 999, border: `1px solid ${T.border}`, background: T.card, whiteSpace: "nowrap" }}>
+            <span style={{ color: T.muted }}>{i.nome}</span>
+            <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{fmtVal(i)}</span>
+            {i.moeda !== "taxa" && <span style={{ color: up ? T.green : T.red, fontWeight: 600 }}>{up ? "+" : ""}{(i.var ?? 0).toFixed(2)}%</span>}
+          </span>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div style={{
