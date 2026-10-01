@@ -291,10 +291,8 @@ export default function AssistenteVoz(props) {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "6px 0 12px" }}>
           <button onClick={() => (ouvindo ? pararOuvir() : ouvir())} aria-label={ouvindo ? "Parar de ouvir" : "Falar"}
                   className={ouvindo ? "assistente-mic ouvindo" : "assistente-mic"}
-                  style={{ width: 76, height: 76, borderRadius: "50%", border: "none", cursor: "pointer",
-                           background: ouvindo ? T.red : T.gold, color: "#fff", display: "grid", placeItems: "center",
-                           boxShadow: `0 6px 18px ${ouvindo ? T.red : T.gold}66` }}>
-            <Mic size={32} />
+                  style={{ "--bolha": ouvindo ? T.red : T.gold }}>
+            <Mic size={32} strokeWidth={2.2} style={{ position: "relative", zIndex: 1, filter: "drop-shadow(0 1px 2px rgba(0,0,0,.35))" }} />
           </button>
           <div style={{ fontSize: 13, color: T.muted, minHeight: 18, textAlign: "center" }}>
             {ouvindo ? (parcial ? `“${parcial}”` : "Ouvindo… pode falar") : pensando ? "Pensando…" : "Toque no microfone e pergunte"}
@@ -391,8 +389,34 @@ export default function AssistenteVoz(props) {
         </div>
       </div>
       <style>{`
-        .assistente-mic.ouvindo { animation: assistentePulso 1.2s ease-in-out infinite; }
-        @keyframes assistentePulso { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        /* Bolha de água (pedido 2026-10-01): vidro transparente com reflexo,
+           brilho de borda e a cor do estado só "tingindo" a água. */
+        .assistente-mic {
+          position: relative; width: 84px; height: 84px; border-radius: 50%; cursor: pointer;
+          display: grid; place-items: center; color: #fff;
+          border: 1px solid rgba(255,255,255,.45);
+          background:
+            radial-gradient(circle at 32% 26%, rgba(255,255,255,.85) 0 7%, rgba(255,255,255,.25) 13%, transparent 24%),
+            radial-gradient(circle at 70% 78%, rgba(255,255,255,.22) 0 10%, transparent 26%),
+            radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--bolha) 22%, transparent) 0%, color-mix(in srgb, var(--bolha) 38%, transparent) 62%, color-mix(in srgb, var(--bolha) 70%, transparent) 100%);
+          box-shadow:
+            inset 0 -8px 16px color-mix(in srgb, var(--bolha) 45%, transparent),
+            inset 0 6px 12px rgba(255,255,255,.28),
+            inset 0 0 0 1px rgba(255,255,255,.12),
+            0 10px 26px color-mix(in srgb, var(--bolha) 35%, transparent);
+          -webkit-backdrop-filter: blur(6px) saturate(1.4);
+          backdrop-filter: blur(6px) saturate(1.4);
+          transition: transform .15s ease;
+        }
+        .assistente-mic:active { transform: scale(.94); }
+        .assistente-mic::after {
+          content: ""; position: absolute; inset: -6px; border-radius: 50%;
+          border: 2px solid color-mix(in srgb, var(--bolha) 55%, transparent); opacity: 0;
+        }
+        .assistente-mic.ouvindo { animation: assistenteBolha 1.6s ease-in-out infinite; }
+        .assistente-mic.ouvindo::after { animation: assistenteOnda 1.6s ease-out infinite; }
+        @keyframes assistenteBolha { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06, 1.04); } }
+        @keyframes assistenteOnda { 0% { transform: scale(.92); opacity: .8; } 100% { transform: scale(1.35); opacity: 0; } }
       `}</style>
     </div>
   );
