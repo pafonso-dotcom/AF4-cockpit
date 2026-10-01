@@ -20,8 +20,10 @@ export const SoftCardContext = createContext(false);
  * Sem variant explícita, herda "panel" quando dentro de SoftCardContext.
  * Aceita style/onClick/etc. via ...rest.
  */
-export default function Card({ variant, style, children, ...rest }) {
+export default function Card({ variant, style, children, className, ...rest }) {
   const soft = useContext(SoftCardContext);
+  // No Painel (SoftCardContext) os cards ganham a animação .card-vivo.
+  const cls = [className, soft && variant !== "flat" ? "card-vivo" : null].filter(Boolean).join(" ") || undefined;
   const v = variant || (soft ? "panel" : "default");
   const base = {
     background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14,
@@ -37,7 +39,7 @@ export default function Card({ variant, style, children, ...rest }) {
     panel: { border: "none", boxShadow: CARD_SHADOW_SOFT, borderRadius: 16 },
   };
   return (
-    <div style={{ ...base, ...(variants[v] || {}), ...style }} {...rest}>
+    <div className={cls} style={{ ...base, ...(variants[v] || {}), ...style }} {...rest}>
       {children}
     </div>
   );
