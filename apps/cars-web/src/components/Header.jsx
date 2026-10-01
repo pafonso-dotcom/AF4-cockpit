@@ -13,7 +13,7 @@ import {
   Radar, Bookmark, StickyNote, Home, CheckSquare, Lightbulb,
   Store, Car, Wrench, Search, ChevronDown, ChevronRight,
   BookOpen, Repeat, MoreHorizontal, RotateCw, LogOut,
-  Bell, Dumbbell, Brain, HandCoins, FileText, Landmark, Plane,
+  Bell, Dumbbell, Mic, Brain, HandCoins, FileText, Landmark, Plane,
 } from "lucide-react";
 
 /**
@@ -269,6 +269,13 @@ function HeaderHorizontal({
         {/* UTILITY · sino + menu "⋯". Escondem só em RETRATO no celular; em
             paisagem (e desktop) aparecem normalmente. */}
         <div className="util-cluster" style={{ display: "inline-flex", gap: 8, alignItems: "center", position: "relative" }}>
+          {/* 🎙 Assistente de voz (2026-10-01): o evento abre E já começa a
+              ouvir dentro do toque (exigência do iPhone pro microfone). */}
+          <button onClick={() => window.dispatchEvent(new Event("af4:assistente-abrir"))}
+                  title="Assistente de voz — pergunte um valor" aria-label="Assistente de voz"
+                  className="hdr-util" style={{ ...utilBtn, background: `${T.gold}22`, color: T.gold }}>
+            <Mic size={17} />
+          </button>
           {/* Sino de alertas em primeiro */}
           <AlertCenter {...alertData} onNavegar={onNavegar} btnStyle={utilBtn} iconSize={18} />
           {/* Bloco de notas no atalho (pedido 2026-09-23) */}

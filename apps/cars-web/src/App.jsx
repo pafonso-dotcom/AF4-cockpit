@@ -43,6 +43,7 @@ import { getPerfilAtivo } from "./lib/perfis.js";
 import { garantirOcorrenciasDoAno } from "./lib/fixas.js";
 import { capitalizarCdbsMeta, autoAplicarCofrinhos } from "./lib/cdbMeta.js";
 import { useKeyboardShortcuts } from "./lib/keyboardShortcuts.js";
+import AssistenteVoz from "./components/AssistenteVoz.jsx";
 import { useLayout } from "./lib/useLayout.js";
 import AtalhosOverlay from "./components/modals/AtalhosOverlay.jsx";
 import CommandPalette from "./components/ui/CommandPalette.jsx";
@@ -1312,6 +1313,12 @@ export default function App() {
       {/* Pomodoro só no módulo Agenda (faxina 2026-09-29): flutuando em
           TODAS as telas ele cobria valores e botões das listas. */}
       {modulo === "agenda" && <PomodoroFloat />}
+      <AssistenteVoz
+        contas={contas} cartoes={cartoes} parcelamentos={parcelamentos} transacoes={transacoes}
+        planilhaLivre={planilhaLivre} dividas={dividas} fixas={fixas} fixaOcorrencias={fixaOcorrencias}
+        devedores={devedores} cheques={cheques} ativos={ativos} carteiraProventos={carteiraProventos}
+        escopoAtivo={escopoAtivo} apiKeys={apiKeys}
+      />
       <ToastContainer />
       <InstallPWA />
       <ConfirmDialog />
