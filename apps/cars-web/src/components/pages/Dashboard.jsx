@@ -643,48 +643,6 @@ export default function Dashboard({
         <OlhadaRapida resumoDia={avisosVisiveis} userName={userName} onFechar={fecharOlhada} />
       )}
 
-      {/* LETREIRO DO DIA (preview 2026-10-01) — no lugar dos 4 quadradinhos e dos
-          avisos empilhados: os números do dia + avisos numa linha só, em cima
-          de tudo. Tocar num número abre a tela dele; tocar num aviso o
-          dispensa; ✕ dispensa todos os avisos por hoje. */}
-      <Card className="no-print" style={{ padding: "0 6px 0 0", marginBottom: 12 }}>
-        <Letreiro segPorItem={5}
-          itens={[
-            ...(possoGastar ? [{ chave: "pg", onClick: () => !possoGastar.fura && togglePgMin(!pgMin), conteudo: (<>
-              <LetRotulo>💸 Pode gastar hoje</LetRotulo>
-              <LetValor cor={possoGastar.fura ? T.red : T.green}>
-                {possoGastar.fura ? "Segura!" : (hidden || pgMin) ? "•••" : fmt(possoGastar.porDia)}
-              </LetValor>
-            </>) }] : []),
-            { chave: "pagar", onClick: () => onTabChange?.("areceber"), conteudo: (<>
-              <LetRotulo>📤 A pagar no mês</LetRotulo>
-              <LetValor cor={(aPagarMes?.total || 0) > 0 ? T.red : T.muted}>{hidden ? "•••" : fmt(aPagarMes?.total || 0)}</LetValor>
-            </>) },
-            { chave: "receber", onClick: () => onTabChange?.("areceber"), conteudo: (<>
-              <LetRotulo>📥 A receber no mês</LetRotulo>
-              <LetValor cor={T.green}>{hidden ? "•••" : fmt(receberMesTile)}</LetValor>
-            </>) },
-            { chave: "faturas", onClick: () => onTabChange?.("cartoes"), conteudo: (<>
-              <LetRotulo>💳 Faturas em aberto</LetRotulo>
-              <LetValor cor={cartoesFaturas.total > 0 ? (T.yellow || T.gold) : T.muted}>{hidden ? "•••" : fmt(cartoesFaturas.total)}</LetValor>
-            </>) },
-            ...avisosVisiveis.map(a => {
-              const cor = a.cor === "red" ? T.red : a.cor === "green" ? T.green : T.gold;
-              return { chave: "av-" + a.texto, onClick: () => dispensarAviso(a.texto), conteudo: (
-                <span style={{ fontSize: 12.5, color: T.ink, fontWeight: 600 }}>
-                  <span aria-hidden>{a.icone}</span> <span style={{ color: cor }}>●</span> {a.texto}
-                </span>
-              ) };
-            }),
-          ]}
-          fixo={avisosVisiveis.length > 0 ? (
-            <button onClick={() => avisosVisiveis.forEach(a => dispensarAviso(a.texto))}
-                    aria-label="Dispensar os avisos por hoje" title="Dispensar os avisos — somem até amanhã"
-                    style={{ background: "transparent", border: "none", color: T.faint, cursor: "pointer",
-                             padding: "6px 8px", minHeight: 0, lineHeight: 1, fontSize: 14, flexShrink: 0 }}>✕</button>
-          ) : null} />
-      </Card>
-
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
 
@@ -743,6 +701,48 @@ export default function Dashboard({
           </Modal>
         )}
       </section>
+
+      {/* LETREIRO DO DIA (preview 2026-10-01) — no lugar dos 4 quadradinhos e dos
+          avisos empilhados: os números do dia + avisos numa linha só, logo abaixo
+          do Patrimônio (pedido 2026-10-01). Tocar num número abre a tela dele; tocar num aviso o
+          dispensa; ✕ dispensa todos os avisos por hoje. */}
+      <Card className="no-print" style={{ padding: "0 6px 0 0", marginBottom: 12 }}>
+        <Letreiro segPorItem={5}
+          itens={[
+            ...(possoGastar ? [{ chave: "pg", onClick: () => !possoGastar.fura && togglePgMin(!pgMin), conteudo: (<>
+              <LetRotulo>💸 Pode gastar hoje</LetRotulo>
+              <LetValor cor={possoGastar.fura ? T.red : T.green}>
+                {possoGastar.fura ? "Segura!" : (hidden || pgMin) ? "•••" : fmt(possoGastar.porDia)}
+              </LetValor>
+            </>) }] : []),
+            { chave: "pagar", onClick: () => onTabChange?.("areceber"), conteudo: (<>
+              <LetRotulo>📤 A pagar no mês</LetRotulo>
+              <LetValor cor={(aPagarMes?.total || 0) > 0 ? T.red : T.muted}>{hidden ? "•••" : fmt(aPagarMes?.total || 0)}</LetValor>
+            </>) },
+            { chave: "receber", onClick: () => onTabChange?.("areceber"), conteudo: (<>
+              <LetRotulo>📥 A receber no mês</LetRotulo>
+              <LetValor cor={T.green}>{hidden ? "•••" : fmt(receberMesTile)}</LetValor>
+            </>) },
+            { chave: "faturas", onClick: () => onTabChange?.("cartoes"), conteudo: (<>
+              <LetRotulo>💳 Faturas em aberto</LetRotulo>
+              <LetValor cor={cartoesFaturas.total > 0 ? (T.yellow || T.gold) : T.muted}>{hidden ? "•••" : fmt(cartoesFaturas.total)}</LetValor>
+            </>) },
+            ...avisosVisiveis.map(a => {
+              const cor = a.cor === "red" ? T.red : a.cor === "green" ? T.green : T.gold;
+              return { chave: "av-" + a.texto, onClick: () => dispensarAviso(a.texto), conteudo: (
+                <span style={{ fontSize: 12.5, color: T.ink, fontWeight: 600 }}>
+                  <span aria-hidden>{a.icone}</span> <span style={{ color: cor }}>●</span> {a.texto}
+                </span>
+              ) };
+            }),
+          ]}
+          fixo={avisosVisiveis.length > 0 ? (
+            <button onClick={() => avisosVisiveis.forEach(a => dispensarAviso(a.texto))}
+                    aria-label="Dispensar os avisos por hoje" title="Dispensar os avisos — somem até amanhã"
+                    style={{ background: "transparent", border: "none", color: T.faint, cursor: "pointer",
+                             padding: "6px 8px", minHeight: 0, lineHeight: 1, fontSize: 14, flexShrink: 0 }}>✕</button>
+          ) : null} />
+      </Card>
 
       {/* Linha 2: Calendário compacto · Gastos por categoria */}
       <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>

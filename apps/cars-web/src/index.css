@@ -941,6 +941,7 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
      vermelho (alerta) continua aparecendo. */
   .painel-kpi-sub { display: none !important; }
   .contas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .contas-grid .conta-saldo-valor { font-size: min(20px, 5.2vw) !important; }
   .painel-fluxo-nums { grid-template-columns: 1fr 1fr !important; }
 }
 
