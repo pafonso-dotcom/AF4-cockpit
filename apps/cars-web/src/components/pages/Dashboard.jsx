@@ -948,6 +948,12 @@ export default function Dashboard({
              pequeno pro tamanho da tela); mobile (≤768px) segue em 32px. */
           .kpi-hero-valor { font-size: 42px !important; }
         }
+        /* Mobile: valor do Patrimônio maior (pedido 2026-10-01); o stepper
+           decorativo sai pra dar a largura toda ao número. */
+        @media (max-width: 768px) {
+          .dash-kpi-grid .num.kpi-hero-valor { font-size: min(var(--kpi-mob-fs, 40px), 11.5vw) !important; white-space: nowrap; }
+          .kpi-hero-stepper { display: none !important; }
+        }
         @media (max-width: 1024px) {
           .dash-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .dash-mid-grid, .dash-bot-grid, .dash-metas-grid { grid-template-columns: 1fr !important; }
@@ -1098,11 +1104,12 @@ function KpiHero({ value, mom, hidden, evolucao, onDetalhes }) {
       </div>
       <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.92)", fontWeight: 500, marginTop: 18, letterSpacing: ".01em" }}>Patrimônio Total</div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 6 }}>
-        <div className="num kpi-hero-valor" style={{ fontSize: 32, fontWeight: 300, letterSpacing: "-.02em", lineHeight: 1 }}>
+        <div className="num kpi-hero-valor" style={{ fontSize: 32, fontWeight: 300, letterSpacing: "-.02em", lineHeight: 1,
+          "--kpi-mob-fs": `${Math.min(46, Math.floor(340 / (Math.max(fmt(value).length, 6) * 0.6)))}px` }}>
           {visivel ? fmt(animado) : "••••••"}
         </div>
         {/* stepper decorativo (estilo widget) */}
-        <div style={{ display: "flex", alignItems: "center", paddingBottom: 5, opacity: 0.9 }} aria-hidden>
+        <div className="kpi-hero-stepper" style={{ display: "flex", alignItems: "center", paddingBottom: 5, opacity: 0.9 }} aria-hidden>
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: "rgba(255,255,255,.55)" }} />
           <span style={{ width: 14, height: 1.5, background: "rgba(255,255,255,.4)" }} />
           <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#fff" }} />
