@@ -444,7 +444,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           const primeiro = vi <= 0, ultimo = vi >= contasVisiveis.length - 1;
           return (
           <div key={c.id} onClick={() => onContaClick && onContaClick(c)}
-               className="card-vivo"
+               className="card-vivo conta-card"
                role={onContaClick ? "button" : undefined}
                tabIndex={onContaClick ? 0 : undefined}
                onKeyDown={(e) => { if (onContaClick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onContaClick(c); } }}
@@ -452,111 +452,89 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                  "--i": Math.max(0, vi),
                  background: T.card, color: T.ink,
                  border: `1px solid ${ativa ? T.gold : T.border}`,
-                 borderRadius: 16, padding: 14, minHeight: 126,
+                 borderTop: `4px solid ${c.cor || T.gold}`,
+                 borderRadius: 16, padding: "12px 14px 14px", minHeight: 118,
                  cursor: onContaClick ? "pointer" : "default",
-                 display: "flex", flexDirection: "column",
+                 display: "flex", flexDirection: "column", overflow: "hidden",
                }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-              <BankIcon c={c} />
-              {/* ⋯ (Mais ações) disponível também no mobile — dá pra lançar
-                  transação e editar a conta pelo celular. */}
-              <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
-                      aria-label={exp ? "Recolher" : "Mais ações"}
-                      style={{ background: T.bgSoft, border: `1px solid ${T.border}`, color: T.muted, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                <MoreHorizontal size={15} />
-              </button>
-            </div>
-            <div style={{ flex: 1, minHeight: 10 }} />
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
-            {(() => {
-              const txt = hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL");
-              // número comprido encolhe em vez de cortar (arrumada 2026-09-30)
-              const fs = txt.length > 13 ? 15 : 18;
-              return (
-                <div className="num" style={{ fontVariantNumeric: "tabular-nums", fontSize: fs, fontWeight: 400, letterSpacing: "-.01em", marginTop: 2, color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap" }}>
-                  {!ehBRL(c) && <span style={{ fontSize: 12, marginRight: 3 }} aria-hidden="true">{bandeira(c.moeda)}</span>}
-                  {txt}
-                </div>
-              );
-            })()}
-            {/* 📋 Planilha livre: resultado + PRÉVIA DO FUTURO (saldo atual +
-                planilha) no card da conta (pedido 2026-09-30). Só informativo. */}
-            {c.planilha && (() => {
-              const res = (planilhaLivre || []).filter(l => l && l.contaId === c.id)
-                .reduce((s2, l) => s2 + (l.tipo === "entrada" ? 1 : -1) * (Number(l.valor) || 0), 0);
-              if (Math.abs(res) < 0.005) return null;
-              const prev = (Number(c.saldo) || 0) + res;
-              return (
-                <div className="num" style={{ fontSize: 11, marginTop: 1, color: T.muted, lineHeight: 1.5 }}
-                     title="Planilha livre desta conta: resultado das linhas e prévia do saldo (atual + planilha). Não altera o saldo real.">
-                  📋 {hidden ? "•••" : `${res >= 0 ? "+" : "−"}${fmt(Math.abs(res))}`}
-                  {" "}<span style={{ color: T.faint }}>· prev.</span>{" "}
-                  <b style={{ color: prev < 0 ? T.red : T.green }}>{hidden ? "•••" : fmt(prev)}</b>
-                </div>
-              );
-            })()}
-            {/* Conta em moeda estrangeira: conversão em R$ LOGO ABAIXO do saldo
-                (linha própria, legível — pedido do usuário 2026-09-08).
-                "· hoje" quando a cotação foi atualizada automaticamente hoje. */}
-            {!ehBRL(c) && (
-              <div className="num" style={{ fontSize: 11.5, marginTop: 1, color: Number(c.cotacao) > 0 ? T.muted : T.gold, whiteSpace: "nowrap" }}>
-                {Number(c.cotacao) > 0
-                  ? <>≈ {hidden ? "•••" : fmt(saldoContaBRL(c))} <span style={{ fontSize: 10, color: T.faint }}>({c.moeda} {fmt(c.cotacao)}{String(c.cotacaoAtualizadaEm || "").slice(0, 10) === new Date().toISOString().slice(0, 10) ? " · hoje" : ""})</span>{contasCambioDefasado([c]).length > 0 && <span style={{ fontSize: 10, color: T.gold, fontWeight: 700 }} title="A atualização automática do câmbio parou há 3+ dias — o valor em R$ pode estar velho"> · 💱 defasada</span>}</>
-                  : "sem cotação — buscando…"}
-              </div>
-            )}
-            {/* Mini-gráfico do saldo (30 dias, transações compensadas) */}
+            {/* Card enxuto (2026-10-01): logo + nome, saldo grande e no máximo
+                uma linha de contexto. O gráfico de 30 dias vira fundo. */}
             {(() => {
               if (hidden) return null;
               const serie = serieSaldoConta(c, transacoes, 30);
               const min = Math.min(...serie), max = Math.max(...serie);
-              if (!(max - min > 0.005)) return null; // saldo parado: sem gráfico
-              const W = 120, H = 20;
+              if (!(max - min > 0.005)) return null;
+              const W = 120, H = 40;
               const pts = serie.map((v, i) =>
-                `${((i / (serie.length - 1)) * W).toFixed(1)},${(H - 1 - ((v - min) / (max - min)) * (H - 2)).toFixed(1)}`).join(" ");
+                `${((i / (serie.length - 1)) * W).toFixed(1)},${(H - 1 - ((v - min) / (max - min)) * (H - 4)).toFixed(1)}`).join(" ");
               const cor = serie[serie.length - 1] >= serie[0] ? T.green : T.red;
               return (
-                <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
-                     style={{ display: "block", marginTop: 5, opacity: 0.75 }} aria-hidden="true">
-                  <title>Saldo nos últimos 30 dias</title>
+                <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true"
+                     style={{ position: "absolute", left: 0, right: 0, bottom: 0, opacity: 0.16, pointerEvents: "none" }}>
+                  <polygon points={`0,${H} ${pts} ${W},${H}`} fill={cor} />
                   <polyline points={pts} fill="none" stroke={cor} strokeWidth="1.5" />
                 </svg>
               );
             })()}
-            {/* Saldo após os lançamentos pendentes compensarem */}
+            <div style={{ display: "flex", alignItems: "center", gap: 9, position: "relative" }}>
+              <BankIcon c={c} size={32} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
+                {selo && <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: T.faint, marginTop: 1 }}>{selo}</div>}
+              </div>
+              <button onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
+                      aria-label={exp ? "Recolher" : "Mais ações"} title="Mais ações"
+                      className="conta-mais"
+                      style={{ background: "transparent", border: "none", color: T.faint, borderRadius: 8, width: 28, height: 28, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                <MoreHorizontal size={16} />
+              </button>
+            </div>
+            <div style={{ flex: 1, minHeight: 8 }} />
             {(() => {
-              const p = pendentesDaConta(c, transacoes);
-              if (p.qtd === 0 || Math.abs(p.delta) < 0.005) return null;
+              const txt = hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL");
+              const fs = txt.length > 14 ? 18 : txt.length > 12 ? 21 : 24;
               return (
-                <div className="num" style={{ fontSize: 10, marginTop: 4, color: p.saldoApos < 0 ? T.red : T.muted, whiteSpace: "nowrap" }}
-                     title={`${p.qtd} lançamento(s) pendente(s) nesta conta (${p.delta >= 0 ? "+" : "−"}${fmt(Math.abs(p.delta), c.moeda || "BRL")})`}>
-                  após pendentes: <b style={{ color: p.saldoApos < 0 ? T.red : T.ink }}>{hidden ? "•••" : fmt(p.saldoApos, c.moeda || "BRL")}</b>
-                  <span style={{ color: T.faint }}> · {p.qtd} pend.</span>
+                <div className="num" style={{ position: "relative", fontVariantNumeric: "tabular-nums", fontSize: fs, fontWeight: 600, letterSpacing: "-.02em", color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap" }}>
+                  {!ehBRL(c) && <span style={{ fontSize: 13, marginRight: 4 }} aria-hidden="true">{bandeira(c.moeda)}</span>}
+                  {txt}
                 </div>
               );
             })()}
-            {/* Última movimentação */}
+            {/* Conta do exterior: valor em R$ sempre (é o que soma). */}
+            {!ehBRL(c) && (
+              <div className="num" style={{ position: "relative", fontSize: 11.5, marginTop: 2, color: Number(c.cotacao) > 0 ? T.muted : T.gold, whiteSpace: "nowrap" }}>
+                {Number(c.cotacao) > 0
+                  ? <>≈ {hidden ? "•••" : fmt(saldoContaBRL(c))}{contasCambioDefasado([c]).length > 0 && <span style={{ color: T.gold, fontWeight: 700 }} title="Câmbio sem atualizar há 3+ dias"> · 💱</span>}</>
+                  : "sem cotação"}
+              </div>
+            )}
+            {/* UMA linha de contexto: planilha > pendentes > última movimentação */}
             {(() => {
+              const linha = (conteudo, title) => (
+                <div className="num" title={title} style={{ position: "relative", fontSize: 11.5, marginTop: 3, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{conteudo}</div>
+              );
+              if (c.planilha) {
+                const res = (planilhaLivre || []).filter(l => l && l.contaId === c.id)
+                  .reduce((s2, l) => s2 + (l.tipo === "entrada" ? 1 : -1) * (Number(l.valor) || 0), 0);
+                if (Math.abs(res) >= 0.005) {
+                  const prev = (Number(c.saldo) || 0) + res;
+                  return linha(<>📋 previsão <b style={{ color: prev < 0 ? T.red : T.green }}>{hidden ? "•••" : fmt(prev)}</b></>,
+                    "Saldo atual + planilha livre desta conta (só informativo)");
+                }
+              }
+              const p = pendentesDaConta(c, transacoes);
+              if (p.qtd > 0 && Math.abs(p.delta) >= 0.005) {
+                return linha(<>após {p.qtd} pendente{p.qtd > 1 ? "s" : ""}: <b style={{ color: p.saldoApos < 0 ? T.red : T.ink }}>{hidden ? "•••" : fmt(p.saldoApos, c.moeda || "BRL")}</b></>,
+                  "Saldo depois que os lançamentos pendentes compensarem");
+              }
               const u = ultimaMovimentacao(c, transacoes);
               if (!u) return null;
               const hojeISO = new Date().toISOString().slice(0, 10);
               const ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
-              const ontemISO = ontem.toISOString().slice(0, 10);
               const d = String(u.data).slice(0, 10);
-              const quando = d === hojeISO ? "hoje" : d === ontemISO ? "ontem" : `${d.slice(8, 10)}/${d.slice(5, 7)}`;
-              return (
-                <div className="num" style={{ fontSize: 10.5, marginTop: 2, color: T.faint, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                     title={u.descricao}>
-                  última: <span style={{ color: u.tipo === "receita" ? T.green : T.red }}>{u.tipo === "receita" ? "+" : "−"}{hidden ? "•••" : fmt(u.valor, c.moeda || "BRL")}</span> · {quando}
-                </div>
-              );
+              const quando = d === hojeISO ? "hoje" : d === ontem.toISOString().slice(0, 10) ? "ontem" : `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+              return linha(<><span style={{ color: u.tipo === "receita" ? T.green : T.red }}>{u.tipo === "receita" ? "+" : "−"}{hidden ? "•••" : fmt(u.valor, c.moeda || "BRL")}</span> · {quando}</>, u.descricao);
             })()}
-            {(selo || c.instituicao) && (
-              <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                {selo && <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>{selo}</span>}
-                {c.instituicao && !selo && <span style={{ fontSize: 10, color: T.faint, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.instituicao}</span>}
-              </div>
-            )}
             {exp && (
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10, paddingTop: 8, borderTop: `1px dashed ${T.border}` }} onClick={(e) => e.stopPropagation()}>
                 <button onClick={() => moverConta(c, -1)} disabled={primeiro} title="Mover para cima" style={{ ...acaoBtn, padding: "5px 7px", opacity: primeiro ? .4 : 1, cursor: primeiro ? "default" : "pointer" }}><ChevronUp size={13} /></button>
