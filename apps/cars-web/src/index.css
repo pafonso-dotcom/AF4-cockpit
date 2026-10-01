@@ -943,3 +943,15 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .contas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .painel-fluxo-nums { grid-template-columns: 1fr 1fr !important; }
 }
+
+/* ===== Letreiro (components/ui/Letreiro.jsx · 2026-10-01) =====
+   Faixa duplicada andando -50% em loop. Pausa só com mouse (no iPhone o
+   :hover gruda após o toque); não desliga com "reduzir movimento". */
+.letreiro-faixa {
+  display: inline-flex; width: max-content; will-change: transform;
+  -webkit-animation: letreiroAnda var(--letreiro-dur, 30s) linear infinite;
+  animation: letreiroAnda var(--letreiro-dur, 30s) linear infinite;
+}
+@media (hover: hover) { .letreiro:hover .letreiro-faixa { animation-play-state: paused; } }
+@-webkit-keyframes letreiroAnda { from { -webkit-transform: translate3d(0,0,0); } to { -webkit-transform: translate3d(-50%,0,0); } }
+@keyframes letreiroAnda { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }

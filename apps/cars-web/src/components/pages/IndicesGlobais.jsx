@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { API } from "../../lib/api.js";
+import Letreiro, { LetRotulo, LetValor, LetVar } from "../ui/Letreiro.jsx";
 
 /**
  * Faixa de índices globais ao vivo (Ibovespa, S&P 500, Nasdaq, Dólar, Euro).
@@ -103,52 +104,21 @@ export default function IndicesGlobais({ apiKeys = {}, excluir = [], compacto = 
     ? `R$ ${i.valor.toFixed(2)}`
     : i.valor.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
 
-  // Letreiro: uma linha rolando pela tela (estilo cotação de TV). A lista vai
-  // duplicada e a faixa anda -50% em loop, então o fim emenda no começo.
-  // Toque/mouse em cima pausa; "reduzir movimento" vira linha rolável à mão.
+  // Letreiro: uma linha rolando pela tela (componente ui/Letreiro).
   if (letreiro) {
-    const item = (i, idx) => {
-      const up = (i.var ?? 0) >= 0;
-      return (
-        <span key={idx} style={{ display: "inline-flex", alignItems: "baseline", gap: 6, padding: "0 18px", whiteSpace: "nowrap", borderRight: `1px solid ${T.border}` }}>
-          <span style={{ fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>{i.nome}</span>
-          <span className="num" style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{fmtVal(i)}</span>
-          {i.moeda !== "taxa" && (
-            <span style={{ fontSize: 12, fontWeight: 600, color: up ? T.green : T.red }}>{up ? "▲" : "▼"} {up ? "+" : ""}{(i.var ?? 0).toFixed(2)}%</span>
-          )}
-        </span>
-      );
-    };
-    const dur = Math.max(18, visiveis.length * 5);
-    return (
-      <div className="letreiro" style={{ overflow: "hidden", position: "relative", padding: "10px 0",
-        maskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
-        WebkitMaskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)" }}>
-        <style>{`
-          .letreiro-faixa { display: inline-flex; width: max-content; will-change: transform;
-            -webkit-animation: letreiroAnda ${dur}s linear infinite; animation: letreiroAnda ${dur}s linear infinite; }
-          /* Pausa só onde existe mouse — no iPhone o :hover "gruda" depois do
-             toque e o letreiro ficava parado. Também NÃO desligamos com
-             "reduzir movimento": o letreiro é pedido explícito (2026-10-01). */
-          @media (hover: hover) { .letreiro:hover .letreiro-faixa { animation-play-state: paused; } }
-          @-webkit-keyframes letreiroAnda { from { -webkit-transform: translate3d(0,0,0); } to { -webkit-transform: translate3d(-50%,0,0); } }
-          @keyframes letreiroAnda { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
-        `}</style>
-        <div className="letreiro-faixa">
-          {[0, 1].map(k => (
-            <React.Fragment key={k}>
-              {statusOk && (
-                <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6, padding: "0 18px", whiteSpace: "nowrap", borderRight: `1px solid ${T.border}`, fontSize: 12, color: T.green, fontWeight: 600 }}>
-                  ● {statusOk.texto}
-                  {statusOk.sem > 0 && <span style={{ color: T.gold, fontWeight: 500 }}>· {statusOk.sem} sem cotação (mantido o último preço)</span>}
-                </span>
-              )}
-              {visiveis.map((i, idx) => item(i, k + "-" + idx))}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-    );
+    const itens = [];
+    if (statusOk) itens.push({ chave: "status", conteudo: (
+      <span style={{ fontSize: 12, color: T.green, fontWeight: 600 }}>
+        ● {statusOk.texto}
+        {statusOk.sem > 0 && <span style={{ color: T.gold, fontWeight: 500 }}> · {statusOk.sem} sem cotação (mantido o último preço)</span>}
+      </span>
+    ) });
+    visiveis.forEach(i => itens.push({ chave: i.nome, conteudo: (<>
+      <LetRotulo>{i.nome}</LetRotulo>
+      <LetValor>{fmtVal(i)}</LetValor>
+      {i.moeda !== "taxa" && <LetVar pct={i.var} />}
+    </>) }));
+    return <Letreiro itens={itens} />;
   }
 
   // Compacto: selos pequenos (nome · valor · variação) pra ficar ao lado do título.
