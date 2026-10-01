@@ -753,18 +753,18 @@ export default function Dashboard({
                  onClick={() => onTabChange?.("cartoes")} />
       </section>
 
-      {/* Linha 2: Fluxo do mês · Próximos vencimentos */}
+      {/* Linha 2: Calendário compacto · Gastos por categoria */}
+      <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+        <BlocoSeguro nome="CalendarioWidgetCard"><CalendarioWidgetCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} /></BlocoSeguro>
+        <BlocoSeguro nome="GastosRoscaCard"><GastosRoscaCard data={gastosCat} hidden={hidden} /></BlocoSeguro>
+      </section>
+
+      {/* Linha 3: Fluxo do mês · Próximos vencimentos */}
       <section className="painel-dupla painel-dupla-larga" style={{ display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 12, marginBottom: 14 }}>
         <BlocoSeguro nome="FluxoMesCard"><FluxoMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} hidden={hidden} onVer={() => onTabChange?.("planejamento")} /></BlocoSeguro>
         <span className="dash-prox">
           <BlocoSeguro nome="ProximosVencimentosCard"><ProximosVencimentosCard devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} /></BlocoSeguro>
         </span>
-      </section>
-
-      {/* Linha 3: Calendário compacto · Gastos por categoria */}
-      <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-        <BlocoSeguro nome="CalendarioWidgetCard"><CalendarioWidgetCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} /></BlocoSeguro>
-        <BlocoSeguro nome="GastosRoscaCard"><GastosRoscaCard data={gastosCat} hidden={hidden} /></BlocoSeguro>
       </section>
 
       {/* Linha 4: Contas · Cartões */}
