@@ -83,7 +83,7 @@ ${topCat.map(([c, v], i) => `${i + 1}. ${c}: R$ ${v.toFixed(2)}`).join("\n")}
  * Envia uma pergunta para o Claude com o contexto dos dados.
  * Retorna a resposta em texto.
  */
-export async function perguntarAoClaude({ apiKey, pergunta, historico = [], contextoDados, model = MODEL }) {
+export async function perguntarAoClaude({ apiKey, pergunta, historico = [], contextoDados, model = MODEL, effort = null, maxTokens = 1024 }) {
   if (!apiKey) throw new Error("Configure a chave Anthropic em Configurações → API Keys.");
 
   const systemPrompt = `Você é um assistente financeiro pessoal do Paulo Afonso, dono da AF4 Motors em Tatuí-SP.
@@ -117,9 +117,10 @@ ${contextoDados}`;
       },
       body: JSON.stringify({
         model,
-        max_tokens: 1024,
+        max_tokens: maxTokens,
         system: systemPrompt,
         messages,
+        ...(effort ? { output_config: { effort } } : {}),
       }),
     });
 
