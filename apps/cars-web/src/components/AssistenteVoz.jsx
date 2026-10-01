@@ -29,21 +29,43 @@ function vozPtBR() {
     return pt.find(v => /luciana|felipe|google|premium|enhanced/i.test(v.name)) || pt[0] || null;
   } catch { return null; }
 }
-function falar(texto, mudo) {
+// iPhone: <audio> tocando (mesmo mudo) põe a sessão de áudio em "reprodução",
+// que tenta ignorar a chave do silencioso; o elemento é destravado no toque.
+const SILENCIO = "data:audio/wav;base64,UklGRvQHAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YdAHAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==";
+let audioDestrava = null;
+function destravarAudio() {
   try {
-    if (mudo || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(texto);
-    u.lang = "pt-BR";
-    const v = vozPtBR();
-    if (v) u.voice = v;
-    u.rate = 1.05;
-    window.speechSynthesis.speak(u);
+    if (!audioDestrava) { audioDestrava = new Audio(SILENCIO); audioDestrava.setAttribute("playsinline", ""); }
+    audioDestrava.currentTime = 0;
+    audioDestrava.play().catch(() => {});
   } catch {}
+}
+/** Fala e resolve quando terminar (ou por tempo, se o onend não vier — iOS). */
+function falar(texto, mudo) {
+  return new Promise((resolve) => {
+    try {
+      if (mudo || !window.speechSynthesis || !texto) { resolve(); return; }
+      window.speechSynthesis.cancel();
+      destravarAudio();
+      const u = new SpeechSynthesisUtterance(texto);
+      u.lang = "pt-BR";
+      const v = vozPtBR();
+      if (v) u.voice = v;
+      u.rate = 1.05;
+      u.volume = 1;
+      let feito = false;
+      const fim = () => { if (!feito) { feito = true; resolve(); } };
+      u.onend = fim; u.onerror = fim;
+      setTimeout(fim, 2500 + texto.length * 85);
+      // speak() logo após cancel() às vezes é descartado no Safari.
+      setTimeout(() => { try { window.speechSynthesis.speak(u); } catch { fim(); } }, 120);
+    } catch { resolve(); }
+  });
 }
 // iOS: a 1ª fala precisa nascer num toque — destrava com uma fala muda.
 function destravarFala() {
   try {
+    destravarAudio();
     if (!window.speechSynthesis) return;
     const u = new SpeechSynthesisUtterance(" ");
     u.volume = 0;
@@ -67,6 +89,21 @@ export default function AssistenteVoz(props) {
   const [mudo, setMudo] = useState(() => { try { return localStorage.getItem(MUDO_KEY) === "1"; } catch { return false; } });
   const mudoRef = useRef(mudo); mudoRef.current = mudo;
   const recRef = useRef(null);
+  // Modo conversa: depois de responder volta a ouvir sozinho até este horário
+  // (cada pergunta renova 1 min). Sem perguntas, desliga.
+  const conversaAteRef = useRef(0);
+  const abertoRef = useRef(false); abertoRef.current = aberto;
+  const [conversa, setConversa] = useState(false);
+  const JANELA = 60000;
+  const renovarConversa = () => { conversaAteRef.current = Date.now() + JANELA; setConversa(true); };
+  const conversaViva = () => abertoRef.current && Date.now() < conversaAteRef.current;
+  const encerrarConversa = () => { conversaAteRef.current = 0; setConversa(false); };
+  // Responde falando e, no modo conversa, volta a ouvir ao terminar.
+  const responderEOuvir = async (fala, continuar = true) => {
+    await falar(fala, mudoRef.current);
+    if (continuar && conversaViva()) setTimeout(() => { if (conversaViva()) ouvirRef.current?.(true); }, 250);
+    else if (!conversaViva()) encerrarConversa();
+  };
   const inputRef = useRef(null);
 
   const montarContexto = () => {
@@ -109,6 +146,7 @@ export default function AssistenteVoz(props) {
     if (!f) return;
     setPergunta(f);
     setParcial("");
+    renovarConversa();
     let r;
     try { r = responder(f, montarContexto()); } catch (e) { r = { ok: false }; }
     setPendente(null);
@@ -117,25 +155,27 @@ export default function AssistenteVoz(props) {
       setPendente({ ...l, valor: String(l.valor).replace(".", ","),
         destinoKey: l.destino ? `${l.destino.tipo}:${l.destino.item.id}` : "" });
       setResposta({ ok: true, texto: r.texto });
+      encerrarConversa(); // revisão do lançamento é no toque
       falar(r.fala, mudoRef.current);
     } else if (r.ok && r.nav) {
       setResposta({ ok: true, texto: r.texto });
+      encerrarConversa();
       falar(r.fala, mudoRef.current);
       try { dadosRef.current.onNavegar?.(r.nav); } catch {}
       setTimeout(() => { pararOuvir(); setAberto(false); }, 700);
     } else if (r.ok) {
       setResposta({ ok: true, texto: r.texto });
-      falar(r.fala, mudoRef.current);
+      responderEOuvir(r.fala);
     } else {
       setResposta({ ok: false, texto: "Não achei isso nas respostas rápidas. Posso perguntar à IA?" });
-      falar("Não achei isso nas respostas rápidas. Quer que eu pergunte à inteligência artificial?", mudoRef.current);
+      responderEOuvir("Não achei isso nas respostas rápidas. Pode perguntar de outro jeito, ou tocar em perguntar à IA.");
     }
   };
 
-  const pararOuvir = () => { try { recRef.current?.abort(); } catch {} recRef.current = null; setOuvindo(false); };
+  const pararOuvir = () => { const r = recRef.current; recRef.current = null; try { r?.abort(); } catch {} setOuvindo(false); };
 
-  const ouvir = () => {
-    destravarFala();
+  const ouvir = (auto = false) => {
+    if (!auto) { destravarFala(); renovarConversa(); }
     setAviso("");
     if (!SR) {
       setAviso("Microfone direto não funciona neste navegador — toque no campo abaixo e use o 🎤 do teclado.");
@@ -158,8 +198,12 @@ export default function AssistenteVoz(props) {
       }
       setParcial(final || interim);
     };
+    let erro = null;
     rec.onerror = (ev) => {
       const e = ev?.error;
+      erro = e;
+      if (auto && (e === "no-speech" || e === "aborted")) return;
+      if (auto && (e === "not-allowed" || e === "service-not-allowed")) { encerrarConversa(); return; }
       if (e === "not-allowed" || e === "service-not-allowed") {
         setAviso("Sem permissão de microfone aqui — use o 🎤 do teclado no campo abaixo (ou libere o microfone nos Ajustes).");
         setTimeout(() => inputRef.current?.focus(), 50);
@@ -170,13 +214,22 @@ export default function AssistenteVoz(props) {
       }
     };
     rec.onend = () => {
+      if (recRef.current !== rec) return; // já substituído/abortado
       setOuvindo(false);
       recRef.current = null;
-      if (final.trim()) processar(final);
+      if (final.trim()) { processar(final); return; }
+      // Silêncio: no modo conversa continua ouvindo até a janela acabar.
+      if (conversaViva() && erro !== "not-allowed" && erro !== "service-not-allowed")
+        setTimeout(() => { if (conversaViva() && !recRef.current) ouvirRef.current?.(true); }, 250);
+      else encerrarConversa();
     };
     recRef.current = rec;
     try { rec.start(); setOuvindo(true); }
-    catch { setOuvindo(false); setAviso("Não consegui abrir o microfone — use o 🎤 do teclado abaixo."); }
+    catch {
+      setOuvindo(false); recRef.current = null;
+      if (auto) encerrarConversa();
+      else setAviso("Não consegui abrir o microfone — use o 🎤 do teclado abaixo.");
+    }
   };
   const ouvirRef = useRef(ouvir); ouvirRef.current = ouvir;
 
@@ -194,6 +247,7 @@ export default function AssistenteVoz(props) {
   }, [aberto]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fechar = () => {
+    encerrarConversa();
     pararOuvir();
     try { window.speechSynthesis?.cancel(); } catch {}
     setAberto(false);
@@ -216,7 +270,8 @@ export default function AssistenteVoz(props) {
     setAviso("");
     const txt = `Lançado: ${p.descricao} ${p.tipo === "receita" ? "+" : "−"}R$ ${valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ${tipoDest === "cartao" ? "no cartão" : "na conta"} ${item.nome}.`;
     setResposta({ ok: true, texto: "✅ " + txt });
-    falar("Lançado.", mudoRef.current);
+    renovarConversa();
+    responderEOuvir("Lançado.");
   };
 
   const perguntarIA = async () => {
@@ -241,7 +296,8 @@ export default function AssistenteVoz(props) {
         "\n\nResponda em no máximo 2 frases curtas, sem markdown — a resposta será FALADA em voz alta.";
       const r = semMarkdown(await perguntarAoClaude({ apiKey, pergunta, contextoDados }));
       setResposta({ ok: true, ia: true, texto: r });
-      falar(r, mudoRef.current);
+      renovarConversa();
+      responderEOuvir(r);
     } catch (e) {
       setResposta({ ok: false, texto: e?.message || "A IA não respondeu agora." });
     } finally {
@@ -274,19 +330,22 @@ export default function AssistenteVoz(props) {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "6px 0 12px" }}>
-          <button onClick={() => (ouvindo ? pararOuvir() : ouvir())} aria-label={ouvindo ? "Parar de ouvir" : "Falar"}
+          <button onClick={() => (ouvindo ? (encerrarConversa(), pararOuvir()) : ouvir())} aria-label={ouvindo ? "Parar de ouvir" : "Falar"}
                   className={ouvindo ? "assistente-mic ouvindo" : "assistente-mic"}
                   style={{ "--bolha": ouvindo ? T.red : T.gold }}>
             <Mic size={32} strokeWidth={2.2} style={{ position: "relative", zIndex: 1, filter: "drop-shadow(0 1px 2px rgba(0,0,0,.35))" }} />
           </button>
           <div style={{ fontSize: 13, color: T.muted, minHeight: 18, textAlign: "center" }}>
-            {ouvindo ? (parcial ? `“${parcial}”` : "Ouvindo… pode falar") : pensando ? "Pensando…" : pergunta ? `“${pergunta}”` : "Toque no microfone e pergunte"}
+            {ouvindo ? (parcial ? `“${parcial}”` : (pergunta ? "Pode perguntar de novo…" : "Ouvindo… pode falar")) : pensando ? "Pensando…" : pergunta ? `“${pergunta}”` : "Toque no microfone e pergunte"}
           </div>
+          {conversa && (
+            <div style={{ fontSize: 11.5, color: T.green, fontWeight: 600 }}>● conversa ligada — pode emendar outra pergunta</div>
+          )}
         </div>
 
         {aviso && <div style={{ fontSize: 12.5, color: T.gold, background: `${T.gold}14`, border: `1px solid ${T.gold}44`, borderRadius: 10, padding: "8px 10px", marginBottom: 10 }}>{aviso}</div>}
 
-        {resposta && !ouvindo && (
+        {resposta && !(ouvindo && parcial) && (
           <div style={{ marginBottom: 12, textAlign: "center" }}>
             <div style={{ margin: "0 auto", textAlign: "center", background: resposta.ok ? `${T.gold}16` : T.bgSoft, border: `1px solid ${resposta.ok ? T.gold + "55" : T.border}`,
                           borderRadius: 14, padding: "12px 14px", fontSize: 17, lineHeight: 1.4, fontWeight: resposta.ok ? 600 : 400, whiteSpace: "pre-wrap" }}>
