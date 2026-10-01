@@ -22,14 +22,12 @@ export function KpiMini({ icone, label, valor, sub, cor = T.ink, spark, oculto, 
   return (
     <Card onClick={onClick} style={{ minWidth: 0, cursor: onClick ? "pointer" : "default", padding: "14px 15px", display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: 112, borderLeft: alerta ? `3px solid ${T.red}` : undefined }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span aria-hidden style={{ width: 30, height: 30, borderRadius: 10, display: "grid", placeItems: "center", background: `${cor}1c`, fontSize: 15 }}>{icone}</span>
-        <span style={{ fontSize: 12, color: T.muted, fontWeight: 600, lineHeight: 1.2 }}>{label}</span>
+        <span aria-hidden style={{ width: 30, height: 30, borderRadius: 10, display: "grid", placeItems: "center", background: `${cor}1c`, fontSize: 15, flexShrink: 0 }}>{icone}</span>
+        <span style={{ fontSize: 12, color: T.muted, fontWeight: 600, lineHeight: 1.2, flex: 1, minWidth: 0 }}>{label}</span>
+        {!oculto && spark && <span className="painel-kpi-spark" style={{ flexShrink: 0 }}><Sparkline points={spark} cor={cor} w={46} h={18} /></span>}
       </div>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 8, marginTop: 10 }}>
-        <div className="num painel-kpi-valor" style={{ fontSize: 24, fontWeight: 700, color: cor, letterSpacing: "-.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {oculto ? "•••" : valor}
-        </div>
-        {!oculto && spark && <span className="painel-kpi-spark" style={{ flexShrink: 0 }}><Sparkline points={spark} cor={cor} w={52} h={22} /></span>}
+      <div className="num painel-kpi-valor" style={{ fontSize: 24, fontWeight: 700, color: cor, letterSpacing: "-.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 10 }}>
+        {oculto ? "•••" : valor}
       </div>
       {sub && <div style={{ fontSize: 11.5, color: alerta ? T.red : T.faint, marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{oculto ? "" : sub}</div>}
     </Card>
