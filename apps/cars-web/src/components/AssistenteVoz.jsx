@@ -355,10 +355,17 @@ export default function AssistenteVoz(props) {
         "\n\nVocê é a assistente de voz do app. Responda em 1 a 3 frases curtas e diretas, sem markdown nem listas — a resposta será FALADA. " +
         "Use os números acima (com R$ e vírgula decimal). Se o dado não estiver acima, diga que não tem essa informação no app.";
       const historico = historicoIARef.current.slice(-6);
-      const r = semMarkdown(await perguntarAoClaude({
-        apiKey, pergunta: texto, historico, contextoDados,
-        model: "claude-opus-5-5", effort: "low", maxTokens: 4000,
-      }));
+      const base = { apiKey, pergunta: texto, historico, contextoDados };
+      let bruto;
+      try {
+        bruto = await perguntarAoClaude({ ...base, model: "claude-opus-5-5", effort: "low", maxTokens: 4000 });
+      } catch (e1) {
+        // Conta sem acesso ao modelo novo / parâmetro recusado: cai pro modelo
+        // padrão do app (o mesmo do "Pergunte ao Claude").
+        if (!/\b(400|404)\b/.test(String(e1?.message || ""))) throw e1;
+        bruto = await perguntarAoClaude(base);
+      }
+      const r = semMarkdown(bruto);
       if (!r || r === "(resposta vazia)") {
         const msg = "A IA não quis ou não conseguiu responder essa. Tenta perguntar de outro jeito.";
         setResposta({ ok: false, ia: true, texto: msg });
@@ -374,7 +381,8 @@ export default function AssistenteVoz(props) {
       const msg = /\b401\b|authentication/i.test(m) ? "A chave Anthropic não foi aceita — confira em Configurações → APIs."
         : /\b429\b|rate_limit/i.test(m) ? "Muitas perguntas seguidas — espera um minutinho e tenta de novo."
         : /\b(529|503|500)\b|overloaded/i.test(m) ? "A IA está sobrecarregada agora — tenta de novo daqui a pouco."
-        : /\b400\b/.test(m) ? "A IA recusou o pedido (erro 400). Me avisa que eu ajusto."
+        : /credit balance|billing|saldo/i.test(m) ? "Acabou o crédito da conta Anthropic — recarregue em console.anthropic.com (Plans & Billing)."
+        : /\b(400|404)\b/.test(m) ? `A IA recusou o pedido: ${(m.match(/"message"\s*:\s*"([^"]+)"/) || [])[1] || m.slice(0, 140)}`
         : /conectar|Failed to fetch|NetworkError/i.test(m) ? "Sem conexão com a IA — confere a internet."
         : "A IA não respondeu agora — tenta de novo.";
       setResposta({ ok: false, ia: true, texto: msg });
