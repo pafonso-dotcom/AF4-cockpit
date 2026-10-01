@@ -7,7 +7,7 @@ import { fmt, uid } from "../../lib/format.js";
 import { parseValorBR } from "../../lib/importExport.js";
 import { confirm } from "../../lib/confirm.js";
 import { toast } from "../../lib/toast.js";
-import { calcSaldoConta, reconciliarContas, serieSaldoConta, pendentesDaConta, ultimaMovimentacao } from "../../lib/saldoConta.js";
+import { calcSaldoConta, reconciliarContas, pendentesDaConta, ultimaMovimentacao } from "../../lib/saldoConta.js";
 import { filtrarPorEscopo, detectarEscopoConta } from "../../lib/escopo.js";
 import { somaContasBRL, semCotacao, buscarCotacao, saldoContaBRL, contasCambioDefasado } from "../../lib/cambio.js";
 import Field from "../ui/Field.jsx";
@@ -457,24 +457,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                  display: "flex", flexDirection: "column", overflow: "hidden",
                }}>
             {/* Card enxuto (2026-10-01): logo + nome, saldo grande e no máximo
-                uma linha de contexto. O gráfico de 30 dias vira fundo. */}
-            {(() => {
-              if (hidden) return null;
-              const serie = serieSaldoConta(c, transacoes, 30);
-              const min = Math.min(...serie), max = Math.max(...serie);
-              if (!(max - min > 0.005)) return null;
-              const W = 120, H = 40;
-              const pts = serie.map((v, i) =>
-                `${((i / (serie.length - 1)) * W).toFixed(1)},${(H - 1 - ((v - min) / (max - min)) * (H - 4)).toFixed(1)}`).join(" ");
-              const cor = serie[serie.length - 1] >= serie[0] ? T.green : T.red;
-              return (
-                <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true"
-                     style={{ position: "absolute", left: 0, right: 0, bottom: 0, opacity: 0.16, pointerEvents: "none" }}>
-                  <polygon points={`0,${H} ${pts} ${W},${H}`} fill={cor} />
-                  <polyline points={pts} fill="none" stroke={cor} strokeWidth="1.5" />
-                </svg>
-              );
-            })()}
+                uma linha de contexto. Sem gráfico de fundo (confundia a vista). */}
             <div style={{ display: "flex", alignItems: "center", gap: 9, position: "relative" }}>
               <BankIcon c={c} size={32} />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -493,7 +476,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               const txt = hidden ? "•••" : fmt(c.saldo, c.moeda || "BRL");
               const fs = txt.length > 14 ? 18 : txt.length > 12 ? 21 : 24;
               return (
-                <div className="num" style={{ position: "relative", fontVariantNumeric: "tabular-nums", fontSize: fs, fontWeight: 600, letterSpacing: "-.02em", color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap" }}>
+                <div className="num conta-saldo-valor" style={{ position: "relative", fontVariantNumeric: "tabular-nums", fontSize: fs, fontWeight: 600, letterSpacing: "-.02em", color: c.saldo < 0 ? T.red : T.ink, whiteSpace: "nowrap" }}>
                   {!ehBRL(c) && <span style={{ fontSize: 13, marginRight: 4 }} aria-hidden="true">{bandeira(c.moeda)}</span>}
                   {txt}
                 </div>
