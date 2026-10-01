@@ -46,8 +46,9 @@ export function KpiMini({ icone, label, valor, sub, cor = T.ink, spark, oculto, 
 const diaISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /** Fluxo do mês: saldo projetado dia a dia até o fim do mês (só o agendado). */
-export function FluxoMesCard({ stateAgg, escopoAtivo, hidden, onVer, compacto = false }) {
-  const dados = useMemo(() => {
+/** Números do fluxo do mês (saldo hoje → fim do mês, só o agendado). */
+export function useFluxoMes(stateAgg, escopoAtivo) {
+  return useMemo(() => {
     const hoje = new Date();
     const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
     const dias = Math.max(1, fimMes.getDate() - hoje.getDate());
@@ -65,6 +66,10 @@ export function FluxoMesCard({ stateAgg, escopoAtivo, hidden, onVer, compacto = 
     }
     return { serie, inicial: f.saldoInicial, final: saldo, entradas, saidas, menor };
   }, [stateAgg, escopoAtivo]);
+}
+
+export function FluxoMesCard({ stateAgg, escopoAtivo, hidden, onVer, compacto = false }) {
+  const dados = useFluxoMes(stateAgg, escopoAtivo);
 
   if (!dados) return null;
   const subiu = dados.final >= dados.inicial;
