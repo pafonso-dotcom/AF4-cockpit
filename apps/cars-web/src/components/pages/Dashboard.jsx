@@ -1484,6 +1484,7 @@ const CAL_MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho"
 const CAL_ACENTO = "#e0734f";
 const DIAS_SEMANA = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
 const MES_CURTO_UP = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+const MES_CURTO = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 function CalendarioWidgetCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }) {
   const hoje = new Date();
   const [ref, setRef] = React.useState({ y: hoje.getFullYear(), m: hoje.getMonth() });
