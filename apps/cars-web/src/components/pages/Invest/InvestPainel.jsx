@@ -14,6 +14,7 @@ import StatusCotacoes from "../../ui/StatusCotacoes.jsx";
 import Vazio from "../../ui/Vazio.jsx";
 import Card from "../../ui/Card.jsx";
 import { KpiMini } from "../PainelNovo.jsx";
+import Modal from "../../ui/Modal.jsx";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 export default function InvestPainel({
@@ -115,6 +116,22 @@ export default function InvestPainel({
     return { total, ult12 };
   }, [proventosRecebidos]);
 
+  // Composição do Patrimônio investido (botão ↗ do quadradinho, igual ao Painel).
+  const [compAberta, setCompAberta] = useState(false);
+  const composicao = useMemo(() => {
+    const acc = {};
+    for (const a of ativos) {
+      const v = Number(a?.qtd) * Number(a?.preco);
+      if (!(v > 0)) continue;
+      const us = ehUS(a);
+      const k = (us ? "us:" : "br:") + (a?.tipo || "outro");
+      const o = acc[k] || (acc[k] = { us, label: ASSET_CLASS_LABELS[a?.tipo] || a?.tipo || "Outros", qtd: 0, valor: 0 });
+      o.qtd++; o.valor += v;
+    }
+    const linhas = Object.values(acc).sort((x, y) => (x.us - y.us) || (y.valor - x.valor));
+    return { br: linhas.filter(l => !l.us), us: linhas.filter(l => l.us) };
+  }, [ativos]);
+
   // Lucro total = ganho de capital (mercado − investido) + dividendos recebidos.
   const lucroTotal = patrimonio.ganho + dividendos.total;
 
@@ -140,11 +157,55 @@ export default function InvestPainel({
       {/* Topo · 4 quadradinhos padrão (mesmo das outras telas) */}
       <section className={"tela-kpis" + (refreshing ? " skel-att" : "")} style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 12 }}>
         <KpiMini icone="💼" label="Patrimônio investido" valor={fmt(patrimonio.total)} oculto={hidden} cor={T.ink}
+          onDetalhes={() => setCompAberta(true)} detalhesTitulo="Ver o que está sendo somado no Patrimônio investido"
           sub={`${patrimonio.pct >= 0 ? "+" : ""}${fmtN(patrimonio.pct, 1)}% sobre o investido`} />
         <KpiMini icone="📈" label="Lucro total" valor={fmt(lucroTotal)} oculto={hidden} cor={lucroTotal >= 0 ? T.green : T.red} />
         <KpiMini icone="💰" label="Proventos · 12 meses" valor={fmt(dividendos.ult12)} oculto={hidden} cor={T.green} />
         <KpiMini icone="🧺" label="Posições" valor={String(posicoes.qtd)} cor={T.ink} onClick={() => onTabChange?.("carteira")} />
       </section>
+
+      {compAberta && (
+        <Modal title="💼 Patrimônio investido — de onde vem o número" onClose={() => setCompAberta(false)}>
+          <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 12 }}>
+            Soma do valor de mercado (quantidade × último preço) de cada ativo. O lado EUA entra convertido pelo dólar do dia.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {composicao.br.map(l => (
+              <div key={"br" + l.label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: T.bgSoft, borderRadius: 12 }}>
+                <span style={{ flex: 1, fontSize: 13, color: T.ink }}>🇧🇷 {l.label} <span style={{ color: T.faint, fontSize: 11.5 }}>· {l.qtd} {l.qtd === 1 ? "ativo" : "ativos"}</span></span>
+                <span className="num" style={{ fontSize: 13.5, fontWeight: 700, color: T.ink, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(l.valor)}</span>
+              </div>
+            ))}
+            {composicao.us.map(l => (
+              <div key={"us" + l.label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: T.bgSoft, borderRadius: 12 }}>
+                <span style={{ flex: 1, fontSize: 13, color: T.ink }}>🇺🇸 {l.label} <span style={{ color: T.faint, fontSize: 11.5 }}>· {hidden ? "•••" : fmtUSD(l.valor)}</span></span>
+                <span className="num" style={{ fontSize: 13.5, fontWeight: 700, color: T.ink, whiteSpace: "nowrap" }}>
+                  {hidden ? "•••" : usdRate ? fmt(l.valor * usdRate) : "sem cotação"}
+                </span>
+              </div>
+            ))}
+          </div>
+          {composicao.us.length > 0 && (
+            <div style={{ fontSize: 11.5, color: T.muted, marginTop: 8, paddingLeft: 4 }}>
+              {usdRate ? `Dólar usado: ${fmt(usdRate)}.` : "Dólar ainda não carregou — o lado EUA fica fora do total por enquanto."}
+            </div>
+          )}
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.border}`, display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+              <span style={{ fontWeight: 700, color: T.ink }}>Patrimônio investido</span>
+              <span className="num" style={{ fontSize: 17, fontWeight: 700, color: T.ink }}>{hidden ? "•••••" : fmt(patrimonio.total)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: T.muted }}>
+              <span>Valor investido (custo)</span>
+              <span className="num">{hidden ? "•••" : fmt(patrimonio.investido)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: T.muted }}>
+              <span>Ganho de capital</span>
+              <span className="num" style={{ color: patrimonio.ganho >= 0 ? T.green : T.red }}>{hidden ? "•••" : `${fmt(patrimonio.ganho)} (${patrimonio.pct >= 0 ? "+" : ""}${fmtN(patrimonio.pct, 1)}%)`}</span>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Evolução da carteira — faixa logo abaixo dos KPIs (snapshots diários).
           campo="totalAtivos" = só investimentos (bate com o card Patrimônio total);
