@@ -36,7 +36,7 @@ function Sparkline({ data, cor, w = 56, h = 22 }) {
   );
 }
 
-export default function IndicesGlobais({ apiKeys = {}, excluir = [], compacto = false }) {
+export default function IndicesGlobais({ apiKeys = {}, excluir = [], compacto = false, grade = false, letreiro = false, statusOk = null }) {
   const [itens, setItens] = useState(null);
 
   useEffect(() => {
@@ -103,6 +103,53 @@ export default function IndicesGlobais({ apiKeys = {}, excluir = [], compacto = 
     ? `R$ ${i.valor.toFixed(2)}`
     : i.valor.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
 
+  // Letreiro: uma linha rolando pela tela (estilo cotação de TV). A lista vai
+  // duplicada e a faixa anda -50% em loop, então o fim emenda no começo.
+  // Toque/mouse em cima pausa; "reduzir movimento" vira linha rolável à mão.
+  if (letreiro) {
+    const item = (i, idx) => {
+      const up = (i.var ?? 0) >= 0;
+      return (
+        <span key={idx} style={{ display: "inline-flex", alignItems: "baseline", gap: 6, padding: "0 18px", whiteSpace: "nowrap", borderRight: `1px solid ${T.border}` }}>
+          <span style={{ fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", color: T.muted, fontWeight: 600 }}>{i.nome}</span>
+          <span className="num" style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>{fmtVal(i)}</span>
+          {i.moeda !== "taxa" && (
+            <span style={{ fontSize: 12, fontWeight: 600, color: up ? T.green : T.red }}>{up ? "▲" : "▼"} {up ? "+" : ""}{(i.var ?? 0).toFixed(2)}%</span>
+          )}
+        </span>
+      );
+    };
+    const dur = Math.max(18, visiveis.length * 5);
+    return (
+      <div className="letreiro" style={{ overflow: "hidden", position: "relative", padding: "10px 0",
+        maskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
+        WebkitMaskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)" }}>
+        <style>{`
+          .letreiro-faixa { display: inline-flex; width: max-content; animation: letreiroAnda ${dur}s linear infinite; }
+          .letreiro:hover .letreiro-faixa, .letreiro:active .letreiro-faixa { animation-play-state: paused; }
+          @keyframes letreiroAnda { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+          @media (prefers-reduced-motion: reduce) {
+            .letreiro { overflow-x: auto !important; mask-image: none !important; -webkit-mask-image: none !important; }
+            .letreiro-faixa { animation: none; }
+          }
+        `}</style>
+        <div className="letreiro-faixa">
+          {[0, 1].map(k => (
+            <React.Fragment key={k}>
+              {statusOk && (
+                <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6, padding: "0 18px", whiteSpace: "nowrap", borderRight: `1px solid ${T.border}`, fontSize: 12, color: T.green, fontWeight: 600 }}>
+                  ● {statusOk.texto}
+                  {statusOk.sem > 0 && <span style={{ color: T.gold, fontWeight: 500 }}>· {statusOk.sem} sem cotação (mantido o último preço)</span>}
+                </span>
+              )}
+              {visiveis.map((i, idx) => item(i, k + "-" + idx))}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   // Compacto: selos pequenos (nome · valor · variação) pra ficar ao lado do título.
   if (compacto) return (
     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -120,16 +167,19 @@ export default function IndicesGlobais({ apiKeys = {}, excluir = [], compacto = 
   );
 
   return (
-    <div style={{
+    <div className={grade ? "indices-grade" : undefined} style={grade ? {
+      display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 8,
+    } : {
       display: "flex", gap: 8, overflowX: "auto", padding: "2px 0 8px",
       WebkitOverflowScrolling: "touch",
     }}>
+      {grade && <style>{`@media (max-width: 560px) { .indices-grade { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } .indices-grade > div { min-width: 0 !important; } }`}</style>}
       {visiveis.map((i, idx) => {
         const up = (i.var ?? 0) >= 0;
         const cor = up ? T.green : T.red;
         return (
           <div key={idx} style={{
-            flex: "0 0 auto", minWidth: 132, background: T.card,
+            flex: "0 0 auto", minWidth: grade ? 0 : 132, background: grade ? T.bgSoft : T.card,
             border: `1px solid ${T.border}`, borderRadius: 16, padding: "8px 12px",
             display: "flex", alignItems: "center", gap: 10,
           }}>
