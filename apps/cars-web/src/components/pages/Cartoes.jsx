@@ -771,7 +771,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         gap: 12,
         marginBottom: 30,
       }}>
-        {cartoes.map(c => {
+        {cartoes.map((c, iCard) => {
           // Card SEMPRE bege (CARD_PAPEL), mesmo no modo noturno — T sombreado.
           const T = CARD_PAPEL;
           // If c.banco is "custom", use c.bandeiraCustom; otherwise look up in BANK_BRANDS
@@ -811,8 +811,9 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           // Diferença = compras à vista + fixas da fatura (o que não é parcela).
           const extrasMes = Math.max(0, aPagar - parcelasMes);
           return (
-            <div key={c.id}
+            <div key={c.id} className="card-vivo"
                  style={{
+                   "--i": iCard,
                    background: ativaCard ? `${T.gold}10` : T.card,
                    border: `1px solid ${ativaCard ? T.gold : T.border}`,
                    borderLeft: `4px solid ${brand.bg}`,

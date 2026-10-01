@@ -43,6 +43,7 @@ import { getPerfilAtivo } from "./lib/perfis.js";
 import { garantirOcorrenciasDoAno } from "./lib/fixas.js";
 import { capitalizarCdbsMeta, autoAplicarCofrinhos } from "./lib/cdbMeta.js";
 import { useKeyboardShortcuts } from "./lib/keyboardShortcuts.js";
+import { instalarCardVivo } from "./lib/cardVivo.js";
 import AssistenteVoz from "./components/AssistenteVoz.jsx";
 import { useLayout } from "./lib/useLayout.js";
 import AtalhosOverlay from "./components/modals/AtalhosOverlay.jsx";
@@ -149,6 +150,7 @@ export default function App() {
   // Compra no cartão — lançamento rápido. Abre por evento global (botões em
   // Cartões / menu ⋯) ou pela URL ?acao=compra-cartao (atalho do ícone PWA).
   const [compraCartaoOpen, setCompraCartaoOpen] = useState(false);
+  useEffect(() => instalarCardVivo(), []);
   useEffect(() => {
     const abrir = () => setCompraCartaoOpen(true);
     window.addEventListener("af4:compra-cartao", abrir);
