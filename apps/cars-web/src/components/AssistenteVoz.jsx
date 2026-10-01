@@ -1,3 +1,4 @@
+import { dolarEmCache } from "../lib/useDolar.js";
 import React, { useEffect, useRef, useState } from "react";
 import { Mic, X, Volume2, VolumeX, Send, Sparkles } from "lucide-react";
 import { T } from "../lib/theme.js";
@@ -160,7 +161,7 @@ export default function AssistenteVoz(props) {
     } catch {}
     const partes = partesPatrimonio({
       contas: contasRaw, ativos: d.ativos, carteiraProventos: d.carteiraProventos, devedores: d.devedores,
-      cheques: d.cheques, aPagarTotal: aPagar.total, escopo,
+      cheques: d.cheques, aPagarTotal: aPagar.total, escopo, usdRate: dolarEmCache(),
     });
     const pl = d.planilhaLivre || [];
     const contas = contasRaw.map(c => {
