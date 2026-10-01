@@ -75,6 +75,59 @@ export function acharPorNome(frase, lista = []) {
   return melhor;
 }
 
+
+// ===== Navegação por voz ("abre os cartões", "vai pra conta AF4") =====
+// Cada destino: módulo + aba + apelidos (já normalizados, sem acento).
+export const DESTINOS = [
+  { modulo: "financas", tab: "dashboard",    label: "Painel",          ap: ["painel", "inicio", "tela inicial", "pagina inicial", "home", "resumo"] },
+  { modulo: "financas", tab: "contas",       label: "Contas",          ap: ["contas", "bancos", "minhas contas"] },
+  { modulo: "financas", tab: "cartoes",      label: "Cartões",         ap: ["cartoes", "cartao de credito", "faturas", "cartoes de credito"] },
+  { modulo: "financas", tab: "planejamento", label: "Planejamento",    ap: ["planejamento", "planejar", "orcamento", "fluxo de caixa"] },
+  { modulo: "financas", tab: "transacoes",   label: "Transações",      ap: ["transacoes", "lancamentos", "movimentacoes", "extrato geral"] },
+  { modulo: "financas", tab: "relatorios-f", label: "Análises & Relatórios", ap: ["relatorios", "relatorio", "analises", "analise do mes", "analise financeira"] },
+  { modulo: "financas", tab: "categorias",   label: "Categorias",      ap: ["categorias", "categoria"] },
+  { modulo: "financas", tab: "areceber",     label: "A Receber & Dívidas", ap: ["a receber", "dividas", "devedores", "quem me deve", "recebiveis"] },
+  { modulo: "financas", tab: "emprestimos",  label: "Empréstimos",     ap: ["emprestimos", "emprestimo"] },
+  { modulo: "financas", tab: "fixas",        label: "Contas fixas",    ap: ["fixas", "contas fixas", "despesas fixas"] },
+  { modulo: "financas", tab: "cheques",      label: "Cheques",         ap: ["cheques", "cheque"] },
+  { modulo: "financas", tab: "metas",        label: "Metas",           ap: ["metas", "objetivos financeiros"] },
+  { modulo: "financas", tab: "perguntar",    label: "Pergunte ao Claude", ap: ["pergunte ao claude", "chat", "claude"] },
+  { modulo: "invest",   tab: "investimentos", label: "Investimentos",  ap: ["investimentos", "invest", "painel de investimentos"] },
+  { modulo: "invest",   tab: "carteira",     label: "Carteira",        ap: ["carteira", "minha carteira", "acoes", "ativos"] },
+  { modulo: "invest",   tab: "proventos",    label: "Proventos",       ap: ["proventos", "dividendos", "renda passiva"] },
+  { modulo: "invest",   tab: "analises",     label: "Análises da carteira", ap: ["analise da carteira", "analises da carteira"] },
+  { modulo: "agenda",   tab: "calendario",   label: "Calendário",      ap: ["calendario", "agenda"] },
+  { modulo: "agenda",   tab: "tarefas",      label: "Tarefas",         ap: ["tarefas", "afazeres", "to do"] },
+  { modulo: "agenda",   tab: "treino",       label: "Treino",          ap: ["treino", "academia", "exercicios"] },
+  { modulo: "agenda",   tab: "voos",         label: "Voos & viagens",  ap: ["voos", "voo", "viagens", "viagem", "passagens", "excursoes", "excursao"] },
+  { modulo: "agenda",   tab: "lembretes",    label: "Lembretes",       ap: ["lembretes", "lembrete"] },
+  { modulo: "agenda",   tab: "notas",        label: "Compromissos",    ap: ["compromissos", "compromisso"] },
+  { modulo: "config",   tab: "cfg-aparencia", label: "Configurações",  ap: ["configuracoes", "configuracao", "config", "ajustes", "aparencia", "tema"] },
+  { modulo: "config",   tab: "cfg-apis",     label: "APIs",            ap: ["apis", "chaves", "chave de api"] },
+  { modulo: "config",   tab: "cfg-backup",   label: "Backup",          ap: ["backup", "historico", "pontos de restauracao", "ponto de restauracao"] },
+];
+
+const VERBO_NAV = /\b(abre|abra|abrir|abri|abrindo|vai (pra|para|pro|no|na|nos|nas|em)|va (pra|para|pro)|ir (pra|para|pro)|me leva|leva (pra|para|pro)|entra (no|na|em)|entrar (no|na|em)|navega|tela (de|do|da|dos|das))\b/;
+
+/** "abre os cartões" → { destino } | { conta } | { cartao } | null */
+export function detectarNavegacao(frase, { cartoes = [], contas = [] } = {}) {
+  const q = prepararFrase(frase);
+  if (!VERBO_NAV.test(q)) return null;
+  const pad = ` ${q} `;
+  let destino = null, maior = 0;
+  for (const d of DESTINOS) for (const a of d.ap) {
+    if (pad.includes(` ${a} `) && a.length > maior) { maior = a.length; destino = d; }
+  }
+  const cartao = acharPorNome(q, cartoes);
+  const conta = acharPorNome(q, contas);
+  const querCartao = /\b(cartao|fatura)\b/.test(q);
+  if (cartao && (querCartao || !conta || pontuarNome(q, cartao.nome) >= pontuarNome(q, conta.nome)) && !(conta && /\bconta\b/.test(q) && !querCartao))
+    return { cartao };
+  if (conta) return { conta };
+  if (destino) return { destino };
+  return null;
+}
+
 const tem = (q, re) => re.test(q);
 
 /** Classifica a frase. Retorna { tipo, alvo? }. */
@@ -140,6 +193,11 @@ function resp(intencao, texto, fala) {
  * }
  */
 export function responder(frase, ctx = {}) {
+  const nav = detectarNavegacao(frase, ctx);
+  if (nav) {
+    const label = nav.cartao ? `o cartão ${nav.cartao.nome}` : nav.conta ? `a conta ${nav.conta.nome}` : nav.destino.label;
+    return { ok: true, intencao: { tipo: "navegar" }, nav, texto: `Abrindo ${label}.`, fala: `Abrindo ${label}.` };
+  }
   const it = detectarIntencao(frase, ctx);
   switch (it.tipo) {
     case "cartao": {

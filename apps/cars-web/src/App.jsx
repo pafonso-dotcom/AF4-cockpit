@@ -1318,6 +1318,11 @@ export default function App() {
         planilhaLivre={planilhaLivre} dividas={dividas} fixas={fixas} fixaOcorrencias={fixaOcorrencias}
         devedores={devedores} cheques={cheques} ativos={ativos} carteiraProventos={carteiraProventos}
         escopoAtivo={escopoAtivo} apiKeys={apiKeys}
+        onNavegar={(nav) => {
+          if (nav.conta) { setModulo("financas"); irParaTab("contas"); setContaAberta(nav.conta); }
+          else if (nav.cartao) { setModulo("financas"); irParaTab("cartoes"); setCartaoAberto(nav.cartao); }
+          else if (nav.destino) { irParaTab(nav.destino.tab); setModulo(nav.destino.modulo); }
+        }}
       />
       <ToastContainer />
       <InstallPWA />
