@@ -125,13 +125,14 @@ export default function IndicesGlobais({ apiKeys = {}, excluir = [], compacto = 
         maskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
         WebkitMaskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)" }}>
         <style>{`
-          .letreiro-faixa { display: inline-flex; width: max-content; animation: letreiroAnda ${dur}s linear infinite; }
-          .letreiro:hover .letreiro-faixa, .letreiro:active .letreiro-faixa { animation-play-state: paused; }
-          @keyframes letreiroAnda { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-          @media (prefers-reduced-motion: reduce) {
-            .letreiro { overflow-x: auto !important; mask-image: none !important; -webkit-mask-image: none !important; }
-            .letreiro-faixa { animation: none; }
-          }
+          .letreiro-faixa { display: inline-flex; width: max-content; will-change: transform;
+            -webkit-animation: letreiroAnda ${dur}s linear infinite; animation: letreiroAnda ${dur}s linear infinite; }
+          /* Pausa só onde existe mouse — no iPhone o :hover "gruda" depois do
+             toque e o letreiro ficava parado. Também NÃO desligamos com
+             "reduzir movimento": o letreiro é pedido explícito (2026-10-01). */
+          @media (hover: hover) { .letreiro:hover .letreiro-faixa { animation-play-state: paused; } }
+          @-webkit-keyframes letreiroAnda { from { -webkit-transform: translate3d(0,0,0); } to { -webkit-transform: translate3d(-50%,0,0); } }
+          @keyframes letreiroAnda { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
         `}</style>
         <div className="letreiro-faixa">
           {[0, 1].map(k => (
