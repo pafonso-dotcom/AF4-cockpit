@@ -1,3 +1,4 @@
+import { KpiMini } from "./PainelNovo.jsx";
 import React, { useState, useMemo, useEffect } from "react";
 import { Activity, Plus, Trash2, Edit3, Copy, ArrowUpRight, ArrowDownRight, AlertCircle, CheckCircle2, Upload, Download, Repeat, Search, CheckSquare, Square, Paperclip, X, Camera, FileText, Mic, Sparkles, EyeOff , Tag } from "lucide-react";
 import EmptyState from "../ui/EmptyState.jsx";
@@ -40,7 +41,14 @@ export default function Transacoes({ transacoes, setTransacoes, categorias, cont
     setVisao(v);
     try { localStorage.setItem("af4:transacoes-visao", v); } catch {}
   };
-  const [filterPeriodo, setFilterPeriodo] = useState("todos"); // todos | mes-atual | mes-anterior | YYYY-MM
+  // Período abre em "Este mês" e lembra a escolha no aparelho (redesenho 2026-10-01).
+  const [filterPeriodo, setFilterPeriodoBase] = useState(() => {
+    try { return localStorage.getItem("af4:transacoes-periodo") || "mes-atual"; } catch { return "mes-atual"; }
+  }); // todos | mes-atual | mes-anterior | ano-atual | YYYY-MM
+  const setFilterPeriodo = (v) => {
+    setFilterPeriodoBase(v);
+    try { localStorage.setItem("af4:transacoes-periodo", v); } catch {}
+  };
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [comprovanteVisualizar, setComprovanteVisualizar] = useState(null);
@@ -509,6 +517,78 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
         }
       />
 
+      {/* Números do que está filtrado (redesenho 2026-10-01) */}
+      {(() => {
+        let ent = 0, sai = 0, pendN = 0, pendV = 0;
+        filtered.forEach(t => {
+          const v = Number(t.valor) || 0;
+          if (t.tipo === "receita") ent += v; else sai += v;
+          if (!t.compensado) { pendN++; pendV += t.tipo === "receita" ? v : -v; }
+        });
+        const res = ent - sai;
+        return (
+          <div className="tela-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 12 }}>
+            <KpiMini icone="⬆️" label="Entradas" valor={fmt(ent)} cor={T.green} oculto={hidden}
+                     sub={(() => { const n = filtered.filter(t => t.tipo === "receita").length; return `${n} ${n === 1 ? "lançamento" : "lançamentos"}`; })()} onClick={() => setFilterTipo(filterTipo === "receita" ? "todas" : "receita")} />
+            <KpiMini icone="⬇️" label="Saídas" valor={fmt(sai)} cor={T.red} oculto={hidden}
+                     sub={(() => { const n = filtered.filter(t => t.tipo === "despesa").length; return `${n} ${n === 1 ? "lançamento" : "lançamentos"}`; })()} onClick={() => setFilterTipo(filterTipo === "despesa" ? "todas" : "despesa")} />
+            <KpiMini icone="🟰" label="Resultado" valor={`${res >= 0 ? "+" : "−"} ${fmt(Math.abs(res))}`} cor={res >= 0 ? T.green : T.red} oculto={hidden}
+                     sub="entradas − saídas" />
+            <KpiMini icone="⏳" label="Pendentes" valor={String(pendN)} cor={pendN ? T.gold : T.muted}
+                     sub={pendN ? `${hidden ? "•••" : `${pendV >= 0 ? "+" : "−"}${fmt(Math.abs(pendV))}`} a compensar` : "tudo compensado"}
+                     onClick={() => setFilterComp(filterComp === "pendentes" ? "todas" : "pendentes")} />
+          </div>
+        );
+      })()}
+
+      {/* Filtros visíveis: busca · período · tipo · conta */}
+      {(() => {
+        const chip = (ativo) => ({
+          padding: "6px 11px", borderRadius: 100, fontSize: 11.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+          background: ativo ? `${T.gold}22` : T.bgSoft, color: ativo ? T.gold : T.muted, border: `1px solid ${ativo ? T.gold : T.border}`,
+        });
+        const MES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+        const ehMes = /^\d{4}-\d{2}$/.test(filterPeriodo);
+        return (
+          <div className="tx-filtros" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+            <div className="tx-busca" style={{ position: "relative", flex: "1 1 220px", minWidth: 160 }}>
+              <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: T.faint }} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar lançamento…"
+                     style={{ width: "100%", padding: "7px 10px 7px 30px", fontSize: 13, borderRadius: 100 }} />
+            </div>
+            <div className="tx-chips" style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            {[["mes-atual", "Este mês"], ["mes-anterior", "Mês passado"], ["ano-atual", "Ano"], ["todos", "Tudo"]].map(([id, l]) => (
+              <button key={id} onClick={() => setFilterPeriodo(id)} style={chip(filterPeriodo === id)}>{l}</button>
+            ))}
+            <select value={ehMes ? filterPeriodo : ""} onChange={e => e.target.value && setFilterPeriodo(e.target.value)}
+                    style={{ ...chip(ehMes), appearance: "auto", paddingRight: 6 }} title="Escolher um mês">
+              <option value="">Mês…</option>
+              {mesesDisponiveis.map(m => <option key={m} value={m}>{MES[Number(m.slice(5, 7)) - 1]}/{m.slice(2, 4)}</option>)}
+            </select>
+            <select value={filterConta} onChange={e => setFilterConta(e.target.value)} style={{ ...chip(filterConta !== "todas"), appearance: "auto", paddingRight: 6 }} title="Filtrar por conta">
+              <option value="todas">Todas as contas</option>
+              {contas.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+            </select>
+            {(filterTipo !== "todas" || filterComp !== "todas" || filterConta !== "todas" || search) && (
+              <button onClick={() => { setFilterTipo("todas"); setFilterComp("todas"); setFilterConta("todas"); setSearch(""); }}
+                      style={{ ...chip(false), display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <X size={12} /> Limpar
+              </button>
+            )}
+            </div>
+            <style>{`
+              .tx-chips select { width: auto !important; flex: 0 0 auto; }
+              @media (max-width: 768px) {
+                .tx-filtros { flex-direction: column; align-items: stretch !important; }
+                .tx-busca { flex: none !important; }
+                .tx-chips { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+                .tx-chips > * { flex-shrink: 0; }
+              }
+            `}</style>
+          </div>
+        );
+      })()}
+
       {/* Chips: Recorrência (Todas / Fixas / Variáveis) + toggle de visão */}
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -704,12 +784,32 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
         ) : visao === "tabela-mensal" ? (
           <TabelaMensal transacoes={filtered} hidden={hidden} onEdit={setForm} />
         ) : (
-          filtered.map(t => {
+          filtered.map((t, idx) => {
             const cat = categorias.find(c => c.nome === t.categoria);
+            // Cabeçalho do dia (lista agrupada por data — redesenho 2026-10-01)
+            const novoDia = idx === 0 || filtered[idx - 1].data !== t.data;
+            let cabecalhoDia = null;
+            if (novoDia) {
+              const doDia = filtered.filter(x => x.data === t.data);
+              const liq = doDia.reduce((s2, x) => s2 + (x.tipo === "receita" ? 1 : -1) * (Number(x.valor) || 0), 0);
+              const d = t.data ? new Date(`${t.data}T12:00:00`) : null;
+              const hojeISO = todayISO();
+              const ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
+              const rot = !d ? "Sem data" : t.data === hojeISO ? "Hoje" : t.data === ontem.toISOString().slice(0, 10) ? "Ontem"
+                : `${["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][d.getDay()]}, ${t.data.slice(8, 10)}/${t.data.slice(5, 7)}`;
+              cabecalhoDia = (
+                <div className="tx-dia" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 16px", background: T.bgSoft, borderBottom: `1px solid ${T.border}`, fontSize: 11.5, fontWeight: 700, color: T.muted, letterSpacing: ".02em" }}>
+                  <span>{rot}</span>
+                  <span className="num" style={{ color: liq >= 0 ? T.green : T.red }}>{hidden ? "•••" : `${liq >= 0 ? "+" : "−"} ${fmt(Math.abs(liq))}`}</span>
+                </div>
+              );
+            }
             const isPend = !t.compensado;
             const isSelected = selectedIds.has(t.id);
             return (
-              <div key={t.id} className="tx-row flex items-center gap-2.5 px-4 py-2 hover:bg-black/30"
+              <React.Fragment key={t.id}>
+              {cabecalhoDia}
+              <div className="tx-row flex items-center gap-2.5 px-4 py-2 hover:bg-black/30"
                    style={{
                      borderBottom: `1px solid ${T.border}`, transition: "background 0.2s",
                      opacity: isPend ? 0.85 : 1,
@@ -775,7 +875,6 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                                  color: cat ? T.muted : T.red, fontWeight: cat ? 400 : 600 }} />
                     </span>
                     <span style={{ color: T.faint }}>· {t.conta}</span>
-                    <span style={{ color: T.faint }}>· {t.data}</span>
                     {t.subcategoria && <span style={{ color: T.faint }}>· {t.subcategoria}</span>}
                     {t.obs && <span style={{ color: T.faint, fontStyle: "italic" }}>· {t.obs.length > 40 ? t.obs.slice(0, 40) + "…" : t.obs}</span>}
                   </div>
@@ -810,6 +909,7 @@ tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:none}
                   </button>
                 </div>
               </div>
+              </React.Fragment>
             );
           })
         )}

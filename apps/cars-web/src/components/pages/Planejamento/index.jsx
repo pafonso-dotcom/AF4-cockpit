@@ -134,19 +134,17 @@ export default function Planejamento(props) {
         <Secao
           on={aberto === "areceber"} onToggle={() => toggle("areceber")}
           titulo="🤝 A Receber & Dívidas"
-          resumo={hidden ? null : `a pagar ${fmtAbrev(resumoPagar.total)} · a receber ${fmtAbrev(resumoReceber.aReceber)}`}
           overview={
             <VisaoGeralGrupos
               hidden={hidden}
-              legenda="Visão geral · todos os meses"
               entra={[
-                { lbl: "Total a receber", v: resumoReceber.aReceber, cor: T.green, hint: "tudo em aberto" },
-                { lbl: "A receber do mês", v: resumoReceber.pendente, cor: T.gold, hint: "vence este mês" },
+                { lbl: "Total a receber", v: resumoReceber.aReceber, cor: T.green },
+                { lbl: "A receber do mês", v: resumoReceber.pendente, cor: T.gold },
               ]}
               sai={[
-                { lbl: "Total a pagar", v: resumoPagar.total, cor: T.red, hint: "tudo em aberto" },
-                { lbl: "A pagar do mês", v: resumoPagar.pagarMes, cor: T.yellow, hint: "vence este mês" },
-                { lbl: "Cartões a pagar", v: resumoPagar.cartoes, cor: T.blue, hint: "parcelas em aberto" },
+                { lbl: "Total a pagar", v: resumoPagar.total, cor: T.red },
+                { lbl: "A pagar do mês", v: resumoPagar.pagarMes, cor: T.yellow },
+                { lbl: "Cartões a pagar", v: resumoPagar.cartoes, cor: T.blue },
               ]}
             />
           }
@@ -157,12 +155,9 @@ export default function Planejamento(props) {
         <Secao
           on={aberto === "fixas"} onToggle={() => toggle("fixas")}
           titulo="🔁 Despesas Fixas"
-          resumo={hidden ? null : resumoFixas.atrasado > 0 ? `${fmtAbrev(resumoFixas.atrasado)} atrasado` : `${fmtAbrev(resumoFixas.pendente)} pendente`}
-          resumoCor={resumoFixas.atrasado > 0 ? T.red : undefined}
           overview={
             <VisaoGeral
               hidden={hidden}
-              legenda="Visão geral · mês"
               itens={[
                 { lbl: "Já pago", v: resumoFixas.pago, cor: T.green },
                 { lbl: "Pendente", v: resumoFixas.pendente, cor: T.gold },
@@ -177,14 +172,12 @@ export default function Planejamento(props) {
 
         {/* Empréstimos MUDOU DE CASA (reorganização 2026-09-29): era aba
             própria de Finanças, mas é leitura dos mesmos devedores daqui. */}
-        <Secao on={aberto === "emprestimos"} onToggle={() => toggle("emprestimos")} titulo="💸 Empréstimos"
-             resumo={(() => { const n = (props.devedores || []).filter(d => d.emprestimo && !d.recebido).length; return n ? `${n} ativo${n === 1 ? "" : "s"}` : null; })()}>
+        <Secao on={aberto === "emprestimos"} onToggle={() => toggle("emprestimos")} titulo="💸 Empréstimos">
           <Emprestimos devedores={props.devedores} hidden={props.hidden}
                        onTabChange={props.onTabChange} embed />
         </Secao>
 
-        <Secao on={aberto === "cheques"} onToggle={() => toggle("cheques")} titulo="🧾 Cheques"
-             resumo={(() => { const ag = (props.cheques || []).filter(c => c.status === "aguardando"); return ag.length ? `${ag.length} aguardando${hidden ? "" : ` · ${fmtAbrev(ag.reduce((s2, c) => s2 + (Number(c.valor) || 0), 0))}`}` : null; })()}>
+        <Secao on={aberto === "cheques"} onToggle={() => toggle("cheques")} titulo="🧾 Cheques">
           <Cheques cheques={props.cheques} setCheques={props.setCheques}
                    contas={props.contas} setContas={props.setContas}
                    transacoes={props.transacoes} setTransacoes={props.setTransacoes}
@@ -239,8 +232,7 @@ export default function Planejamento(props) {
             (auditoria 2026-09-18) e voltou como 5ª seção do Centro. */}
         {/* Metas MUDOU DE CASA (reorganização 2026-09-29): morava na Agenda,
             mas é 100% financeira — vive junto do planejamento. */}
-        <Secao on={aberto === "metas"} onToggle={() => toggle("metas")} titulo="🎯 Metas"
-             resumo={(props.metas || []).length ? `${props.metas.length} meta${props.metas.length === 1 ? "" : "s"}` : null}>
+        <Secao on={aberto === "metas"} onToggle={() => toggle("metas")} titulo="🎯 Metas">
           <Metas embed metas={props.metas} setMetas={props.setMetas} hidden={props.hidden}
                  fixas={props.fixas} setFixas={props.setFixas}
                  fixaOcorrencias={props.fixaOcorrencias} setFixaOcorrencias={props.setFixaOcorrencias}
@@ -268,43 +260,35 @@ export default function Planejamento(props) {
    identidade é estável e a tela permanece exatamente onde estava.
    ============================================================ */
 
-// Mini visão geral (4 números) — sempre visível, acima do detalhe da seção.
-function VisaoGeral({ legenda, itens, hidden }) {
+// Mini visão geral (4 números) — aparece com a seção aberta.
+function VisaoGeral({ itens, hidden }) {
   return (
-    <div style={{ borderTop: `1px solid ${T.border}`, padding: "10px 16px 12px" }}>
-      <div style={{ fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 8 }}>{legenda}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))", gap: 8 }}>
-        {itens.map(it => (
-          <div key={it.lbl} style={{ background: T.bgSoft, borderRadius: 12, padding: "10px 11px", borderLeft: `3px solid ${it.cor}` }}>
-            <div style={{ fontSize: 10, letterSpacing: ".05em", textTransform: "uppercase", color: T.faint, fontWeight: 700 }}>{it.lbl}</div>
-            <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 14, fontWeight: 700, color: it.cor, marginTop: 4, whiteSpace: "nowrap" }}>
-              {hidden ? "•••" : fmt(it.v)}
-            </div>
-          </div>
-        ))}
+    <div style={{ borderTop: `1px solid ${T.border}`, padding: "12px 16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}>
+        {itens.map(it => <CardVG key={it.lbl} lbl={it.lbl} v={it.v} cor={it.cor} hidden={hidden} />)}
       </div>
     </div>
   );
 }
 
-// Card da visão geral em grupos (o que entra × o que sai).
-function CardVG({ lbl, v, cor, hint, hidden }) {
+// Card de valor (remodelado 2026-10-01): nome pequeno + valor, sem texto extra.
+function CardVG({ lbl, v, cor, hidden }) {
   return (
-    <div style={{ background: T.bgSoft, borderRadius: 12, padding: "10px 11px", borderLeft: `3px solid ${cor}`, minWidth: 0 }}>
-      <div style={{ fontSize: 10, letterSpacing: ".05em", textTransform: "uppercase", color: T.faint, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lbl}</div>
-      <div className="num" style={{ fontFamily: T.mono || T.serif, fontSize: 14, fontWeight: 700, color: cor, marginTop: 4, whiteSpace: "nowrap" }}>
+    <div style={{ background: T.bgSoft, borderRadius: 14, padding: "11px 13px", minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: T.muted, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <span style={{ width: 7, height: 7, borderRadius: "50%", background: cor, flexShrink: 0 }} />{lbl}
+      </div>
+      <div className="num" style={{ fontSize: 17, fontWeight: 700, color: cor, marginTop: 6, whiteSpace: "nowrap", letterSpacing: "-.01em" }}>
         {hidden ? "•••" : fmt(v)}
       </div>
-      {hint && <div style={{ fontSize: 10, color: T.faint, marginTop: 2 }}>{hint}</div>}
     </div>
   );
 }
 
 // Visão geral em DOIS grupos — usada na seção "A Receber & Dívidas".
-function VisaoGeralGrupos({ legenda, entra, sai, hidden }) {
+function VisaoGeralGrupos({ entra, sai, hidden }) {
   return (
-    <div style={{ borderTop: `1px solid ${T.border}`, padding: "10px 16px 12px" }}>
-      <div style={{ fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: T.faint, fontWeight: 700, marginBottom: 8 }}>{legenda}</div>
+    <div style={{ borderTop: `1px solid ${T.border}`, padding: "12px 16px" }}>
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(0,3fr)", gap: 14, alignItems: "stretch" }} className="vg-grupos">
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700, color: T.green }}>
@@ -327,7 +311,7 @@ function VisaoGeralGrupos({ legenda, entra, sai, hidden }) {
   );
 }
 
-function Secao({ on, onToggle, titulo, resumo, resumoCor, overview, children }) {
+function Secao({ on, onToggle, titulo, overview, children }) {
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
       <button
@@ -339,9 +323,6 @@ function Secao({ on, onToggle, titulo, resumo, resumoCor, overview, children }) 
         }}>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: on ? T.gold : T.ink }}>{titulo}</span>
-          {resumo && !on && (
-            <span className="num" style={{ display: "block", fontSize: 11.5, color: resumoCor || T.muted, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{resumo}</span>
-          )}
         </span>
         <ChevronDown size={18} style={{ color: on ? T.gold : T.muted, transform: on ? "rotate(180deg)" : "none", transition: "transform .2s", flexShrink: 0 }} />
       </button>
