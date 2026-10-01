@@ -12,6 +12,7 @@ import IndicesGlobais from "../IndicesGlobais.jsx";
 import StatusCotacoes, { resumoCotacoesOk } from "../../ui/StatusCotacoes.jsx";
 import Vazio from "../../ui/Vazio.jsx";
 import Card from "../../ui/Card.jsx";
+import Letreiro, { LetRotulo, LetValor, LetVar } from "../../ui/Letreiro.jsx";
 import { KpiMini } from "../PainelNovo.jsx";
 import Modal from "../../ui/Modal.jsx";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
@@ -82,8 +83,7 @@ export default function InvestPainel({
       })
       .filter(x => isFinite(x.pct) && Number(x.ativo.qtd) > 0);
   }, [ativos]);
-  const topGain = useMemo(() => [...variacoes].sort((a,b) => b.pct - a.pct).slice(0, 3), [variacoes]);
-  const topLoss = useMemo(() => [...variacoes].sort((a,b) => a.pct - b.pct).slice(0, 3), [variacoes]);
+  const variacoesOrd = useMemo(() => [...variacoes].sort((a,b) => b.pct - a.pct), [variacoes]);
 
   // ===== Proventos do mês =====
   // Fonte: aba Proventos (proventos marcados como recebidos). Cada recebido
@@ -220,11 +220,24 @@ export default function InvestPainel({
       </section>
 
       {/* Linha 3 */}
+      {/* Maiores variações em letreiro (pedido 2026-10-01: letreiro no lugar de
+          cards) — todos os ativos, da maior alta à maior baixa; toque abre a análise. */}
+      {variacoesOrd.length > 0 && (
+        <Card style={{ marginBottom: 10, padding: "0 4px" }}>
+          <Letreiro segPorItem={4}
+            itens={[{ chave: "titulo", conteudo: <LetRotulo cor={T.gold}>Sua carteira</LetRotulo> },
+              ...variacoesOrd.map(({ ativo, pct }) => ({ chave: ativo.id, onClick: () => onAnalisar?.(ativo), conteudo: (<>
+                <LetRotulo cor={T.ink}>{ativo.ticker}</LetRotulo>
+                <LetValor>{hidden ? "•••" : (ehUS(ativo) ? fmtUSD : fmt)(Number(ativo.preco) || 0)}</LetValor>
+                <LetVar pct={pct} casas={1} />
+              </>) }))]} />
+        </Card>
+      )}
+
       <section className="ip-bot-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10,
+        display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 10,
       }}>
         <ClassesExpansiveisCard ativos={ativos} hidden={hidden} onAnalisar={onAnalisar} fmtUSD={fmtUSD} />
-        <GainersLosersCard topGain={topGain} topLoss={topLoss} hidden={hidden} onAnalisar={onAnalisar} />
       </section>
 
       {/* Informações & relatórios CVM do ativo selecionado */}
@@ -569,44 +582,6 @@ function ClassesExpansiveisCard({ ativos = [], hidden, onAnalisar, fmtUSD }) {
           })}
         </div>
       )}
-    </div>
-  );
-}
-
-function GainersLosersCard({ topGain, topLoss, hidden, onAnalisar }) {
-  const altas = (topGain || []).filter(x => x.pct > 0);
-  const baixas = (topLoss || []).filter(x => x.pct < 0);
-  return (
-    <div className="ip-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 10, boxShadow: CARD_SHADOW }}>
-      <div style={{ fontFamily: T.serif, fontSize: 13.5, fontWeight: 600, marginBottom: 8 }}>Maiores Variações</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div>
-          <div style={{ fontSize: 10, letterSpacing: ".15em", color: T.green, fontWeight: 600, marginBottom: 5 }}>↗ MAIORES ALTAS</div>
-          {altas.length === 0 ? (
-            <div style={{ fontSize: 11, color: T.muted, fontStyle: "italic" }}>—</div>
-          ) : altas.map(({ ativo, ganho, pct }) => (
-            <button key={ativo.id} onClick={() => onAnalisar?.(ativo)}
-              style={{ width: "100%", background: "transparent", border: "none", padding: "4px 0", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", textAlign: "left" }}>
-              <span style={{ flex: 1, fontSize: 12, color: T.ink, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ativo.ticker}</span>
-              <span className="num" style={{ fontSize: 11, color: T.green, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(ganho)}</span>
-              <span className="num" style={{ fontSize: 11, color: T.green, width: 56, textAlign: "right" }}>+{fmtN(pct, 1)}%</span>
-            </button>
-          ))}
-        </div>
-        <div>
-          <div style={{ fontSize: 10, letterSpacing: ".15em", color: T.red, fontWeight: 600, marginBottom: 5 }}>↘ MAIORES BAIXAS</div>
-          {baixas.length === 0 ? (
-            <div style={{ fontSize: 11, color: T.muted, fontStyle: "italic" }}>—</div>
-          ) : baixas.map(({ ativo, ganho, pct }) => (
-            <button key={ativo.id} onClick={() => onAnalisar?.(ativo)}
-              style={{ width: "100%", background: "transparent", border: "none", padding: "4px 0", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", textAlign: "left" }}>
-              <span style={{ flex: 1, fontSize: 12, color: T.ink, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ativo.ticker}</span>
-              <span className="num" style={{ fontSize: 11, color: T.red, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(ganho)}</span>
-              <span className="num" style={{ fontSize: 11, color: T.red, width: 56, textAlign: "right" }}>{fmtN(pct, 1)}%</span>
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

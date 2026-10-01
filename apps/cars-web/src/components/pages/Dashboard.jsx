@@ -27,9 +27,10 @@ import { faturaEmAberto } from "../../lib/cartaoFatura.js";
 import { uid } from "../../lib/format.js";
 import { calcOrcamentoCompra, resumoOrcamentos } from "../../lib/orcamentosFuturos.js";
 import Card, { SoftCardContext } from "../ui/Card.jsx";
+import Letreiro, { LetRotulo, LetValor } from "../ui/Letreiro.jsx";
 import Modal from "../ui/Modal.jsx";
 import { Sparkline, RingIcon } from "../ui/widget.jsx";
-import { KpiMini, FluxoMesCard, CartoesResumoCard, GastosRoscaCard, BarrasPorAno } from "./PainelNovo.jsx";
+import { FluxoMesCard, CartoesResumoCard, GastosRoscaCard, BarrasPorAno } from "./PainelNovo.jsx";
 
 // Paleta moderna e harmônica (tons mais suaves, sem primários puros gritando).
 const CORES_CAT = ["#6366f1","#0ea5e9","#22c08b","#f5a623","#f0728a","#a78bfa","#2dd4bf","#fb923c","#94a3b8"];
@@ -642,44 +643,56 @@ export default function Dashboard({
         <OlhadaRapida resumoDia={avisosVisiveis} userName={userName} onFechar={fecharOlhada} />
       )}
 
+      {/* LETREIRO DO DIA (preview 2026-10-01) — no lugar dos 4 quadradinhos e dos
+          avisos empilhados: os números do dia + avisos numa linha só, em cima
+          de tudo. Tocar num número abre a tela dele; tocar num aviso o
+          dispensa; ✕ dispensa todos os avisos por hoje. */}
+      <Card className="no-print" style={{ padding: "0 6px 0 0", marginBottom: 12 }}>
+        <Letreiro segPorItem={5}
+          itens={[
+            ...(possoGastar ? [{ chave: "pg", onClick: () => !possoGastar.fura && togglePgMin(!pgMin), conteudo: (<>
+              <LetRotulo>💸 Pode gastar hoje</LetRotulo>
+              <LetValor cor={possoGastar.fura ? T.red : T.green}>
+                {possoGastar.fura ? "Segura!" : (hidden || pgMin) ? "•••" : fmt(possoGastar.porDia)}
+              </LetValor>
+            </>) }] : []),
+            { chave: "pagar", onClick: () => onTabChange?.("areceber"), conteudo: (<>
+              <LetRotulo>📤 A pagar no mês</LetRotulo>
+              <LetValor cor={(aPagarMes?.total || 0) > 0 ? T.red : T.muted}>{hidden ? "•••" : fmt(aPagarMes?.total || 0)}</LetValor>
+            </>) },
+            { chave: "receber", onClick: () => onTabChange?.("areceber"), conteudo: (<>
+              <LetRotulo>📥 A receber no mês</LetRotulo>
+              <LetValor cor={T.green}>{hidden ? "•••" : fmt(receberMesTile)}</LetValor>
+            </>) },
+            { chave: "faturas", onClick: () => onTabChange?.("cartoes"), conteudo: (<>
+              <LetRotulo>💳 Faturas em aberto</LetRotulo>
+              <LetValor cor={cartoesFaturas.total > 0 ? (T.yellow || T.gold) : T.muted}>{hidden ? "•••" : fmt(cartoesFaturas.total)}</LetValor>
+            </>) },
+            ...avisosVisiveis.map(a => {
+              const cor = a.cor === "red" ? T.red : a.cor === "green" ? T.green : T.gold;
+              return { chave: "av-" + a.texto, onClick: () => dispensarAviso(a.texto), conteudo: (
+                <span style={{ fontSize: 12.5, color: T.ink, fontWeight: 600 }}>
+                  <span aria-hidden>{a.icone}</span> <span style={{ color: cor }}>●</span> {a.texto}
+                </span>
+              ) };
+            }),
+          ]}
+          fixo={avisosVisiveis.length > 0 ? (
+            <button onClick={() => avisosVisiveis.forEach(a => dispensarAviso(a.texto))}
+                    aria-label="Dispensar os avisos por hoje" title="Dispensar os avisos — somem até amanhã"
+                    style={{ background: "transparent", border: "none", color: T.faint, cursor: "pointer",
+                             padding: "6px 8px", minHeight: 0, lineHeight: 1, fontSize: 14, flexShrink: 0 }}>✕</button>
+          ) : null} />
+      </Card>
+
       {/* Top 3 do dia */}
       <Top3DoDia agenda={agenda} onAbrir={() => onTabChange?.("notas")} />
 
 
-      {/* RESUMO DO DIA — uma olhada e o dia está decidido */}
-      {avisosVisiveis.length > 0 && (
-        <div className="no-print" style={{
-          display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12,
-        }}>
-          {avisosVisiveis.map((a, i) => {
-            const cor = a.cor === "red" ? T.red : a.cor === "green" ? T.green : T.gold;
-            return (
-              <span key={i} style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                background: `${cor}12`, border: `1px solid ${cor}44`,
-                borderRadius: 100, padding: "6px 8px 6px 12px",
-                fontSize: 12, color: T.ink, fontWeight: 600,
-              }}>
-                <span aria-hidden>{a.icone}</span> {a.texto}
-                <button onClick={() => dispensarAviso(a.texto)}
-                        aria-label="Dispensar este aviso por hoje" title="Visto — some até amanhã"
-                        style={{ background: "transparent", border: "none", color: T.faint, cursor: "pointer",
-                                 padding: "6px 8px", margin: "-6px -4px -6px 0", minHeight: 0,
-                                 lineHeight: 1, fontSize: 14, borderRadius: 10 }}>
-                  ✕
-                </button>
-              </span>
-            );
-          })}
-        </div>
-      )}
-
       {/* ===== PAINEL NOVO (2026-10-01) =====
           Linha 1: Patrimônio + os 4 números do dia. */}
-      <section className="painel-topo" style={{
-        display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr)", gap: 12, marginBottom: 14,
-      }}>
-        <div className="painel-hero" style={{ gridRow: "span 2", minWidth: 0, display: "flex", flexDirection: "column" }}>
+      <section className="painel-topo" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr)", gap: 12, marginBottom: 14 }}>
+        <div className="painel-hero" style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
           <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
                    onDetalhes={() => setCompAberta(true)} />
         </div>
@@ -729,28 +742,6 @@ export default function Dashboard({
             </div>
           </Modal>
         )}
-        {possoGastar ? (
-          <KpiMini icone="💸" label="Pode gastar hoje"
-                   valor={possoGastar.fura ? "Segura!" : fmt(possoGastar.porDia)}
-                   cor={possoGastar.fura ? T.red : T.green} alerta={possoGastar.fura}
-                   oculto={hidden || (pgMin && !possoGastar.fura)}
-                   sub={possoGastar.fura
-                     ? `caixa fura ${possoGastar.primeiroNegativo ? `dia ${possoGastar.primeiroNegativo.slice(8, 10)}/${possoGastar.primeiroNegativo.slice(5, 7)}` : "este mês"}`
-                     : `${fmt(possoGastar.semana)} na semana`}
-                   onClick={() => !possoGastar.fura && togglePgMin(!pgMin)} />
-        ) : <div />}
-        <KpiMini icone="📤" label="A pagar no mês" valor={fmt(aPagarMes?.total || 0)}
-                 cor={(aPagarMes?.total || 0) > 0 ? T.red : T.muted} spark={sparks?.pagar} oculto={hidden}
-                 sub={`${aPagarMes?.qtd || 0} ${(aPagarMes?.qtd || 0) === 1 ? "conta" : "contas"} em aberto`}
-                 onClick={() => onTabChange?.("areceber")} />
-        <KpiMini icone="📥" label="A receber no mês" valor={fmt(receberMesTile)}
-                 cor={T.gold} spark={sparks?.receber} oculto={hidden}
-                 sub={chequesAReceber > 0 ? `+ ${fmt(chequesAReceber)} em cheques` : "recebíveis do mês"}
-                 onClick={() => onTabChange?.("areceber")} />
-        <KpiMini icone="💳" label="Faturas em aberto" valor={fmt(cartoesFaturas.total)}
-                 cor={cartoesFaturas.total > 0 ? T.yellow || T.gold : T.muted} spark={sparks?.cartoes} oculto={hidden}
-                 sub={cartoesFaturas.abertos ? `${cartoesFaturas.abertos} ${cartoesFaturas.abertos === 1 ? "cartão" : "cartões"} · igual à tela Cartões` : "nenhuma fatura em aberto"}
-                 onClick={() => onTabChange?.("cartoes")} />
       </section>
 
       {/* Linha 2: Calendário compacto · Gastos por categoria */}
@@ -782,12 +773,11 @@ export default function Dashboard({
         </section>
       )}
 
-      {/* Por último: Fluxo do mês · Próximos vencimentos (pedido 2026-10-01) */}
-      <section className="painel-dupla painel-dupla-larga" style={{ display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 12, marginBottom: 14 }}>
+      {/* Por último: Fluxo do mês (largura toda) + próximos vencimentos em
+          letreiro logo acima (pedido 2026-10-01: letreiro no lugar de cards). */}
+      <BlocoSeguro nome="VencimentosLetreiro"><VencimentosLetreiro devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} /></BlocoSeguro>
+      <section style={{ marginBottom: 14 }}>
         <BlocoSeguro nome="FluxoMesCard"><FluxoMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} hidden={hidden} onVer={() => onTabChange?.("planejamento")} /></BlocoSeguro>
-        <span className="dash-prox">
-          <BlocoSeguro nome="ProximosVencimentosCard"><ProximosVencimentosCard devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} /></BlocoSeguro>
-        </span>
       </section>
 
       {/* Normalmente o wrapper .dash-prox some do fluxo (o Card vira item do grid);
@@ -1024,44 +1014,28 @@ function ProximoCompromissoCard({ item, total, hidden, onVer }) {
 
 // Próximos vencimentos (recebíveis) — antes ficava dentro do Centro de Controle;
 // agora ocupa o slot do topo (no lugar do "Próximo compromisso").
-function ProximosVencimentosCard({ devedores = [], hidden, onVer }) {
+// Próximos recebimentos em letreiro (substitui o card "Próximos vencimentos").
+function VencimentosLetreiro({ devedores = [], hidden, onVer }) {
   const hoje = new Date().toISOString().slice(0, 10);
   const restanteDe = (d) => Math.max(0, (Number(d.valor) || 0) - (Number(d.valorRecebido) || 0));
-  const formatarVenc = (iso) => {
-    if (!iso) return "—";
-    try { return new Date(iso + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
-    catch { return iso; }
-  };
+  const dataCurta = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
   const proximos = (devedores || [])
-    .filter(d => !d.recebido && d.vencimento)
+    .filter(d => !d.recebido && d.vencimento && restanteDe(d) > 0)
     .sort((a, b) => (a.vencimento || "").localeCompare(b.vencimento || ""))
-    .slice(0, 3);
+    .slice(0, 8);
+  if (!proximos.length) return null;
   return (
-    <Card style={{ minHeight: 110 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <div style={{ fontSize: 11, color: T.muted, display: "flex", alignItems: "center", gap: 6 }}>
-          <Calendar size={13} style={{ color: T.gold }} /> Próximos vencimentos
-        </div>
-        {onVer && <button onClick={onVer} style={{ background: "transparent", border: "none", color: T.gold, fontSize: 11, cursor: "pointer" }}>Ver</button>}
-      </div>
-      {proximos.length === 0 ? (
-        <div style={{ fontSize: 12, color: T.faint, fontStyle: "italic", marginTop: 4 }}>Nenhum recebível com vencimento.</div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {proximos.map(d => {
+    <Card style={{ padding: "0 4px", marginBottom: 12 }}>
+      <Letreiro segPorItem={6}
+        itens={[{ chave: "titulo", conteudo: <LetRotulo cor={T.gold}>📥 A receber</LetRotulo> },
+          ...proximos.map(d => {
             const atrasado = d.vencimento < hoje;
-            return (
-              <div key={d.id} onClick={onVer} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", fontSize: 11.5, cursor: onVer ? "pointer" : "default" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0, flex: 1 }}>
-                  <div style={{ color: T.ink, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.nome}</div>
-                  <div style={{ fontSize: 10.5, color: atrasado ? T.red : T.muted }}>{atrasado ? "atrasado · " : ""}{formatarVenc(d.vencimento)}</div>
-                </div>
-                <div className="num" style={{ color: T.ink, fontWeight: 600, marginLeft: 8, flexShrink: 0 }}>{hidden ? "•••" : fmt(restanteDe(d))}</div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+            return { chave: d.id, onClick: onVer, conteudo: (<>
+              <span style={{ fontSize: 12.5, color: T.ink, fontWeight: 600 }}>{d.nome}</span>
+              <span style={{ fontSize: 11, color: atrasado ? T.red : T.muted }}>{atrasado ? "atrasado · " : ""}{dataCurta(d.vencimento)}</span>
+              <LetValor cor={T.green}>{hidden ? "•••" : fmt(restanteDe(d))}</LetValor>
+            </>) };
+          })]} />
     </Card>
   );
 }
