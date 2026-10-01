@@ -359,13 +359,26 @@ export default function AssistenteVoz(props) {
         apiKey, pergunta: texto, historico, contextoDados,
         model: "claude-opus-5-5", effort: "low", maxTokens: 4000,
       }));
+      if (!r || r === "(resposta vazia)") {
+        const msg = "A IA não quis ou não conseguiu responder essa. Tenta perguntar de outro jeito.";
+        setResposta({ ok: false, ia: true, texto: msg });
+        responderEOuvir(msg);
+        return;
+      }
       historicoIARef.current = [...historico, { role: "user", content: texto }, { role: "assistant", content: r }];
       setResposta({ ok: true, ia: true, texto: r });
       renovarConversa();
       responderEOuvir(r);
     } catch (e) {
-      setResposta({ ok: false, texto: e?.message || "A IA não respondeu agora." });
-      responderEOuvir("A inteligência artificial não respondeu agora.", false);
+      const m = String(e?.message || "");
+      const msg = /\b401\b|authentication/i.test(m) ? "A chave Anthropic não foi aceita — confira em Configurações → APIs."
+        : /\b429\b|rate_limit/i.test(m) ? "Muitas perguntas seguidas — espera um minutinho e tenta de novo."
+        : /\b(529|503|500)\b|overloaded/i.test(m) ? "A IA está sobrecarregada agora — tenta de novo daqui a pouco."
+        : /\b400\b/.test(m) ? "A IA recusou o pedido (erro 400). Me avisa que eu ajusto."
+        : /conectar|Failed to fetch|NetworkError/i.test(m) ? "Sem conexão com a IA — confere a internet."
+        : "A IA não respondeu agora — tenta de novo.";
+      setResposta({ ok: false, ia: true, texto: msg });
+      responderEOuvir(msg, false);
     } finally {
       setPensando(false);
     }
@@ -375,7 +388,7 @@ export default function AssistenteVoz(props) {
 
   const d = props;
   return (
-    <div onClick={fechar} style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,.45)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+    <div onClick={fechar} className="assistente-overlay" style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,.45)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
       <div onClick={(e) => e.stopPropagation()} className="assistente-sheet"
            style={{ width: "100%", maxWidth: 520, background: T.card, color: T.ink, borderRadius: "20px 20px 0 0",
                     padding: "14px 16px calc(18px + env(safe-area-inset-bottom, 0))", boxShadow: "0 -10px 30px rgba(0,0,0,.35)",
@@ -418,10 +431,10 @@ export default function AssistenteVoz(props) {
               {resposta.ia && <span style={{ fontSize: 11, color: T.muted, fontWeight: 700, display: "block", marginBottom: 3 }}>✨ IA</span>}
               {resposta.texto}
             </div>
-            {!resposta.ok && pergunta && !resposta.ia && (
+            {!resposta.ok && pergunta && (
               <button onClick={() => perguntarIA(pergunta)} disabled={pensando}
                       style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: "none", background: T.gold, color: "#fff", fontWeight: 700, cursor: "pointer", opacity: pensando ? 0.6 : 1 }}>
-                <Sparkles size={15} /> {pensando ? "Perguntando…" : "Perguntar à IA"}
+                <Sparkles size={15} /> {pensando ? "Perguntando…" : resposta.ia ? "Tentar de novo" : "Perguntar à IA"}
               </button>
             )}
           </div>
@@ -514,6 +527,11 @@ export default function AssistenteVoz(props) {
         .assistente-mic::after {
           content: ""; position: absolute; inset: -6px; border-radius: 50%;
           border: 2px solid color-mix(in srgb, var(--bolha) 55%, transparent); opacity: 0;
+        }
+        /* Tablet/desktop: painel centralizado (no iPad ficava colado embaixo e cortado). */
+        @media (min-width: 700px) {
+          .assistente-overlay { align-items: center !important; padding: 24px; }
+          .assistente-sheet { border-radius: 22px !important; padding-bottom: 20px !important; max-height: 80vh !important; }
         }
         .assistente-mic.ouvindo { animation: assistenteBolha 1.6s ease-in-out infinite; }
         .assistente-mic.ouvindo::after { animation: assistenteOnda 1.6s ease-out infinite; }
