@@ -7,8 +7,22 @@ import { T } from "../../lib/theme.js";
  * ficaram sem (mantendo o último preço) e o erro da fonte quando houver.
  * Recebe o marketStatus do App ({ at, mode, okCount, total, erros }).
  */
-export default function StatusCotacoes({ status }) {
+/** Texto curto do status quando está tudo certo (pra ir junto do letreiro
+ *  de mercado). null quando há problema — aí o aviso grande continua. */
+export function resumoCotacoesOk(status) {
+  if (!status || status.mode === "off" || !status.at) return null;
+  const ok = Number(status.okCount) || 0;
+  const total = Number(status.total) || 0;
+  if (ok <= 0 || (status.erros || []).filter(Boolean).length) return null;
+  const hora = new Date(status.at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const sem = Math.max(0, total - ok);
+  return { texto: `Cotação real em ${ok} de ${total} ativos às ${hora}`, sem };
+}
+
+export default function StatusCotacoes({ status, soProblema = false }) {
   if (!status) return null;
+  // No Painel do Invest o status "tudo certo" vai dentro do letreiro.
+  if (soProblema && resumoCotacoesOk(status)) return null;
 
   const base = {
     display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap",

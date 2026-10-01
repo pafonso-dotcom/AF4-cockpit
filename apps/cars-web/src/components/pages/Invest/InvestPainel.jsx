@@ -9,8 +9,7 @@ import { getHistorico } from "../../../lib/brapi.js";
 import { detectarFonte } from "../../../lib/cotacoes.js";
 import { CARD_SHADOW } from "../../../lib/styles.js";
 import IndicesGlobais from "../IndicesGlobais.jsx";
-import EvolucaoPatrimonio from "./EvolucaoPatrimonio.jsx";
-import StatusCotacoes from "../../ui/StatusCotacoes.jsx";
+import StatusCotacoes, { resumoCotacoesOk } from "../../ui/StatusCotacoes.jsx";
 import Vazio from "../../ui/Vazio.jsx";
 import Card from "../../ui/Card.jsx";
 import { KpiMini } from "../PainelNovo.jsx";
@@ -149,10 +148,9 @@ export default function InvestPainel({
             Painel do <em style={{ color: T.gold }}>Invest.</em>
           </h1>
         </div>
-        <IndicesGlobais apiKeys={apiKeys} compacto />
       </div>
 
-      <StatusCotacoes status={marketStatus} />
+      <StatusCotacoes status={marketStatus} soProblema />
 
       {/* Topo · 4 quadradinhos padrão (mesmo das outras telas) */}
       <section className={"tela-kpis" + (refreshing ? " skel-att" : "")} style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 12 }}>
@@ -207,10 +205,11 @@ export default function InvestPainel({
         </Modal>
       )}
 
-      {/* Evolução da carteira — faixa logo abaixo dos KPIs (snapshots diários).
-          campo="totalAtivos" = só investimentos (bate com o card Patrimônio total);
-          o total geral (invest + contas) fica no relatório de Finanças. */}
-      <EvolucaoPatrimonio historico={patrimonioHistorico} hidden={hidden} campo="totalAtivos" compacto />
+      {/* Mercado em letreiro — uma linha rolando, no lugar da Evolução do
+          patrimônio (pedido 2026-10-01: o card de evolução era grande demais). */}
+      <Card style={{ marginBottom: 12, padding: "2px 0" }}>
+        <IndicesGlobais apiKeys={apiKeys} letreiro statusOk={resumoCotacoesOk(marketStatus)} />
+      </Card>
 
       {/* Linha 2 */}
       <section className="ip-mid-grid" style={{
@@ -284,6 +283,11 @@ export default function InvestPainel({
         @media (max-width: 1024px) {
           .ip-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .ip-mid-grid, .ip-bot-grid, .ip-foot-grid, .ip-evo-grid { grid-template-columns: 1fr !important; }
+        }
+        .ip-mid-grid > *, .ip-bot-grid > * { min-width: 0; }
+        @media (max-width: 768px) {
+          .painel-rosca { flex-direction: column; align-items: stretch !important; }
+          .painel-rosca > div:first-child { align-self: center; }
         }
         @media (max-width: 380px) {
           .ip-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
