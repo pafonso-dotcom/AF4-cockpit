@@ -239,7 +239,9 @@ export default function App() {
   /* eslint-enable react-hooks/exhaustive-deps */
   const [ativos, setAtivosBase] = useState([]);
   const [metas, setMetasBase] = useState([]);
-  const [notas, setNotas] = useState([]);
+  const [notas, setNotasBase] = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setNotas = useCallback(criarSetterComTumbas("notas", setNotasBase), []); // exclusão não volta no sync
   const [cartoes, setCartoesBase] = useState([]);
   const [parcelamentos, setParcelamentosBase] = useState([]);
   const [devedores, setDevedoresBase] = useState([]);
@@ -291,20 +293,38 @@ export default function App() {
   }, [fixas, fixaOcorrencias, cartoes, cheques, dividas]);
 
   // Agenda pessoal (compromissos, viagens, lembretes, eventos)
-  const [agenda, setAgenda] = useState([]);
+  const [agenda, setAgendaBase] = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setAgenda = useCallback(criarSetterComTumbas("agenda", setAgendaBase), []); // exclusão não volta no sync
   // Fase 1: hábitos com streaks, diário rápido, lista de compras, ideias livres
-  const [habitos, setHabitos] = useState([]);
+  const [habitos, setHabitosBase] = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setHabitos = useCallback(criarSetterComTumbas("habitos", setHabitosBase), []); // exclusão não volta no sync
   const [diario, setDiario] = useState([]);
-  const [compras, setCompras] = useState([]);
-  const [ideias, setIdeias] = useState([]);
-  const [tarefas, setTarefas] = useState([]);
+  const [compras, setComprasBase] = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setCompras = useCallback(criarSetterComTumbas("compras", setComprasBase), []); // exclusão não volta no sync
+  const [ideias, setIdeiasBase] = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setIdeias = useCallback(criarSetterComTumbas("ideias", setIdeiasBase), []); // exclusão não volta no sync
+  const [tarefas, setTarefasBase] = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setTarefas = useCallback(criarSetterComTumbas("tarefas", setTarefasBase), []); // exclusão não volta no sync
   // Sugestões de melhorias do próprio app (aba Agenda → Sugestões).
   const [sugestoes, setSugestoes] = useState([]);
-  const [lembretes,         setLembretes]         = useState([]);
+  const [lembretes,         setLembretesBase]         = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setLembretes = useCallback(criarSetterComTumbas("lembretes", setLembretesBase), []); // exclusão não volta no sync
   const [conversaHistorico, setConversaHistorico] = useState([]);
-  const [exerciciosDB,      setExerciciosDB]      = useState([]);
-  const [treinoTemplates,   setTreinoTemplates]   = useState([]);
-  const [treinos,           setTreinos]           = useState([]);
+  const [exerciciosDB,      setExerciciosDBBase]      = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setExerciciosDB = useCallback(criarSetterComTumbas("exerciciosDB", setExerciciosDBBase), []); // exclusão não volta no sync
+  const [treinoTemplates,   setTreinoTemplatesBase]   = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setTreinoTemplates = useCallback(criarSetterComTumbas("treinoTemplates", setTreinoTemplatesBase), []); // exclusão não volta no sync
+  const [treinos,           setTreinosBase]           = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setTreinos = useCallback(criarSetterComTumbas("treinos", setTreinosBase), []); // exclusão não volta no sync
   // Histórico do patrimônio (snapshot diário do total = ativos + contas).
   // Array de { data: "YYYY-MM-DD", totalAtivos, totalContas, total }.
   const [patrimonioHistorico, setPatrimonioHistorico] = useState([]);
@@ -320,14 +340,20 @@ export default function App() {
   const [negocioInstaladores,    setNegocioInstaladores]    = useState([]); // instaladores (executam serviços, recebem do caixa)
 
   // Objetivos da carteira (árvore IdV-style)
-  const [objetivosCarteira, setObjetivosCarteira] = useState([]);
-  const [orcamentosFuturos, setOrcamentosFuturos] = useState([]); // compras/compromissos planejados (Painel)
+  const [objetivosCarteira, setObjetivosCarteiraBase] = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setObjetivosCarteira = useCallback(criarSetterComTumbas("objetivosCarteira", setObjetivosCarteiraBase), []); // exclusão não volta no sync
+  const [orcamentosFuturos, setOrcamentosFuturosBase] = useState([]); // compras/compromissos planejados (Painel)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setOrcamentosFuturos = useCallback(criarSetterComTumbas("orcamentosFuturos", setOrcamentosFuturosBase), []); // exclusão não volta no sync
   // Fotos da carteira em datas específicas (posição congelada pro IR):
   // [{ id, data, criadoEm, itens: [{ticker,tipo,qtd,pm,preco,custo,valor}] }]
   const [snapshotsCarteira, setSnapshotsCarteira] = useState([]);
 
   // Carteiras modelo IdV (custom + builtin) + qual está ativo
-  const [carteirasModeloCustom, setCarteirasModeloCustom] = useState([]);
+  const [carteirasModeloCustom, setCarteirasModeloCustomBase] = useState([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setCarteirasModeloCustom = useCallback(criarSetterComTumbas("carteirasModeloCustom", setCarteirasModeloCustomBase), []); // exclusão não volta no sync
   const [modeloAtivoId, setModeloAtivoId] = useState("idv-iniciante");
 
   // Carteira virtual de proventos (saldo + histórico de movimentações)
