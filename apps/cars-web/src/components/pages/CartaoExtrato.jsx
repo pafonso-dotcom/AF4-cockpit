@@ -234,7 +234,29 @@ export default function CartaoExtrato({ cartao, transacoes = [], setTransacoes, 
   const gradient = gradByName(cartao.nome);
 
   return (
-    <div className="fade-up" style={{ padding: "24px 16px", maxWidth: 1280, margin: "0 auto" }}>
+    <div className="fade-up py-8 px-6 cartao-extrato-page" style={{ maxWidth: 1280, margin: "0 auto" }}>
+      <style>{`
+        /* TELA INTEIRA no celular (pedido 2026-10-01): mesmo esquema do
+           extrato de conta — banner e listas de borda a borda, gutter fino
+           de 8px no resto, números 2×2 e linha da fatura sem estourar. */
+        @media (max-width: 560px) {
+          .py-8.px-6.cartao-extrato-page { margin-left: -12px !important; margin-right: -12px !important; padding: 14px 0 !important; }
+          .cartao-extrato-page > * { margin-left: 8px; margin-right: 8px; }
+          .cartao-extrato-page > .cartao-hero,
+          .cartao-extrato-page > .pn {
+            margin-left: 0 !important; margin-right: 0 !important;
+            border-radius: 0 !important; border-left-width: 0 !important; border-right-width: 0 !important;
+          }
+          .cartao-extrato-page .cartao-hero { padding: 14px !important; gap: 12px !important; }
+          .cartao-extrato-page .cartao-hero-icon { width: 40px !important; height: 40px !important; font-size: 22px !important; }
+          .cartao-extrato-page .cartao-hero-valor { font-size: 22px !important; }
+          .cartao-extrato-page .kg { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .cartao-extrato-page .tbl-fatura tr { grid-template-columns: auto minmax(0, 1fr) auto !important; padding: 9px 10px !important; }
+          .cartao-extrato-page .tbl-fatura td:nth-child(3) { min-width: 0; white-space: normal !important; overflow-wrap: anywhere; }
+          .cartao-extrato-page .tbl-parc tr { padding-left: 10px !important; padding-right: 10px !important; }
+          .cartao-extrato-page .tbl-fatura td:nth-child(5) { white-space: nowrap; }
+        }
+      `}</style>
       <button onClick={onVoltar} className="btn-back" style={{
         display: "inline-flex", alignItems: "center", gap: 6,
         padding: "6px 12px", borderRadius: 12,
