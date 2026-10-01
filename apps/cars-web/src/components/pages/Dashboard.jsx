@@ -769,9 +769,7 @@ export default function Dashboard({
 
       {/* Linha 4: Calendário compacto · Gastos por categoria */}
       <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-        <MobileColapsavel id="calendario" titulo="📅 Calendário do mês" isMobile={isMobile}>
-          <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} compacto={!isMobile} onVer={() => onTabChange?.("calendario")} />
-        </MobileColapsavel>
+        <CalendarioWidgetCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
         <GastosRoscaCard data={gastosCat} hidden={hidden} />
       </section>
 
@@ -1479,10 +1477,18 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
 
 const CAL_MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 
-// Calendário do mês — marca dias com a pagar (vermelho), a receber/cheque
-// (verde) e evento da agenda (azul). Navegável; clicar abre o Calendário cheio.
-function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer, compacto = false }) {
+// Calendário estilo widget (2026-10-01, inspirado no Widgy que o usuário
+// mandou): dia de hoje em destaque à esquerda, mês "limpo" à direita (sem
+// caixinhas, domingos em cor, pontinhos de a pagar/receber) e os próximos
+// vencimentos embaixo com selo Hoje/Amanhã.
+const CAL_ACENTO = "#e0734f";
+const DIAS_SEMANA = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
+const MES_CURTO_UP = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+function CalendarioWidgetCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }) {
   const hoje = new Date();
+  const hojeISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+  const amanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
+  const amanhaISO = `${amanha.getFullYear()}-${String(amanha.getMonth() + 1).padStart(2, "0")}-${String(amanha.getDate()).padStart(2, "0")}`;
   const [ref, setRef] = React.useState({ y: hoje.getFullYear(), m: hoje.getMonth() });
   const monthISO = `${ref.y}-${String(ref.m + 1).padStart(2, "0")}`;
 
@@ -1496,78 +1502,99 @@ function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer, 
     return map;
   }, [monthISO, stateAgg, escopoAtivo, agenda]);
 
+  // Próximos 3 compromissos (a pagar e a receber), deste mês e do próximo.
+  const proximos = useMemo(() => {
+    const meses = [0, 1].map(k => { const d = new Date(hoje.getFullYear(), hoje.getMonth() + k, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; });
+    const itens = [];
+    meses.forEach(m => {
+      try { getDespesasDoMes(m, stateAgg, escopoAtivo).filter(d => d.status !== "paga").forEach(d => itens.push({ tipo: "pagar", desc: d.descricao, valor: Number(d.valor) || 0, data: (d.data || "").slice(0, 10) })); } catch {}
+      try { getGanhosDoMes(m, stateAgg, escopoAtivo).filter(g => g.status !== "paga").forEach(g => itens.push({ tipo: "receber", desc: g.descricao, valor: Number(g.valor) || 0, data: (g.data || "").slice(0, 10) })); } catch {}
+    });
+    return itens.filter(i => i.data && i.data >= hojeISO).sort((a, b) => a.data.localeCompare(b.data)).slice(0, 3);
+  }, [stateAgg, escopoAtivo, hojeISO]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const first = new Date(ref.y, ref.m, 1);
   const startDow = first.getDay();
   const diasNoMes = new Date(ref.y, ref.m + 1, 0).getDate();
+  const diasMesAnt = new Date(ref.y, ref.m, 0).getDate();
   const cells = [];
-  for (let i = 0; i < startDow; i++) cells.push(null);
-  for (let d = 1; d <= diasNoMes; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
-
+  for (let i = startDow - 1; i >= 0; i--) cells.push({ d: diasMesAnt - i, fora: true });
+  for (let d = 1; d <= diasNoMes; d++) cells.push({ d });
+  while (cells.length % 7 !== 0) cells.push({ d: cells.length - startDow - diasNoMes + 1, fora: true });
   const ehHoje = (d) => d === hoje.getDate() && ref.m === hoje.getMonth() && ref.y === hoje.getFullYear();
   const passo = (delta) => setRef(r => { const nd = new Date(r.y, r.m + delta, 1); return { y: nd.getFullYear(), m: nd.getMonth() }; });
-  const navBtn = { width: 22, height: 22, border: `1px solid ${T.border}`, borderRadius: 12, display: "grid", placeItems: "center", color: T.muted, background: T.bgSoft, cursor: "pointer", fontWeight: 600, lineHeight: 0 };
-  const Dot = ({ c }) => <span style={{ width: 4, height: 4, borderRadius: "50%", background: c }} />;
+  const nav = { background: "transparent", border: "none", color: T.faint, cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 4px" };
+
+  const selo = (data) => data === hojeISO ? { t: "Hoje", bg: "#f2c94c", fg: "#3a2e00" }
+    : data === amanhaISO ? { t: "Amanhã", bg: T.muted, fg: T.bg }
+    : { t: `${data.slice(8, 10)}/${data.slice(5, 7)}`, bg: "transparent", fg: T.muted, borda: true };
 
   return (
     <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8 }}>
-        <div style={{ fontSize: 10, letterSpacing: ".15em", color: T.muted, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <Calendar size={12} style={{ color: T.gold }} /> CALENDÁRIO DO MÊS
+      <div className="cal-widget" style={{ display: "grid", gridTemplateColumns: "minmax(0, 0.8fr) minmax(0, 1.6fr)", gap: 14, alignItems: "center" }}>
+        {/* Hoje em destaque */}
+        <div onClick={onVer} style={{ textAlign: "center", borderRight: `1px solid ${T.border}`, paddingRight: 12, cursor: onVer ? "pointer" : "default" }}>
+          <span style={{ display: "inline-block", fontSize: 11, fontWeight: 800, letterSpacing: ".14em", color: "#fff", background: CAL_ACENTO, borderRadius: 100, padding: "3px 12px" }}>
+            {MES_CURTO_UP[hoje.getMonth()]}
+          </span>
+          <div className="num" style={{ fontSize: 52, fontWeight: 300, color: CAL_ACENTO, lineHeight: 1.05, marginTop: 6 }}>{hoje.getDate()}</div>
+          <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: ".16em", color: T.ink, marginTop: 4 }}>{DIAS_SEMANA[hoje.getDay()]}</div>
         </div>
-        <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-          {onVer && <button onClick={onVer} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Abrir</button>}
-          <button onClick={() => passo(-1)} aria-label="Mês anterior" style={navBtn}>‹</button>
-          <button onClick={() => passo(1)} aria-label="Próximo mês" style={navBtn}>›</button>
-        </div>
-      </div>
-      <div style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 600, marginBottom: 6, textTransform: "capitalize" }}>{CAL_MESES[ref.m]} {ref.y}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 3 }}>
-        {["D","S","T","Q","Q","S","S"].map((d, i) => <span key={i} style={{ fontSize: 10, textAlign: "center", color: T.faint, fontWeight: 700 }}>{d}</span>)}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
-        {cells.map((d, i) => {
-          if (d == null) return <div key={i} />;
-          const mk = marks[d] || {};
-          const hasMov = !!(mk.pagar || mk.receber || mk.agenda);
-          // Cor dominante do dia (prioriza saída de dinheiro): tinge o fundo e a borda.
-          const corDom = mk.pagar ? T.red : mk.receber ? T.green : (T.blue || "#5b86c4");
-          const hoje = ehHoje(d);
-          const titulo = hasMov ? [mk.pagar && "a pagar", mk.receber && "a receber / cheque", mk.agenda && "agenda"].filter(Boolean).join(" · ") : undefined;
-          return (
-            <div key={i} onClick={onVer} title={titulo} style={{
-              aspectRatio: compacto ? "2.3" : "1.55", borderRadius: 8, position: "relative",
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5,
-              color: hasMov ? corDom : T.ink, cursor: onVer ? "pointer" : "default",
-              background: hasMov ? `${corDom}1e` : T.bgSoft,
-              border: hoje ? `2px solid ${T.green}` : hasMov ? `1px solid ${corDom}66` : "1px solid transparent",
-              fontWeight: (hoje || hasMov) ? 700 : 400,
-            }}>
-              {d}
-              {hasMov && (
-                <div style={{ display: "flex", gap: 3, position: "absolute", bottom: 2 }}>
-                  {mk.pagar && <Dot c={T.red} />}
-                  {mk.receber && <Dot c={T.green} />}
-                  {mk.agenda && <Dot c={T.blue || "#5b86c4"} />}
+        {/* Mês limpo */}
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+            <button onClick={() => passo(-1)} aria-label="Mês anterior" style={nav}>‹</button>
+            <span style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "capitalize" }}>{CAL_MESES[ref.m]} {ref.y !== hoje.getFullYear() ? ref.y : ""}</span>
+            <button onClick={() => passo(1)} aria-label="Próximo mês" style={nav}>›</button>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", rowGap: 2 }}>
+            {["D","S","T","Q","Q","S","S"].map((d, i) => (
+              <span key={i} style={{ fontSize: 9.5, textAlign: "center", color: i === 0 ? CAL_ACENTO : T.faint, fontWeight: 700, marginBottom: 2 }}>{d}</span>
+            ))}
+            {cells.map((c, i) => {
+              const mk = !c.fora ? (marks[c.d] || {}) : {};
+              const hj = !c.fora && ehHoje(c.d);
+              const dom = i % 7 === 0;
+              return (
+                <div key={i} onClick={onVer} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: onVer ? "pointer" : "default", padding: "1px 0" }}>
+                  <span className="num" style={{
+                    width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 12,
+                    fontWeight: hj ? 800 : 500,
+                    background: hj ? `${T.muted}33` : "transparent",
+                    color: c.fora ? `${T.faint}88` : dom ? CAL_ACENTO : T.ink,
+                  }}>{c.d}</span>
+                  <span style={{ display: "flex", gap: 2, height: 4 }}>
+                    {mk.pagar && <span style={{ width: 4, height: 4, borderRadius: "50%", background: T.red }} />}
+                    {mk.receber && <span style={{ width: 4, height: 4, borderRadius: "50%", background: T.green }} />}
+                    {mk.agenda && <span style={{ width: 4, height: 4, borderRadius: "50%", background: T.blue || "#5b86c4" }} />}
+                  </span>
                 </div>
-              )}
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      {/* Próximos compromissos */}
+      <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 12, paddingTop: 10, display: "flex", flexDirection: "column", gap: 7 }}>
+        {proximos.length === 0 ? (
+          <div style={{ fontSize: 12, color: T.faint, fontStyle: "italic" }}>Nada vencendo nos próximos dias.</div>
+        ) : proximos.map((it, i) => {
+          const s = selo(it.data);
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: T.bgSoft, borderRadius: 10, padding: "6px 6px 6px 10px" }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: it.tipo === "pagar" ? T.red : T.green, flexShrink: 0 }} />
+              <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, letterSpacing: ".03em", textTransform: "uppercase", color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {it.desc}{!hidden && <span className="num" style={{ color: it.tipo === "pagar" ? T.red : T.green, marginLeft: 6 }}>{it.tipo === "pagar" ? "−" : "+"}{fmt(it.valor)}</span>}
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 7, background: s.bg, color: s.fg, border: s.borda ? `1px solid ${T.border}` : "none", whiteSpace: "nowrap", flexShrink: 0 }}>{s.t}</span>
             </div>
           );
         })}
-      </div>
-      <div style={{ display: "flex", gap: 12, marginTop: 9, fontSize: 10, color: T.muted, flexWrap: "wrap" }}>
-        <span><Dot c={T.red} /> <span style={{ verticalAlign: "middle", marginLeft: 4 }}>A pagar</span></span>
-        <span><Dot c={T.green} /> <span style={{ verticalAlign: "middle", marginLeft: 4 }}>A receber / cheque</span></span>
-        <span><Dot c={T.blue || "#5b86c4"} /> <span style={{ verticalAlign: "middle", marginLeft: 4 }}>Agenda</span></span>
       </div>
     </Card>
   );
 }
 
-// Orçamentos · compras futuras (remodelado 2026-10-01): linha do tempo dos
-// próximos 3 meses (este + 2). O que vence depois fica num resumo e só
-// aparece em "ver todos". Mês/ano por <select> (Safari não tem type=month).
-const MES_CURTO = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 function OrcamentosFuturosCard({ itens = [], setItens, hidden }) {
   const [form, setForm] = useState(null); // null | { id?, nome, valor, alvo, guardado }
   const [todos, setTodos] = useState(false);
