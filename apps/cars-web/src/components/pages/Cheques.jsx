@@ -37,8 +37,13 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
   const hoje = todayISO();
   const mesAtual = hoje.slice(0, 7);
 
-  const noEscopo = (c) => escopoAtivo === "tudo" || (c.escopo || "pessoal") === escopoAtivo;
-  const doEscopo = useMemo(() => (cheques || []).filter(noEscopo), [cheques, escopoAtivo]);
+  // Filtro Pessoal/Negócio/Todos DENTRO da tela (2026-10-01): o seletor
+  // global de escopo saiu do cabeçalho e os cheques marcados como Negócio
+  // ficavam invisíveis. Abre em "Todos".
+  const [escFiltro, setEscFiltro] = useState("todos");
+  const escDe = (c) => (c.escopo === "negocio" ? "negocio" : "pessoal");
+  const noEscopo = (c) => escFiltro === "todos" || escDe(c) === escFiltro;
+  const doEscopo = useMemo(() => (cheques || []).filter(noEscopo), [cheques, escFiltro]); // eslint-disable-line react-hooks/exhaustive-deps
   const lista = useMemo(() =>
     doEscopo.filter(c => filtro === "todos" || c.status === filtro)
       .sort((a, b) => (a.vencimento || "").localeCompare(b.vencimento || "")),
@@ -68,7 +73,7 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
   const totalVencidos = vencidos.reduce((s, c) => s + (Number(c.valor) || 0), 0);
   const compensadoMes = doEscopo.filter(c => c.status === "compensado" && (c.dataCompensacao || "").startsWith(mesAtual)).reduce((s, c) => s + (Number(c.valor) || 0), 0);
 
-  const novo = () => setForm({ id: null, de: "", valor: "", vencimento: hoje, banco: "", numero: "", obs: "", escopo: escopoAtivo === "tudo" ? "pessoal" : escopoAtivo, status: "aguardando" });
+  const novo = () => setForm({ id: null, de: "", valor: "", vencimento: hoje, banco: "", numero: "", obs: "", escopo: escFiltro === "negocio" ? "negocio" : "pessoal", status: "aguardando" });
 
   // ===== Entrada em lote (vários cheques do mesmo emitente) =====
   const proxMes = (iso) => {
@@ -77,7 +82,7 @@ export default function Cheques({ cheques = [], setCheques, contas = [], setCont
     const ultimoDia = new Date(y, m + 1, 0).getDate(); // m (1-indexed) como índice = mês seguinte
     return `${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}-${String(Math.min(d, ultimoDia)).padStart(2, "0")}`;
   };
-  const novoLote = () => setLoteForm({ de: "", banco: "", escopo: escopoAtivo === "tudo" ? "pessoal" : escopoAtivo, linhas: [{ valor: "", vencimento: hoje, numero: "" }] });
+  const novoLote = () => setLoteForm({ de: "", banco: "", escopo: escFiltro === "negocio" ? "negocio" : "pessoal", linhas: [{ valor: "", vencimento: hoje, numero: "" }] });
   const setLinha = (i, patch) => setLoteForm(f => ({ ...f, linhas: f.linhas.map((ln, k) => k === i ? { ...ln, ...patch } : ln) }));
   const addLinha = () => setLoteForm(f => {
     const last = f.linhas[f.linhas.length - 1] || {};
@@ -248,6 +253,20 @@ tr.comp td.situ { text-decoration:none; color:#1f7a44; }
         ))}
       </div>
 
+      {/* Filtro Pessoal / Negócio / Todos */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {[["todos", "Todos"], ["pessoal", "👤 Pessoal"], ["negocio", "🏢 Negócio"]].map(([id, lbl]) => {
+          const n = (cheques || []).filter(c => c.status === "aguardando" && (id === "todos" || escDe(c) === id)).length;
+          const ativo = escFiltro === id;
+          return (
+            <button key={id} onClick={() => setEscFiltro(id)}
+              style={{ background: ativo ? `${T.blue || T.gold}22` : "transparent", color: ativo ? (T.blue || T.gold) : T.muted, border: `1px solid ${ativo ? (T.blue || T.gold) : T.border}`, borderRadius: 999, padding: "4px 11px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              {lbl} <span style={{ opacity: 0.7, fontWeight: 600 }}>· {n}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Filtro por status */}
       <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
         {[["todos", "Todos"], ["aguardando", "Aguardando"], ["compensado", "Compensado"], ["devolvido", "Devolvido"]].map(([id, lbl]) => (
@@ -300,7 +319,12 @@ tr.comp td.situ { text-decoration:none; color:#1f7a44; }
                 </div>
                 {/* Nome + banco/conta */}
                 <div style={{ flex: 1, minWidth: 120, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                  <span style={{ color: T.ink, fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.de}</span>
+                  <span style={{ color: T.ink, fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {c.de}
+                    {escDe(c) === "negocio" && (
+                      <span style={{ marginLeft: 6, fontSize: 9.5, fontWeight: 800, letterSpacing: ".06em", padding: "1px 6px", borderRadius: 100, background: `${T.blue || T.gold}22`, color: T.blue || T.gold, verticalAlign: "2px" }}>NEGÓCIO</span>
+                    )}
+                  </span>
                   {(c.banco || (c.status === "compensado" && c.contaCompensacao)) && (
                     <span style={{ fontSize: 10, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {[c.banco, c.status === "compensado" && c.contaCompensacao ? `em ${c.contaCompensacao}` : ""].filter(Boolean).join(" · ")}
