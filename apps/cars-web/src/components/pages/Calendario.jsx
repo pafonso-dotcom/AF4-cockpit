@@ -304,8 +304,8 @@ export default function Calendario({
   return (
     <div className="fade-up py-8">
       <PageHeader
-        eyebrow="Agenda · Calendário"
-        title="Agenda"
+        eyebrow="Agenda"
+        title="Calendário"
         sub="Vencimentos e compromissos pessoais num lugar só."
         action={
           <button className="btn-gold" onClick={() => novoEvento(selectedDay)}>
@@ -446,7 +446,7 @@ export default function Calendario({
       {/* Vista Mês (grade mensal) */}
       {vista === "mes" && (<>
       {/* Calendar grid */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, padding: 16 }}>
+      <div className="card-vivo" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16 }}>
         {/* Celular: células menores, valor compacto e sem o rótulo "N fin" —
             senão o mês não cabe em 7 colunas numa tela de 360px. */}
         <style>{`
@@ -539,7 +539,7 @@ export default function Calendario({
 
       {/* Day details */}
       {selectedDay && (
-        <div className="mt-6" style={{ background: T.card, border: `1px solid ${T.border}`, padding: 24 }}>
+        <div className="mt-6 card-vivo" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 20 }}>
           <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
             <div>
               <div className="label-eyebrow">Dia selecionado</div>

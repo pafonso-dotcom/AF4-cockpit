@@ -251,7 +251,7 @@ export default function Notas({ agenda = [], setAgenda, notasLegacy = [], setNot
   return (
     <div className="fade-up py-8">
       <PageHeader
-        eyebrow="Agenda Pessoal"
+        eyebrow="Agenda"
         title="Compromissos"
         sub="Lista detalhada dos seus eventos pessoais — também aparecem no Calendário."
         action={
@@ -496,7 +496,7 @@ export default function Notas({ agenda = [], setAgenda, notasLegacy = [], setNot
 
 function StatBox({ label, value, cor, destaque }) {
   return (
-    <div style={{
+    <div className="card-vivo" style={{
       background: destaque ? `${cor}15` : T.card,
       border: `1px solid ${destaque ? `${cor}55` : T.border}`,
       borderRadius: 16, padding: "10px 12px",
@@ -538,7 +538,7 @@ function EventoCard({ ev, onEdit, onPin, onFeito, onExcluir, dimmed }) {
   const atrasado = !feito && dias < 0;
 
   return (
-    <div style={{
+    <div className="card-vivo" style={{
       background: `${meta.cor}0d`,
       border: `1px solid ${meta.cor}33`,
       borderLeft: `4px solid ${meta.cor}`,
@@ -655,7 +655,7 @@ function IconBtn({ children, onClick, title, cor, bg }) {
 
 function EmptyState({ onCriar, temEventos }) {
   return (
-    <div style={{
+    <div className="card-vivo" style={{
       textAlign: "center", padding: "64px 24px",
       background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
     }}>

@@ -317,7 +317,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
           Treino de Hoje
         </div>
         {sessoesHoje.length === 0 ? (
-          <div style={{
+          <div className="card-vivo" style={{
             textAlign: "center", padding: "32px 24px",
             background: T.card, border: `1px dashed ${T.border}`, borderRadius: 16,
           }}>
@@ -351,7 +351,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
       </div>
 
       {/* Calendário */}
-      <div style={{ marginBottom: 24, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
+      <div className="card-vivo" style={{ marginBottom: 24, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <button onClick={() => setMesOffset(o => o - 1)} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer" }}>
             <ChevronLeft size={16} />
@@ -421,7 +421,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
               const Icon = MODALIDADE_ICON[s.modalidade] || Dumbbell;
               const template = treinoTemplates.find(t => t.id === s.templateId);
               return (
-                <div key={s.id} style={{
+                <div className="card-vivo" key={s.id} style={{
                   background: T.card, border: `1px solid ${T.border}`,
                   borderLeft: `3px solid ${cor}`, borderRadius: 16,
                   padding: "10px 14px", display: "flex", alignItems: "center", gap: 10,
@@ -461,7 +461,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
                 {treinoTemplates.map(t => {
                   const cor = MODALIDADE_COR[t.modalidade] || T.gold;
                   return (
-                    <button key={t.id} onClick={() => iniciarTreino(t)}
+                    <button className="card-vivo" key={t.id} onClick={() => iniciarTreino(t)}
                       style={{
                         background: T.card, border: `1px solid ${cor}55`,
                         borderLeft: `3px solid ${cor}`, borderRadius: 16,
@@ -649,7 +649,7 @@ function SessaoCard({ sessao, exerciciosDB, ativa, onToggleAtiva, onAtualizar, o
   const exerciciosFiltrados = exerciciosDB.filter(e => e.modalidade === sessao.modalidade);
 
   return (
-    <div style={{ background: T.card, border: `1px solid ${cor}55`, borderTop: `3px solid ${cor}`, borderRadius: 16, padding: 14 }}>
+    <div className="card-vivo" style={{ background: T.card, border: `1px solid ${cor}55`, borderTop: `3px solid ${cor}`, borderRadius: 16, padding: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
         <Icon size={18} style={{ color: cor }} />
         <div style={{ flex: 1, minWidth: 0 }}>

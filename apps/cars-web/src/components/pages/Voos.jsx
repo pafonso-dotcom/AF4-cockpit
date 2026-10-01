@@ -145,7 +145,7 @@ export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {}, 
       )}
 
       {/* ---- BUSCA ---- */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
+      <div className="card-vivo" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
         <datalist id="aeroportos">
           {AEROPORTOS.map(a => <option key={a.code} value={a.code}>{a.nome}</option>)}
         </datalist>
@@ -208,7 +208,7 @@ export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {}, 
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {filtradas.map(o => (
-              <div key={o.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "12px 14px", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+              <div className="card-vivo" key={o.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "12px 14px", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
                 <div style={{ flex: "1 1 300px", minWidth: 0 }}>
                   <div style={{ fontSize: 11, color: T.gold, fontWeight: 700, marginBottom: 3 }}>{o.ciasNomes.join(" + ")}</div>
                   {o.itinerarios.map((it, i) => (
@@ -249,7 +249,7 @@ export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {}, 
           {monitores.map(m => {
             const bateu = m.alvo > 0 && m.ultimoPreco > 0 && m.ultimoPreco <= m.alvo;
             return (
-              <div key={m.id} style={{ background: T.card, border: `1px solid ${bateu ? T.green : T.border}`, borderRadius: 16, padding: "12px 14px" }}>
+              <div className="card-vivo" key={m.id} style={{ background: T.card, border: `1px solid ${bateu ? T.green : T.border}`, borderRadius: 16, padding: "12px 14px" }}>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                   <Plane size={15} style={{ color: bateu ? T.green : T.gold }} />
                   <div style={{ flex: 1, minWidth: 180 }}>
@@ -393,7 +393,7 @@ export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {}, 
           for (let i = 0; i < offset; i++) celulas.push(null);
           for (let d = 1; d <= dias; d++) celulas.push(d);
           return (
-            <div style={{ flex: "1 1 260px", minWidth: 240, background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
+            <div className="card-vivo" style={{ flex: "1 1 260px", minWidth: 240, background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: T.ink, marginBottom: 8, textTransform: "capitalize" }}>{nome} {ano}</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, fontSize: 10, color: T.faint, textAlign: "center", marginBottom: 4 }}>
                 {["D","S","T","Q","Q","S","S"].map((d, i) => <span key={i}>{d}</span>)}
@@ -446,9 +446,9 @@ export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {}, 
                      placeholder="Destino (opcional)"
                      style={{ flex: "1 1 110px", minWidth: 100, padding: "8px 11px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 12.5 }} />
               <input type="date" value={vForm.inicio} onChange={e => setVForm(f => ({ ...f, inicio: e.target.value }))}
-                     title="Início" style={{ padding: "7px 9px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 12 }} />
+                     title="Início" style={{ flex: "0 0 150px", width: 150, padding: "7px 9px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 12 }} />
               <input type="date" value={vForm.fim} onChange={e => setVForm(f => ({ ...f, fim: e.target.value }))}
-                     title="Fim (opcional)" style={{ padding: "7px 9px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 12 }} />
+                     title="Fim (opcional)" style={{ flex: "0 0 150px", width: 150, padding: "7px 9px", borderRadius: 12, border: `1px solid ${T.border}`, background: T.bgSoft, color: T.ink, fontSize: 12 }} />
               <button onClick={addViagem} className="btn-gold" style={{ padding: "8px 14px", fontSize: 11 }}>+ Programar</button>
             </div>
             {/* calendários: mês atual + próximo */}
