@@ -61,6 +61,54 @@ function destravarFala() {
 }
 const semMarkdown = (s) => String(s || "").replace(/[*_#`>]+/g, "").replace(/\n{2,}/g, "\n").trim();
 
+
+// Contexto amplo pra IA responder perguntas livres ("quanto gastei com
+// mercado esse mês?", "qual cartão está mais pesado?", "e no mês passado?").
+const r2 = (v) => (Number(v) || 0).toFixed(2);
+function mesKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }
+function porCategoria(trans, mk) {
+  const m = {};
+  for (const t of trans || []) {
+    if (t?.tipo !== "despesa" || !String(t.data || "").startsWith(mk)) continue;
+    if (String(t.origem || "") === "fatura-pagamento") continue;
+    const c = t.categoria || "Sem categoria";
+    m[c] = (m[c] || 0) + (Number(t.valor) || 0);
+  }
+  return Object.entries(m).sort((a, b) => b[1] - a[1]);
+}
+function contextoRico(d, ctx) {
+  const hoje = new Date();
+  const mk = mesKey(hoje);
+  const mkAnt = mesKey(new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1));
+  const trans = d.transacoes || [];
+  const cartaoNome = Object.fromEntries((d.cartoes || []).map(c => [c.id, c.nome]));
+  const soma = (mkx, tipo) => trans.filter(t => t?.tipo === tipo && String(t.data || "").startsWith(mkx) && t.origem !== "fatura-pagamento")
+    .reduce((s, t) => s + (Number(t.valor) || 0), 0);
+  const catMes = porCategoria(trans, mk);
+  const catAnt = porCategoria(trans, mkAnt);
+  const ultimos = [...trans].filter(t => t?.data).sort((a, b) => String(b.data).localeCompare(String(a.data))).slice(0, 25);
+  const proxPagar = (ctx.aPagar.itens || []).filter(i => i.venc && i.venc >= hoje.toISOString().slice(0, 10))
+    .sort((a, b) => a.venc.localeCompare(b.venc)).slice(0, 15);
+  const ativos = [...(d.ativos || [])].map(a => ({ a, v: (Number(a.qtd) || 0) * (Number(a.preco) || 0) }))
+    .sort((x, y) => y.v - x.v).slice(0, 12);
+  const linhas = [
+    `HOJE: ${hoje.toISOString().slice(0, 10)}`,
+    `PATRIMÔNIO TOTAL (card do Painel): ${r2(ctx.patrimonio)}`,
+    ctx.possoGastar ? `PODE GASTAR HOJE: ${r2(ctx.possoGastar.porDia)} · semana ${r2(ctx.possoGastar.semana)} · sobra prevista do mês ${r2(ctx.possoGastar.sobraMes)}${ctx.possoGastar.fura ? ` · CAIXA FURA em ${ctx.possoGastar.primeiroNegativo || "este mês"}` : ""}` : "",
+    `A PAGAR: total em aberto ${r2(ctx.aPagar.total)} · neste mês ${r2(ctx.aPagar.pagarMes)} · próximos 7 dias ${r2(ctx.aPagar.prox7?.total)}`,
+    "PRÓXIMOS VENCIMENTOS: " + proxPagar.map(i => `${i.venc} ${i.desc} ${r2(i.valor)}`).join("; "),
+    "FATURAS DOS CARTÕES (em aberto): " + ctx.cartoes.map(c => { const f = ctx.faturaDe(c); return `${c.nome} ${r2(f.valor)}${f.paga ? " (paga)" : ""}${c.vencimento ? ` vence dia ${c.vencimento}` : ""}${c.fechamento ? ` fecha dia ${c.fechamento}` : ""}`; }).join("; "),
+    "SALDOS DAS CONTAS: " + ctx.contas.map(c => `${c.nome} ${r2(c.saldo)}${c.moeda && c.moeda !== "BRL" ? " " + c.moeda : ""}${Number.isFinite(c.previsto) ? ` (previsto c/ planilha ${r2(c.previsto)})` : ""}`).join("; "),
+    `MÊS ATUAL ${mk}: despesas ${r2(soma(mk, "despesa"))} · receitas ${r2(soma(mk, "receita"))}`,
+    "  por categoria: " + catMes.map(([c, v]) => `${c} ${r2(v)}`).join("; "),
+    `MÊS ANTERIOR ${mkAnt}: despesas ${r2(soma(mkAnt, "despesa"))} · receitas ${r2(soma(mkAnt, "receita"))}`,
+    "  por categoria: " + catAnt.map(([c, v]) => `${c} ${r2(v)}`).join("; "),
+    "ÚLTIMOS LANÇAMENTOS: " + ultimos.map(t => `${t.data} ${t.tipo === "receita" ? "+" : "-"}${r2(t.valor)} ${t.descricao || ""} [${t.categoria || "-"}] (${t.cartaoId ? "cartão " + (cartaoNome[t.cartaoId] || "?") : t.conta || "-"}${t.compensado === false ? ", pendente" : ""})`).join("; "),
+    ativos.length ? "INVESTIMENTOS (maiores): " + ativos.map(({ a, v }) => `${a.ticker || a.nome} ${r2(v)}${a.tipo === "stock" || a.tipo === "reit" ? " USD" : ""}`).join("; ") : "",
+  ];
+  return linhas.filter(Boolean).join("\n");
+}
+
 export default function AssistenteVoz(props) {
   const dadosRef = useRef(props);
   dadosRef.current = props;
@@ -77,6 +125,7 @@ export default function AssistenteVoz(props) {
   const mudoRef = useRef(mudo); mudoRef.current = mudo;
   const recRef = useRef(null);
   const vaziasRef = useRef(0);
+  const historicoIARef = useRef([]); // últimas trocas com a IA (pra "e no mês passado?")
   // Modo conversa: depois de responder volta a ouvir sozinho até este horário
   // (cada pergunta renova 1 min). Sem perguntas, desliga.
   const conversaAteRef = useRef(0);
@@ -154,9 +203,13 @@ export default function AssistenteVoz(props) {
     } else if (r.ok) {
       setResposta({ ok: true, texto: r.texto });
       responderEOuvir(r.fala);
+    } else if (dadosRef.current.apiKeys?.anthropic) {
+      // Fora das respostas rápidas: vai direto pra IA, sem botão.
+      setResposta(null);
+      perguntarIA(f);
     } else {
-      setResposta({ ok: false, texto: "Não achei isso nas respostas rápidas. Posso perguntar à IA?" });
-      responderEOuvir("Não achei isso nas respostas rápidas. Pode perguntar de outro jeito, ou tocar em perguntar à IA.");
+      setResposta({ ok: false, texto: "Pra perguntas livres preciso da chave Anthropic (Configurações → APIs)." });
+      responderEOuvir("Essa eu só consigo responder com a inteligência artificial ligada. Coloque a chave Anthropic nas configurações.");
     }
   };
 
@@ -287,32 +340,32 @@ export default function AssistenteVoz(props) {
     responderEOuvir("Lançado.");
   };
 
-  const perguntarIA = async () => {
+  const perguntarIA = async (texto = pergunta) => {
     const d = dadosRef.current;
     const apiKey = d.apiKeys?.anthropic;
     if (!apiKey) {
       setResposta({ ok: false, texto: "Pra perguntas livres preciso da chave Anthropic (Configurações → APIs)." });
       return;
     }
-    destravarFala();
     setPensando(true);
     try {
       const ctx = montarContexto();
-      const extra = [
-        `Patrimônio total (card do Painel): ${ctx.patrimonio.toFixed(2)}`,
-        `A pagar em aberto: ${ctx.aPagar.total.toFixed(2)} · neste mês: ${ctx.aPagar.pagarMes.toFixed(2)}`,
-        ctx.possoGastar ? `Pode gastar hoje: ${ctx.possoGastar.porDia.toFixed(2)} (sobra do mês ${ctx.possoGastar.sobraMes.toFixed(2)})` : "",
-        "Faturas em aberto: " + ctx.cartoes.map(c => `${c.nome} ${ctx.faturaDe(c).valor.toFixed(2)}`).join("; "),
-        "Saldos: " + ctx.contas.map(c => `${c.nome} ${(Number(c.saldo) || 0).toFixed(2)}${c.moeda && c.moeda !== "BRL" ? " " + c.moeda : ""}`).join("; "),
-      ].filter(Boolean).join("\n");
-      const contextoDados = buildContext(d) + "\n\nRESUMO DO PAINEL:\n" + extra +
-        "\n\nResponda em no máximo 2 frases curtas, sem markdown — a resposta será FALADA em voz alta.";
-      const r = semMarkdown(await perguntarAoClaude({ apiKey, pergunta, contextoDados }));
+      const contextoDados = "DADOS ATUAIS DO APP (valores em R$, salvo indicado):\n" + contextoRico(d, ctx) +
+        "\n\n" + buildContext(d) +
+        "\n\nVocê é a assistente de voz do app. Responda em 1 a 3 frases curtas e diretas, sem markdown nem listas — a resposta será FALADA. " +
+        "Use os números acima (com R$ e vírgula decimal). Se o dado não estiver acima, diga que não tem essa informação no app.";
+      const historico = historicoIARef.current.slice(-6);
+      const r = semMarkdown(await perguntarAoClaude({
+        apiKey, pergunta: texto, historico, contextoDados,
+        model: "claude-opus-5-5", effort: "low", maxTokens: 4000,
+      }));
+      historicoIARef.current = [...historico, { role: "user", content: texto }, { role: "assistant", content: r }];
       setResposta({ ok: true, ia: true, texto: r });
       renovarConversa();
       responderEOuvir(r);
     } catch (e) {
       setResposta({ ok: false, texto: e?.message || "A IA não respondeu agora." });
+      responderEOuvir("A inteligência artificial não respondeu agora.", false);
     } finally {
       setPensando(false);
     }
@@ -366,7 +419,7 @@ export default function AssistenteVoz(props) {
               {resposta.texto}
             </div>
             {!resposta.ok && pergunta && !resposta.ia && (
-              <button onClick={perguntarIA} disabled={pensando}
+              <button onClick={() => perguntarIA(pergunta)} disabled={pensando}
                       style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: "none", background: T.gold, color: "#fff", fontWeight: 700, cursor: "pointer", opacity: pensando ? 0.6 : 1 }}>
                 <Sparkles size={15} /> {pensando ? "Perguntando…" : "Perguntar à IA"}
               </button>
