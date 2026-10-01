@@ -243,7 +243,7 @@ function HeaderHorizontal({
     <nav style={{
       position: "sticky", top: 0, zIndex: 50,
       // Grafite elegante (tom grafite) — fixo, independe da paleta.
-      background: "#2d323b", backdropFilter: "blur(14px)",
+      background: "#2d323b",
       borderBottom: `1px solid ${NAV_BORDER}`,
     }}>
       {/* ============== LINHA 1 · brand · ações · utility ============== */}
@@ -720,7 +720,7 @@ function HeaderVertical({
         display: "flex", flexDirection: "column", gap: sidebarColapsada ? 8 : 16,
         border: `1px solid ${NAV_BORDER}`, borderRadius: 16,
         boxShadow: "0 10px 30px rgba(0,0,0,.28)",
-        backdropFilter: "blur(14px)", transition: "width .2s",
+        transition: "width .2s",
       }}>
         {/* Marca + botão de recolher/expandir */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6,
@@ -1053,7 +1053,6 @@ function HeaderVertical({
         display: "flex", alignItems: "center", justifyContent: "space-between",
         position: "sticky", top: 0, zIndex: 50,
         borderBottom: `1px solid ${NAV_BORDER}`,
-        backdropFilter: "blur(14px)",
       }}>
         <div style={{ fontSize: 11.5, color: NAV_MUTED }}>
           {moduloAtivo.label}
