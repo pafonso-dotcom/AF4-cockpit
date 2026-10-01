@@ -979,6 +979,11 @@ function HeaderVertical({
                 }}
                 style={{ width: 42, height: 42, borderRadius: 12, background: T.gold, color: T.bg, border: "none", cursor: "pointer", display: "grid", placeItems: "center", fontSize: 22, fontWeight: 700, lineHeight: 1 }}>+</button>
             )}
+            <button title="Assistente de voz" aria-label="Assistente de voz"
+              onClick={() => window.dispatchEvent(new Event("af4:assistente-abrir"))}
+              style={{ width: 42, height: 42, borderRadius: 12, background: `${T.gold}22`, color: T.gold, border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>
+              <Mic size={18} />
+            </button>
             <button title="Configurações" aria-label="Configurações"
               onClick={() => { setModulo("config"); setTab("cfg-aparencia"); }}
               style={{ width: 42, height: 42, borderRadius: 12, background: modulo === "config" ? `${T.gold}22` : "rgba(255,255,255,0.05)", color: modulo === "config" ? T.gold : NAV_MUTED, border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>
@@ -990,6 +995,17 @@ function HeaderVertical({
         {/* Card "+ Nova transação" da sidebar removido (pedido 2026-09-23) —
             o atalho segue no teclado (N) e no ＋ flutuante do celular. */}
 
+        {!sidebarColapsada && (
+        <button
+          onClick={() => window.dispatchEvent(new Event("af4:assistente-abrir"))}
+          style={{
+            padding: "8px 10px", borderRadius: 12, background: `${T.gold}22`, color: T.gold,
+            border: "none", cursor: "pointer", textAlign: "left",
+            display: "flex", alignItems: "center", gap: 9, fontSize: 12, fontWeight: 600,
+          }}>
+          <Mic size={14} /> Assistente de voz
+        </button>
+        )}
         {!sidebarColapsada && (
         <button
           onClick={() => { setModulo("config"); setTab("cfg-aparencia"); }}
