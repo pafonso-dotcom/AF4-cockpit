@@ -71,6 +71,29 @@ function parcelasEmAbertoNoMes(cartao, parcelamentos = [], monthKey) {
   return { valor, count };
 }
 
+// Visual "cartão de verdade" (2026-10-01): marca pelo banco cadastrado ou,
+// em "outro", reconhecida pelo nome; sem nada, usa a cor do cartão.
+const MARCAS_POR_NOME = [
+  [/ita[uú]/i, "itau"], [/nubank|\bnu\b/i, "nubank"], [/\bxp\b/i, "xp"], [/\bc6\b/i, "c6"],
+  [/inter\b/i, "inter"], [/santander/i, "santander"], [/bradesco/i, "bradesco"], [/caixa/i, "caixa"],
+  [/banco do brasil|\bbb\b|ourocard/i, "bb"],
+];
+const MARCAS_EXTRA = [
+  [/mercado ?(livre|pago)/i, { bg: "linear-gradient(135deg, #ffe600 0%, #e8c800 100%)", fg: "#2d3277" }],
+  [/picpay/i, { bg: "linear-gradient(135deg, #21c25e 0%, #11873f 100%)", fg: "#ffffff" }],
+  [/sicredi/i, { bg: "linear-gradient(135deg, #3fa110 0%, #276b08 100%)", fg: "#ffffff" }],
+  [/porto/i, { bg: "linear-gradient(135deg, #0a5fb4 0%, #063d75 100%)", fg: "#ffffff" }],
+];
+function brandDoCartao(c) {
+  if (c.banco === "custom" && c.bandeiraCustom) return c.bandeiraCustom;
+  if (c.banco && c.banco !== "outro" && BANK_BRANDS[c.banco]) return BANK_BRANDS[c.banco];
+  const nome = String(c.nome || "");
+  for (const [re, k] of MARCAS_POR_NOME) if (re.test(nome) && BANK_BRANDS[k]) return BANK_BRANDS[k];
+  for (const [re, b] of MARCAS_EXTRA) if (re.test(nome)) return b;
+  if (c.cor) return { bg: `linear-gradient(135deg, ${c.cor} 0%, ${c.cor}cc 100%)`, fg: "#ffffff" };
+  return BANK_BRANDS.outro;
+}
+
 export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcelamentos, contas, setContas, transacoes, setTransacoes, fixas = [], setFixas, fixaOcorrencias = [], setFixaOcorrencias, categorias, setCategorias, apiKeys = {}, hidden, onCartaoClick, cartaoAtivo, onPontoRestauracao, notaRapida, onSalvarNota }) {
   const [analiseAberta, setAnaliseAberta] = useState(false);
   const [form, setForm] = useState(null);
@@ -809,9 +832,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           // Card SEMPRE bege (CARD_PAPEL), mesmo no modo noturno — T sombreado.
           const T = CARD_PAPEL;
           // If c.banco is "custom", use c.bandeiraCustom; otherwise look up in BANK_BRANDS
-          const brand = c.banco === "custom" && c.bandeiraCustom
-            ? c.bandeiraCustom
-            : (BANK_BRANDS[c.banco] || BANK_BRANDS.outro);
+          const brand = brandDoCartao(c);
           const parcAtivas = parcelasAtivasDoCartao(c, parcelamentos);
           // "Restante" = tudo que ainda falta pagar (todas as parcelas em aberto).
           const usado = parcAtivas.reduce((s, p) => {
@@ -850,134 +871,116 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                    "--i": iCard,
                    background: ativaCard ? `${T.gold}10` : T.card,
                    border: `1px solid ${ativaCard ? T.gold : T.border}`,
-                   borderLeft: `4px solid ${brand.bg}`,
                    borderRadius: 16, overflow: "hidden",
                    transition: "all .15s",
                    display: "flex", flexDirection: "column",
                    // Expandido: ocupa a largura toda da grade pra os detalhes/ações respirarem.
                    gridColumn: exp ? "1 / -1" : "auto",
                  }}>
-              {/* Corpo do card — mesmo layout das Contas (logo · nome · valor · chip) */}
-              <div onClick={() => onCartaoClick && onCartaoClick({ ...c, usado, faturaAtual: aPagar })}
-                   style={{
-                     display: "flex", flexDirection: "column", minHeight: 118,
-                     padding: 14, cursor: onCartaoClick ? "pointer" : "default",
-                   }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                  <BankIcon c={c} size={40} />
-                  <button onClick={(e) => { e.stopPropagation(); toggleExpandedCart(c.id); }}
-                          aria-label={exp ? "Recolher" : "Mais ações"}
-                          style={{ background: T.bgSoft, border: `1px solid ${T.border}`, color: T.muted, borderRadius: 8, width: 26, height: 26, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                    <ChevronDown size={15} style={{ transform: exp ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
-                  </button>
-                </div>
-                <div style={{ flex: 1, minHeight: 10 }} />
-                <div style={{ fontSize: 14, fontWeight: 700, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
-                {/* DESTAQUE = fatura em aberto (do mês, ou a importada de
-                    competência futura). Total das parcelas vai pra linha
-                    discreta embaixo (pedido do usuário). */}
-                {(() => {
-                  // Fatura importada EM ABERTO é o número REAL do banco — ela
-                  // manda no destaque mesmo quando a competência é o mês
-                  // seguinte (bug 2026-09-29: importou a fatura da XP de Out
-                  // e o card estampava só o resíduo antigo de Set em cima).
-                  const { valor: faturaAberta, mes: mesFat } = faturaEmAberto(c, parcelamentos, transacoes, mesAtualKey());
-                  // Resíduo do mês corrente quando o destaque virou a importada
-                  // do mês seguinte (parcelas/compras de Set ainda em aberto).
-                  const residuoMesAtual = mesFat === proxKey && aPagar > 0 ? aPagar : 0;
-                  return (
-                    <>
-                      <div className="num" style={{ fontVariantNumeric: "tabular-nums", fontSize: 21, fontWeight: 600, letterSpacing: "-.01em", marginTop: 2, color: T.ink, whiteSpace: "nowrap" }}
-                           title="Fatura em aberto (valor a pagar)">
-                        {hidden ? "•••" : fmt(faturaAberta || 0)}
+              {/* Corpo = "cartão de verdade": cor da marca, fatura em aberto,
+                  vencimento com cor de alerta e barra fina do limite. O resto
+                  (mês seguinte, parcelas, melhor dia) fica no expandido. */}
+              {(() => {
+                const { valor: faturaAberta, mes: mesFat } = faturaEmAberto(c, parcelamentos, transacoes, mesAtualKey());
+                const venc = Number(c.vencimento) || null;
+                const hj = new Date();
+                let diasVenc = null;
+                if (venc) {
+                  const alvo = new Date(hj.getFullYear(), hj.getMonth() + (hj.getDate() > venc ? 1 : 0), venc);
+                  diasVenc = Math.round((alvo - new Date(hj.getFullYear(), hj.getMonth(), hj.getDate())) / 86400000);
+                }
+                const status = fiPaga && !(faturaAberta > 0) ? "paga" : faturaAberta > 0 ? (diasVenc != null && diasVenc <= 3 ? "urgente" : "aberta") : "sem";
+                const chip = {
+                  paga: { txt: "✓ Fatura paga", bg: "rgba(46,160,90,.92)", fg: "#fff" },
+                  urgente: { txt: diasVenc === 0 ? "Vence HOJE" : `Vence em ${diasVenc} dia${diasVenc === 1 ? "" : "s"} · dia ${venc}`, bg: "rgba(214,55,55,.95)", fg: "#fff" },
+                  aberta: { txt: diasVenc != null ? `Vence dia ${venc} · em ${diasVenc} dias` : `A pagar · ${nomeMesCurto(mesFat)}`, bg: "rgba(255,255,255,.88)", fg: "#2a2a2a" },
+                  sem: { txt: "Sem fatura em aberto", bg: "rgba(255,255,255,.28)", fg: brand.fg },
+                }[status];
+                const lim = Number(c.limite) >= 100 ? Number(c.limite) : 0;
+                const usadoLimite = lim ? usado + avulsasPendentesNoMes(c, transacoes, "9999-12", { incluirAnteriores: true }) : 0;
+                const pct = lim ? Math.min(100, (usadoLimite / lim) * 100) : 0;
+                return (
+                  <div onClick={() => onCartaoClick && onCartaoClick({ ...c, usado, faturaAtual: aPagar })}
+                       className="cartao-visual"
+                       style={{
+                         position: "relative", background: brand.bg, color: brand.fg,
+                         padding: "14px 16px 13px", minHeight: 158, cursor: onCartaoClick ? "pointer" : "default",
+                         flex: exp ? "none" : 1,
+                         display: "flex", flexDirection: "column", borderRadius: exp ? "14px 14px 0 0" : 14,
+                       }}>
+                    {/* brilho de plástico */}
+                    <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", pointerEvents: "none",
+                      background: "radial-gradient(120% 80% at 100% 0%, rgba(255,255,255,.22) 0%, transparent 55%)" }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
+                      <BankIcon c={c} size={30} />
+                      <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
+                      <button onClick={(e) => { e.stopPropagation(); toggleExpandedCart(c.id); }}
+                              aria-label={exp ? "Recolher" : "Mais detalhes e ações"} title={exp ? "Recolher" : "Detalhes e ações"}
+                              style={{ background: "rgba(255,255,255,.22)", border: "none", color: brand.fg, borderRadius: 8, width: 28, height: 28, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                        <ChevronDown size={16} style={{ transform: exp ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+                      </button>
+                    </div>
+                    {/* "chip" do cartão */}
+                    <div aria-hidden style={{ position: "relative", width: 30, height: 22, borderRadius: 5, marginTop: 12,
+                      background: "linear-gradient(135deg, #f3d98b 0%, #c9a648 55%, #e8cf7a 100%)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.18)" }} />
+                    <div style={{ flex: 1, minHeight: 6 }} />
+                    <div style={{ position: "relative", fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", opacity: 0.8, fontWeight: 700 }}>
+                      Fatura em aberto
+                    </div>
+                    <div className="num" style={{ position: "relative", fontSize: 26, fontWeight: 700, letterSpacing: "-.02em", whiteSpace: "nowrap", lineHeight: 1.15 }}>
+                      {hidden ? "•••" : fmt(faturaAberta || 0)}
+                    </div>
+                    <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: chip.bg, color: chip.fg, whiteSpace: "nowrap" }}>{chip.txt}</span>
+                      {lim > 0 && <span className="num" style={{ fontSize: 11, opacity: 0.85, whiteSpace: "nowrap" }}>{pct.toFixed(0)}% do limite</span>}
+                    </div>
+                    {lim > 0 && (
+                      <div style={{ position: "relative", height: 4, borderRadius: 100, background: "rgba(255,255,255,.28)", overflow: "hidden", marginTop: 7 }}
+                           title={`Limite usado: ${fmt(usadoLimite)} de ${fmt(lim)}`}>
+                        <div style={{ width: `${pct}%`, height: "100%", borderRadius: 100, background: pct >= 85 ? "#ff6b6b" : "rgba(255,255,255,.95)" }} />
                       </div>
-                      <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                        {fiPaga
-                          ? <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.green}18`, color: T.green, whiteSpace: "nowrap" }}>Fatura paga</span>
-                          : faturaAberta > 0
-                            ? <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: `${T.gold}18`, color: T.gold, whiteSpace: "nowrap" }}>A pagar · {nomeMesCurto(mesFat)}</span>
-                            : <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 100, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", background: T.bgSoft, color: T.muted, whiteSpace: "nowrap" }}>Sem fatura</span>}
-                      </div>
-                      {/* Linha secundária: resíduo do mês corrente (quando o
-                          destaque é a fatura importada do mês seguinte) ou o
-                          já comprometido pro próximo mês. */}
-                      {residuoMesAtual > 0 ? (
-                        <button onClick={(e) => { e.stopPropagation(); setPendenciasDe({ cartao: c, monthKey: mesAtualKey() }); }}
-                                title={`Parcelas e compras com competência ${nomeMesCurto(mesAtualKey())} ainda em aberto no app (fora da fatura importada) — toque pra ver a lista`}
-                                style={{ marginTop: 4, fontSize: 13, color: T.muted, background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left", textDecoration: "underline dotted", textUnderlineOffset: 3 }}>
-                          Pendências de <span style={{ textTransform: "capitalize" }}>{nomeMesCurto(mesAtualKey())}</span>: <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(residuoMesAtual)}</span> <span style={{ color: T.faint }}>· ver</span>
-                        </button>
-                      ) : fiProx > 0 ? null : (proxMes.valor + avProx) > 0 && (
-                        <div style={{ marginTop: 4, fontSize: 13, color: T.muted }} title={`Já comprometido pra fatura de ${nomeMesCurto(proxKey)}: parcelas + compras lançadas (manual/foto) ainda não cobradas`}>
-                          Mês seguinte (<span style={{ textTransform: "capitalize" }}>{nomeMesCurto(proxKey)}</span>): <span className="num" style={{ color: T.ink, fontWeight: 600 }}>{hidden ? "•••" : fmt(proxMes.valor + avProx)}</span>{" "}
-                          <span style={{ color: T.faint }}>
-                            · {proxMes.count} parcela{proxMes.count === 1 ? "" : "s"}
-                            {avProx > 0 && <> + <span style={{ color: T.gold }}>{hidden ? "•••" : fmt(avProx)} em compras</span></>}
-                          </span>
-                        </div>
-                      )}
-                      {usado > 0 && (
-                        <div className="num" style={{ marginTop: 6, fontSize: 13, color: T.muted, whiteSpace: "nowrap" }}
-                             title="Todas as parcelas em aberto deste cartão (todos os meses)">
-                          Parcelas em aberto: <span style={{ fontWeight: 600, color: T.ink }}>{hidden ? "•••" : fmt(usado)}</span>
-                        </div>
-                      )}
-                      {/* Linha do tempo da fatura + melhor dia de compra */}
-                      {(() => {
-                        const fech = Number(c.fechamento) || null;
-                        const venc = Number(c.vencimento) || null;
-                        if (!fech && !venc) return null;
-                        const hj = new Date();
-                        let diasVenc = null;
-                        if (venc) {
-                          const alvo = new Date(hj.getFullYear(), hj.getMonth() + (hj.getDate() > venc ? 1 : 0), venc);
-                          diasVenc = Math.round((alvo - new Date(hj.getFullYear(), hj.getMonth(), hj.getDate())) / 86400000);
-                        }
-                        const urgente = aPagar > 0 && diasVenc != null && diasVenc <= 3;
-                        const compHoje = fech ? competenciaDaCompra(todayISO(), fech) : null;
-                        const melhorDia = fech ? (fech >= 31 ? 1 : fech + 1) : null;
-                        return (
-                          <div style={{ marginTop: 6, fontSize: 12.5, color: T.muted, lineHeight: 1.6 }}>
-                            <div>
-                              {fech ? `Fecha dia ${fech}` : ""}{fech && venc ? " · " : ""}{venc ? `vence dia ${venc}` : ""}
-                              {diasVenc != null && aPagar > 0 && (
-                                <b style={{ color: urgente ? T.red : T.gold }}> · {diasVenc === 0 ? "vence HOJE" : `em ${diasVenc}d`}</b>
-                              )}
-                            </div>
-                            {compHoje && (
-                              <div title="Depois do fechamento a compra só entra na fatura seguinte — o melhor dia de compra é logo após o fechamento (mais prazo pra pagar).">
-                                🛍 Compra hoje → fatura de <b style={{ textTransform: "capitalize" }}>{nomeMesCurto(compHoje)}</b> · melhor dia: {melhorDia}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                      {/* Limite usado (parcelas restantes + compras pendentes).
-                          Limite < R$ 100 é tratado como simbólico/placeholder
-                          (ex.: R$ 1,00) — sem barra, que sairia sempre 100%. */}
-                      {Number(c.limite) >= 100 && (() => {
-                        const usadoLimite = usado + avulsasPendentesNoMes(c, transacoes, "9999-12", { incluirAnteriores: true });
-                        const pct = Math.min(100, (usadoLimite / Number(c.limite)) * 100);
-                        const corBarra = pct >= 85 ? T.red : pct >= 60 ? T.gold : T.green;
-                        return (
-                          <div style={{ marginTop: 6 }} title="Parcelas restantes + compras pendentes sobre o limite do cartão">
-                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: T.muted, marginBottom: 2 }}>
-                              <span>Limite usado {pct.toFixed(0)}%</span>
-                              <span className="num">{hidden ? "•••" : `${fmt(usadoLimite)} / ${fmt(Number(c.limite))}`}</span>
-                            </div>
-                            <div style={{ height: 4, borderRadius: 100, background: T.bgSoft, overflow: "hidden" }}>
-                              <div style={{ width: `${pct}%`, height: "100%", background: corBarra, borderRadius: 100 }} />
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </>
-                  );
-                })()}
-              </div>
+                    )}
+                  </div>
+                );
+              })()}
               {/* Filhos — expandido */}
               {exp && (
-                <div style={{ padding: "8px 12px 10px", borderTop: `1px dashed ${T.border}`, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ padding: "10px 12px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
+                  {/* Detalhes que saíram da frente do cartão */}
+                  {(() => {
+                    const { mes: mesFat } = faturaEmAberto(c, parcelamentos, transacoes, mesAtualKey());
+                    const residuoMesAtual = mesFat === proxKey && aPagar > 0 ? aPagar : 0;
+                    const fech = Number(c.fechamento) || null;
+                    const compHoje = fech ? competenciaDaCompra(todayISO(), fech) : null;
+                    const melhorDia = fech ? (fech >= 31 ? 1 : fech + 1) : null;
+                    const lim = Number(c.limite) >= 100 ? Number(c.limite) : 0;
+                    const usadoLimite = lim ? usado + avulsasPendentesNoMes(c, transacoes, "9999-12", { incluirAnteriores: true }) : 0;
+                    const lin = { fontSize: 12.5, color: T.muted, display: "flex", justifyContent: "space-between", gap: 8 };
+                    const val = { color: T.ink, fontWeight: 600 };
+                    return (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingBottom: 6, borderBottom: `1px dashed ${T.border}` }}>
+                        {residuoMesAtual > 0 && (
+                          <button onClick={(e) => { e.stopPropagation(); setPendenciasDe({ cartao: c, monthKey: mesAtualKey() }); }}
+                                  style={{ ...lin, background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
+                            <span style={{ textDecoration: "underline dotted", textUnderlineOffset: 3 }}>Pendências de {nomeMesCurto(mesAtualKey())} · ver</span>
+                            <span className="num" style={val}>{hidden ? "•••" : fmt(residuoMesAtual)}</span>
+                          </button>
+                        )}
+                        {fiProx <= 0 && (proxMes.valor + avProx) > 0 && (
+                          <div style={lin}><span>Fatura de {nomeMesCurto(proxKey)} (já comprometido)</span><span className="num" style={val}>{hidden ? "•••" : fmt(proxMes.valor + avProx)}</span></div>
+                        )}
+                        {usado > 0 && (
+                          <div style={lin}><span>Parcelas em aberto (todos os meses)</span><span className="num" style={val}>{hidden ? "•••" : fmt(usado)}</span></div>
+                        )}
+                        {lim > 0 && (
+                          <div style={lin}><span>Limite usado</span><span className="num" style={val}>{hidden ? "•••" : `${fmt(usadoLimite)} / ${fmt(lim)}`}</span></div>
+                        )}
+                        {compHoje && (
+                          <div style={{ fontSize: 12.5, color: T.muted }}>🛍 Compra hoje → fatura de <b style={{ textTransform: "capitalize" }}>{nomeMesCurto(compHoje)}</b> · melhor dia de compra: <b>{melhorDia}</b></div>
+                        )}
+                      </div>
+                    );
+                  })()}
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: T.muted, flexWrap: "wrap", gap: 6 }}>
                     <span><Calendar size={11} style={{ display: "inline", verticalAlign: "-1px", marginRight: 4 }} />Vence <strong style={{ color: T.ink }}>{c.vencimento}</strong></span>
                     <span>Fecha <strong style={{ color: T.ink }}>{c.fechamento || "—"}</strong></span>
