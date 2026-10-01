@@ -108,7 +108,12 @@ export default function AssistenteVoz(props) {
     setParcial("");
     let r;
     try { r = responder(f, montarContexto()); } catch (e) { r = { ok: false }; }
-    if (r.ok) {
+    if (r.ok && r.nav) {
+      setResposta({ ok: true, texto: r.texto });
+      falar(r.fala, mudoRef.current);
+      try { dadosRef.current.onNavegar?.(r.nav); } catch {}
+      setTimeout(() => { pararOuvir(); setAberto(false); }, 700);
+    } else if (r.ok) {
       setResposta({ ok: true, texto: r.texto });
       falar(r.fala, mudoRef.current);
     } else {
@@ -226,6 +231,7 @@ export default function AssistenteVoz(props) {
     conta0 && `Saldo da ${conta0}`,
     "Quanto tenho a pagar este mês?",
     "Qual meu patrimônio?",
+    "Abre os cartões",
   ].filter(Boolean);
 
   const chip = { fontSize: 12.5, padding: "6px 11px", borderRadius: 100, background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, cursor: "pointer", whiteSpace: "nowrap" };

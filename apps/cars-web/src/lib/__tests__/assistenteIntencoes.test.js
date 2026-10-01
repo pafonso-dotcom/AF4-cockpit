@@ -100,3 +100,24 @@ describe("fatura em aberto · fonte única", () => {
     expect(faturaEmAberto(c3, [], [], "2026-10")).toEqual({ valor: 0, mes: "2026-10", paga: true });
   });
 });
+
+describe("assistente · navegação por voz", () => {
+  it("abre telas por apelido", () => {
+    expect(responder("abre os cartões", ctx).nav.destino.tab).toBe("cartoes");
+    expect(responder("vai pra tela de voos", ctx).nav.destino.tab).toBe("voos");
+    expect(responder("me leva para as viagens", ctx).nav.destino.tab).toBe("voos");
+    expect(responder("abre as contas fixas", ctx).nav.destino.tab).toBe("fixas");
+    expect(responder("abrir configurações", ctx).nav.destino).toMatchObject({ modulo: "config", tab: "cfg-aparencia" });
+    expect(responder("abre o painel", ctx).texto).toBe("Abrindo Painel.");
+  });
+  it("abre conta ou cartão pelo nome", () => {
+    expect(responder("abre a conta af4 banco", ctx).nav.conta.id).toBe("k1");
+    expect(responder("abre o cartão itaú", ctx).nav.cartao.id).toBe("c2");
+    expect(responder("abre a conta itaú", ctx).nav.conta.id).toBe("k2");
+    expect(responder("vai no mercado livre", ctx).nav.cartao.id).toBe("c3");
+  });
+  it("sem verbo de abrir continua sendo consulta", () => {
+    expect(responder("fatura do itaú", ctx).intencao.tipo).toBe("cartao");
+    expect(responder("abre uma janela pro céu", ctx).ok).toBe(false);
+  });
+});
