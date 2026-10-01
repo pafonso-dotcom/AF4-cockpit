@@ -46,7 +46,7 @@ export function KpiMini({ icone, label, valor, sub, cor = T.ink, spark, oculto, 
 const diaISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /** Fluxo do mês: saldo projetado dia a dia até o fim do mês (só o agendado). */
-export function FluxoMesCard({ stateAgg, escopoAtivo, hidden, onVer }) {
+export function FluxoMesCard({ stateAgg, escopoAtivo, hidden, onVer, compacto = false }) {
   const dados = useMemo(() => {
     const hoje = new Date();
     const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
@@ -85,13 +85,13 @@ export function FluxoMesCard({ stateAgg, escopoAtivo, hidden, onVer }) {
         {onVer && <button onClick={onVer} style={{ background: "transparent", border: "none", color: T.gold, fontSize: 11, cursor: "pointer" }}>Detalhes</button>}
       </div>
       <div style={{ fontSize: 11, color: T.muted, marginBottom: 10 }}>Saldo das contas daqui até o fim do mês, só com o que está agendado</div>
-      <div className="painel-fluxo-nums" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 10 }}>
+      <div className="painel-fluxo-nums" style={{ display: "grid", gridTemplateColumns: compacto ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10, marginBottom: 10 }}>
         {mini("Hoje", dados.inicial, T.ink)}
         {mini("Entradas", dados.entradas, T.green)}
         {mini("Saídas", dados.saidas, T.red)}
         {mini("Fim do mês", dados.final, dados.final < 0 ? T.red : T.ink)}
       </div>
-      <div style={{ height: 150, marginLeft: -8 }}>
+      <div style={{ height: compacto ? 110 : 150, marginLeft: -8 }}>
         {hidden ? (
           <div style={{ height: "100%", display: "grid", placeItems: "center", color: T.faint, fontSize: 12 }}>valores ocultos</div>
         ) : (
