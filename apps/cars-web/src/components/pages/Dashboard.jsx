@@ -1079,6 +1079,7 @@ function KpiHero({ value, mom, hidden, evolucao, onDetalhes }) {
   const bg = AURORA_BG;
   return (
     <div onClick={() => setRevelado(v => !v)}
+         className="card-vivo"
          title={visivel ? "Toque para ocultar" : "Toque para ver"}
          style={{ background: bg, color: "#fff", borderRadius: 16, padding: "16px 17px 18px", position: "relative", overflow: "hidden", minHeight: 120, cursor: "pointer", userSelect: "none" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
