@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, PieChart, Pie, Cell } from "recharts";
-import { CreditCard, TrendingUp } from "lucide-react";
+import { CreditCard, TrendingUp, ArrowUpRight } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtAbrev, fmtN } from "../../lib/format.js";
 import { montarFluxoCaixa } from "../../lib/fluxoCaixa.js";
@@ -18,18 +18,27 @@ const titulo = { fontFamily: T.serif, fontSize: 16, fontWeight: 600, color: T.in
 const rotulo = { fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: T.muted, fontWeight: 700 };
 
 /** Quadradinho de número do dia (Pode gastar, A pagar, A receber, Cartões). */
-export function KpiMini({ icone, label, valor, sub, cor = T.ink, spark, oculto, onClick, alerta }) {
+export function KpiMini({ icone, label, valor, sub, cor = T.ink, spark, oculto, onClick, alerta, onDetalhes, detalhesTitulo }) {
   return (
     <Card onClick={onClick} style={{ minWidth: 0, cursor: onClick ? "pointer" : "default", padding: "14px 15px", display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: 112, borderLeft: alerta ? `3px solid ${T.red}` : undefined }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span aria-hidden style={{ width: 30, height: 30, borderRadius: 10, display: "grid", placeItems: "center", background: `${cor}1c`, fontSize: 15, flexShrink: 0 }}>{icone}</span>
         <span style={{ fontSize: 12, color: T.muted, fontWeight: 600, lineHeight: 1.2, flex: 1, minWidth: 0 }}>{label}</span>
         {!oculto && spark && <span className="painel-kpi-spark" style={{ flexShrink: 0 }}><Sparkline points={spark} cor={cor} w={46} h={18} /></span>}
+        {/* Botão de composição (igual ao do Patrimônio Total do Painel). */}
+        {onDetalhes && (
+          <button onClick={(e) => { e.stopPropagation(); onDetalhes(); }}
+                  title={detalhesTitulo || "Ver o que está sendo somado"} aria-label={detalhesTitulo || "Composição"}
+                  style={{ width: 28, height: 28, borderRadius: "50%", background: T.bgSoft, border: `1px solid ${T.border}`, flexShrink: 0,
+                           display: "flex", alignItems: "center", justifyContent: "center", color: T.ink, cursor: "pointer", padding: 0, minHeight: 0 }}>
+            <ArrowUpRight size={14} strokeWidth={2} />
+          </button>
+        )}
       </div>
       <div className="num painel-kpi-valor" style={{ fontSize: 24, fontWeight: 700, color: cor, letterSpacing: "-.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 10 }}>
         {oculto ? "•••" : valor}
       </div>
-      {sub && <div style={{ fontSize: 11.5, color: alerta ? T.red : T.faint, marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{oculto ? "" : sub}</div>}
+      {sub && <div className={alerta ? undefined : "painel-kpi-sub"} style={{ fontSize: 11.5, color: alerta ? T.red : T.faint, marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{oculto ? "" : sub}</div>}
     </Card>
   );
 }
