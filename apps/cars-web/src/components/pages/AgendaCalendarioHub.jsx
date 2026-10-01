@@ -21,7 +21,9 @@ export default function AgendaCalendarioHub({ viewInicial, ...props }) {
   useEffect(() => { if (viewInicial) setView(viewInicial); }, [viewInicial]);
 
   return (
-    <div>
+    <div className="agenda-hub">
+      {/* Espaçamento padrão: a tela de dentro não soma o respiro do topo de novo. */}
+      <style>{`.agenda-hub > .fade-up.py-8 { padding-top: 14px !important; }`}</style>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", padding: "18px 0 0" }}>
         {VIEWS.map(v => {
           const Icon = v.icon;
