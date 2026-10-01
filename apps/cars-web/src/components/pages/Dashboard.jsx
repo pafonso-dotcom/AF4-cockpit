@@ -15,6 +15,7 @@ import { calcOrcamentoComGastos } from "../../lib/orcamentos.js";
 import { montarResumoDia, alertasDisparadosHoje } from "../../lib/resumoDia.js";
 import { detectarAnomalias } from "../../lib/anomalias.js";
 import { calcularPossoGastar } from "../../lib/possoGastar.js";
+import { COMP_KEY, lerCompCfg, partesPatrimonio, totalPatrimonio } from "../../lib/patrimonio.js";
 import { resumoAPagar } from "../../lib/aPagar.js";
 import { proventosPendentesDoMes, lerProvReaisCache } from "../../lib/proventosPrevistos.js";
 import { backupNuvemAtraso } from "../../lib/gistSync.js";
@@ -408,27 +409,17 @@ export default function Dashboard({
   // COMPOSIÇÃO AJUSTÁVEL (pedido 2026-09-30: "ver o que ele traz e ajustar"):
   // o ⓘ do card abre o detalhamento e cada componente pode ser ligado/
   // desligado do total (salvo neste aparelho em af4:patrimonio-comp:v1).
-  const COMP_KEY = "af4:patrimonio-comp:v1";
-  const [compCfg, setCompCfg] = useState(() => {
-    const padrao = { contas: true, proventos: true, invest: true, areceber: true, cheques: true, apagar: true };
-    try { return { ...padrao, ...JSON.parse(localStorage.getItem(COMP_KEY) || "{}") }; }
-    catch { return padrao; }
-  });
+  const [compCfg, setCompCfg] = useState(lerCompCfg);
   const [compAberta, setCompAberta] = useState(false);
   const toggleComp = (k) => setCompCfg(cfg => {
     const novo = { ...cfg, [k]: !cfg[k] };
     try { localStorage.setItem(COMP_KEY, JSON.stringify(novo)); } catch {}
     return novo;
   });
-  const compPartes = [
-    { k: "contas",    icone: "🏦", label: "Contas (todas, incl. negócio)", valor: totalContas },
-    { k: "proventos", icone: "💰", label: "Carteira de proventos (saldo)", valor: provSaldo },
-    { k: "invest",    icone: "📈", label: "Investimentos Brasil (R$)",     valor: totalInvest },
-    { k: "areceber",  icone: "🤝", label: "A receber (devedores)",         valor: aReceber },
-    { k: "cheques",   icone: "🧾", label: "Cheques a receber",             valor: chequesAReceber },
-    { k: "apagar",    icone: "➖", label: "Tudo a pagar em aberto (desconta)", valor: -aPagarTotal },
-  ];
-  const patrimonioTotal = compPartes.reduce((s, p) => s + (compCfg[p.k] ? p.valor : 0), 0);
+  const compPartes = useMemo(() => partesPatrimonio({
+    contas: contasRaw, ativos, carteiraProventos, devedores, cheques, aPagarTotal, escopo: escopoAtivo,
+  }), [contasRaw, ativos, carteiraProventos, devedores, cheques, aPagarTotal, escopoAtivo]);
+  const patrimonioTotal = totalPatrimonio(compPartes, compCfg);
   const mesAnteriorISO = useMemo(() => {
     const [y, m] = mesISO.split("-").map(Number);
     const d = new Date(y, m - 2, 1);

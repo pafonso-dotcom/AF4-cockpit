@@ -15,71 +15,15 @@ import BankIcon from "../ui/BankIcon.jsx";
 import NotasRapidasCard from "../ui/NotasRapidasCard.jsx";
 import AnaliseFatura from "./AnaliseFatura.jsx";
 import { ordenarPorNome } from "../../lib/categoriaSort.js";
-import { avulsasPendentesNoMes, competenciaDaCompra } from "../../lib/cartaoFatura.js";
+import {
+  avulsasPendentesNoMes, competenciaDaCompra, valorDaParcela, parcelasAtivasDoCartao,
+  dataDaParcela, faturaMensalDoCartao, valorAPagarMes, faturaEmAberto,
+} from "../../lib/cartaoFatura.js";
 import CategoriaSelect from "../ui/CategoriaSelect.jsx";
 
-// ===== Helpers compartilhados de parcelas =====
-// Mantidos no nível do módulo pra que o cálculo do "valor a pagar" do cartão
-// use EXATAMENTE a mesma regra da lista de parcelas (match por id OU nome,
-// valor da parcela = valorParcela ?? valorTotal/totalParcelas). Assim o total
-// sempre bate com o que aparece na tela.
-const normNomeCartao = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
-const valorDaParcela = (p) =>
-  Number(p.valorParcela || (p.valorTotal && p.totalParcelas ? p.valorTotal / p.totalParcelas : 0)) || 0;
-function parcelasAtivasDoCartao(cartao, parcelamentos = []) {
-  return parcelamentos.filter(p => {
-    if ((p.parcelasPagas?.length || 0) >= p.totalParcelas) return false;
-    if (p.cartaoId === cartao.id) return true;
-    if (normNomeCartao(p.cartaoNome) === normNomeCartao(cartao.nome)) return true;
-    return false;
-  });
-}
-// Mês corrente no formato YYYY-MM (chave de competência).
+// Helpers de parcelas/fatura moram em lib/cartaoFatura.js (fonte única —
+// a assistente de voz responde com a MESMA conta do card).
 const mesAtualKey = () => todayISO().slice(0, 7);
-// Mês em que a parcela N cai. Se tem dataPrimeira, soma (N-1) meses;
-// senão usa dataCompra + 1 mês. Retorna Date ou null se não há base.
-function dataDaParcela(p, n) {
-  const base = p.dataPrimeira || p.dataCompra;
-  if (!base) return null;
-  const [y, m, d] = base.split("-").map(Number);
-  const startMonth = p.dataPrimeira ? m : m + 1;
-  return new Date(y, startMonth - 1 + (n - 1), d);
-}
-// Fatura do mês = só as parcelas que VENCEM neste mês (monthKey) e que AINDA
-// não estão marcadas como pagas. Assim, depois de pagar/antecipar a fatura,
-// o valor deixa de aparecer como "a pagar" (antes somava 1 parcela de cada
-// parcelamento em curso, ignorando data e pagamento).
-function faturaMensalDoCartao(cartao, parcelamentos = [], monthKey = mesAtualKey()) {
-  return parcelasAtivasDoCartao(cartao, parcelamentos).reduce((s, p) => {
-    const pagas = new Set(p.parcelasPagas || []);
-    let devido = 0;
-    for (let n = 1; n <= (p.totalParcelas || 0); n++) {
-      if (pagas.has(n)) continue;
-      const dt = dataDaParcela(p, n);
-      if (!dt) continue;
-      if (`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}` === monthKey) {
-        devido += valorDaParcela(p);
-      }
-    }
-    return s + devido;
-  }, 0);
-}
-// Valor a pagar do mês COMPLETO: se há fatura importada (que já soma à vista +
-// fixas + parcelas) e não está paga, usa o valor dela; senão, parcelas do mês
-// ainda não pagas + compras avulsas pendentes lançadas no app (manual/foto) —
-// sem isso, a compra lançada na hora não aparecia no "a pagar" do cartão.
-// A fatura importada só conta no MÊS DA COMPETÊNCIA dela: importar a fatura de
-// agosto ainda em julho NÃO vira "a pagar" de julho — ela aparece no mês
-// seguinte. (Sem competência gravada — legado — mantém o comportamento antigo.)
-function valorAPagarMes(cartao, parcelamentos = [], transacoes = [], monthKey = mesAtualKey()) {
-  const fi = cartao.faturaImportada;
-  const fiDesteMes = fi && (!fi.competencia || fi.competencia === monthKey);
-  if (fiDesteMes && fi.paga) return 0;
-  const fiTotal = fiDesteMes ? Number(fi.valorTotal) || 0 : 0;
-  if (fiTotal > 0) return fiTotal; // fatura importada já soma tudo do mês
-  return faturaMensalDoCartao(cartao, parcelamentos, monthKey)
-       + avulsasPendentesNoMes(cartao, transacoes, monthKey);
-}
 // Itens que COMPÕEM as pendências de um mês (mesma regra do valorAPagarMes
 // sem fatura importada): parcelas em aberto do mês + compras avulsas
 // pendentes com competência no mês. Pro usuário conferir de onde vem o valor.
@@ -902,14 +846,10 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   // manda no destaque mesmo quando a competência é o mês
                   // seguinte (bug 2026-09-29: importou a fatura da XP de Out
                   // e o card estampava só o resíduo antigo de Set em cima).
-                  const fiAberta = c.faturaImportada && !c.faturaImportada.paga
-                    ? Number(c.faturaImportada.valorTotal) || 0 : 0;
-                  const fiComp = c.faturaImportada?.competencia || mesAtualKey();
-                  const faturaAberta = fiAberta > 0 ? fiAberta : aPagar;
-                  const mesFat = fiAberta > 0 ? fiComp : mesAtualKey();
+                  const { valor: faturaAberta, mes: mesFat } = faturaEmAberto(c, parcelamentos, transacoes, mesAtualKey());
                   // Resíduo do mês corrente quando o destaque virou a importada
                   // do mês seguinte (parcelas/compras de Set ainda em aberto).
-                  const residuoMesAtual = fiAberta > 0 && fiComp === proxKey && aPagar > 0 ? aPagar : 0;
+                  const residuoMesAtual = mesFat === proxKey && aPagar > 0 ? aPagar : 0;
                   return (
                     <>
                       <div className="num" style={{ fontVariantNumeric: "tabular-nums", fontSize: 21, fontWeight: 600, letterSpacing: "-.01em", marginTop: 2, color: T.ink, whiteSpace: "nowrap" }}
