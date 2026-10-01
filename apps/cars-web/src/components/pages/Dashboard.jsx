@@ -1479,16 +1479,13 @@ const CAL_MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho"
 
 // Calendário estilo widget (2026-10-01, inspirado no Widgy que o usuário
 // mandou): dia de hoje em destaque à esquerda, mês "limpo" à direita (sem
-// caixinhas, domingos em cor, pontinhos de a pagar/receber) e os próximos
-// vencimentos embaixo com selo Hoje/Amanhã.
+// caixinhas, domingos em cor, pontinhos de a pagar/receber). Sem a lista
+// de vencimentos embaixo (pedido 2026-10-01).
 const CAL_ACENTO = "#e0734f";
 const DIAS_SEMANA = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
 const MES_CURTO_UP = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 function CalendarioWidgetCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }) {
   const hoje = new Date();
-  const hojeISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
-  const amanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
-  const amanhaISO = `${amanha.getFullYear()}-${String(amanha.getMonth() + 1).padStart(2, "0")}-${String(amanha.getDate()).padStart(2, "0")}`;
   const [ref, setRef] = React.useState({ y: hoje.getFullYear(), m: hoje.getMonth() });
   const monthISO = `${ref.y}-${String(ref.m + 1).padStart(2, "0")}`;
 
@@ -1502,17 +1499,6 @@ function CalendarioWidgetCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVe
     return map;
   }, [monthISO, stateAgg, escopoAtivo, agenda]);
 
-  // Próximos 3 compromissos (a pagar e a receber), deste mês e do próximo.
-  const proximos = useMemo(() => {
-    const meses = [0, 1].map(k => { const d = new Date(hoje.getFullYear(), hoje.getMonth() + k, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; });
-    const itens = [];
-    meses.forEach(m => {
-      try { getDespesasDoMes(m, stateAgg, escopoAtivo).filter(d => d.status !== "paga").forEach(d => itens.push({ tipo: "pagar", desc: d.descricao, valor: Number(d.valor) || 0, data: (d.data || "").slice(0, 10) })); } catch {}
-      try { getGanhosDoMes(m, stateAgg, escopoAtivo).filter(g => g.status !== "paga").forEach(g => itens.push({ tipo: "receber", desc: g.descricao, valor: Number(g.valor) || 0, data: (g.data || "").slice(0, 10) })); } catch {}
-    });
-    return itens.filter(i => i.data && i.data >= hojeISO).sort((a, b) => a.data.localeCompare(b.data)).slice(0, 3);
-  }, [stateAgg, escopoAtivo, hojeISO]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const first = new Date(ref.y, ref.m, 1);
   const startDow = first.getDay();
   const diasNoMes = new Date(ref.y, ref.m + 1, 0).getDate();
@@ -1524,10 +1510,6 @@ function CalendarioWidgetCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVe
   const ehHoje = (d) => d === hoje.getDate() && ref.m === hoje.getMonth() && ref.y === hoje.getFullYear();
   const passo = (delta) => setRef(r => { const nd = new Date(r.y, r.m + delta, 1); return { y: nd.getFullYear(), m: nd.getMonth() }; });
   const nav = { background: "transparent", border: "none", color: T.faint, cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 4px" };
-
-  const selo = (data) => data === hojeISO ? { t: "Hoje", bg: "#f2c94c", fg: "#3a2e00" }
-    : data === amanhaISO ? { t: "Amanhã", bg: T.muted, fg: T.bg }
-    : { t: `${data.slice(8, 10)}/${data.slice(5, 7)}`, bg: "transparent", fg: T.muted, borda: true };
 
   return (
     <Card>
@@ -1573,23 +1555,6 @@ function CalendarioWidgetCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVe
             })}
           </div>
         </div>
-      </div>
-      {/* Próximos compromissos */}
-      <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 12, paddingTop: 10, display: "flex", flexDirection: "column", gap: 7 }}>
-        {proximos.length === 0 ? (
-          <div style={{ fontSize: 12, color: T.faint, fontStyle: "italic" }}>Nada vencendo nos próximos dias.</div>
-        ) : proximos.map((it, i) => {
-          const s = selo(it.data);
-          return (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: T.bgSoft, borderRadius: 10, padding: "6px 6px 6px 10px" }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: it.tipo === "pagar" ? T.red : T.green, flexShrink: 0 }} />
-              <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, letterSpacing: ".03em", textTransform: "uppercase", color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {it.desc}{!hidden && <span className="num" style={{ color: it.tipo === "pagar" ? T.red : T.green, marginLeft: 6 }}>{it.tipo === "pagar" ? "−" : "+"}{fmt(it.valor)}</span>}
-              </span>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 7, background: s.bg, color: s.fg, border: s.borda ? `1px solid ${T.border}` : "none", whiteSpace: "nowrap", flexShrink: 0 }}>{s.t}</span>
-            </div>
-          );
-        })}
       </div>
     </Card>
   );
