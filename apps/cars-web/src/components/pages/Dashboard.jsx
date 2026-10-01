@@ -755,38 +755,38 @@ export default function Dashboard({
 
       {/* Linha 2: Fluxo do mês · Próximos vencimentos */}
       <section className="painel-dupla painel-dupla-larga" style={{ display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 12, marginBottom: 14 }}>
-        <FluxoMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} hidden={hidden} onVer={() => onTabChange?.("planejamento")} />
+        <BlocoSeguro nome="FluxoMesCard"><FluxoMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} hidden={hidden} onVer={() => onTabChange?.("planejamento")} /></BlocoSeguro>
         <span className="dash-prox">
-          <ProximosVencimentosCard devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} />
+          <BlocoSeguro nome="ProximosVencimentosCard"><ProximosVencimentosCard devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} /></BlocoSeguro>
         </span>
       </section>
 
-      {/* Linha 3: Contas · Cartões */}
+      {/* Linha 3: Calendário compacto · Gastos por categoria */}
       <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-        <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
-        <CartoesResumoCard cartoes={cartoes} parcelamentos={parcelamentos} transacoes={transacoesRaw || []} hidden={hidden} onVer={() => onTabChange?.("cartoes")} />
+        <BlocoSeguro nome="CalendarioWidgetCard"><CalendarioWidgetCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} /></BlocoSeguro>
+        <BlocoSeguro nome="GastosRoscaCard"><GastosRoscaCard data={gastosCat} hidden={hidden} /></BlocoSeguro>
       </section>
 
-      {/* Linha 4: Calendário compacto · Gastos por categoria */}
+      {/* Linha 4: Contas · Cartões */}
       <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-        <CalendarioWidgetCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
-        <GastosRoscaCard data={gastosCat} hidden={hidden} />
+        <BlocoSeguro nome="ContasCard"><ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} /></BlocoSeguro>
+        <BlocoSeguro nome="CartoesResumoCard"><CartoesResumoCard cartoes={cartoes} parcelamentos={parcelamentos} transacoes={transacoesRaw || []} hidden={hidden} onVer={() => onTabChange?.("cartoes")} /></BlocoSeguro>
       </section>
 
       {/* Linha 5: Centro de Controle (totais + visão consolidada) · Orçamentos (compras futuras) */}
       <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14, alignItems: "start" }}>
-        <AReceberCard semTiles devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} aPagarPorAno={aPagarPorAno} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} sparks={sparks} hidden={hidden}
+        <BlocoSeguro nome="AReceberCard"><AReceberCard semTiles devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} aPagarPorAno={aPagarPorAno} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} sparks={sparks} hidden={hidden}
           consolidado={{ contas: totalContas, proventos: provSaldo, investBR: totalInvest, investUSD: totalInvestUSD,
                          aReceber, cartoes: cartoesTotal, liquido: totalContas + provSaldo + totalInvest - cartoesTotal }}
           onSeeAll={() => onTabChange?.("areceber")}
-          onVerPagar={() => onTabChange?.("areceber")} />
-        <OrcamentosFuturosCard itens={orcamentosFuturos} setItens={setOrcamentosFuturos} hidden={hidden} />
+          onVerPagar={() => onTabChange?.("areceber")} /></BlocoSeguro>
+        <BlocoSeguro nome="OrcamentosFuturosCard"><OrcamentosFuturosCard itens={orcamentosFuturos} setItens={setOrcamentosFuturos} hidden={hidden} /></BlocoSeguro>
       </section>
 
       {/* Insight principal (Alocação e Pergunte à IA saíram do Painel — pedido 2026-10-01) */}
       {principalInsight && (
         <section style={{ marginBottom: 24 }}>
-          <InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("inteligencia")} />
+          <BlocoSeguro nome="InsightsCard"><InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("inteligencia")} /></BlocoSeguro>
         </section>
       )}
 
@@ -1766,4 +1766,21 @@ function Top3DoDia({ agenda = [], onAbrir }) {
       </div>
     </div>
   );
+}
+
+// Se um quadro do Painel quebrar (dado inesperado), só ELE mostra o aviso —
+// o resto do Painel continua funcionando.
+class BlocoSeguro extends React.Component {
+  state = { erro: null };
+  static getDerivedStateFromError(erro) { return { erro }; }
+  componentDidCatch(erro) { console.error(`Painel · ${this.props.nome}:`, erro); }
+  render() {
+    if (!this.state.erro) return this.props.children;
+    return (
+      <Card>
+        <div style={{ fontSize: 12.5, color: T.red, fontWeight: 700 }}>Este quadro deu erro ({this.props.nome})</div>
+        <div style={{ fontSize: 11, color: T.muted, marginTop: 4, wordBreak: "break-word" }}>{String(this.state.erro?.message || this.state.erro)}</div>
+      </Card>
+    );
+  }
 }
