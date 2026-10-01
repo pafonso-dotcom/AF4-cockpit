@@ -894,3 +894,36 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .max-w-7xl { padding-left: 0 !important; padding-right: 0 !important; }
   .px-6, .py-8.px-6, .px-6.md\:px-10 { padding-left: 6px !important; padding-right: 6px !important; }
 }
+
+/* ===== Cards animados (Contas e Cartões · 2026-10-01) =====
+   1) brilho que passa  2) gradiente vivo  3) inclinação 3D (lib/cardVivo.js)
+   4) entrada em sequência (--i = posição). Logos GIF já animam sozinhos. */
+.card-vivo {
+  position: relative;
+  transform: perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform .35s ease, box-shadow .35s ease;
+  animation: cardEntra .5s cubic-bezier(.2, .7, .2, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+  will-change: transform;
+}
+.card-vivo.inclinando { transition: transform .08s linear, box-shadow .2s ease; box-shadow: 0 16px 34px rgba(0, 0, 0, .22); }
+.card-vivo::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(125deg, transparent 0%, rgba(110, 170, 145, .13) 30%, transparent 55%, rgba(205, 170, 105, .12) 80%, transparent 100%);
+  background-size: 300% 300%;
+  animation: cardGradiente 14s ease-in-out infinite;
+}
+.card-vivo::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, .55) 50%, transparent 62%);
+  background-size: 260% 100%;
+  background-position: 160% 0;
+  animation: cardBrilho 7s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * .8s);
+}
+@keyframes cardBrilho { 0%, 72% { background-position: 160% 0; } 100% { background-position: -60% 0; } }
+@keyframes cardGradiente { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes cardEntra { from { opacity: 0; transform: perspective(800px) translateY(16px) scale(.96); } }
+@media (prefers-reduced-motion: reduce) {
+  .card-vivo, .card-vivo::before, .card-vivo::after { animation: none !important; transition: none !important; }
+}

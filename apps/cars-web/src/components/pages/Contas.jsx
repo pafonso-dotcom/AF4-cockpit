@@ -489,10 +489,12 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           const primeiro = vi <= 0, ultimo = vi >= contasVisiveis.length - 1;
           return (
           <div key={c.id} onClick={() => onContaClick && onContaClick(c)}
+               className="card-vivo"
                role={onContaClick ? "button" : undefined}
                tabIndex={onContaClick ? 0 : undefined}
                onKeyDown={(e) => { if (onContaClick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onContaClick(c); } }}
                style={{
+                 "--i": Math.max(0, vi),
                  background: T.card, color: T.ink,
                  border: `1px solid ${ativa ? T.gold : T.border}`,
                  borderRadius: 16, padding: 14, minHeight: 126,
