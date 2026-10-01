@@ -2,7 +2,8 @@ import React, { useState, useMemo } from "react";
 import { resumoAPagar } from "../../../lib/aPagar.js";
 import { ChevronDown } from "lucide-react";
 import { T } from "../../../lib/theme.js";
-import { fmt } from "../../../lib/format.js";
+import { fmt, fmtAbrev } from "../../../lib/format.js";
+import { KpiMini, FluxoMesCard } from "../PainelNovo.jsx";
 import AReceberEDividas from "../AReceberEDividas.jsx";
 import DespesasFixas from "../DespesasFixas.jsx";
 import Emprestimos from "../Emprestimos.jsx";
@@ -101,36 +102,39 @@ export default function Planejamento(props) {
         </p>
       </div>
 
-      {/* Semáforo de cobertura + vencimentos da semana */}
-      <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
-        {cobertura.pct != null && (() => {
-          const cor = cobertura.pct >= 100 ? T.green : cobertura.pct >= 60 ? T.gold : T.red;
-          return (
-            <div style={{ background: `${cor}10`, border: `1px solid ${cor}55`, borderLeft: `4px solid ${cor}`, borderRadius: 12, padding: "10px 14px", fontSize: 12.5, color: T.ink }}
-                 title="Soma das contas (convertida pra R$) dividida pelo que vence este mês">
-              💰 <b style={{ color: cor }}>Cobertura do mês: {Math.min(999, Math.round(cobertura.pct))}%</b>
-              {" "}— você tem {hidden ? "•••" : fmt(cobertura.saldo)} em contas para {hidden ? "•••" : fmt(cobertura.aPagarMes)} a pagar no mês
-              {cobertura.pct < 100 && <> · faltam <b style={{ color: cor }}>{hidden ? "•••" : fmt(cobertura.aPagarMes - cobertura.saldo)}</b></>}.
-            </div>
-          );
-        })()}
-        {resumoPagar.prox7.total > 0 && (
-          <div style={{ background: `${T.gold}10`, border: `1px solid ${T.gold}55`, borderLeft: `4px solid ${T.gold}`, borderRadius: 12, padding: "10px 14px", fontSize: 12.5, color: T.ink }}>
-            ⏰ <b style={{ color: T.gold }}>Próximos 7 dias:</b> {hidden ? "•••" : fmt(resumoPagar.prox7.total)} em {resumoPagar.prox7.count} vencimento{resumoPagar.prox7.count === 1 ? "" : "s"}
-            <span style={{ color: T.muted }}>
-              {" "}· {resumoPagar.prox7.top.map(it =>
-                `${it.desc} (${String(it.venc).slice(8, 10)}/${String(it.venc).slice(5, 7)}${hidden ? "" : ` · ${fmt(it.valor)}`})`
-              ).join(" · ")}{resumoPagar.prox7.count > 3 ? " · …" : ""}
-            </span>
+      {/* Números do mês (redesenho 2026-10-01 — estilo do Painel) */}
+      {(() => {
+        const pct = cobertura.pct;
+        const corCob = pct == null ? T.muted : pct >= 100 ? T.green : pct >= 60 ? T.gold : T.red;
+        const p7 = resumoPagar.prox7;
+        return (
+          <div className="tela-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 12 }}>
+            <KpiMini icone="🛡" label="Cobertura do mês" valor={pct == null ? "—" : `${Math.min(999, Math.round(pct))}%`} cor={corCob}
+                     alerta={pct != null && pct < 100}
+                     sub={pct == null ? "nada a pagar no mês" : pct < 100 ? `faltam ${hidden ? "•••" : fmt(cobertura.aPagarMes - cobertura.saldo)}` : `${hidden ? "•••" : fmtAbrev(cobertura.saldo)} em contas`} />
+            <KpiMini icone="📤" label="A pagar no mês" valor={fmt(resumoPagar.pagarMes)} cor={resumoPagar.pagarMes > 0 ? T.red : T.muted} oculto={hidden}
+                     sub={`total em aberto ${fmtAbrev(resumoPagar.total)}`} onClick={() => setAberto("areceber")} />
+            <KpiMini icone="📥" label="A receber no mês" valor={fmt(resumoReceber.pendente)} cor={T.gold} oculto={hidden}
+                     alerta={resumoReceber.atrasado > 0}
+                     sub={resumoReceber.atrasado > 0 ? `${fmt(resumoReceber.atrasado)} atrasado` : `total a receber ${fmtAbrev(resumoReceber.aReceber)}`}
+                     onClick={() => setAberto("areceber")} />
+            <KpiMini icone="⏰" label="Próximos 7 dias" valor={fmt(p7.total)} cor={p7.total > 0 ? T.gold : T.muted} oculto={hidden}
+                     sub={p7.count ? `${p7.count} vencimento${p7.count === 1 ? "" : "s"} · ${p7.top[0]?.desc || ""}` : "nada vencendo"} />
           </div>
-        )}
+        );
+      })()}
+      <div style={{ marginBottom: 14 }}>
+        <FluxoMesCard stateAgg={{ transacoes: props.transacoes, contas: props.contas, fixas: props.fixas, fixaOcorrencias: props.fixaOcorrencias,
+                                  parcelamentos: props.parcelamentos, dividas: props.dividas, devedores: props.devedores, cartoes: props.cartoes, cheques: props.cheques }}
+                      escopoAtivo={props.escopoAtivo || "tudo"} hidden={hidden} onVer={() => setAberto("fluxocaixa")} />
       </div>
 
       {/* Módulos — visão geral sempre visível; detalhe abre ao clicar */}
       <div style={{ marginTop: 4 }}>
         <Secao
           on={aberto === "areceber"} onToggle={() => toggle("areceber")}
-          titulo="A Receber & Dívidas"
+          titulo="🤝 A Receber & Dívidas"
+          resumo={hidden ? null : `a pagar ${fmtAbrev(resumoPagar.total)} · a receber ${fmtAbrev(resumoReceber.aReceber)}`}
           overview={
             <VisaoGeralGrupos
               hidden={hidden}
@@ -152,7 +156,9 @@ export default function Planejamento(props) {
 
         <Secao
           on={aberto === "fixas"} onToggle={() => toggle("fixas")}
-          titulo="Despesas Fixas"
+          titulo="🔁 Despesas Fixas"
+          resumo={hidden ? null : resumoFixas.atrasado > 0 ? `${fmtAbrev(resumoFixas.atrasado)} atrasado` : `${fmtAbrev(resumoFixas.pendente)} pendente`}
+          resumoCor={resumoFixas.atrasado > 0 ? T.red : undefined}
           overview={
             <VisaoGeral
               hidden={hidden}
@@ -171,12 +177,14 @@ export default function Planejamento(props) {
 
         {/* Empréstimos MUDOU DE CASA (reorganização 2026-09-29): era aba
             própria de Finanças, mas é leitura dos mesmos devedores daqui. */}
-        <Secao on={aberto === "emprestimos"} onToggle={() => toggle("emprestimos")} titulo="🤝 Empréstimos">
+        <Secao on={aberto === "emprestimos"} onToggle={() => toggle("emprestimos")} titulo="💸 Empréstimos"
+             resumo={(() => { const n = (props.devedores || []).filter(d => d.emprestimo && !d.recebido).length; return n ? `${n} ativo${n === 1 ? "" : "s"}` : null; })()}>
           <Emprestimos devedores={props.devedores} hidden={props.hidden}
                        onTabChange={props.onTabChange} embed />
         </Secao>
 
-        <Secao on={aberto === "cheques"} onToggle={() => toggle("cheques")} titulo="Cheques">
+        <Secao on={aberto === "cheques"} onToggle={() => toggle("cheques")} titulo="🧾 Cheques"
+             resumo={(() => { const ag = (props.cheques || []).filter(c => c.status === "aguardando"); return ag.length ? `${ag.length} aguardando${hidden ? "" : ` · ${fmtAbrev(ag.reduce((s2, c) => s2 + (Number(c.valor) || 0), 0))}`}` : null; })()}>
           <Cheques cheques={props.cheques} setCheques={props.setCheques}
                    contas={props.contas} setContas={props.setContas}
                    transacoes={props.transacoes} setTransacoes={props.setTransacoes}
@@ -231,7 +239,8 @@ export default function Planejamento(props) {
             (auditoria 2026-09-18) e voltou como 5ª seção do Centro. */}
         {/* Metas MUDOU DE CASA (reorganização 2026-09-29): morava na Agenda,
             mas é 100% financeira — vive junto do planejamento. */}
-        <Secao on={aberto === "metas"} onToggle={() => toggle("metas")} titulo="🎯 Metas">
+        <Secao on={aberto === "metas"} onToggle={() => toggle("metas")} titulo="🎯 Metas"
+             resumo={(props.metas || []).length ? `${props.metas.length} meta${props.metas.length === 1 ? "" : "s"}` : null}>
           <Metas embed metas={props.metas} setMetas={props.setMetas} hidden={props.hidden}
                  fixas={props.fixas} setFixas={props.setFixas}
                  fixaOcorrencias={props.fixaOcorrencias} setFixaOcorrencias={props.setFixaOcorrencias}
@@ -240,7 +249,7 @@ export default function Planejamento(props) {
                  ativos={props.ativos} setAtivos={props.setAtivos} />
         </Secao>
 
-        <Secao on={aberto === "reserva"} onToggle={() => toggle("reserva")} titulo="Reserva de emergência">
+        <Secao on={aberto === "reserva"} onToggle={() => toggle("reserva")} titulo="🛟 Reserva de emergência">
           <ReservaEmergenciaView
             transacoes={props.transacoes} contas={props.contas}
             metas={props.metas} setMetas={props.setMetas}
@@ -318,7 +327,7 @@ function VisaoGeralGrupos({ legenda, entra, sai, hidden }) {
   );
 }
 
-function Secao({ on, onToggle, titulo, overview, children }) {
+function Secao({ on, onToggle, titulo, resumo, resumoCor, overview, children }) {
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
       <button
@@ -328,12 +337,15 @@ function Secao({ on, onToggle, titulo, overview, children }) {
           padding: "14px 16px", background: on ? T.bgSoft : "transparent",
           border: "none", cursor: "pointer", color: T.ink, textAlign: "left",
         }}>
-        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: on ? T.gold : T.ink }}>
-          {titulo}
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: on ? T.gold : T.ink }}>{titulo}</span>
+          {resumo && !on && (
+            <span className="num" style={{ display: "block", fontSize: 11.5, color: resumoCor || T.muted, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{resumo}</span>
+          )}
         </span>
-        <ChevronDown size={18} style={{ color: on ? T.gold : T.muted, transform: on ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+        <ChevronDown size={18} style={{ color: on ? T.gold : T.muted, transform: on ? "rotate(180deg)" : "none", transition: "transform .2s", flexShrink: 0 }} />
       </button>
-      {overview}
+      {on && overview}
       {on && (
         <div style={{ padding: "0 16px 16px", overflowX: "auto" }}>
           {children}
