@@ -4,7 +4,7 @@ import { T } from "../../../lib/theme.js";
 import { fmt, fmtN, fmtUSD } from "../../../lib/format.js";
 import { ASSET_CLASS_LABELS, ASSET_CLASS_COLORS, ehUS } from "../../../lib/invest-constants.js";
 import { calcRentabilidadeAtivo } from "../../../lib/invest-utils.js";
-import { buscarCotacao } from "../../../lib/cambio.js";
+import { useDolar } from "../../../lib/useDolar.js";
 import { getHistorico } from "../../../lib/brapi.js";
 import { detectarFonte } from "../../../lib/cotacoes.js";
 import { CARD_SHADOW } from "../../../lib/styles.js";
@@ -48,12 +48,8 @@ export default function InvestPainel({
   // ===== Cotação do dólar ao vivo (R$ por 1 US$) =====
   // Usada para mostrar o saldo dos ativos em dólar convertido em real, abaixo
   // do "Custo Investido". null = ainda carregando / indisponível.
-  const [usdRate, setUsdRate] = useState(null);
-  useEffect(() => {
-    let vivo = true;
-    buscarCotacao("USD").then(r => { if (vivo && r) setUsdRate(r); });
-    return () => { vivo = false; };
-  }, []);
+  // Mesmo dólar do Painel (lib/useDolar) — os dois patrimônios batem.
+  const usdRate = useDolar();
 
   // ===== Posições / classes únicas =====
   const posicoes = useMemo(() => ({

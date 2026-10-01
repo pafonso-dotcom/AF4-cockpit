@@ -155,3 +155,14 @@ describe("assistente · lançamento por voz", () => {
     expect(responder("lança 10 de café dia 28", c2).lancamento.data).toBe("2026-09-28");
   });
 });
+
+describe("patrimônio · dólar convertido", () => {
+  it("Stocks/REITs entram convertidos quando há dólar; sem dólar, valem 0", () => {
+    const base = { contas: [{ saldo: 1000 }], ativos: [{ tipo: "stock", qtd: 2, preco: 100 }, { tipo: "acao", qtd: 1, preco: 50 }] };
+    const com = partesPatrimonio({ ...base, usdRate: 5 });
+    expect(com.find(p => p.k === "investUS").valor).toBe(1000);
+    expect(totalPatrimonio(com, COMP_PADRAO)).toBe(1000 + 50 + 1000);
+    expect(totalPatrimonio(com, { ...COMP_PADRAO, investUS: false })).toBe(1050);
+    expect(partesPatrimonio(base).find(p => p.k === "investUS").valor).toBe(0);
+  });
+});

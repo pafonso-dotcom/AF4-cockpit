@@ -25,6 +25,7 @@ import { OLHADA_KEY, hojeISOLocal, deveMostrarOlhada, dataPorExtenso } from "../
 import { supabase } from "../../lib/supabase.js";
 import { faturaEmAberto } from "../../lib/cartaoFatura.js";
 import { uid } from "../../lib/format.js";
+import { useDolar } from "../../lib/useDolar.js";
 import { calcOrcamentoCompra, resumoOrcamentos } from "../../lib/orcamentosFuturos.js";
 import Card, { SoftCardContext } from "../ui/Card.jsx";
 import Letreiro, { LetRotulo, LetValor } from "../ui/Letreiro.jsx";
@@ -263,8 +264,9 @@ export default function Dashboard({
     const ehUSD = a.tipo === "stock" || a.tipo === "reit";
     return ehUSD ? s : s + Number(a.qtd||0) * Number(a.preco||0);
   }, 0), [ativos]);
-  // Investimentos em US$ (Stocks/REITs) — informativo na visão consolidada,
-  // fora do total em R$ (decisão do usuário).
+  // Investimentos em US$ (Stocks/REITs) — convertidos pelo dólar do dia e
+  // somados (decisão 2026-10-01: Painel e Invest com o mesmo número).
+  const usdRate = useDolar();
   const totalInvestUSD = useMemo(() => ativos.reduce((s, a) =>
     (a.tipo === "stock" || a.tipo === "reit") ? s + Number(a.qtd||0) * Number(a.preco||0) : s, 0), [ativos]);
   // Saldo da Carteira de Proventos — dinheiro real acumulado; entra no total.
@@ -379,8 +381,8 @@ export default function Dashboard({
     return novo;
   });
   const compPartes = useMemo(() => partesPatrimonio({
-    contas: contasRaw, ativos, carteiraProventos, devedores, cheques, aPagarTotal, escopo: escopoAtivo,
-  }), [contasRaw, ativos, carteiraProventos, devedores, cheques, aPagarTotal, escopoAtivo]);
+    contas: contasRaw, ativos, carteiraProventos, devedores, cheques, aPagarTotal, escopo: escopoAtivo, usdRate,
+  }), [contasRaw, ativos, carteiraProventos, devedores, cheques, aPagarTotal, escopoAtivo, usdRate]);
   const patrimonioTotal = totalPatrimonio(compPartes, compCfg);
   const mesAnteriorISO = useMemo(() => {
     const [y, m] = mesISO.split("-").map(Number);
@@ -684,11 +686,6 @@ export default function Dashboard({
                 É por isso que o total costuma vir menor do que a soma das contas.
               </div>
             )}
-            {totalInvestUSD > 0 && (
-              <div style={{ fontSize: 11.5, color: T.muted, marginTop: 6, paddingLeft: 4 }}>
-                Fora do total (decisão sua): investimentos em dólar (Stocks/REITs) = US$ {hidden ? "•••" : fmtN(totalInvestUSD, 2)}.
-              </div>
-            )}
             <div style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
               marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.border}`,
@@ -760,7 +757,8 @@ export default function Dashboard({
       <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14, alignItems: "start" }}>
         <BlocoSeguro nome="AReceberCard"><AReceberCard semTiles devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} aPagarPorAno={aPagarPorAno} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} sparks={sparks} hidden={hidden}
           consolidado={{ contas: totalContas, proventos: provSaldo, investBR: totalInvest, investUSD: totalInvestUSD,
-                         aReceber, cartoes: cartoesTotal, liquido: totalContas + provSaldo + totalInvest - cartoesTotal }}
+                         investUSBRL: usdRate ? totalInvestUSD * usdRate : 0,
+                         aReceber, cartoes: cartoesTotal, liquido: totalContas + provSaldo + totalInvest + (usdRate ? totalInvestUSD * usdRate : 0) - cartoesTotal }}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} /></BlocoSeguro>
         {/* Coluna da direita: Compras planejadas + Fluxo do mês compacto
@@ -1400,6 +1398,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
               { r: "🏦 Contas", v: consolidado.contas, s: "+" },
               ...(consolidado.proventos > 0 ? [{ r: "💰 Carteira de proventos", v: consolidado.proventos, s: "+" }] : []),
               { r: "📈 Investimentos (Brasil)", v: consolidado.investBR, s: "+" },
+              ...(consolidado.investUSBRL > 0 ? [{ r: "🇺🇸 Investimentos (EUA, em R$)", v: consolidado.investUSBRL, s: "+" }] : []),
               ...(consolidado.aReceber > 0 ? [{ r: "🤝 A receber", v: consolidado.aReceber, s: "+" }] : []),
               { r: "💳 Cartões (todas as parcelas em aberto)", v: consolidado.cartoes, s: "−" },
             ].map(l => (
@@ -1408,9 +1407,9 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
                 <span className="num" style={{ color: l.s === "−" ? T.red : T.ink }}>{l.s === "−" ? "− " : ""}{oculto ? "•••" : fmt(l.v)}</span>
               </div>
             ))}
-            {consolidado.investUSD > 0 && (
+            {consolidado.investUSD > 0 && !(consolidado.investUSBRL > 0) && (
               <div style={{ fontSize: 11.5, color: T.faint, fontStyle: "italic" }}>
-                + US$ {consolidado.investUSD.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} em Stocks/REITs (fora do total em R$)
+                + US$ {consolidado.investUSD.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} em Stocks/REITs (aguardando o dólar do dia)
               </div>
             )}
           </div>
