@@ -1,4 +1,4 @@
-import { KpiMini } from "./PainelNovo.jsx";
+import Letreiro, { LetRotulo, LetValor } from "../ui/Letreiro.jsx";
 import React, { useState, useMemo } from "react";
 import { CreditCard, Calendar, TrendingUp, TrendingDown, Plus, Trash2, Edit3, Check, Repeat, ChevronDown, ChevronUp, Sparkles, AlertCircle } from "lucide-react";
 import { T, CARD_PAPEL } from "../../lib/theme.js";
@@ -778,17 +778,18 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         });
         const livre = Math.max(0, limiteTotal - limiteUsado);
         return (
-          <div className="tela-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 28 }}>
-            <KpiMini icone="💳" label="Faturas em aberto" valor={fmt(faturas)} cor={faturas > 0 ? T.gold : T.muted} oculto={hidden}
-                     spark={cartaoSeries.mes} sub={`${comFatura} de ${cartoes.length} ${cartoes.length === 1 ? "cartão" : "cartões"}`} />
-            <KpiMini icone="⏰" label="Próximo vencimento" valor={prox ? fmt(prox.v) : "—"} cor={prox && prox.dias <= 3 ? T.red : T.ink} oculto={hidden}
-                     alerta={!!prox && prox.dias <= 3}
-                     sub={prox ? `${prox.c.nome} · ${prox.dias === 0 ? "vence hoje" : `em ${prox.dias} dia${prox.dias === 1 ? "" : "s"}`}` : "nenhuma fatura em aberto"} />
-            <KpiMini icone="📉" label="Comprometido" valor={fmt(totalUsado)} cor={T.red} oculto={hidden}
-                     spark={cartaoSeries.comprometido}
-                     sub={(() => { const n = parcelamentos.filter(p => (p.parcelasPagas?.length || 0) < p.totalParcelas).length; return `${n} ${n === 1 ? "parcelamento ativo" : "parcelamentos ativos"}`; })()} />
-            <KpiMini icone="🟢" label="Limite livre" valor={limiteTotal > 0 ? fmt(livre) : "—"} cor={T.green} oculto={hidden}
-                     sub={limiteTotal > 0 ? `${Math.round((limiteUsado / limiteTotal) * 100)}% usado de ${fmt(limiteTotal)}` : "cadastre o limite nos cartões"} />
+          // Números da tela em letreiro (pedido 2026-10-01, igual ao Painel).
+          <div className="card-vivo" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "0 4px", marginBottom: 28 }}>
+            <Letreiro itens={[
+              { chave: "faturas", conteudo: (<><LetRotulo>💳 Faturas em aberto</LetRotulo><LetValor cor={faturas > 0 ? T.gold : T.muted}>{hidden ? "•••" : fmt(faturas)}</LetValor></>) },
+              ...(prox ? [{ chave: "prox", conteudo: (<>
+                <LetRotulo>⏰ Próximo vencimento</LetRotulo>
+                <LetValor cor={prox.dias <= 3 ? T.red : T.ink}>{hidden ? "•••" : fmt(prox.v)}</LetValor>
+                <span style={{ fontSize: 11.5, color: prox.dias <= 3 ? T.red : T.muted }}>{prox.c.nome} · {prox.dias === 0 ? "vence hoje" : `em ${prox.dias} dia${prox.dias === 1 ? "" : "s"}`}</span>
+              </>) }] : []),
+              { chave: "comprometido", conteudo: (<><LetRotulo>📉 Comprometido</LetRotulo><LetValor cor={T.red}>{hidden ? "•••" : fmt(totalUsado)}</LetValor></>) },
+              ...(limiteTotal > 0 ? [{ chave: "livre", conteudo: (<><LetRotulo>🟢 Limite livre</LetRotulo><LetValor cor={T.green}>{hidden ? "•••" : fmt(livre)}</LetValor></>) }] : []),
+            ]} />
           </div>
         );
       })()}
