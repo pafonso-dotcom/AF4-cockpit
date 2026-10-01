@@ -477,19 +477,6 @@ export default function Dashboard({
   }, [patrimonio, receitasMes, despesasMes]);
 
   // ===== Alocação atual dos investimentos (donut por classe) =====
-  const alocacao = useMemo(() => {
-    const m = {};
-    ativos.forEach(a => {
-      const v = Number(a.qtd || 0) * Number(a.preco || 0);
-      if (v <= 0) return;
-      const k = a.tipo || "outro";
-      m[k] = (m[k] || 0) + v;
-    });
-    const tot = Object.values(m).reduce((s,v) => s+v, 0) || 1;
-    return Object.entries(m).sort((a,b) => b[1]-a[1]).map(([k,v]) => ({
-      tipo: k, label: CLASS_LABEL[k] || k, valor: v, pct: (v/tot)*100, cor: CLASS_COR[k] || "#9ca3af",
-    }));
-  }, [ativos]);
 
   // ===== Gastos por categoria (donut) =====
   // Mesma base do relatório "Top categorias do mês": transações de despesa do
@@ -867,16 +854,12 @@ export default function Dashboard({
         </section>
       )}
 
-      {/* Alocação · Insights + Pergunte IA */}
-      <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24, alignItems: "start" }}>
-        <MobileColapsavel id="alocacao" titulo="📊 Alocação atual" isMobile={isMobile}>
-          <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
-        </MobileColapsavel>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
-          {principalInsight && <InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("inteligencia")} />}
-          <PergunteIACard onClick={() => onTabChange?.("perguntar")} />
-        </div>
-      </section>
+      {/* Insight principal (Alocação e Pergunte à IA saíram do Painel — pedido 2026-10-01) */}
+      {principalInsight && (
+        <section style={{ marginBottom: 24 }}>
+          <InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("inteligencia")} />
+        </section>
+      )}
 
       {/* Normalmente o wrapper .dash-prox some do fluxo (o Card vira item do grid);
           no mobile ele é escondido junto com os atalhos, liberando a largura toda. */}
@@ -1351,42 +1334,6 @@ function OrcamentoCard({ categorias, gastos, hidden, onTabChange }) {
             );
           })}
         </div>
-      )}
-    </Card>
-  );
-}
-
-function AlocacaoCard({ data, total, hidden, onSeeAll }) {
-  return (
-    <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Alocação Atual</div>
-        <button onClick={onSeeAll} style={{ background: "transparent", border: "none", color: T.green, fontSize: 11, cursor: "pointer" }}>Ver carteira</button>
-      </div>
-      {data.length === 0 ? (
-        <div style={{ padding: 32, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Nenhum ativo na carteira.</div>
-      ) : (
-      <>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-          <span style={{ fontSize: 10, color: T.muted, letterSpacing: ".15em" }}>TOTAL</span>
-          <span className="num" style={{ fontFamily: T.serif, fontSize: 14, fontWeight: 600, color: T.ink }}>{hidden ? "•••" : fmt(total)}</span>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-          {data.map((d,i) => {
-            const w = (d.valor / (data[0]?.valor || 1)) * 100;
-            return (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ width: 92, flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.label}</span>
-                <div style={{ flex: 1, height: 8, borderRadius: 8, background: T.bgSoft, overflow: "hidden" }}>
-                  <div style={{ width: `${w}%`, height: "100%", borderRadius: 8, background: BAR_COR, transition: "width .5s ease" }} />
-                </div>
-                <span style={{ width: 32, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.ink }}>{fmtN(d.pct, 0)}%</span>
-                <span className="num" style={{ width: 78, textAlign: "right", flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(d.valor)}</span>
-              </div>
-            );
-          })}
-        </div>
-      </>
       )}
     </Card>
   );
@@ -1876,23 +1823,6 @@ function OrcamentosFuturosCard({ itens = [], setItens, hidden }) {
   );
 }
 
-function PergunteIACard({ onClick }) {
-  return (
-    <button onClick={onClick}
-            style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
-      <div style={{ width: 36, height: 36, borderRadius: 16, background: `${T.green}22`, display: "grid", placeItems: "center", flexShrink: 0 }}>
-        <Sparkles size={18} style={{ color: T.green }} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>Pergunte à IA</div>
-        <div style={{ fontSize: 10.5, color: T.muted, marginTop: 2 }}>Tire dúvidas e obtenha análises</div>
-      </div>
-      <ArrowRight size={16} style={{ color: T.muted }} />
-    </button>
-  );
-}
-
-/* ============ Top 3 do Dia (Agenda Pessoal) ============ */
 function Top3DoDia({ agenda = [], onAbrir }) {
   const top3 = useMemo(() => {
     const hoje = new Date().toISOString().slice(0, 10);
