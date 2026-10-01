@@ -757,7 +757,7 @@ export default function Dashboard({
       )}
       {possoGastar && (!pgMin || possoGastar.fura) && (
         <section className="no-print" style={{ marginBottom: 12 }}>
-          <div title={possoGastar.fura
+          <div className="card-vivo" title={possoGastar.fura
                  ? "O caixa projetado fica negativo antes do fim do mês só com o que já está agendado — qualquer gasto piora o buraco."
                  : `Sobra projetada do mês (${hidden ? "•••" : fmt(possoGastar.sobraMes)}, já descontando fixas, parcelas e dívidas agendadas e somando o que há a receber) dividida pelos ${possoGastar.diasRestantes} dias que faltam. Gastos do dia a dia é você quem dita — este número é o teto saudável.`}
                style={{

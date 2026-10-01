@@ -900,13 +900,16 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
    4) entrada em sequência (--i = posição). Logos GIF já animam sozinhos. */
 .card-vivo {
   position: relative;
-  transform: perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
   transition: transform .35s ease, box-shadow .35s ease;
   animation: cardEntra .5s cubic-bezier(.2, .7, .2, 1) backwards;
   animation-delay: calc(var(--i, 0) * 70ms);
-  will-change: transform;
 }
-.card-vivo.inclinando { transition: transform .08s linear, box-shadow .2s ease; box-shadow: 0 16px 34px rgba(0, 0, 0, .22); }
+/* transform só durante o toque: parado, o card não vira "containing block"
+   (menus/elementos fixed dentro dele continuam no lugar). */
+.card-vivo.inclinando {
+  transform: perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform .08s linear, box-shadow .2s ease; box-shadow: 0 16px 34px rgba(0, 0, 0, .22);
+}
 .card-vivo::before {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: linear-gradient(125deg, transparent 0%, rgba(110, 170, 145, .13) 30%, transparent 55%, rgba(205, 170, 105, .12) 80%, transparent 100%);
