@@ -3,7 +3,8 @@ import { resumoAPagar } from "../../../lib/aPagar.js";
 import { ChevronDown } from "lucide-react";
 import { T } from "../../../lib/theme.js";
 import { fmt, fmtAbrev } from "../../../lib/format.js";
-import { KpiMini, FluxoMesCard } from "../PainelNovo.jsx";
+import { useFluxoMes } from "../PainelNovo.jsx";
+import Letreiro, { LetRotulo, LetValor } from "../../ui/Letreiro.jsx";
 import AReceberEDividas from "../AReceberEDividas.jsx";
 import DespesasFixas from "../DespesasFixas.jsx";
 import Emprestimos from "../Emprestimos.jsx";
@@ -74,6 +75,12 @@ export default function Planejamento(props) {
   }, [props.contas, resumoPagar.pagarMes]);
 
   // Despesas Fixas · mês: já pago / pendente / atrasado / total previsto.
+  // Fluxo do mês (mesmos números do card do Painel), agora em letreiro.
+  const fluxo = useFluxoMes(
+    useMemo(() => ({ transacoes: props.transacoes, contas: props.contas, fixas: props.fixas, fixaOcorrencias: props.fixaOcorrencias,
+      parcelamentos: props.parcelamentos, dividas: props.dividas, devedores: props.devedores, cartoes: props.cartoes, cheques: props.cheques }),
+      [props.transacoes, props.contas, props.fixas, props.fixaOcorrencias, props.parcelamentos, props.dividas, props.devedores, props.cartoes, props.cheques]),
+    props.escopoAtivo || "tudo");
   const resumoFixas = useMemo(() => {
     const hoje = new Date().toISOString().slice(0, 10);
     const mes = hoje.slice(0, 7);
@@ -102,32 +109,50 @@ export default function Planejamento(props) {
         </p>
       </div>
 
-      {/* Números do mês (redesenho 2026-10-01 — estilo do Painel) */}
+      {/* Números do mês + Fluxo do mês em letreiro (pedido 2026-10-01: no
+          lugar dos quadradinhos e do card Fluxo do mês). */}
       {(() => {
         const pct = cobertura.pct;
         const corCob = pct == null ? T.muted : pct >= 100 ? T.green : pct >= 60 ? T.gold : T.red;
         const p7 = resumoPagar.prox7;
-        return (
-          <div className="tela-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 12 }}>
-            <KpiMini icone="🛡" label="Cobertura do mês" valor={pct == null ? "—" : `${Math.min(999, Math.round(pct))}%`} cor={corCob}
-                     alerta={pct != null && pct < 100}
-                     sub={pct == null ? "nada a pagar no mês" : pct < 100 ? `faltam ${hidden ? "•••" : fmt(cobertura.aPagarMes - cobertura.saldo)}` : `${hidden ? "•••" : fmtAbrev(cobertura.saldo)} em contas`} />
-            <KpiMini icone="📤" label="A pagar no mês" valor={fmt(resumoPagar.pagarMes)} cor={resumoPagar.pagarMes > 0 ? T.red : T.muted} oculto={hidden}
-                     sub={`total em aberto ${fmtAbrev(resumoPagar.total)}`} onClick={() => setAberto("areceber")} />
-            <KpiMini icone="📥" label="A receber no mês" valor={fmt(resumoReceber.pendente)} cor={T.gold} oculto={hidden}
-                     alerta={resumoReceber.atrasado > 0}
-                     sub={resumoReceber.atrasado > 0 ? `${fmt(resumoReceber.atrasado)} atrasado` : `total a receber ${fmtAbrev(resumoReceber.aReceber)}`}
-                     onClick={() => setAberto("areceber")} />
-            <KpiMini icone="⏰" label="Próximos 7 dias" valor={fmt(p7.total)} cor={p7.total > 0 ? T.gold : T.muted} oculto={hidden}
-                     sub={p7.count ? `${p7.count} vencimento${p7.count === 1 ? "" : "s"} · ${p7.top[0]?.desc || ""}` : "nada vencendo"} />
+        const v = (x) => hidden ? "•••" : fmt(x);
+        const caixa = { background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "0 4px", marginBottom: 10 };
+        return (<>
+          <div className="card-vivo" style={caixa}>
+            <Letreiro itens={[
+              { chave: "cob", conteudo: (<>
+                <LetRotulo>🛡 Cobertura do mês</LetRotulo>
+                <LetValor cor={corCob}>{pct == null ? "—" : `${Math.min(999, Math.round(pct))}%`}</LetValor>
+                {pct != null && pct < 100 && <span style={{ fontSize: 11.5, color: T.red }}>faltam {v(cobertura.aPagarMes - cobertura.saldo)}</span>}
+              </>) },
+              { chave: "pagar", onClick: () => setAberto("areceber"), conteudo: (<><LetRotulo>📤 A pagar no mês</LetRotulo><LetValor cor={resumoPagar.pagarMes > 0 ? T.red : T.muted}>{v(resumoPagar.pagarMes)}</LetValor></>) },
+              { chave: "receber", onClick: () => setAberto("areceber"), conteudo: (<>
+                <LetRotulo>📥 A receber no mês</LetRotulo><LetValor cor={T.green}>{v(resumoReceber.pendente)}</LetValor>
+                {resumoReceber.atrasado > 0 && <span style={{ fontSize: 11.5, color: T.red }}>{v(resumoReceber.atrasado)} atrasado</span>}
+              </>) },
+              { chave: "p7", conteudo: (<>
+                <LetRotulo>⏰ Próximos 7 dias</LetRotulo><LetValor cor={p7.total > 0 ? T.gold : T.muted}>{v(p7.total)}</LetValor>
+                {p7.count > 0 && <span style={{ fontSize: 11.5, color: T.muted }}>{p7.count} vencimento{p7.count === 1 ? "" : "s"}</span>}
+              </>) },
+            ]} />
           </div>
-        );
+          {fluxo && (
+            <div className="card-vivo" style={{ ...caixa, marginBottom: 14 }}>
+              <Letreiro segPorItem={6} itens={[
+                { chave: "titulo", onClick: () => setAberto("fluxocaixa"), conteudo: <LetRotulo cor={T.gold}>📈 Fluxo do mês</LetRotulo> },
+                { chave: "hoje", conteudo: (<><LetRotulo>Hoje</LetRotulo><LetValor>{v(fluxo.inicial)}</LetValor></>) },
+                { chave: "ent", conteudo: (<><LetRotulo>Entradas</LetRotulo><LetValor cor={T.green}>{v(fluxo.entradas)}</LetValor></>) },
+                { chave: "sai", conteudo: (<><LetRotulo>Saídas</LetRotulo><LetValor cor={T.red}>{v(fluxo.saidas)}</LetValor></>) },
+                { chave: "fim", conteudo: (<><LetRotulo>Fim do mês</LetRotulo><LetValor cor={fluxo.final < 0 ? T.red : T.ink}>{v(fluxo.final)}</LetValor></>) },
+                { chave: "menor", conteudo: (<>
+                  <LetRotulo>Menor saldo</LetRotulo><LetValor cor={fluxo.menor.saldo < 0 ? T.red : T.ink}>{v(fluxo.menor.saldo)}</LetValor>
+                  <span style={{ fontSize: 11.5, color: T.muted }}>dia {Number(fluxo.menor.dia.slice(8, 10))}</span>
+                </>) },
+              ]} />
+            </div>
+          )}
+        </>);
       })()}
-      <div style={{ marginBottom: 14 }}>
-        <FluxoMesCard stateAgg={{ transacoes: props.transacoes, contas: props.contas, fixas: props.fixas, fixaOcorrencias: props.fixaOcorrencias,
-                                  parcelamentos: props.parcelamentos, dividas: props.dividas, devedores: props.devedores, cartoes: props.cartoes, cheques: props.cheques }}
-                      escopoAtivo={props.escopoAtivo || "tudo"} hidden={hidden} onVer={() => setAberto("fluxocaixa")} />
-      </div>
 
       {/* Módulos — visão geral sempre visível; detalhe abre ao clicar */}
       <div style={{ marginTop: 4 }}>
