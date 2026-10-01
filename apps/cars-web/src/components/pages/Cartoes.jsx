@@ -1,3 +1,4 @@
+import { KpiMini } from "./PainelNovo.jsx";
 import React, { useState, useMemo } from "react";
 import { CreditCard, Calendar, TrendingUp, TrendingDown, Plus, Trash2, Edit3, Check, Repeat, ChevronDown, ChevronUp, Sparkles, AlertCircle } from "lucide-react";
 import { T, CARD_PAPEL } from "../../lib/theme.js";
@@ -7,7 +8,6 @@ import { confirm } from "../../lib/confirm.js";
 import { BANK_BRANDS } from "../../data/banks.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Field from "../ui/Field.jsx";
-import { StatTile } from "../ui/widget.jsx";
 import Modal from "../ui/Modal.jsx";
 import SecaoColapsavel from "../ui/SecaoColapsavel.jsx";
 import Vazio from "../ui/Vazio.jsx";
@@ -729,12 +729,46 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
         }
       `}</style>
 
-      {/* Stats — estilo widget (ícone em anel + número fino + sparkline) */}
-      <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: 8, marginBottom: 32 }}>
-        <StatTile label="A pagar no mês" valor={cartoes.reduce((s, c) => s + valorAPagarMes(c, parcelamentos, transacoes), 0)} hidden={hidden} cor={T.gold} icon={CreditCard} sub={`${cartoes.length} ${cartoes.length === 1 ? "cartão" : "cartões"}`} spark={cartaoSeries.mes} />
-        <StatTile label="Comprometido (total)" valor={totalUsado} hidden={hidden} cor={T.red} icon={TrendingDown} sub="soma de todas as parcelas" spark={cartaoSeries.comprometido} />
-        <StatTile label="Parcelamentos ativos" valor={String(parcelamentos.filter(p => (p.parcelasPagas?.length || 0) < p.totalParcelas).length)} cor={T.blue} icon={Repeat} sub="em aberto" />
-      </div>
+      {/* Números do topo (redesenho 2026-10-01 — mesmo estilo do Painel).
+          "Faturas em aberto" = mesma conta do Painel e do destaque de cada card. */}
+      {(() => {
+        const mk = mesAtualKey();
+        const hojeD = new Date(); const hoje0 = new Date(hojeD.getFullYear(), hojeD.getMonth(), hojeD.getDate());
+        let faturas = 0, comFatura = 0, limiteTotal = 0, limiteUsado = 0, prox = null;
+        cartoes.forEach(c => {
+          const v = faturaEmAberto(c, parcelamentos, transacoes, mk).valor;
+          if (v > 0) {
+            faturas += v; comFatura++;
+            const venc = Number(c.vencimento);
+            if (venc >= 1 && venc <= 31) {
+              let alvo = new Date(hojeD.getFullYear(), hojeD.getMonth(), venc);
+              if (alvo < hoje0) alvo = new Date(hojeD.getFullYear(), hojeD.getMonth() + 1, venc);
+              const dias = Math.round((alvo - hoje0) / 86400000);
+              if (!prox || dias < prox.dias) prox = { c, v, dias };
+            }
+          }
+          const lim = Number(c.limite) || 0;
+          if (lim > 0) {
+            limiteTotal += lim;
+            limiteUsado += (usedByCard[c.id] || 0) + avulsasPendentesNoMes(c, transacoes, "9999-12", { incluirAnteriores: true });
+          }
+        });
+        const livre = Math.max(0, limiteTotal - limiteUsado);
+        return (
+          <div className="tela-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 28 }}>
+            <KpiMini icone="💳" label="Faturas em aberto" valor={fmt(faturas)} cor={faturas > 0 ? T.gold : T.muted} oculto={hidden}
+                     spark={cartaoSeries.mes} sub={`${comFatura} de ${cartoes.length} ${cartoes.length === 1 ? "cartão" : "cartões"}`} />
+            <KpiMini icone="⏰" label="Próximo vencimento" valor={prox ? fmt(prox.v) : "—"} cor={prox && prox.dias <= 3 ? T.red : T.ink} oculto={hidden}
+                     alerta={!!prox && prox.dias <= 3}
+                     sub={prox ? `${prox.c.nome} · ${prox.dias === 0 ? "vence hoje" : `em ${prox.dias} dia${prox.dias === 1 ? "" : "s"}`}` : "nenhuma fatura em aberto"} />
+            <KpiMini icone="📉" label="Comprometido" valor={fmt(totalUsado)} cor={T.red} oculto={hidden}
+                     spark={cartaoSeries.comprometido}
+                     sub={(() => { const n = parcelamentos.filter(p => (p.parcelasPagas?.length || 0) < p.totalParcelas).length; return `${n} ${n === 1 ? "parcelamento ativo" : "parcelamentos ativos"}`; })()} />
+            <KpiMini icone="🟢" label="Limite livre" valor={limiteTotal > 0 ? fmt(livre) : "—"} cor={T.green} oculto={hidden}
+                     sub={limiteTotal > 0 ? `${Math.round((limiteUsado / limiteTotal) * 100)}% usado de ${fmt(limiteTotal)}` : "cadastre o limite nos cartões"} />
+          </div>
+        );
+      })()}
 
       {/* Aviso: parcelamentos sem categoria (caem no balde "Cartão · parcelamento"
           nos relatórios). Atalho pra categorizar todos de uma vez. */}

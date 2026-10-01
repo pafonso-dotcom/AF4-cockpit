@@ -930,3 +930,12 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
 @media (prefers-reduced-motion: reduce) {
   .card-vivo, .card-vivo::before, .card-vivo::after { animation: none !important; transition: none !important; }
 }
+
+/* ===== Telas no estilo do Painel novo (2026-10-01) =====
+   .tela-kpis = linha de números do topo (KpiMini) em qualquer tela. */
+@media (max-width: 768px) {
+  .tela-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+  .tela-kpis .painel-kpi-valor { font-size: 18px !important; }
+  .tela-kpis .painel-kpi-spark { display: none !important; }
+  .contas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}

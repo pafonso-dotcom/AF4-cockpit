@@ -1,3 +1,4 @@
+import { KpiMini } from "./PainelNovo.jsx";
 import { prepararLogo } from "../../lib/imagemLogo.js";
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Plus, Trash2, Edit3, Building2, Receipt, ArrowRightLeft, ChevronRight, ChevronUp, ChevronDown, GripVertical, RefreshCw, AlertCircle, Eye, EyeOff, Upload, MoreHorizontal } from "lucide-react";
@@ -338,6 +339,11 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                     title: "Conta avulsa, sem banco — pra registrar recebíveis / pagamentos futuros à mão",
                     acao: () => setForm({ id: null, carteira: true, nome: "", instituicao: "", tipo: "carteira", moeda: "BRL", cotacao: "", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.blue || "#60a5fa", appUrl: "", foraPatrimonio: true }),
                   },
+                  {
+                    rotulo: ocultarZeradas ? <>👁 Mostrar contas zeradas</> : <>🙈 Ocultar contas zeradas</>,
+                    title: "Esconde/mostra as contas com saldo zero na lista",
+                    acao: toggleOcultarZeradas,
+                  },
                 ].filter(Boolean).map((item, i) => (
                   <button key={i} title={item.title}
                           onClick={() => { setAcoesOpen(false); item.acao(); }}
@@ -382,76 +388,25 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
         </div>
       )}
 
-      {/* Total compacto — escondido no mobile (lá fica só os cards das contas) */}
-      {!isMobile && (
-      <div style={{
-        marginBottom: 10, padding: "8px 12px",
-        background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span style={{ fontSize: 10, letterSpacing: ".15em", color: T.muted, textTransform: "uppercase", fontWeight: 700 }}>
-            Total
-          </span>
-          <span className="num" style={{ fontFamily: T.serif, fontSize: 22, color: T.gold, lineHeight: 1 }}>
-            {hidden ? "R$ •••••" : fmt(total)}
-          </span>
-          <span className="num" style={{ fontSize: 10.5, color: T.faint }}>
-            · {contas.length} {contas.length === 1 ? "conta" : "contas"}
-          </span>
-          {totalNegocio > 0 && (
-            <span className="num" style={{ fontSize: 10.5, color: T.muted }}>
-              · {hidden ? "•••" : fmt(totalNegocio)} em Negócio <span style={{ color: T.faint }}>(fora do painel)</span>
-            </span>
-          )}
-          {contasSemCotacao.length > 0 && (
-            <span className="num" style={{ fontSize: 10.5, color: T.gold }}>
-              · ⚠ {contasSemCotacao.length} conta(s) do exterior sem cotação (não somam)
-            </span>
-          )}
+      {/* Números do topo (redesenho 2026-10-01 — mesmo estilo do Painel). */}
+      <div className="tela-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 10 }}>
+        <KpiMini icone="💰" label="Total nas contas" valor={fmt(total)} cor={T.gold} oculto={hidden}
+                 sub={`${contas.length} ${contas.length === 1 ? "conta" : "contas"}`} />
+        <KpiMini icone="👤" label="Pessoal" valor={fmt(totalPessoal)} cor={T.ink} oculto={hidden}
+                 sub={total > 0 ? `${Math.round((totalPessoal / total) * 100)}% do total` : "—"} />
+        <KpiMini icone="🏢" label="Negócio" valor={fmt(totalNegocio)} cor={T.blue || T.ink} oculto={hidden}
+                 sub="fora do painel" />
+        <KpiMini icone="🌍" label="Fora do patrimônio" valor={fmt(totalForaPatrimonio)} cor={T.muted} oculto={hidden}
+                 sub={totalForaPatrimonio > 0 ? "só controle, não soma" : "nenhuma conta"} />
+      </div>
+      {(contasSemCotacao.length > 0 || contasCambioDefasado(contas).some(c => !semCotacao(c))) && (
+        <div style={{ fontSize: 11.5, color: T.gold, marginBottom: 10 }}>
+          {contasSemCotacao.length > 0 && <>⚠ {contasSemCotacao.length} conta(s) do exterior sem cotação (não somam). </>}
           {(() => {
             const defasadas = contasCambioDefasado(contas).filter(c => !semCotacao(c));
-            return defasadas.length > 0 ? (
-              <span className="num" style={{ fontSize: 10.5, color: T.gold }}
-                    title={defasadas.map(c => c.nome).join(", ")}>
-                · 💱 câmbio de {defasadas.length} conta(s) há 3+ dias sem atualizar — R$ pode estar defasado
-              </span>
-            ) : null;
+            return defasadas.length > 0 ? <span title={defasadas.map(c => c.nome).join(", ")}>💱 câmbio de {defasadas.length} conta(s) há 3+ dias sem atualizar.</span> : null;
           })()}
         </div>
-        <button onClick={toggleOcultarZeradas}
-          style={{
-            background: "transparent", border: `1px solid ${T.border}`,
-            color: T.muted, padding: "4px 9px", borderRadius: 8,
-            fontSize: 10.5, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 600,
-            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
-          }}>
-          {ocultarZeradas
-            ? <><Eye size={10} /> Mostrar zeradas</>
-            : <><EyeOff size={10} /> Ocultar zeradas</>}
-        </button>
-        </div>
-        {/* Barra de composição do total: Pessoal vs Negócio (fora do patrimônio à parte) */}
-        {total > 0 && totalNegocio > 0 && (
-          <div style={{ marginTop: 8 }}>
-            <div style={{ display: "flex", height: 8, borderRadius: 999, overflow: "hidden", background: T.bgSoft }}>
-              <div style={{ width: `${(totalPessoal / total) * 100}%`, background: T.gold }} />
-              <div style={{ width: `${(totalNegocio / total) * 100}%`, background: T.blue }} />
-            </div>
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 5, fontSize: 10, color: T.muted }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: T.gold }} /> Pessoal · {hidden ? "•••" : fmt(totalPessoal)}
-              </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: T.blue }} /> Negócio · {hidden ? "•••" : fmt(totalNegocio)}
-              </span>
-              {totalForaPatrimonio > 0 && (
-                <span style={{ color: T.faint }}>Fora do patrimônio · {hidden ? "•••" : fmt(totalForaPatrimonio)} (não soma)</span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
       )}
 
       {/* Lista de contas — aberta por padrão */}
@@ -652,9 +607,9 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               </span>
             </div>
             {/* Grid responsivo — 1 coluna no mobile */}
-            <div style={{
+            <div className="contas-grid" style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
               gap: 12,
             }}>
               {g.contas.map(renderConta)}
