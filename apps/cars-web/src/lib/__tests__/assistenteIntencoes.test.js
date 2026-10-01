@@ -121,3 +121,37 @@ describe("assistente · navegação por voz", () => {
     expect(responder("abre uma janela pro céu", ctx).ok).toBe(false);
   });
 });
+
+describe("assistente · lançamento por voz", () => {
+  const hoje = new Date(2026, 9, 1); // 01/10/2026
+  const cats = [{ nome: "Mercado", tipo: "despesa" }, { nome: "Combustível", tipo: "despesa" }, { nome: "Salário", tipo: "receita" }];
+  const c2 = { ...ctx, categorias: cats, hoje };
+  it("despesa no cartão com categoria do cadastro", () => {
+    const r = responder("lança 50 reais de mercado no itaú", c2);
+    expect(r.lancamento).toMatchObject({ tipo: "despesa", valor: 50, descricao: "Mercado", categoria: "Mercado", data: "2026-10-01" });
+    expect(r.lancamento.destino.tipo).toBe("cartao");
+    expect(r.lancamento.destino.item.id).toBe("c2");
+    expect(r.texto).toBe("Despesa de R$ 50,00 — Mercado no cartão Itaú Click, hoje. Confere e confirma.");
+  });
+  it("centavos, ontem, conta explícita", () => {
+    const r = responder("gastei 32,90 com gasolina na conta itaú ontem", c2);
+    expect(r.lancamento).toMatchObject({ valor: 32.9, descricao: "Gasolina", data: "2026-09-30" });
+    expect(r.lancamento.destino).toMatchObject({ tipo: "conta", item: { id: "k2" } });
+    expect(responder("anota R$ 1.250,00 de aluguel", c2).lancamento.valor).toBe(1250);
+    expect(responder("lança 2 mil de reforma", c2).lancamento.valor).toBe(2000);
+    expect(responder("paguei 50 reais e 90 centavos de farmácia", c2).lancamento.valor).toBe(50.9);
+  });
+  it("receita vai pra conta, nunca pro cartão", () => {
+    const r = responder("recebi 3000 de salário na af4 banco", c2);
+    expect(r.lancamento).toMatchObject({ tipo: "receita", valor: 3000, categoria: "Salário" });
+    expect(r.lancamento.destino.item.id).toBe("k1");
+  });
+  it("sem destino e sem valor", () => {
+    expect(responder("lança 80 de padaria", c2).lancamento.destino).toBe(null);
+    expect(responder("lança mercado", c2).texto).toMatch(/Não peguei o valor/);
+    expect(responder("dia 28 lancei", c2).lancamento).toBeUndefined();
+  });
+  it("data 'dia N' no futuro vira mês passado", () => {
+    expect(responder("lança 10 de café dia 28", c2).lancamento.data).toBe("2026-09-28");
+  });
+});

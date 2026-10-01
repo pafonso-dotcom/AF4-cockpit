@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from "react";
 
 import { T, applyTheme, THEMES } from "./lib/theme.js";
-import { uid } from "./lib/format.js";
+import { uid, fmt } from "./lib/format.js";
 import { somaContasBRL } from "./lib/cambio.js";
 import { MESES_LONGO } from "./lib/meses.js";
 import { loadAll, saveAll, loadKeys, saveKeys, flushSave } from "./lib/storage.js";
@@ -1318,6 +1318,24 @@ export default function App() {
         planilhaLivre={planilhaLivre} dividas={dividas} fixas={fixas} fixaOcorrencias={fixaOcorrencias}
         devedores={devedores} cheques={cheques} ativos={ativos} carteiraProventos={carteiraProventos}
         escopoAtivo={escopoAtivo} apiKeys={apiKeys}
+        categorias={categorias}
+        onLancar={({ tipo, valor, descricao, categoria, data, destino }) => {
+          if (destino.tipo === "cartao") {
+            setTransacoes(prev => [...(prev || []), {
+              id: `tx-${uid()}`, tipo: "despesa", descricao, valor, data, categoria,
+              cartaoId: destino.item.id, compensado: false, origem: "voz",
+            }]);
+          } else {
+            const conta = destino.item;
+            setTransacoes(prev => [...(prev || []), {
+              id: `tx-${uid()}`, tipo, descricao, valor, data, categoria,
+              conta: conta.nome, compensado: true, origem: "voz",
+            }]);
+            setContas(prev => (prev || []).map(c => c.id === conta.id
+              ? { ...c, saldo: (Number(c.saldo) || 0) + (tipo === "receita" ? valor : -valor) } : c));
+          }
+          toast.success(`🎙 Lançado: ${descricao} ${tipo === "receita" ? "+" : "−"}${fmt(valor)}`);
+        }}
         onNavegar={(nav) => {
           if (nav.conta) { setModulo("financas"); irParaTab("contas"); setContaAberta(nav.conta); }
           else if (nav.cartao) { setModulo("financas"); irParaTab("cartoes"); setCartaoAberto(nav.cartao); }
