@@ -76,6 +76,7 @@ export default function AssistenteVoz(props) {
   const [mudo, setMudo] = useState(() => { try { return localStorage.getItem(MUDO_KEY) === "1"; } catch { return false; } });
   const mudoRef = useRef(mudo); mudoRef.current = mudo;
   const recRef = useRef(null);
+  const vaziasRef = useRef(0);
   // Modo conversa: depois de responder volta a ouvir sozinho até este horário
   // (cada pergunta renova 1 min). Sem perguntas, desliga.
   const conversaAteRef = useRef(0);
@@ -162,7 +163,7 @@ export default function AssistenteVoz(props) {
   const pararOuvir = () => { const r = recRef.current; recRef.current = null; try { r?.abort(); } catch {} setOuvindo(false); };
 
   const ouvir = (auto = false) => {
-    if (!auto) { destravarFala(); renovarConversa(); }
+    if (!auto) { destravarFala(); renovarConversa(); vaziasRef.current = 0; }
     setAviso("");
     if (!SR) {
       setAviso("Microfone direto não funciona neste navegador — toque no campo abaixo e use o 🎤 do teclado.");
@@ -176,15 +177,45 @@ export default function AssistenteVoz(props) {
     rec.interimResults = true;
     rec.continuous = false;
     rec.maxAlternatives = 1;
-    let final = "";
-    rec.onresult = (ev) => {
-      let interim = "";
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        const t = ev.results[i][0]?.transcript || "";
-        if (ev.results[i].isFinal) final += t; else interim += t;
-      }
-      setParcial(final || interim);
+    // Safari/iPhone quase nunca marca o resultado como final e não encerra
+    // sozinho no silêncio: guardamos o último texto ouvido e encerramos após
+    // ~1,3 s sem palavra nova; aí a pergunta é o que foi ouvido até ali.
+    let texto = "";
+    let tSilencio = null;
+    let tSemNada = null;
+    let entregue = false;
+    const inicio = Date.now();
+    const entregar = () => {
+      if (entregue) return;
+      entregue = true;
+      clearTimeout(tSilencio); clearTimeout(tSemNada);
+      if (recRef.current === rec) recRef.current = null;
+      setOuvindo(false);
+      const f = texto.trim();
+      if (f) { vaziasRef.current = 0; processar(f); return; }
+      // Nada ouvido. Na conversa tenta de novo, mas sem loop: 2 vazias
+      // seguidas (ou o microfone fechando na hora) desligam a conversa.
+      vaziasRef.current += 1;
+      const rapido = Date.now() - inicio < 1200;
+      if (auto && conversaViva() && vaziasRef.current < 2 && !rapido && erro !== "not-allowed" && erro !== "service-not-allowed")
+        setTimeout(() => { if (conversaViva() && !recRef.current) ouvirRef.current?.(true); }, 400);
+      else encerrarConversa();
     };
+    const encerrarEscuta = () => {
+      try { rec.stop(); } catch {}
+      setTimeout(entregar, 1500); // se o onend não vier
+    };
+    rec.onresult = (ev) => {
+      const t = Array.from(ev.results).map(r => r[0]?.transcript || "").join("");
+      if (t.trim()) texto = t;
+      setParcial(texto);
+      clearTimeout(tSemNada);
+      clearTimeout(tSilencio);
+      tSilencio = setTimeout(encerrarEscuta, 1300);
+      if (Array.from(ev.results).some(r => r.isFinal) && !rec.continuous) tSilencio = setTimeout(encerrarEscuta, 400);
+    };
+    // Ninguém falou em 8 s: encerra.
+    tSemNada = setTimeout(encerrarEscuta, 8000);
     let erro = null;
     rec.onerror = (ev) => {
       const e = ev?.error;
@@ -195,20 +226,15 @@ export default function AssistenteVoz(props) {
         setAviso("Sem permissão de microfone aqui — use o 🎤 do teclado no campo abaixo (ou libere o microfone nos Ajustes).");
         setTimeout(() => inputRef.current?.focus(), 50);
       } else if (e === "no-speech") {
-        setAviso("Não ouvi nada — toque no 🎙 e fale de novo.");
+        if (!texto.trim()) setAviso("Não ouvi nada — toque na bolha e fale de novo.");
       } else if (e && e !== "aborted") {
         setAviso(`Falha no reconhecimento (${e}). Tente de novo ou digite abaixo.`);
       }
     };
     rec.onend = () => {
-      if (recRef.current !== rec) return; // já substituído/abortado
-      setOuvindo(false);
-      recRef.current = null;
-      if (final.trim()) { processar(final); return; }
-      // Silêncio: no modo conversa continua ouvindo até a janela acabar.
-      if (conversaViva() && erro !== "not-allowed" && erro !== "service-not-allowed")
-        setTimeout(() => { if (conversaViva() && !recRef.current) ouvirRef.current?.(true); }, 250);
-      else encerrarConversa();
+      if (entregue) return;
+      if (recRef.current !== rec && !texto.trim()) { entregue = true; clearTimeout(tSilencio); clearTimeout(tSemNada); return; } // abortado
+      entregar();
     };
     recRef.current = rec;
     try { rec.start(); setOuvindo(true); }
