@@ -753,27 +753,19 @@ export default function Dashboard({
                  onClick={() => onTabChange?.("cartoes")} />
       </section>
 
-      {/* Linha 2: Fluxo do mês · Próximos vencimentos */}
-      <section className="painel-dupla painel-dupla-larga" style={{ display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 12, marginBottom: 14 }}>
-        <BlocoSeguro nome="FluxoMesCard"><FluxoMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} hidden={hidden} onVer={() => onTabChange?.("planejamento")} /></BlocoSeguro>
-        <span className="dash-prox">
-          <BlocoSeguro nome="ProximosVencimentosCard"><ProximosVencimentosCard devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} /></BlocoSeguro>
-        </span>
-      </section>
-
-      {/* Linha 3: Calendário compacto · Gastos por categoria */}
+      {/* Linha 2: Calendário compacto · Gastos por categoria */}
       <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
         <BlocoSeguro nome="CalendarioWidgetCard"><CalendarioWidgetCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} /></BlocoSeguro>
         <BlocoSeguro nome="GastosRoscaCard"><GastosRoscaCard data={gastosCat} hidden={hidden} /></BlocoSeguro>
       </section>
 
-      {/* Linha 4: Contas · Cartões */}
+      {/* Linha 3: Contas · Cartões */}
       <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
         <BlocoSeguro nome="ContasCard"><ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} /></BlocoSeguro>
         <BlocoSeguro nome="CartoesResumoCard"><CartoesResumoCard cartoes={cartoes} parcelamentos={parcelamentos} transacoes={transacoesRaw || []} hidden={hidden} onVer={() => onTabChange?.("cartoes")} /></BlocoSeguro>
       </section>
 
-      {/* Linha 5: Centro de Controle (totais + visão consolidada) · Orçamentos (compras futuras) */}
+      {/* Linha 4: Centro de Controle (totais + visão consolidada) · Orçamentos (compras futuras) */}
       <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14, alignItems: "start" }}>
         <BlocoSeguro nome="AReceberCard"><AReceberCard semTiles devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} aPagarPorAno={aPagarPorAno} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} sparks={sparks} hidden={hidden}
           consolidado={{ contas: totalContas, proventos: provSaldo, investBR: totalInvest, investUSD: totalInvestUSD,
@@ -789,6 +781,14 @@ export default function Dashboard({
           <BlocoSeguro nome="InsightsCard"><InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("inteligencia")} /></BlocoSeguro>
         </section>
       )}
+
+      {/* Por último: Fluxo do mês · Próximos vencimentos (pedido 2026-10-01) */}
+      <section className="painel-dupla painel-dupla-larga" style={{ display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 12, marginBottom: 14 }}>
+        <BlocoSeguro nome="FluxoMesCard"><FluxoMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} hidden={hidden} onVer={() => onTabChange?.("planejamento")} /></BlocoSeguro>
+        <span className="dash-prox">
+          <BlocoSeguro nome="ProximosVencimentosCard"><ProximosVencimentosCard devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} /></BlocoSeguro>
+        </span>
+      </section>
 
       {/* Normalmente o wrapper .dash-prox some do fluxo (o Card vira item do grid);
           no mobile ele é escondido junto com os atalhos, liberando a largura toda. */}
