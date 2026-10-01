@@ -1,4 +1,4 @@
-import { KpiMini } from "./PainelNovo.jsx";
+import Letreiro, { LetRotulo, LetValor } from "../ui/Letreiro.jsx";
 import { prepararLogo } from "../../lib/imagemLogo.js";
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Plus, Trash2, Edit3, Building2, Receipt, ArrowRightLeft, ChevronRight, ChevronUp, ChevronDown, GripVertical, RefreshCw, AlertCircle, Eye, EyeOff, Upload, MoreHorizontal } from "lucide-react";
@@ -389,15 +389,14 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
       )}
 
       {/* Números do topo (redesenho 2026-10-01 — mesmo estilo do Painel). */}
-      <div className="tela-kpis" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 10 }}>
-        <KpiMini icone="💰" label="Total nas contas" valor={fmt(total)} cor={T.gold} oculto={hidden}
-                 sub={`${contas.length} ${contas.length === 1 ? "conta" : "contas"}`} />
-        <KpiMini icone="👤" label="Pessoal" valor={fmt(totalPessoal)} cor={T.ink} oculto={hidden}
-                 sub={total > 0 ? `${Math.round((totalPessoal / total) * 100)}% do total` : "—"} />
-        <KpiMini icone="🏢" label="Negócio" valor={fmt(totalNegocio)} cor={T.blue || T.ink} oculto={hidden}
-                 sub="fora do painel" />
-        <KpiMini icone="🌍" label="Fora do patrimônio" valor={fmt(totalForaPatrimonio)} cor={T.muted} oculto={hidden}
-                 sub={totalForaPatrimonio > 0 ? "só controle, não soma" : "nenhuma conta"} />
+      {/* Números da tela em letreiro (pedido 2026-10-01, igual ao Painel). */}
+      <div className="card-vivo" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "0 4px", marginBottom: 10 }}>
+        <Letreiro itens={[
+          { chave: "total", conteudo: (<><LetRotulo>💰 Total nas contas</LetRotulo><LetValor cor={T.gold}>{hidden ? "•••" : fmt(total)}</LetValor></>) },
+          { chave: "pessoal", conteudo: (<><LetRotulo>👤 Pessoal</LetRotulo><LetValor>{hidden ? "•••" : fmt(totalPessoal)}</LetValor></>) },
+          { chave: "negocio", conteudo: (<><LetRotulo>🏢 Negócio</LetRotulo><LetValor cor={T.blue || T.ink}>{hidden ? "•••" : fmt(totalNegocio)}</LetValor></>) },
+          ...(totalForaPatrimonio > 0 ? [{ chave: "fora", conteudo: (<><LetRotulo>🌍 Fora do patrimônio</LetRotulo><LetValor cor={T.muted}>{hidden ? "•••" : fmt(totalForaPatrimonio)}</LetValor></>) }] : []),
+        ]} />
       </div>
       {(contasSemCotacao.length > 0 || contasCambioDefasado(contas).some(c => !semCotacao(c))) && (
         <div style={{ fontSize: 11.5, color: T.gold, marginBottom: 10 }}>

@@ -763,8 +763,16 @@ export default function Dashboard({
                          aReceber, cartoes: cartoesTotal, liquido: totalContas + provSaldo + totalInvest - cartoesTotal }}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} /></BlocoSeguro>
-        <BlocoSeguro nome="OrcamentosFuturosCard"><OrcamentosFuturosCard itens={orcamentosFuturos} setItens={setOrcamentosFuturos} hidden={hidden} /></BlocoSeguro>
+        {/* Coluna da direita: Compras planejadas + Fluxo do mês compacto
+            (pedido 2026-10-01: Fluxo menor, ao lado do Centro de Controle). */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+          <BlocoSeguro nome="OrcamentosFuturosCard"><OrcamentosFuturosCard itens={orcamentosFuturos} setItens={setOrcamentosFuturos} hidden={hidden} /></BlocoSeguro>
+          <BlocoSeguro nome="FluxoMesCard"><FluxoMesCard compacto stateAgg={stateAgg} escopoAtivo={escopoAtivo} hidden={hidden} onVer={() => onTabChange?.("planejamento")} /></BlocoSeguro>
+        </div>
       </section>
+
+      {/* Próximos recebimentos em letreiro (pedido 2026-10-01). */}
+      <BlocoSeguro nome="VencimentosLetreiro"><VencimentosLetreiro devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} /></BlocoSeguro>
 
       {/* Insight principal (Alocação e Pergunte à IA saíram do Painel — pedido 2026-10-01) */}
       {principalInsight && (
@@ -773,12 +781,6 @@ export default function Dashboard({
         </section>
       )}
 
-      {/* Por último: Fluxo do mês (largura toda) + próximos vencimentos em
-          letreiro logo acima (pedido 2026-10-01: letreiro no lugar de cards). */}
-      <BlocoSeguro nome="VencimentosLetreiro"><VencimentosLetreiro devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} /></BlocoSeguro>
-      <section style={{ marginBottom: 14 }}>
-        <BlocoSeguro nome="FluxoMesCard"><FluxoMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} hidden={hidden} onVer={() => onTabChange?.("planejamento")} /></BlocoSeguro>
-      </section>
 
       {/* Normalmente o wrapper .dash-prox some do fluxo (o Card vira item do grid);
           no mobile ele é escondido junto com os atalhos, liberando a largura toda. */}
