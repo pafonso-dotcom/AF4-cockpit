@@ -937,6 +937,9 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   .tela-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
   .tela-kpis .painel-kpi-valor { font-size: 18px !important; }
   .tela-kpis .painel-kpi-spark { display: none !important; }
+  /* Celular: só o número nos quadradinhos (pedido 2026-10-01). Aviso em
+     vermelho (alerta) continua aparecendo. */
+  .painel-kpi-sub { display: none !important; }
   .contas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .painel-fluxo-nums { grid-template-columns: 1fr 1fr !important; }
 }

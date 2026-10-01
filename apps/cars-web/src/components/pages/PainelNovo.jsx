@@ -38,7 +38,7 @@ export function KpiMini({ icone, label, valor, sub, cor = T.ink, spark, oculto, 
       <div className="num painel-kpi-valor" style={{ fontSize: 24, fontWeight: 700, color: cor, letterSpacing: "-.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 10 }}>
         {oculto ? "•••" : valor}
       </div>
-      {sub && <div style={{ fontSize: 11.5, color: alerta ? T.red : T.faint, marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{oculto ? "" : sub}</div>}
+      {sub && <div className={alerta ? undefined : "painel-kpi-sub"} style={{ fontSize: 11.5, color: alerta ? T.red : T.faint, marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{oculto ? "" : sub}</div>}
     </Card>
   );
 }
