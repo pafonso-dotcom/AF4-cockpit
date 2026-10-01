@@ -894,7 +894,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   paga: { txt: "✓ Fatura paga", bg: "rgba(46,160,90,.92)", fg: "#fff" },
                   urgente: { txt: diasVenc === 0 ? "Vence HOJE" : `Vence em ${diasVenc} dia${diasVenc === 1 ? "" : "s"} · dia ${venc}`, bg: "rgba(214,55,55,.95)", fg: "#fff" },
                   aberta: { txt: diasVenc != null ? `Vence dia ${venc} · em ${diasVenc} dias` : `A pagar · ${nomeMesCurto(mesFat)}`, bg: "rgba(255,255,255,.88)", fg: "#2a2a2a" },
-                  sem: { txt: "Sem fatura em aberto", bg: "rgba(255,255,255,.28)", fg: brand.fg },
+                  sem: { txt: "Sem fatura em aberto", bg: "rgba(255,255,255,.16)", fg: "#fff" },
                 }[status];
                 const lim = Number(c.limite) >= 100 ? Number(c.limite) : 0;
                 const usadoLimite = lim ? usado + avulsasPendentesNoMes(c, transacoes, "9999-12", { incluirAnteriores: true }) : 0;
@@ -903,11 +903,14 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                   <div onClick={() => onCartaoClick && onCartaoClick({ ...c, usado, faturaAtual: aPagar })}
                        className="cartao-visual"
                        style={{
-                         position: "relative", background: brand.bg, color: brand.fg,
+                         // Cor da marca "em vidro" (pedido 2026-10-01: mais transparente):
+                         // a camada da marca fica translúcida sobre um fundo escuro.
+                         position: "relative", background: "#1f232a", color: "#fff",
                          padding: "14px 16px 13px", minHeight: 158, cursor: onCartaoClick ? "pointer" : "default",
                          flex: exp ? "none" : 1,
                          display: "flex", flexDirection: "column", borderRadius: exp ? "14px 14px 0 0" : 14,
                        }}>
+                    <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", pointerEvents: "none", background: brand.bg, opacity: 0.42 }} />
                     {/* brilho de plástico */}
                     <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", pointerEvents: "none",
                       background: "radial-gradient(120% 80% at 100% 0%, rgba(255,255,255,.22) 0%, transparent 55%)" }} />
@@ -916,7 +919,7 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                       <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
                       <button onClick={(e) => { e.stopPropagation(); toggleExpandedCart(c.id); }}
                               aria-label={exp ? "Recolher" : "Mais detalhes e ações"} title={exp ? "Recolher" : "Detalhes e ações"}
-                              style={{ background: "rgba(255,255,255,.22)", border: "none", color: brand.fg, borderRadius: 8, width: 28, height: 28, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                              style={{ background: "rgba(255,255,255,.18)", border: "none", color: "#fff", borderRadius: 8, width: 28, height: 28, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
                         <ChevronDown size={16} style={{ transform: exp ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
                       </button>
                     </div>
