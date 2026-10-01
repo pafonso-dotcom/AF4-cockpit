@@ -678,7 +678,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                    style={{ width: 18, height: 18, marginTop: 1, accentColor: T.blue, flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: T.ink }}>👛 Carteira (sem banco)</div>
-              <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>Conta avulsa pra registrar recebíveis / pagamentos futuros à mão. Sem instituição, logo ou moeda estrangeira.</div>
+              <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>Conta avulsa pra registrar recebíveis / pagamentos futuros à mão. Sem instituição nem moeda estrangeira (o logo é opcional).</div>
             </div>
           </label>
 
@@ -707,7 +707,10 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           <Field label="App / site do banco (link)" hint="Opcional — atalho pra abrir o banco numa nova aba. Ex.: https://app.nubank.com.br">
             <input value={form.appUrl || ""} onChange={e => setForm({ ...form, appUrl: e.target.value })} placeholder="https://…" />
           </Field>
-          <Field label="Logo do banco (opcional)" hint="Imagem pequena (PNG/JPG, máx. 200 KB). Se vazio, usa o logo automático pelo nome do banco.">
+          </>)}
+          {/* Logo também na Carteira (pedido 2026-10-01): sem ele o card fica só com o 👛. */}
+          <Field label={form.carteira ? "Logo / imagem (opcional)" : "Logo do banco (opcional)"}
+                 hint={form.carteira ? "Imagem pequena (PNG/JPG, máx. 200 KB). Se vazio, fica o ícone 👛." : "Imagem pequena (PNG/JPG, máx. 200 KB). Se vazio, usa o logo automático pelo nome do banco."}>
             {form.logo ? (
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <img src={form.logo} alt="" style={{ width: 40, height: 40, borderRadius: 12, objectFit: "contain", background: "#fff", border: `1px solid ${T.border}` }} />
@@ -726,6 +729,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
               }} />
             )}
           </Field>
+          {!form.carteira && (<>
           <Field label="Tipo">
             <select value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>
               {tipos.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
