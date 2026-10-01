@@ -29,6 +29,7 @@ import { calcOrcamentoCompra, resumoOrcamentos } from "../../lib/orcamentosFutur
 import Card, { SoftCardContext } from "../ui/Card.jsx";
 import Modal from "../ui/Modal.jsx";
 import { Sparkline, RingIcon } from "../ui/widget.jsx";
+import { KpiMini, FluxoMesCard, CartoesResumoCard, GastosRoscaCard, BarrasPorAno } from "./PainelNovo.jsx";
 
 // Paleta moderna e harmônica (tons mais suaves, sem primários puros gritando).
 const CORES_CAT = ["#6366f1","#0ea5e9","#22c08b","#f5a623","#f0728a","#a78bfa","#2dd4bf","#fb923c","#94a3b8"];
@@ -583,6 +584,8 @@ export default function Dashboard({
     return { total: ap.reduce((s, d) => s + (Number(d.valor) || 0), 0), qtd: ap.length };
   }, [transacoes, contas, fixas, fixaOcorrencias, parcelamentos, dividas, devedores, cartoes, escopoAtivo, mesISO]);
 
+  const receberMesTile = useMemo(() => calcReceberMes(devedores, mesISO), [devedores, mesISO]);
+
   // ===== Próximo compromisso a pagar (mais próximo por vencimento) =====
   // Olha o mês corrente + o próximo. Prioriza o próximo a vencer (>= hoje);
   // se não houver, mostra o atrasado mais recente.
@@ -739,76 +742,15 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* 💸 Posso gastar hoje — número único do dia (Safe-to-Spend).
-          Oculto (pgMin) vira um chip discreto; caixa furando ignora o oculto. */}
-      {possoGastar && pgMin && !possoGastar.fura && (
-        <div className="no-print" style={{ marginBottom: 12 }}>
-          <button onClick={() => togglePgMin(false)}
-                  title={`Pode gastar hoje: ${hidden ? "•••" : fmt(possoGastar.porDia)} — toque para expandir`}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    background: `${T.green}10`, border: `1px solid ${T.green}44`,
-                    borderRadius: 100, padding: "5px 12px", fontSize: 12,
-                    color: T.muted, fontWeight: 600, cursor: "pointer",
-                  }}>
-            💸 <span className="num" style={{ color: T.green, fontWeight: 700 }}>{hidden ? "•••" : fmt(possoGastar.porDia)}</span> ▸
-          </button>
-        </div>
-      )}
-      {possoGastar && (!pgMin || possoGastar.fura) && (
-        <section className="no-print" style={{ marginBottom: 12 }}>
-          <div className="card-vivo" title={possoGastar.fura
-                 ? "O caixa projetado fica negativo antes do fim do mês só com o que já está agendado — qualquer gasto piora o buraco."
-                 : `Sobra projetada do mês (${hidden ? "•••" : fmt(possoGastar.sobraMes)}, já descontando fixas, parcelas e dívidas agendadas e somando o que há a receber) dividida pelos ${possoGastar.diasRestantes} dias que faltam. Gastos do dia a dia é você quem dita — este número é o teto saudável.`}
-               style={{
-                 display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap",
-                 background: possoGastar.fura ? `${T.red}12` : `${T.green}10`,
-                 border: `1px solid ${possoGastar.fura ? T.red : T.green}44`,
-                 borderLeft: `4px solid ${possoGastar.fura ? T.red : T.green}`,
-                 borderRadius: 14, padding: "12px 16px",
-               }}>
-            {possoGastar.fura ? (
-              <>
-                <span style={{ fontSize: 14.5, fontWeight: 800, color: T.ink }}>
-                  🚫 Segura o gasto — o caixa fura {possoGastar.primeiroNegativo ? `dia ${possoGastar.primeiroNegativo.slice(8, 10)}/${possoGastar.primeiroNegativo.slice(5, 7)}` : "este mês"}
-                </span>
-                <span className="num" style={{ fontSize: 12.5, color: T.muted }}>
-                  sobra prevista no fim do mês: <b style={{ color: possoGastar.sobraMes < 0 ? T.red : T.ink }}>{hidden ? "•••" : fmt(possoGastar.sobraMes)}</b>
-                </span>
-              </>
-            ) : (
-              <>
-                <span style={{ fontSize: 13, fontWeight: 700, color: T.muted, letterSpacing: ".04em", textTransform: "uppercase" }}>
-                  💸 Pode gastar hoje
-                </span>
-                <span className="num" style={{ fontSize: 22, fontWeight: 800, color: T.green }}>
-                  {hidden ? "•••" : fmt(possoGastar.porDia)}
-                </span>
-                <span className="num" style={{ fontSize: 12.5, color: T.muted }}>
-                  · {hidden ? "•••" : fmt(possoGastar.semana)} na semana · sobra do mês {hidden ? "•••" : fmt(possoGastar.sobraMes)} após o agendado
-                </span>
-              </>
-            )}
-            {!possoGastar.fura && (
-              <button onClick={(e) => { e.stopPropagation(); togglePgMin(true); }}
-                      aria-label="Ocultar o card Pode gastar hoje"
-                      title="Ocultar — vira um chip 💸 (toque nele pra voltar)"
-                      style={{ marginLeft: "auto", background: "transparent", border: "none",
-                               color: T.faint, cursor: "pointer", fontSize: 15, lineHeight: 1,
-                               padding: "4px 6px", borderRadius: 8, alignSelf: "center" }}>
-                –
-              </button>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Linha 1: Patrimônio · Próximo compromisso · Contas */}
-      <section className="dash-kpi-grid" style={{
-        display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 12, marginBottom: 16,
+      {/* ===== PAINEL NOVO (2026-10-01) =====
+          Linha 1: Patrimônio + os 4 números do dia. */}
+      <section className="painel-topo" style={{
+        display: "grid", gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr)", gap: 12, marginBottom: 14,
       }}>
-        <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
-                 onDetalhes={() => setCompAberta(true)} />
+        <div className="painel-hero" style={{ gridRow: "span 2", minWidth: 0, display: "flex", flexDirection: "column" }}>
+          <KpiHero value={patrimonioTotal} mom={momPatrim} hidden={hidden} evolucao={evolucao}
+                   onDetalhes={() => setCompAberta(true)} />
+        </div>
         {compAberta && (
           <Modal title="🧮 Patrimônio Total — de onde vem o número" onClose={() => setCompAberta(false)}>
             <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 12 }}>
@@ -855,75 +797,85 @@ export default function Dashboard({
             </div>
           </Modal>
         )}
-        {/* No celular o Calendário vem logo ABAIXO do Patrimônio (pedido
-            2026-09-29); no desktop ele segue na linha de baixo. */}
-        {isMobile && (
-          <MobileColapsavel id="calendario" titulo="📅 Calendário do mês" isMobile={isMobile}>
-            <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
-          </MobileColapsavel>
-        )}
+        {possoGastar ? (
+          <KpiMini icone="💸" label="Pode gastar hoje"
+                   valor={possoGastar.fura ? "Segura!" : fmt(possoGastar.porDia)}
+                   cor={possoGastar.fura ? T.red : T.green} alerta={possoGastar.fura}
+                   oculto={hidden || (pgMin && !possoGastar.fura)}
+                   sub={possoGastar.fura
+                     ? `caixa fura ${possoGastar.primeiroNegativo ? `dia ${possoGastar.primeiroNegativo.slice(8, 10)}/${possoGastar.primeiroNegativo.slice(5, 7)}` : "este mês"}`
+                     : `${fmt(possoGastar.semana)} na semana`}
+                   onClick={() => !possoGastar.fura && togglePgMin(!pgMin)} />
+        ) : <div />}
+        <KpiMini icone="📤" label="A pagar no mês" valor={fmt(aPagarMes?.total || 0)}
+                 cor={(aPagarMes?.total || 0) > 0 ? T.red : T.muted} spark={sparks?.pagar} oculto={hidden}
+                 sub={`${aPagarMes?.qtd || 0} ${(aPagarMes?.qtd || 0) === 1 ? "conta" : "contas"} em aberto`}
+                 onClick={() => onTabChange?.("areceber")} />
+        <KpiMini icone="📥" label="A receber no mês" valor={fmt(receberMesTile)}
+                 cor={T.gold} spark={sparks?.receber} oculto={hidden}
+                 sub={chequesAReceber > 0 ? `+ ${fmt(chequesAReceber)} em cheques` : "recebíveis do mês"}
+                 onClick={() => onTabChange?.("areceber")} />
+        <KpiMini icone="💳" label={cartoesTile?.label || "Cartões"} valor={fmt(cartoesTile?.valor || 0)}
+                 cor={(cartoesTile?.valor || 0) > 0 ? T.yellow || T.gold : T.muted} spark={sparks?.cartoes} oculto={hidden}
+                 sub={`total em aberto ${fmt(cartoesTotal)}`}
+                 onClick={() => onTabChange?.("cartoes")} />
+      </section>
+
+      {/* Linha 2: Fluxo do mês · Próximos vencimentos */}
+      <section className="painel-dupla painel-dupla-larga" style={{ display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 12, marginBottom: 14 }}>
+        <FluxoMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} hidden={hidden} onVer={() => onTabChange?.("planejamento")} />
         <span className="dash-prox">
           <ProximosVencimentosCard devedores={devedores} hidden={hidden} onVer={() => onTabChange?.("areceber")} />
         </span>
-        <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
       </section>
 
-      {/* Calendário do mês · Centro de Controle */}
-      <section className="dash-bot-grid" style={{
-        display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.15fr 1fr", gap: 12, marginBottom: 16,
-      }}>
-        {!isMobile && (
-          <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} />
-        )}
-        <AReceberCard devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} aPagarPorAno={aPagarPorAno} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesTile={cartoesTile} sparks={sparks} hidden={hidden}
+      {/* Linha 3: Contas · Cartões */}
+      <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+        <ContasCard contas={contas} hidden={hidden} onContaClick={onContaClick} onSeeAll={() => onTabChange?.("contas")} />
+        <CartoesResumoCard cartoes={cartoes} parcelamentos={parcelamentos} transacoes={transacoesRaw || []} hidden={hidden} onVer={() => onTabChange?.("cartoes")} />
+      </section>
+
+      {/* Linha 4: Calendário compacto · Gastos por categoria */}
+      <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+        <MobileColapsavel id="calendario" titulo="📅 Calendário do mês" isMobile={isMobile}>
+          <CalendarioMesCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} compacto={!isMobile} onVer={() => onTabChange?.("calendario")} />
+        </MobileColapsavel>
+        <GastosRoscaCard data={gastosCat} hidden={hidden} />
+      </section>
+
+      {/* Linha 5: Centro de Controle (totais + visão consolidada) · Projeção */}
+      <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14, alignItems: "start" }}>
+        <AReceberCard semTiles devedores={devedores} aPagarHoje={aPagarHoje} aPagarMes={aPagarMes} aPagarTotal={aPagarTotal} aPagarPorAno={aPagarPorAno} chequesTotal={chequesAReceber} cartoesTotal={cartoesTotal} cartoesTile={cartoesTile} sparks={sparks} hidden={hidden}
           consolidado={{ contas: totalContas, proventos: provSaldo, investBR: totalInvest, investUSD: totalInvestUSD,
                          aReceber, cartoes: cartoesTotal, liquido: totalContas + provSaldo + totalInvest - cartoesTotal }}
           onSeeAll={() => onTabChange?.("areceber")}
           onVerPagar={() => onTabChange?.("areceber")} />
-      </section>
-
-      {/* Projeção · 6 meses — acima de Alocação/Gastos (pedido do usuário) */}
-      <section style={{ marginBottom: 16 }}>
         <MobileColapsavel id="projecao" titulo="📈 Projeção · 6 meses" isMobile={isMobile}>
           <ProjecaoMesesCard projecao={projecao} hidden={hidden} />
         </MobileColapsavel>
       </section>
 
-      {/* Orçamentos · compras futuras — acima da Alocação (pedido do usuário) */}
-      <section style={{ marginBottom: 16 }}>
+      {/* Orçamentos · compras futuras */}
+      <section style={{ marginBottom: 14 }}>
         <OrcamentosFuturosCard itens={orcamentosFuturos} setItens={setOrcamentosFuturos} hidden={hidden} />
       </section>
 
-      {/* Alocação Atual · Gastos por Categoria — abaixo da projeção.
-          Quando empilha (mobile), Gastos sobe pra cima da Alocação. */}
-      <section className="dash-mid-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
-      }}>
-        <div className="dash-aloc" style={{ minWidth: 0 }}>
-          <MobileColapsavel id="alocacao" titulo="📊 Alocação atual" isMobile={isMobile}>
-            <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
-          </MobileColapsavel>
-        </div>
-        <div className="dash-gastos" style={{ minWidth: 0 }}>
-          <GastosCategoriaCard data={gastosCat} hidden={hidden} orcamento={orcamentoBase} orcamentoAuto={orcamentoAuto} />
-        </div>
-      </section>
-
-      {/* Orçamento por categoria — gasto do mês vs limite definido em
-          Categorias. Só aparece quando há pelo menos um limite. */}
+      {/* Orçamento por categoria — só quando há limite definido. */}
       {calcOrcamentoComGastos(categorias, gastosCat).length > 0 && (
-        <section style={{ marginBottom: 16 }}>
+        <section style={{ marginBottom: 14 }}>
           <OrcamentoCard categorias={categorias} gastos={gastosCat} hidden={hidden} onTabChange={onTabChange} />
         </section>
       )}
 
-      {/* Insights + Pergunte IA (Orçamentos de compras futuras subiu pra
-          cima da Alocação — pedido do usuário 2026-09-22) */}
-      <section className="dash-metas-grid" style={{
-        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24,
-      }}>
-        {principalInsight && <InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("inteligencia")} />}
-        <PergunteIACard onClick={() => onTabChange?.("perguntar")} />
+      {/* Alocação · Insights + Pergunte IA */}
+      <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24, alignItems: "start" }}>
+        <MobileColapsavel id="alocacao" titulo="📊 Alocação atual" isMobile={isMobile}>
+          <AlocacaoCard data={alocacao} total={totalInvest} hidden={hidden} onSeeAll={() => onTabChange?.("investimentos")} />
+        </MobileColapsavel>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+          {principalInsight && <InsightsCard insight={principalInsight} onSeeAll={() => onTabChange?.("inteligencia")} />}
+          <PergunteIACard onClick={() => onTabChange?.("perguntar")} />
+        </div>
       </section>
 
       {/* Normalmente o wrapper .dash-prox some do fluxo (o Card vira item do grid);
@@ -935,32 +887,30 @@ export default function Dashboard({
            o resto do Painel ficam iguais. No mobile (≤768px) nada muda. */
         @media (min-width: 769px) {
           .kpi-breakdown .num, .cc-nums .num { zoom: 1.2; }
-          /* Valor do Patrimônio Total maior em tablet/desktop (iPad ficava
-             pequeno pro tamanho da tela); mobile (≤768px) segue em 32px. */
+          /* Valor do Patrimônio Total maior em tablet/desktop. */
           .kpi-hero-valor { font-size: 42px !important; }
         }
-        /* Mobile: valor do Patrimônio maior (pedido 2026-10-01); o stepper
-           decorativo sai pra dar a largura toda ao número. */
-        @media (max-width: 768px) {
-          .dash-kpi-grid .num.kpi-hero-valor { font-size: min(var(--kpi-mob-fs, 40px), 11.5vw) !important; white-space: nowrap; }
-          .kpi-hero-stepper { display: none !important; }
-        }
+        /* Painel novo: o card de Patrimônio ocupa a altura das 2 linhas de números. */
+        .painel-hero > * { flex: 1; }
+        .painel-topo > *, .painel-dupla > * { min-width: 0; }
         @media (max-width: 1024px) {
-          .dash-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
-          .dash-mid-grid, .dash-bot-grid, .dash-metas-grid { grid-template-columns: 1fr !important; }
+          .painel-topo { grid-template-columns: minmax(0,1fr) minmax(0,1fr) !important; }
+          .painel-hero { grid-column: 1 / -1; grid-row: auto !important; }
+          .painel-dupla { grid-template-columns: 1fr !important; }
           .dash-proj-grid { grid-template-columns: repeat(3, 1fr) !important; }
-          /* Empilhado: Gastos por Categoria acima da Alocação. */
-          .dash-gastos { order: -1; }
         }
         @media (max-width: 768px) {
-          /* Mobile: fora o "próximo compromisso"; patrimônio e Contas na
-             largura máxima; projeção em 2 colunas. */
+          /* Mobile: fora o "próximos vencimentos" (decisão anterior); números
+             do dia em grade 2×2; Patrimônio na largura toda. */
           .dash-prox { display: none !important; }
-          .dash-kpi-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+          .painel-topo { gap: 8px !important; }
+          .num.kpi-hero-valor { font-size: min(var(--kpi-mob-fs, 40px), 11.5vw) !important; white-space: nowrap; }
+          .kpi-hero-stepper { display: none !important; }
+          .painel-kpi-valor { font-size: 18px !important; }
+          .painel-kpi-spark { display: none !important; }
+          .painel-fluxo-nums { grid-template-columns: 1fr 1fr !important; }
+          .painel-rosca { flex-direction: column; }
           .dash-proj-grid { grid-template-columns: repeat(2, 1fr) !important; }
-          /* Valores numéricos um passo maiores no celular (regra que
-             morava no GlobalStyles; agora o Dashboard é o único dono). */
-          .dash-kpi-grid .num { font-size: 17px !important; }
         }
         @media (max-width: 640px) {
           /* Planejar compra: 4 campos lado a lado não cabem — nome na
@@ -1464,37 +1414,6 @@ function InsightsCard({ insight, onSeeAll }) {
   );
 }
 
-function GastosCategoriaCard({ data, hidden, orcamento = 0, orcamentoAuto = false }) {
-  const total = data.reduce((s,d) => s + d.valor, 0);
-  return (
-    <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div style={{ fontFamily: T.serif, fontSize: 16, fontWeight: 600 }}>Gastos por Categoria</div>
-        <div style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "3px 8px" }}>Este mês</div>
-      </div>
-      {data.length === 0 ? (
-        <div style={{ padding: 24, textAlign: "center", color: T.muted, fontSize: 12, fontStyle: "italic" }}>Nenhuma despesa este mês.</div>
-      ) : (
-      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-        {data.slice(0, 6).map((d,i) => {
-          const w = (d.valor / (data[0]?.valor || 1)) * 100;
-          return (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 9 }}>
-              <span style={{ width: 92, flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.nome}</span>
-              <div style={{ flex: 1, height: 8, borderRadius: 8, background: T.bgSoft, overflow: "hidden" }}>
-                <div style={{ width: `${w}%`, height: "100%", borderRadius: 8, background: BAR_COR, transition: "width .5s ease" }} />
-              </div>
-              <span style={{ width: 32, textAlign: "right", flexShrink: 0, fontSize: 10.5, color: T.ink }}>{fmtN(d.pct, 0)}%</span>
-              <span className="num" style={{ width: 78, textAlign: "right", flexShrink: 0, fontSize: 11, color: T.muted, whiteSpace: "nowrap" }}>{hidden ? "•••" : fmt(d.valor)}</span>
-            </div>
-          );
-        })}
-      </div>
-      )}
-    </Card>
-  );
-}
-
 function EvolucaoCard({ data, valor, momAno, hidden }) {
   return (
     <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
@@ -1526,7 +1445,25 @@ function EvolucaoCard({ data, valor, momAno, hidden }) {
   );
 }
 
-function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, aPagarPorAno = [], chequesTotal = 0, cartoesTotal = 0, cartoesTile = null, sparks = null, consolidado = null, hidden, onSeeAll, onVerPagar }) {
+// A receber (mês): recebíveis que vencem no mês (juros de empréstimo já
+// recebidos abatem). Mesma base do módulo "A Receber & Dívidas".
+function calcReceberMes(devedores = [], mesAtual = new Date().toISOString().slice(0, 7)) {
+  let receberMes = 0;
+  (devedores || []).forEach(d => {
+    if (d.recebido) return;
+    const valor = Number(d.valor) || 0;
+    const vr = Number(d.valorRecebido) || 0;
+    const jurosRec = d.emprestimo && Array.isArray(d.recebimentos)
+      ? d.recebimentos.filter(r => r && r.tipo === "juros").reduce((s, r) => s + (Number(r.valor) || 0), 0)
+      : 0;
+    const restante = Math.max(0, valor - vr - jurosRec);
+    if (restante <= 0) return;
+    if (!d.vencimento || d.vencimento.slice(0, 7) === mesAtual) receberMes += restante;
+  });
+  return receberMes;
+}
+
+function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPagarTotal = 0, aPagarPorAno = [], chequesTotal = 0, cartoesTotal = 0, cartoesTile = null, sparks = null, consolidado = null, hidden, onSeeAll, onVerPagar, semTiles = false }) {
   // Valores começam VISÍVEIS ao abrir a tela (pedido do usuário); o botão do
   // olho continua lá pra esconder. O modo privado global (hidden) segue
   // mandando por cima de tudo.
@@ -1541,19 +1478,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
 
   // A receber (mês): recebíveis que vencem no mês corrente (juros de empréstimo
   // já recebidos abatem). Mesma base do módulo "A Receber & Dívidas".
-  const mesAtual = hoje.slice(0, 7);
-  let receberMes = 0;
-  devedores.forEach(d => {
-    if (d.recebido) return;
-    const valor = Number(d.valor) || 0;
-    const vr = Number(d.valorRecebido) || 0;
-    const jurosRec = d.emprestimo && Array.isArray(d.recebimentos)
-      ? d.recebimentos.filter(r => r && r.tipo === "juros").reduce((s, r) => s + (Number(r.valor) || 0), 0)
-      : 0;
-    const restante = Math.max(0, valor - vr - jurosRec);
-    if (restante <= 0) return;
-    if (!d.vencimento || d.vencimento.slice(0, 7) === mesAtual) receberMes += restante;
-  });
+  const receberMes = calcReceberMes(devedores, hoje.slice(0, 7));
 
   const apagarMesVal = aPagarMes?.total || 0;
   // Os 6 totais do "Centro de Controle" — estilo widget: ícone em anel, número
@@ -1596,7 +1521,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
 
       {/* 6 totais do Centro de Controle — 2 colunas (lado a lado). Todos usam a
           MESMA superfície "aurora" do card de Patrimônio Total, texto branco. */}
-      <div className="cc-nums" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+      {!semTiles && <div className="cc-nums" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
         {resumo.map(b => (
           <div key={b.id} style={{
             background: AURORA_BG,
@@ -1633,7 +1558,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
             )}
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* TOTAIS — Total a pagar (com a quebra por ano) e Cheques em linhas,
           no mesmo estilo da Visão consolidada (saíram dos cards da grade). */}
@@ -1649,12 +1574,7 @@ function AReceberCard({ devedores = [], aPagarHoje = [], aPagarMes = null, aPaga
                   <span>📉 Total a pagar</span>
                   <span className="num" style={{ color: T.red, fontWeight: 700 }}>{oculto ? "•••" : fmt(aPagarTotal)}</span>
                 </div>
-                {(aPagarPorAno || []).length > 1 && aPagarPorAno.map(x => (
-                  <div key={x.ano} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: T.faint, paddingLeft: 18 }}>
-                    <span>{x.ano}</span>
-                    <span className="num">{oculto ? "•••" : fmt(x.valor)}</span>
-                  </div>
-                ))}
+                {(aPagarPorAno || []).length > 1 && <BarrasPorAno porAno={aPagarPorAno} oculto={oculto} />}
               </>
             )}
             {chequesTotal > 0 && (
@@ -1734,7 +1654,7 @@ const CAL_MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho"
 
 // Calendário do mês — marca dias com a pagar (vermelho), a receber/cheque
 // (verde) e evento da agenda (azul). Navegável; clicar abre o Calendário cheio.
-function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }) {
+function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer, compacto = false }) {
   const hoje = new Date();
   const [ref, setRef] = React.useState({ y: hoje.getFullYear(), m: hoje.getMonth() });
   const monthISO = `${ref.y}-${String(ref.m + 1).padStart(2, "0")}`;
@@ -1789,7 +1709,7 @@ function CalendarioMesCard({ stateAgg, escopoAtivo, agenda = [], hidden, onVer }
           const titulo = hasMov ? [mk.pagar && "a pagar", mk.receber && "a receber / cheque", mk.agenda && "agenda"].filter(Boolean).join(" · ") : undefined;
           return (
             <div key={i} onClick={onVer} title={titulo} style={{
-              aspectRatio: "1.55", borderRadius: 8, position: "relative",
+              aspectRatio: compacto ? "2.3" : "1.55", borderRadius: 8, position: "relative",
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5,
               color: hasMov ? corDom : T.ink, cursor: onVer ? "pointer" : "default",
               background: hasMov ? `${corDom}1e` : T.bgSoft,
