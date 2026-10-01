@@ -76,6 +76,106 @@ export function acharPorNome(frase, lista = []) {
 }
 
 
+
+// ===== Lançamento por voz ("lança 50 reais de mercado no Itaú") =====
+const VERBO_LANC = /^(?:(?:por favor|ei|oi)\s+)?(lanca|lancar|lance|lancei|anota|anotar|anote|registra|registrar|registre|gastei|paguei|comprei|recebi|entrou|ganhei|adiciona|adicionar|adicione|coloca|coloque)\b/;
+const RECEITA = /\b(recebi|entrou|ganhei|receita|entrada|deposito|depositaram|salario|pix recebido)\b/;
+
+/** Extrai o valor falado: "50 reais", "R$ 32,90", "1.200", "2 mil", "50 reais e 90 centavos". */
+export function extrairValor(q) {
+  let m = q.match(/\b(\d+)\s*mil(?:\s+e\s+(\d{1,3}))?\b/);
+  if (m) return { valor: Number(m[1]) * 1000 + (Number(m[2]) || 0), trecho: m[0] };
+  m = q.match(/\b(\d{1,3}(?: \d{3})+|\d+)(?: (\d{1,2}))?\s*(?:reais|real|r)?\s*(?:e\s+(\d{1,2})\s*centavos?)?/);
+  if (!m) return null;
+  const inteiro = Number(m[1].replace(/ /g, ""));
+  const cent = m[3] != null ? Number(m[3]) : (m[2] != null ? Number(m[2].padEnd(2, "0")) : 0);
+  return { valor: Math.round((inteiro + cent / 100) * 100) / 100, trecho: m[0] };
+}
+
+function isoLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function extrairData(q, hoje = new Date()) {
+  const d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  if (/\banteontem\b/.test(q)) { d.setDate(d.getDate() - 2); return { data: isoLocal(d), trecho: "anteontem" }; }
+  if (/\bontem\b/.test(q)) { d.setDate(d.getDate() - 1); return { data: isoLocal(d), trecho: "ontem" }; }
+  const m = q.match(/\bdia (\d{1,2})\b/);
+  if (m && Number(m[1]) >= 1 && Number(m[1]) <= 31) {
+    const alvo = new Date(d.getFullYear(), d.getMonth(), Number(m[1]));
+    if (alvo > d) alvo.setMonth(alvo.getMonth() - 1); // "dia 28" no dia 3 = mês passado
+    return { data: isoLocal(alvo), trecho: m[0] };
+  }
+  return { data: isoLocal(d), trecho: /\bhoje\b/.test(q) ? "hoje" : null };
+}
+
+const tirarNome = (q, nome) => {
+  let r = ` ${q} `;
+  const n = norm(nome);
+  if (n) r = r.replace(` ${n} `, " ");
+  for (const t of n.split(" ").filter(t => t.length >= 2 && !GENERICAS.has(t))) r = r.replace(new RegExp(`\\b${t}\\b`, "g"), " ");
+  return r;
+};
+const PREENCHE = /\b(de|do|da|dos|das|no|na|nos|nas|em|com|pra|para|pro|o|a|os|as|um|uma|reais|real|centavos|centavo|cartao|conta|credito|debito|despesa|receita|gasto|uma compra|compra|valor|hoje|ontem|anteontem|que|eu)\b/g;
+
+/**
+ * Lê a frase de lançamento. Devolve null se não for lançamento, ou
+ * { tipo, valor, descricao, categoria, data, destino: {tipo, item}|null }.
+ * `valor` null quando não deu pra entender o número.
+ */
+export function interpretarLancamento(frase, { contas = [], cartoes = [], categorias = [], historico = [], categoriaAuto } = {}, hoje = new Date()) {
+  const q0 = prepararFrase(frase).replace(/(\d)[.,](\d)/g, "$1 $2").replace(/\br\s*\$?\s*(?=\d)/g, "");
+  const v = q0.match(VERBO_LANC);
+  if (!v) return null;
+  const tipo = RECEITA.test(q0) ? "receita" : "despesa";
+  let q = q0.slice(v[0].length).trim();
+  const val = extrairValor(q);
+  if (val) q = q.replace(val.trecho, " ");
+  const dt = extrairData(q, hoje);
+  if (dt.trecho) q = q.replace(dt.trecho, " ");
+
+  const querCartao = /\b(cartao|credito|fatura)\b/.test(q);
+  const querConta = /\b(conta|debito|pix|dinheiro)\b/.test(q);
+  // O destino costuma vir depois de "no/na/pelo…" ("…de mercado NO itaú"):
+  // procura primeiro nesse trecho, pra "mercado" não virar o cartão Mercado Livre.
+  const mPrep = [...` ${q} `.matchAll(/ (?:no|na|nos|nas|pelo|pela|em) /g)].pop();
+  const cauda = mPrep ? ` ${q} `.slice(mPrep.index + mPrep[0].length) : "";
+  const achar = (lista) => (cauda && acharPorNome(cauda, lista)) || null;
+  let cartao = tipo === "despesa" ? achar(cartoes) : null;
+  let conta = achar(contas);
+  if (!cartao && !conta) {
+    cartao = tipo === "despesa" ? acharPorNome(q, cartoes) : null;
+    conta = acharPorNome(q, contas);
+  }
+  let destino = null;
+  if (cartao && (querCartao || !conta || (!querConta && pontuarNome(q, cartao.nome) >= pontuarNome(q, conta.nome)))) destino = { tipo: "cartao", item: cartao };
+  else if (conta) destino = { tipo: "conta", item: conta };
+  if (destino) q = tirarNome(q, destino.item.nome);
+
+  let desc = q.replace(/\b(cartao|conta|credito|debito|pix)\b/g, " ")
+    .replace(PREENCHE, " ").replace(/\s+/g, " ").trim();
+  if (!desc) desc = tipo === "receita" ? "Receita" : "Despesa";
+  const descricao = desc.charAt(0).toUpperCase() + desc.slice(1);
+
+  // Categoria: nome do cadastro citado na frase > histórico/regras > Outros.
+  const nd = norm(descricao);
+  const doCadastro = (categorias || []).filter(c => c?.nome && (!c.tipo || c.tipo === tipo))
+    .map(c => ({ c, n: norm(c.nome) }))
+    .filter(x => x.n && (` ${nd} `.includes(` ${x.n} `) || nd === x.n))
+    .sort((a, b) => b.n.length - a.n.length)[0];
+  let categoria = doCadastro?.c.nome || null;
+  if (!categoria && categoriaAuto) { try { categoria = categoriaAuto({ descricao, tipo }, categorias, historico); } catch {} }
+
+  return { tipo, valor: val ? val.valor : null, descricao, categoria: categoria || "Outros", data: dt.data, destino };
+}
+
+const dataFalada = (iso, hoje = new Date()) => {
+  const h = isoLocal(hoje);
+  if (iso === h) return "hoje";
+  const o = new Date(hoje); o.setDate(o.getDate() - 1);
+  if (iso === isoLocal(o)) return "ontem";
+  return `dia ${diaMes(iso)}`;
+};
+
 // ===== Navegação por voz ("abre os cartões", "vai pra conta AF4") =====
 // Cada destino: módulo + aba + apelidos (já normalizados, sem acento).
 export const DESTINOS = [
@@ -193,6 +293,20 @@ function resp(intencao, texto, fala) {
  * }
  */
 export function responder(frase, ctx = {}) {
+  const lanc = interpretarLancamento(frase, ctx, ctx.hoje || new Date());
+  if (lanc) {
+    if (!(lanc.valor > 0)) {
+      return { ok: true, intencao: { tipo: "lancar" }, texto: "Não peguei o valor. Fala de novo com o número, ex.: \"lança 50 reais de mercado no Itaú\".", fala: "Não peguei o valor. Fala de novo com o número." };
+    }
+    const onde = lanc.destino ? (lanc.destino.tipo === "cartao" ? ` no cartão ${lanc.destino.item.nome}` : ` na conta ${lanc.destino.item.nome}`) : "";
+    const quando = dataFalada(lanc.data, ctx.hoje || new Date());
+    const tipoTxt = lanc.tipo === "receita" ? "Receita" : "Despesa";
+    return {
+      ok: true, intencao: { tipo: "lancar" }, lancamento: lanc,
+      texto: `${tipoTxt} de ${fmtBRL(lanc.valor)} — ${lanc.descricao}${onde}, ${quando}. Confere e confirma.`,
+      fala: `${tipoTxt} de ${valorFalado(lanc.valor)}, ${lanc.descricao}${onde}, ${quando}. Confere e confirma.`,
+    };
+  }
   const nav = detectarNavegacao(frase, ctx);
   if (nav) {
     const label = nav.cartao ? `o cartão ${nav.cartao.nome}` : nav.conta ? `a conta ${nav.conta.nome}` : nav.destino.label;
