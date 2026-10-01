@@ -1,3 +1,4 @@
+import { prepararLogo } from "../../lib/imagemLogo.js";
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Plus, Trash2, Edit3, Building2, Receipt, ArrowRightLeft, ChevronRight, ChevronUp, ChevronDown, GripVertical, RefreshCw, AlertCircle, Eye, EyeOff, Upload, MoreHorizontal } from "lucide-react";
 import { T, CARD_PAPEL } from "../../lib/theme.js";
@@ -710,7 +711,7 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
           </>)}
           {/* Logo também na Carteira (pedido 2026-10-01): sem ele o card fica só com o 👛. */}
           <Field label={form.carteira ? "Logo / imagem (opcional)" : "Logo do banco (opcional)"}
-                 hint={form.carteira ? "Imagem pequena (PNG/JPG, máx. 200 KB). Se vazio, fica o ícone 👛." : "Imagem pequena (PNG/JPG, máx. 200 KB). Se vazio, usa o logo automático pelo nome do banco."}>
+                 hint={form.carteira ? "Qualquer foto ou print — o app reduz sozinho. GIF animado pequeno fica animado. Se vazio, fica o ícone 👛." : "Qualquer foto ou print — o app reduz sozinho. GIF animado pequeno fica animado. Se vazio, usa o logo automático pelo nome do banco."}>
             {form.logo ? (
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <img src={form.logo} alt="" style={{ width: 40, height: 40, borderRadius: 12, objectFit: "contain", background: "#fff", border: `1px solid ${T.border}` }} />
@@ -720,12 +721,15 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                 </button>
               </div>
             ) : (
-              <input type="file" accept="image/*" onChange={(e) => {
+              <input type="file" accept="image/*" onChange={async (e) => {
                 const f = e.target.files?.[0]; if (!f) return;
-                if (f.size > 200 * 1024) { toast.error("Imagem muito grande (máx. 200 KB)."); e.target.value = ""; return; }
-                const reader = new FileReader();
-                reader.onload = () => setForm(prev => ({ ...prev, logo: reader.result }));
-                reader.readAsDataURL(f);
+                try {
+                  const logo = await prepararLogo(f);
+                  setForm(prev => ({ ...prev, logo }));
+                } catch (err) {
+                  toast.error(err?.message || "Não consegui usar essa imagem.");
+                  e.target.value = "";
+                }
               }} />
             )}
           </Field>
