@@ -339,6 +339,11 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                     title: "Conta avulsa, sem banco — pra registrar recebíveis / pagamentos futuros à mão",
                     acao: () => setForm({ id: null, carteira: true, nome: "", instituicao: "", tipo: "carteira", moeda: "BRL", cotacao: "", escopo: escopoAtivo === "negocio" ? "negocio" : "pessoal", saldo: "", cor: T.blue || "#60a5fa", appUrl: "", foraPatrimonio: true }),
                   },
+                  {
+                    rotulo: ocultarZeradas ? <>👁 Mostrar contas zeradas</> : <>🙈 Ocultar contas zeradas</>,
+                    title: "Esconde/mostra as contas com saldo zero na lista",
+                    acao: toggleOcultarZeradas,
+                  },
                 ].filter(Boolean).map((item, i) => (
                   <button key={i} title={item.title}
                           onClick={() => { setAcoesOpen(false); item.acao(); }}
@@ -393,41 +398,6 @@ export default function Contas({ contas, setContas, hidden, onCreateTransacao, o
                  sub="fora do painel" />
         <KpiMini icone="🌍" label="Fora do patrimônio" valor={fmt(totalForaPatrimonio)} cor={T.muted} oculto={hidden}
                  sub={totalForaPatrimonio > 0 ? "só controle, não soma" : "nenhuma conta"} />
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
-        {/* Barra de composição do total: Pessoal vs Negócio (fora do patrimônio à parte) */}
-        {total > 0 && totalNegocio > 0 && (
-          <div>
-            <div style={{ display: "flex", height: 8, borderRadius: 999, overflow: "hidden", background: T.bgSoft }}>
-              <div style={{ width: `${(totalPessoal / total) * 100}%`, background: T.gold }} />
-              <div style={{ width: `${(totalNegocio / total) * 100}%`, background: T.blue }} />
-            </div>
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 5, fontSize: 10, color: T.muted }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: T.gold }} /> Pessoal · {hidden ? "•••" : fmt(totalPessoal)}
-              </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: T.blue }} /> Negócio · {hidden ? "•••" : fmt(totalNegocio)}
-              </span>
-              {totalForaPatrimonio > 0 && (
-                <span style={{ color: T.faint }}>Fora do patrimônio · {hidden ? "•••" : fmt(totalForaPatrimonio)} (não soma)</span>
-              )}
-            </div>
-          </div>
-        )}
-        </div>
-        <button onClick={toggleOcultarZeradas}
-          style={{
-            background: "transparent", border: `1px solid ${T.border}`,
-            color: T.muted, padding: "5px 10px", borderRadius: 8,
-            fontSize: 10.5, letterSpacing: ".05em", textTransform: "uppercase", fontWeight: 600,
-            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
-          }}>
-          {ocultarZeradas
-            ? <><Eye size={10} /> Mostrar zeradas</>
-            : <><EyeOff size={10} /> Ocultar zeradas</>}
-        </button>
       </div>
       {(contasSemCotacao.length > 0 || contasCambioDefasado(contas).some(c => !semCotacao(c))) && (
         <div style={{ fontSize: 11.5, color: T.gold, marginBottom: 10 }}>
