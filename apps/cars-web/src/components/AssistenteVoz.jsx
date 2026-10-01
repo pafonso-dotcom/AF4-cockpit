@@ -252,21 +252,6 @@ export default function AssistenteVoz(props) {
   if (!aberto) return null;
 
   const d = props;
-  const cart0 = (d.cartoes || [])[0]?.nome;
-  const conta0 = ((d.contas || []).find(c => c.planilha) || (d.contas || [])[0])?.nome;
-  const sugestoes = [
-    cart0 && `Fatura do ${cart0}`,
-    "Quanto posso gastar hoje?",
-    "O que vence essa semana?",
-    conta0 && `Saldo da ${conta0}`,
-    "Quanto tenho a pagar este mês?",
-    "Qual meu patrimônio?",
-    "Abre os cartões",
-    cart0 && `Lança 50 reais de mercado no ${cart0}`,
-  ].filter(Boolean);
-
-  const chip = { fontSize: 12.5, padding: "6px 11px", borderRadius: 100, background: T.bgSoft, border: `1px solid ${T.border}`, color: T.ink, cursor: "pointer", whiteSpace: "nowrap" };
-
   return (
     <div onClick={fechar} style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,.45)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
       <div onClick={(e) => e.stopPropagation()} className="assistente-sheet"
@@ -295,21 +280,16 @@ export default function AssistenteVoz(props) {
             <Mic size={32} strokeWidth={2.2} style={{ position: "relative", zIndex: 1, filter: "drop-shadow(0 1px 2px rgba(0,0,0,.35))" }} />
           </button>
           <div style={{ fontSize: 13, color: T.muted, minHeight: 18, textAlign: "center" }}>
-            {ouvindo ? (parcial ? `“${parcial}”` : "Ouvindo… pode falar") : pensando ? "Pensando…" : "Toque no microfone e pergunte"}
+            {ouvindo ? (parcial ? `“${parcial}”` : "Ouvindo… pode falar") : pensando ? "Pensando…" : pergunta ? `“${pergunta}”` : "Toque no microfone e pergunte"}
           </div>
         </div>
 
         {aviso && <div style={{ fontSize: 12.5, color: T.gold, background: `${T.gold}14`, border: `1px solid ${T.gold}44`, borderRadius: 10, padding: "8px 10px", marginBottom: 10 }}>{aviso}</div>}
 
-        {pergunta && !ouvindo && (
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
-            <div style={{ maxWidth: "85%", background: T.bgSoft, border: `1px solid ${T.border}`, borderRadius: "14px 14px 4px 14px", padding: "8px 12px", fontSize: 14 }}>{pergunta}</div>
-          </div>
-        )}
         {resposta && !ouvindo && (
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ maxWidth: "92%", background: resposta.ok ? `${T.gold}16` : T.bgSoft, border: `1px solid ${resposta.ok ? T.gold + "55" : T.border}`,
-                          borderRadius: "14px 14px 14px 4px", padding: "10px 13px", fontSize: 16, lineHeight: 1.4, fontWeight: resposta.ok ? 600 : 400, whiteSpace: "pre-wrap" }}>
+          <div style={{ marginBottom: 12, textAlign: "center" }}>
+            <div style={{ margin: "0 auto", textAlign: "center", background: resposta.ok ? `${T.gold}16` : T.bgSoft, border: `1px solid ${resposta.ok ? T.gold + "55" : T.border}`,
+                          borderRadius: 14, padding: "12px 14px", fontSize: 17, lineHeight: 1.4, fontWeight: resposta.ok ? 600 : 400, whiteSpace: "pre-wrap" }}>
               {resposta.ia && <span style={{ fontSize: 11, color: T.muted, fontWeight: 700, display: "block", marginBottom: 3 }}>✨ IA</span>}
               {resposta.texto}
             </div>
@@ -373,7 +353,8 @@ export default function AssistenteVoz(props) {
           );
         })()}
 
-        <form onSubmit={(e) => { e.preventDefault(); const f = texto; setTexto(""); processar(f); }}
+        {/* Campo de texto só aparece quando o microfone falha (ditado do teclado). */}
+        {aviso && <form onSubmit={(e) => { e.preventDefault(); const f = texto; setTexto(""); processar(f); }}
               style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <input ref={inputRef} value={texto} onChange={(e) => setTexto(e.target.value)}
                  placeholder="…ou digite / dite pelo teclado" enterKeyHint="send"
@@ -382,11 +363,7 @@ export default function AssistenteVoz(props) {
                   style={{ width: 44, borderRadius: 10, border: "none", background: T.gold, color: "#fff", display: "grid", placeItems: "center", cursor: "pointer" }}>
             <Send size={17} />
           </button>
-        </form>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {sugestoes.map(s => <button key={s} onClick={() => processar(s)} style={chip}>{s}</button>)}
-        </div>
+        </form>}
       </div>
       <style>{`
         /* Bolha de água (pedido 2026-10-01): vidro transparente com reflexo,
