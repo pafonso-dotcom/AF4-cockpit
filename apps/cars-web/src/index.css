@@ -950,6 +950,7 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
    :hover gruda após o toque); não desliga com "reduzir movimento". */
 .letreiro-faixa {
   display: inline-flex; width: max-content; will-change: transform;
+  zoom: 1.15; /* letras ~15% maiores em todos os letreiros (pedido 2026-10-02) */
   -webkit-animation: letreiroAnda var(--letreiro-dur, 30s) linear infinite;
   animation: letreiroAnda var(--letreiro-dur, 30s) linear infinite;
 }
