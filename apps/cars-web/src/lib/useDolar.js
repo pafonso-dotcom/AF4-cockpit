@@ -35,3 +35,28 @@ export function useDolar() {
   }, []);
   return v;
 }
+
+// Euro do dia — mesmo esquema do dólar (orçamento de viagens em €).
+const CHAVE_EUR = "af4:euro-dia";
+let cacheEur = null;
+let pendenteEur = null;
+export function euroEmCache() {
+  if (cacheEur) return cacheEur;
+  try { const v = Number(sessionStorage.getItem(CHAVE_EUR)); if (v > 0) cacheEur = v; } catch {}
+  return cacheEur;
+}
+export function useEuro() {
+  const [v, setV] = useState(euroEmCache);
+  useEffect(() => {
+    let vivo = true;
+    if (!pendenteEur) {
+      pendenteEur = buscarCotacao("EUR").then(r => {
+        if (r > 0) { cacheEur = r; try { sessionStorage.setItem(CHAVE_EUR, String(r)); } catch {} }
+        return euroEmCache();
+      }).catch(() => euroEmCache());
+    }
+    pendenteEur.then(r => { if (vivo && r) setV(r); });
+    return () => { vivo = false; };
+  }, []);
+  return v;
+}
