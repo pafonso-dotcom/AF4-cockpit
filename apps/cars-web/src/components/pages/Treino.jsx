@@ -16,6 +16,7 @@ import PageHeader from "../ui/PageHeader.jsx";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
 import TreinoMontar from "./TreinoMontar.jsx";
+import TreinoEvolucao from "./TreinoEvolucao.jsx";
 
 const MODALIDADE_COR = {
   musculacao: "#f87171",
@@ -403,6 +404,9 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
           <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#fbbf24", marginRight: 4 }} />Parcial</span>
         </div>
       </div>
+
+      {/* Evolução com gráficos + análise (2026-10-02) */}
+      <TreinoEvolucao treinos={treinos} exerciciosDB={exerciciosDB} />
 
       {/* Recordes & Progressão (PRs) — musculação */}
       {recordes.length > 0 && (
