@@ -15,6 +15,7 @@ import { confirm } from "../../lib/confirm.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Modal from "../ui/Modal.jsx";
 import Field from "../ui/Field.jsx";
+import TreinoMontar from "./TreinoMontar.jsx";
 
 const MODALIDADE_COR = {
   musculacao: "#f87171",
@@ -231,6 +232,7 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
   const [sessaoModal, setSessaoModal] = useState(false);
   const [templateModal, setTemplateModal] = useState(false);
   const [bancoModal, setBancoModal] = useState(false);
+  const [montarModal, setMontarModal] = useState(false); // biblioteca com fotos + treinos prontos
   const [iaModal, setIaModal] = useState(false);
   const [fichaModal, setFichaModal] = useState(false);
   const [sessaoAtiva, setSessaoAtiva] = useState(null);
@@ -298,6 +300,8 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
         sub="Musculação, corrida e ciclismo. Registre seus treinos e acompanhe a evolução."
         action={
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button className="btn-ghost" onClick={() => setMontarModal(true)}
+                    title="Biblioteca com fotos e treinos prontos">📚 Montar treino</button>
             <button className="btn-ghost" onClick={() => setBancoModal(true)}>Banco</button>
             <button className="btn-ghost" onClick={() => setTemplateModal(true)}>Templates</button>
             <button className="btn-ghost" onClick={() => setFichaModal(true)}
@@ -327,6 +331,11 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
               <button onClick={() => setSessaoModal(true)}
                 style={{ background: "none", border: "none", color: T.gold, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
                 Iniciar agora
+              </button>
+              {" ou "}
+              <button onClick={() => setMontarModal(true)}
+                style={{ background: "none", border: "none", color: T.gold, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+                montar um treino com fotos
               </button>
             </div>
           </div>
@@ -557,6 +566,12 @@ export default function Treino({ treinos = [], setTreinos, exerciciosDB = [], se
           }}
           onClose={() => setTemplateModal(false)}
         />
+      )}
+
+      {/* Modal: Montar treino (biblioteca com fotos + treinos prontos) */}
+      {montarModal && (
+        <TreinoMontar exerciciosDB={exerciciosDB} setExerciciosDB={setExerciciosDB}
+                      setTreinoTemplates={setTreinoTemplates} onClose={() => setMontarModal(false)} />
       )}
 
       {/* Modal: Banco aberto de exercícios */}
