@@ -29,6 +29,7 @@ import { useDolar } from "../../lib/useDolar.js";
 import { calcOrcamentoCompra, resumoOrcamentos } from "../../lib/orcamentosFuturos.js";
 import Card, { SoftCardContext } from "../ui/Card.jsx";
 import ViagensCard from "./ViagensCard.jsx";
+import NoticiasCard from "./NoticiasCard.jsx";
 import Letreiro, { LetRotulo, LetValor } from "../ui/Letreiro.jsx";
 import Modal from "../ui/Modal.jsx";
 import { Sparkline, RingIcon } from "../ui/widget.jsx";
@@ -785,6 +786,8 @@ export default function Dashboard({
       {/* Próximas viagens com previsão de gasto (2026-10-02) — SÓ VISUAL, no fim
           do Painel e com opção de ocultar (não entra em saldo/fluxo/patrimônio). */}
       <BlocoSeguro nome="ViagensCard"><ViagensCard viagens={viagens} hidden={hidden} onVer={() => onTabChange?.("voos")} /></BlocoSeguro>
+      {/* Agente de Notícias (2026-10-02): briefing atualizado ao abrir o app. */}
+      <BlocoSeguro nome="NoticiasCard"><NoticiasCard onVer={() => onTabChange?.("noticias")} /></BlocoSeguro>
 
       {/* Normalmente o wrapper .dash-prox some do fluxo (o Card vira item do grid);
           no mobile ele é escondido junto com os atalhos, liberando a largura toda. */}

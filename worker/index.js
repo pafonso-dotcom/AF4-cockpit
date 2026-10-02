@@ -16,6 +16,7 @@
 
 import { handleRecibo } from "./recibo.js";
 import { handlePluggy } from "./pluggy.js";
+import { handleNoticias } from "./noticias.js";
 
 const VERSION = "2026-05-24-2";
 
@@ -33,6 +34,11 @@ export default {
     // Health check
     if (url.pathname === "/api/ping") {
       return json({ ok: true, version: VERSION });
+    }
+
+    // Agente de Notícias: feeds RSS buscados no servidor (sem CORS).
+    if (url.pathname === "/api/noticias") {
+      return handleNoticias(request);
     }
 
     // Extração de recibo por foto (Claude Vision — chave fica no Worker).
