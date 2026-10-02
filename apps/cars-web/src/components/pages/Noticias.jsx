@@ -117,10 +117,11 @@ function EscolherVoz() {
         <button className="btn-ghost" onClick={testar} style={{ padding: "8px 14px", flex: "0 0 auto", width: "auto" }}>▶ Testar</button>
       </div>
       <div style={{ fontSize: 11, color: T.faint, marginTop: 6 }}>{todas.length} voz(es) visíveis pro navegador · {lista.length} em português. Se a sua (ex.: Felipe) não aparecer, use “🖥️ Voz do sistema”.</div>
-      {!temHomem && nome !== VOZ_SISTEMA && (
+      {!temHomem && (
         <div style={{ fontSize: 12, color: T.gold, marginTop: 8, lineHeight: 1.45 }}>
-          Este aparelho não tem voz masculina em português instalada — por enquanto a leitura sai com a voz disponível em tom mais grave.
-          No iPhone: <b>Ajustes → Acessibilidade → Conteúdo Falado → Vozes → Português (Brasil)</b> e baixe uma voz masculina (ex.: <b>Felipe</b>); depois volte aqui e escolha.
+          O navegador não mostra voz masculina (o Safari esconde as vozes baixadas, como o Felipe). Sem problema: a leitura usa a
+          voz de português escolhida no sistema. No Mac: <b>Ajustes do Sistema → Acessibilidade → Conteúdo Falado → Voz do Sistema → Felipe</b>.
+          No iPhone: <b>Ajustes → Acessibilidade → Conteúdo Falado → Vozes → Português (Brasil) → Felipe</b>. Depois toque em ▶ Testar.
         </div>
       )}
     </div>
