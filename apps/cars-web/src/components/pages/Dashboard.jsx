@@ -823,9 +823,6 @@ export default function Dashboard({
         }
       `}</style>
 
-      <ModoFoco patrimonio={patrimonio} receitasMes={receitasMes}
-                despesas={despesasResumo.total} aPagar={despesasResumo.aPagar}
-                metas={metas || []} hidden={hidden} userName={userName} />
     </div>
     </SoftCardContext.Provider>
   );
@@ -834,94 +831,6 @@ export default function Dashboard({
 /* ============================================================
    Sub-componentes
    ============================================================ */
-
-function ModoFoco({ patrimonio = 0, receitasMes = 0, despesas = 0, aPagar = 0, metas = [], hidden, userName }) {
-  const [aberto, setAberto] = useState(false);
-  const sobra = receitasMes - despesas;
-  const meta = metas[0];
-  const metaAlvo = meta ? Number(meta.alvo ?? meta.valorMeta ?? meta.valor ?? 0) : 0;
-  const metaAtual = meta ? Number(meta.atual ?? meta.valorAtual ?? meta.aplicado ?? 0) : 0;
-  const metaPct = metaAlvo > 0 ? Math.min((metaAtual / metaAlvo) * 100, 100) : 0;
-
-  useEffect(() => {
-    if (!aberto) return;
-    const onKey = (e) => { if (e.key === "Escape") setAberto(false); };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
-  }, [aberto]);
-
-  const linha = (label, valor, cor) => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 0", borderBottom: `1px solid ${T.border}` }}>
-      <span style={{ fontSize: 13, color: T.muted }}>{label}</span>
-      <span className="num" style={{ fontSize: 18, fontWeight: 600, color: cor || T.ink }}>{hidden ? "•••••" : fmt(valor)}</span>
-    </div>
-  );
-
-  return (
-    <>
-      <button onClick={() => setAberto(true)} aria-label="Modo Foco"
-              className="no-print"
-              style={{
-                position: "fixed", bottom: 20, right: 20, zIndex: 900,
-                background: T.gold, color: T.bg, border: "none", borderRadius: 999,
-                padding: "11px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer",
-                boxShadow: "0 8px 24px rgba(0,0,0,.35)", display: "inline-flex", alignItems: "center", gap: 7,
-              }}>
-        🎯 Modo Foco
-      </button>
-
-      {aberto && (
-        <div onClick={(e) => { if (e.target === e.currentTarget) setAberto(false); }}
-             style={{
-               position: "fixed", inset: 0, zIndex: 1000,
-               background: `${T.bg}f2`, backdropFilter: "blur(8px)",
-               display: "grid", placeItems: "center", padding: 24,
-               animation: "rs .25s ease both",
-             }}>
-          <div style={{ width: "100%", maxWidth: 420, textAlign: "center" }}>
-            <div style={{ fontSize: 11, letterSpacing: ".2em", textTransform: "uppercase", color: T.muted, marginBottom: 6 }}>
-              {userName ? `Foco · ${userName}` : "Modo Foco"}
-            </div>
-            <div style={{ fontSize: 12, color: T.muted }}>Patrimônio Total</div>
-            <div className="num" style={{ fontFamily: T.serif, fontSize: 42, fontWeight: 700, color: T.ink, margin: "2px 0 18px" }}>
-              {hidden ? "•••••" : fmt(patrimonio)}
-            </div>
-
-            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "4px 18px", textAlign: "left" }}>
-              {linha("Receitas do mês", receitasMes, T.green)}
-              {linha("Despesas do mês", despesas, T.red)}
-              {linha(sobra >= 0 ? "Sobra do mês" : "Déficit do mês", sobra, sobra >= 0 ? T.green : T.red)}
-              {linha("A pagar este mês", aPagar, aPagar > 0 ? T.red : T.muted)}
-            </div>
-
-            {meta && metaAlvo > 0 && (
-              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, marginTop: 12, textAlign: "left" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 8 }}>
-                  <span style={{ color: T.muted }}>Meta: {meta.nome || meta.titulo || "—"}</span>
-                  <span style={{ color: T.gold, fontWeight: 600 }}>{fmtN(metaPct, 0)}%</span>
-                </div>
-                <div style={{ height: 7, background: T.bgSoft, borderRadius: 8, overflow: "hidden" }}>
-                  <div style={{ width: `${metaPct}%`, height: "100%", background: T.gold, borderRadius: 8 }} />
-                </div>
-              </div>
-            )}
-
-            <button onClick={() => setAberto(false)}
-                    style={{
-                      marginTop: 20, background: "transparent", color: T.muted,
-                      border: `1px solid ${T.border}`, borderRadius: 999,
-                      padding: "9px 22px", fontSize: 12, cursor: "pointer",
-                    }}>
-              Fechar (Esc)
-            </button>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
 function KpiHero({ value, mom, hidden, evolucao, onDetalhes }) {
   // Sempre começa oculto; só revela quando o usuário clica no card. O modo
   // privado global (hidden) tem prioridade e mantém oculto.
