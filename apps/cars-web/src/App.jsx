@@ -106,6 +106,7 @@ const Configuracoes = lz(() => import("./components/pages/Configuracoes.jsx"));
 const Lembretes = lz(() => import("./components/pages/Lembretes.jsx"));
 const Treino = lz(() => import("./components/pages/Treino.jsx"));
 const Voos = lz(() => import("./components/pages/Voos.jsx"));
+const Noticias = lz(() => import("./components/pages/Noticias.jsx"));
 import { EXERCICIOS_BASE } from "./lib/exerciciosBase.js";
 import { dispararLembretes } from "./lib/lembretes.js";
 
@@ -1058,6 +1059,7 @@ export default function App() {
       {tab === "lembretes" && (
         <Lembretes lembretes={lembretes} setLembretes={setLembretes} />
       )}
+      {tab === "noticias" && <Noticias />}
       {tab === "voos" && (
         <Voos voos={voosDados} setVoos={setVoosDados} apiKeys={apiKeys} viagens={viagens} setViagens={setViagens} />
       )}
