@@ -29,7 +29,8 @@ export function useBriefing() {
   return { prefs, setPrefs, itens, estado, ts, carregar, falhas };
 }
 
-const manchete = (n) => `${n.titulo}. ${n.fonte ? `Fonte: ${n.fonte}.` : ""}`;
+// Em voz só o título (pedido 2026-10-02: não precisa dizer a fonte).
+const manchete = (n) => `${n.titulo}.`;
 
 export function PlayerManchetes({ itens, leitor, rotulo = "Ouvir manchetes", max = 10 }) {
   if (!leitor.ok || !itens.length) return null;

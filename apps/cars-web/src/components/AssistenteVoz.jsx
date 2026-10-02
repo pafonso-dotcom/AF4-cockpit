@@ -1,4 +1,5 @@
 import { dolarEmCache } from "../lib/useDolar.js";
+import { aplicarVoz } from "../lib/vozPtBR.js";
 import React, { useEffect, useRef, useState } from "react";
 import { Mic, X, Volume2, VolumeX, Send, Sparkles } from "lucide-react";
 import { T } from "../lib/theme.js";
@@ -23,13 +24,6 @@ const MUDO_KEY = "af4:assistente-mudo:v1";
 
 const SR = typeof window !== "undefined" ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
 
-function vozPtBR() {
-  try {
-    const vs = window.speechSynthesis?.getVoices?.() || [];
-    const pt = vs.filter(v => /^pt[-_]BR/i.test(v.lang));
-    return pt.find(v => /luciana|felipe|google|premium|enhanced/i.test(v.name)) || pt[0] || null;
-  } catch { return null; }
-}
 /** Fala e resolve quando terminar (ou por tempo, se o onend não vier — iOS). */
 function falar(texto, mudo) {
   return new Promise((resolve) => {
@@ -37,9 +31,7 @@ function falar(texto, mudo) {
       if (mudo || !window.speechSynthesis || !texto) { resolve(); return; }
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(texto);
-      u.lang = "pt-BR";
-      const v = vozPtBR();
-      if (v) u.voice = v;
+      aplicarVoz(u); // voz masculina pt-BR (lib/vozPtBR)
       u.rate = 1.05;
       u.volume = 1;
       let feito = false;
