@@ -20,6 +20,7 @@ import InfoCvmCard from "./Invest/InfoCvmCard.jsx";
 import { proventosPorCota12m } from "../../lib/mapaDividendos.js";
 import { proventosRecebidosPorTicker } from "../../lib/invest-utils.js";
 import { linhaTempoAtivo } from "../../lib/movimentacoesInvest.js";
+import AtualizarSaldos from "./Invest/AtualizarSaldos.jsx";
 import StatusCotacoes from "../ui/StatusCotacoes.jsx";
 import AnaliseAtivoIAModal from "../modals/AnaliseAtivoIAModal.jsx";
 
@@ -73,6 +74,7 @@ const SEGMENTOS = {
 };
 
 export default function Investimentos({ ativos, setAtivos, contas, setContas, categorias, transacoes, setTransacoes, carteiraProventos, marketStatus, onRefresh, refreshing, onAnalisar, onProjetar, hidden }) {
+  const [atualizarSaldos, setAtualizarSaldos] = useState(false); // 🔄 renda fixa (2026-10-02)
   const [form, setForm] = useState(null);
   const [aporteForm, setAporteForm] = useState(null);
   const [vendaForm, setVendaForm] = useState(null);
@@ -586,6 +588,9 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
               <RefreshCw size={12} className={`inline mr-2 ${refreshing ? "spin" : ""}`} />
               {refreshing ? "Atualizando…" : "Atualizar Mercado"}
             </button>
+            <button className="btn-ghost" onClick={() => setAtualizarSaldos(true)} title="Digite o saldo e o rendimento das aplicações de renda fixa">
+              🔄 Atualizar saldos
+            </button>
             <button className="btn-gold" onClick={() => setForm({ id: null, ticker: "", nome: "", tipo: "acao", segmento: "", conta: "", qtd: "", pm: "", preco: "", base: 0 })}>
               <Plus size={14} className="inline mr-2" />Novo Ativo
             </button>
@@ -593,6 +598,7 @@ export default function Investimentos({ ativos, setAtivos, contas, setContas, ca
         }
       />
 
+      {atualizarSaldos && <AtualizarSaldos ativos={ativos} setAtivos={setAtivos} hidden={hidden} onClose={() => setAtualizarSaldos(false)} />}
       <StatusCotacoes status={marketStatus} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px mb-6 no-print" style={{ background: T.border }}>
