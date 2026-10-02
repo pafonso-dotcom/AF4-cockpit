@@ -6,6 +6,7 @@ import {
   haQuanto, rotuloTema, lerVistas, marcarVistas,
 } from "../../lib/noticias.js";
 import { useLeitorVoz } from "../../lib/useLeitorVoz.js";
+import { vozesPortugues, ehMasculina, vozSalva, salvarVoz, aplicarVoz } from "../../lib/vozPtBR.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Modal from "../ui/Modal.jsx";
 
@@ -83,6 +84,40 @@ function CardNoticia({ n, lida, lendoEsta, onGosto, onLer, onAbrir }) {
   );
 }
 
+// Escolher a voz da leitura (pedido 2026-10-02: voz masculina) + testar.
+function EscolherVoz() {
+  const [lista, setLista] = useState(vozesPortugues);
+  const [nome, setNome] = useState(vozSalva);
+  useEffect(() => { const t = [400, 1500].map(ms => setTimeout(() => setLista(vozesPortugues()), ms)); return () => t.forEach(clearTimeout); }, []);
+  const temHomem = lista.some(ehMasculina);
+  const testar = () => {
+    try {
+      window.speechSynthesis.cancel();
+      const u = aplicarVoz(new SpeechSynthesisUtterance("Olá, Paulo. Estas são as suas manchetes de hoje."));
+      window.speechSynthesis.speak(u);
+    } catch {}
+  };
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: T.ink, marginBottom: 6 }}>🎙️ Voz da leitura</div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        <select value={nome} onChange={e => { setNome(e.target.value); salvarVoz(e.target.value); }}
+                style={{ flex: "1 1 200px", minWidth: 0, width: "auto", padding: "8px 10px", borderRadius: 10 }}>
+          <option value="">Automática (masculina se houver)</option>
+          {lista.map(v => <option key={v.name} value={v.name}>{ehMasculina(v) ? "👨 " : ""}{v.name} · {v.lang}</option>)}
+        </select>
+        <button className="btn-ghost" onClick={testar} style={{ padding: "8px 14px", flex: "0 0 auto", width: "auto" }}>▶ Testar</button>
+      </div>
+      {!temHomem && (
+        <div style={{ fontSize: 12, color: T.gold, marginTop: 8, lineHeight: 1.45 }}>
+          Este aparelho não tem voz masculina em português instalada — por enquanto a leitura sai com a voz disponível em tom mais grave.
+          No iPhone: <b>Ajustes → Acessibilidade → Conteúdo Falado → Vozes → Português (Brasil)</b> e baixe uma voz masculina (ex.: <b>Felipe</b>); depois volte aqui e escolha.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function InteressesModal({ prefs, setPrefs, onClose }) {
   const [palavra, setPalavra] = useState("");
   const alternar = (id) => setPrefs({ ...prefs, temas: prefs.temas.includes(id) ? prefs.temas.filter(x => x !== id) : [...prefs.temas, id] });
@@ -94,6 +129,7 @@ function InteressesModal({ prefs, setPrefs, onClose }) {
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
         {TEMAS.map(t => <button key={t.id} style={chip(prefs.temas.includes(t.id))} onClick={() => alternar(t.id)}>{t.icone} {t.label}</button>)}
       </div>
+      <EscolherVoz />
       <div style={{ fontSize: 13, fontWeight: 700, color: T.ink, marginBottom: 6 }}>🔎 Palavras-chave</div>
       <div style={{ fontSize: 12, color: T.muted, marginBottom: 8 }}>Empresas, times, lugares… ex.: Petrobras, Porto, Tesla.</div>
       <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
