@@ -101,6 +101,14 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
   const [pagFatura, setPagFatura] = useState(null); // { cartaoId, valor, contaNome, data }
   const [pagErrors, setPagErrors] = useState({});
   const [expandedCart, setExpandedCart] = useState(() => new Set());
+  // Baralho "gelatina" (pedido 2026-10-02, referência "cards made of jelly"):
+  // cartões empilhados, abas embaixo, troca com efeito de gelatina.
+  const [modoBaralho, setModoBaralho] = useState(() => { try { return localStorage.getItem("af4:cartoes-baralho") !== "0"; } catch { return true; } });
+  const [cartAtivo, setCartAtivo] = useState(0);
+  const [jellyKey, setJellyKey] = useState(0);
+  const toqueX = React.useRef(null);
+  const irPara = (i) => { if (!cartoes.length) return; const n = (i + cartoes.length) % cartoes.length; setCartAtivo(n); setJellyKey(k => k + 1); };
+  const alternarModo = () => setModoBaralho(m => { const n = !m; try { localStorage.setItem("af4:cartoes-baralho", n ? "1" : "0"); } catch {} return n; });
   // Modal "de onde vem esse valor?" das pendências do mês: { cartao, monthKey }
   const [pendenciasDe, setPendenciasDe] = useState(null);
   const toggleExpandedCart = (id) => {
@@ -823,13 +831,45 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
       {/* Visual cards · grid lado a lado (mesmo padrão das Contas).
           260px de mínimo: com a linha do tempo/melhor dia/limite os cards
           de 180px ficavam estreitos demais (pedido do usuário). */}
-      <div style={{
+      {cartoes.length > 1 && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+          <button onClick={alternarModo} className="cartao-pill" style={{ color: T.muted }}>
+            {modoBaralho ? "▦ VER TODOS" : "▣ BARALHO"}
+          </button>
+        </div>
+      )}
+      <div className={modoBaralho && cartoes.length > 1 ? "baralho" : undefined}
+           onPointerDown={(e) => {
+             if (!modoBaralho) return;
+             toqueX.current = e.clientX;
+             const card = e.target.closest?.(".cartao-black");
+             if (card) { card.classList.remove("jelly-toque"); void card.offsetWidth; card.classList.add("jelly-toque"); }
+           }}
+           onPointerUp={(e) => {
+             if (!modoBaralho || toqueX.current == null) return;
+             const dx = e.clientX - toqueX.current; toqueX.current = null;
+             if (Math.abs(dx) > 60) irPara(cartAtivo + (dx < 0 ? 1 : -1));
+           }}
+           style={modoBaralho && cartoes.length > 1 ? { position: "relative", maxWidth: 440, margin: "34px auto 14px", touchAction: "pan-y" } : {
         display: "grid",
         gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
         gap: 12,
         marginBottom: 30,
       }}>
+        {/* Cartas de trás do baralho (só a borda aparece, na cor do banco) */}
+        {modoBaralho && cartoes.length > 1 && [2, 1].map(d => {
+          if (cartoes.length <= d) return null;
+          const atras = cartoes[(Math.min(cartAtivo, cartoes.length - 1) + d) % cartoes.length];
+          const b = brandDoCartao(atras);
+          return (
+            <div key={"atras" + d + atras.id} aria-hidden className="baralho-atras"
+                 style={{ position: "absolute", left: d * 10, right: d * 10, top: -d * 11, aspectRatio: "1.586 / 1", maxHeight: 230,
+                          borderRadius: 18, background: b.bg, transform: `rotate(${d === 1 ? -2.2 : 2.6}deg)`, opacity: 0.9,
+                          boxShadow: "0 10px 24px rgba(0,0,0,.25), inset 0 2px 0 rgba(255,255,255,.25)" }} />
+          );
+        })}
         {cartoes.map((c, iCard) => {
+          if (modoBaralho && cartoes.length > 1 && iCard !== Math.min(cartAtivo, cartoes.length - 1)) return null;
           // Card SEMPRE bege (CARD_PAPEL), mesmo no modo noturno — T sombreado.
           const T = CARD_PAPEL;
           // If c.banco is "custom", use c.bandeiraCustom; otherwise look up in BANK_BRANDS
@@ -867,8 +907,9 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           // Diferença = compras à vista + fixas da fatura (o que não é parcela).
           const extrasMes = Math.max(0, aPagar - parcelasMes);
           return (
-            <div key={c.id}
+            <div key={c.id + (modoBaralho ? "-" + jellyKey : "")} className={modoBaralho && cartoes.length > 1 ? "jelly-entra" : undefined}
                  style={{
+                   position: "relative",
                    "--i": iCard,
                    background: exp ? T.card : "transparent",
                    border: exp ? `1px solid ${ativaCard ? T.gold : T.border}` : "none",
@@ -1135,6 +1176,24 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
             </div>
           );
         })}
+        {/* Abas do baralho (estilo da referência: ponto na cor do banco) */}
+        {modoBaralho && cartoes.length > 1 && (
+          <div className="baralho-abas" style={{ display: "flex", gap: 4, padding: 4, borderRadius: 16, background: T.bgSoft, marginTop: 14, overflowX: "auto" }}>
+            {cartoes.map((c, i) => {
+              const on = i === Math.min(cartAtivo, cartoes.length - 1);
+              const b = brandDoCartao(c);
+              const cor = (String(b.bg).match(/#[0-9a-f]{6}/i) || [T.gold])[0];
+              return (
+                <button key={c.id} onClick={() => irPara(i)}
+                        style={{ flex: "1 0 auto", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "9px 12px",
+                                 borderRadius: 12, border: "none", cursor: "pointer", fontSize: 12.5, fontWeight: on ? 700 : 500, whiteSpace: "nowrap", minHeight: 0,
+                                 background: on ? T.card : "transparent", color: on ? T.ink : T.muted, boxShadow: on ? "0 2px 8px rgba(0,0,0,.15)" : "none" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: cor }} />{c.nome}
+                </button>
+              );
+            })}
+          </div>
+        )}
         {cartoes.length === 0 && (
           <div className="md:col-span-2 lg:col-span-3">
             <Vazio icone="💳" texto="Nenhum cartão cadastrado ainda — cadastre o primeiro e acompanhe fatura, parcelas e melhor dia de compra."
