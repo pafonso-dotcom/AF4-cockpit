@@ -748,9 +748,6 @@ export default function Dashboard({
         <BlocoSeguro nome="GastosRoscaCard"><GastosRoscaCard data={gastosCat} hidden={hidden} /></BlocoSeguro>
       </section>
 
-      {/* Próximas viagens com previsão de gasto (2026-10-02) — SÓ VISUAL:
-          não entra em saldo, fluxo, "pode gastar" nem patrimônio. */}
-      <BlocoSeguro nome="ViagensCard"><ViagensCard viagens={viagens} hidden={hidden} onVer={() => onTabChange?.("voos")} /></BlocoSeguro>
 
       {/* Linha 3: Contas · Cartões */}
       <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
@@ -784,6 +781,10 @@ export default function Dashboard({
         </section>
       )}
 
+
+      {/* Próximas viagens com previsão de gasto (2026-10-02) — SÓ VISUAL, no fim
+          do Painel e com opção de ocultar (não entra em saldo/fluxo/patrimônio). */}
+      <BlocoSeguro nome="ViagensCard"><ViagensCard viagens={viagens} hidden={hidden} onVer={() => onTabChange?.("voos")} /></BlocoSeguro>
 
       {/* Normalmente o wrapper .dash-prox some do fluxo (o Card vira item do grid);
           no mobile ele é escondido junto com os atalhos, liberando a largura toda. */}

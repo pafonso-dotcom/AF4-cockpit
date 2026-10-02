@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useDolar, useEuro } from "../../lib/useDolar.js";
 import { resumoOrcamento, duracaoViagem } from "../../lib/orcamentoViagem.js";
 import ViagemOrcamento from "./ViagemOrcamento.jsx";
+import { linksBuscaVoos, salvarOrigemPadrao, origemPadrao } from "../../lib/buscaVoos.js";
 import { Plane, Search, Bell, Trash2, TrendingDown, RefreshCw, ArrowRightLeft } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { uid, fmt } from "../../lib/format.js";
@@ -57,7 +58,7 @@ export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {}, 
   const temChaves = !!(creds.key && creds.secret);
 
   // ---- Busca ----
-  const [busca, setBusca] = useState({ origem: "GRU", destino: "LIS", dataIda: "", dataVolta: "", adultos: 1, semEscala: false });
+  const [busca, setBusca] = useState({ origem: origemPadrao(), destino: "LIS", dataIda: "", dataVolta: "", adultos: 1, semEscala: false });
   const [buscando, setBuscando] = useState(false);
   const [ofertas, setOfertas] = useState(null); // null = nunca buscou
   const [filtros, setFiltros] = useState({ semEscala: false, cias: [], janela: "" });
@@ -142,13 +143,8 @@ export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {}, 
 
   return (
     <div className="fade-up py-8">
-      <PageHeader eyebrow="Agenda" title="Voos" sub="Busca passagens, monitora o preço-alvo e mostra o mês mais barato — API grátis do Amadeus." />
+      <PageHeader eyebrow="Agenda" title="Voos" sub="Pesquise passagens com preço real (sem reserva, só busca) e organize o orçamento das viagens." />
 
-      {!temChaves && (
-        <div style={{ background: `${T.gold}12`, border: `1px solid ${T.gold}66`, borderRadius: 16, padding: "12px 16px", marginBottom: 16, fontSize: 12.5, color: T.ink }}>
-          ✈️ Pra ativar: cria uma conta grátis em <strong>developers.amadeus.com</strong>, gera <strong>API Key + Secret</strong> e cola em <strong>Configurações → APIs</strong>. Leva 5 minutos e não tem custo.
-        </div>
-      )}
 
       {/* ---- BUSCA ---- */}
       <div className="card-vivo" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
@@ -186,10 +182,32 @@ export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {}, 
             <input type="checkbox" checked={busca.semEscala} onChange={e => setBusca(b => ({ ...b, semEscala: e.target.checked }))} />
             Só voo direto
           </label>
-          <button className="btn-gold" onClick={buscar} disabled={buscando} style={{ padding: "9px 18px" }}>
-            {buscando ? "Buscando…" : <><Search size={13} className="inline mr-1" /> Buscar voos</>}
-          </button>
+          {temChaves && (
+            <button className="btn-ghost" onClick={buscar} disabled={buscando} style={{ padding: "9px 14px" }} title="Busca dentro do app pela API Amadeus">
+              {buscando ? "Buscando…" : <><Search size={13} className="inline mr-1" /> No app (Amadeus)</>}
+            </button>
+          )}
         </div>
+        {/* Busca SEM cadastro (2026-10-02): abre a pesquisa pronta nos buscadores — só busca, sem reserva. */}
+        {(() => {
+          const links = linksBuscaVoos({ origem: busca.origem, destino: busca.destino, ida: busca.dataIda, volta: busca.dataVolta, adultos: busca.adultos });
+          const pronto = !!busca.destino;
+          return (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 14 }}>
+              <span style={{ fontSize: 12, color: T.muted, fontWeight: 700 }}>🔎 Pesquisar preços reais em:</span>
+              {links.map(l => (
+                <a key={l.id} href={pronto ? l.url : undefined} target="_blank" rel="noopener noreferrer"
+                   onClick={(e) => { if (!pronto) { e.preventDefault(); toast.info("Preencha pelo menos o destino."); } else salvarOrigemPadrao(busca.origem); }}
+                   className={l.id === "google" ? "btn-gold" : "btn-ghost"}
+                   style={{ padding: "8px 14px", fontSize: 11.5, textDecoration: "none", opacity: pronto ? 1 : 0.55 }}>
+                  {l.nome} ↗
+                </a>
+              ))}
+              {pronto && links.length === 1 && <span style={{ fontSize: 11, color: T.faint }}>Skyscanner e Kayak aparecem com códigos de 3 letras (ex.: GRU → LIS) e data de ida.</span>}
+            </div>
+          );
+        })()}
+        <div style={{ fontSize: 11, color: T.faint, marginTop: 8 }}>O app não faz reserva: abre a busca no site, você compara e anota o preço no orçamento da viagem.</div>
       </div>
 
       {/* ---- RESULTADOS ---- */}

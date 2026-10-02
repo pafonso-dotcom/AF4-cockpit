@@ -8,6 +8,7 @@ import {
   duracaoViagem, resumoOrcamento, estimarOrcamento,
 } from "../../lib/orcamentoViagem.js";
 import Modal from "../ui/Modal.jsx";
+import { linksBuscaVoos, origemPadrao, salvarOrigemPadrao } from "../../lib/buscaVoos.js";
 
 export const CORES_VIAGEM = ["#4DD9C0", "#e0b45c", "#6f9bd1", "#d97a6c", "#9b8cd6", "#7fbf7f", "#c9a0a0", "#8fb8c9", "#b0a07a"];
 const novoId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -39,6 +40,8 @@ export default function ViagemOrcamento({ viagem, cambio = {}, hidden, onSalvar,
   const [orc, setOrc] = useState(() => ({ pessoas: 2, itens: [], milheiro: {}, ...(viagem.orcamento || {}) }));
   const [estilo, setEstilo] = useState("conforto");
   const [verMilheiro, setVerMilheiro] = useState(false);
+  const [vooOrig, setVooOrig] = useState(origemPadrao);
+  const [vooDest, setVooDest] = useState(viagem.destino || "");
   const dur = duracaoViagem(viagem);
   const r = useMemo(() => resumoOrcamento(orc, cambio, dur), [orc, cambio, dur.dias]);
   const oc = (v) => hidden ? "•••" : fmt(v);
@@ -98,6 +101,18 @@ export default function ViagemOrcamento({ viagem, cambio = {}, hidden, onSalvar,
         </div>
       )}
       {r.semCambio && <div style={{ fontSize: 11.5, color: T.gold, marginBottom: 6 }}>⚠ Câmbio do dia ainda não carregou — valores em €/US$ ficam fora do total por enquanto.</div>}
+
+      {/* Buscar voos desta viagem (sem reserva — abre os buscadores com as datas) */}
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", padding: 10, borderRadius: 14, background: T.bgSoft, marginTop: 10 }}>
+        <span style={{ fontSize: 12.5, color: T.muted, fontWeight: 700 }}>🔎 Buscar voos:</span>
+        <input value={vooOrig} onChange={e => setVooOrig(e.target.value.toUpperCase())} placeholder="GRU" style={{ ...inp, width: 64, flex: "0 0 64px", textAlign: "center" }} />
+        <span style={{ color: T.faint }}>→</span>
+        <input value={vooDest} onChange={e => setVooDest(e.target.value)} placeholder="LIS ou cidade" style={{ ...inp, flex: "1 1 120px" }} />
+        {linksBuscaVoos({ origem: vooOrig, destino: vooDest, ida: viagem.inicio, volta: viagem.fim !== viagem.inicio ? viagem.fim : "", adultos: orc.pessoas }).map(l => (
+          <a key={l.id} href={vooDest ? l.url : undefined} target="_blank" rel="noopener noreferrer" onClick={() => salvarOrigemPadrao(vooOrig)}
+             className="btn-ghost" style={{ padding: "6px 10px", fontSize: 11, textDecoration: "none", opacity: vooDest ? 1 : 0.5 }}>{l.nome} ↗</a>
+        ))}
+      </div>
 
       {/* Estimativa rápida */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", padding: 10, borderRadius: 14, border: `1px dashed ${T.border}`, margin: "10px 0 16px" }}>

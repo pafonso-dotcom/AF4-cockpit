@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { T } from "../../lib/theme.js";
 import { fmt, fmtN } from "../../lib/format.js";
 import { useDolar, useEuro } from "../../lib/useDolar.js";
@@ -13,12 +13,22 @@ import Card from "../ui/Card.jsx";
  */
 export default function ViagensCard({ viagens = [], hidden, onVer }) {
   const usd = useDolar(), eur = useEuro();
+  // Ocultar o card (fica salvo no aparelho); quando oculto vira uma linha discreta.
+  const [oculto, setOculto] = useState(() => { try { return localStorage.getItem("af4:painel-viagens-oculto") === "1"; } catch { return false; } });
+  const alternar = () => setOculto(o => { const n = !o; try { localStorage.setItem("af4:painel-viagens-oculto", n ? "1" : "0"); } catch {} return n; });
   const hoje = new Date().toISOString().slice(0, 10);
   const lista = useMemo(() => (viagens || [])
     .filter(v => v.inicio && (v.fim || v.inicio) >= hoje)
     .sort((a, b) => a.inicio.localeCompare(b.inicio))
     .map(v => ({ v, r: resumoOrcamento(v.orcamento, { USD: usd, EUR: eur }, duracaoViagem(v)) })), [viagens, usd, eur, hoje]);
   if (!lista.length) return null;
+  if (oculto) {
+    return (
+      <button onClick={alternar} style={{ width: "100%", marginBottom: 14, padding: "10px 14px", borderRadius: 14, border: `1px dashed ${T.border}`, background: "transparent", color: T.muted, cursor: "pointer", fontSize: 12.5, textAlign: "left" }}>
+        ✈️ Próximas viagens ({lista.length}) · mostrar
+      </button>
+    );
+  }
 
   const oc = (x) => hidden ? "•••" : fmt(x);
   const faltam = (v) => {
@@ -36,7 +46,10 @@ export default function ViagensCard({ viagens = [], hidden, onVer }) {
     <Card style={{ marginBottom: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8 }}>
         <span style={{ fontSize: 16, fontWeight: 600, color: T.ink }}>✈️ Próximas viagens</span>
-        <span style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "3px 8px" }}>só previsão · não mexe nos saldos</span>
+        <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "3px 8px" }}>só previsão</span>
+          <button onClick={alternar} title="Ocultar este quadro (dá pra mostrar de novo)" style={{ fontSize: 11, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "3px 8px", background: "transparent", cursor: "pointer", minHeight: 0 }}>ocultar</button>
+        </span>
       </div>
 
       <div className="painel-rosca" style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
