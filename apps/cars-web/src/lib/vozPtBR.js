@@ -52,8 +52,11 @@ export function escolherVozPtBR() {
     .sort((a, b) => (/natural|premium|enhanced|online/i.test(b.name) ? 1 : 0) - (/natural|premium|enhanced|online/i.test(a.name) ? 1 : 0))[0]
     || pt.find(ehMasculina);
   if (homem) return { voz: homem, pitch: 1 };
-  // Sem voz masculina instalada: a disponível, bem mais grave.
-  return { voz: br[0] || pt[0] || null, pitch: 0.55 };
+  // Sem voz masculina VISÍVEL pro navegador (Safari esconde as vozes baixadas,
+  // ex.: Felipe): não força voz nenhuma — o sistema usa a voz padrão do
+  // português que você escolheu no Mac/iPhone (Conteúdo Falado). Antes caía
+  // na Luciana com tom grave.
+  return { voz: null, pitch: 1 };
 }
 
 /** Aplica a voz escolhida numa fala. */
