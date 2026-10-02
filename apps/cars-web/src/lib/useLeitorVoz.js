@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { aplicarVoz } from "./vozPtBR.js";
 
 /**
  * Lê uma lista de textos em voz alta, um atrás do outro (voz do aparelho, pt-BR).
@@ -11,17 +12,11 @@ export function useLeitorVoz() {
   const sessao = useRef(0); // invalida callbacks de falas canceladas
   const ok = typeof window !== "undefined" && "speechSynthesis" in window;
 
-  const voz = () => {
-    const vs = ok ? window.speechSynthesis.getVoices() : [];
-    return vs.find(v => /pt-BR/i.test(v.lang) && /Luciana|Google|Natural|Premium|Enhanced/i.test(v.name))
-      || vs.find(v => /pt-BR/i.test(v.lang)) || vs.find(v => /^pt/i.test(v.lang)) || null;
-  };
   const falar = (i, tok = sessao.current) => {
     if (tok !== sessao.current) return;
     if (i >= fila.current.length) { setAtual(-1); return; }
     const u = new SpeechSynthesisUtterance(fila.current[i]);
-    u.lang = "pt-BR"; u.rate = 1.05;
-    const v = voz(); if (v) u.voice = v;
+    aplicarVoz(u); u.rate = 1.05; // voz masculina pt-BR (lib/vozPtBR)
     u.onend = () => falar(i + 1, tok);
     u.onerror = () => { if (tok === sessao.current) setAtual(-1); };
     setAtual(i);
