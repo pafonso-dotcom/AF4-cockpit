@@ -867,12 +867,12 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
           // Diferença = compras à vista + fixas da fatura (o que não é parcela).
           const extrasMes = Math.max(0, aPagar - parcelasMes);
           return (
-            <div key={c.id} className="card-vivo"
+            <div key={c.id}
                  style={{
                    "--i": iCard,
-                   background: ativaCard ? `${T.gold}10` : T.card,
-                   border: `1px solid ${ativaCard ? T.gold : T.border}`,
-                   borderRadius: 16, overflow: "hidden",
+                   background: exp ? T.card : "transparent",
+                   border: exp ? `1px solid ${ativaCard ? T.gold : T.border}` : "none",
+                   borderRadius: 20, padding: exp ? 10 : 0,
                    transition: "all .15s",
                    display: "flex", flexDirection: "column",
                    // Expandido: ocupa a largura toda da grade pra os detalhes/ações respirarem.
@@ -900,51 +900,73 @@ export default function Cartoes({ cartoes, setCartoes, parcelamentos, setParcela
                 const lim = Number(c.limite) >= 100 ? Number(c.limite) : 0;
                 const usadoLimite = lim ? usado + avulsasPendentesNoMes(c, transacoes, "9999-12", { incluirAnteriores: true }) : 0;
                 const pct = lim ? Math.min(100, (usadoLimite / lim) * 100) : 0;
+                const fech = Number(c.fechamento) || null;
+                const proxDia = (dia) => {
+                  if (!dia) return null;
+                  const alvo = new Date(hj.getFullYear(), hj.getMonth() + (hj.getDate() > dia ? 1 : 0), Math.min(dia, 28));
+                  return { dias: Math.round((alvo - new Date(hj.getFullYear(), hj.getMonth(), hj.getDate())) / 86400000), data: alvo };
+                };
+                const ddmm = (d) => d ? `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}` : "";
+                const pf = proxDia(fech), pv = proxDia(venc);
+                const corStatus = status === "paga" ? "#5fd08a" : status === "urgente" ? "#ff6b6b" : "rgba(255,255,255,.6)";
+                const txtStatus = status === "paga" ? "FATURA PAGA" : status === "urgente" ? (diasVenc === 0 ? "VENCE HOJE" : `VENCE EM ${diasVenc} DIA${diasVenc === 1 ? "" : "S"}`) : status === "sem" ? "SEM FATURA EM ABERTO" : `FATURA ATUAL${pv ? ` · VENCE ${ddmm(pv.data)}` : ""}`;
                 return (
+                  <>
                   <div onClick={() => onCartaoClick && onCartaoClick({ ...c, usado, faturaAtual: aPagar })}
-                       className="cartao-visual"
+                       className="cartao-visual cartao-black"
                        style={{
-                         // Tom da marca CLARO/pastel (pedido 2026-10-01: "no tom, só que
-                         // mais claro, não tão berrante"): fundo claro + camada da marca suave.
-                         position: "relative", background: "#f7f4ee", color: "#23262b",
-                         padding: "14px 16px 13px", minHeight: 158, cursor: onCartaoClick ? "pointer" : "default",
-                         flex: exp ? "none" : 1,
-                         display: "flex", flexDirection: "column", borderRadius: exp ? "14px 14px 0 0" : 14,
+                         // Visual "cartão black" (pedido 2026-10-02, referência enviada):
+                         // grafite escuro, chip dourado, valor grande e nome espaçado.
+                         position: "relative", color: "#f2f2f4", overflow: "hidden",
+                         background: "linear-gradient(135deg, #34363d 0%, #1d1f24 45%, #0e0f12 100%)",
+                         boxShadow: "0 14px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08)",
+                         padding: "16px 18px 15px", minHeight: 176, cursor: onCartaoClick ? "pointer" : "default",
+                         display: "flex", flexDirection: "column", borderRadius: 18, aspectRatio: "1.586 / 1", maxHeight: 230,
                        }}>
-                    <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", pointerEvents: "none", background: brand.bg, opacity: 0.26 }} />
-                    {/* brilho de plástico */}
-                    <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", pointerEvents: "none",
-                      background: "radial-gradient(120% 80% at 100% 0%, rgba(255,255,255,.45) 0%, transparent 55%)" }} />
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
-                      <BankIcon c={c} size={30} />
-                      <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
-                      <button onClick={(e) => { e.stopPropagation(); toggleExpandedCart(c.id); }}
-                              aria-label={exp ? "Recolher" : "Mais detalhes e ações"} title={exp ? "Recolher" : "Detalhes e ações"}
-                              style={{ background: "rgba(0,0,0,.06)", border: "none", color: "#23262b", borderRadius: 8, width: 28, height: 28, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                        <ChevronDown size={16} style={{ transform: exp ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
-                      </button>
-                    </div>
-                    {/* "chip" do cartão */}
-                    <div aria-hidden style={{ position: "relative", width: 30, height: 22, borderRadius: 5, marginTop: 12,
-                      background: "linear-gradient(135deg, #f3d98b 0%, #c9a648 55%, #e8cf7a 100%)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.18)" }} />
-                    <div style={{ flex: 1, minHeight: 6 }} />
-                    <div style={{ position: "relative", fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", opacity: 0.8, fontWeight: 700 }}>
-                      Fatura em aberto
-                    </div>
-                    <div className="num" style={{ position: "relative", fontSize: 26, fontWeight: 700, letterSpacing: "-.02em", whiteSpace: "nowrap", lineHeight: 1.15 }}>
-                      {hidden ? "•••" : fmt(faturaAberta || 0)}
-                    </div>
-                    <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: chip.bg, color: chip.fg, whiteSpace: "nowrap" }}>{chip.txt}</span>
-                      {lim > 0 && <span className="num" style={{ fontSize: 11, opacity: 0.85, whiteSpace: "nowrap" }}>{pct.toFixed(0)}% do limite</span>}
-                    </div>
-                    {lim > 0 && (
-                      <div style={{ position: "relative", height: 4, borderRadius: 100, background: "rgba(0,0,0,.09)", overflow: "hidden", marginTop: 7 }}
-                           title={`Limite usado: ${fmt(usadoLimite)} de ${fmt(lim)}`}>
-                        <div style={{ width: `${pct}%`, height: "100%", borderRadius: 100, background: pct >= 85 ? "#d64545" : "rgba(35,38,43,.55)" }} />
+                    {/* reflexo diagonal */}
+                    <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none",
+                      background: "linear-gradient(115deg, transparent 30%, rgba(255,255,255,.07) 45%, transparent 60%)" }} />
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", position: "relative" }}>
+                      {/* chip */}
+                      <div aria-hidden style={{ width: 40, height: 30, borderRadius: 6, position: "relative",
+                        background: "linear-gradient(135deg, #f1d68c 0%, #c7a24a 50%, #e9cf7c 100%)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.25)" }}>
+                        <div style={{ position: "absolute", left: "50%", top: 4, bottom: 4, width: 1, background: "rgba(0,0,0,.28)" }} />
+                        <div style={{ position: "absolute", top: "50%", left: 4, right: 4, height: 1, background: "rgba(0,0,0,.28)" }} />
                       </div>
+                      <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: ".02em" }}>{brand.nome && brand.nome !== "Outro" ? brand.nome : ""}</div>
+                          {lim > 0 && <div style={{ fontSize: 9, letterSpacing: ".14em", color: pct >= 85 ? "#ff8a8a" : "rgba(255,255,255,.5)", marginTop: 2 }}>{pct.toFixed(0)}% DO LIMITE</div>}
+                        </div>
+                        <BankIcon c={c} size={26} />
+                      </div>
+                    </div>
+                    <div style={{ flex: 1, minHeight: 8 }} />
+                    <div style={{ position: "relative", fontSize: 9.5, letterSpacing: ".16em", color: corStatus, fontWeight: 700 }}>{txtStatus}</div>
+                    <div style={{ position: "relative", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+                      <div className="num" style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-.01em", whiteSpace: "nowrap", lineHeight: 1.15 }}>
+                        {hidden ? "•••" : fmt(faturaAberta || 0)}
+                      </div>
+                      {(pf || pv) && (
+                        <div style={{ fontSize: 9, letterSpacing: ".12em", color: "rgba(255,255,255,.55)", whiteSpace: "nowrap" }}>
+                          {pf ? `FECHA EM ${pf.dias} DIA${pf.dias === 1 ? "" : "S"}` : ""}{pf && pv ? " · " : ""}{pv ? `VENCE ${ddmm(pv.data)}` : ""}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ position: "relative", marginTop: 10, fontSize: 12, fontWeight: 700, letterSpacing: ".18em", textTransform: "uppercase",
+                                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
+                  </div>
+                  {/* Ações abaixo do cartão */}
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
+                    <button onClick={(e) => { e.stopPropagation(); toggleExpandedCart(c.id); }} className="cartao-pill"
+                            aria-label={exp ? "Recolher" : "Mais detalhes e ações"}>
+                      {exp ? "FECHAR" : "DETALHES"} <ChevronDown size={12} style={{ transform: exp ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+                    </button>
+                    {onCartaoClick && (
+                      <button onClick={() => onCartaoClick({ ...c, usado, faturaAtual: aPagar })} className="cartao-pill">VER FATURA →</button>
                     )}
                   </div>
+                  </>
                 );
               })()}
               {/* Filhos — expandido */}
