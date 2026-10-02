@@ -891,7 +891,7 @@ export default function App() {
   const renderFinancas = () => (
     <div className="px-6 md:px-10">
       {tab === "dashboard" && (
-        <Dashboard totais={totais} hidden={hidden} contas={contas} ativos={ativos}
+        <Dashboard totais={totais} hidden={hidden} contas={contas} ativos={ativos} viagens={viagens}
                    transacoes={transacoes} categorias={categorias} metas={metas}
                    orcamentosFuturos={orcamentosFuturos} setOrcamentosFuturos={setOrcamentosFuturos}
                    carteiraProventos={carteiraProventos}

@@ -28,6 +28,7 @@ import { uid } from "../../lib/format.js";
 import { useDolar } from "../../lib/useDolar.js";
 import { calcOrcamentoCompra, resumoOrcamentos } from "../../lib/orcamentosFuturos.js";
 import Card, { SoftCardContext } from "../ui/Card.jsx";
+import ViagensCard from "./ViagensCard.jsx";
 import Letreiro, { LetRotulo, LetValor } from "../ui/Letreiro.jsx";
 import Modal from "../ui/Modal.jsx";
 import { Sparkline, RingIcon } from "../ui/widget.jsx";
@@ -205,7 +206,7 @@ export default function Dashboard({
   carteiraProventos = { saldo: 0 },
   proventosRecebidos = {}, proventosIgnorados = {}, proventosManuais = [],
   fixas = [], fixaOcorrencias = [],
-  agenda = [], lembretes = [], tarefas = [],
+  agenda = [], lembretes = [], tarefas = [], viagens = [],
   patrimonioHistorico = [],
   escopoAtivo = "tudo",
   onTabChange, onContaClick, onQuickAction,
@@ -746,6 +747,10 @@ export default function Dashboard({
         <BlocoSeguro nome="CalendarioWidgetCard"><CalendarioWidgetCard stateAgg={stateAgg} escopoAtivo={escopoAtivo} agenda={agenda} hidden={hidden} onVer={() => onTabChange?.("calendario")} /></BlocoSeguro>
         <BlocoSeguro nome="GastosRoscaCard"><GastosRoscaCard data={gastosCat} hidden={hidden} /></BlocoSeguro>
       </section>
+
+      {/* Próximas viagens com previsão de gasto (2026-10-02) — SÓ VISUAL:
+          não entra em saldo, fluxo, "pode gastar" nem patrimônio. */}
+      <BlocoSeguro nome="ViagensCard"><ViagensCard viagens={viagens} hidden={hidden} onVer={() => onTabChange?.("voos")} /></BlocoSeguro>
 
       {/* Linha 3: Contas · Cartões */}
       <section className="painel-dupla" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>

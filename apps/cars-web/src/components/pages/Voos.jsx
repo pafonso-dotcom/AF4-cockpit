@@ -1,4 +1,7 @@
 import React, { useMemo, useState } from "react";
+import { useDolar, useEuro } from "../../lib/useDolar.js";
+import { resumoOrcamento, duracaoViagem } from "../../lib/orcamentoViagem.js";
+import ViagemOrcamento from "./ViagemOrcamento.jsx";
 import { Plane, Search, Bell, Trash2, TrendingDown, RefreshCw, ArrowRightLeft } from "lucide-react";
 import { T } from "../../lib/theme.js";
 import { uid, fmt } from "../../lib/format.js";
@@ -47,6 +50,9 @@ function LinhaItinerario({ it, rotulo }) {
 
 export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {}, viagens = [], setViagens }) {
   const [vForm, setVForm] = useState({ titulo: "", destino: "", inicio: "", fim: "" });
+  const [orcViagemId, setOrcViagemId] = useState(null); // ficha de orçamento aberta
+  const usd = useDolar(), eur = useEuro();
+  const cambio = useMemo(() => ({ USD: usd, EUR: eur }), [usd, eur]);
   const creds = { key: apiKeys.amadeusKey, secret: apiKeys.amadeusSecret };
   const temChaves = !!(creds.key && creds.secret);
 
@@ -434,8 +440,13 @@ export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {}, 
           setVForm({ titulo: "", destino: "", inicio: "", fim: "" });
           toast.success(`✈️ "${t}" programada!`);
         };
+        const viagemOrc = (viagens || []).find(x => x.id === orcViagemId);
         return (
           <div style={{ marginTop: 26 }}>
+            {viagemOrc && (
+              <ViagemOrcamento viagem={viagemOrc} cambio={cambio} onClose={() => setOrcViagemId(null)}
+                               onSalvar={(orc) => setViagens(prev => (prev || []).map(x => x.id === viagemOrc.id ? { ...x, orcamento: orc } : x))} />
+            )}
             <div className="label-eyebrow" style={{ marginBottom: 10 }}>🗓 Viagens & excursões programadas</div>
             {/* form */}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
@@ -476,6 +487,22 @@ export default function Voos({ voos = { monitores: [] }, setVoos, apiKeys = {}, 
                       {v.destino && <span style={{ fontSize: 11.5, color: T.muted }}>📍 {v.destino}</span>}
                       <span className="num" style={{ fontSize: 11.5, color: T.muted }}>{br(v.inicio)}{fim !== v.inicio ? ` → ${br(fim)}` : ""}</span>
                       <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: status.c }}>{status.t}</span>
+                      {(() => {
+                        const r = resumoOrcamento(v.orcamento, cambio, duracaoViagem(v));
+                        const tem = r.total > 0;
+                        return (
+                          <button onClick={() => setOrcViagemId(v.id)} title="Orçamento da viagem"
+                                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 99, cursor: "pointer", fontSize: 11.5, fontWeight: 700,
+                                           border: `1px solid ${tem ? T.gold : T.border}`, background: tem ? `${T.gold}14` : "transparent", color: tem ? T.ink : T.muted }}>
+                            💰 {tem ? <span className="num">{fmt(r.previsto)}{r.milhas ? ` + ${Math.round(r.milhas / 1000)} mil milhas` : ""}</span> : "Orçamento"}
+                            {tem && r.previsto > 0 && (
+                              <span style={{ width: 36, height: 4, borderRadius: 99, background: T.bgSoft, overflow: "hidden", display: "inline-block" }}>
+                                <span style={{ display: "block", width: `${r.pctPago}%`, height: "100%", background: T.green }} />
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })()}
                       <button onClick={() => setViagens((viagens || []).filter(x => x.id !== v.id))} title="Excluir viagem"
                               style={{ background: "transparent", border: "none", color: T.red, cursor: "pointer", padding: 4 }}>🗑</button>
                     </div>
