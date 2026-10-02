@@ -965,3 +965,29 @@ img, svg, video, canvas { max-width: 100%; height: auto; }
   background: transparent; border: 1px solid var(--tb, rgba(128,128,128,.35)); color: inherit; opacity: .85;
 }
 .cartao-pill:hover { opacity: 1; }
+
+/* ===== Baralho "gelatina" (Cartões · 2026-10-02) =====
+   Entrada: o cartão chega achatando e esticando até assentar.
+   Toque: afunda e volta balançando. "Reduzir movimento" desliga. */
+.jelly-entra { animation: jellyEntra .75s cubic-bezier(.2,.8,.2,1) both; transform-origin: 50% 85%; }
+@keyframes jellyEntra {
+  0%   { opacity: 0; transform: translateY(22px) scale(.9, .9); }
+  30%  { opacity: 1; transform: translateY(0) scale(1.07, .93); }
+  50%  { transform: scale(.95, 1.06); }
+  66%  { transform: scale(1.03, .98); }
+  82%  { transform: scale(.99, 1.015); }
+  100% { transform: scale(1, 1); }
+}
+.baralho .cartao-black.jelly-toque { animation: jellyToque .6s ease-out; transform-origin: 50% 90%; }
+@keyframes jellyToque {
+  0%   { transform: scale(1, 1); }
+  25%  { transform: scale(1.05, .92); }
+  45%  { transform: scale(.96, 1.05); }
+  65%  { transform: scale(1.02, .98); }
+  82%  { transform: scale(.995, 1.008); }
+  100% { transform: scale(1, 1); }
+}
+.baralho-atras { animation: jellyAtras .8s ease-out both; }
+@keyframes jellyAtras { 0% { transform: translateY(10px) scale(.96); } 60% { transform: translateY(-2px) scale(1.01); } }
+.baralho .cartao-black { box-shadow: 0 18px 34px rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.12), inset 0 -6px 14px rgba(0,0,0,.35) !important; }
+@media (prefers-reduced-motion: reduce) { .jelly-entra, .baralho .cartao-black.jelly-toque, .baralho-atras { animation: none !important; } }
