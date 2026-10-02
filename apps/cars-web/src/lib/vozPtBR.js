@@ -30,10 +30,22 @@ export const ehMasculina = (v) => !!v && MASC.test(v.name) && !FEM.test(v.name);
 export function vozSalva() { try { return localStorage.getItem(K_NOME) || ""; } catch { return ""; } }
 export function salvarVoz(nome) { try { nome ? localStorage.setItem(K_NOME, nome) : localStorage.removeItem(K_NOME); } catch {} }
 
+/** Todas as vozes do aparelho (português primeiro) — pro seletor. */
+export function todasVozes() {
+  const vs = atualizar();
+  const pt = vs.filter(v => /^pt/i.test(v.lang));
+  return [...pt, ...vs.filter(v => !/^pt/i.test(v.lang))];
+}
+// "Voz do sistema": não escolhe voz nem idioma — o navegador usa a voz
+// configurada no computador/celular (ex.: Felipe no Mac), mesmo quando ela
+// não aparece na lista do navegador (Safari esconde algumas).
+export const VOZ_SISTEMA = "__sistema__";
+
 export function escolherVozPtBR() {
-  const pt = vozesPortugues();
   const nome = vozSalva();
-  const escolhida = nome && pt.find(v => v.name === nome);
+  if (nome === VOZ_SISTEMA) return { sistema: true };
+  const pt = vozesPortugues();
+  const escolhida = nome && (pt.find(v => v.name === nome) || todasVozes().find(v => v.name === nome));
   if (escolhida) return { voz: escolhida, pitch: 1 };
   const br = pt.filter(v => /BR/i.test(v.lang));
   const homem = (br.length ? br : pt).filter(ehMasculina)
@@ -46,7 +58,8 @@ export function escolherVozPtBR() {
 
 /** Aplica a voz escolhida numa fala. */
 export function aplicarVoz(u) {
-  const { voz, pitch } = escolherVozPtBR();
+  const { voz, pitch, sistema } = escolherVozPtBR();
+  if (sistema) return u; // sem voice/lang: fala com a voz padrão do sistema
   u.lang = voz?.lang || "pt-BR";
   if (voz) u.voice = voz;
   u.pitch = pitch;

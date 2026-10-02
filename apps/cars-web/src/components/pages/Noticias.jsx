@@ -6,7 +6,7 @@ import {
   haQuanto, rotuloTema, lerVistas, marcarVistas,
 } from "../../lib/noticias.js";
 import { useLeitorVoz } from "../../lib/useLeitorVoz.js";
-import { vozesPortugues, ehMasculina, vozSalva, salvarVoz, aplicarVoz } from "../../lib/vozPtBR.js";
+import { vozesPortugues, todasVozes, ehMasculina, vozSalva, salvarVoz, aplicarVoz, VOZ_SISTEMA } from "../../lib/vozPtBR.js";
 import PageHeader from "../ui/PageHeader.jsx";
 import Modal from "../ui/Modal.jsx";
 
@@ -87,8 +87,10 @@ function CardNoticia({ n, lida, lendoEsta, onGosto, onLer, onAbrir }) {
 // Escolher a voz da leitura (pedido 2026-10-02: voz masculina) + testar.
 function EscolherVoz() {
   const [lista, setLista] = useState(vozesPortugues);
+  const [todas, setTodas] = useState(todasVozes);
   const [nome, setNome] = useState(vozSalva);
-  useEffect(() => { const t = [400, 1500].map(ms => setTimeout(() => setLista(vozesPortugues()), ms)); return () => t.forEach(clearTimeout); }, []);
+  useEffect(() => { const t = [400, 1500].map(ms => setTimeout(() => { setLista(vozesPortugues()); setTodas(todasVozes()); }, ms)); return () => t.forEach(clearTimeout); }, []);
+  const outras = todas.filter(v => !lista.includes(v));
   const temHomem = lista.some(ehMasculina);
   const testar = () => {
     try {
@@ -104,11 +106,18 @@ function EscolherVoz() {
         <select value={nome} onChange={e => { setNome(e.target.value); salvarVoz(e.target.value); }}
                 style={{ flex: "1 1 200px", minWidth: 0, width: "auto", padding: "8px 10px", borderRadius: 10 }}>
           <option value="">Automática (masculina se houver)</option>
-          {lista.map(v => <option key={v.name} value={v.name}>{ehMasculina(v) ? "👨 " : ""}{v.name} · {v.lang}</option>)}
+          <option value={VOZ_SISTEMA}>🖥️ Voz do sistema (a escolhida no computador/celular)</option>
+          {lista.length > 0 && <optgroup label="Português">
+            {lista.map(v => <option key={v.name} value={v.name}>{ehMasculina(v) ? "👨 " : ""}{v.name} · {v.lang}</option>)}
+          </optgroup>}
+          {outras.length > 0 && <optgroup label="Outras vozes do aparelho">
+            {outras.map(v => <option key={v.name + v.lang} value={v.name}>{v.name} · {v.lang}</option>)}
+          </optgroup>}
         </select>
         <button className="btn-ghost" onClick={testar} style={{ padding: "8px 14px", flex: "0 0 auto", width: "auto" }}>▶ Testar</button>
       </div>
-      {!temHomem && (
+      <div style={{ fontSize: 11, color: T.faint, marginTop: 6 }}>{todas.length} voz(es) visíveis pro navegador · {lista.length} em português. Se a sua (ex.: Felipe) não aparecer, use “🖥️ Voz do sistema”.</div>
+      {!temHomem && nome !== VOZ_SISTEMA && (
         <div style={{ fontSize: 12, color: T.gold, marginTop: 8, lineHeight: 1.45 }}>
           Este aparelho não tem voz masculina em português instalada — por enquanto a leitura sai com a voz disponível em tom mais grave.
           No iPhone: <b>Ajustes → Acessibilidade → Conteúdo Falado → Vozes → Português (Brasil)</b> e baixe uma voz masculina (ex.: <b>Felipe</b>); depois volte aqui e escolha.
